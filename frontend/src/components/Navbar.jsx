@@ -68,7 +68,8 @@ const Navbar = () => {
                 AKWANDA.rw
               </Link>
 
-              {/* Navigation Buttons */}
+              {/* Navigation Buttons (hide for admin) */}
+              {user?.userType !== 'admin' && (
               <div className="hidden lg:flex items-center space-x-1 bg-gray-100 rounded-full p-1.5">
                 {navButtons.map((button, index) => {
                   const IconComponent = button.icon;
@@ -89,6 +90,7 @@ const Navbar = () => {
                   );
                 })}
               </div>
+              )}
             </div>
 
             {/* Right Side */}
@@ -126,11 +128,17 @@ const Navbar = () => {
                       onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                       className="flex items-center space-x-3 bg-white hover:bg-gray-50 border border-gray-200 px-4 py-2.5 rounded-xl transition-all duration-300 font-medium hover:shadow-md"
                     >
-                      <img
-                        src={user?.avatar}
-                        alt={user?.name}
-                        className="w-8 h-8 rounded-full object-cover ring-2 ring-blue-100"
-                      />
+                      {user?.avatar ? (
+                        <img
+                          src={user.avatar}
+                          alt={user?.name || user?.email}
+                          className="w-8 h-8 rounded-full object-cover ring-2 ring-blue-100"
+                        />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center ring-2 ring-blue-100">
+                          <span className="text-sm font-semibold">{(user?.email?.[0] || user?.name?.[0] || 'U').toUpperCase()}</span>
+                        </div>
+                      )}
                       <span className="hidden sm:inline text-gray-700 font-medium">
                         {user?.name?.split(" ")[0]}
                       </span>

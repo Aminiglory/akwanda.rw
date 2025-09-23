@@ -2,11 +2,13 @@ const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
 const cookieParser = require('cookie-parser');
+const bcrypt = require('bcryptjs');
 
 const authRouter = require('./tables/auth');
 const propertiesRouter = require('./routes/properties');
 const bookingsRouter = require('./routes/bookings');
 const adminRouter = require('./routes/admin');
+const userRouter = require('./routes/user');
 const User = require('./tables/user');
 
 const app = express();
@@ -28,22 +30,36 @@ app.use('/api/auth', authRouter);
 app.use('/api/properties', propertiesRouter);
 app.use('/api/bookings', bookingsRouter);
 app.use('/api/admin', adminRouter);
+app.use('/api/user', userRouter);
 
 async function seedAdminIfNeeded() {
-	const adminEmail = process.env.ADMIN_EMAIL;
-	const adminPasswordHash = process.env.ADMIN_PASSWORD_HASH; // pre-hash recommended
-	if (!adminEmail || !adminPasswordHash) return;
-	const existing = await User.findOne({ email: adminEmail.toLowerCase() });
-	if (existing) return;
+    const adminEmail = process.env.ADMIN_EMAIL;
+    let adminPasswordHash = process.env.ADMIN_PASSWORD_HASH; // pre-hash recommended
+    const adminPasswordPlain = process.env.ADMIN_PASSWORD; // fallback plain password
+    if (!adminEmail || (!adminPasswordHash && !adminPasswordPlain)) return;
+    const existing = await User.findOne({ email: adminEmail.toLowerCase() });
+    if (existing) {
+        if (process.env.ADMIN_FORCE_RESET === '1' && adminPasswordPlain) {
+            const newHash = await bcrypt.hash(adminPasswordPlain, 10);
+            existing.passwordHash = newHash;
+            existing.userType = 'admin';
+            await existing.save();
+            console.log('Admin password reset for', adminEmail.toLowerCase());
+        }
+        return;
+    }
+    if (!adminPasswordHash && adminPasswordPlain) {
+        adminPasswordHash = await bcrypt.hash(adminPasswordPlain, 10);
+    }
 	await User.create({
-		firstName: 'Super',
-		lastName: 'Admin',
+		firstName: process.env.ADMIN_FIRST_NAME || 'Admin',
+        lastName: process.env.ADMIN_LAST_NAME || 'Admin',
 		email: adminEmail.toLowerCase(),
-		phone: '0000000000',
+		phone: process.env.ADMIN_PHONE || '0000000000',
 		passwordHash: adminPasswordHash,
 		userType: 'admin'
 	});
-	console.log('Seeded super admin account');
+	console.log('Seeded admin account:', adminEmail.toLowerCase());
 }
 
 async function start() {

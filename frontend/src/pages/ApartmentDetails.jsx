@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { FaBed, FaBath, FaWifi, FaCar, FaUtensils, FaSwimmingPool, FaDog, FaSmokingBan, FaMapMarkerAlt, FaCalendarAlt, FaUser, FaStar, FaHeart, FaShare, FaPhone, FaEnvelope } from 'react-icons/fa';
 
 const ApartmentDetails = () => {
@@ -10,44 +12,49 @@ const ApartmentDetails = () => {
     guests: 1
   });
 
-  const apartment = {
-    id: 1,
-    title: "Luxury 2BR Apartment in Nyarutarama",
-    location: "Nyarutarama, Kigali, Rwanda",
-    price: 120000,
-    rating: 4.8,
-    reviews: 124,
-    type: "2 Bedroom Apartment",
-    size: "120 sqm",
-    images: [
-      "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&h=600&fit=crop",
-      "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop",
-      "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&h=600&fit=crop",
-      "https://images.unsplash.com/photo-1577495508048-b635879837f1?w=800&h=600&fit=crop"
-    ],
-    amenities: [
-      { icon: FaWifi, name: "Free WiFi" },
-      { icon: FaCar, name: "Parking" },
-      { icon: FaUtensils, name: "Kitchen" },
-      { icon: FaSwimmingPool, name: "Swimming Pool" },
-      { icon: FaDog, name: "Pet Friendly" },
-      { icon: FaSmokingBan, name: "No Smoking" }
-    ],
-    description: "This beautiful 2-bedroom apartment offers modern living in the heart of Nyarutarama. Perfect for professionals and families, it features contemporary design, high-end finishes, and access to premium amenities. The apartment includes a fully equipped kitchen, spacious living area, and private balcony with city views.",
-    host: {
-      name: "Jean Paul M.",
-      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face",
-      rating: 4.9,
-      responseTime: "Within an hour",
-      joinDate: "2020"
-    },
-    nearby: [
-      { name: "Kigali City Mall", distance: "2.5 km", type: "Shopping" },
-      { name: "King Faisal Hospital", distance: "3.2 km", type: "Healthcare" },
-      { name: "University of Rwanda", distance: "4.1 km", type: "Education" },
-      { name: "Kigali Bus Station", distance: "2.1 km", type: "Transport" }
-    ]
-  };
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  const { id } = useParams();
+  const [apartment, setApartment] = useState(null);
+  
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/properties/${id}`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Failed to load property');
+        const p = data.property;
+        setApartment({
+          id: p._id,
+          title: p.title,
+          location: `${p.address}, ${p.city}`,
+          price: p.pricePerNight,
+          rating: 4.8,
+          reviews: 0,
+          type: 'Apartment',
+          size: '—',
+          images: p.images && p.images.length ? p.images : [
+            'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&h=600&fit=crop'
+          ],
+          amenities: [
+            { icon: FaWifi, name: 'Free WiFi' },
+            { icon: FaCar, name: 'Parking' },
+            { icon: FaUtensils, name: 'Kitchen' }
+          ],
+          description: p.description || 'Beautiful apartment with great amenities.',
+          host: {
+            name: p.host ? `${p.host.firstName} ${p.host.lastName}` : '—',
+            avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face',
+            rating: 4.9,
+            responseTime: 'Within an hour',
+            joinDate: '2020'
+          },
+          nearby: []
+        });
+      } catch (e) {
+        toast.error(e.message);
+      }
+    })();
+  }, [id]);
 
   const handleBooking = (e) => {
     e.preventDefault();
@@ -69,6 +76,8 @@ const ApartmentDetails = () => {
       />
     ));
   };
+
+  if (!apartment) return <div className="min-h-screen bg-gray-50" />;
 
   return (
     <div className="min-h-screen bg-gray-50">

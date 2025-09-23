@@ -2,9 +2,13 @@ const { Router } = require('express');
 const jwt = require('jsonwebtoken');
 const Commission = require('../tables/commission');
 const Booking = require('../tables/booking');
+const Property = require('../tables/property');
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
+const path = require('path');
+const fs = require('fs');
+const multer = require('multer');
 
 function requireAdmin(req, res, next) {
 	const token = req.cookies.akw_token || (req.headers.authorization || '').replace('Bearer ', '');
@@ -41,5 +45,40 @@ router.get('/commission', requireAdmin, async (req, res) => {
 });
 
 module.exports = router;
+// Additional admin endpoints
+router.get('/bookings/pending-commission', requireAdmin, async (req, res) => {
+    const list = await Booking.find({ status: 'commission_due', commissionPaid: false }).populate('property');
+    res.json({ bookings: list });
+});
+
+router.post('/properties/:id/toggle', requireAdmin, async (req, res) => {
+    const property = await Property.findById(req.params.id);
+    if (!property) return res.status(404).json({ message: 'Property not found' });
+    property.isActive = !property.isActive;
+    await property.save();
+    res.json({ property });
+});
+
+// Avatar upload
+const uploadDir = path.join(process.cwd(), 'uploads');
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) { cb(null, uploadDir); },
+    filename: function (req, file, cb) {
+        const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
+        const ext = path.extname(file.originalname);
+        cb(null, unique + ext);
+    }
+});
+const upload = multer({ storage });
+
+router.post('/me/avatar', requireAdmin, upload.single('avatar'), async (req, res) => {
+    const User = require('../tables/user');
+    const u = await User.findById(req.user.id);
+    if (!u) return res.status(404).json({ message: 'User not found' });
+    u.avatar = `/uploads/${path.basename(req.file.path)}`;
+    await u.save();
+    res.json({ user: { id: u._id, avatar: u.avatar } });
+});
 
 

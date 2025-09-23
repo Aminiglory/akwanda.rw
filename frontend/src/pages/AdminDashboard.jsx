@@ -7,6 +7,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 const AdminDashboard = () => {
   const [metrics, setMetrics] = useState({ totalBookings: 0, pendingCommissions: 0, confirmed: 0 });
   const [ratePercent, setRatePercent] = useState('');
+  const [pending, setPending] = useState([]);
 
   useEffect(() => {
     (async () => {
@@ -15,6 +16,9 @@ const AdminDashboard = () => {
         const data = await res.json();
         if (!res.ok) throw new Error(data.message || 'Failed to load overview');
         setMetrics(data.metrics);
+        const p = await fetch(`${API_URL}/api/admin/bookings/pending-commission`, { credentials: 'include' });
+        const pData = await p.json();
+        if (p.ok) setPending(pData.bookings || []);
       } catch (e) { toast.error(e.message); }
     })();
   }, []);
@@ -70,6 +74,34 @@ const AdminDashboard = () => {
             <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-semibold">Save</button>
           </div>
         </form>
+
+        <div className="mt-8 bg-white rounded-2xl shadow-lg p-6">
+          <h2 className="text-xl font-semibold mb-4">Pending Commissions</h2>
+          <div className="space-y-4">
+            {pending.map(b => (
+              <div key={b._id} className="flex items-center justify-between border border-gray-100 rounded-xl p-4">
+                <div>
+                  <div className="font-medium text-gray-900">{b.property?.title}</div>
+                  <div className="text-sm text-gray-600">Commission: RWF {b.commissionAmount?.toLocaleString()}</div>
+                </div>
+                <button onClick={async () => {
+                  try {
+                    const res = await fetch(`${API_URL}/api/bookings/${b._id}/commission/confirm`, {
+                      method: 'POST', credentials: 'include'
+                    });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.message || 'Failed to confirm');
+                    toast.success('Commission confirmed');
+                    setPending(pending.filter(x => x._id !== b._id));
+                  } catch (e) { toast.error(e.message); }
+                }} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">Confirm</button>
+              </div>
+            ))}
+            {pending.length === 0 && (
+              <div className="text-gray-500">No pending commissions.</div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

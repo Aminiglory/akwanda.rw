@@ -1,6 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FaBed, FaBath, FaWifi, FaCar, FaStar, FaMapMarkerAlt, FaFilter, FaSearch, FaSortAmountDown } from 'react-icons/fa';
+import toast from 'react-hot-toast';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const ApartmentsListing = () => {
   const [filters, setFilters] = useState({
@@ -13,98 +16,38 @@ const ApartmentsListing = () => {
 
   const [showFilters, setShowFilters] = useState(false);
 
-  const apartments = [
-    {
-      id: 1,
-      title: "Luxury 2BR Apartment in Nyarutarama",
-      location: "Nyarutarama, Kigali, Rwanda",
-      price: 120000,
-      rating: 4.8,
-      reviews: 124,
-      bedrooms: 2,
-      bathrooms: 2,
-      size: "120 sqm",
-      image: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=500&h=300&fit=crop",
-      amenities: ["WiFi", "Parking", "Kitchen", "Balcony"],
-      isAvailable: true,
-      host: "Jean Paul M."
-    },
-    {
-      id: 2,
-      title: "Modern Studio in Kigali City Center",
-      location: "Kigali City Center, Rwanda",
-      price: 85000,
-      rating: 4.7,
-      reviews: 89,
-      bedrooms: 1,
-      bathrooms: 1,
-      size: "45 sqm",
-      image: "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=500&h=300&fit=crop",
-      amenities: ["WiFi", "Kitchen", "Gym"],
-      isAvailable: true,
-      host: "Grace N."
-    },
-    {
-      id: 3,
-      title: "Cozy 1BR with Mountain View",
-      location: "Gisenyi, Rwanda",
-      price: 95000,
-      rating: 4.6,
-      reviews: 67,
-      bedrooms: 1,
-      bathrooms: 1,
-      size: "60 sqm",
-      image: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=500&h=300&fit=crop",
-      amenities: ["WiFi", "Kitchen", "Mountain View"],
-      isAvailable: false,
-      host: "Paul R."
-    },
-    {
-      id: 4,
-      title: "Spacious 3BR Family Home",
-      location: "Huye, Rwanda",
-      price: 150000,
-      rating: 4.9,
-      reviews: 156,
-      bedrooms: 3,
-      bathrooms: 2,
-      size: "180 sqm",
-      image: "https://images.unsplash.com/photo-1577495508048-b635879837f1?w=500&h=300&fit=crop",
-      amenities: ["WiFi", "Parking", "Kitchen", "Garden", "Pool"],
-      isAvailable: true,
-      host: "Marie C."
-    },
-    {
-      id: 5,
-      title: "Contemporary 2BR in Kimisagara",
-      location: "Kimisagara, Kigali, Rwanda",
-      price: 75000,
-      rating: 4.5,
-      reviews: 92,
-      bedrooms: 2,
-      bathrooms: 1,
-      size: "90 sqm",
-      image: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=500&h=300&fit=crop",
-      amenities: ["WiFi", "Kitchen", "Balcony"],
-      isAvailable: true,
-      host: "David M."
-    },
-    {
-      id: 6,
-      title: "Executive 1BR in Kacyiru",
-      location: "Kacyiru, Kigali, Rwanda",
-      price: 110000,
-      rating: 4.7,
-      reviews: 78,
-      bedrooms: 1,
-      bathrooms: 1,
-      size: "55 sqm",
-      image: "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=500&h=300&fit=crop",
-      amenities: ["WiFi", "Parking", "Kitchen", "Concierge"],
-      isAvailable: true,
-      host: "Sarah K."
-    }
-  ];
+  const [apartments, setApartments] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/properties`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Failed to load properties');
+        const mapped = (data.properties || []).map(p => ({
+          id: p._id,
+          title: p.title,
+          location: `${p.address}, ${p.city}`,
+          price: p.pricePerNight,
+          rating: 4.7,
+          reviews: 0,
+          bedrooms: 2,
+          bathrooms: 1,
+          size: '—',
+          image: (p.images && p.images[0]) || 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=500&h=300&fit=crop',
+          amenities: ['WiFi','Parking','Kitchen'],
+          isAvailable: p.isActive,
+          host: p.host ? `${p.host.firstName} ${p.host.lastName}` : '—'
+        }));
+        setApartments(mapped);
+      } catch (e) {
+        toast.error(e.message);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
 
   const handleFilterChange = (field, value) => {
     setFilters(prev => ({
@@ -245,7 +188,7 @@ const ApartmentsListing = () => {
           <div className="lg:col-span-3">
             {/* Sort and Results */}
             <div className="flex items-center justify-between mb-6">
-              <p className="text-gray-600">{apartments.length} apartments found</p>
+              <p className="text-gray-600">{loading ? 'Loading...' : `${apartments.length} apartments found`}</p>
               <div className="flex items-center space-x-2">
                 <FaSortAmountDown className="text-gray-400" />
                 <select

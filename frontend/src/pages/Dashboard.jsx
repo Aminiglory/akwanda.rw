@@ -1,66 +1,56 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { FaBed, FaMapMarkerAlt, FaCalendarAlt, FaStar, FaHeart, FaEdit, FaTrash, FaPlus, FaFilter, FaSearch } from 'react-icons/fa';
+import { useAuth } from '../contexts/AuthContext';
+import toast from 'react-hot-toast';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('bookings');
-  const [user] = useState({
-    name: 'Jean Paul M.',
-    email: 'jeanpaul@example.com',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face',
-    userType: 'guest'
-  });
+  const { user } = useAuth();
 
-  const bookings = [
-    {
-      id: 1,
-      apartment: {
-        title: "Luxury 2BR Apartment in Nyarutarama",
-        image: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=300&h=200&fit=crop",
-        location: "Nyarutarama, Kigali"
-      },
-      checkIn: "2024-02-15",
-      checkOut: "2024-05-15",
-      status: "confirmed",
-      total: 360000,
-      rating: 4.8
-    },
-    {
-      id: 2,
-      apartment: {
-        title: "Modern Studio in Kigali City Center",
-        image: "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=300&h=200&fit=crop",
-        location: "Kigali City Center"
-      },
-      checkIn: "2024-03-01",
-      checkOut: "2024-06-01",
-      status: "pending",
-      total: 255000,
-      rating: null
-    }
-  ];
+  const [bookings, setBookings] = useState([]);
 
-  const listings = [
-    {
-      id: 1,
-      title: "Cozy 1BR Apartment",
-      location: "Kimisagara, Kigali",
-      price: 85000,
-      image: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=300&h=200&fit=crop",
-      status: "active",
-      bookings: 12,
-      rating: 4.7
-    },
-    {
-      id: 2,
-      title: "Spacious 3BR Family Home",
-      location: "Remera, Kigali",
-      price: 150000,
-      image: "https://images.unsplash.com/photo-1577495508048-b635837f1?w=300&h=200&fit=crop",
-      status: "pending",
-      bookings: 0,
-      rating: null
-    }
-  ];
+  const [listings, setListings] = useState([]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const [bRes, pRes] = await Promise.all([
+          fetch(`${API_URL}/api/bookings/mine`, { credentials: 'include' }),
+          fetch(`${API_URL}/api/properties/mine`, { credentials: 'include' })
+        ]);
+        const [bData, pData] = [await bRes.json(), await pRes.json()];
+        if (!bRes.ok) throw new Error(bData.message || 'Failed to load bookings');
+        if (!pRes.ok) throw new Error(pData.message || 'Failed to load listings');
+        setBookings((bData.bookings || []).map(b => ({
+          id: b._id,
+          apartment: {
+            title: b.property?.title,
+            image: (b.property?.images && b.property.images[0]) || 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=300&h=200&fit=crop',
+            location: `${b.property?.address}, ${b.property?.city}`
+          },
+          checkIn: b.checkIn?.slice(0,10),
+          checkOut: b.checkOut?.slice(0,10),
+          status: b.status,
+          total: b.totalAmount,
+          rating: null
+        })));
+        setListings((pData.properties || []).map(p => ({
+          id: p._id,
+          title: p.title,
+          location: `${p.address}, ${p.city}`,
+          price: p.pricePerNight,
+          image: (p.images && p.images[0]) || 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=300&h=200&fit=crop',
+          status: p.isActive ? 'active' : 'inactive',
+          bookings: 0,
+          rating: null
+        })));
+      } catch (e) {
+        toast.error(e.message);
+      }
+    })();
+  }, []);
 
   const renderStars = (rating) => {
     if (!rating) return null;
@@ -361,16 +351,28 @@ const Dashboard = () => {
                     </div>
                   </div>
                   <div className="space-y-6">
-                    <div className="text-center">
-                      <img
-                        src={user.avatar}
-                        alt={user.name}
-                        className="w-24 h-24 rounded-full mx-auto mb-4"
-                      />
-                      <button className="text-blue-600 hover:text-blue-700 font-medium">
-                        Change Photo
-                      </button>
-                    </div>
+                  <div className="text-center">
+                    <img
+                      src={user.avatar}
+                      alt={user.name}
+                      className="w-24 h-24 rounded-full mx-auto mb-4"
+                    />
+                    <label className="text-blue-600 hover:text-blue-700 font-medium cursor-pointer">
+                      Change Photo
+                      <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        const body = new FormData();
+                        body.append('avatar', file);
+                        try {
+                          const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/user/me/avatar`, { method: 'POST', credentials: 'include', body });
+                          const data = await res.json();
+                          if (!res.ok) throw new Error(data.message || 'Failed to update avatar');
+                          window.location.reload();
+                        } catch (err) { console.error(err); }
+                      }} />
+                    </label>
+                  </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Bio</label>
                       <textarea

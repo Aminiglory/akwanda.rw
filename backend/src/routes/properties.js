@@ -24,6 +24,17 @@ router.get('/', async (req, res) => {
 	res.json({ properties });
 });
 
+router.get('/mine', requireAuth, async (req, res) => {
+    const list = await Property.find({ host: req.user.id });
+    res.json({ properties: list });
+});
+
+router.get('/:id', async (req, res) => {
+    const property = await Property.findById(req.params.id).populate('host', 'firstName lastName');
+    if (!property || !property.isActive) return res.status(404).json({ message: 'Property not found' });
+    res.json({ property });
+});
+
 const uploadDir = path.join(process.cwd(), 'uploads');
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 const storage = multer.diskStorage({
@@ -47,10 +58,6 @@ router.post('/', requireAuth, upload.array('images', 10), async (req, res) => {
 	res.status(201).json({ property: created });
 });
 
-router.get('/mine', requireAuth, async (req, res) => {
-	const list = await Property.find({ host: req.user.id });
-	res.json({ properties: list });
-});
 
 module.exports = router;
 
