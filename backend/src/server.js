@@ -30,14 +30,18 @@ app.get('/api/metrics/landing', async (req, res) => {
     try {
         const Booking = require('./tables/booking');
         const Property = require('./tables/property');
-        const totalBookings = await Booking.countDocuments();
-        const confirmedCount = await Booking.countDocuments({ status: 'confirmed' });
+        // Active Listings: properties with isActive true
         const activeListings = await Property.countDocuments({ isActive: true });
-        const distinctHappyGuests = await Booking.distinct('guest', { status: 'confirmed' });
-        const satisfactionRate = totalBookings > 0 ? Math.round((confirmedCount / totalBookings) * 1000) / 10 : 0; // one decimal
-        res.json({ metrics: { activeListings, happyGuests: distinctHappyGuests.length, satisfactionRate } });
+        // Happy Guests: unique users who have made at least one booking
+        const allGuestIds = await Booking.distinct('guest');
+        const happyGuests = allGuestIds.length;
+        // Satisfaction Rate: percent of confirmed bookings out of all bookings
+        const totalBookings = await Booking.countDocuments();
+        const confirmedBookings = await Booking.countDocuments({ status: 'confirmed' });
+        const satisfactionRate = totalBookings > 0 ? Math.round((confirmedBookings / totalBookings) * 1000) / 10 : 0; // one decimal
+        res.json({ metrics: { activeListings, happyGuests, satisfactionRate } });
     } catch (e) {
-        res.status(500).json({ message: 'Failed to load metrics' });
+        res.json({ metrics: { activeListings: 0, happyGuests: 0, satisfactionRate: 0 } });
     }
 });
 

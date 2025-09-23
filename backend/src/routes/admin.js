@@ -47,6 +47,22 @@ router.get('/commission', requireAdmin, async (req, res) => {
 
 module.exports = router;
 // Additional admin endpoints
+// Landing page metrics endpoint (public)
+router.get('/metrics', async (req, res) => {
+    const User = require('../tables/user');
+    const Property = require('../tables/property');
+    const Booking = require('../tables/booking');
+    // Happy Guests: count unique guests from bookings
+    const guestIds = await Booking.distinct('guest');
+    const happyGuests = guestIds.length;
+    // Active Listings: count of properties with isActive true
+    const activeListings = await Property.countDocuments({ isActive: true });
+    // Satisfaction Rate: percent of confirmed bookings (as a proxy)
+    const totalBookings = await Booking.countDocuments();
+    const confirmedBookings = await Booking.countDocuments({ status: 'confirmed' });
+    const satisfactionRate = totalBookings > 0 ? Math.round((confirmedBookings / totalBookings) * 100) : 100;
+    res.json({ happyGuests, activeListings, satisfactionRate });
+});
 router.get('/bookings/pending-commission', requireAdmin, async (req, res) => {
     const list = await Booking.find({ status: 'commission_due', commissionPaid: false })
         .populate('property')

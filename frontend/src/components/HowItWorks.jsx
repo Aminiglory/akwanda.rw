@@ -1,8 +1,20 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FaSearch, FaHandshake, FaCreditCard, FaKey, FaUpload, FaCheckCircle } from 'react-icons/fa';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 const HowItWorks = () => {
+  const [metrics, setMetrics] = useState({ activeListings: 0, happyGuests: 0, satisfactionRate: 0 });
+  useEffect(() => {
+    (async () => {
+      try {
+  const res = await fetch(`${API_URL}/api/metrics/landing`);
+  const data = await res.json();
+  if (res.ok && data.metrics) setMetrics(data.metrics);
+      } catch (_) {}
+    })();
+  }, []);
   const guestSteps = [
     {
       icon: FaSearch,
@@ -137,15 +149,15 @@ const HowItWorks = () => {
         {/* Stats Section */}
         <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="text-center p-6 bg-blue-50 rounded-xl">
-            <div className="text-4xl font-bold text-blue-600 mb-2">1000+</div>
+            <div className="text-4xl font-bold text-blue-600 mb-2">{metrics.activeListings?.toLocaleString?.() || 0}</div>
             <div className="text-gray-700 font-semibold">Active Listings</div>
           </div>
           <div className="text-center p-6 bg-blue-50 rounded-xl">
-            <div className="text-4xl font-bold text-blue-600 mb-2">5000+</div>
+            <div className="text-4xl font-bold text-blue-600 mb-2">{metrics.happyGuests?.toLocaleString?.() || 0}</div>
             <div className="text-gray-700 font-semibold">Happy Guests</div>
           </div>
           <div className="text-center p-6 bg-blue-50 rounded-xl">
-            <div className="text-4xl font-bold text-blue-600 mb-2">98%</div>
+            <div className="text-4xl font-bold text-blue-600 mb-2">{metrics.satisfactionRate ?? 0}%</div>
             <div className="text-gray-700 font-semibold">Satisfaction Rate</div>
           </div>
         </div>

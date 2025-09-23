@@ -14,9 +14,9 @@ const Hero = () => {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch(`${API_URL}/api/metrics/landing`);
-        const data = await res.json();
-        if (res.ok) setMetrics(data.metrics || {});
+  const res = await fetch(`${API_URL}/api/metrics/landing`);
+  const data = await res.json();
+  if (res.ok && data.metrics) setMetrics(data.metrics);
       } catch (_) {}
     })();
   }, []);
