@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { FaUsersCog, FaMoneyBill, FaCheckCircle, FaClock } from 'react-icons/fa';
 import toast from 'react-hot-toast';
+import { useAuth } from '../contexts/AuthContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -8,6 +9,7 @@ const AdminDashboard = () => {
   const [metrics, setMetrics] = useState({ totalBookings: 0, pendingCommissions: 0, confirmed: 0 });
   const [ratePercent, setRatePercent] = useState('');
   const [pending, setPending] = useState([]);
+  const { user } = useAuth();
 
   useEffect(() => {
     (async () => {
@@ -42,7 +44,18 @@ const AdminDashboard = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-6">Admin Dashboard</h1>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+          <div className="flex items-center gap-4">
+            {user?.avatar ? (
+              <img src={user.avatar} alt={user?.name} className="w-10 h-10 rounded-full object-cover" />
+            ) : (
+              <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center text-lg font-bold">
+                {(user?.name?.[0] || user?.email?.[0] || 'A').toUpperCase()}
+              </div>
+            )}
+          </div>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="bg-white rounded-2xl shadow-lg p-6 flex items-center gap-4">
             <FaUsersCog className="text-blue-600 text-3xl" />

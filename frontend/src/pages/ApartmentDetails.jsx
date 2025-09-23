@@ -56,9 +56,21 @@ const ApartmentDetails = () => {
     })();
   }, [id]);
 
-  const handleBooking = (e) => {
+  const handleBooking = async (e) => {
     e.preventDefault();
-    console.log('Booking data:', bookingData);
+    try {
+      const res = await fetch(`${API_URL}/api/bookings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ propertyId: id, checkIn: bookingData.checkIn, checkOut: bookingData.checkOut })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to book');
+      toast.success('Booking created');
+    } catch (err) {
+      toast.error(err.message);
+    }
   };
 
   const handleInputChange = (field, value) => {
@@ -251,12 +263,12 @@ const ApartmentDetails = () => {
           {/* Booking Sidebar */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-2xl shadow-lg p-6 sticky top-8">
-              <div className="text-center mb-6">
-                <div className="text-3xl font-bold text-blue-600 mb-1">
-                  RWF {apartment.price.toLocaleString()}
+                <div className="text-center mb-6">
+                  <div className="text-3xl font-bold text-blue-600 mb-1">
+                    RWF {apartment.price.toLocaleString()}
+                  </div>
+                  <span className="text-gray-600">per month</span>
                 </div>
-                <span className="text-gray-600">per month</span>
-              </div>
 
               <form onSubmit={handleBooking} className="space-y-4">
                 <div>
@@ -328,12 +340,8 @@ const ApartmentDetails = () => {
                   <span className="font-medium">RWF {apartment.price.toLocaleString()}</span>
                 </div>
                 <div className="flex items-center justify-between text-sm mt-2">
-                  <span className="text-gray-600">Service fee</span>
+                  <span className="text-gray-600">Commission (approx.)</span>
                   <span className="font-medium">RWF {(apartment.price * 0.1).toLocaleString()}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm mt-2 font-semibold">
-                  <span>Total</span>
-                  <span>RWF {(apartment.price * 1.1).toLocaleString()}</span>
                 </div>
               </div>
             </div>

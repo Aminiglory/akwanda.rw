@@ -23,7 +23,7 @@ app.use(cookieParser());
 app.use('/uploads', require('express').static(require('path').join(process.cwd(), 'uploads')));
 
 app.get('/health', (req, res) => {
-	res.json({ status: 'ok' });
+	res.json({ status: 'ok' }); 
 });
 
 app.use('/api/auth', authRouter);

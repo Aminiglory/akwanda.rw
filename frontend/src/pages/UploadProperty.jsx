@@ -11,7 +11,8 @@ const UploadProperty = () => {
     description: '',
     address: '',
     city: '',
-    pricePerNight: ''
+    pricePerNight: '',
+    discountPercent: ''
   });
   const [files, setFiles] = useState([]);
   const [submitting, setSubmitting] = useState(false);
@@ -25,7 +26,7 @@ const UploadProperty = () => {
       return toast.error('Please fill all required fields');
     }
     const body = new FormData();
-    Object.entries(form).forEach(([k, v]) => body.append(k, v));
+    Object.entries(form).forEach(([k, v]) => v !== '' && body.append(k, v));
     Array.from(files).forEach(f => body.append('images', f));
     try {
       setSubmitting(true);
@@ -73,6 +74,10 @@ const UploadProperty = () => {
             <label className="block text-sm font-medium text-gray-700 mb-1">Price per night (RWF)</label>
             <input type="number" value={form.pricePerNight} onChange={e => onChange('pricePerNight', e.target.value)} className="w-full border border-gray-300 rounded-lg px-4 py-3" required />
           </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Discount (%)</label>
+          <input type="number" min="0" max="100" value={form.discountPercent} onChange={e => onChange('discountPercent', e.target.value)} className="w-full border border-gray-300 rounded-lg px-4 py-3" placeholder="Optional" />
+        </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Images</label>
             <input type="file" accept="image/*" multiple onChange={e => setFiles(e.target.files)} />

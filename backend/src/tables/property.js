@@ -9,7 +9,9 @@ const propertySchema = new mongoose.Schema(
     pricePerNight: { type: Number, required: true },
     images: [{ type: String }],
     host: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    isActive: { type: Boolean, default: true }
+    isActive: { type: Boolean, default: true },
+    discountPercent: { type: Number, default: 0, min: 0, max: 100 },
+    availability: { type: String, enum: ['available', 'in_use'], default: 'available' }
   },
   { timestamps: true }
 );

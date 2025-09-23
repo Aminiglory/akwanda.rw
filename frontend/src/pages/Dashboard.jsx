@@ -352,26 +352,13 @@ const Dashboard = () => {
                   </div>
                   <div className="space-y-6">
                   <div className="text-center">
-                    <img
-                      src={user.avatar}
-                      alt={user.name}
-                      className="w-24 h-24 rounded-full mx-auto mb-4"
-                    />
-                    <label className="text-blue-600 hover:text-blue-700 font-medium cursor-pointer">
-                      Change Photo
-                      <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
-                        const file = e.target.files?.[0];
-                        if (!file) return;
-                        const body = new FormData();
-                        body.append('avatar', file);
-                        try {
-                          const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/user/me/avatar`, { method: 'POST', credentials: 'include', body });
-                          const data = await res.json();
-                          if (!res.ok) throw new Error(data.message || 'Failed to update avatar');
-                          window.location.reload();
-                        } catch (err) { console.error(err); }
-                      }} />
-                    </label>
+                    {user.avatar ? (
+                      <img src={user.avatar} alt={user.name} className="w-24 h-24 rounded-full mx-auto mb-4 object-cover" />
+                    ) : (
+                      <div className="w-24 h-24 rounded-full mx-auto mb-4 bg-blue-600 text-white flex items-center justify-center text-3xl font-bold">
+                        {(user?.name?.[0] || user?.email?.[0] || 'U').toUpperCase()}
+                      </div>
+                    )}
                   </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Bio</label>

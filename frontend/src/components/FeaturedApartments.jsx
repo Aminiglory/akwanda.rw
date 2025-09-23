@@ -1,62 +1,35 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FaStar, FaMapMarkerAlt, FaBed, FaBath, FaWifi, FaCar } from 'react-icons/fa';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 const FeaturedApartments = () => {
-  const apartments = [
-    {
-      id: 1,
-      title: "Luxury Studio in Kigali",
-      location: "Kigali, Rwanda",
-      price: 85000,
-      rating: 4.8,
-      reviews: 124,
-      image: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=500&h=300&fit=crop",
-      bedrooms: 1,
-      bathrooms: 1,
-      amenities: ["WiFi", "Parking", "Kitchen", "Balcony"],
-      isAvailable: true
-    },
-    {
-      id: 2,
-      title: "Modern 2BR Apartment",
-      location: "Musanze, Rwanda",
-      price: 120000,
-      rating: 4.9,
-      reviews: 89,
-      image: "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=500&h=300&fit=crop",
-      bedrooms: 2,
-      bathrooms: 2,
-      amenities: ["WiFi", "Parking", "Kitchen", "Garden"],
-      isAvailable: true
-    },
-    {
-      id: 3,
-      title: "Cozy 1BR with Mountain View",
-      location: "Gisenyi, Rwanda",
-      price: 95000,
-      rating: 4.7,
-      reviews: 67,
-      image: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=500&h=300&fit=crop",
-      bedrooms: 1,
-      bathrooms: 1,
-      amenities: ["WiFi", "Kitchen", "Mountain View"],
-      isAvailable: false
-    },
-    {
-      id: 4,
-      title: "Spacious 3BR Family Home",
-      location: "Huye, Rwanda",
-      price: 150000,
-      rating: 4.9,
-      reviews: 156,
-      image: "https://images.unsplash.com/photo-1577495508048-b635879837f1?w=500&h=300&fit=crop",
-      bedrooms: 3,
-      bathrooms: 2,
-      amenities: ["WiFi", "Parking", "Kitchen", "Garden", "Pool"],
-      isAvailable: true
-    }
-  ];
+  const [apartments, setApartments] = useState([]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/properties`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Failed to load properties');
+        setApartments((data.properties || []).slice(0, 4).map(p => ({
+          id: p._id,
+          title: p.title,
+          location: `${p.address}, ${p.city}`,
+          price: p.pricePerNight,
+          rating: 4.8,
+          reviews: 0,
+          image: (p.images && p.images[0]) || 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=500&h=300&fit=crop',
+          bedrooms: 2,
+          bathrooms: 1,
+          amenities: ["WiFi", "Parking", "Kitchen"],
+          isAvailable: p.isActive,
+          discountPercent: p.discountPercent || 0
+        })));
+      } catch (_) {}
+    })();
+  }, []);
 
   const renderStars = (rating) => {
     return Array.from({ length: 5 }, (_, i) => (
@@ -101,6 +74,11 @@ const FeaturedApartments = () => {
                 <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1 text-sm font-semibold text-gray-800">
                   RWF {apartment.price.toLocaleString()}/month
                 </div>
+                {apartment.discountPercent > 0 && (
+                  <div className="absolute top-4 left-40 bg-green-600 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                    {apartment.discountPercent}% OFF
+                  </div>
+                )}
               </div>
 
               {/* Content */}

@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const Commission = require('../tables/commission');
 const Booking = require('../tables/booking');
 const Property = require('../tables/property');
+const Notification = require('../tables/notification');
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
@@ -79,6 +80,20 @@ router.post('/me/avatar', requireAdmin, upload.single('avatar'), async (req, res
     u.avatar = `/uploads/${path.basename(req.file.path)}`;
     await u.save();
     res.json({ user: { id: u._id, avatar: u.avatar } });
+});
+
+// Notifications
+router.get('/notifications', requireAdmin, async (req, res) => {
+    const list = await Notification.find({}).sort({ createdAt: -1 }).limit(50).populate('booking').populate('property');
+    res.json({ notifications: list });
+});
+
+router.post('/notifications/:id/read', requireAdmin, async (req, res) => {
+    const n = await Notification.findById(req.params.id);
+    if (!n) return res.status(404).json({ message: 'Not found' });
+    n.isRead = true;
+    await n.save();
+    res.json({ notification: n });
 });
 
 

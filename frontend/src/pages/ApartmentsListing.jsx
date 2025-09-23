@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { FaBed, FaBath, FaWifi, FaCar, FaStar, FaMapMarkerAlt, FaFilter, FaSearch, FaSortAmountDown } from 'react-icons/fa';
 import toast from 'react-hot-toast';
+import { useAuth } from '../contexts/AuthContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const ApartmentsListing = () => {
+  const { isAuthenticated, isLoading } = useAuth();
   const [filters, setFilters] = useState({
     location: '',
     priceRange: '',
@@ -17,12 +19,13 @@ const ApartmentsListing = () => {
   const [showFilters, setShowFilters] = useState(false);
 
   const [apartments, setApartments] = useState([]);
+  const [allApartments, setAllApartments] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch(`${API_URL}/api/properties`);
+        const res = await fetch(`${API_URL}/api/properties`, { credentials: 'include' });
         const data = await res.json();
         if (!res.ok) throw new Error(data.message || 'Failed to load properties');
         const mapped = (data.properties || []).map(p => ({
@@ -40,6 +43,7 @@ const ApartmentsListing = () => {
           isAvailable: p.isActive,
           host: p.host ? `${p.host.firstName} ${p.host.lastName}` : '—'
         }));
+        setAllApartments(mapped);
         setApartments(mapped);
       } catch (e) {
         toast.error(e.message);
@@ -65,6 +69,44 @@ const ApartmentsListing = () => {
     }));
   };
 
+  useEffect(() => {
+    let list = [...allApartments];
+    // Location
+    if (filters.location) {
+      const q = filters.location.toLowerCase();
+      list = list.filter(a => a.location.toLowerCase().includes(q) || a.title.toLowerCase().includes(q));
+    }
+    // Price
+    if (filters.priceRange) {
+      const [minStr, maxStr] = filters.priceRange.split('-');
+      const min = Number(minStr || 0);
+      const max = maxStr === '+' ? Infinity : Number(maxStr || Infinity);
+      list = list.filter(a => a.price >= min && a.price <= max);
+    }
+    // Bedrooms (placeholder since we don’t have bedrooms in DB)
+    if (filters.bedrooms) {
+      const b = filters.bedrooms === '4+' ? 4 : Number(filters.bedrooms);
+      list = list.filter(a => (a.bedrooms >= b));
+    }
+    // Amenities (placeholder)
+    if (filters.amenities.length) {
+      list = list.filter(a => filters.amenities.every(am => a.amenities.includes(am)));
+    }
+    // Sort
+    switch (filters.sortBy) {
+      case 'price-asc':
+        list.sort((x,y) => x.price - y.price); break;
+      case 'price-desc':
+        list.sort((x,y) => y.price - x.price); break;
+      case 'newest':
+        // not in mapping; keep as-is
+        break;
+      default:
+        break;
+    }
+    setApartments(list);
+  }, [filters, allApartments]);
+
   const renderStars = (rating) => {
     return Array.from({ length: 5 }, (_, i) => (
       <FaStar
@@ -74,6 +116,8 @@ const ApartmentsListing = () => {
     ));
   };
 
+  if (isLoading) return null;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}

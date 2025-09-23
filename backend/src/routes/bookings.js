@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const Booking = require('../tables/booking');
 const Property = require('../tables/property');
 const Commission = require('../tables/commission');
+const Notification = require('../tables/notification');
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
@@ -23,9 +24,10 @@ router.post('/', requireAuth, async (req, res) => {
 	const property = await Property.findById(propertyId);
 	if (!property || !property.isActive) return res.status(404).json({ message: 'Property not found' });
 	const nights = Math.max(1, Math.ceil((new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24)));
-	const totalAmount = property.pricePerNight * nights;
+    const base = property.pricePerNight * nights;
+    const totalAmount = Math.round(base * (1 - (property.discountPercent || 0) / 100));
 	const commissionDoc = await Commission.findOne({ active: true }).sort({ createdAt: -1 });
-	const rate = commissionDoc ? commissionDoc.ratePercent : 10;
+    const rate = commissionDoc ? commissionDoc.ratePercent : 10;
 	const commissionAmount = Math.round((totalAmount * rate) / 100);
 	const booking = await Booking.create({
 		property: property._id,
@@ -37,6 +39,14 @@ router.post('/', requireAuth, async (req, res) => {
 		commissionAmount,
 		commissionPaid: false
 	});
+  // Create admin notification
+  await Notification.create({
+    type: 'booking_created',
+    title: 'New booking created',
+    message: `A booking was created for ${property.title}`,
+    booking: booking._id,
+    property: property._id
+  });
 	res.status(201).json({ booking });
 });
 

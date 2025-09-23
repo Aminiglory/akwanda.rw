@@ -51,7 +51,7 @@ function App() {
           {/* Main Content */}
           <Routes>
             <Route path="/" element={<Home />} />
-            <Route path="/apartments" element={<ApartmentsListing />} />
+            <Route path="/apartments" element={<ProtectedRoute><ApartmentsListing /></ProtectedRoute>} />
             <Route path="/flights" element={<Flights />} />
             <Route path="/attractions" element={<Attractions />} />
             <Route path="/taxis" element={<AirportTaxis />} />

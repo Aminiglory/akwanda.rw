@@ -90,12 +90,26 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('user');
   };
 
+  const updateAvatar = async (file, isAdmin = false) => {
+    const body = new FormData();
+    body.append('avatar', file);
+    const endpoint = isAdmin ? `${API_URL}/api/admin/me/avatar` : `${API_URL}/api/user/me/avatar`;
+    const res = await fetch(endpoint, { method: 'POST', credentials: 'include', body });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Failed to update avatar');
+    const updated = { ...(user || {}), avatar: data.user?.avatar };
+    setUser(updated);
+    localStorage.setItem('user', JSON.stringify(updated));
+    return updated;
+  };
+
   const value = {
     user,
     isLoading,
     login,
     register,
     logout,
+    updateAvatar,
     isAuthenticated: !!user
   };
 

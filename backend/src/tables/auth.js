@@ -48,7 +48,8 @@ router.post('/register', async (req, res) => {
 				id: user._id,
 				name: `${user.firstName} ${user.lastName}`,
 				email: user.email,
-				userType: user.userType
+				userType: user.userType,
+				avatar: user.avatar
 			},
 			token
 		});
@@ -72,7 +73,8 @@ router.post('/login', async (req, res) => {
 				id: user._id,
 				name: `${user.firstName} ${user.lastName}`,
 				email: user.email,
-				userType: user.userType
+				userType: user.userType,
+				avatar: user.avatar
 			},
 			token
 		});
@@ -87,14 +89,15 @@ router.post('/logout', (req, res) => {
 });
 
 router.get('/me', authMiddleware, async (req, res) => {
-	const user = await User.findById(req.user.id).select('_id firstName lastName email userType');
+	const user = await User.findById(req.user.id).select('_id firstName lastName email userType avatar');
 	if (!user) return res.status(404).json({ message: 'User not found' });
 	return res.json({
 		user: {
 			id: user._id,
 			name: `${user.firstName} ${user.lastName}`,
 			email: user.email,
-			userType: user.userType
+			userType: user.userType,
+			avatar: user.avatar
 		}
 	});
 });

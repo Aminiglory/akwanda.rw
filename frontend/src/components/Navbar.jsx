@@ -1,8 +1,8 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { 
   FaBed, FaPlane, FaBuffer, FaTaxi, FaGlobe, FaUser, 
-  FaBell, FaBars, FaCaretDown, FaSignOutAlt, FaCog 
+  FaBell, FaBars, FaCaretDown, FaSignOutAlt
 } from "react-icons/fa";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -11,6 +11,20 @@ const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const { user, logout, isAuthenticated } = useAuth();
+  const [notifications, setNotifications] = useState([]);
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+  useEffect(() => {
+    if (user?.userType === 'admin') {
+      (async () => {
+        try {
+          const res = await fetch(`${API_URL}/api/admin/notifications`, { credentials: 'include' });
+          const data = await res.json();
+          if (res.ok) setNotifications(data.notifications || []);
+        } catch (_) {}
+      })();
+    }
+  }, [user?.userType]);
 
   const navButtons = [
     { icon: FaBed, text: "Apartments", href: "/apartments" },
@@ -116,9 +130,38 @@ const Navbar = () => {
               </div>
 
               {/* Notifications */}
-              <button className="hidden lg:block p-2.5 text-gray-700 hover:text-blue-600 hover:bg-gray-100 rounded-xl transition-all duration-300 hover:scale-110">
-                <FaBell className="text-lg" />
-              </button>
+              {/* Notifications (admin only) */}
+              {user?.userType === 'admin' && (
+                <div className="hidden lg:block relative group">
+                  <button className="relative p-2.5 text-gray-700 hover:text-blue-600 hover:bg-gray-100 rounded-xl transition-all duration-300 hover:scale-110">
+                    <FaBell className="text-lg" />
+                    {notifications.filter(n => !n.isRead).length > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-green-600 text-white text-xs rounded-full px-1.5">
+                        {notifications.filter(n => !n.isRead).length}
+                      </span>
+                    )}
+                  </button>
+                  <div className="hidden group-hover:block absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-xl border border-gray-200 py-2 z-50">
+                    <div className="px-4 py-2 border-b border-gray-100 font-semibold">Notifications</div>
+                    <div className="max-h-96 overflow-auto">
+                      {notifications.map(n => (
+                        <div key={n._id} className="px-4 py-3 hover:bg-gray-50">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <div className="font-medium text-gray-900">{n.title}</div>
+                              <div className="text-sm text-gray-600">{n.message}</div>
+                            </div>
+                            {!n.isRead && <span className="ml-2 bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full">NEW</span>}
+                          </div>
+                        </div>
+                      ))}
+                      {notifications.length === 0 && (
+                        <div className="px-4 py-6 text-gray-500 text-sm">No notifications</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* User Menu */}
               <div className="flex items-center space-x-3">
@@ -139,9 +182,7 @@ const Navbar = () => {
                           <span className="text-sm font-semibold">{(user?.email?.[0] || user?.name?.[0] || 'U').toUpperCase()}</span>
                         </div>
                       )}
-                      <span className="hidden sm:inline text-gray-700 font-medium">
-                        {user?.name?.split(" ")[0]}
-                      </span>
+                      {/* Remove Settings link and name display as requested */}
                       <FaCaretDown className="text-gray-500 text-sm" />
                     </button>
 
@@ -164,14 +205,7 @@ const Navbar = () => {
                           <FaUser className="mr-3 text-blue-600" />
                           {user?.userType === 'admin' ? 'Admin Dashboard' : 'Dashboard'}
                         </Link>
-                        <Link
-                          to="/profile"
-                          className="flex items-center px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors"
-                          onClick={() => setIsUserMenuOpen(false)}
-                        >
-                          <FaCog className="mr-3 text-blue-600" />
-                          Settings
-                        </Link>
+                        {/* Removed Settings link per requirements */}
                         <hr className="my-2 border-gray-100" />
                         <button
                           onClick={() => {
