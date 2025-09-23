@@ -26,6 +26,21 @@ app.get('/health', (req, res) => {
 	res.json({ status: 'ok' }); 
 });
 
+app.get('/api/metrics/landing', async (req, res) => {
+    try {
+        const Booking = require('./tables/booking');
+        const Property = require('./tables/property');
+        const totalBookings = await Booking.countDocuments();
+        const confirmedCount = await Booking.countDocuments({ status: 'confirmed' });
+        const activeListings = await Property.countDocuments({ isActive: true });
+        const distinctHappyGuests = await Booking.distinct('guest', { status: 'confirmed' });
+        const satisfactionRate = totalBookings > 0 ? Math.round((confirmedCount / totalBookings) * 1000) / 10 : 0; // one decimal
+        res.json({ metrics: { activeListings, happyGuests: distinctHappyGuests.length, satisfactionRate } });
+    } catch (e) {
+        res.status(500).json({ message: 'Failed to load metrics' });
+    }
+});
+
 app.use('/api/auth', authRouter);
 app.use('/api/properties', propertiesRouter);
 app.use('/api/bookings', bookingsRouter);

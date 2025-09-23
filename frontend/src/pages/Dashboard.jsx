@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { FaBed, FaMapMarkerAlt, FaCalendarAlt, FaStar, FaHeart, FaEdit, FaTrash, FaPlus, FaFilter, FaSearch } from 'react-icons/fa';
+import { useState as useReactState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -13,10 +14,12 @@ const Dashboard = () => {
   const [bookings, setBookings] = useState([]);
 
   const [listings, setListings] = useState([]);
+  const [bookingModal, setBookingModal] = useReactState({ open: false, booking: null, details: null });
 
   useEffect(() => {
     (async () => {
       try {
+        const makeAbsolute = (u) => (u && !u.startsWith('http') ? `${API_URL}${u}` : u);
         const [bRes, pRes] = await Promise.all([
           fetch(`${API_URL}/api/bookings/mine`, { credentials: 'include' }),
           fetch(`${API_URL}/api/properties/mine`, { credentials: 'include' })
@@ -42,7 +45,7 @@ const Dashboard = () => {
           title: p.title,
           location: `${p.address}, ${p.city}`,
           price: p.pricePerNight,
-          image: (p.images && p.images[0]) || 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=300&h=200&fit=crop',
+          image: (p.images && p.images.length ? makeAbsolute(p.images[0]) : 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=300&h=200&fit=crop'),
           status: p.isActive ? 'active' : 'inactive',
           bookings: 0,
           rating: null
@@ -245,9 +248,16 @@ const Dashboard = () => {
                             </div>
                           </div>
                           <div className="flex items-center space-x-2 mt-4">
-                            <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
-                              View Details
-                            </button>
+                          <button onClick={async () => {
+                            try {
+                              const res = await fetch(`${API_URL}/api/bookings/${booking.id}`, { credentials: 'include' });
+                              const data = await res.json();
+                              if (!res.ok) throw new Error(data.message || 'Failed to load booking');
+                              setBookingModal({ open: true, booking, details: data.booking });
+                            } catch (e) { toast.error(e.message); }
+                          }} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
+                            View Details
+                          </button>
                             {booking.status === 'confirmed' && (
                               <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm">
                                 Cancel Booking
@@ -306,10 +316,19 @@ const Dashboard = () => {
                           <button className="flex-1 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
                             View Details
                           </button>
-                          <button className="p-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+                          <Link to={`/upload?edit=${listing.id}`} className="p-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
                             <FaEdit />
-                          </button>
-                          <button className="p-2 border border-gray-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors">
+                          </Link>
+                          <button onClick={async () => {
+                            if (!confirm('Are you sure you want to delete this listing? This cannot be undone.')) return;
+                            try {
+                              const res = await fetch(`${API_URL}/api/properties/${listing.id}`, { method: 'DELETE', credentials: 'include' });
+                              const data = await res.json();
+                              if (!res.ok) throw new Error(data.message || 'Failed to delete');
+                              toast.success('Listing deleted');
+                              setListings(listings.filter(x => x.id !== listing.id));
+                            } catch (e) { toast.error(e.message); }
+                          }} className="p-2 border border-gray-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors">
                             <FaTrash />
                           </button>
                         </div>
@@ -379,6 +398,35 @@ const Dashboard = () => {
               </div>
             )}
           </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Simple modal for booking details
+const BookingDetailsModal = ({ modal, onClose }) => {
+  if (!modal.open || !modal.details) return null;
+  const b = modal.details;
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold">Booking Details</h3>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">✕</button>
+        </div>
+        <div className="space-y-2 text-sm text-gray-700">
+          <div><span className="font-medium">Property:</span> {b.property?.title}</div>
+          <div><span className="font-medium">Guest:</span> {b.guest ? `${b.guest.firstName} ${b.guest.lastName}` : '—'}</div>
+          <div><span className="font-medium">Email:</span> {b.guest?.email || '—'}</div>
+          <div><span className="font-medium">Phone:</span> {b.guest?.phone || '—'}</div>
+          <div><span className="font-medium">Check-in:</span> {b.checkIn?.slice(0,10)}</div>
+          <div><span className="font-medium">Check-out:</span> {b.checkOut?.slice(0,10)}</div>
+          <div><span className="font-medium">Total:</span> RWF {b.totalAmount?.toLocaleString()}</div>
+          <div><span className="font-medium">Status:</span> {b.status}</div>
+        </div>
+        <div className="mt-6 text-right">
+          <button onClick={onClose} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Close</button>
         </div>
       </div>
     </div>

@@ -1,11 +1,24 @@
 import React, { useState, useEffect } from "react";
 import img from "../assets/images/home.jpg"
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 const Hero = () => {
   const [isVisible, setIsVisible] = useState(false);
+  const [metrics, setMetrics] = useState({ activeListings: 0, happyGuests: 0, satisfactionRate: 0 });
 
   useEffect(() => {
     setIsVisible(true);
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/metrics/landing`);
+        const data = await res.json();
+        if (res.ok) setMetrics(data.metrics || {});
+      } catch (_) {}
+    })();
   }, []);
 
   return (
@@ -34,6 +47,20 @@ const Hero = () => {
             <a href="#features" className="border-2 border-white text-white px-8 py-3 rounded-full font-semibold hover:bg-white hover:text-blue-800 hover:scale-105 transition-all duration-300 animate-fade-in-up-slower">
               Learn More
             </a>
+          </div>
+          <div className="grid grid-cols-3 gap-4 mt-8 text-white">
+            <div className="bg-white/10 rounded-xl p-4 text-center">
+              <div className="text-2xl font-bold">{metrics.activeListings?.toLocaleString?.() || 0}</div>
+              <div className="text-sm text-blue-100">Active Listings</div>
+            </div>
+            <div className="bg-white/10 rounded-xl p-4 text-center">
+              <div className="text-2xl font-bold">{metrics.happyGuests?.toLocaleString?.() || 0}</div>
+              <div className="text-sm text-blue-100">Happy Guests</div>
+            </div>
+            <div className="bg-white/10 rounded-xl p-4 text-center">
+              <div className="text-2xl font-bold">{metrics.satisfactionRate ?? 0}%</div>
+              <div className="text-sm text-blue-100">Satisfaction Rate</div>
+            </div>
           </div>
         </div>
       </div>

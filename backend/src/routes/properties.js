@@ -73,6 +73,43 @@ router.post('/', requireAuth, upload.array('images', 10), async (req, res) => {
 	res.status(201).json({ property: created });
 });
 
+// Update a property (owner or admin)
+router.put('/:id', requireAuth, upload.array('images', 10), async (req, res) => {
+    const property = await Property.findById(req.params.id);
+    if (!property) return res.status(404).json({ message: 'Property not found' });
+    if (String(property.host) !== req.user.id && req.user.userType !== 'admin') {
+        return res.status(403).json({ message: 'Not allowed' });
+    }
+    const updates = { ...req.body };
+    // Coerce number fields
+    ['pricePerNight','bedrooms','bathrooms','discountPercent'].forEach(k => {
+        if (updates[k] != null) updates[k] = Number(updates[k]);
+    });
+    // Amenities (multer form arrays come as string or array)
+    if (updates.amenities && !Array.isArray(updates.amenities)) {
+        updates.amenities = [updates.amenities];
+    }
+    // Merge or replace images if new files provided
+    if (req.files && req.files.length) {
+        const imagePaths = req.files.map(f => `/uploads/${path.basename(f.path)}`);
+        updates.images = imagePaths;
+    }
+    Object.assign(property, updates);
+    await property.save();
+    res.json({ property });
+});
+
+// Delete a property (owner or admin)
+router.delete('/:id', requireAuth, async (req, res) => {
+    const property = await Property.findById(req.params.id);
+    if (!property) return res.status(404).json({ message: 'Property not found' });
+    if (String(property.host) !== req.user.id && req.user.userType !== 'admin') {
+        return res.status(403).json({ message: 'Not allowed' });
+    }
+    await property.deleteOne();
+    res.json({ success: true });
+});
+
 // Toggle availability (admin-only)
 router.post('/:id/availability', requireAuth, async (req, res) => {
     if (req.user.userType !== 'admin') return res.status(403).json({ message: 'Admin only' });

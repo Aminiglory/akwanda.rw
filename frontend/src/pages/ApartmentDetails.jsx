@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 import { FaBed, FaBath, FaWifi, FaCar, FaUtensils, FaSwimmingPool, FaDog, FaSmokingBan, FaMapMarkerAlt, FaCalendarAlt, FaUser, FaStar, FaHeart, FaShare, FaPhone, FaEnvelope } from 'react-icons/fa';
 
@@ -16,6 +17,8 @@ const ApartmentDetails = () => {
   const { id } = useParams();
   const [apartment, setApartment] = useState(null);
   const makeAbsolute = (u) => (u && !u.startsWith('http') ? `${API_URL}${u}` : u);
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   
   useEffect(() => {
     (async () => {
@@ -327,9 +330,11 @@ const ApartmentDetails = () => {
 
                 <button
                   type="submit"
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-xl font-semibold transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl"
+                  disabled={!isAuthenticated}
+                  onClick={(e) => { if (!isAuthenticated) { e.preventDefault(); navigate('/login'); } }}
+                  className={`w-full ${isAuthenticated ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-300'} text-white py-4 rounded-xl font-semibold transition-all duration-300 ${isAuthenticated ? 'hover:scale-105 shadow-lg hover:shadow-xl' : ''}`}
                 >
-                  Book This Apartment
+                  {isAuthenticated ? 'Book This Apartment' : 'Login to Book'}
                 </button>
 
                 <div className="text-center">

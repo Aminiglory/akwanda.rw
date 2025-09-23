@@ -39,13 +39,23 @@ router.post('/', requireAuth, async (req, res) => {
 		commissionAmount,
 		commissionPaid: false
 	});
-  // Create admin notification
+  // Create admin notification (recipient null => admin scope)
   await Notification.create({
     type: 'booking_created',
     title: 'New booking created',
     message: `A booking was created for ${property.title}`,
     booking: booking._id,
-    property: property._id
+    property: property._id,
+    recipientUser: null
+  });
+  // Create host notification
+  await Notification.create({
+    type: 'booking_created',
+    title: 'Your property was booked',
+    message: `A guest booked ${property.title}`,
+    booking: booking._id,
+    property: property._id,
+    recipientUser: property.host
   });
 	res.status(201).json({ booking });
 });
@@ -65,6 +75,17 @@ router.get('/mine', requireAuth, async (req, res) => {
 	const query = { guest: req.user.id };
 	const list = await Booking.find(query).populate('property');
 	res.json({ bookings: list });
+});
+
+// Get single booking (guest or admin only)
+router.get('/:id', requireAuth, async (req, res) => {
+    const b = await Booking.findById(req.params.id).populate('property').populate('guest', 'firstName lastName email phone');
+    if (!b) return res.status(404).json({ message: 'Booking not found' });
+    const guestId = (b.guest && b.guest._id) ? String(b.guest._id) : String(b.guest);
+    if (guestId !== req.user.id && req.user.userType !== 'admin') {
+        return res.status(403).json({ message: 'Forbidden' });
+    }
+    res.json({ booking: b });
 });
 
 module.exports = router;

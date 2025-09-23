@@ -48,7 +48,9 @@ router.get('/commission', requireAdmin, async (req, res) => {
 module.exports = router;
 // Additional admin endpoints
 router.get('/bookings/pending-commission', requireAdmin, async (req, res) => {
-    const list = await Booking.find({ status: 'commission_due', commissionPaid: false }).populate('property');
+    const list = await Booking.find({ status: 'commission_due', commissionPaid: false })
+        .populate('property')
+        .populate('guest', 'firstName lastName email phone');
     res.json({ bookings: list });
 });
 
@@ -84,7 +86,11 @@ router.post('/me/avatar', requireAdmin, upload.single('avatar'), async (req, res
 
 // Notifications
 router.get('/notifications', requireAdmin, async (req, res) => {
-    const list = await Notification.find({}).sort({ createdAt: -1 }).limit(50).populate('booking').populate('property');
+    const list = await Notification.find({ recipientUser: null })
+        .sort({ createdAt: -1 })
+        .limit(50)
+        .populate({ path: 'booking', populate: { path: 'guest', select: 'firstName lastName email phone' } })
+        .populate('property');
     res.json({ notifications: list });
 });
 
@@ -94,6 +100,15 @@ router.post('/notifications/:id/read', requireAdmin, async (req, res) => {
     n.isRead = true;
     await n.save();
     res.json({ notification: n });
+});
+
+// Admin booking detail (with guest and property)
+router.get('/bookings/:id', requireAdmin, async (req, res) => {
+    const b = await Booking.findById(req.params.id)
+        .populate('property')
+        .populate('guest', 'firstName lastName email phone');
+    if (!b) return res.status(404).json({ message: 'Booking not found' });
+    res.json({ booking: b });
 });
 
 

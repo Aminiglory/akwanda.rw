@@ -39,6 +39,26 @@ router.post('/me/avatar', requireAuth, upload.single('avatar'), async (req, res)
 	res.json({ user: { id: u._id, avatar: u.avatar } });
 });
 
+// User notifications (host)
+router.get('/notifications', requireAuth, async (req, res) => {
+    const Notification = require('../tables/notification');
+    const list = await Notification.find({ recipientUser: req.user.id })
+        .sort({ createdAt: -1 })
+        .limit(50)
+        .populate({ path: 'booking', populate: { path: 'guest', select: 'firstName lastName email phone' } })
+        .populate('property');
+    res.json({ notifications: list });
+});
+
+router.post('/notifications/:id/read', requireAuth, async (req, res) => {
+    const Notification = require('../tables/notification');
+    const n = await Notification.findOne({ _id: req.params.id, recipientUser: req.user.id });
+    if (!n) return res.status(404).json({ message: 'Not found' });
+    n.isRead = true;
+    await n.save();
+    res.json({ notification: n });
+});
+
 module.exports = router;
 
 
