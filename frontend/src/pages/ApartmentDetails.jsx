@@ -33,6 +33,8 @@ const ApartmentDetails = () => {
           reviews: 0,
           type: 'Apartment',
           size: p.size || '—',
+          bedrooms: p.bedrooms ?? 0,
+          bathrooms: p.bathrooms ?? 0,
           images: p.images && p.images.length ? p.images.map(i => makeAbsolute(i)) : [
             'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&h=600&fit=crop'
           ],
@@ -171,11 +173,11 @@ const ApartmentDetails = () => {
                   <div className="flex items-center space-x-6 text-gray-600">
                     <div className="flex items-center">
                       <FaBed className="mr-2" />
-                      <span>{data?.property?.bedrooms ?? 0} Bedrooms</span>
+                      <span>{apartment.bedrooms} Bedrooms</span>
                     </div>
                     <div className="flex items-center">
                       <FaBath className="mr-2" />
-                      <span>{data?.property?.bathrooms ?? 0} Bathrooms</span>
+                      <span>{apartment.bathrooms} Bathrooms</span>
                     </div>
                     <div className="flex items-center">
                       <span>{apartment.size}</span>
