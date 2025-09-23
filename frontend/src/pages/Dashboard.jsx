@@ -1,9 +1,49 @@
 import React, { useEffect, useState } from 'react';
-import { FaBed, FaMapMarkerAlt, FaCalendarAlt, FaStar, FaHeart, FaEdit, FaTrash, FaPlus, FaFilter, FaSearch } from 'react-icons/fa';
-import { useState as useReactState } from 'react';
+import { FaBed, FaMapMarkerAlt, FaCheckCircle, FaCalendarAlt, FaStar, FaHeart, FaEdit, FaTrash, FaPlus, FaFilter, FaSearch } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
+
+// Interactive star rating form for booking rating
+function StarRatingForm({ booking, setBookings, bookings }) {
+  const [starRating, setStarRating] = useState(0);
+  const [comment, setComment] = useState("");
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      // Send rating and comment, and notify apartment owner
+      const res = await fetch(`${API_URL}/api/bookings/${booking.id}/rate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rating: starRating, comment, notifyOwner: true }),
+        credentials: 'include'
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to submit rating');
+      toast.success('Rating submitted and sent to apartment owner');
+      setBookings(bookings.map(b => b.id === booking.id ? { ...b, rating: starRating } : b));
+    } catch (e) { toast.error(e.message); }
+  };
+  if (booking.status === 'ended') return null;
+  return (
+    <form onSubmit={handleSubmit} className="flex items-center space-x-2">
+      <span className="flex items-center">
+        {[1,2,3,4,5].map(n => (
+          <span
+            key={n}
+            style={{ cursor: 'pointer' }}
+            onClick={() => setStarRating(n)}
+          >
+            <FaStar className={(starRating >= n ? 'text-yellow-400' : 'text-gray-300') + ' text-xl'} />
+          </span>
+        ))}
+      </span>
+      <input name="comment" value={comment} onChange={e => setComment(e.target.value)} className="border rounded px-2 py-1" placeholder="Comment" />
+      <button type="submit" className="px-2 py-1 bg-green-600 text-white rounded">Submit</button>
+    </form>
+  );
+}
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -12,9 +52,11 @@ const Dashboard = () => {
   const { user } = useAuth();
 
   const [bookings, setBookings] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
 
   const [listings, setListings] = useState([]);
-  const [bookingModal, setBookingModal] = useReactState({ open: false, booking: null, details: null });
+  const [bookingModal, setBookingModal] = useState({ open: false, booking: null, details: null });
 
   useEffect(() => {
     (async () => {
@@ -55,6 +97,45 @@ const Dashboard = () => {
       }
     })();
   }, []);
+
+
+    // Automatically mark bookings as ended if checkout date has passed
+    useEffect(() => {
+      const autoEndBookings = async () => {
+        for (const b of bookings) {
+          if (b.status !== 'ended' && b.checkOut && new Date(b.checkOut) < new Date()) {
+            try {
+              const res = await fetch(`${API_URL}/api/bookings/${b.id}/end`, {
+                method: 'POST',
+                credentials: 'include'
+              });
+              const data = await res.json();
+              if (data.booking && data.booking.status === 'ended') {
+                setBookings(current => current.map(b2 => b2.id === b.id ? { ...b2, status: 'ended' } : b2));
+              }
+            } catch (e) {
+              // Optionally handle error
+            }
+          }
+        }
+      };
+      if (bookings.length > 0) autoEndBookings();
+    }, [bookings]);
+  // Automatically mark bookings as ended if checkout date has passed
+  useEffect(() => {
+    bookings.forEach(b => {
+      if (b.status !== 'ended' && b.checkOut && new Date(b.checkOut) < new Date()) {
+        fetch(`${API_URL}/api/bookings/${b.id}/end`, {
+          method: 'POST',
+          credentials: 'include'
+        }).then(res => res.json()).then(data => {
+          if (data.booking && data.booking.status === 'ended') {
+            setBookings(current => current.map(b2 => b2.id === b.id ? { ...b2, status: 'ended' } : b2));
+          }
+        });
+      }
+    });
+  }, [bookings]);
 
   const renderStars = (rating) => {
     if (!rating) return null;
@@ -132,8 +213,15 @@ const Dashboard = () => {
                 <FaStar className="text-purple-600 text-xl" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Average Rating</p>
-                <p className="text-2xl font-bold text-gray-900">4.7</p>
+                <p className="text-sm font-medium text-gray-600">Satisfaction Rate</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {(() => {
+                    const ratings = bookings.map(b => b.rating).filter(r => typeof r === 'number');
+                    if (ratings.length === 0) return '—';
+                    const avg = ratings.reduce((a, b) => a + b, 0) / ratings.length;
+                    return avg.toFixed(1);
+                  })()}
+                </p>
               </div>
             </div>
           </div>
@@ -200,19 +288,67 @@ const Dashboard = () => {
                       <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                       <input
                         type="text"
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
                         placeholder="Search bookings..."
                         className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
                     </div>
-                    <button className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                      <FaFilter />
-                    </button>
+                    <select
+                      value={filterStatus}
+                      onChange={e => setFilterStatus(e.target.value)}
+                      className="p-2 border border-gray-300 rounded-lg bg-white text-gray-700"
+                    >
+                      <option value="">All Statuses</option>
+                      <option value="confirmed">Confirmed</option>
+                      <option value="pending">Pending</option>
+                      <option value="cancelled">Cancelled</option>
+                      <option value="ended">Ended</option>
+                    </select>
                   </div>
                 </div>
 
                 <div className="space-y-4">
-                  {bookings.map((booking) => (
+                  {bookings
+                    .filter(b => {
+                      const term = searchTerm.toLowerCase();
+                      const matchesSearch =
+                        b.apartment.title.toLowerCase().includes(term) ||
+                        b.apartment.location.toLowerCase().includes(term) ||
+                        b.status.toLowerCase().includes(term);
+                      const matchesStatus = filterStatus ? b.status === filterStatus : true;
+                      return matchesSearch && matchesStatus;
+                    })
+                    .map((booking) => (
                     <div key={booking.id} className="bg-gray-50 rounded-xl p-6 hover:shadow-md transition-shadow duration-300">
+                      {booking.status !== 'ended' && (
+                        <div className="mb-4 flex items-center justify-between bg-green-100 border border-green-400 rounded-lg px-4 py-3">
+                          <span className="flex items-center text-green-700 font-bold text-lg">
+                            <FaCheckCircle className="mr-2 text-green-600 text-2xl" />
+                            Ready to End Booking
+                          </span>
+                          <button
+                            className="px-5 py-2 bg-green-600 text-white rounded-xl font-bold text-base shadow hover:bg-green-700 transition-colors"
+                            onClick={async () => {
+                              if (!window.confirm('Are you sure you want to end this booking? This action cannot be undone.')) return;
+                              try {
+                                const res = await fetch(`${API_URL}/api/bookings/${booking.id}/end`, {
+                                  method: 'POST',
+                                  credentials: 'include'
+                                });
+                                const data = await res.json();
+                                if (!res.ok) throw new Error(data.message || 'Failed to mark as ended');
+                                toast.success('Booking marked as ended! You can now rate your stay.');
+                                setBookings(bookings.filter(b => b.id !== booking.id));
+                              } catch (e) {
+                                toast.error('Failed to end booking: ' + e.message);
+                              }
+                            }}
+                          >
+                            <FaCheckCircle className="mr-2 text-white text-xl" /> Mark as Ended
+                          </button>
+                        </div>
+                      )}
                       <div className="flex items-start space-x-4">
                         <img
                           src={(booking.apartment.image?.startsWith('http') ? booking.apartment.image : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${booking.apartment.image}`)}
@@ -258,6 +394,9 @@ const Dashboard = () => {
                           }} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
                             View Details
                           </button>
+                          {booking.status === 'ended' && !booking.rating && (
+                            <StarRatingForm booking={booking} setBookings={setBookings} bookings={bookings} />
+                          )}
                             {booking.status === 'confirmed' && (
                               <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm">
                                 Cancel Booking
@@ -305,8 +444,15 @@ const Dashboard = () => {
                         <div className="flex items-center justify-between mb-4">
                           <span className="text-lg font-bold text-blue-600">RWF {listing.price.toLocaleString()}/month</span>
                           <div className="flex items-center">
-                            {renderStars(listing.rating)}
-                            {listing.rating && <span className="ml-1 text-sm text-gray-600">{listing.rating}</span>}
+                            {/* Show real average rating for property */}
+                            {listing.ratings && listing.ratings.length > 0 ? (
+                              <>
+                                {renderStars(Math.round(listing.ratings.reduce((sum, r) => sum + r.rating, 0) / listing.ratings.length))}
+                                <span className="ml-1 text-sm text-gray-600">{(listing.ratings.reduce((sum, r) => sum + r.rating, 0) / listing.ratings.length).toFixed(1)}</span>
+                              </>
+                            ) : (
+                              <span className="text-gray-400">No ratings</span>
+                            )}
                           </div>
                         </div>
                         <div className="flex items-center justify-between text-sm text-gray-600 mb-4">
@@ -416,14 +562,14 @@ const BookingDetailsModal = ({ modal, onClose }) => {
           <button onClick={onClose} className="text-gray-500 hover:text-gray-700">✕</button>
         </div>
         <div className="space-y-2 text-sm text-gray-700">
-          <div><span className="font-medium">Property:</span> {b.property?.title}</div>
-          <div><span className="font-medium">Guest:</span> {b.guest ? `${b.guest.firstName} ${b.guest.lastName}` : '—'}</div>
+          <div><span className="font-medium">Property:</span> {b.property?.title || '—'}</div>
+          <div><span className="font-medium">Guest:</span> {b.guest?.firstName ? `${b.guest.firstName} ${b.guest.lastName}` : '—'}</div>
           <div><span className="font-medium">Email:</span> {b.guest?.email || '—'}</div>
           <div><span className="font-medium">Phone:</span> {b.guest?.phone || '—'}</div>
-          <div><span className="font-medium">Check-in:</span> {b.checkIn?.slice(0,10)}</div>
-          <div><span className="font-medium">Check-out:</span> {b.checkOut?.slice(0,10)}</div>
-          <div><span className="font-medium">Total:</span> RWF {b.totalAmount?.toLocaleString()}</div>
-          <div><span className="font-medium">Status:</span> {b.status}</div>
+          <div><span className="font-medium">Check-in:</span> {b.checkIn ? b.checkIn.slice(0,10) : '—'}</div>
+          <div><span className="font-medium">Check-out:</span> {b.checkOut ? b.checkOut.slice(0,10) : '—'}</div>
+          <div><span className="font-medium">Total:</span> RWF {b.totalAmount ? b.totalAmount.toLocaleString() : '—'}</div>
+          <div><span className="font-medium">Status:</span> {b.status || '—'}</div>
         </div>
         <div className="mt-6 text-right">
           <button onClick={onClose} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Close</button>

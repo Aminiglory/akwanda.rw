@@ -14,20 +14,25 @@ const FeaturedApartments = () => {
         const res = await fetch(`${API_URL}/api/properties`);
         const data = await res.json();
         if (!res.ok) throw new Error(data.message || 'Failed to load properties');
-        setApartments((data.properties || []).slice(0, 4).map(p => ({
-          id: p._id,
-          title: p.title,
-          location: `${p.address}, ${p.city}`,
-          price: p.pricePerNight,
-          rating: 4.8,
-          reviews: 0,
-          image: p.images && p.images.length ? makeAbsolute(p.images[0]) : 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=500&h=300&fit=crop',
-          bedrooms: 2,
-          bathrooms: 1,
-          amenities: ["WiFi", "Parking", "Kitchen"],
-          isAvailable: p.isActive,
-          discountPercent: p.discountPercent || 0
-        })));
+        setApartments((data.properties || []).slice(0, 4).map(p => {
+          // Calculate average rating and review count from ratings array
+          const ratingsArr = p.ratings || [];
+          const avgRating = ratingsArr.length > 0 ? (ratingsArr.reduce((sum, r) => sum + r.rating, 0) / ratingsArr.length) : null;
+          return {
+            id: p._id,
+            title: p.title,
+            location: `${p.address}, ${p.city}`,
+            price: p.pricePerNight,
+            rating: avgRating ? Number(avgRating.toFixed(1)) : null,
+            reviews: ratingsArr.length,
+            image: p.images && p.images.length ? makeAbsolute(p.images[0]) : 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=500&h=300&fit=crop',
+            bedrooms: p.bedrooms ?? 2,
+            bathrooms: p.bathrooms ?? 1,
+            amenities: p.amenities || ["WiFi", "Parking", "Kitchen"],
+            isAvailable: p.isActive,
+            discountPercent: p.discountPercent || 0
+          };
+        }));
       } catch (_) {}
     })();
   }, []);
@@ -96,10 +101,10 @@ const FeaturedApartments = () => {
                 {/* Rating */}
                 <div className="flex items-center mb-3">
                   <div className="flex items-center mr-2">
-                    {renderStars(apartment.rating)}
+                    {apartment.rating ? renderStars(apartment.rating) : <span className="text-gray-400">No ratings</span>}
                   </div>
                   <span className="text-sm text-gray-600">
-                    {apartment.rating} ({apartment.reviews} reviews)
+                    {apartment.rating ? `${apartment.rating} (${apartment.reviews} reviews)` : 'No ratings'}
                   </span>
                 </div>
 

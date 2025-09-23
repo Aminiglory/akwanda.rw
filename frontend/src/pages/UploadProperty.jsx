@@ -1,11 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const UploadProperty = () => {
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  const editId = params.get('edit');
   const { user } = useAuth();
   const navigate = useNavigate();
   const [form, setForm] = useState({
@@ -17,6 +20,34 @@ const UploadProperty = () => {
     discountPercent: ''
   });
   const [details, setDetails] = useState({ bedrooms: '1', bathrooms: '1', size: '', amenities: '' });
+  useEffect(() => {
+    if (editId) {
+      (async () => {
+        try {
+          const res = await fetch(`${API_URL}/api/properties/${editId}`);
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.message || 'Failed to load property');
+          const p = data.property;
+          setForm({
+            title: p.title || '',
+            description: p.description || '',
+            address: p.address || '',
+            city: p.city || '',
+            pricePerNight: p.pricePerNight || '',
+            discountPercent: p.discountPercent || ''
+          });
+          setDetails({
+            bedrooms: p.bedrooms?.toString() || '1',
+            bathrooms: p.bathrooms?.toString() || '1',
+            size: p.size || '',
+            amenities: Array.isArray(p.amenities) ? p.amenities.join(', ') : (p.amenities || '')
+          });
+        } catch (e) {
+          toast.error(e.message);
+        }
+      })();
+    }
+  }, [editId]);
   const [files, setFiles] = useState([]);
   const [submitting, setSubmitting] = useState(false);
 
@@ -40,14 +71,26 @@ const UploadProperty = () => {
     Array.from(files).forEach(f => body.append('images', f));
     try {
       setSubmitting(true);
-      const res = await fetch(`${API_URL}/api/properties`, {
-        method: 'POST',
-        body,
-        credentials: 'include'
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed to create property');
-      toast.success('Property created');
+  let res, data;
+      if (editId) {
+        res = await fetch(`${API_URL}/api/properties/${editId}`, {
+          method: 'PUT',
+          body,
+          credentials: 'include'
+        });
+        data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Failed to update property');
+        toast.success('Property updated');
+      } else {
+        res = await fetch(`${API_URL}/api/properties`, {
+          method: 'POST',
+          body,
+          credentials: 'include'
+        });
+        data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Failed to create property');
+        toast.success('Property created');
+      }
       setForm({ title: '', description: '', address: '', city: '', pricePerNight: '', discountPercent: '' });
       setDetails({ bedrooms: '1', bathrooms: '1', size: '', amenities: '' });
       setFiles([]);

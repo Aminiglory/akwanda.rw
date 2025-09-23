@@ -15,7 +15,13 @@ const propertySchema = new mongoose.Schema(
     host: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     isActive: { type: Boolean, default: true },
     discountPercent: { type: Number, default: 0, min: 0, max: 100 },
-    availability: { type: String, enum: ['available', 'in_use'], default: 'available' }
+    availability: { type: String, enum: ['available', 'in_use'], default: 'available' },
+    ratings: [{
+      guest: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      rating: { type: Number, min: 1, max: 5 },
+      comment: { type: String },
+      createdAt: { type: Date, default: Date.now }
+    }]
   },
   { timestamps: true }
 );

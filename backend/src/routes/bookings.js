@@ -19,6 +19,40 @@ function requireAuth(req, res, next) {
 	}
 }
 
+// Submit a rating for a booking
+router.post('/:id/rate', requireAuth, async (req, res) => {
+	const { rating, comment } = req.body;
+	if (!rating || rating < 1 || rating > 5) return res.status(400).json({ message: 'Invalid rating' });
+	const booking = await Booking.findById(req.params.id).populate('property');
+	if (!booking) return res.status(404).json({ message: 'Booking not found' });
+	// Only guest can rate their booking
+	if (String(booking.guest) !== String(req.user.id)) return res.status(403).json({ message: 'Forbidden'});
+	booking.rating = rating;
+	booking.comment = comment;
+	await booking.save();
+	// Add rating to property
+	if (booking.property) {
+		booking.property.ratings.push({ guest: req.user.id, rating, comment });
+		await booking.property.save();
+	}
+	res.json({ booking });
+});
+
+// Mark booking as ended (completed)
+router.post('/:id/end', requireAuth, async (req, res) => {
+	const booking = await Booking.findById(req.params.id).populate('property');
+	if (!booking) return res.status(404).json({ message: 'Booking not found' });
+	// Only guest or property owner can end booking
+	const isGuest = String(booking.guest) === String(req.user.id);
+	const isHost = booking.property && String(booking.property.host) === String(req.user.id);
+	if (!isGuest && !isHost && req.user.userType !== 'admin') {
+		return res.status(403).json({ message: 'Forbidden'});
+	}
+	booking.status = 'ended';
+	await booking.save();
+	res.json({ booking });
+});
+
 router.post('/', requireAuth, async (req, res) => {
 	const { propertyId, checkIn, checkOut } = req.body;
 	const property = await Property.findById(propertyId);
