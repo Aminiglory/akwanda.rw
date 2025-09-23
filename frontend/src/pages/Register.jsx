@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FaEnvelope, FaLock, FaEye, FaEyeSlash, FaUser, FaPhone, FaMapMarkerAlt } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
+import toast from 'react-hot-toast';
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -38,9 +39,12 @@ const Register = () => {
     const result = await register(formData);
     
     if (result.success) {
+      toast.success('Account created');
       navigate('/dashboard');
     } else {
-      setError(result.error || 'Registration failed. Please try again.');
+      const message = result.error || 'Registration failed. Please try again.';
+      setError(message);
+      toast.error(message);
     }
   };
 

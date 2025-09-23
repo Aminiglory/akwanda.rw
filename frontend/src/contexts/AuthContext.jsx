@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 const AuthContext = createContext();
 
 export const useAuth = () => {
@@ -15,31 +17,42 @@ export const AuthProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is logged in (check localStorage or make API call)
+    // Try restore from localStorage immediately for fast paint
     const savedUser = localStorage.getItem('user');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
-    setIsLoading(false);
+    if (savedUser) setUser(JSON.parse(savedUser));
+    // Then verify with backend
+    (async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/auth/me`, { credentials: 'include' });
+        const data = await res.json();
+        if (res.ok && data.user) {
+          setUser(data.user);
+          localStorage.setItem('user', JSON.stringify(data.user));
+        } else if (!res.ok) {
+          setUser(null);
+          localStorage.removeItem('user');
+        }
+      } catch (_) {
+        // network issues: keep local state
+      } finally {
+        setIsLoading(false);
+      }
+    })();
   }, []);
 
   const login = async (email, password) => {
     try {
       setIsLoading(true);
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Mock user data
-      const userData = {
-        id: 1,
-        name: 'Jean Paul M.',
-        email: email,
-        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face',
-        userType: 'guest'
-      };
-      
-      setUser(userData);
-      localStorage.setItem('user', JSON.stringify(userData));
+      const res = await fetch(`${API_URL}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ email, password })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Login failed');
+      setUser(data.user);
+      localStorage.setItem('user', JSON.stringify(data.user));
       return { success: true };
     } catch (error) {
       return { success: false, error: error.message };
@@ -51,20 +64,16 @@ export const AuthProvider = ({ children }) => {
   const register = async (userData) => {
     try {
       setIsLoading(true);
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Mock user data
-      const newUser = {
-        id: Date.now(),
-        name: `${userData.firstName} ${userData.lastName}`,
-        email: userData.email,
-        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face',
-        userType: userData.userType
-      };
-      
-      setUser(newUser);
-      localStorage.setItem('user', JSON.stringify(newUser));
+      const res = await fetch(`${API_URL}/api/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(userData)
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Registration failed');
+      setUser(data.user);
+      localStorage.setItem('user', JSON.stringify(data.user));
       return { success: true };
     } catch (error) {
       return { success: false, error: error.message };
@@ -73,7 +82,10 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await fetch(`${API_URL}/api/auth/logout`, { method: 'POST', credentials: 'include' });
+    } catch (e) { /* ignore */ }
     setUser(null);
     localStorage.removeItem('user');
   };

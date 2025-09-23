@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import './App.css'
 import { AuthProvider } from './contexts/AuthContext'
+import { Toaster } from 'react-hot-toast'
+import { ProtectedRoute, AdminRoute } from './components/ProtectedRoute'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 import Home from './pages/Home'
@@ -13,6 +15,8 @@ import ApartmentDetails from './pages/ApartmentDetails'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
+import UploadProperty from './pages/UploadProperty'
+import AdminDashboard from './pages/AdminDashboard'
 
 function App() {
   const [isLoading, setIsLoading] = useState(true)
@@ -40,6 +44,7 @@ function App() {
     <AuthProvider>
       <Router>
         <div className="min-h-screen bg-gray-50">
+          <Toaster position="top-right" />
           {/* Header */}
           <Navbar />
           
@@ -53,7 +58,9 @@ function App() {
             <Route path="/apartment/:id" element={<ApartmentDetails />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
-            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/upload" element={<ProtectedRoute><UploadProperty /></ProtectedRoute>} />
+            <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
           </Routes>
           
           {/* Footer */}

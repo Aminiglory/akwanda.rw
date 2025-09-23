@@ -32,9 +32,11 @@ const Navbar = () => {
         <div className="bg-blue-800 text-white py-3 px-4">
           <div className="max-w-7xl mx-auto flex justify-between items-center text-sm">
             <div className="flex items-center space-x-4 lg:space-x-6">
-              <span className="hidden sm:inline hover:text-blue-200 cursor-pointer transition-colors font-medium">
-                List your property
-              </span>
+              {isAuthenticated && (
+                <Link to="/upload" className="hidden sm:inline hover:text-blue-200 cursor-pointer transition-colors font-medium">
+                  List your property
+                </Link>
+              )}
               <span className="hover:text-blue-200 cursor-pointer transition-colors font-medium">
                 Customer Support
               </span>
@@ -147,12 +149,12 @@ const Navbar = () => {
                           </p>
                         </div>
                         <Link
-                          to="/dashboard"
+                          to={user?.userType === 'admin' ? '/admin' : '/dashboard'}
                           className="flex items-center px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors"
                           onClick={() => setIsUserMenuOpen(false)}
                         >
                           <FaUser className="mr-3 text-blue-600" />
-                          Dashboard
+                          {user?.userType === 'admin' ? 'Admin Dashboard' : 'Dashboard'}
                         </Link>
                         <Link
                           to="/profile"
