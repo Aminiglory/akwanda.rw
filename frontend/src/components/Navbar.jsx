@@ -179,7 +179,7 @@ const Navbar = () => {
                         />
                       ) : (
                         <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center ring-2 ring-blue-100">
-                          <span className="text-sm font-semibold">{(user?.email?.[0] || user?.name?.[0] || 'U').toUpperCase()}</span>
+                          <span className="text-sm font-semibold">{(user?.name?.trim?.()?.[0] || user?.email?.trim?.()?.[0] || 'U').toUpperCase()}</span>
                         </div>
                       )}
                       {/* Remove Settings link and name display as requested */}

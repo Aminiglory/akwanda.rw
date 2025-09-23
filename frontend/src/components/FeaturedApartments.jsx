@@ -6,6 +6,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const FeaturedApartments = () => {
   const [apartments, setApartments] = useState([]);
+  const makeAbsolute = (u) => (u && !u.startsWith('http') ? `${API_URL}${u}` : u);
 
   useEffect(() => {
     (async () => {
@@ -20,7 +21,7 @@ const FeaturedApartments = () => {
           price: p.pricePerNight,
           rating: 4.8,
           reviews: 0,
-          image: (p.images && p.images[0]) || 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=500&h=300&fit=crop',
+          image: p.images && p.images.length ? makeAbsolute(p.images[0]) : 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=500&h=300&fit=crop',
           bedrooms: 2,
           bathrooms: 1,
           amenities: ["WiFi", "Parking", "Kitchen"],

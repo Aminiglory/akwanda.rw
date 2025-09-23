@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const UploadProperty = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [form, setForm] = useState({
     title: '',
     description: '',
@@ -14,6 +16,7 @@ const UploadProperty = () => {
     pricePerNight: '',
     discountPercent: ''
   });
+  const [details, setDetails] = useState({ bedrooms: '1', bathrooms: '1', size: '', amenities: '' });
   const [files, setFiles] = useState([]);
   const [submitting, setSubmitting] = useState(false);
 
@@ -27,6 +30,13 @@ const UploadProperty = () => {
     }
     const body = new FormData();
     Object.entries(form).forEach(([k, v]) => v !== '' && body.append(k, v));
+    // extra details
+    body.append('bedrooms', Number(details.bedrooms || 0));
+    body.append('bathrooms', Number(details.bathrooms || 0));
+    if (details.size) body.append('size', details.size);
+    if (details.amenities) {
+      details.amenities.split(',').map(a => a.trim()).filter(Boolean).forEach(a => body.append('amenities', a));
+    }
     Array.from(files).forEach(f => body.append('images', f));
     try {
       setSubmitting(true);
@@ -38,8 +48,10 @@ const UploadProperty = () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to create property');
       toast.success('Property created');
-      setForm({ title: '', description: '', address: '', city: '', pricePerNight: '' });
+      setForm({ title: '', description: '', address: '', city: '', pricePerNight: '', discountPercent: '' });
+      setDetails({ bedrooms: '1', bathrooms: '1', size: '', amenities: '' });
       setFiles([]);
+      if (data.property?._id) navigate(`/apartment/${data.property._id}`);
     } catch (e) {
       toast.error(e.message);
     } finally {
@@ -74,10 +86,28 @@ const UploadProperty = () => {
             <label className="block text-sm font-medium text-gray-700 mb-1">Price per night (RWF)</label>
             <input type="number" value={form.pricePerNight} onChange={e => onChange('pricePerNight', e.target.value)} className="w-full border border-gray-300 rounded-lg px-4 py-3" required />
           </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Discount (%)</label>
-          <input type="number" min="0" max="100" value={form.discountPercent} onChange={e => onChange('discountPercent', e.target.value)} className="w-full border border-gray-300 rounded-lg px-4 py-3" placeholder="Optional" />
-        </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Bedrooms</label>
+              <input type="number" min="0" value={details.bedrooms} onChange={e => setDetails(prev => ({ ...prev, bedrooms: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-4 py-3" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Bathrooms</label>
+              <input type="number" min="0" value={details.bathrooms} onChange={e => setDetails(prev => ({ ...prev, bathrooms: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-4 py-3" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Size (e.g., 120 sqm)</label>
+              <input value={details.size} onChange={e => setDetails(prev => ({ ...prev, size: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-4 py-3" />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Amenities (comma-separated)</label>
+            <input value={details.amenities} onChange={e => setDetails(prev => ({ ...prev, amenities: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-4 py-3" placeholder="WiFi, Parking, Kitchen" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Discount (%)</label>
+            <input type="number" min="0" max="100" value={form.discountPercent} onChange={e => onChange('discountPercent', e.target.value)} className="w-full border border-gray-300 rounded-lg px-4 py-3" placeholder="Optional" />
+          </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Images</label>
             <input type="file" accept="image/*" multiple onChange={e => setFiles(e.target.files)} />

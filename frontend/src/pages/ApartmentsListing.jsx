@@ -20,6 +20,7 @@ const ApartmentsListing = () => {
 
   const [apartments, setApartments] = useState([]);
   const [allApartments, setAllApartments] = useState([]);
+  const makeAbsolute = (u) => (u && !u.startsWith('http') ? `${API_URL}${u}` : u);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -35,11 +36,11 @@ const ApartmentsListing = () => {
           price: p.pricePerNight,
           rating: 4.7,
           reviews: 0,
-          bedrooms: 2,
-          bathrooms: 1,
-          size: '—',
-          image: (p.images && p.images[0]) || 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=500&h=300&fit=crop',
-          amenities: ['WiFi','Parking','Kitchen'],
+          bedrooms: p.bedrooms ?? 0,
+          bathrooms: p.bathrooms ?? 0,
+          size: p.size || '—',
+          image: (p.images && p.images.length ? makeAbsolute(p.images[0]) : 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=500&h=300&fit=crop'),
+          amenities: Array.isArray(p.amenities) && p.amenities.length ? p.amenities : ['WiFi','Parking','Kitchen'],
           isAvailable: p.isActive,
           host: p.host ? `${p.host.firstName} ${p.host.lastName}` : '—'
         }));

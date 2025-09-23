@@ -15,6 +15,7 @@ const ApartmentDetails = () => {
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
   const { id } = useParams();
   const [apartment, setApartment] = useState(null);
+  const makeAbsolute = (u) => (u && !u.startsWith('http') ? `${API_URL}${u}` : u);
   
   useEffect(() => {
     (async () => {
@@ -31,8 +32,8 @@ const ApartmentDetails = () => {
           rating: 4.8,
           reviews: 0,
           type: 'Apartment',
-          size: '—',
-          images: p.images && p.images.length ? p.images : [
+          size: p.size || '—',
+          images: p.images && p.images.length ? p.images.map(i => makeAbsolute(i)) : [
             'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&h=600&fit=crop'
           ],
           amenities: [
@@ -43,7 +44,7 @@ const ApartmentDetails = () => {
           description: p.description || 'Beautiful apartment with great amenities.',
           host: {
             name: p.host ? `${p.host.firstName} ${p.host.lastName}` : '—',
-            avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face',
+            avatar: null,
             rating: 4.9,
             responseTime: 'Within an hour',
             joinDate: '2020'
@@ -170,11 +171,11 @@ const ApartmentDetails = () => {
                   <div className="flex items-center space-x-6 text-gray-600">
                     <div className="flex items-center">
                       <FaBed className="mr-2" />
-                      <span>2 Bedrooms</span>
+                      <span>{data?.property?.bedrooms ?? 0} Bedrooms</span>
                     </div>
                     <div className="flex items-center">
                       <FaBath className="mr-2" />
-                      <span>2 Bathrooms</span>
+                      <span>{data?.property?.bathrooms ?? 0} Bathrooms</span>
                     </div>
                     <div className="flex items-center">
                       <span>{apartment.size}</span>
@@ -216,11 +217,13 @@ const ApartmentDetails = () => {
             <div className="bg-white rounded-2xl shadow-lg p-6">
               <h3 className="text-lg font-semibold text-gray-800 mb-4">Meet your host</h3>
               <div className="flex items-center space-x-4">
-                <img
-                  src={apartment.host.avatar}
-                  alt={apartment.host.name}
-                  className="w-16 h-16 rounded-full object-cover"
-                />
+                {apartment.host.avatar ? (
+                  <img src={apartment.host.avatar} alt={apartment.host.name} className="w-16 h-16 rounded-full object-cover" />
+                ) : (
+                  <div className="w-16 h-16 rounded-full bg-blue-600 text-white flex items-center justify-center text-2xl font-bold">
+                    {(apartment.host.name?.trim?.()?.[0] || 'H').toUpperCase()}
+                  </div>
+                )}
                 <div className="flex-1">
                   <h4 className="font-semibold text-gray-800">{apartment.host.name}</h4>
                   <div className="flex items-center space-x-4 text-sm text-gray-600">

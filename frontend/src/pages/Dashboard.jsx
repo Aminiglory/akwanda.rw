@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { FaBed, FaMapMarkerAlt, FaCalendarAlt, FaStar, FaHeart, FaEdit, FaTrash, FaPlus, FaFilter, FaSearch } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
+import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -88,10 +89,10 @@ const Dashboard = () => {
               <p className="text-gray-600 mt-1">Manage your apartments and bookings</p>
             </div>
             <div className="flex items-center space-x-4">
-              <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-xl font-semibold transition-colors duration-300 flex items-center gap-2">
+              <Link to="/upload" className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-xl font-semibold transition-colors duration-300 flex items-center gap-2">
                 <FaPlus />
-                {user.userType === 'host' ? 'List Apartment' : 'Book Apartment'}
-              </button>
+                List Apartment
+              </Link>
             </div>
           </div>
         </div>
@@ -211,7 +212,7 @@ const Dashboard = () => {
                     <div key={booking.id} className="bg-gray-50 rounded-xl p-6 hover:shadow-md transition-shadow duration-300">
                       <div className="flex items-start space-x-4">
                         <img
-                          src={booking.apartment.image}
+                          src={(booking.apartment.image?.startsWith('http') ? booking.apartment.image : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${booking.apartment.image}`)}
                           alt={booking.apartment.title}
                           className="w-24 h-24 rounded-lg object-cover"
                         />
@@ -352,11 +353,11 @@ const Dashboard = () => {
                   </div>
                   <div className="space-y-6">
                   <div className="text-center">
-                    {user.avatar ? (
+                    {user?.avatar ? (
                       <img src={user.avatar} alt={user.name} className="w-24 h-24 rounded-full mx-auto mb-4 object-cover" />
                     ) : (
                       <div className="w-24 h-24 rounded-full mx-auto mb-4 bg-blue-600 text-white flex items-center justify-center text-3xl font-bold">
-                        {(user?.name?.[0] || user?.email?.[0] || 'U').toUpperCase()}
+                        {(user?.name?.trim?.()?.[0] || user?.email?.trim?.()?.[0] || 'U').toUpperCase()}
                       </div>
                     )}
                   </div>
