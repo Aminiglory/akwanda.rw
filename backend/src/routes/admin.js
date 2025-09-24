@@ -45,6 +45,37 @@ router.get('/commission', requireAdmin, async (req, res) => {
 	res.json({ commission: current });
 });
 
+// Monthly stats for the last 6 months: bookings created, confirmed, cancelled
+router.get('/stats/monthly', requireAdmin, async (req, res) => {
+    const end = new Date();
+    const start = new Date(end.getFullYear(), end.getMonth() - 5, 1);
+    // Pull bookings in range
+    const bookings = await Booking.find({ createdAt: { $gte: start, $lte: end } }).select('createdAt status');
+    // Build month buckets
+    const buckets = [];
+    for (let i = 5; i >= 0; i--) {
+        const d = new Date(end.getFullYear(), end.getMonth() - i, 1);
+        const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+        buckets.push({ key, label: d.toLocaleString('en', { month: 'short' }), year: d.getFullYear(), bookings: 0, confirmed: 0, cancelled: 0 });
+    }
+    const bucketByKey = Object.fromEntries(buckets.map(b => [b.key, b]));
+    for (const b of bookings) {
+        const dt = new Date(b.createdAt);
+        const key = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;
+        const bucket = bucketByKey[key];
+        if (!bucket) continue;
+        bucket.bookings += 1;
+        if (b.status === 'confirmed') bucket.confirmed += 1;
+        if (b.status === 'cancelled') bucket.cancelled += 1;
+    }
+    res.json({
+        months: buckets.map(b => b.label),
+        bookings: buckets.map(b => b.bookings),
+        confirmed: buckets.map(b => b.confirmed),
+        cancelled: buckets.map(b => b.cancelled)
+    });
+});
+
 module.exports = router;
 // Additional admin endpoints
 // Landing page metrics endpoint (public)

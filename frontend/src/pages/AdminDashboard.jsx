@@ -9,6 +9,8 @@ const AdminDashboard = () => {
   const [metrics, setMetrics] = useState({ totalBookings: 0, pendingCommissions: 0, confirmed: 0 });
   const [ratePercent, setRatePercent] = useState('');
   const [pending, setPending] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+  const [monthly, setMonthly] = useState({ months: [], bookings: [], confirmed: [], cancelled: [] });
   const { user } = useAuth();
 
   useEffect(() => {
@@ -21,6 +23,12 @@ const AdminDashboard = () => {
         const p = await fetch(`${API_URL}/api/admin/bookings/pending-commission`, { credentials: 'include' });
         const pData = await p.json();
         if (p.ok) setPending(pData.bookings || []);
+        const n = await fetch(`${API_URL}/api/admin/notifications`, { credentials: 'include' });
+        const nData = await n.json();
+        if (n.ok) setNotifications(nData.notifications || []);
+        const m = await fetch(`${API_URL}/api/admin/stats/monthly`, { credentials: 'include' });
+        const mData = await m.json();
+        if (m.ok) setMonthly(mData);
       } catch (e) { toast.error(e.message); }
     })();
   }, []);
@@ -57,26 +65,71 @@ const AdminDashboard = () => {
           </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-2xl shadow-lg p-6 flex items-center gap-4">
+          <div className="rounded-2xl p-6 bg-gradient-to-b from-blue-50 to-white border border-blue-100 shadow-sm flex items-center gap-4">
             <FaUsersCog className="text-blue-600 text-3xl" />
             <div>
               <p className="text-sm text-gray-600">Total Bookings</p>
-              <p className="text-2xl font-bold">{metrics.totalBookings}</p>
+              <p className="text-2xl font-bold text-gray-900">{metrics.totalBookings}</p>
             </div>
           </div>
-          <div className="bg-white rounded-2xl shadow-lg p-6 flex items-center gap-4">
-            <FaClock className="text-yellow-600 text-3xl" />
+          <div className="rounded-2xl p-6 bg-gradient-to-b from-blue-50/60 to-white border border-blue-100 shadow-sm flex items-center gap-4">
+            <FaClock className="text-blue-600 text-3xl" />
             <div>
               <p className="text-sm text-gray-600">Commission Pending</p>
-              <p className="text-2xl font-bold">{metrics.pendingCommissions}</p>
+              <p className="text-2xl font-bold text-gray-900">{metrics.pendingCommissions}</p>
             </div>
           </div>
-          <div className="bg-white rounded-2xl shadow-lg p-6 flex items-center gap-4">
-            <FaCheckCircle className="text-green-600 text-3xl" />
+          <div className="rounded-2xl p-6 bg-gradient-to-b from-blue-50/60 to-white border border-blue-100 shadow-sm flex items-center gap-4">
+            <FaCheckCircle className="text-blue-600 text-3xl" />
             <div>
               <p className="text-sm text-gray-600">Confirmed Bookings</p>
-              <p className="text-2xl font-bold">{metrics.confirmed}</p>
+              <p className="text-2xl font-bold text-gray-900">{metrics.confirmed}</p>
             </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl shadow-lg p-6 mb-8 border border-blue-100">
+          <h2 className="text-xl font-semibold mb-4">Activity Overview</h2>
+          <div className="w-full overflow-x-auto">
+            {(() => {
+              const months = monthly.months || [];
+              const series = [
+                { key: 'bookings', label: 'Bookings', values: monthly.bookings || [], color: 'stroke-blue-500', fill: 'fill-blue-500/20' },
+                { key: 'confirmed', label: 'Confirmed', values: monthly.confirmed || [], color: 'stroke-green-500', fill: 'fill-green-500/20' },
+                { key: 'cancelled', label: 'Cancelled', values: monthly.cancelled || [], color: 'stroke-red-500', fill: 'fill-red-500/20' }
+              ];
+              const max = Math.max(1, ...series.flatMap(s => s.values));
+              const height = 220;
+              const width = Math.max(360, months.length * 80 + 60);
+              const xStep = (width - 60) / Math.max(1, months.length - 1);
+              const yScale = v => height - 30 - (v / max) * (height - 60);
+              const xScale = i => 30 + i * xStep;
+              const areaPath = vals => vals.map((v,i) => `${i===0?'M':'L'} ${xScale(i)} ${yScale(v)}`).join(' ') + ` L ${xScale(vals.length-1)} ${height-30} L ${xScale(0)} ${height-30} Z`;
+              const linePath = vals => vals.map((v,i) => `${i===0?'M':'L'} ${xScale(i)} ${yScale(v)}`).join(' ');
+              return (
+                <svg width={width} height={height} role="img" aria-label="Monthly bookings chart">
+                  {/* axes */}
+                  <line x1="30" y1={height-30} x2={width-20} y2={height-30} className="stroke-gray-200" />
+                  <line x1="30" y1="20" x2="30" y2={height-30} className="stroke-gray-200" />
+                  {months.map((m,i) => (
+                    <text key={m} x={xScale(i)} y={height-10} textAnchor="middle" className="fill-gray-600 text-xs">{m}</text>
+                  ))}
+                  {series.map(s => (
+                    <g key={s.key}>
+                      <path d={areaPath(s.values)} className={s.fill} />
+                      <path d={linePath(s.values)} fill="none" className={`${s.color} stroke-2`} />
+                    </g>
+                  ))}
+                  {/* legend */}
+                  {series.map((s, i) => (
+                    <g key={s.key}>
+                      <rect x={40 + i*120} y={10} width="12" height="12" className={s.fill.replace('20','60')} />
+                      <text x={58 + i*120} y={20} className="fill-gray-700 text-xs">{s.label}</text>
+                    </g>
+                  ))}
+                </svg>
+              );
+            })()}
           </div>
         </div>
 
@@ -112,6 +165,48 @@ const AdminDashboard = () => {
             ))}
             {pending.length === 0 && (
               <div className="text-gray-500">No pending commissions.</div>
+            )}
+          </div>
+        </div>
+        <div className="mt-8 bg-white rounded-2xl shadow-lg p-6">
+          <h2 className="text-xl font-semibold mb-4">Notifications</h2>
+          <div className="space-y-3">
+            {notifications.map(n => (
+              <div key={n._id} className={`p-4 rounded-xl border ${!n.isRead ? 'bg-blue-50 border-blue-300' : 'bg-gray-50 border-gray-200'} flex items-start justify-between`}>
+                <div>
+                  <div className="font-semibold text-gray-800">{n.title}</div>
+                  <div className="text-gray-600 text-sm whitespace-pre-line">{n.message}</div>
+                  {n.booking && n.booking.guest && (
+                    <div className="mt-2 text-sm text-gray-700">
+                      <span className="font-medium">Guest:</span> {n.booking.guest.firstName} {n.booking.guest.lastName}
+                      {n.booking.guest.phone && <span className="ml-4 font-medium">Phone:</span>} {n.booking.guest.phone}
+                    </div>
+                  )}
+                  {n.property && (
+                    <div className="text-sm text-gray-700"><span className="font-medium">Property:</span> {n.property.title}</div>
+                  )}
+                </div>
+                <div className="flex items-center gap-3 ml-4">
+                  <span className="text-xs text-gray-500">{n.createdAt ? new Date(n.createdAt).toLocaleString() : ''}</span>
+                  {!n.isRead && <span className="px-2 py-1 bg-blue-600 text-white rounded-full text-xs">New</span>}
+                  {!n.isRead && (
+                    <button
+                      className="text-blue-600 text-xs hover:underline"
+                      onClick={async () => {
+                        try {
+                          await fetch(`${API_URL}/api/admin/notifications/${n._id}/read`, { method: 'POST', credentials: 'include' });
+                          setNotifications(prev => prev.map(x => x._id === n._id ? { ...x, isRead: true } : x));
+                        } catch (_) {}
+                      }}
+                    >
+                      Mark as read
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+            {notifications.length === 0 && (
+              <div className="text-gray-500">No notifications.</div>
             )}
           </div>
         </div>

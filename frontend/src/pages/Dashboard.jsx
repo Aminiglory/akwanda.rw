@@ -239,9 +239,9 @@ const Dashboard = () => {
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-2xl shadow-lg p-6">
+          <div className="rounded-2xl p-6 bg-gradient-to-b from-blue-50 to-white border border-blue-100 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-center">
-              <div className="p-3 bg-blue-100 rounded-full">
+              <div className="p-3 bg-blue-100 rounded-xl ring-1 ring-blue-200">
                 <FaBed className="text-blue-600 text-xl" />
               </div>
               <div className="ml-4">
@@ -250,10 +250,10 @@ const Dashboard = () => {
               </div>
             </div>
           </div>
-          <div className="bg-white rounded-2xl shadow-lg p-6">
+          <div className="rounded-2xl p-6 bg-gradient-to-b from-blue-50/60 to-white border border-blue-100 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-center">
-              <div className="p-3 bg-green-100 rounded-full">
-                <FaCalendarAlt className="text-green-600 text-xl" />
+              <div className="p-3 bg-blue-100 rounded-xl ring-1 ring-blue-200">
+                <FaCalendarAlt className="text-blue-600 text-xl" />
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Active Listings</p>
@@ -261,10 +261,10 @@ const Dashboard = () => {
               </div>
             </div>
           </div>
-          <div className="bg-white rounded-2xl shadow-lg p-6">
+          <div className="rounded-2xl p-6 bg-gradient-to-b from-blue-50/60 to-white border border-blue-100 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-center">
-              <div className="p-3 bg-purple-100 rounded-full">
-                <FaStar className="text-purple-600 text-xl" />
+              <div className="p-3 bg-blue-100 rounded-xl ring-1 ring-blue-200">
+                <FaStar className="text-blue-600 text-xl" />
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Satisfaction Rate</p>
@@ -289,10 +289,10 @@ const Dashboard = () => {
               </div>
             </div>
           </div>
-          <div className="bg-white rounded-2xl shadow-lg p-6">
+          <div className="rounded-2xl p-6 bg-gradient-to-b from-blue-50/60 to-white border border-blue-100 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-center">
-              <div className="p-3 bg-yellow-100 rounded-full">
-                <FaHeart className="text-yellow-600 text-xl" />
+              <div className="p-3 bg-blue-100 rounded-xl ring-1 ring-blue-200">
+                <FaHeart className="text-blue-600 text-xl" />
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Happy Guests</p>
@@ -348,20 +348,38 @@ const Dashboard = () => {
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Notifications</h3>
                 <div className="space-y-3">
                   {notifications.map(n => (
-                    <div key={n._id} className={`p-4 rounded-xl shadow flex flex-col md:flex-row md:items-center justify-between ${n.isNew ? 'bg-blue-50 border border-blue-300' : 'bg-gray-50 border border-gray-200'}`}>
+                    <div key={n._id} className={`p-4 rounded-xl shadow flex flex-col md:flex-row md:items-center justify-between ${!n.isRead ? 'bg-blue-50 border border-blue-300' : 'bg-gray-50 border border-gray-200'}`}>
                       <div>
                         <div className="font-semibold text-gray-800">{n.title}</div>
                         <div className="text-gray-600 text-sm whitespace-pre-line">{n.message}</div>
                         {n.booking && n.booking.guest && (
                           <div className="mt-2 text-sm text-gray-700">
                             <span className="font-medium">Guest:</span> {n.booking.guest.firstName} {n.booking.guest.lastName}
-                            {n.booking.guest.phone && <span className="ml-4 font-medium">Phone: {n.booking.guest.phone}</span>}
+                            {n.booking.guest.phone && <span className="ml-4 font-medium">Phone:</span>} {n.booking.guest.phone}
                           </div>
                         )}
+                        {n.property && (
+                          <div className="text-sm text-gray-700"><span className="font-medium">Property:</span> {n.property.title}</div>
+                        )}
                       </div>
-                      <div className="text-xs text-gray-500 mt-2 md:mt-0 md:ml-4">
-                        {new Date(n.timestamp).toLocaleString()}
-                        {n.isNew && <span className="ml-2 px-2 py-1 bg-blue-600 text-white rounded-full text-xs">New</span>}
+                      <div className="flex items-center gap-3 mt-2 md:mt-0 md:ml-4">
+                        <span className="text-xs text-gray-500">{n.createdAt ? new Date(n.createdAt).toLocaleString() : ''}</span>
+                        {!n.isRead && (
+                          <span className="px-2 py-1 bg-blue-600 text-white rounded-full text-xs">New</span>
+                        )}
+                        {!n.isRead && (
+                          <button
+                            className="text-blue-600 text-xs hover:underline"
+                            onClick={async () => {
+                              try {
+                                await fetch(`${API_URL}/api/user/notifications/${n._id}/read`, { method: 'POST', credentials: 'include' });
+                                setNotifications(prev => prev.map(x => x._id === n._id ? { ...x, isRead: true } : x));
+                              } catch (_) {}
+                            }}
+                          >
+                            Mark as read
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))}
