@@ -11,11 +11,14 @@ const AdminDashboard = () => {
   const [pending, setPending] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [monthly, setMonthly] = useState({ months: [], bookings: [], confirmed: [], cancelled: [] });
+  const [monthlyLoading, setMonthlyLoading] = useState(true);
+  const [monthlyError, setMonthlyError] = useState('');
   const { user } = useAuth();
 
-  useEffect(() => {
-    (async () => {
-      try {
+  const loadMonthly = async () => {
+    try {
+      setMonthlyLoading(true);
+      setMonthlyError('');
         const res = await fetch(`${API_URL}/api/admin/overview`, { credentials: 'include' });
         const data = await res.json();
         if (!res.ok) throw new Error(data.message || 'Failed to load overview');
@@ -28,10 +31,34 @@ const AdminDashboard = () => {
         if (n.ok) setNotifications(nData.notifications || []);
         const m = await fetch(`${API_URL}/api/admin/stats/monthly`, { credentials: 'include' });
         const mData = await m.json();
-        if (m.ok) setMonthly(mData);
-      } catch (e) { toast.error(e.message); }
-    })();
-  }, []);
+        if (m.ok && Array.isArray(mData.months) && mData.months.length > 0) {
+          setMonthly(mData);
+        } else {
+          // Fallback: last 6 months with zeros so chart is visible
+          const end = new Date();
+          const labels = [];
+          for (let i = 5; i >= 0; i--) {
+            const d = new Date(end.getFullYear(), end.getMonth() - i, 1);
+            labels.push(d.toLocaleString('en', { month: 'short' }));
+          }
+          setMonthly({ months: labels, bookings: [0,0,0,0,0,0], confirmed: [0,0,0,0,0,0], cancelled: [0,0,0,0,0,0] });
+        }
+      } catch (e) {
+        setMonthlyError(e.message || 'Failed to load chart');
+        // Fallback labels to ensure chart area renders
+        const end = new Date();
+        const labels = [];
+        for (let i = 5; i >= 0; i--) {
+          const d = new Date(end.getFullYear(), end.getMonth() - i, 1);
+          labels.push(d.toLocaleString('en', { month: 'short' }));
+        }
+        setMonthly({ months: labels, bookings: [0,0,0,0,0,0], confirmed: [0,0,0,0,0,0], cancelled: [0,0,0,0,0,0] });
+      } finally {
+        setMonthlyLoading(false);
+      }
+  };
+
+  useEffect(() => { loadMonthly(); }, []);
 
   const updateRate = async (e) => {
     e.preventDefault();
@@ -64,6 +91,91 @@ const AdminDashboard = () => {
             )}
           </div>
         </div>
+
+        {/* Welcome + Chart (top of page) */}
+        <div className="bg-white rounded-2xl shadow-lg p-6 mb-8 border border-blue-100">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-xl font-semibold">Welcome, {user?.name || 'Admin'}</h2>
+              <p className="text-sm text-gray-600">Here is the latest activity overview</p>
+            </div>
+            <div className="flex items-center gap-2">
+              {monthlyLoading && <span className="text-sm text-gray-500">Loading…</span>}
+              {monthlyError && <span className="text-sm text-red-600">{monthlyError}</span>}
+              <button onClick={loadMonthly} className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700">Refresh</button>
+            </div>
+          </div>
+          <div className="w-full overflow-x-auto">
+            {(() => {
+              const months = monthly.months || [];
+              const series = [
+                { key: 'bookings', label: 'Bookings', values: monthly.bookings || [], color: 'stroke-blue-600', dot: 'fill-blue-600', fill: 'fill-blue-500/12' },
+                { key: 'confirmed', label: 'Confirmed', values: monthly.confirmed || [], color: 'stroke-indigo-600', dot: 'fill-indigo-600', fill: 'fill-indigo-500/12' },
+                { key: 'cancelled', label: 'Cancelled', values: monthly.cancelled || [], color: 'stroke-rose-600', dot: 'fill-rose-600', fill: 'fill-rose-500/12' }
+              ];
+              const rawMax = Math.max(1, ...series.flatMap(s => s.values));
+              const niceMax = (m) => {
+                if (m <= 5) return 5;
+                const pow = Math.pow(10, Math.floor(Math.log10(m)) - 1);
+                return Math.ceil(m / pow) * pow;
+              };
+              const max = niceMax(rawMax);
+              const ticks = [0, Math.round(max * 0.5), max];
+              const height = 260;
+              const width = Math.max(520, months.length * 90 + 80);
+              const chartTop = 24;
+              const chartBottom = height - 42;
+              const chartLeft = 44;
+              const chartRight = width - 24;
+              const xStep = months.length > 1 ? (chartRight - chartLeft) / (months.length - 1) : 0;
+              const yScale = v => chartBottom - (v / max) * (chartBottom - chartTop);
+              const xScale = i => chartLeft + i * xStep;
+              const areaPath = vals => vals.map((v,i) => `${i===0?'M':'L'} ${xScale(i)} ${yScale(v)}`).join(' ') + ` L ${xScale(vals.length-1)} ${chartBottom} L ${xScale(0)} ${chartBottom} Z`;
+              const linePath = vals => vals.map((v,i) => `${i===0?'M':'L'} ${xScale(i)} ${yScale(v)}`).join(' ');
+              const lastIdx = Math.max(0, months.length - 1);
+              return (
+                <svg width={width} height={height} role="img" aria-label="Monthly bookings chart">
+                  {/* grid */}
+                  {ticks.map(t => (
+                    <g key={`grid-${t}`}>
+                      <line x1={chartLeft} y1={yScale(t)} x2={chartRight} y2={yScale(t)} className="stroke-gray-100" />
+                      <text x={chartLeft - 8} y={yScale(t)+4} textAnchor="end" className="fill-gray-500 text-xs">{t}</text>
+                    </g>
+                  ))}
+                  {/* axis */}
+                  <line x1={chartLeft} y1={chartBottom} x2={chartRight} y2={chartBottom} className="stroke-gray-200" />
+                  {months.map((m,i) => (
+                    <text key={m} x={xScale(i)} y={height-10} textAnchor="middle" className="fill-gray-600 text-xs">{m}</text>
+                  ))}
+                  {/* series */}
+                  {series.map(s => (
+                    <g key={s.key}>
+                      <path d={areaPath(s.values)} className={s.fill} />
+                      <path d={linePath(s.values)} fill="none" className={`${s.color} stroke-2`} />
+                      {s.values.map((v,i) => (
+                        <g key={`${s.key}-pt-${i}`}>
+                          <circle cx={xScale(i)} cy={yScale(v)} r="3.5" className={s.dot}>
+                            <title>{`${s.label} – ${months[i]}: ${v}`}</title>
+                          </circle>
+                        </g>
+                      ))}
+                    </g>
+                  ))}
+                  {/* legend with latest values */}
+                  {series.map((s, i) => (
+                    <g key={s.key}>
+                      <rect x={chartLeft + i*170} y={6} width="12" height="12" className={s.dot} />
+                      <text x={chartLeft + 16 + i*170} y={16} className="fill-gray-700 text-xs">{s.label}: {s.values[lastIdx] ?? 0}</text>
+                    </g>
+                  ))}
+                  {/* axis labels */}
+                  <text x={chartLeft} y={12} className="fill-gray-500 text-xs">Monthly Trends</text>
+                  <text x={chartRight} y={height-2} textAnchor="end" className="fill-gray-400 text-[10px]">Last {months.length} months</text>
+                </svg>
+              );
+            })()}
+          </div>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="rounded-2xl p-6 bg-gradient-to-b from-blue-50 to-white border border-blue-100 shadow-sm flex items-center gap-4">
             <FaUsersCog className="text-blue-600 text-3xl" />
@@ -88,50 +200,7 @@ const AdminDashboard = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-lg p-6 mb-8 border border-blue-100">
-          <h2 className="text-xl font-semibold mb-4">Activity Overview</h2>
-          <div className="w-full overflow-x-auto">
-            {(() => {
-              const months = monthly.months || [];
-              const series = [
-                { key: 'bookings', label: 'Bookings', values: monthly.bookings || [], color: 'stroke-blue-500', fill: 'fill-blue-500/20' },
-                { key: 'confirmed', label: 'Confirmed', values: monthly.confirmed || [], color: 'stroke-green-500', fill: 'fill-green-500/20' },
-                { key: 'cancelled', label: 'Cancelled', values: monthly.cancelled || [], color: 'stroke-red-500', fill: 'fill-red-500/20' }
-              ];
-              const max = Math.max(1, ...series.flatMap(s => s.values));
-              const height = 220;
-              const width = Math.max(360, months.length * 80 + 60);
-              const xStep = (width - 60) / Math.max(1, months.length - 1);
-              const yScale = v => height - 30 - (v / max) * (height - 60);
-              const xScale = i => 30 + i * xStep;
-              const areaPath = vals => vals.map((v,i) => `${i===0?'M':'L'} ${xScale(i)} ${yScale(v)}`).join(' ') + ` L ${xScale(vals.length-1)} ${height-30} L ${xScale(0)} ${height-30} Z`;
-              const linePath = vals => vals.map((v,i) => `${i===0?'M':'L'} ${xScale(i)} ${yScale(v)}`).join(' ');
-              return (
-                <svg width={width} height={height} role="img" aria-label="Monthly bookings chart">
-                  {/* axes */}
-                  <line x1="30" y1={height-30} x2={width-20} y2={height-30} className="stroke-gray-200" />
-                  <line x1="30" y1="20" x2="30" y2={height-30} className="stroke-gray-200" />
-                  {months.map((m,i) => (
-                    <text key={m} x={xScale(i)} y={height-10} textAnchor="middle" className="fill-gray-600 text-xs">{m}</text>
-                  ))}
-                  {series.map(s => (
-                    <g key={s.key}>
-                      <path d={areaPath(s.values)} className={s.fill} />
-                      <path d={linePath(s.values)} fill="none" className={`${s.color} stroke-2`} />
-                    </g>
-                  ))}
-                  {/* legend */}
-                  {series.map((s, i) => (
-                    <g key={s.key}>
-                      <rect x={40 + i*120} y={10} width="12" height="12" className={s.fill.replace('20','60')} />
-                      <text x={58 + i*120} y={20} className="fill-gray-700 text-xs">{s.label}</text>
-                    </g>
-                  ))}
-                </svg>
-              );
-            })()}
-          </div>
-        </div>
+        {/* Chart moved to top */}
 
         <form onSubmit={updateRate} className="bg-white rounded-2xl shadow-lg p-6 max-w-xl">
           <h2 className="text-xl font-semibold mb-4 flex items-center gap-2"><FaMoneyBill className="text-green-600" /> Update Commission Rate</h2>

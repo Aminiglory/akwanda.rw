@@ -59,9 +59,19 @@ const Navbar = () => {
         <div className="bg-blue-800 text-white py-3 px-4">
           <div className="max-w-7xl mx-auto flex justify-between items-center text-sm">
             <div className="flex items-center space-x-4 lg:space-x-6">
-              {isAuthenticated && (
-                <Link to="/upload" className="hidden sm:inline hover:text-blue-200 cursor-pointer transition-colors font-medium">
-                  List your property
+              {isAuthenticated && user?.userType !== 'admin' && (
+                <>
+                  <Link to="/dashboard" className="hidden sm:inline hover:text-blue-200 cursor-pointer transition-colors font-medium">
+                    Dashboard
+                  </Link>
+                  <Link to="/upload" className="hidden sm:inline hover:text-blue-200 cursor-pointer transition-colors font-medium">
+                    List your property
+                  </Link>
+                </>
+              )}
+              {isAuthenticated && user?.userType === 'admin' && (
+                <Link to="/admin" className="hidden sm:inline hover:text-blue-200 cursor-pointer transition-colors font-medium">
+                  Admin Dashboard
                 </Link>
               )}
               <span className="hover:text-blue-200 cursor-pointer transition-colors font-medium">

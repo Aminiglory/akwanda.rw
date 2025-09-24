@@ -29,7 +29,11 @@ const Login = () => {
     
     if (result.success) {
       toast.success('Signed in successfully');
-      navigate('/dashboard');
+      if (result.user?.userType === 'admin') {
+        navigate('/admin');
+      } else {
+        navigate('/dashboard');
+      }
     } else {
       const message = result.error || 'Login failed. Please try again.';
       setError(message);

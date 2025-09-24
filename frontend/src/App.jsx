@@ -17,6 +17,7 @@ import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
 import UploadProperty from './pages/UploadProperty'
 import AdminDashboard from './pages/AdminDashboard'
+import AdminProfile from './pages/AdminProfile'
 
 function App() {
   const [isLoading, setIsLoading] = useState(true)
@@ -61,6 +62,7 @@ function App() {
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/upload" element={<ProtectedRoute><UploadProperty /></ProtectedRoute>} />
             <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+            <Route path="/admin/profile" element={<AdminRoute><AdminProfile /></AdminRoute>} />
           </Routes>
           
           {/* Footer */}
