@@ -1,4 +1,19 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
+
+// ReadMore component for notification messages
+function ReadMore({ text, maxLength }) {
+  const [expanded, setExpanded] = useState(false);
+  if (!text) return null;
+  if (text.length <= maxLength) return <div className="text-gray-600 text-sm whitespace-pre-line">{text}</div>;
+  return (
+    <div className="text-gray-600 text-sm whitespace-pre-line">
+      {expanded ? text : text.slice(0, maxLength) + '...'}
+      <button className="ml-2 text-blue-600 underline text-xs" onClick={() => setExpanded(e => !e)}>
+        {expanded ? 'Read Less' : 'Read More'}
+      </button>
+    </div>
+  );
+}
 import { FaBed, FaMapMarkerAlt, FaCheckCircle, FaCalendarAlt, FaStar, FaHeart, FaEdit, FaTrash, FaPlus, FaFilter, FaSearch } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
 import { Link } from 'react-router-dom';
@@ -342,61 +357,47 @@ const Dashboard = () => {
           </div>
 
           <div className="p-6">
-            {/* Notifications Tab for hosts */}
-            {user.userType === 'host' && notifications.length > 0 && (
+            {/* Admin Notifications Tab with Read More, timestamp sorting, and show more/less */}
+            {user.userType === 'admin' && notifications.length > 0 && (
               <div className="mb-8">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Notifications</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Admin Notifications</h3>
                 <div className="space-y-3">
-                  {notifications.map(n => (
-                    <div key={n._id} className={`p-4 rounded-xl shadow flex flex-col md:flex-row md:items-center justify-between ${!n.isRead ? 'bg-blue-50 border border-blue-300' : 'bg-gray-50 border border-gray-200'}`}>
-                      <div>
-                        <div className="font-semibold text-gray-800">{n.title}</div>
-                        <div className="text-gray-600 text-sm whitespace-pre-line">{n.message}</div>
-                        {n.booking && n.booking.guest && (
-                          <div className="mt-2 text-sm text-gray-700">
-                            <span className="font-medium">Guest:</span> {n.booking.guest.firstName} {n.booking.guest.lastName}
-                            {n.booking.guest.phone && <span className="ml-4 font-medium">Phone:</span>} {n.booking.guest.phone}
-                          </div>
-                        )}
-                        {n.property && (
-                          <div className="text-sm text-gray-700"><span className="font-medium">Property:</span> {n.property.title}</div>
-                        )}
+                  {notifications
+                    .slice()
+                    .sort((a, b) => new Date(b.createdAt || b.timestamp) - new Date(a.createdAt || a.timestamp))
+                    .slice(0, showAll ? notifications.length : 5)
+                    .map(n => (
+                      <div key={n._id} className={`p-4 rounded-xl shadow flex flex-col md:flex-row md:items-center justify-between ${!n.isRead ? 'bg-blue-50 border border-blue-300' : 'bg-gray-50 border border-gray-200'}`}>
+                        <div>
+                          <div className="font-semibold text-gray-800">{n.title}</div>
+                          <ReadMore text={n.message} maxLength={120} />
+                          {n.booking && n.booking.guest && (
+                            <div className="mt-2 text-sm text-gray-700">
+                              <span className="font-medium">Guest:</span> {n.booking.guest.firstName} {n.booking.guest.lastName}
+                              {n.booking.guest.phone && <span className="ml-4 font-medium">Phone:</span>} {n.booking.guest.phone}
+                            </div>
+                          )}
+                          {n.property && (
+                            <div className="text-sm text-gray-700"><span className="font-medium">Property:</span> {n.property.title}</div>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3 mt-2 md:mt-0 md:ml-4">
+                          <span className="text-xs text-gray-500" title={n.createdAt ? new Date(n.createdAt).toLocaleString() : ''}>{n.createdAt ? new Date(n.createdAt).toLocaleString() : ''}</span>
+                          {!n.isRead && <span className="px-2 py-1 bg-blue-600 text-white rounded-full text-xs">New</span>}
+                        </div>
                       </div>
-                      <div className="flex items-center gap-3 mt-2 md:mt-0 md:ml-4">
-                        {(() => {
-                          const ts = n.createdAt ? new Date(n.createdAt) : null;
-                          const diff = ts ? (Date.now() - ts.getTime()) : 0;
-                          const mins = Math.floor(diff / 60000);
-                          const hours = Math.floor(mins / 60);
-                          const days = Math.floor(hours / 24);
-                          const rel = ts ? (days > 0 ? `${days}d ago` : hours > 0 ? `${hours}h ago` : mins > 0 ? `${mins}m ago` : 'just now') : '';
-                          const showNew = !n.isRead && diff < 24*60*60*1000;
-                          return (
-                            <>
-                              <span className="text-xs text-gray-500" title={ts ? ts.toLocaleString() : ''}>{rel}</span>
-                              {showNew && <span className="px-2 py-1 bg-blue-600 text-white rounded-full text-xs">New</span>}
-                            </>
-                          );
-                        })()}
-                        {!n.isRead && (
-                          <button
-                            className="text-blue-600 text-xs hover:underline"
-                            onClick={async () => {
-                              try {
-                                await fetch(`${API_URL}/api/user/notifications/${n._id}/read`, { method: 'POST', credentials: 'include' });
-                                setNotifications(prev => prev.map(x => x._id === n._id ? { ...x, isRead: true } : x));
-                              } catch (_) {}
-                            }}
-                          >
-                            Mark as read
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                    ))}
                 </div>
+                {notifications.length > 5 && (
+                  <button className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-full text-sm" onClick={() => setShowAll(s => !s)}>
+                    {showAll ? 'Show Less' : 'Show More'}
+                  </button>
+                )}
               </div>
             )}
+// Add showAll state to Dashboard component
+const [showAll, setShowAll] = useState(false);
+
             {/* Bookings Tab */}
             {activeTab === 'bookings' && (
               <div>

@@ -13,6 +13,7 @@ const Navbar = () => {
   const { user, logout, isAuthenticated } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [userNotifs, setUserNotifs] = useState([]);
+  const [showAllUserNotifs, setShowAllUserNotifs] = useState(false);
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   useEffect(() => {
@@ -198,19 +199,38 @@ const Navbar = () => {
                   <div className="hidden group-hover:block absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-xl border border-gray-200 py-2 z-50">
                     <div className="px-4 py-2 border-b border-gray-100 font-semibold">Notifications</div>
                     <div className="max-h-96 overflow-auto">
-                      {userNotifs.map(n => (
-                        <div key={n._id} className="px-4 py-3 hover:bg-gray-50">
-                          <div className="flex items-start justify-between">
-                            <div>
-                              <div className="font-medium text-gray-900">{n.title}</div>
-                              <div className="text-sm text-gray-600">{n.message}</div>
+                      {(() => {
+                        const sortedNotifs = [...userNotifs].sort((a, b) => new Date(b.createdAt || b.timestamp) - new Date(a.createdAt || a.timestamp));
+                        const displayNotifs = showAllUserNotifs ? sortedNotifs : sortedNotifs.slice(0, 5);
+                        return displayNotifs.map(n => (
+                          <div key={n._id} className="px-4 py-3 hover:bg-gray-50">
+                            <div className="flex items-start justify-between">
+                              <div>
+                                <div className="font-medium text-gray-900">{n.title}</div>
+                                <div className="text-sm text-gray-600">{n.message}</div>
+                                <div className="text-xs text-gray-400 mt-1">
+                                  {n.createdAt ? new Date(n.createdAt).toLocaleString() : ''}
+                                </div>
+                              </div>
+                              {!n.isRead && (
+                                <span className="ml-2 bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full">
+                                  NEW
+                                </span>
+                              )}
                             </div>
-                            {!n.isRead && <span className="ml-2 bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full">NEW</span>}
                           </div>
-                        </div>
-                      ))}
+                        ));
+                      })()}
                       {userNotifs.length === 0 && (
                         <div className="px-4 py-6 text-gray-500 text-sm">No notifications</div>
+                      )}
+                      {userNotifs.length > 5 && (
+                        <button
+                          className="w-full mt-2 px-4 py-2 bg-blue-600 text-white rounded-full text-sm"
+                          onClick={() => setShowAllUserNotifs(s => !s)}
+                        >
+                          {showAllUserNotifs ? 'Show Less' : 'Show More'}
+                        </button>
                       )}
                     </div>
                   </div>
