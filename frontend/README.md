@@ -73,7 +73,7 @@ frontend/
 │   │   ├── FeaturedApartments.jsx # Featured apartments grid
 │   │   ├── HowItWorks.jsx        # How it works section
 │   │   ├── Testimonials.jsx      # Customer testimonials
-│   │   └── Footer.jsx            # Footer component
+│   │   └── Footer.jsx            # Footer component with links
 │   ├── pages/
 │   │   ├── Home.jsx              # Landing page
 │   │   ├── ApartmentsListing.jsx # Apartment listings page
