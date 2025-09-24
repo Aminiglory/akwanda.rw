@@ -1,3 +1,24 @@
+// Host confirms a booking, notifies guest
+router.post('/:id/confirm', requireAuth, async (req, res) => {
+	const booking = await Booking.findById(req.params.id).populate('property').populate('guest');
+	if (!booking) return res.status(404).json({ message: 'Booking not found' });
+	// Only property owner can confirm
+	if (!booking.property || String(booking.property.host) !== String(req.user.id)) {
+		return res.status(403).json({ message: 'Only property owner can confirm booking.' });
+	}
+	booking.status = 'confirmed';
+	await booking.save();
+	// Notify guest
+	await Notification.create({
+		type: 'booking_confirmed',
+		title: 'Your booking is confirmed!',
+		message: `Your booking for ${booking.property.title} has been confirmed by the owner.`,
+		booking: booking._id,
+		property: booking.property._id,
+		recipientUser: booking.guest._id
+	});
+	res.json({ booking });
+});
 const { Router } = require('express');
 const jwt = require('jsonwebtoken');
 const Booking = require('../tables/booking');
@@ -34,6 +55,15 @@ router.post('/:id/rate', requireAuth, async (req, res) => {
 	if (booking.property) {
 		booking.property.ratings.push({ guest: req.user.id, rating, comment });
 		await booking.property.save();
+		// Notify property owner
+		await Notification.create({
+			type: 'property_rated',
+			title: 'Your property received a new rating',
+			message: `Rating: ${rating}/5\nComment: ${comment || 'No comment'}`,
+			booking: booking._id,
+			property: booking.property._id,
+			recipientUser: booking.property.host
+		});
 	}
 	res.json({ booking });
 });

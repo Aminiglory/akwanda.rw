@@ -25,7 +25,7 @@ function StarRatingForm({ booking, setBookings, bookings }) {
       setBookings(bookings.map(b => b.id === booking.id ? { ...b, rating: starRating } : b));
     } catch (e) { toast.error(e.message); }
   };
-  if (booking.status === 'ended') return null;
+  if (booking.status !== 'ended' || booking.rating) return null;
   return (
     <form onSubmit={handleSubmit} className="flex items-center space-x-2">
       <span className="flex items-center">
@@ -48,8 +48,36 @@ function StarRatingForm({ booking, setBookings, bookings }) {
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const Dashboard = () => {
+  const [notifications, setNotifications] = useState([]);
+  const { user, isLoading } = useAuth();
   const [activeTab, setActiveTab] = useState('bookings');
-  const { user } = useAuth();
+  const [metrics, setMetrics] = useState({
+    totalBookings: 0,
+    activeListings: 0,
+    happyGuests: 0,
+    satisfactionRate: 100,
+    savedApartments: 0
+  });
+
+  useEffect(() => {
+    if (user && user.userType === 'host') {
+      fetch(`${API_URL}/api/user/notifications`, { credentials: 'include' })
+        .then(res => res.json())
+        .then(data => setNotifications(data.notifications || []));
+    }
+    // Fetch dashboard metrics
+    fetch(`${API_URL}/api/admin/metrics`)
+      .then(res => res.json())
+      .then(data => {
+        setMetrics(prev => ({
+          ...prev,
+          totalBookings: data.totalBookings || 0,
+          happyGuests: data.happyGuests || 0,
+          satisfactionRate: data.satisfactionRate || 100,
+          savedApartments: 8 // Placeholder, replace with real value if available
+        }));
+      });
+  }, [user && user.userType]);
 
   const [bookings, setBookings] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -82,7 +110,12 @@ const Dashboard = () => {
           total: b.totalAmount,
           rating: null
         })));
-        setListings((pData.properties || []).map(p => ({
+        // Only show listings owned by the current user (host)
+        setListings((pData.properties || []).filter(p => {
+          // p.host may be an object or string
+          const hostId = typeof p.host === 'object' && p.host !== null ? p.host._id || p.host.id : p.host;
+          return String(hostId) === String(user.id);
+        }).map(p => ({
           id: p._id,
           title: p.title,
           location: `${p.address}, ${p.city}`,
@@ -101,25 +134,25 @@ const Dashboard = () => {
 
     // Automatically mark bookings as ended if checkout date has passed
     useEffect(() => {
-      const autoEndBookings = async () => {
-        for (const b of bookings) {
-          if (b.status !== 'ended' && b.checkOut && new Date(b.checkOut) < new Date()) {
-            try {
-              const res = await fetch(`${API_URL}/api/bookings/${b.id}/end`, {
-                method: 'POST',
-                credentials: 'include'
-              });
-              const data = await res.json();
-              if (data.booking && data.booking.status === 'ended') {
-                setBookings(current => current.map(b2 => b2.id === b.id ? { ...b2, status: 'ended' } : b2));
-              }
-            } catch (e) {
-              // Optionally handle error
-            }
+  const autoEndBookings = async () => {
+    for (const b of bookings) {
+      if (b.status !== 'ended' && b.checkOut && new Date(b.checkOut) < new Date()) {
+        try {
+          const res = await fetch(`${API_URL}/api/bookings/${b.id}/end`, {
+            method: 'POST',
+            credentials: 'include'
+          });
+          const data = await res.json();
+          if (data.booking && data.booking.status === 'ended') {
+            setBookings(current => current.map(b2 => b2.id === b.id ? { ...b2, status: 'ended' } : b2));
           }
+        } catch (e) {
+          // Optionally handle error
         }
-      };
-      if (bookings.length > 0) autoEndBookings();
+      }
+    }
+  };
+  if (bookings.length > 0) autoEndBookings();
     }, [bookings]);
   // Automatically mark bookings as ended if checkout date has passed
   useEffect(() => {
@@ -162,6 +195,12 @@ const Dashboard = () => {
     }
   };
 
+  if (isLoading) {
+    return <div className="min-h-screen flex items-center justify-center text-xl text-gray-600">Loading...</div>;
+  }
+  if (!user) {
+    return <div className="min-h-screen flex items-center justify-center text-xl text-red-600">You must be logged in to view the dashboard.</div>;
+  }
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -169,13 +208,13 @@ const Dashboard = () => {
         <div className="max-w-7xl mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Welcome back, {user.name.split(' ')[0]}!</h1>
+              <h1 className="text-3xl font-bold text-gray-900">Welcome back, {user.name ? user.name.split(' ')[0] : 'User'}!</h1>
               <p className="text-gray-600 mt-1">Manage your apartments and bookings</p>
             </div>
             <div className="flex items-center space-x-4">
               <Link to="/upload" className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-xl font-semibold transition-colors duration-300 flex items-center gap-2">
                 <FaPlus />
-                List Apartment
+                List Your Property
               </Link>
             </div>
           </div>
@@ -192,7 +231,7 @@ const Dashboard = () => {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Total Bookings</p>
-                <p className="text-2xl font-bold text-gray-900">{bookings.length}</p>
+                <p className="text-2xl font-bold text-gray-900">{metrics.totalBookings}</p>
               </div>
             </div>
           </div>
@@ -202,8 +241,8 @@ const Dashboard = () => {
                 <FaCalendarAlt className="text-green-600 text-xl" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Active Stays</p>
-                <p className="text-2xl font-bold text-gray-900">{bookings.filter(b => b.status === 'confirmed').length}</p>
+                <p className="text-sm font-medium text-gray-600">Active Listings</p>
+                <p className="text-2xl font-bold text-gray-900">{listings.filter(l => l.status === 'active').length}</p>
               </div>
             </div>
           </div>
@@ -216,10 +255,20 @@ const Dashboard = () => {
                 <p className="text-sm font-medium text-gray-600">Satisfaction Rate</p>
                 <p className="text-2xl font-bold text-gray-900">
                   {(() => {
-                    const ratings = bookings.map(b => b.rating).filter(r => typeof r === 'number');
-                    if (ratings.length === 0) return '—';
-                    const avg = ratings.reduce((a, b) => a + b, 0) / ratings.length;
-                    return avg.toFixed(1);
+                    // Support both ratings and _ratings field, filter only valid numbers
+                    const allRatings = listings.flatMap(l => {
+                      let arr = [];
+                      if (Array.isArray(l.ratings)) arr = l.ratings.map(r => r.rating);
+                      else if (Array.isArray(l._ratings)) arr = l._ratings.map(r => r.rating);
+                      return arr.filter(r => typeof r === 'number' && !isNaN(r));
+                    });
+                    // Debug output for troubleshooting
+                    if (allRatings.length === 0) {
+                      return '0%';
+                    }
+                    const positive = allRatings.filter(r => r >= 4).length;
+                    const percent = Math.round((positive / allRatings.length) * 100);
+                    return `${percent}%`;
                   })()}
                 </p>
               </div>
@@ -231,8 +280,8 @@ const Dashboard = () => {
                 <FaHeart className="text-yellow-600 text-xl" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Saved Apartments</p>
-                <p className="text-2xl font-bold text-gray-900">8</p>
+                <p className="text-sm font-medium text-gray-600">Happy Guests</p>
+                <p className="text-2xl font-bold text-gray-900">{metrics.happyGuests}</p>
               </div>
             </div>
           </div>
@@ -278,6 +327,32 @@ const Dashboard = () => {
           </div>
 
           <div className="p-6">
+            {/* Notifications Tab for hosts */}
+            {user.userType === 'host' && notifications.length > 0 && (
+              <div className="mb-8">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Notifications</h3>
+                <div className="space-y-3">
+                  {notifications.map(n => (
+                    <div key={n._id} className={`p-4 rounded-xl shadow flex flex-col md:flex-row md:items-center justify-between ${n.isNew ? 'bg-blue-50 border border-blue-300' : 'bg-gray-50 border border-gray-200'}`}>
+                      <div>
+                        <div className="font-semibold text-gray-800">{n.title}</div>
+                        <div className="text-gray-600 text-sm whitespace-pre-line">{n.message}</div>
+                        {n.booking && n.booking.guest && (
+                          <div className="mt-2 text-sm text-gray-700">
+                            <span className="font-medium">Guest:</span> {n.booking.guest.firstName} {n.booking.guest.lastName}
+                            {n.booking.guest.phone && <span className="ml-4 font-medium">Phone: {n.booking.guest.phone}</span>}
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-xs text-gray-500 mt-2 md:mt-0 md:ml-4">
+                        {new Date(n.timestamp).toLocaleString()}
+                        {n.isNew && <span className="ml-2 px-2 py-1 bg-blue-600 text-white rounded-full text-xs">New</span>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             {/* Bookings Tab */}
             {activeTab === 'bookings' && (
               <div>
@@ -321,6 +396,45 @@ const Dashboard = () => {
                     })
                     .map((booking) => (
                     <div key={booking.id} className="bg-gray-50 rounded-xl p-6 hover:shadow-md transition-shadow duration-300">
+                      {/* Host can confirm booking if status is pending */}
+                      {user.userType === 'host' && booking.status === 'pending' && (
+                        <div className="mb-4 flex items-center justify-between bg-blue-100 border border-blue-400 rounded-lg px-4 py-3">
+                          <span className="flex items-center text-blue-700 font-bold text-lg">
+                            <FaCheckCircle className="mr-2 text-blue-600 text-2xl" />
+                            Confirm Booking
+                          </span>
+                          <button
+                            className="px-5 py-2 bg-blue-600 text-white rounded-xl font-bold text-base shadow hover:bg-blue-700 transition-colors"
+                            onClick={async () => {
+                              if (!window.confirm('Confirm this booking for the guest?')) return;
+                              try {
+                                const res = await fetch(`${API_URL}/api/bookings/${booking.id}/confirm`, {
+                                  method: 'POST',
+                                  credentials: 'include'
+                                });
+                                const data = await res.json();
+                                if (!res.ok) throw new Error(data.message || 'Failed to confirm booking');
+                                toast.success('Booking confirmed! Guest has been notified.');
+                                setBookings(bookings.map(b => b.id === booking.id ? { ...b, status: 'confirmed' } : b));
+                              } catch (e) {
+                                toast.error('Failed to confirm booking: ' + e.message);
+                              }
+                            }}
+                          >
+                            <FaCheckCircle className="mr-2 text-white text-xl" /> Confirm Booking
+                          </button>
+                        </div>
+                      )}
+                      {/* Guest sees green badge if booking is confirmed */}
+                      {user.userType === 'guest' && booking.status === 'confirmed' && (
+                        <div className="mb-4 flex items-center justify-between bg-green-100 border border-green-400 rounded-lg px-4 py-3">
+                          <span className="flex items-center text-green-700 font-bold text-lg">
+                            <FaCheckCircle className="mr-2 text-green-600 text-2xl" />
+                            Booking Confirmed
+                          </span>
+                        </div>
+                      )}
+                      {/* End booking button for guest or host if not ended */}
                       {booking.status !== 'ended' && (
                         <div className="mb-4 flex items-center justify-between bg-green-100 border border-green-400 rounded-lg px-4 py-3">
                           <span className="flex items-center text-green-700 font-bold text-lg">
