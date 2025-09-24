@@ -1,3 +1,13 @@
+const { Router } = require('express');
+const jwt = require('jsonwebtoken');
+const Booking = require('../tables/booking');
+const Property = require('../tables/property');
+const Commission = require('../tables/commission');
+const Notification = require('../tables/notification');
+
+const router = Router();
+const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
+
 // Host confirms a booking, notifies guest
 router.post('/:id/confirm', requireAuth, async (req, res) => {
 	const booking = await Booking.findById(req.params.id).populate('property').populate('guest');
@@ -19,15 +29,7 @@ router.post('/:id/confirm', requireAuth, async (req, res) => {
 	});
 	res.json({ booking });
 });
-const { Router } = require('express');
-const jwt = require('jsonwebtoken');
-const Booking = require('../tables/booking');
-const Property = require('../tables/property');
-const Commission = require('../tables/commission');
-const Notification = require('../tables/notification');
-
-const router = Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
+// ...existing code...
 
 function requireAuth(req, res, next) {
 	const token = req.cookies.akw_token || (req.headers.authorization || '').replace('Bearer ', '');
