@@ -187,8 +187,21 @@ const AdminDashboard = () => {
                   )}
                 </div>
                 <div className="flex items-center gap-3 ml-4">
-                  <span className="text-xs text-gray-500">{n.createdAt ? new Date(n.createdAt).toLocaleString() : ''}</span>
-                  {!n.isRead && <span className="px-2 py-1 bg-blue-600 text-white rounded-full text-xs">New</span>}
+                  {(() => {
+                    const ts = n.createdAt ? new Date(n.createdAt) : null;
+                    const diff = ts ? (Date.now() - ts.getTime()) : 0;
+                    const mins = Math.floor(diff / 60000);
+                    const hours = Math.floor(mins / 60);
+                    const days = Math.floor(hours / 24);
+                    const rel = ts ? (days > 0 ? `${days}d ago` : hours > 0 ? `${hours}h ago` : mins > 0 ? `${mins}m ago` : 'just now') : '';
+                    const showNew = !n.isRead && diff < 24*60*60*1000;
+                    return (
+                      <>
+                        <span className="text-xs text-gray-500" title={ts ? ts.toLocaleString() : ''}>{rel}</span>
+                        {showNew && <span className="px-2 py-1 bg-blue-600 text-white rounded-full text-xs">New</span>}
+                      </>
+                    );
+                  })()}
                   {!n.isRead && (
                     <button
                       className="text-blue-600 text-xs hover:underline"
