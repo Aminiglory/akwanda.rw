@@ -49,7 +49,10 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('bookings');
-  const { user } = useAuth();
+  const { user, updateProfile } = useAuth();
+  const [profileForm, setProfileForm] = useState({ firstName: '', lastName: '', email: '', phone: '' });
+  const [passwords, setPasswords] = useState({ currentPassword: '', password: '', confirmPassword: '' });
+  const [showPwd, setShowPwd] = useState({ current: false, next: false, confirm: false });
 
   const [bookings, setBookings] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -97,6 +100,18 @@ const Dashboard = () => {
       }
     })();
   }, []);
+
+  useEffect(() => {
+    if (user) {
+      const [fn, ln] = (user.name || '').split(' ');
+      setProfileForm({
+        firstName: user.firstName || fn || '',
+        lastName: user.lastName || ln || '',
+        email: user.email || '',
+        phone: user.phone || ''
+      });
+    }
+  }, [user]);
 
 
     // Automatically mark bookings as ended if checkout date has passed
@@ -493,17 +508,29 @@ const Dashboard = () => {
                   <div className="space-y-6">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
-                      <input
-                        type="text"
-                        value={user.name}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <input
+                          type="text"
+                          placeholder="First name"
+                          value={profileForm.firstName}
+                          onChange={e => setProfileForm({ ...profileForm, firstName: e.target.value })}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                        <input
+                          type="text"
+                          placeholder="Last name"
+                          value={profileForm.lastName}
+                          onChange={e => setProfileForm({ ...profileForm, lastName: e.target.value })}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
                       <input
                         type="email"
-                        value={user.email}
+                        value={profileForm.email}
+                        onChange={e => setProfileForm({ ...profileForm, email: e.target.value })}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
                     </div>
@@ -512,8 +539,69 @@ const Dashboard = () => {
                       <input
                         type="tel"
                         placeholder="+250 xxx xxx xxx"
+                        value={profileForm.phone}
+                        onChange={e => setProfileForm({ ...profileForm, phone: e.target.value })}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Current Password</label>
+                        <div className="relative">
+                          <input
+                            type={showPwd.current ? 'text' : 'password'}
+                            value={passwords.currentPassword}
+                            onChange={e => setPasswords({ ...passwords, currentPassword: e.target.value })}
+                            placeholder="Enter current password"
+                            className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPwd({ ...showPwd, current: !showPwd.current })}
+                            className="absolute inset-y-0 right-0 px-3 text-sm text-gray-600 hover:text-gray-800"
+                          >
+                            {showPwd.current ? 'Hide' : 'Show'}
+                          </button>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">New Password</label>
+                        <div className="relative">
+                          <input
+                            type={showPwd.next ? 'text' : 'password'}
+                            value={passwords.password}
+                            onChange={e => setPasswords({ ...passwords, password: e.target.value })}
+                            placeholder="Enter new password"
+                            className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPwd({ ...showPwd, next: !showPwd.next })}
+                            className="absolute inset-y-0 right-0 px-3 text-sm text-gray-600 hover:text-gray-800"
+                          >
+                            {showPwd.next ? 'Hide' : 'Show'}
+                          </button>
+                        </div>
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Confirm New Password</label>
+                        <div className="relative">
+                          <input
+                            type={showPwd.confirm ? 'text' : 'password'}
+                            value={passwords.confirmPassword}
+                            onChange={e => setPasswords({ ...passwords, confirmPassword: e.target.value })}
+                            placeholder="Re-enter new password"
+                            className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPwd({ ...showPwd, confirm: !showPwd.confirm })}
+                            className="absolute inset-y-0 right-0 px-3 text-sm text-gray-600 hover:text-gray-800"
+                          >
+                            {showPwd.confirm ? 'Hide' : 'Show'}
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                   <div className="space-y-6">
@@ -537,7 +625,29 @@ const Dashboard = () => {
                   </div>
                 </div>
                 <div className="mt-8 flex justify-end">
-                  <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
+                  <button
+                    onClick={async () => {
+                      try {
+                        if (passwords.password && passwords.password !== passwords.confirmPassword) {
+                          toast.error('Passwords do not match');
+                          return;
+                        }
+                        const payload = {
+                          firstName: profileForm.firstName,
+                          lastName: profileForm.lastName,
+                          email: profileForm.email,
+                          phone: profileForm.phone,
+                          ...(passwords.password ? { password: passwords.password, currentPassword: passwords.currentPassword } : {})
+                        };
+                        await updateProfile(payload);
+                        setPasswords({ currentPassword: '', password: '', confirmPassword: '' });
+                        toast.success('Profile updated');
+                      } catch (e) {
+                        toast.error(e.message);
+                      }
+                    }}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+                  >
                     Save Changes
                   </button>
                 </div>

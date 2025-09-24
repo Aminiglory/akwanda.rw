@@ -103,6 +103,20 @@ export const AuthProvider = ({ children }) => {
     return updated;
   };
 
+  const updateProfile = async (payload) => {
+    const res = await fetch(`${API_URL}/api/user/me`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Failed to update profile');
+    setUser(data.user);
+    localStorage.setItem('user', JSON.stringify(data.user));
+    return data.user;
+  };
+
   const value = {
     user,
     isLoading,
@@ -110,6 +124,7 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     updateAvatar,
+    updateProfile,
     isAuthenticated: !!user
   };
 

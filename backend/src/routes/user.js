@@ -39,6 +39,52 @@ router.post('/me/avatar', requireAuth, upload.single('avatar'), async (req, res)
 	res.json({ user: { id: u._id, avatar: u.avatar } });
 });
 
+// Update current user's profile (name, email, phone, password)
+router.put('/me', requireAuth, async (req, res) => {
+    try {
+        const bcrypt = require('bcryptjs');
+        const { firstName, lastName, email, phone, password, currentPassword } = req.body || {};
+        const user = await User.findById(req.user.id);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        // Email uniqueness check if changing
+        if (email && email.toLowerCase() !== user.email) {
+            const exists = await User.findOne({ email: email.toLowerCase() });
+            if (exists) return res.status(409).json({ message: 'Email already in use' });
+            user.email = email.toLowerCase();
+        }
+
+        if (typeof firstName === 'string' && firstName.trim()) user.firstName = firstName.trim();
+        if (typeof lastName === 'string' && lastName.trim()) user.lastName = lastName.trim();
+        if (typeof phone === 'string' && phone.trim()) user.phone = phone.trim();
+
+        // Handle password change
+        if (password) {
+            if (!currentPassword) return res.status(400).json({ message: 'Current password required' });
+            const ok = await bcrypt.compare(currentPassword, user.passwordHash);
+            if (!ok) return res.status(401).json({ message: 'Current password is incorrect' });
+            user.passwordHash = await bcrypt.hash(password, 10);
+        }
+
+        await user.save();
+
+        return res.json({
+            user: {
+                id: user._id,
+                name: `${user.firstName} ${user.lastName}`,
+                email: user.email,
+                userType: user.userType,
+                avatar: user.avatar,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                phone: user.phone
+            }
+        });
+    } catch (e) {
+        return res.status(500).json({ message: 'Server error' });
+    }
+});
+
 // User notifications (host)
 router.get('/notifications', requireAuth, async (req, res) => {
     const Notification = require('../tables/notification');
