@@ -49,14 +49,11 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const Dashboard = () => {
   const [notifications, setNotifications] = useState([]);
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, updateProfile } = useAuth();
   const [activeTab, setActiveTab] = useState('bookings');
-<<<<<<< HEAD
-  const { user, updateProfile } = useAuth();
   const [profileForm, setProfileForm] = useState({ firstName: '', lastName: '', email: '', phone: '' });
   const [passwords, setPasswords] = useState({ currentPassword: '', password: '', confirmPassword: '' });
   const [showPwd, setShowPwd] = useState({ current: false, next: false, confirm: false });
-=======
   const [metrics, setMetrics] = useState({
     totalBookings: 0,
     activeListings: 0,
@@ -71,7 +68,6 @@ const Dashboard = () => {
         .then(res => res.json())
         .then(data => setNotifications(data.notifications || []));
     }
-    // Fetch dashboard metrics
     fetch(`${API_URL}/api/admin/metrics`)
       .then(res => res.json())
       .then(data => {
@@ -80,11 +76,10 @@ const Dashboard = () => {
           totalBookings: data.totalBookings || 0,
           happyGuests: data.happyGuests || 0,
           satisfactionRate: data.satisfactionRate || 100,
-          savedApartments: 8 // Placeholder, replace with real value if available
+          savedApartments: 8
         }));
       });
-  }, [user && user.userType]);
->>>>>>> f1139ef1f15cf87e6e6a9ede63765509a75c0eb0
+  }, [user?.userType]);
 
   const [bookings, setBookings] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
