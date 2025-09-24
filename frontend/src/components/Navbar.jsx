@@ -40,7 +40,7 @@ const Navbar = () => {
   }, [isAuthenticated, user?.userType]);
 
   const navButtons = [
-    { icon: FaBed, text: "Apartments", href: "/apartments" },
+    { icon: FaBed, text: "Stays", href: "/apartments" },
     { icon: FaPlane, text: "Flights", href: "/flights" },
     { icon: FaBuffer, text: "Attractions", href: "/attractions" },
     { icon: FaTaxi, text: "Airport taxis", href: "/taxis" }
