@@ -51,7 +51,7 @@ const Dashboard = () => {
   const [notifications, setNotifications] = useState([]);
   const { user, isLoading, updateProfile } = useAuth();
   const [activeTab, setActiveTab] = useState('bookings');
-  const [profileForm, setProfileForm] = useState({ firstName: '', lastName: '', email: '', phone: '' });
+  const [profileForm, setProfileForm] = useState({ firstName: '', lastName: '', email: '', phone: '', bio: '' });
   const [passwords, setPasswords] = useState({ currentPassword: '', password: '', confirmPassword: '' });
   const [showPwd, setShowPwd] = useState({ current: false, next: false, confirm: false });
   const [metrics, setMetrics] = useState({
@@ -140,7 +140,8 @@ const Dashboard = () => {
         firstName: user.firstName || fn || '',
         lastName: user.lastName || ln || '',
         email: user.email || '',
-        phone: user.phone || ''
+        phone: user.phone || '',
+        bio: user.bio || ''
       });
     }
   }, [user]);
@@ -732,6 +733,8 @@ const Dashboard = () => {
                       <textarea
                         rows="4"
                         placeholder="Tell us about yourself..."
+                        value={profileForm.bio}
+                        onChange={e => setProfileForm({ ...profileForm, bio: e.target.value })}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                       />
                     </div>
@@ -750,6 +753,7 @@ const Dashboard = () => {
                           lastName: profileForm.lastName,
                           email: profileForm.email,
                           phone: profileForm.phone,
+                          bio: profileForm.bio,
                           ...(passwords.password ? { password: passwords.password, currentPassword: passwords.currentPassword } : {})
                         };
                         await updateProfile(payload);

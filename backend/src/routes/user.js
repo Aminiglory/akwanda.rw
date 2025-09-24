@@ -43,7 +43,7 @@ router.post('/me/avatar', requireAuth, upload.single('avatar'), async (req, res)
 router.put('/me', requireAuth, async (req, res) => {
     try {
         const bcrypt = require('bcryptjs');
-        const { firstName, lastName, email, phone, password, currentPassword } = req.body || {};
+        const { firstName, lastName, email, phone, password, currentPassword, bio } = req.body || {};
         const user = await User.findById(req.user.id);
         if (!user) return res.status(404).json({ message: 'User not found' });
 
@@ -57,6 +57,7 @@ router.put('/me', requireAuth, async (req, res) => {
         if (typeof firstName === 'string' && firstName.trim()) user.firstName = firstName.trim();
         if (typeof lastName === 'string' && lastName.trim()) user.lastName = lastName.trim();
         if (typeof phone === 'string' && phone.trim()) user.phone = phone.trim();
+        if (typeof bio === 'string') user.bio = bio.trim();
 
         // Handle password change
         if (password) {
@@ -77,7 +78,8 @@ router.put('/me', requireAuth, async (req, res) => {
                 avatar: user.avatar,
                 firstName: user.firstName,
                 lastName: user.lastName,
-                phone: user.phone
+                phone: user.phone,
+                bio: user.bio
             }
         });
     } catch (e) {

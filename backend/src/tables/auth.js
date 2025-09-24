@@ -89,7 +89,7 @@ router.post('/logout', (req, res) => {
 });
 
 router.get('/me', authMiddleware, async (req, res) => {
-    const user = await User.findById(req.user.id).select('_id firstName lastName email userType avatar phone');
+    const user = await User.findById(req.user.id).select('_id firstName lastName email userType avatar phone bio');
 	if (!user) return res.status(404).json({ message: 'User not found' });
 	return res.json({
 		user: {
@@ -100,7 +100,8 @@ router.get('/me', authMiddleware, async (req, res) => {
             avatar: user.avatar,
             firstName: user.firstName,
             lastName: user.lastName,
-            phone: user.phone
+            phone: user.phone,
+            bio: user.bio
 		}
 	});
 });

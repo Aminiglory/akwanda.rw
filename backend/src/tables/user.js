@@ -8,7 +8,8 @@ const userSchema = new mongoose.Schema(
     phone: { type: String, required: true },
     passwordHash: { type: String, required: true },
     userType: { type: String, enum: ['guest', 'host', 'admin'], default: 'guest' },
-    avatar: { type: String }
+    avatar: { type: String },
+    bio: { type: String, maxlength: 1000 }
   },
   { timestamps: true }
 );
