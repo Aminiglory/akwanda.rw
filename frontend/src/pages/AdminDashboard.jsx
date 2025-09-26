@@ -501,20 +501,22 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50">
+      <div className="max-w-7xl mx-auto px-4 py-10">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+        <div className="flex items-center justify-between mb-10">
+          <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">
+            Admin Dashboard
+          </h1>
           <div className="flex items-center gap-4">
             {user?.avatar ? (
               <img
                 src={user.avatar}
                 alt={user?.name}
-                className="w-10 h-10 rounded-full object-cover"
+                className="w-11 h-11 rounded-full object-cover ring-2 ring-blue-200"
               />
             ) : (
-              <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center text-lg font-bold">
+              <div className="w-11 h-11 rounded-full bg-blue-600 text-white flex items-center justify-center text-lg font-bold shadow-md">
                 {(user?.name?.[0] || user?.email?.[0] || "A").toUpperCase()}
               </div>
             )}
@@ -522,100 +524,194 @@ export default function AdminDashboard() {
         </div>
 
         {/* Chart area */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 mb-8 border border-blue-100">
-          <div className="flex items-center justify-between mb-4">
+        <div className="bg-gradient-to-br from-blue-50 to-white rounded-2xl shadow-xl p-8 mb-10 border border-blue-200">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-xl font-semibold">Monthly Trends</h2>
-              <p className="text-sm text-gray-600">
-                Overview of bookings, confirmed and cancelled by month
+              <h2 className="text-2xl font-bold text-gray-900">
+                Monthly Trends
+              </h2>
+              <p className="text-sm text-gray-600 mt-1">
+                Overview of bookings, confirmations & cancellations
               </p>
             </div>
-            <div className="flex items-center gap-2">
+
+            {/* Controls */}
+            <div className="flex items-center gap-3">
               <select
                 value={chartType}
                 onChange={(e) => setChartType(e.target.value)}
-                className="border rounded-lg px-2 py-1 text-sm"
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm"
               >
                 <option value="line">Line</option>
                 <option value="area">Area</option>
                 <option value="bar">Bar</option>
               </select>
+
               <button
                 onClick={loadMonthly}
-                className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                className="px-5 py-2 text-sm bg-blue-600 text-white rounded-xl shadow-md hover:bg-blue-700 focus:ring-2 focus:ring-blue-400 focus:outline-none transition-transform active:scale-95"
               >
                 Refresh
               </button>
             </div>
           </div>
 
-          <div className="w-full">
+          {/* Chart Area */}
+          <div className="w-full rounded-2xl p-6 bg-gradient-to-b from-white to-blue-50 border border-blue-100 shadow-lg relative overflow-hidden">
             {monthlyLoading ? (
-              <div className="text-sm text-gray-500">Loading chart…</div>
+              <div className="text-sm text-gray-500 animate-pulse text-center py-12">
+                Loading chart…
+              </div>
             ) : (
-              renderChart()
+              <div className="relative">
+                {/* Optional floating background highlights */}
+                <div className="absolute inset-0 bg-gradient-to-t from-blue-50 via-white to-blue-50 opacity-30 pointer-events-none rounded-2xl"></div>
+                {renderChart()}
+              </div>
             )}
+
             {monthlyError && (
-              <div className="text-sm text-red-600 mt-2">{monthlyError}</div>
+              <div className="text-sm text-red-600 mt-3 text-center">
+                {monthlyError}
+              </div>
             )}
+
+            {/* Footer/Legend (optional for more style) */}
+            <div className="flex justify-end mt-4 text-xs text-gray-500 gap-4">
+              <span>📘 Bookings</span>
+              <span>✔ Confirmed</span>
+              <span>❌ Cancelled</span>
+            </div>
           </div>
         </div>
 
         {/* KPI Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
           {/* Total Bookings */}
-          <div className="rounded-2xl p-6 bg-white border border-blue-100 shadow-md hover:shadow-lg transition transform hover:-translate-y-1">
+          <div className="rounded-2xl p-6 bg-gradient-to-br from-blue-50 to-white border border-blue-200 shadow-md hover:shadow-xl transition transform hover:-translate-y-1 hover:scale-[1.01]">
+            {/* Top Row */}
             <div className="flex items-center justify-between">
+              {/* Icon Section */}
               <div className="flex items-center gap-4">
-                <div className="p-3 rounded-full bg-blue-100 text-blue-600">
+                <div className="p-4 rounded-full bg-blue-100 text-blue-600 shadow-inner">
                   <FaUsersCog className="text-2xl" />
                 </div>
+                {/* Text Content */}
                 <div>
-                  <p className="text-sm text-gray-600">Total Bookings</p>
-                  <p className="text-2xl font-bold text-gray-900">
+                  <p className="text-sm font-medium text-blue-600">
+                    Total Bookings
+                  </p>
+                  <p className="text-2xl font-extrabold text-gray-900">
                     {metrics.totalBookings}
                   </p>
                 </div>
               </div>
-              <span className="text-green-600 text-sm font-medium">+12% ↑</span>
+
+              {/* Growth Badge */}
+              <span className="px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-semibold shadow-sm">
+                +12% ↑
+              </span>
+            </div>
+
+            {/* Extra Details Section */}
+            <div className="mt-4 space-y-2">
+              <p className="text-sm text-gray-600">
+                This number represents all bookings made within the platform,
+                including both confirmed and pending ones.
+              </p>
+              <p className="text-sm text-gray-500">
+                Tracking total bookings gives a clear overview of platform
+                activity and demand trends.
+              </p>
+              <p className="text-sm text-gray-500">
+                Updated daily to ensure accuracy across reporting and analytics.
+              </p>
             </div>
           </div>
 
           {/* Commission Pending */}
-          <div className="rounded-2xl p-6 bg-white border border-blue-100 shadow-md hover:shadow-lg transition transform hover:-translate-y-1">
+          <div className="rounded-2xl p-6 bg-gradient-to-br from-blue-50 to-white border border-blue-200 shadow-md hover:shadow-xl transition transform hover:-translate-y-1 hover:scale-[1.01]">
+            {/* Top Row */}
             <div className="flex items-center justify-between">
+              {/* Icon Section */}
               <div className="flex items-center gap-4">
-                <div className="p-3 rounded-full bg-blue-100 text-blue-600">
+                <div className="p-4 rounded-full bg-yellow-100 text-yellow-600 shadow-inner">
                   <FaClock className="text-2xl" />
                 </div>
+                {/* Text Content */}
                 <div>
-                  <p className="text-sm text-gray-600">Commission Pending</p>
-                  <p className="text-2xl font-bold text-gray-900">
+                  <p className="text-sm font-medium text-blue-600">
+                    Commission Pending
+                  </p>
+                  <p className="text-2xl font-extrabold text-gray-900">
                     {metrics.pendingCommissions}
                   </p>
                 </div>
               </div>
-              <span className="text-yellow-600 text-sm font-medium">
+
+              {/* Growth Badge */}
+              <span className="px-3 py-1 rounded-full bg-yellow-100 text-yellow-700 text-xs font-semibold shadow-sm">
                 +5% ⏳
               </span>
+            </div>
+
+            {/* Extra Details Section */}
+            <div className="mt-4 space-y-2">
+              <p className="text-sm text-gray-600">
+                This value represents commissions that have been earned but are
+                not yet paid out.
+              </p>
+              <p className="text-sm text-gray-500">
+                Pending commissions are typically released after validation or a
+                set payout cycle.
+              </p>
+              <p className="text-sm text-gray-500">
+                Monitoring this helps forecast upcoming expenses and agent
+                earnings.
+              </p>
             </div>
           </div>
 
           {/* Confirmed Bookings */}
-          <div className="rounded-2xl p-6 bg-white border border-blue-100 shadow-md hover:shadow-lg transition transform hover:-translate-y-1">
+          <div className="rounded-2xl p-6 bg-gradient-to-br from-blue-50 to-white border border-blue-200 shadow-md hover:shadow-xl transition transform hover:-translate-y-1 hover:scale-[1.01]">
+            {/* Top Row */}
             <div className="flex items-center justify-between">
+              {/* Icon Section */}
               <div className="flex items-center gap-4">
-                <div className="p-3 rounded-full bg-blue-100 text-blue-600">
+                <div className="p-4 rounded-full bg-blue-100 text-blue-600 shadow-inner">
                   <FaCheckCircle className="text-2xl" />
                 </div>
+                {/* Text Content */}
                 <div>
-                  <p className="text-sm text-gray-600">Confirmed Bookings</p>
-                  <p className="text-2xl font-bold text-gray-900">
+                  <p className="text-sm font-medium text-blue-600">
+                    Confirmed Bookings
+                  </p>
+                  <p className="text-2xl font-extrabold text-gray-900">
                     {metrics.confirmed}
                   </p>
                 </div>
               </div>
-              <span className="text-green-600 text-sm font-medium">+8% ✔</span>
+
+              {/* Growth Badge */}
+              <span className="px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-semibold shadow-sm">
+                +8% ↑
+              </span>
+            </div>
+
+            {/* Extra Details Section */}
+            <div className="mt-4 space-y-2">
+              <p className="text-sm text-gray-600">
+                This metric shows all bookings that have been verified and
+                approved by the system.
+              </p>
+              <p className="text-sm text-gray-500">
+                Tracking confirmed bookings helps monitor business growth and
+                customer trust.
+              </p>
+              <p className="text-sm text-gray-500">
+                Updated in real-time to reflect the latest data.
+              </p>
             </div>
           </div>
         </div>
@@ -623,52 +719,86 @@ export default function AdminDashboard() {
         {/* Commission Rate form */}
         <form
           onSubmit={updateRate}
-          className="bg-white rounded-2xl shadow-lg p-6 max-w-xl mb-8"
+          className="bg-gradient-to-br from-blue-50 to-white rounded-2xl shadow-lg p-8 max-w-xl mb-10 border border-blue-200"
         >
-          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-            <FaMoneyBill className="text-green-600" /> Update Commission Rate
+          {/* Header */}
+          <h2 className="text-2xl font-bold mb-6 flex items-center gap-3 text-gray-900">
+            <FaMoneyBill className="text-green-600 text-2xl" />
+            Update Commission Rate
           </h2>
-          <div className="flex gap-3">
-            <input
-              type="number"
-              min="1"
-              max="99"
-              value={ratePercent}
-              onChange={(e) => setRatePercent(e.target.value)}
-              placeholder="Rate %"
-              className="flex-1 border border-gray-300 rounded-lg px-4 py-3"
-            />
-            <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-semibold">
-              Save
-            </button>
+
+          {/* Input Group */}
+          <div className="space-y-5">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Commission Percentage (%)
+              </label>
+              <input
+                type="number"
+                min="1"
+                max="99"
+                value={ratePercent}
+                onChange={(e) => setRatePercent(e.target.value)}
+                placeholder="Enter rate (1 - 99)"
+                className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition"
+              />
+              <p className="mt-2 text-xs text-gray-500">
+                Enter the commission rate to apply for each successful booking.
+              </p>
+            </div>
+
+            {/* Action Button */}
+            <div className="flex justify-end">
+              <button
+                type="submit"
+                className="bg-blue-600 hover:bg-blue-700 active:scale-95 transition text-white px-6 py-3 rounded-xl font-semibold shadow-md"
+              >
+                Save Changes
+              </button>
+            </div>
           </div>
         </form>
 
         {/* Pending Commissions */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
-          <h2 className="text-xl font-semibold mb-4">Pending Commissions</h2>
+        <div className="bg-gradient-to-br from-blue-50 to-white rounded-2xl shadow-lg p-8 mb-10 border border-blue-200">
+          {/* Header */}
+          <h2 className="text-2xl font-bold mb-6 text-gray-900 flex items-center gap-2">
+            <FaClock className="text-yellow-500" />
+            Pending Commissions
+          </h2>
+
+          {/* Content */}
           <div className="space-y-4">
             {pending.length === 0 && (
-              <div className="text-gray-500">No pending commissions.</div>
+              <div className="text-gray-500 italic text-sm bg-gray-50 border border-gray-200 rounded-xl p-4">
+                No pending commissions.
+              </div>
             )}
+
             {pending.map((b) => (
               <div
                 key={b._id}
-                className="flex items-center justify-between border border-gray-100 rounded-xl p-4"
+                className="flex items-center justify-between border border-gray-200 rounded-xl p-5 hover:shadow-lg hover:border-blue-300 transition"
               >
+                {/* Commission Info */}
                 <div>
-                  <div className="font-medium text-gray-900">
+                  <div className="font-semibold text-gray-900">
                     {b.property?.title || "No title"}
                   </div>
-                  <div className="text-sm text-gray-600">
-                    Commission: RWF{" "}
-                    {b.commissionAmount?.toLocaleString?.() ??
-                      b.commissionAmount}
+                  <div className="text-sm text-gray-600 mt-1">
+                    Commission:{" "}
+                    <span className="font-medium text-blue-600">
+                      RWF{" "}
+                      {b.commissionAmount?.toLocaleString?.() ??
+                        b.commissionAmount}
+                    </span>
                   </div>
                 </div>
+
+                {/* Action Button */}
                 <button
                   onClick={() => confirmCommission(b._id)}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
+                  className="bg-blue-600 hover:bg-blue-700 active:scale-95 transition text-white px-6 py-2.5 rounded-xl font-medium shadow-md"
                 >
                   Confirm
                 </button>
@@ -677,23 +807,28 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* Notifications (Read More / New badge / Mark as read) */}
-        <div className="bg-white rounded-2xl shadow-lg p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-gray-900">
-              Notifications
+        {/* Notifications */}
+        <div className="bg-white rounded-2xl shadow-xl p-6 border border-blue-100">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+              🔔 Notifications
             </h2>
             {Array.isArray(notifications) && notifications.length > 0 && (
-              <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700">
+              <span className="text-xs px-3 py-1 rounded-full bg-blue-100 text-blue-700 font-medium shadow-sm">
                 {notifications.filter((n) => !n.isRead).length} Unread
               </span>
             )}
           </div>
 
+          {/* Empty state */}
           {(!Array.isArray(notifications) || notifications.length === 0) && (
-            <div className="text-gray-500 text-sm">No notifications.</div>
+            <div className="text-gray-500 text-sm text-center py-4">
+              No notifications yet 🎉
+            </div>
           )}
 
+          {/* Notifications list */}
           {Array.isArray(notifications) &&
             (showAllNotifs ? notifications : notifications.slice(0, 5)).map(
               (n) => {
@@ -716,7 +851,7 @@ export default function AdminDashboard() {
                 return (
                   <div
                     key={n._id}
-                    className={`p-4 rounded-xl border mb-3 transition hover:shadow-md ${
+                    className={`p-4 rounded-xl border mb-3 transition-all duration-300 hover:shadow-md ${
                       !n.isRead
                         ? "bg-blue-50 border-blue-200"
                         : "bg-gray-50 border-gray-200"
@@ -724,26 +859,36 @@ export default function AdminDashboard() {
                   >
                     <div className="flex justify-between items-start">
                       <div>
+                        {/* Title + New badge */}
                         <div className="font-semibold text-gray-800 flex items-center gap-2">
                           {n.title}
                           {showNew && (
-                            <span className="px-2 py-0.5 bg-blue-600 text-white rounded-full text-xs">
+                            <span className="px-2 py-0.5 bg-blue-600 text-white rounded-full text-xs shadow-sm">
                               New
                             </span>
                           )}
                         </div>
-                        <div className="text-sm text-gray-600 whitespace-pre-line mt-1">
+
+                        {/* Message */}
+                        <div className="text-sm text-gray-600 whitespace-pre-line mt-1 leading-relaxed">
                           {n.message}
                         </div>
+
+                        {/* Property info */}
                         {n.property?.title && (
-                          <div className="text-xs mt-2 text-gray-500">
-                            🔑 Property:{" "}
-                            <span className="font-medium">
-                              {n.property.title}
+                          <div className="text-xs mt-2 text-gray-500 flex items-center gap-1">
+                            <span>🏠</span>
+                            <span>
+                              Property:{" "}
+                              <span className="font-medium text-gray-700">
+                                {n.property.title}
+                              </span>
                             </span>
                           </div>
                         )}
                       </div>
+
+                      {/* Time + Mark as read */}
                       <div className="flex flex-col items-end gap-2">
                         <span
                           className="text-xs text-gray-400"
@@ -754,7 +899,7 @@ export default function AdminDashboard() {
                         {!n.isRead && (
                           <button
                             onClick={() => markNotifAsRead(n._id)}
-                            className="text-blue-600 text-xs hover:underline"
+                            className="text-blue-600 text-xs hover:underline font-medium"
                           >
                             Mark as read
                           </button>
@@ -766,12 +911,12 @@ export default function AdminDashboard() {
               }
             )}
 
-          {/* Read more / show less */}
+          {/* Read more / Show less */}
           {Array.isArray(notifications) && notifications.length > 5 && (
-            <div className="mt-3 text-center">
+            <div className="mt-4 text-center">
               <button
                 onClick={() => setShowAllNotifs((s) => !s)}
-                className="text-blue-600 hover:underline text-sm"
+                className="text-blue-600 hover:underline text-sm font-medium"
               >
                 {showAllNotifs ? "Show Less" : "Read More"}
               </button>
