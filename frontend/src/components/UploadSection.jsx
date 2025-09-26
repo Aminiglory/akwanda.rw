@@ -42,7 +42,7 @@ const UploadSection = () => {
                 <FaHome className="text-white text-2xl" />
               </div>
               <h2 className="text-3xl font-bold text-gray-800 mb-2">
-                List Your Apartment
+                List Your Property
               </h2>
               <p className="text-gray-600">
                 Start earning money by renting out your space

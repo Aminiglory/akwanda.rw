@@ -2,7 +2,21 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
-import { FaBed, FaBath, FaWifi, FaCar, FaUtensils, FaSwimmingPool, FaDog, FaSmokingBan, FaMapMarkerAlt, FaCalendarAlt, FaUser, FaStar, FaHeart, FaShare, FaPhone, FaEnvelope } from 'react-icons/fa';
+import {
+  FaBed,
+  FaBath,
+  FaWifi,
+  FaCar,
+  FaUtensils,
+  FaMapMarkerAlt,
+  FaCalendarAlt,
+  FaUser,
+  FaStar,
+  FaHeart,
+  FaShare,
+  FaPhone,
+  FaEnvelope
+} from 'react-icons/fa';
 
 const ApartmentDetails = () => {
   const [selectedImage, setSelectedImage] = useState(0);
@@ -16,41 +30,48 @@ const ApartmentDetails = () => {
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
   const { id } = useParams();
   const [apartment, setApartment] = useState(null);
-  const makeAbsolute = (u) => (u && !u.startsWith('http') ? `${API_URL}${u}` : u);
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
-  
+
+  const makeAbsolute = (u) =>
+    u && !u.startsWith('http') ? `${API_URL}${u}` : u;
+
   useEffect(() => {
     (async () => {
       try {
         const res = await fetch(`${API_URL}/api/properties/${id}`);
         const data = await res.json();
         if (!res.ok) throw new Error(data.message || 'Failed to load property');
+
         const p = data.property;
         setApartment({
           id: p._id,
           title: p.title,
           location: `${p.address}, ${p.city}`,
           price: p.pricePerNight,
-          rating: 4.8,
-          reviews: 0,
+          rating: p.rating || 0,
+          reviews: p.reviewsCount || 0,
           type: 'Apartment',
           size: p.size || '—',
           bedrooms: p.bedrooms ?? 0,
           bathrooms: p.bathrooms ?? 0,
-          images: p.images && p.images.length ? p.images.map(i => makeAbsolute(i)) : [
-            'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&h=600&fit=crop'
-          ],
+          images:
+            p.images && p.images.length
+              ? p.images.map((i) => makeAbsolute(i))
+              : [
+                  'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&h=600&fit=crop'
+                ],
           amenities: [
             { icon: FaWifi, name: 'Free WiFi' },
             { icon: FaCar, name: 'Parking' },
             { icon: FaUtensils, name: 'Kitchen' }
           ],
-          description: p.description || 'Beautiful apartment with great amenities.',
+          description:
+            p.description || 'Beautiful apartment with great amenities.',
           host: {
             name: p.host ? `${p.host.firstName} ${p.host.lastName}` : '—',
             avatar: null,
-            rating: 4.9,
+            rating: p.host?.rating || 0,
             responseTime: 'Within an hour',
             joinDate: '2020'
           },
@@ -69,7 +90,12 @@ const ApartmentDetails = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ propertyId: id, checkIn: bookingData.checkIn, checkOut: bookingData.checkOut })
+        body: JSON.stringify({
+          propertyId: id,
+          checkIn: bookingData.checkIn,
+          checkOut: bookingData.checkOut,
+          guests: bookingData.guests
+        })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to book');
@@ -80,19 +106,30 @@ const ApartmentDetails = () => {
   };
 
   const handleInputChange = (field, value) => {
-    setBookingData(prev => ({
+    setBookingData((prev) => ({
       ...prev,
       [field]: value
     }));
   };
 
   const renderStars = (rating) => {
-    return Array.from({ length: 5 }, (_, i) => (
-      <FaStar
-        key={i}
-        className={`${i < Math.floor(rating) ? 'text-yellow-400' : 'text-gray-300'}`}
-      />
-    ));
+    return Array.from({ length: 5 }, (_, i) => {
+      const full = i < Math.floor(rating);
+      const half = !full && i < rating;
+      return (
+        <FaStar
+          key={i}
+          className={
+            full
+              ? 'text-yellow-400'
+              : half
+              ? 'text-yellow-300'
+              : 'text-gray-300'
+          }
+          style={half ? { clipPath: 'inset(0 50% 0 0)' } : {}}
+        />
+      );
+    });
   };
 
   if (!apartment) return <div className="min-h-screen bg-gray-50" />;
@@ -112,7 +149,7 @@ const ApartmentDetails = () => {
               <div className="flex items-center mt-3">
                 {renderStars(apartment.rating)}
                 <span className="ml-2 text-blue-100">
-                  {apartment.rating} ({apartment.reviews} reviews)
+                  {apartment.rating.toFixed(1)} ({apartment.reviews} reviews)
                 </span>
               </div>
             </div>
@@ -120,7 +157,9 @@ const ApartmentDetails = () => {
               <button
                 onClick={() => setIsFavorited(!isFavorited)}
                 className={`p-3 rounded-full transition-colors ${
-                  isFavorited ? 'bg-red-500 text-white' : 'bg-white/20 text-white hover:bg-white/30'
+                  isFavorited
+                    ? 'bg-red-500 text-white'
+                    : 'bg-white/20 text-white hover:bg-white/30'
                 }`}
               >
                 <FaHeart className="text-xl" />
@@ -133,9 +172,10 @@ const ApartmentDetails = () => {
         </div>
       </div>
 
+      {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Content */}
+          {/* Apartment Info */}
           <div className="lg:col-span-2 space-y-8">
             {/* Image Gallery */}
             <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
@@ -168,11 +208,13 @@ const ApartmentDetails = () => {
               </div>
             </div>
 
-            {/* Apartment Info */}
+            {/* Details */}
             <div className="bg-white rounded-2xl shadow-lg p-6">
               <div className="flex items-start justify-between mb-6">
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-800 mb-2">{apartment.type}</h2>
+                  <h2 className="text-2xl font-bold text-gray-800 mb-2">
+                    {apartment.type}
+                  </h2>
                   <div className="flex items-center space-x-6 text-gray-600">
                     <div className="flex items-center">
                       <FaBed className="mr-2" />
@@ -190,26 +232,39 @@ const ApartmentDetails = () => {
                 <div className="text-right">
                   <div className="flex items-center mb-1">
                     {renderStars(apartment.rating)}
-                    <span className="ml-2 text-gray-600">{apartment.rating}</span>
+                    <span className="ml-2 text-gray-600">
+                      {apartment.rating.toFixed(1)}
+                    </span>
                   </div>
-                  <p className="text-sm text-gray-500">({apartment.reviews} reviews)</p>
+                  <p className="text-sm text-gray-500">
+                    ({apartment.reviews} reviews)
+                  </p>
                 </div>
               </div>
 
               <div className="border-t pt-6">
-                <h3 className="text-lg font-semibold text-gray-800 mb-3">About this apartment</h3>
-                <p className="text-gray-700 leading-relaxed">{apartment.description}</p>
+                <h3 className="text-lg font-semibold text-gray-800 mb-3">
+                  About this apartment
+                </h3>
+                <p className="text-gray-700 leading-relaxed">
+                  {apartment.description}
+                </p>
               </div>
             </div>
 
             {/* Amenities */}
             <div className="bg-white rounded-2xl shadow-lg p-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">Amenities</h3>
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                Amenities
+              </h3>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 {apartment.amenities.map((amenity, index) => {
                   const IconComponent = amenity.icon;
                   return (
-                    <div key={index} className="flex items-center space-x-3">
+                    <div
+                      key={index}
+                      className="flex items-center space-x-3"
+                    >
                       <IconComponent className="text-blue-600 text-xl" />
                       <span className="text-gray-700">{amenity.name}</span>
                     </div>
@@ -218,19 +273,27 @@ const ApartmentDetails = () => {
               </div>
             </div>
 
-            {/* Host Info */}
+            {/* Host */}
             <div className="bg-white rounded-2xl shadow-lg p-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">Meet your host</h3>
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                Meet your host
+              </h3>
               <div className="flex items-center space-x-4">
                 {apartment.host.avatar ? (
-                  <img src={apartment.host.avatar} alt={apartment.host.name} className="w-16 h-16 rounded-full object-cover" />
+                  <img
+                    src={apartment.host.avatar}
+                    alt={apartment.host.name}
+                    className="w-16 h-16 rounded-full object-cover"
+                  />
                 ) : (
                   <div className="w-16 h-16 rounded-full bg-blue-600 text-white flex items-center justify-center text-2xl font-bold">
                     {(apartment.host.name?.trim?.()?.[0] || 'H').toUpperCase()}
                   </div>
                 )}
                 <div className="flex-1">
-                  <h4 className="font-semibold text-gray-800">{apartment.host.name}</h4>
+                  <h4 className="font-semibold text-gray-800">
+                    {apartment.host.name}
+                  </h4>
                   <div className="flex items-center space-x-4 text-sm text-gray-600">
                     <div className="flex items-center">
                       {renderStars(apartment.host.rating)}
@@ -250,33 +313,17 @@ const ApartmentDetails = () => {
                 </div>
               </div>
             </div>
-
-            {/* Nearby Places */}
-            <div className="bg-white rounded-2xl shadow-lg p-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">What's nearby</h3>
-              <div className="space-y-3">
-                {apartment.nearby.map((place, index) => (
-                  <div key={index} className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-medium text-gray-800">{place.name}</h4>
-                      <p className="text-sm text-gray-600">{place.type}</p>
-                    </div>
-                    <span className="text-sm text-gray-500">{place.distance}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
           </div>
 
           {/* Booking Sidebar */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-2xl shadow-lg p-6 sticky top-8">
-                <div className="text-center mb-6">
-                  <div className="text-3xl font-bold text-blue-600 mb-1">
-                    RWF {apartment.price.toLocaleString()}
-                  </div>
-                  <span className="text-gray-600">per month</span>
+              <div className="text-center mb-6">
+                <div className="text-3xl font-bold text-blue-600 mb-1">
+                  RWF {apartment.price.toLocaleString()}
                 </div>
+                <span className="text-gray-600">per month</span>
+              </div>
 
               <form onSubmit={handleBooking} className="space-y-4">
                 <div>
@@ -289,7 +336,9 @@ const ApartmentDetails = () => {
                       type="date"
                       className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
                       value={bookingData.checkIn}
-                      onChange={(e) => handleInputChange('checkIn', e.target.value)}
+                      onChange={(e) =>
+                        handleInputChange('checkIn', e.target.value)
+                      }
                     />
                   </div>
                 </div>
@@ -304,7 +353,9 @@ const ApartmentDetails = () => {
                       type="date"
                       className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
                       value={bookingData.checkOut}
-                      onChange={(e) => handleInputChange('checkOut', e.target.value)}
+                      onChange={(e) =>
+                        handleInputChange('checkOut', e.target.value)
+                      }
                     />
                   </div>
                 </div>
@@ -318,7 +369,9 @@ const ApartmentDetails = () => {
                     <select
                       className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 appearance-none bg-white"
                       value={bookingData.guests}
-                      onChange={(e) => handleInputChange('guests', e.target.value)}
+                      onChange={(e) =>
+                        handleInputChange('guests', e.target.value)
+                      }
                     >
                       <option value="1">1 Guest</option>
                       <option value="2">2 Guests</option>
@@ -331,8 +384,21 @@ const ApartmentDetails = () => {
                 <button
                   type="submit"
                   disabled={!isAuthenticated}
-                  onClick={(e) => { if (!isAuthenticated) { e.preventDefault(); navigate('/login'); } }}
-                  className={`w-full ${isAuthenticated ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-300'} text-white py-4 rounded-xl font-semibold transition-all duration-300 ${isAuthenticated ? 'hover:scale-105 shadow-lg hover:shadow-xl' : ''}`}
+                  onClick={(e) => {
+                    if (!isAuthenticated) {
+                      e.preventDefault();
+                      navigate('/login');
+                    }
+                  }}
+                  className={`w-full ${
+                    isAuthenticated
+                      ? 'bg-blue-600 hover:bg-blue-700'
+                      : 'bg-gray-300'
+                  } text-white py-4 rounded-xl font-semibold transition-all duration-300 ${
+                    isAuthenticated
+                      ? 'hover:scale-105 shadow-lg hover:shadow-xl'
+                      : ''
+                  }`}
                 >
                   {isAuthenticated ? 'Book This Apartment' : 'Login to Book'}
                 </button>
@@ -347,11 +413,15 @@ const ApartmentDetails = () => {
               <div className="mt-6 pt-6 border-t">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-gray-600">Monthly rent</span>
-                  <span className="font-medium">RWF {apartment.price.toLocaleString()}</span>
+                  <span className="font-medium">
+                    RWF {apartment.price.toLocaleString()}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between text-sm mt-2">
                   <span className="text-gray-600">Commission (approx.)</span>
-                  <span className="font-medium">RWF {(apartment.price * 0.1).toLocaleString()}</span>
+                  <span className="font-medium">
+                    RWF {(apartment.price * 0.1).toLocaleString()}
+                  </span>
                 </div>
               </div>
             </div>
