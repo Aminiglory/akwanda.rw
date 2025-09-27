@@ -609,9 +609,9 @@ export default function AdminDashboard() {
               </div>
 
               {/* Growth Badge */}
-              <span className="px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-semibold shadow-sm">
+              {/* <span className="px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-semibold shadow-sm">
                 +12% ↑
-              </span>
+              </span> */}
             </div>
 
             {/* Extra Details Section */}
@@ -651,9 +651,9 @@ export default function AdminDashboard() {
               </div>
 
               {/* Growth Badge */}
-              <span className="px-3 py-1 rounded-full bg-yellow-100 text-yellow-700 text-xs font-semibold shadow-sm">
+              {/* <span className="px-3 py-1 rounded-full bg-yellow-100 text-yellow-700 text-xs font-semibold shadow-sm">
                 +5% ⏳
-              </span>
+              </span> */}
             </div>
 
             {/* Extra Details Section */}
@@ -694,9 +694,9 @@ export default function AdminDashboard() {
               </div>
 
               {/* Growth Badge */}
-              <span className="px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-semibold shadow-sm">
+              {/* <span className="px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-semibold shadow-sm">
                 +8% ↑
-              </span>
+              </span> */}
             </div>
 
             {/* Extra Details Section */}
