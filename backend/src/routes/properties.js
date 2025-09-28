@@ -54,17 +54,27 @@ const upload = multer({ storage });
 // Dedicated image upload endpoint
 router.post('/upload/images', requireAuth, upload.array('images', 10), async (req, res) => {
     try {
+        console.log('Image upload request received:', {
+            files: req.files?.length || 0,
+            user: req.user?.id,
+            body: req.body
+        });
+
         if (!req.files || req.files.length === 0) {
+            console.log('No files uploaded');
             return res.status(400).json({ message: 'No images uploaded' });
         }
         
         const imagePaths = req.files.map(f => `/uploads/${path.basename(f.path)}`);
+        console.log('Images uploaded successfully:', imagePaths);
+        
         res.json({ 
             success: true, 
             imageUrls: imagePaths,
             message: 'Images uploaded successfully' 
         });
     } catch (error) {
+        console.error('Image upload error:', error);
         res.status(500).json({ message: 'Failed to upload images', error: error.message });
     }
 });

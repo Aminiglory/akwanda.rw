@@ -152,11 +152,25 @@ const EnhancedUploadProperty = () => {
       const formData = new FormData();
       files.forEach(file => formData.append('images', file));
 
+      console.log('Uploading images to:', `${API_URL}/api/properties/upload/images`);
+      console.log('Files to upload:', files.length);
+
       const res = await fetch(`${API_URL}/api/properties/upload/images`, {
         method: 'POST',
         body: formData,
         credentials: 'include'
       });
+
+      console.log('Upload response status:', res.status);
+      console.log('Upload response headers:', res.headers);
+
+      // Check if response is HTML (error page)
+      const contentType = res.headers.get('content-type');
+      if (contentType && contentType.includes('text/html')) {
+        const htmlText = await res.text();
+        console.error('Received HTML instead of JSON:', htmlText.substring(0, 200));
+        throw new Error('Server returned HTML instead of JSON. Please check if the backend server is running.');
+      }
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to upload images');
@@ -164,7 +178,8 @@ const EnhancedUploadProperty = () => {
       setImages(prev => [...prev, ...data.imageUrls]);
       toast.success('Images uploaded successfully');
     } catch (error) {
-      toast.error(error.message);
+      console.error('Image upload error:', error);
+      toast.error(error.message || 'Failed to upload images. Please try again.');
     } finally {
       setUploading(false);
     }
@@ -540,11 +555,23 @@ const EnhancedUploadProperty = () => {
                                 const formData = new FormData();
                                 files.forEach(file => formData.append('images', file));
 
+                                console.log('Uploading room images to:', `${API_URL}/api/properties/upload/images`);
+
                                 const res = await fetch(`${API_URL}/api/properties/upload/images`, {
                                   method: 'POST',
                                   body: formData,
                                   credentials: 'include'
                                 });
+
+                                console.log('Room image upload response status:', res.status);
+
+                                // Check if response is HTML (error page)
+                                const contentType = res.headers.get('content-type');
+                                if (contentType && contentType.includes('text/html')) {
+                                  const htmlText = await res.text();
+                                  console.error('Received HTML instead of JSON:', htmlText.substring(0, 200));
+                                  throw new Error('Server returned HTML instead of JSON. Please check if the backend server is running.');
+                                }
 
                                 const data = await res.json();
                                 if (!res.ok) throw new Error(data.message || 'Failed to upload images');
@@ -553,7 +580,8 @@ const EnhancedUploadProperty = () => {
                                 updateRoom(index, 'images', [...currentImages, ...data.imageUrls]);
                                 toast.success('Room images uploaded successfully');
                               } catch (error) {
-                                toast.error(error.message);
+                                console.error('Room image upload error:', error);
+                                toast.error(error.message || 'Failed to upload room images. Please try again.');
                               } finally {
                                 setUploading(false);
                               }
