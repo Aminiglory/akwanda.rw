@@ -440,7 +440,7 @@ const EnhancedUploadProperty = () => {
                         </button>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">
                             Room Number
@@ -493,6 +493,108 @@ const EnhancedUploadProperty = () => {
                             min="1"
                           />
                         </div>
+                      </div>
+
+                      {/* Room Amenities */}
+                      <div className="mt-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Room Amenities
+                        </label>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                          {['WiFi', 'TV', 'Air Conditioning', 'Mini Bar', 'Safe', 'Balcony', 'Sea View', 'City View', 'Room Service', 'Coffee Machine'].map(amenity => (
+                            <label key={amenity} className="flex items-center">
+                              <input
+                                type="checkbox"
+                                checked={room.amenities?.includes(amenity) || false}
+                                onChange={(e) => {
+                                  const currentAmenities = room.amenities || [];
+                                  const newAmenities = e.target.checked 
+                                    ? [...currentAmenities, amenity]
+                                    : currentAmenities.filter(a => a !== amenity);
+                                  updateRoom(index, 'amenities', newAmenities);
+                                }}
+                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                              />
+                              <span className="ml-2 text-sm text-gray-700">{amenity}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Room Images Upload */}
+                      <div className="mt-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Room Images
+                        </label>
+                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
+                          <input
+                            type="file"
+                            multiple
+                            accept="image/*"
+                            onChange={async (e) => {
+                              const files = Array.from(e.target.files);
+                              if (files.length === 0) return;
+
+                              try {
+                                setUploading(true);
+                                const formData = new FormData();
+                                files.forEach(file => formData.append('images', file));
+
+                                const res = await fetch(`${API_URL}/api/upload/images`, {
+                                  method: 'POST',
+                                  body: formData,
+                                  credentials: 'include'
+                                });
+
+                                const data = await res.json();
+                                if (!res.ok) throw new Error(data.message || 'Failed to upload images');
+
+                                const currentImages = room.images || [];
+                                updateRoom(index, 'images', [...currentImages, ...data.imageUrls]);
+                                toast.success('Room images uploaded successfully');
+                              } catch (error) {
+                                toast.error(error.message);
+                              } finally {
+                                setUploading(false);
+                              }
+                            }}
+                            className="hidden"
+                            id={`room-image-upload-${index}`}
+                            disabled={uploading}
+                          />
+                          <label htmlFor={`room-image-upload-${index}`} className="cursor-pointer">
+                            <FaUpload className="text-2xl text-gray-400 mx-auto mb-2" />
+                            <p className="text-sm font-medium text-gray-700 mb-1">
+                              {uploading ? 'Uploading...' : 'Upload Room Images'}
+                            </p>
+                            <p className="text-xs text-gray-500">Click to upload room-specific images</p>
+                          </label>
+                        </div>
+
+                        {/* Display Room Images */}
+                        {room.images && room.images.length > 0 && (
+                          <div className="mt-3 grid grid-cols-2 md:grid-cols-3 gap-2">
+                            {room.images.map((image, imgIndex) => (
+                              <div key={imgIndex} className="relative group">
+                                <img
+                                  src={image.startsWith('http') ? image : `${API_URL}${image}`}
+                                  alt={`Room ${index + 1} - Image ${imgIndex + 1}`}
+                                  className="w-full h-24 object-cover rounded-lg"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const updatedImages = room.images.filter((_, i) => i !== imgIndex);
+                                    updateRoom(index, 'images', updatedImages);
+                                  }}
+                                  className="absolute top-1 right-1 bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                  <FaTimes className="text-xs" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}

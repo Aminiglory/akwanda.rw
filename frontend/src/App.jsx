@@ -22,6 +22,8 @@ import AdminDashboard from './pages/AdminDashboard'
 import AdminProfile from './pages/AdminProfile'
 import MTNMobileMoneyPayment from './pages/MTNMobileMoneyPayment'
 import RRAEBMIntegration from './pages/RRAEBMIntegration'
+import BookingProcess from './pages/BookingProcess'
+import BookingConfirmation from './pages/BookingConfirmation'
 
 function App() {
   const [isLoading, setIsLoading] = useState(true)
@@ -61,6 +63,8 @@ function App() {
             <Route path="/attractions" element={<Attractions />} />
             <Route path="/taxis" element={<AirportTaxis />} />
             <Route path="/apartment/:id" element={<ApartmentDetails />} />
+            <Route path="/booking/:id" element={<BookingProcess />} />
+            <Route path="/booking-confirmation/:id" element={<BookingConfirmation />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />

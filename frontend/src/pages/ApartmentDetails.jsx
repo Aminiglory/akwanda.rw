@@ -382,12 +382,15 @@ const ApartmentDetails = () => {
                 </div>
 
                 <button
-                  type="submit"
+                  type="button"
                   disabled={!isAuthenticated}
                   onClick={(e) => {
                     if (!isAuthenticated) {
                       e.preventDefault();
                       navigate('/login');
+                    } else {
+                      // Navigate to the comprehensive booking process
+                      navigate(`/booking/${id}`);
                     }
                   }}
                   className={`w-full ${
@@ -400,7 +403,7 @@ const ApartmentDetails = () => {
                       : ''
                   }`}
                 >
-                  {isAuthenticated ? 'Book This Apartment' : 'Login to Book'}
+                  {isAuthenticated ? 'Start Booking Process' : 'Login to Book'}
                 </button>
 
                 <div className="text-center">
