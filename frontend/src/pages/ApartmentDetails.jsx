@@ -18,21 +18,21 @@ import {
   FaEnvelope,
   FaSwimmingPool,
   FaTv,
-  FaAirConditioner,
+  FaBook,
   FaShieldAlt,
   FaCoffee,
   FaParking,
-  FaElevator,
+  FaBus,
   FaKey,
   FaHome,
   FaDoorOpen,
-  FaEye,
-  FaChevronRight,
-  FaChevronLeft,
-  FaPlay,
-  FaPause,
-  FaVolumeUp,
-  FaVolumeMute
+  // FaEye,
+  // FaChevronRight,
+  // FaChevronLeft,
+  // FaPlay,
+  // FaPause,
+  // FaVolumeUp,
+  // FaVolumeMute
 } from 'react-icons/fa';
 
 const ApartmentDetails = () => {
@@ -71,10 +71,10 @@ const ApartmentDetails = () => {
           'Kitchen': FaUtensils,
           'Pool': FaSwimmingPool,
           'TV': FaTv,
-          'Air Conditioning': FaAirConditioner,
+          'Air Conditioning': FaBook,
           'Security': FaShieldAlt,
           'Coffee Machine': FaCoffee,
-          'Elevator': FaElevator,
+          'Elevator': FaBus,
           'Keyless Entry': FaKey,
           'Balcony': FaHome,
           'Garden': FaHome
@@ -355,7 +355,7 @@ const ApartmentDetails = () => {
                       <div className="flex items-center space-x-4 text-sm text-gray-600 mb-3">
                         <div className="flex items-center">
                           <FaUser className="mr-1" />
-                          <span>{room.capacity} guests</span>
+                          <span>{room.capacity} guest (s)</span>
                         </div>
                         <div className={`px-2 py-1 rounded-full text-xs ${
                           room.isAvailable 
