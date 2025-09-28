@@ -15,12 +15,31 @@ import {
   FaHeart,
   FaShare,
   FaPhone,
-  FaEnvelope
+  FaEnvelope,
+  FaSwimmingPool,
+  FaTv,
+  FaAirConditioner,
+  FaShieldAlt,
+  FaCoffee,
+  FaParking,
+  FaElevator,
+  FaKey,
+  FaHome,
+  FaDoorOpen,
+  FaEye,
+  FaChevronRight,
+  FaChevronLeft,
+  FaPlay,
+  FaPause,
+  FaVolumeUp,
+  FaVolumeMute
 } from 'react-icons/fa';
 
 const ApartmentDetails = () => {
   const [selectedImage, setSelectedImage] = useState(0);
   const [isFavorited, setIsFavorited] = useState(false);
+  const [selectedRoom, setSelectedRoom] = useState(null);
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const [bookingData, setBookingData] = useState({
     checkIn: '',
     checkOut: '',
@@ -44,14 +63,36 @@ const ApartmentDetails = () => {
         if (!res.ok) throw new Error(data.message || 'Failed to load property');
 
         const p = data.property;
+        
+        // Enhanced amenities mapping
+        const amenityIcons = {
+          'WiFi': FaWifi,
+          'Parking': FaCar,
+          'Kitchen': FaUtensils,
+          'Pool': FaSwimmingPool,
+          'TV': FaTv,
+          'Air Conditioning': FaAirConditioner,
+          'Security': FaShieldAlt,
+          'Coffee Machine': FaCoffee,
+          'Elevator': FaElevator,
+          'Keyless Entry': FaKey,
+          'Balcony': FaHome,
+          'Garden': FaHome
+        };
+
+        const processedAmenities = (p.amenities || []).map(amenity => ({
+          icon: amenityIcons[amenity] || FaHome,
+          name: amenity
+        }));
+
         setApartment({
           id: p._id,
           title: p.title,
           location: `${p.address}, ${p.city}`,
           price: p.pricePerNight,
-          rating: p.rating || 0,
-          reviews: p.reviewsCount || 0,
-          type: 'Apartment',
+          rating: p.ratings?.length ? p.ratings.reduce((sum, r) => sum + r.rating, 0) / p.ratings.length : 0,
+          reviews: p.ratings?.length || 0,
+          type: p.category || 'Apartment',
           size: p.size || '—',
           bedrooms: p.bedrooms ?? 0,
           bathrooms: p.bathrooms ?? 0,
@@ -61,21 +102,30 @@ const ApartmentDetails = () => {
               : [
                   'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&h=600&fit=crop'
                 ],
-          amenities: [
-            { icon: FaWifi, name: 'Free WiFi' },
-            { icon: FaCar, name: 'Parking' },
-            { icon: FaUtensils, name: 'Kitchen' }
-          ],
-          description:
-            p.description || 'Beautiful apartment with great amenities.',
+          rooms: p.rooms || [],
+          amenities: processedAmenities,
+          description: p.description || 'Beautiful apartment with great amenities.',
           host: {
             name: p.host ? `${p.host.firstName} ${p.host.lastName}` : '—',
             avatar: null,
             rating: p.host?.rating || 0,
             responseTime: 'Within an hour',
-            joinDate: '2020'
+            joinDate: '2020',
+            email: p.host?.email,
+            phone: p.host?.phone
           },
-          nearby: []
+          nearby: [],
+          features: {
+            checkIn: '3:00 PM',
+            checkOut: '11:00 AM',
+            cancellation: 'Free cancellation up to 24 hours before check-in',
+            houseRules: [
+              'No smoking',
+              'No pets',
+              'No parties or events',
+              'Check-in is anytime after 3:00 PM'
+            ]
+          }
         });
       } catch (e) {
         toast.error(e.message);
@@ -208,7 +258,7 @@ const ApartmentDetails = () => {
               </div>
             </div>
 
-            {/* Details */}
+            {/* Property Overview */}
             <div className="bg-white rounded-2xl shadow-lg p-6">
               <div className="flex items-start justify-between mb-6">
                 <div>
@@ -244,18 +294,156 @@ const ApartmentDetails = () => {
 
               <div className="border-t pt-6">
                 <h3 className="text-lg font-semibold text-gray-800 mb-3">
-                  About this apartment
+                  About this {apartment.type.toLowerCase()}
                 </h3>
-                <p className="text-gray-700 leading-relaxed">
+                <p className="text-gray-700 leading-relaxed mb-4">
                   {apartment.description}
                 </p>
+                
+                {/* Property Features */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                  <div className="flex items-center space-x-3">
+                    <FaDoorOpen className="text-blue-600" />
+                    <span className="text-gray-700">Check-in: {apartment.features?.checkIn}</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <FaKey className="text-blue-600" />
+                    <span className="text-gray-700">Check-out: {apartment.features?.checkOut}</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <FaShieldAlt className="text-blue-600" />
+                    <span className="text-gray-700">{apartment.features?.cancellation}</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <FaHome className="text-blue-600" />
+                    <span className="text-gray-700">Entire place</span>
+                  </div>
+                </div>
               </div>
             </div>
+
+            {/* Rooms Showcase */}
+            {apartment.rooms && apartment.rooms.length > 0 && (
+              <div className="bg-white rounded-2xl shadow-lg p-6">
+                <h3 className="text-xl font-bold text-gray-800 mb-6">
+                  Available Rooms
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {apartment.rooms.map((room, index) => (
+                    <div 
+                      key={index}
+                      className={`border-2 rounded-xl p-4 cursor-pointer transition-all duration-300 ${
+                        selectedRoom === index 
+                          ? 'border-blue-500 bg-blue-50' 
+                          : 'border-gray-200 hover:border-blue-300'
+                      }`}
+                      onClick={() => setSelectedRoom(selectedRoom === index ? null : index)}
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <h4 className="font-semibold text-gray-800">{room.roomNumber}</h4>
+                          <p className="text-sm text-gray-600 capitalize">{room.roomType}</p>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-lg font-bold text-blue-600">
+                            RWF {room.pricePerNight?.toLocaleString()}
+                          </div>
+                          <div className="text-sm text-gray-500">per night</div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center space-x-4 text-sm text-gray-600 mb-3">
+                        <div className="flex items-center">
+                          <FaUser className="mr-1" />
+                          <span>{room.capacity} guests</span>
+                        </div>
+                        <div className={`px-2 py-1 rounded-full text-xs ${
+                          room.isAvailable 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-red-100 text-red-800'
+                        }`}>
+                          {room.isAvailable ? 'Available' : 'Unavailable'}
+                        </div>
+                      </div>
+
+                      {/* Room Images */}
+                      {room.images && room.images.length > 0 && (
+                        <div className="grid grid-cols-2 gap-2 mb-3">
+                          {room.images.slice(0, 4).map((image, imgIndex) => (
+                            <img
+                              key={imgIndex}
+                              src={makeAbsolute(image)}
+                              alt={`${room.roomNumber} - Image ${imgIndex + 1}`}
+                              className="w-full h-20 object-cover rounded-lg"
+                            />
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Room Amenities */}
+                      {room.amenities && room.amenities.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {room.amenities.slice(0, 3).map((amenity, amenityIndex) => (
+                            <span 
+                              key={amenityIndex}
+                              className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full"
+                            >
+                              {amenity}
+                            </span>
+                          ))}
+                          {room.amenities.length > 3 && (
+                            <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
+                              +{room.amenities.length - 3} more
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      {selectedRoom === index && (
+                        <div className="mt-4 pt-4 border-t">
+                          <h5 className="font-medium text-gray-800 mb-2">Room Details</h5>
+                          <div className="space-y-2 text-sm text-gray-600">
+                            <div className="flex justify-between">
+                              <span>Room Type:</span>
+                              <span className="capitalize">{room.roomType}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Capacity:</span>
+                              <span>{room.capacity} guests</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Price per night:</span>
+                              <span className="font-medium">RWF {room.pricePerNight?.toLocaleString()}</span>
+                            </div>
+                          </div>
+                          
+                          {room.amenities && room.amenities.length > 0 && (
+                            <div className="mt-3">
+                              <h6 className="font-medium text-gray-800 mb-2">Room Amenities</h6>
+                              <div className="flex flex-wrap gap-2">
+                                {room.amenities.map((amenity, amenityIndex) => (
+                                  <span 
+                                    key={amenityIndex}
+                                    className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full"
+                                  >
+                                    {amenity}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Amenities */}
             <div className="bg-white rounded-2xl shadow-lg p-6">
               <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                Amenities
+                What this place offers
               </h3>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 {apartment.amenities.map((amenity, index) => {
@@ -263,7 +451,7 @@ const ApartmentDetails = () => {
                   return (
                     <div
                       key={index}
-                      className="flex items-center space-x-3"
+                      className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50 transition-colors"
                     >
                       <IconComponent className="text-blue-600 text-xl" />
                       <span className="text-gray-700">{amenity.name}</span>
@@ -273,12 +461,29 @@ const ApartmentDetails = () => {
               </div>
             </div>
 
+            {/* House Rules */}
+            {apartment.features?.houseRules && (
+              <div className="bg-white rounded-2xl shadow-lg p-6">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                  House Rules
+                </h3>
+                <div className="space-y-3">
+                  {apartment.features.houseRules.map((rule, index) => (
+                    <div key={index} className="flex items-start space-x-3">
+                      <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 flex-shrink-0"></div>
+                      <span className="text-gray-700">{rule}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Host */}
             <div className="bg-white rounded-2xl shadow-lg p-6">
               <h3 className="text-lg font-semibold text-gray-800 mb-4">
                 Meet your host
               </h3>
-              <div className="flex items-center space-x-4">
+              <div className="flex items-start space-x-4">
                 {apartment.host.avatar ? (
                   <img
                     src={apartment.host.avatar}
@@ -291,10 +496,10 @@ const ApartmentDetails = () => {
                   </div>
                 )}
                 <div className="flex-1">
-                  <h4 className="font-semibold text-gray-800">
+                  <h4 className="font-semibold text-gray-800 text-lg">
                     {apartment.host.name}
                   </h4>
-                  <div className="flex items-center space-x-4 text-sm text-gray-600">
+                  <div className="flex items-center space-x-4 text-sm text-gray-600 mb-2">
                     <div className="flex items-center">
                       {renderStars(apartment.host.rating)}
                       <span className="ml-1">{apartment.host.rating}</span>
@@ -302,14 +507,42 @@ const ApartmentDetails = () => {
                     <span>Response time: {apartment.host.responseTime}</span>
                     <span>Host since {apartment.host.joinDate}</span>
                   </div>
+                  
+                  {/* Host Contact Info */}
+                  <div className="space-y-1 text-sm text-gray-600">
+                    {apartment.host.email && (
+                      <div className="flex items-center space-x-2">
+                        <FaEnvelope className="text-blue-600" />
+                        <span>{apartment.host.email}</span>
+                      </div>
+                    )}
+                    {apartment.host.phone && (
+                      <div className="flex items-center space-x-2">
+                        <FaPhone className="text-blue-600" />
+                        <span>{apartment.host.phone}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="flex space-x-2">
-                  <button className="p-2 bg-blue-100 text-blue-600 rounded-full hover:bg-blue-200 transition-colors">
-                    <FaPhone />
-                  </button>
-                  <button className="p-2 bg-blue-100 text-blue-600 rounded-full hover:bg-blue-200 transition-colors">
-                    <FaEnvelope />
-                  </button>
+                <div className="flex flex-col space-y-2">
+                  {apartment.host.phone && (
+                    <a 
+                      href={`tel:${apartment.host.phone}`}
+                      className="p-2 bg-blue-100 text-blue-600 rounded-full hover:bg-blue-200 transition-colors"
+                      title="Call host"
+                    >
+                      <FaPhone />
+                    </a>
+                  )}
+                  {apartment.host.email && (
+                    <a 
+                      href={`mailto:${apartment.host.email}`}
+                      className="p-2 bg-blue-100 text-blue-600 rounded-full hover:bg-blue-200 transition-colors"
+                      title="Email host"
+                    >
+                      <FaEnvelope />
+                    </a>
+                  )}
                 </div>
               </div>
             </div>
