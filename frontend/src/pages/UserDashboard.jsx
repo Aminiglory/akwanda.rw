@@ -29,20 +29,34 @@ const UserDashboard = () => {
 
   const fetchDashboardData = async () => {
     try {
-      const [propertiesRes, bookingsRes] = await Promise.all([
-        fetch(`${API_URL}/api/properties/mine`, { credentials: 'include' }),
-        fetch(`${API_URL}/api/bookings/mine`, { credentials: 'include' })
-      ]);
+      // Fetch data with error handling for each endpoint
+      const fetchWithFallback = async (url, fallbackData = {}) => {
+        try {
+          const response = await fetch(url, { credentials: 'include' });
+          if (response.ok) {
+            return await response.json();
+          } else {
+            console.warn(`Failed to fetch ${url}:`, response.status);
+            return fallbackData;
+          }
+        } catch (error) {
+          console.warn(`Error fetching ${url}:`, error);
+          return fallbackData;
+        }
+      };
 
       const [propertiesData, bookingsData] = await Promise.all([
-        propertiesRes.json(),
-        bookingsRes.json()
+        fetchWithFallback(`${API_URL}/api/properties/mine`, { properties: [] }),
+        fetchWithFallback(`${API_URL}/api/bookings/mine`, { bookings: [] })
       ]);
 
-      setProperties(propertiesData.properties || []);
-      setBookings(bookingsData.bookings || []);
+      const properties = propertiesData.properties || [];
+      const bookings = bookingsData.bookings || [];
 
-      // Calculate metrics
+      setProperties(properties);
+      setBookings(bookings);
+
+      // Calculate metrics with safe data
       const totalEarnings = bookings
         .filter(b => b.status === 'confirmed' || b.status === 'ended')
         .reduce((sum, b) => sum + (b.totalAmount - (b.commissionAmount || 0)), 0);
@@ -75,7 +89,21 @@ const UserDashboard = () => {
         occupancyRate: Math.round(occupancyRate)
       });
     } catch (error) {
-      toast.error('Failed to load dashboard data');
+      console.error('User dashboard data fetch error:', error);
+      toast.error('Failed to load dashboard data. Using fallback data.');
+      
+      // Set fallback data
+      setProperties([]);
+      setBookings([]);
+      setMetrics({
+        totalProperties: 0,
+        totalBookings: 0,
+        totalEarnings: 0,
+        pendingBookings: 0,
+        monthlyEarnings: 0,
+        averageRating: 0,
+        occupancyRate: 0
+      });
     }
   };
 

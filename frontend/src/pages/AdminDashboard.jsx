@@ -33,26 +33,77 @@ const AdminDashboard = () => {
 
   const fetchDashboardData = async () => {
     try {
-      const [metricsRes, propertiesRes, bookingsRes, usersRes] = await Promise.all([
-        fetch(`${API_URL}/api/admin/metrics`, { credentials: 'include' }),
-        fetch(`${API_URL}/api/properties`, { credentials: 'include' }),
-        fetch(`${API_URL}/api/bookings`, { credentials: 'include' }),
-        fetch(`${API_URL}/api/admin/users`, { credentials: 'include' })
-      ]);
+      // Fetch data with error handling for each endpoint
+      const fetchWithFallback = async (url, fallbackData = {}) => {
+        try {
+          const response = await fetch(url, { credentials: 'include' });
+          if (response.ok) {
+            return await response.json();
+          } else {
+            console.warn(`Failed to fetch ${url}:`, response.status);
+            return fallbackData;
+          }
+        } catch (error) {
+          console.warn(`Error fetching ${url}:`, error);
+          return fallbackData;
+        }
+      };
 
+      // Fetch all data with fallbacks
       const [metricsData, propertiesData, bookingsData, usersData] = await Promise.all([
-        metricsRes.json(),
-        propertiesRes.json(),
-        bookingsRes.json(),
-        usersRes.json()
+        fetchWithFallback(`${API_URL}/api/admin/metrics`, { 
+          totalProperties: 0, 
+          totalBookings: 0, 
+          totalRevenue: 0, 
+          totalUsers: 0 
+        }),
+        fetchWithFallback(`${API_URL}/api/properties`, { properties: [] }),
+        fetchWithFallback(`${API_URL}/api/bookings`, { bookings: [] }),
+        fetchWithFallback(`${API_URL}/api/admin/users`, { users: [] })
       ]);
 
-      setMetrics(metricsData);
+      // Set data with fallbacks
+      setMetrics({
+        totalProperties: metricsData.totalProperties || propertiesData.properties?.length || 0,
+        totalBookings: metricsData.totalBookings || bookingsData.bookings?.length || 0,
+        totalRevenue: metricsData.totalRevenue || 0,
+        totalUsers: metricsData.totalUsers || usersData.users?.length || 0,
+        totalAttractions: 0,
+        totalTaxis: 0,
+        totalCarRentals: 0,
+        pendingCommissions: 0
+      });
+      
       setProperties(propertiesData.properties || []);
       setBookings(bookingsData.bookings || []);
       setUsers(usersData.users || []);
+      
+      // Set attractions, taxis, and car rentals to empty arrays for now
+      setAttractions([]);
+      setTaxis([]);
+      setCarRentals([]);
+
     } catch (error) {
-      toast.error('Failed to load dashboard data');
+      console.error('Dashboard data fetch error:', error);
+      toast.error('Failed to load dashboard data. Using fallback data.');
+      
+      // Set fallback data
+      setMetrics({
+        totalProperties: 0,
+        totalBookings: 0,
+        totalRevenue: 0,
+        totalUsers: 0,
+        totalAttractions: 0,
+        totalTaxis: 0,
+        totalCarRentals: 0,
+        pendingCommissions: 0
+      });
+      setProperties([]);
+      setBookings([]);
+      setUsers([]);
+      setAttractions([]);
+      setTaxis([]);
+      setCarRentals([]);
     }
   };
 

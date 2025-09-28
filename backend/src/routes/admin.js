@@ -80,19 +80,56 @@ module.exports = router;
 // Additional admin endpoints
 // Landing page metrics endpoint (public)
 router.get('/metrics', async (req, res) => {
-    const User = require('../tables/user');
-    const Property = require('../tables/property');
-    const Booking = require('../tables/booking');
-    // Happy Guests: count unique guests from bookings
-    const guestIds = await Booking.distinct('guest');
-    const happyGuests = guestIds.length;
-    // Active Listings: count of properties with isActive true
-    const activeListings = await Property.countDocuments({ isActive: true });
-    // Satisfaction Rate: percent of confirmed bookings (as a proxy)
-    const totalBookings = await Booking.countDocuments();
-    const confirmedBookings = await Booking.countDocuments({ status: 'confirmed' });
-    const satisfactionRate = totalBookings > 0 ? Math.round((confirmedBookings / totalBookings) * 100) : 100;
-    res.json({ happyGuests, activeListings, satisfactionRate });
+    try {
+        const User = require('../tables/user');
+        const Property = require('../tables/property');
+        const Booking = require('../tables/booking');
+        
+        // Happy Guests: count unique guests from bookings
+        const guestIds = await Booking.distinct('guest');
+        const happyGuests = guestIds.length;
+        
+        // Active Listings: count of properties with isActive true
+        const activeListings = await Property.countDocuments({ isActive: true });
+        
+        // Satisfaction Rate: percent of confirmed bookings (as a proxy)
+        const totalBookings = await Booking.countDocuments();
+        const confirmedBookings = await Booking.countDocuments({ status: 'confirmed' });
+        const satisfactionRate = totalBookings > 0 ? Math.round((confirmedBookings / totalBookings) * 100) : 100;
+        
+        // Additional metrics for admin dashboard
+        const totalProperties = await Property.countDocuments();
+        const totalUsers = await User.countDocuments();
+        const totalRevenue = await Booking.aggregate([
+            { $match: { status: { $in: ['confirmed', 'ended'] } } },
+            { $group: { _id: null, total: { $sum: '$totalAmount' } } }
+        ]);
+        
+        res.json({ 
+            happyGuests, 
+            activeListings, 
+            satisfactionRate,
+            totalProperties,
+            totalBookings,
+            totalUsers,
+            totalRevenue: totalRevenue.length > 0 ? totalRevenue[0].total : 0
+        });
+    } catch (error) {
+        console.error('Metrics error:', error);
+        res.status(500).json({ message: 'Failed to fetch metrics' });
+    }
+});
+
+// Admin users endpoint
+router.get('/users', requireAdmin, async (req, res) => {
+    try {
+        const User = require('../tables/user');
+        const users = await User.find({}).select('-passwordHash');
+        res.json({ users });
+    } catch (error) {
+        console.error('Users fetch error:', error);
+        res.status(500).json({ message: 'Failed to fetch users' });
+    }
 });
 router.get('/bookings/pending-commission', requireAdmin, async (req, res) => {
     const list = await Booking.find({ status: 'commission_due', commissionPaid: false })
