@@ -51,6 +51,24 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
+// Dedicated image upload endpoint
+router.post('/upload/images', requireAuth, upload.array('images', 10), async (req, res) => {
+    try {
+        if (!req.files || req.files.length === 0) {
+            return res.status(400).json({ message: 'No images uploaded' });
+        }
+        
+        const imagePaths = req.files.map(f => `/uploads/${path.basename(f.path)}`);
+        res.json({ 
+            success: true, 
+            imageUrls: imagePaths,
+            message: 'Images uploaded successfully' 
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Failed to upload images', error: error.message });
+    }
+});
+
 router.post('/', requireAuth, upload.array('images', 10), async (req, res) => {
     // Allow any authenticated user; auto-promote to host on first upload
     if (req.user.userType !== 'host' && req.user.userType !== 'admin') {

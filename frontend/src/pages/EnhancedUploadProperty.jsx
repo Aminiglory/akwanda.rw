@@ -152,7 +152,7 @@ const EnhancedUploadProperty = () => {
       const formData = new FormData();
       files.forEach(file => formData.append('images', file));
 
-      const res = await fetch(`${API_URL}/api/upload/images`, {
+      const res = await fetch(`${API_URL}/api/properties/upload/images`, {
         method: 'POST',
         body: formData,
         credentials: 'include'
@@ -540,7 +540,7 @@ const EnhancedUploadProperty = () => {
                                 const formData = new FormData();
                                 files.forEach(file => formData.append('images', file));
 
-                                const res = await fetch(`${API_URL}/api/upload/images`, {
+                                const res = await fetch(`${API_URL}/api/properties/upload/images`, {
                                   method: 'POST',
                                   body: formData,
                                   credentials: 'include'

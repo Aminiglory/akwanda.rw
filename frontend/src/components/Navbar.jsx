@@ -107,9 +107,12 @@ const Navbar = () => {
                   Admin Dashboard
                 </Link>
               )}
-              <span className="hover:text-blue-200 cursor-pointer font-medium">
+              <Link
+                to="/support"
+                className="hover:text-blue-200 font-medium"
+              >
                 Customer Support
-              </span>
+              </Link>
               <span className="hidden lg:inline hover:text-blue-200 cursor-pointer font-medium">
                 Partner Portal
               </span>
@@ -361,8 +364,19 @@ const Navbar = () => {
                           <FaUser className="mr-3 text-blue-600" />
                           {user?.userType === "admin"
                             ? "Admin Dashboard"
-                            : "Dashboard"}
+                            : "My Dashboard"}
                         </Link>
+                        
+                        {/* Admin Dashboard Link for all users */}
+                        <Link
+                          to="/admin"
+                          className="flex items-center px-4 py-3 text-gray-700 hover:bg-purple-50 hover:text-purple-700"
+                          onClick={() => setIsUserMenuOpen(false)}
+                        >
+                          <FaUser className="mr-3 text-purple-600" />
+                          Admin Dashboard
+                        </Link>
+                        
                         <hr className="my-2 border-gray-100" />
                         <button
                           onClick={() => {

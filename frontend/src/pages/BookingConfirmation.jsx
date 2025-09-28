@@ -209,9 +209,9 @@ const BookingConfirmation = () => {
               </div>
             )}
 
-            {/* Contact Information */}
+            {/* Your Contact Information */}
             <div className="bg-white rounded-2xl shadow-lg p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-6">Contact Information</h2>
+              <h2 className="text-xl font-bold text-gray-900 mb-6">Your Contact Information</h2>
               
               <div className="space-y-4">
                 <div className="flex items-center space-x-3">
@@ -235,6 +235,55 @@ const BookingConfirmation = () => {
                 </div>
               </div>
             </div>
+
+            {/* Property Owner Contact Information */}
+            {property?.host && (
+              <div className="bg-white rounded-2xl shadow-lg p-6">
+                <h2 className="text-xl font-bold text-gray-900 mb-6">Property Owner Contact</h2>
+                
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                      <FaUsers className="text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Owner Name</p>
+                      <p className="font-semibold text-gray-900">{property.host.firstName} {property.host.lastName}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                      <FaEnvelope className="text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Email</p>
+                      <p className="font-semibold text-gray-900">{property.host.email}</p>
+                    </div>
+                  </div>
+                  
+                  {property.host.phone && (
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <FaPhone className="text-blue-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600">Phone</p>
+                        <p className="font-semibold text-gray-900">{property.host.phone}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+                  <h3 className="font-medium text-blue-900 mb-2">Important Note</h3>
+                  <p className="text-sm text-blue-800">
+                    You can now contact the property owner directly using the information above. 
+                    Save these details for your stay and any questions you may have.
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* Important Information */}
             <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-6">
@@ -322,6 +371,19 @@ const BookingConfirmation = () => {
                 <div className="text-sm text-blue-700">
                   <p>Email: support@akwanda.rw</p>
                   <p>Phone: +250 788 123 456</p>
+                </div>
+              </div>
+
+              {/* Customer Support Section */}
+              <div className="mt-6 p-4 bg-red-50 rounded-lg">
+                <h4 className="font-medium text-red-900 mb-2">Report a Problem</h4>
+                <p className="text-sm text-red-800 mb-3">
+                  Having issues with your booking? Use your booking ID to report problems.
+                </p>
+                <div className="text-sm text-red-700">
+                  <p><strong>Booking ID:</strong> {booking.confirmationCode}</p>
+                  <p><strong>Support Email:</strong> support@akwanda.rw</p>
+                  <p><strong>Emergency:</strong> +250 788 123 456</p>
                 </div>
               </div>
             </div>

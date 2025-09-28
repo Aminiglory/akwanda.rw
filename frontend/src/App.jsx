@@ -24,6 +24,7 @@ import MTNMobileMoneyPayment from './pages/MTNMobileMoneyPayment'
 import RRAEBMIntegration from './pages/RRAEBMIntegration'
 import BookingProcess from './pages/BookingProcess'
 import BookingConfirmation from './pages/BookingConfirmation'
+import CustomerSupport from './pages/CustomerSupport'
 
 function App() {
   const [isLoading, setIsLoading] = useState(true)
@@ -75,6 +76,7 @@ function App() {
             <Route path="/admin/profile" element={<AdminRoute><AdminProfile /></AdminRoute>} />
             <Route path="/payment/mtn-mobile-money" element={<MTNMobileMoneyPayment />} />
             <Route path="/billing/rra-ebm" element={<RRAEBMIntegration />} />
+            <Route path="/support" element={<CustomerSupport />} />
           </Routes>
           
           {/* Footer */}

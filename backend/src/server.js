@@ -10,6 +10,9 @@ const propertiesRouter = require('./routes/properties');
 const bookingsRouter = require('./routes/bookings');
 const adminRouter = require('./routes/admin');
 const userRouter = require('./routes/user');
+const paymentsRouter = require('./routes/payments');
+const billingRouter = require('./routes/billing');
+const supportRouter = require('./routes/support');
 const User = require('./tables/user');
 
 const app = express();
@@ -51,6 +54,9 @@ app.use('/api/properties', propertiesRouter);
 app.use('/api/bookings', bookingsRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/user', userRouter);
+app.use('/api/payments', paymentsRouter);
+app.use('/api/billing', billingRouter);
+app.use('/api/support', supportRouter);
 
 async function seedAdminIfNeeded() {
     const adminEmail = process.env.ADMIN_EMAIL;

@@ -551,9 +551,24 @@ const UserDashboard = () => {
                                 <span className="font-medium">Guest:</span> {booking.guest?.firstName} {booking.guest?.lastName}
                                 {booking.guest?.phone && <span className="ml-4"><span className="font-medium">Phone:</span> {booking.guest.phone}</span>}
                               </div>
+                              {booking.guest?.email && (
+                                <div className="mt-1 text-sm text-gray-600">
+                                  <span className="font-medium">Email:</span> {booking.guest.email}
+                                </div>
+                              )}
                               {booking.confirmationCode && (
                                 <div className="mt-1 text-sm text-blue-600">
-                                  <span className="font-medium">Confirmation:</span> {booking.confirmationCode}
+                                  <span className="font-medium">Booking ID:</span> {booking.confirmationCode}
+                                </div>
+                              )}
+                              {booking.guestContact && (
+                                <div className="mt-2 p-2 bg-blue-50 rounded-lg">
+                                  <h5 className="text-xs font-medium text-blue-900 mb-1">Guest Contact Details:</h5>
+                                  <div className="text-xs text-blue-800">
+                                    {booking.guestContact.phone && <p>Phone: {booking.guestContact.phone}</p>}
+                                    {booking.guestContact.email && <p>Email: {booking.guestContact.email}</p>}
+                                    {booking.guestContact.emergencyContact && <p>Emergency: {booking.guestContact.emergencyContact}</p>}
+                                  </div>
                                 </div>
                               )}
                             </div>
