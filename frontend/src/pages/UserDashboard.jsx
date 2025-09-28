@@ -1,31 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { FaChartLine, FaUsers, FaBed, FaCalendarAlt, FaDollarSign, FaStar, FaMapMarkerAlt, FaCar, FaPlane, FaCamera, FaFilter, FaSearch, FaEdit, FaTrash, FaPlus, FaEye, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
+import { FaChartLine, FaUsers, FaBed, FaCalendarAlt, FaDollarSign, FaStar, FaMapMarkerAlt, FaEdit, FaTrash, FaPlus, FaEye, FaCheckCircle, FaTimesCircle, FaClock, FaHome, FaMoneyBillWave, FaCalendarCheck, FaCalendarTimes } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-const AdminDashboard = () => {
+const UserDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [metrics, setMetrics] = useState({
     totalProperties: 0,
     totalBookings: 0,
-    totalRevenue: 0,
-    totalUsers: 0,
-    totalAttractions: 0,
-    totalTaxis: 0,
-    totalCarRentals: 0,
-    pendingCommissions: 0
+    totalEarnings: 0,
+    pendingBookings: 0,
+    monthlyEarnings: 0,
+    averageRating: 0,
+    occupancyRate: 0
   });
 
   const [properties, setProperties] = useState([]);
   const [bookings, setBookings] = useState([]);
-  const [users, setUsers] = useState([]);
-  const [attractions, setAttractions] = useState([]);
-  const [taxis, setTaxis] = useState([]);
-  const [carRentals, setCarRentals] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
 
   useEffect(() => {
     fetchDashboardData();
@@ -33,24 +29,51 @@ const AdminDashboard = () => {
 
   const fetchDashboardData = async () => {
     try {
-      const [metricsRes, propertiesRes, bookingsRes, usersRes] = await Promise.all([
-        fetch(`${API_URL}/api/admin/metrics`, { credentials: 'include' }),
-        fetch(`${API_URL}/api/properties`, { credentials: 'include' }),
-        fetch(`${API_URL}/api/bookings`, { credentials: 'include' }),
-        fetch(`${API_URL}/api/admin/users`, { credentials: 'include' })
+      const [propertiesRes, bookingsRes] = await Promise.all([
+        fetch(`${API_URL}/api/properties/mine`, { credentials: 'include' }),
+        fetch(`${API_URL}/api/bookings/mine`, { credentials: 'include' })
       ]);
 
-      const [metricsData, propertiesData, bookingsData, usersData] = await Promise.all([
-        metricsRes.json(),
+      const [propertiesData, bookingsData] = await Promise.all([
         propertiesRes.json(),
-        bookingsRes.json(),
-        usersRes.json()
+        bookingsRes.json()
       ]);
 
-      setMetrics(metricsData);
       setProperties(propertiesData.properties || []);
       setBookings(bookingsData.bookings || []);
-      setUsers(usersData.users || []);
+
+      // Calculate metrics
+      const totalEarnings = bookings
+        .filter(b => b.status === 'confirmed' || b.status === 'ended')
+        .reduce((sum, b) => sum + (b.totalAmount - (b.commissionAmount || 0)), 0);
+
+      const monthlyEarnings = bookings
+        .filter(b => {
+          const bookingDate = new Date(b.createdAt);
+          const currentMonth = new Date();
+          return bookingDate.getMonth() === currentMonth.getMonth() && 
+                 bookingDate.getFullYear() === currentMonth.getFullYear() &&
+                 (b.status === 'confirmed' || b.status === 'ended');
+        })
+        .reduce((sum, b) => sum + (b.totalAmount - (b.commissionAmount || 0)), 0);
+
+      const averageRating = properties.reduce((sum, p) => {
+        const ratings = p.ratings || [];
+        return sum + (ratings.length > 0 ? ratings.reduce((s, r) => s + r.rating, 0) / ratings.length : 0);
+      }, 0) / (properties.length || 1);
+
+      const occupancyRate = properties.length > 0 ? 
+        (bookings.filter(b => b.status === 'confirmed').length / (properties.length * 30)) * 100 : 0;
+
+      setMetrics({
+        totalProperties: properties.length,
+        totalBookings: bookings.length,
+        totalEarnings,
+        pendingBookings: bookings.filter(b => b.status === 'pending').length,
+        monthlyEarnings,
+        averageRating: Math.round(averageRating * 10) / 10,
+        occupancyRate: Math.round(occupancyRate)
+      });
     } catch (error) {
       toast.error('Failed to load dashboard data');
     }
@@ -59,14 +82,12 @@ const AdminDashboard = () => {
   const getStatusColor = (status) => {
     switch (status) {
       case 'confirmed':
-      case 'active':
         return 'bg-green-100 text-green-800';
       case 'pending':
         return 'bg-yellow-100 text-yellow-800';
       case 'cancelled':
         return 'bg-red-100 text-red-800';
       case 'ended':
-      case 'completed':
         return 'bg-blue-100 text-blue-800';
       default:
         return 'bg-gray-100 text-gray-800';
@@ -83,6 +104,40 @@ const AdminDashboard = () => {
     ));
   };
 
+  const handleBookingAction = async (bookingId, action) => {
+    try {
+      const res = await fetch(`${API_URL}/api/bookings/${bookingId}/${action}`, {
+        method: 'POST',
+        credentials: 'include'
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to update booking');
+      
+      toast.success(`Booking ${action}ed successfully`);
+      fetchDashboardData(); // Refresh data
+    } catch (error) {
+      toast.error(error.message);
+    }
+  };
+
+  const handleRoomClose = async (propertyId, roomId, startDate, endDate, reason) => {
+    try {
+      const res = await fetch(`${API_URL}/api/properties/${propertyId}/rooms/${roomId}/close`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ startDate, endDate, reason })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to close room');
+      
+      toast.success('Room closed successfully');
+      fetchDashboardData();
+    } catch (error) {
+      toast.error(error.message);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -90,14 +145,14 @@ const AdminDashboard = () => {
         <div className="max-w-7xl mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-              <p className="text-gray-600 mt-1">Manage your platform like Booking.com</p>
+              <h1 className="text-3xl font-bold text-gray-900">Property Owner Dashboard</h1>
+              <p className="text-gray-600 mt-1">Manage your properties and track your earnings</p>
             </div>
             <div className="flex items-center space-x-4">
-              <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-xl font-semibold transition-colors duration-300 flex items-center gap-2">
+              <Link to="/upload" className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-xl font-semibold transition-colors duration-300 flex items-center gap-2">
                 <FaPlus />
-                Add New Service
-              </button>
+                Add New Property
+              </Link>
             </div>
           </div>
         </div>
@@ -109,7 +164,7 @@ const AdminDashboard = () => {
           <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow">
             <div className="flex items-center">
               <div className="p-3 bg-blue-100 rounded-xl">
-                <FaBed className="text-blue-600 text-xl" />
+                <FaHome className="text-blue-600 text-xl" />
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Total Properties</p>
@@ -121,7 +176,7 @@ const AdminDashboard = () => {
           <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow">
             <div className="flex items-center">
               <div className="p-3 bg-green-100 rounded-xl">
-                <FaCalendarAlt className="text-green-600 text-xl" />
+                <FaCalendarCheck className="text-green-600 text-xl" />
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Total Bookings</p>
@@ -133,11 +188,11 @@ const AdminDashboard = () => {
           <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow">
             <div className="flex items-center">
               <div className="p-3 bg-yellow-100 rounded-xl">
-                <FaDollarSign className="text-yellow-600 text-xl" />
+                <FaMoneyBillWave className="text-yellow-600 text-xl" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Revenue</p>
-                <p className="text-2xl font-bold text-gray-900">RWF {metrics.totalRevenue?.toLocaleString()}</p>
+                <p className="text-sm font-medium text-gray-600">Total Earnings</p>
+                <p className="text-2xl font-bold text-gray-900">RWF {metrics.totalEarnings?.toLocaleString()}</p>
               </div>
             </div>
           </div>
@@ -145,11 +200,50 @@ const AdminDashboard = () => {
           <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow">
             <div className="flex items-center">
               <div className="p-3 bg-purple-100 rounded-xl">
-                <FaUsers className="text-purple-600 text-xl" />
+                <FaStar className="text-purple-600 text-xl" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Users</p>
-                <p className="text-2xl font-bold text-gray-900">{metrics.totalUsers}</p>
+                <p className="text-sm font-medium text-gray-600">Average Rating</p>
+                <p className="text-2xl font-bold text-gray-900">{metrics.averageRating}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Additional Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+            <div className="flex items-center">
+              <div className="p-3 bg-orange-100 rounded-xl">
+                <FaClock className="text-orange-600 text-xl" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Pending Bookings</p>
+                <p className="text-2xl font-bold text-gray-900">{metrics.pendingBookings}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+            <div className="flex items-center">
+              <div className="p-3 bg-indigo-100 rounded-xl">
+                <FaDollarSign className="text-indigo-600 text-xl" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">This Month</p>
+                <p className="text-2xl font-bold text-gray-900">RWF {metrics.monthlyEarnings?.toLocaleString()}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+            <div className="flex items-center">
+              <div className="p-3 bg-pink-100 rounded-xl">
+                <FaChartLine className="text-pink-600 text-xl" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Occupancy Rate</p>
+                <p className="text-2xl font-bold text-gray-900">{metrics.occupancyRate}%</p>
               </div>
             </div>
           </div>
@@ -161,10 +255,10 @@ const AdminDashboard = () => {
             <nav className="flex space-x-8 px-6">
               {[
                 { id: 'overview', label: 'Overview', icon: FaChartLine },
-                { id: 'properties', label: 'Properties', icon: FaBed },
+                { id: 'properties', label: 'My Properties', icon: FaHome },
                 { id: 'bookings', label: 'Bookings', icon: FaCalendarAlt },
-                { id: 'users', label: 'Users', icon: FaUsers },
-                { id: 'commissions', label: 'Commissions', icon: FaDollarSign }
+                { id: 'calendar', label: 'Calendar', icon: FaCalendarCheck },
+                { id: 'earnings', label: 'Earnings', icon: FaMoneyBillWave }
               ].map(({ id, label, icon: Icon }) => (
                 <button
                   key={id}
@@ -208,7 +302,7 @@ const AdminDashboard = () => {
                   </div>
 
                   <div className="bg-gray-50 rounded-xl p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Top Properties</h3>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">My Properties</h3>
                     <div className="space-y-3">
                       {properties.slice(0, 5).map((property) => (
                         <div key={property._id} className="flex items-center justify-between p-3 bg-white rounded-lg">
@@ -234,10 +328,10 @@ const AdminDashboard = () => {
             {activeTab === 'properties' && (
               <div>
                 <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900">All Properties</h3>
+                  <h3 className="text-lg font-semibold text-gray-900">My Properties</h3>
                   <div className="flex items-center space-x-2">
                     <div className="relative">
-                      <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                      <FaEye className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                       <input
                         type="text"
                         value={searchTerm}
@@ -294,15 +388,65 @@ const AdminDashboard = () => {
                             {renderStars(property.ratings?.length ? property.ratings.reduce((sum, r) => sum + r.rating, 0) / property.ratings.length : 0)}
                           </div>
                         </div>
+                        
+                        {/* Room Management */}
+                        {property.rooms && property.rooms.length > 0 && (
+                          <div className="mb-4">
+                            <h5 className="text-sm font-medium text-gray-700 mb-2">Rooms:</h5>
+                            <div className="space-y-2">
+                              {property.rooms.slice(0, 3).map((room) => (
+                                <div key={room._id} className="flex items-center justify-between text-sm">
+                                  <span className="text-gray-600">{room.roomNumber} - {room.roomType}</span>
+                                  <div className="flex items-center space-x-2">
+                                    <span className={`px-2 py-1 rounded text-xs ${room.isAvailable ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                      {room.isAvailable ? 'Available' : 'Closed'}
+                                    </span>
+                                    <button 
+                                      onClick={() => {
+                                        const startDate = prompt('Start date (YYYY-MM-DD):');
+                                        const endDate = prompt('End date (YYYY-MM-DD):');
+                                        const reason = prompt('Reason for closing:');
+                                        if (startDate && endDate && reason) {
+                                          handleRoomClose(property._id, room._id, startDate, endDate, reason);
+                                        }
+                                      }}
+                                      className="text-red-600 hover:text-red-800 text-xs"
+                                    >
+                                      <FaCalendarTimes />
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
                         <div className="flex items-center space-x-2">
                           <button className="flex-1 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
                             <FaEye className="inline mr-1" />
                             View
                           </button>
-                          <button className="p-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+                          <Link to={`/upload?edit=${property._id}`} className="p-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
                             <FaEdit />
-                          </button>
-                          <button className="p-2 border border-gray-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors">
+                          </Link>
+                          <button 
+                            onClick={async () => {
+                              if (!confirm('Are you sure you want to delete this property?')) return;
+                              try {
+                                const res = await fetch(`${API_URL}/api/properties/${property._id}`, { 
+                                  method: 'DELETE', 
+                                  credentials: 'include' 
+                                });
+                                const data = await res.json();
+                                if (!res.ok) throw new Error(data.message || 'Failed to delete');
+                                toast.success('Property deleted');
+                                fetchDashboardData();
+                              } catch (e) { 
+                                toast.error(e.message); 
+                              }
+                            }}
+                            className="p-2 border border-gray-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors"
+                          >
                             <FaTrash />
                           </button>
                         </div>
@@ -320,7 +464,7 @@ const AdminDashboard = () => {
                   <h3 className="text-lg font-semibold text-gray-900">All Bookings</h3>
                   <div className="flex items-center space-x-2">
                     <div className="relative">
-                      <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                      <FaEye className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                       <input
                         type="text"
                         value={searchTerm}
@@ -379,6 +523,11 @@ const AdminDashboard = () => {
                                 <span className="font-medium">Guest:</span> {booking.guest?.firstName} {booking.guest?.lastName}
                                 {booking.guest?.phone && <span className="ml-4"><span className="font-medium">Phone:</span> {booking.guest.phone}</span>}
                               </div>
+                              {booking.confirmationCode && (
+                                <div className="mt-1 text-sm text-blue-600">
+                                  <span className="font-medium">Confirmation:</span> {booking.confirmationCode}
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -391,8 +540,19 @@ const AdminDashboard = () => {
                               View Details
                             </button>
                             {booking.status === 'pending' && (
-                              <button className="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm">
+                              <button 
+                                onClick={() => handleBookingAction(booking._id, 'confirm')}
+                                className="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+                              >
                                 Confirm
+                              </button>
+                            )}
+                            {booking.status === 'confirmed' && (
+                              <button 
+                                onClick={() => handleBookingAction(booking._id, 'cancel')}
+                                className="px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
+                              >
+                                Cancel
                               </button>
                             )}
                           </div>
@@ -404,154 +564,130 @@ const AdminDashboard = () => {
               </div>
             )}
 
-            {/* Users Tab */}
-            {activeTab === 'users' && (
+            {/* Calendar Tab */}
+            {activeTab === 'calendar' && (
               <div>
                 <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900">All Users</h3>
+                  <h3 className="text-lg font-semibold text-gray-900">Booking Calendar</h3>
                   <div className="flex items-center space-x-2">
-                    <div className="relative">
-                      <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                      <input
-                        type="text"
-                        value={searchTerm}
-                        onChange={e => setSearchTerm(e.target.value)}
-                        placeholder="Search users..."
-                        className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                    </div>
-                    <select
-                      value={filterStatus}
-                      onChange={e => setFilterStatus(e.target.value)}
+                    <input
+                      type="date"
+                      value={selectedDate}
+                      onChange={e => setSelectedDate(e.target.value)}
                       className="p-2 border border-gray-300 rounded-lg bg-white text-gray-700"
-                    >
-                      <option value="">All Types</option>
-                      <option value="guest">Guests</option>
-                      <option value="host">Hosts</option>
-                      <option value="admin">Admins</option>
-                    </select>
+                    />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {users
-                    .filter(u => {
-                      const matchesSearch = u.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                          u.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                          u.email.toLowerCase().includes(searchTerm.toLowerCase());
-                      const matchesType = filterStatus ? u.userType === filterStatus : true;
-                      return matchesSearch && matchesType;
-                    })
-                    .map((user) => (
-                    <div key={user._id} className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
-                      <div className="flex items-center space-x-4">
-                        <div className="w-12 h-12 rounded-full bg-blue-600 text-white flex items-center justify-center text-lg font-bold">
-                          {user.firstName?.[0]}{user.lastName?.[0]}
-                        </div>
-                        <div className="flex-1">
-                          <h4 className="font-semibold text-gray-900">{user.firstName} {user.lastName}</h4>
-                          <p className="text-sm text-gray-600">{user.email}</p>
-                          <p className="text-sm text-gray-500">{user.phone}</p>
-                        </div>
-                        <div className="text-right">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            user.userType === 'admin' ? 'bg-red-100 text-red-800' :
-                            user.userType === 'host' ? 'bg-blue-100 text-blue-800' :
-                            'bg-green-100 text-green-800'
-                          }`}>
-                            {user.userType}
-                          </span>
-                        </div>
+                <div className="bg-white rounded-xl shadow-lg p-6">
+                  <div className="grid grid-cols-7 gap-4 mb-4">
+                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                      <div key={day} className="text-center font-medium text-gray-700 py-2">
+                        {day}
                       </div>
-                      <div className="mt-4 flex items-center space-x-2">
-                        <button className="flex-1 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
-                          View Profile
-                        </button>
-                        <button className="p-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
-                          <FaEdit />
-                        </button>
-                        <button className="p-2 border border-gray-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors">
-                          <FaTrash />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
+                  
+                  <div className="grid grid-cols-7 gap-4">
+                    {Array.from({ length: 35 }, (_, i) => {
+                      const date = new Date();
+                      date.setDate(date.getDate() - date.getDay() + i);
+                      const dateStr = date.toISOString().split('T')[0];
+                      const dayBookings = bookings.filter(b => 
+                        new Date(b.checkIn) <= date && new Date(b.checkOut) >= date
+                      );
+                      
+                      return (
+                        <div key={i} className={`min-h-[80px] p-2 border rounded-lg ${
+                          date.toDateString() === new Date().toDateString() ? 'bg-blue-50 border-blue-200' : 'bg-gray-50'
+                        }`}>
+                          <div className="text-sm font-medium text-gray-700 mb-1">
+                            {date.getDate()}
+                          </div>
+                          <div className="space-y-1">
+                            {dayBookings.slice(0, 2).map(booking => (
+                              <div key={booking._id} className={`text-xs p-1 rounded ${
+                                booking.status === 'confirmed' ? 'bg-green-100 text-green-800' :
+                                booking.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                'bg-gray-100 text-gray-800'
+                              }`}>
+                                {booking.property?.title}
+                              </div>
+                            ))}
+                            {dayBookings.length > 2 && (
+                              <div className="text-xs text-gray-500">
+                                +{dayBookings.length - 2} more
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             )}
 
-            {/* Commissions Tab */}
-            {activeTab === 'commissions' && (
+            {/* Earnings Tab */}
+            {activeTab === 'earnings' && (
               <div>
                 <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900">Commission Management</h3>
+                  <h3 className="text-lg font-semibold text-gray-900">Earnings Overview</h3>
                   <div className="flex items-center space-x-2">
-                    <button className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2">
-                      <FaCheckCircle />
-                      Mark as Paid
-                    </button>
-                    <button className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2">
-                      <FaTimesCircle />
-                      Remove Non-Payers
-                    </button>
+                    <select className="p-2 border border-gray-300 rounded-lg bg-white text-gray-700">
+                      <option value="all">All Time</option>
+                      <option value="month">This Month</option>
+                      <option value="year">This Year</option>
+                    </select>
                   </div>
                 </div>
 
-                <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Property/Service</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Owner</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Commission Rate</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount Due</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {bookings
-                          .filter(b => b.commissionAmount > 0)
-                          .map((booking) => (
-                          <tr key={booking._id} className="hover:bg-gray-50">
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="text-sm font-medium text-gray-900">{booking.property?.title}</div>
-                              <div className="text-sm text-gray-500">{booking.property?.city}</div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="text-sm text-gray-900">{booking.property?.host?.firstName} {booking.property?.host?.lastName}</div>
-                              <div className="text-sm text-gray-500">{booking.property?.host?.email}</div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {booking.property?.commissionRate || 10}%
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              RWF {booking.commissionAmount?.toLocaleString()}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                booking.commissionPaid ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                              }`}>
-                                {booking.commissionPaid ? 'Paid' : 'Pending'}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                              <div className="flex items-center space-x-2">
-                                {!booking.commissionPaid && (
-                                  <button className="text-green-600 hover:text-green-900">
-                                    <FaCheckCircle />
-                                  </button>
-                                )}
-                                <button className="text-red-600 hover:text-red-900">
-                                  <FaTimesCircle />
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="bg-white rounded-xl shadow-lg p-6">
+                    <h4 className="text-lg font-semibold text-gray-900 mb-4">Earnings Breakdown</h4>
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600">Total Bookings</span>
+                        <span className="font-medium">{bookings.length}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600">Confirmed Bookings</span>
+                        <span className="font-medium">{bookings.filter(b => b.status === 'confirmed' || b.status === 'ended').length}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600">Total Revenue</span>
+                        <span className="font-medium text-green-600">RWF {bookings.reduce((sum, b) => sum + b.totalAmount, 0).toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600">Commission Paid</span>
+                        <span className="font-medium text-red-600">RWF {bookings.reduce((sum, b) => sum + (b.commissionAmount || 0), 0).toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between items-center border-t pt-4">
+                        <span className="text-gray-900 font-semibold">Net Earnings</span>
+                        <span className="font-bold text-green-600 text-lg">RWF {metrics.totalEarnings?.toLocaleString()}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-xl shadow-lg p-6">
+                    <h4 className="text-lg font-semibold text-gray-900 mb-4">Recent Transactions</h4>
+                    <div className="space-y-3">
+                      {bookings
+                        .filter(b => b.status === 'confirmed' || b.status === 'ended')
+                        .slice(0, 5)
+                        .map((booking) => (
+                        <div key={booking._id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                          <div>
+                            <p className="font-medium text-gray-900">{booking.property?.title}</p>
+                            <p className="text-sm text-gray-600">{new Date(booking.createdAt).toLocaleDateString()}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-medium text-green-600">RWF {(booking.totalAmount - (booking.commissionAmount || 0)).toLocaleString()}</p>
+                            <p className="text-sm text-gray-500">{booking.status}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -563,4 +699,4 @@ const AdminDashboard = () => {
   );
 };
 
-export default AdminDashboard;
+export default UserDashboard;

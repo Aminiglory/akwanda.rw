@@ -1,5 +1,20 @@
 const mongoose = require('mongoose');
 
+const roomSchema = new mongoose.Schema({
+  roomNumber: { type: String, required: true },
+  roomType: { type: String, required: true, enum: ['single', 'double', 'suite', 'family', 'deluxe'] },
+  pricePerNight: { type: Number, required: true },
+  capacity: { type: Number, required: true, min: 1 },
+  amenities: [{ type: String }],
+  images: [{ type: String }],
+  isAvailable: { type: Boolean, default: true },
+  closedDates: [{ 
+    startDate: { type: Date },
+    endDate: { type: Date },
+    reason: { type: String }
+  }]
+});
+
 const propertySchema = new mongoose.Schema(
   {
     title: { type: String, required: true },
@@ -16,6 +31,13 @@ const propertySchema = new mongoose.Schema(
     isActive: { type: Boolean, default: true },
     discountPercent: { type: Number, default: 0, min: 0, max: 100 },
     availability: { type: String, enum: ['available', 'in_use'], default: 'available' },
+    category: { type: String, enum: ['hotel', 'apartment', 'villa', 'hostel', 'resort', 'guesthouse'], default: 'apartment' },
+    rooms: [roomSchema],
+    groupBookingEnabled: { type: Boolean, default: false },
+    groupBookingDiscount: { type: Number, default: 0 },
+    commissionRate: { type: Number, default: 10, min: 0, max: 50 },
+    visibilityLevel: { type: String, enum: ['standard', 'premium', 'featured'], default: 'standard' },
+    featuredUntil: { type: Date },
     ratings: [{
       guest: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
       rating: { type: Number, min: 1, max: 5 },

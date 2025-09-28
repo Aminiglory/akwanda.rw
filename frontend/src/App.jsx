@@ -15,9 +15,13 @@ import ApartmentDetails from './pages/ApartmentDetails'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
+import UserDashboard from './pages/UserDashboard'
 import UploadProperty from './pages/UploadProperty'
+import EnhancedUploadProperty from './pages/EnhancedUploadProperty'
 import AdminDashboard from './pages/AdminDashboard'
 import AdminProfile from './pages/AdminProfile'
+import MTNMobileMoneyPayment from './pages/MTNMobileMoneyPayment'
+import RRAEBMIntegration from './pages/RRAEBMIntegration'
 
 function App() {
   const [isLoading, setIsLoading] = useState(true)
@@ -60,9 +64,13 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-            <Route path="/upload" element={<ProtectedRoute><UploadProperty /></ProtectedRoute>} />
+            <Route path="/user-dashboard" element={<ProtectedRoute><UserDashboard /></ProtectedRoute>} />
+            <Route path="/upload" element={<ProtectedRoute><EnhancedUploadProperty /></ProtectedRoute>} />
+            <Route path="/upload-legacy" element={<ProtectedRoute><UploadProperty /></ProtectedRoute>} />
             <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
             <Route path="/admin/profile" element={<AdminRoute><AdminProfile /></AdminRoute>} />
+            <Route path="/payment/mtn-mobile-money" element={<MTNMobileMoneyPayment />} />
+            <Route path="/billing/rra-ebm" element={<RRAEBMIntegration />} />
           </Routes>
           
           {/* Footer */}

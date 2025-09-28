@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FaStar, FaMapMarkerAlt, FaBed, FaBath, FaWifi, FaCar } from 'react-icons/fa';
+import { FaStar, FaMapMarkerAlt, FaBed, FaBath } from 'react-icons/fa';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
