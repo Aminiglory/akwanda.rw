@@ -56,10 +56,9 @@ const BookingProcess = () => {
       checkAvailability();
     } else if (property && property.rooms && property.rooms.length > 0 && availableRooms.length === 0) {
       // Fallback: if no availability check was made, use all rooms from property
-      console.log('Using fallback: all property rooms');
       const processedRooms = property.rooms.map(room => ({
         ...room,
-        pricePerMonth: room.pricePerNight * 30,
+        pricePerMonth: (room.pricePerNight || 0) * 30,
         images: room.images ? room.images.map(img => 
           img.startsWith('http') ? img : `${API_URL}${img}`
         ) : []
@@ -75,30 +74,23 @@ const BookingProcess = () => {
   const fetchProperty = async () => {
     try {
       setLoading(true);
-      console.log('Fetching property with ID:', id);
       const res = await fetch(`${API_URL}/api/properties/${id}`, { credentials: 'include' });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to fetch property');
       
-      console.log('Property data received:', data.property);
       setProperty(data.property);
       
       // Process rooms with proper image URLs and monthly prices
-      const processedRooms = (data.property.rooms || []).map(room => {
-        console.log('Processing room:', room);
-        return {
-          ...room,
-          pricePerMonth: room.pricePerNight * 30, // Add monthly price
-          images: room.images ? room.images.map(img => 
-            img.startsWith('http') ? img : `${API_URL}${img}`
-          ) : []
-        };
-      });
+      const processedRooms = (data.property.rooms || []).map(room => ({
+        ...room,
+        pricePerMonth: (room.pricePerNight || 0) * 30, // Add monthly price
+        images: room.images ? room.images.map(img => 
+          img.startsWith('http') ? img : `${API_URL}${img}`
+        ) : []
+      }));
       
-      console.log('Processed rooms:', processedRooms);
       setAvailableRooms(processedRooms);
     } catch (error) {
-      console.error('Error fetching property:', error);
       toast.error(`Failed to load property: ${error.message}`);
       navigate('/apartments');
     } finally {
@@ -137,9 +129,6 @@ const BookingProcess = () => {
   };
 
   const filterRoomsByBudget = () => {
-    console.log('Filtering rooms by budget:', bookingData.budget);
-    console.log('Available rooms:', availableRooms);
-    
     if (!bookingData.budget) {
       setFilteredRooms(availableRooms);
       return;
@@ -156,13 +145,10 @@ const BookingProcess = () => {
     const monthlyMax = budgetRange.max * 30;
     
     const filtered = availableRooms.filter(room => {
-      const roomMonthlyPrice = room.pricePerMonth || (room.pricePerNight * 30);
-      const isInRange = roomMonthlyPrice >= monthlyMin && roomMonthlyPrice <= monthlyMax;
-      console.log(`Room ${room.roomNumber}: monthly price ${roomMonthlyPrice}, range: ${monthlyMin}-${monthlyMax}, in range: ${isInRange}`);
-      return isInRange;
+      const roomMonthlyPrice = room.pricePerMonth || ((room.pricePerNight || 0) * 30);
+      return roomMonthlyPrice >= monthlyMin && roomMonthlyPrice <= monthlyMax;
     });
     
-    console.log('Filtered rooms:', filtered);
     setFilteredRooms(filtered);
   };
 
@@ -237,11 +223,9 @@ const BookingProcess = () => {
         groupSize: bookingData.guests,
         paymentMethod: 'cash', // Default to cash, can be changed in payment step
         totalAmount: calculateTotalPrice(),
-        roomPrice: selectedRoom.pricePerNight,
-        roomPricePerMonth: selectedRoom.pricePerMonth || (selectedRoom.pricePerNight * 30)
+        roomPrice: selectedRoom.pricePerNight || 0,
+        roomPricePerMonth: selectedRoom.pricePerMonth || ((selectedRoom.pricePerNight || 0) * 30)
       };
-      
-      console.log('Booking payload:', bookingPayload);
 
       const res = await fetch(`${API_URL}/api/bookings`, {
         method: 'POST',
@@ -253,7 +237,6 @@ const BookingProcess = () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to create booking');
 
-      console.log('Booking created successfully:', data);
       toast.success('Booking created successfully!');
       navigate(`/booking-confirmation/${data.booking._id}`);
     } catch (error) {
@@ -285,11 +268,9 @@ const BookingProcess = () => {
         groupSize: bookingData.guests,
         paymentMethod: paymentMethod,
         totalAmount: calculateTotalPrice(),
-        roomPrice: selectedRoom.pricePerNight,
-        roomPricePerMonth: selectedRoom.pricePerMonth || (selectedRoom.pricePerNight * 30)
+        roomPrice: selectedRoom.pricePerNight || 0,
+        roomPricePerMonth: selectedRoom.pricePerMonth || ((selectedRoom.pricePerNight || 0) * 30)
       };
-      
-      console.log('Payment booking payload:', bookingPayload);
 
       const bookingRes = await fetch(`${API_URL}/api/bookings`, {
         method: 'POST',
@@ -605,28 +586,6 @@ const BookingProcess = () => {
               <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
                 <h2 className="text-2xl font-bold text-gray-900 mb-6">Select Your Room</h2>
                 
-                {/* Debug Information */}
-                <div className="mb-4 p-3 bg-gray-100 rounded-lg text-sm">
-                  <p><strong>Debug Info:</strong></p>
-                  <p>Available Rooms: {availableRooms.length}</p>
-                  <p>Filtered Rooms: {filteredRooms.length}</p>
-                  <p>Selected Room: {selectedRoom ? selectedRoom.roomNumber : 'None'}</p>
-                  <p>Budget: {bookingData.budget || 'Not selected'}</p>
-                  <p>Check-in: {bookingData.checkIn || 'Not set'}</p>
-                  <p>Check-out: {bookingData.checkOut || 'Not set'}</p>
-                  <p>Guests: {bookingData.guests}</p>
-                  {selectedRoom && (
-                    <div className="mt-2 p-2 bg-blue-50 rounded">
-                      <p><strong>Selected Room Details:</strong></p>
-                      <p>ID: {selectedRoom._id || 'No ID'}</p>
-                      <p>Room Number: {selectedRoom.roomNumber || 'No room number'}</p>
-                      <p>Price per night: RWF {(selectedRoom.pricePerNight || 0).toLocaleString()}</p>
-                      <p>Price per month: RWF {(selectedRoom.pricePerMonth || (selectedRoom.pricePerNight * 30) || 0).toLocaleString()}</p>
-                      <p>Available: {selectedRoom.isAvailable ? 'Yes' : 'No'}</p>
-                      <p>Button should be enabled: {selectedRoom && selectedRoom._id ? 'Yes' : 'No'}</p>
-                    </div>
-                  )}
-                </div>
                 
                 {filteredRooms.length === 0 ? (
                   <div className="text-center py-12">
@@ -648,26 +607,19 @@ const BookingProcess = () => {
                       <div
                         key={index}
                         className={`group border-2 rounded-xl p-6 cursor-pointer transition-all duration-500 transform hover:scale-105 hover:shadow-xl ${
-                          selectedRoom?._id === room._id
+                          selectedRoom && (selectedRoom._id === room._id || selectedRoom.roomNumber === room.roomNumber)
                             ? 'border-blue-500 bg-gradient-to-br from-blue-50 to-blue-100 shadow-lg scale-105'
                             : 'border-gray-200 hover:border-blue-300 bg-white'
                         }`}
                         onClick={() => {
-                          console.log('Room clicked:', room);
-                          console.log('Room price per night:', room.pricePerNight);
-                          console.log('Room price per month:', room.pricePerMonth);
-                          console.log('Room ID:', room._id);
-                          console.log('Room availability:', room.isAvailable);
-                          
                           // Ensure room has all required properties
                           const roomWithDefaults = {
                             ...room,
                             pricePerNight: room.pricePerNight || 0,
-                            pricePerMonth: room.pricePerMonth || (room.pricePerNight * 30) || 0,
+                            pricePerMonth: room.pricePerMonth || ((room.pricePerNight || 0) * 30),
                             isAvailable: room.isAvailable !== undefined ? room.isAvailable : true
                           };
                           
-                          console.log('Setting selected room:', roomWithDefaults);
                           setSelectedRoom(roomWithDefaults);
                         }}
                       >
@@ -680,12 +632,8 @@ const BookingProcess = () => {
                                 alt={room.roomNumber}
                                 className="w-full h-full object-cover transition-transform duration-500 group-hover/image:scale-110"
                                 onError={(e) => {
-                                  console.error('Room image failed to load:', room.images[0]);
                                   e.target.style.display = 'none';
                                   e.target.nextSibling.style.display = 'flex';
-                                }}
-                                onLoad={() => {
-                                  console.log('Room image loaded successfully:', room.images[0]);
                                 }}
                               />
                             ) : null}
@@ -755,7 +703,7 @@ const BookingProcess = () => {
                                 <div className="text-xs text-gray-400">
                                   RWF {(room.pricePerNight || 0).toLocaleString()}/night
                                 </div>
-                                {selectedRoom?._id === room._id && (
+                                {selectedRoom && (selectedRoom._id === room._id || selectedRoom.roomNumber === room.roomNumber) && (
                                   <div className="mt-2 flex items-center justify-center">
                                     <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center animate-pulse">
                                       <FaCheck className="text-white text-xs" />
@@ -779,13 +727,10 @@ const BookingProcess = () => {
                     Back
                   </button>
                   <button
-                    onClick={() => {
-                      console.log('Continue button clicked, selected room:', selectedRoom);
-                      setCurrentStep(4);
-                    }}
-                    disabled={!selectedRoom || !selectedRoom._id}
+                    onClick={() => setCurrentStep(4)}
+                    disabled={!selectedRoom || (!selectedRoom._id && !selectedRoom.roomNumber)}
                     className={`px-8 py-3 rounded-lg font-medium transition-colors ${
-                      selectedRoom && selectedRoom._id
+                      selectedRoom && (selectedRoom._id || selectedRoom.roomNumber)
                         ? 'bg-blue-600 hover:bg-blue-700 text-white'
                         : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                     }`}

@@ -59,13 +59,11 @@ const ApartmentDetails = () => {
   useEffect(() => {
     (async () => {
       try {
-        console.log('Fetching apartment details for ID:', id);
         const res = await fetch(`${API_URL}/api/properties/${id}`);
         const data = await res.json();
         if (!res.ok) throw new Error(data.message || 'Failed to load property');
 
         const p = data.property;
-        console.log('Property data received:', p);
         
         // Enhanced amenities mapping
         const amenityIcons = {
@@ -234,11 +232,7 @@ const ApartmentDetails = () => {
                   alt={apartment.title}
                   className="w-full h-96 object-cover transition-all duration-500 group-hover:scale-105"
                   onError={(e) => {
-                    console.error('Main property image failed to load:', apartment.images[selectedImage]);
                     e.target.src = 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&h=600&fit=crop';
-                  }}
-                  onLoad={() => {
-                    console.log('Main property image loaded successfully:', apartment.images[selectedImage]);
                   }}
                 />
                 
@@ -296,11 +290,7 @@ const ApartmentDetails = () => {
                         alt={`View ${index + 1}`}
                         className="w-full h-full object-cover transition-transform duration-300 group-hover/thumb:scale-110"
                         onError={(e) => {
-                          console.error('Thumbnail image failed to load:', image);
                           e.target.src = 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=200&h=150&fit=crop';
-                        }}
-                        onLoad={() => {
-                          console.log('Thumbnail image loaded successfully:', image);
                         }}
                       />
                       {selectedImage === index && (
@@ -447,12 +437,8 @@ const ApartmentDetails = () => {
                                 alt={`${room.roomNumber} - Image ${imgIndex + 1}`}
                                 className="w-full h-20 object-cover transition-transform duration-500 group-hover/image:scale-110"
                                 onError={(e) => {
-                                  console.error('Room image failed to load:', image);
                                   e.target.style.display = 'none';
                                   e.target.nextSibling.style.display = 'flex';
-                                }}
-                                onLoad={() => {
-                                  console.log('Room image loaded successfully:', image);
                                 }}
                               />
                               <div 
