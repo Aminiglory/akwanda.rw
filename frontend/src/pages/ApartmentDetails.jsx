@@ -90,8 +90,8 @@ const ApartmentDetails = () => {
           id: p._id,
           title: p.title,
           location: `${p.address}, ${p.city}`,
-          price: p.pricePerNight * 30, // Convert to monthly price
-          pricePerNight: p.pricePerNight, // Keep original for reference
+          price: (p.pricePerNight || p.price || 0) * 30, // Convert to monthly price
+          pricePerNight: p.pricePerNight || p.price || 0, // Keep original for reference
           rating: p.ratings?.length ? p.ratings.reduce((sum, r) => sum + r.rating, 0) / p.ratings.length : 0,
           reviews: p.ratings?.length || 0,
           type: p.category || 'Apartment',
@@ -104,12 +104,15 @@ const ApartmentDetails = () => {
               : [
                   'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&h=600&fit=crop'
                 ],
-          rooms: (p.rooms || []).map(room => ({
-            ...room,
-            pricePerNight: room.pricePerNight,
-            pricePerMonth: room.pricePerNight * 30, // Add monthly price
-            images: room.images ? room.images.map(img => makeAbsolute(img)) : []
-          })),
+          rooms: (p.rooms || []).map(room => {
+            const roomPricePerNight = room.pricePerNight || room.price || 0;
+            return {
+              ...room,
+              pricePerNight: roomPricePerNight,
+              pricePerMonth: roomPricePerNight * 30, // Add monthly price
+              images: room.images ? room.images.map(img => makeAbsolute(img)) : []
+            };
+          }),
           amenities: processedAmenities,
           description: p.description || 'Beautiful apartment with great amenities.',
           host: {
@@ -402,12 +405,16 @@ const ApartmentDetails = () => {
                           </p>
                         </div>
                         <div className="text-right">
-                          <div className="text-xl font-bold text-blue-600 group-hover:text-blue-700 transition-colors duration-300">
-                            RWF {room.pricePerMonth?.toLocaleString() || (room.pricePerNight * 30)?.toLocaleString() || '0'}
-                          </div>
+                                <div className="text-xl font-bold text-blue-600 group-hover:text-blue-700 transition-colors duration-300">
+                                  RWF {(() => {
+                                    const roomPricePerNight = room.pricePerNight || room.price || 0;
+                                    const monthlyPrice = room.pricePerMonth || (roomPricePerNight * 30);
+                                    return monthlyPrice.toLocaleString();
+                                  })()}
+                                </div>
                           <div className="text-sm text-gray-500">per month</div>
                           <div className="text-xs text-gray-400">
-                            RWF {room.pricePerNight?.toLocaleString() || '0'}/night
+                            RWF {(room.pricePerNight || room.price || 0).toLocaleString()}/night
                           </div>
                         </div>
                       </div>

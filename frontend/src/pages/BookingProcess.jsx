@@ -56,13 +56,17 @@ const BookingProcess = () => {
       checkAvailability();
     } else if (property && property.rooms && property.rooms.length > 0 && availableRooms.length === 0) {
       // Fallback: if no availability check was made, use all rooms from property
-      const processedRooms = property.rooms.map(room => ({
-        ...room,
-        pricePerMonth: (room.pricePerNight || 0) * 30,
-        images: room.images ? room.images.map(img => 
-          img.startsWith('http') ? img : `${API_URL}${img}`
-        ) : []
-      }));
+      const processedRooms = property.rooms.map(room => {
+        const pricePerNight = room.pricePerNight || room.price || 0;
+        return {
+          ...room,
+          pricePerNight: pricePerNight,
+          pricePerMonth: pricePerNight * 30,
+          images: room.images ? room.images.map(img => 
+            img.startsWith('http') ? img : `${API_URL}${img}`
+          ) : []
+        };
+      });
       setAvailableRooms(processedRooms);
     }
   }, [bookingData.checkIn, bookingData.checkOut, bookingData.guests, property]);
@@ -81,13 +85,17 @@ const BookingProcess = () => {
       setProperty(data.property);
       
       // Process rooms with proper image URLs and monthly prices
-      const processedRooms = (data.property.rooms || []).map(room => ({
-        ...room,
-        pricePerMonth: (room.pricePerNight || 0) * 30, // Add monthly price
-        images: room.images ? room.images.map(img => 
-          img.startsWith('http') ? img : `${API_URL}${img}`
-        ) : []
-      }));
+      const processedRooms = (data.property.rooms || []).map(room => {
+        const pricePerNight = room.pricePerNight || room.price || 0;
+        return {
+          ...room,
+          pricePerNight: pricePerNight,
+          pricePerMonth: pricePerNight * 30, // Add monthly price
+          images: room.images ? room.images.map(img => 
+            img.startsWith('http') ? img : `${API_URL}${img}`
+          ) : []
+        };
+      });
       
       setAvailableRooms(processedRooms);
     } catch (error) {
@@ -114,13 +122,17 @@ const BookingProcess = () => {
       const data = await res.json();
       if (res.ok) {
         // Process the available rooms with proper image URLs and monthly prices
-        const processedAvailableRooms = (data.availableRooms || []).map(room => ({
-          ...room,
-          pricePerMonth: room.pricePerNight * 30, // Add monthly price
-          images: room.images ? room.images.map(img => 
-            img.startsWith('http') ? img : `${API_URL}${img}`
-          ) : []
-        }));
+        const processedAvailableRooms = (data.availableRooms || []).map(room => {
+          const pricePerNight = room.pricePerNight || room.price || 0;
+          return {
+            ...room,
+            pricePerNight: pricePerNight,
+            pricePerMonth: pricePerNight * 30, // Add monthly price
+            images: room.images ? room.images.map(img => 
+              img.startsWith('http') ? img : `${API_URL}${img}`
+            ) : []
+          };
+        });
         setAvailableRooms(processedAvailableRooms);
       }
     } catch (error) {
@@ -223,8 +235,8 @@ const BookingProcess = () => {
         groupSize: bookingData.guests,
         paymentMethod: 'cash', // Default to cash, can be changed in payment step
         totalAmount: calculateTotalPrice(),
-        roomPrice: selectedRoom.pricePerNight || 0,
-        roomPricePerMonth: selectedRoom.pricePerMonth || ((selectedRoom.pricePerNight || 0) * 30)
+        roomPrice: selectedRoom.pricePerNight || selectedRoom.price || 0,
+        roomPricePerMonth: selectedRoom.pricePerMonth || ((selectedRoom.pricePerNight || selectedRoom.price || 0) * 30)
       };
 
       const res = await fetch(`${API_URL}/api/bookings`, {
@@ -268,8 +280,8 @@ const BookingProcess = () => {
         groupSize: bookingData.guests,
         paymentMethod: paymentMethod,
         totalAmount: calculateTotalPrice(),
-        roomPrice: selectedRoom.pricePerNight || 0,
-        roomPricePerMonth: selectedRoom.pricePerMonth || ((selectedRoom.pricePerNight || 0) * 30)
+        roomPrice: selectedRoom.pricePerNight || selectedRoom.price || 0,
+        roomPricePerMonth: selectedRoom.pricePerMonth || ((selectedRoom.pricePerNight || selectedRoom.price || 0) * 30)
       };
 
       const bookingRes = await fetch(`${API_URL}/api/bookings`, {
@@ -613,13 +625,15 @@ const BookingProcess = () => {
                         }`}
                         onClick={() => {
                           // Ensure room has all required properties
+                          const pricePerNight = room.pricePerNight || room.price || 0;
                           const roomWithDefaults = {
                             ...room,
-                            pricePerNight: room.pricePerNight || 0,
-                            pricePerMonth: room.pricePerMonth || ((room.pricePerNight || 0) * 30),
+                            pricePerNight: pricePerNight,
+                            pricePerMonth: room.pricePerMonth || (pricePerNight * 30),
                             isAvailable: room.isAvailable !== undefined ? room.isAvailable : true
                           };
                           
+                          console.log('Room selected:', roomWithDefaults);
                           setSelectedRoom(roomWithDefaults);
                         }}
                       >
@@ -695,13 +709,14 @@ const BookingProcess = () => {
                               <div className="text-right">
                                 <div className="text-xl font-bold text-blue-600 group-hover:text-blue-700 transition-colors duration-300">
                                   RWF {(() => {
-                                    const monthlyPrice = room.pricePerMonth || (room.pricePerNight * 30) || 0;
+                                    const pricePerNight = room.pricePerNight || room.price || 0;
+                                    const monthlyPrice = room.pricePerMonth || (pricePerNight * 30);
                                     return monthlyPrice.toLocaleString();
                                   })()}
                                 </div>
                                 <div className="text-sm text-gray-500">per month</div>
                                 <div className="text-xs text-gray-400">
-                                  RWF {(room.pricePerNight || 0).toLocaleString()}/night
+                                  RWF {(room.pricePerNight || room.price || 0).toLocaleString()}/night
                                 </div>
                                 {selectedRoom && (selectedRoom._id === room._id || selectedRoom.roomNumber === room.roomNumber) && (
                                   <div className="mt-2 flex items-center justify-center">
@@ -727,7 +742,10 @@ const BookingProcess = () => {
                     Back
                   </button>
                   <button
-                    onClick={() => setCurrentStep(4)}
+                    onClick={() => {
+                      console.log('Continue button clicked, selectedRoom:', selectedRoom);
+                      setCurrentStep(4);
+                    }}
                     disabled={!selectedRoom || (!selectedRoom._id && !selectedRoom.roomNumber)}
                     className={`px-8 py-3 rounded-lg font-medium transition-colors ${
                       selectedRoom && (selectedRoom._id || selectedRoom.roomNumber)
@@ -1009,11 +1027,15 @@ const BookingProcess = () => {
                       <div className="space-y-2 text-sm">
                         <div className="flex justify-between">
                           <span className="text-gray-600">Room price (monthly):</span>
-                          <span>RWF {(selectedRoom.pricePerMonth || (selectedRoom.pricePerNight * 30))?.toLocaleString()}</span>
+                          <span>RWF {(() => {
+                            const pricePerNight = selectedRoom.pricePerNight || selectedRoom.price || 0;
+                            const monthlyPrice = selectedRoom.pricePerMonth || (pricePerNight * 30);
+                            return monthlyPrice.toLocaleString();
+                          })()}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-gray-600">Room price (nightly):</span>
-                          <span>RWF {selectedRoom.pricePerNight?.toLocaleString()}/night</span>
+                          <span>RWF {(selectedRoom.pricePerNight || selectedRoom.price || 0).toLocaleString()}/night</span>
                         </div>
                         {discount > 0 && (
                           <div className="flex justify-between text-green-600">
