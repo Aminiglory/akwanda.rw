@@ -17,6 +17,7 @@ const AdminDashboard = () => {
     totalCarRentals: 0,
     pendingCommissions: 0
   });
+  
 
   const [properties, setProperties] = useState([]);
   const [bookings, setBookings] = useState([]);

@@ -26,9 +26,10 @@ import {
   FaKey,
   FaHome,
   FaDoorOpen,
+  FaCheck,
+  FaChevronLeft,
+  FaChevronRight,
   // FaEye,
-  // FaChevronRight,
-  // FaChevronLeft,
   // FaPlay,
   // FaPause,
   // FaVolumeUp,
@@ -204,16 +205,6 @@ const ApartmentDetails = () => {
               </div>
             </div>
             <div className="flex items-center space-x-4">
-              <button
-                onClick={() => setIsFavorited(!isFavorited)}
-                className={`p-3 rounded-full transition-colors ${
-                  isFavorited
-                    ? 'bg-red-500 text-white'
-                    : 'bg-white/20 text-white hover:bg-white/30'
-                }`}
-              >
-                <FaHeart className="text-xl" />
-              </button>
               <button className="p-3 bg-white/20 text-white rounded-full hover:bg-white/30 transition-colors">
                 <FaShare className="text-xl" />
               </button>
@@ -227,34 +218,77 @@ const ApartmentDetails = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Apartment Info */}
           <div className="lg:col-span-2 space-y-8">
-            {/* Image Gallery */}
+            {/* Enhanced Image Gallery */}
             <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-              <div className="relative">
+              <div className="relative group">
                 <img
                   src={apartment.images[selectedImage]}
                   alt={apartment.title}
-                  className="w-full h-96 object-cover"
+                  className="w-full h-96 object-cover transition-all duration-500 group-hover:scale-105"
                 />
-                <div className="absolute bottom-4 left-4 bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm">
+                
+                {/* Navigation Arrows */}
+                {apartment.images.length > 1 && (
+                  <>
+                    <button
+                      onClick={() => setSelectedImage(selectedImage === 0 ? apartment.images.length - 1 : selectedImage - 1)}
+                      className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 hover:bg-opacity-70 text-white p-2 rounded-full transition-all duration-300 opacity-0 group-hover:opacity-100"
+                    >
+                      <FaChevronLeft />
+                    </button>
+                    <button
+                      onClick={() => setSelectedImage(selectedImage === apartment.images.length - 1 ? 0 : selectedImage + 1)}
+                      className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 hover:bg-opacity-70 text-white p-2 rounded-full transition-all duration-300 opacity-0 group-hover:opacity-100"
+                    >
+                      <FaChevronRight />
+                    </button>
+                  </>
+                )}
+                
+                {/* Image Counter */}
+                <div className="absolute bottom-4 left-4 bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm font-medium">
                   {selectedImage + 1} / {apartment.images.length}
                 </div>
+                
+                {/* Favorite Button Overlay */}
+                <button
+                  onClick={() => setIsFavorited(!isFavorited)}
+                  className={`absolute top-4 right-4 p-3 rounded-full transition-all duration-300 ${
+                    isFavorited
+                      ? 'bg-red-500 text-white shadow-lg'
+                      : 'bg-white bg-opacity-80 text-gray-600 hover:bg-opacity-100'
+                  }`}
+                >
+                  <FaHeart className={`text-xl ${isFavorited ? 'animate-pulse' : ''}`} />
+                </button>
               </div>
-              <div className="p-4 grid grid-cols-4 gap-2">
-                {apartment.images.map((image, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setSelectedImage(index)}
-                    className={`h-20 rounded-lg overflow-hidden transition-all duration-300 ${
-                      selectedImage === index ? 'ring-2 ring-blue-500' : ''
-                    }`}
-                  >
-                    <img
-                      src={image}
-                      alt={`View ${index + 1}`}
-                      className="w-full h-full object-cover hover:scale-110 transition-transform duration-300"
-                    />
-                  </button>
-                ))}
+              
+              {/* Thumbnail Gallery */}
+              <div className="p-4">
+                <div className="grid grid-cols-4 gap-2">
+                  {apartment.images.map((image, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setSelectedImage(index)}
+                      className={`relative h-20 rounded-lg overflow-hidden transition-all duration-300 group/thumb ${
+                        selectedImage === index 
+                          ? 'ring-2 ring-blue-500 scale-105' 
+                          : 'hover:scale-105 hover:ring-2 hover:ring-blue-300'
+                      }`}
+                    >
+                      <img
+                        src={image}
+                        alt={`View ${index + 1}`}
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover/thumb:scale-110"
+                      />
+                      {selectedImage === index && (
+                        <div className="absolute inset-0 bg-blue-500 bg-opacity-20 flex items-center justify-center">
+                          <FaCheck className="text-white text-lg" />
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -325,106 +359,129 @@ const ApartmentDetails = () => {
             {/* Rooms Showcase */}
             {apartment.rooms && apartment.rooms.length > 0 && (
               <div className="bg-white rounded-2xl shadow-lg p-6">
-                <h3 className="text-xl font-bold text-gray-800 mb-6">
-                  Available Rooms
-                </h3>
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl font-bold text-gray-800">
+                    Available Rooms
+                  </h3>
+                  <div className="flex items-center space-x-2 text-sm text-gray-600">
+                    <FaBed className="text-blue-600" />
+                    <span>{apartment.rooms.length} rooms available</span>
+                  </div>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {apartment.rooms.map((room, index) => (
                     <div 
                       key={index}
-                      className={`border-2 rounded-xl p-4 cursor-pointer transition-all duration-300 ${
+                      className={`group border-2 rounded-xl p-4 cursor-pointer transition-all duration-500 transform hover:scale-105 hover:shadow-xl ${
                         selectedRoom === index 
-                          ? 'border-blue-500 bg-blue-50' 
-                          : 'border-gray-200 hover:border-blue-300'
+                          ? 'border-blue-500 bg-gradient-to-br from-blue-50 to-blue-100 shadow-lg scale-105' 
+                          : 'border-gray-200 hover:border-blue-300 bg-white'
                       }`}
                       onClick={() => setSelectedRoom(selectedRoom === index ? null : index)}
                     >
+                      {/* Room Header with Animation */}
                       <div className="flex items-start justify-between mb-3">
-                        <div>
-                          <h4 className="font-semibold text-gray-800">{room.roomNumber}</h4>
-                          <p className="text-sm text-gray-600 capitalize">{room.roomType}</p>
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-gray-800 text-lg group-hover:text-blue-700 transition-colors duration-300">
+                            {room.roomNumber}
+                          </h4>
+                          <p className="text-sm text-gray-600 capitalize font-medium">
+                            {room.roomType} Room
+                          </p>
                         </div>
                         <div className="text-right">
-                          <div className="text-lg font-bold text-blue-600">
-                            RWF {room.pricePerNight?.toLocaleString()}
+                          <div className="text-xl font-bold text-blue-600 group-hover:text-blue-700 transition-colors duration-300">
+                            RWF {room.pricePerNight?.toLocaleString() || '0'}
                           </div>
                           <div className="text-sm text-gray-500">per night</div>
                         </div>
                       </div>
                       
-                      <div className="flex items-center space-x-4 text-sm text-gray-600 mb-3">
-                        <div className="flex items-center">
-                          <FaUser className="mr-1" />
-                          <span>{room.capacity} guest (s)</span>
+                      {/* Room Info with Icons */}
+                      <div className="flex items-center space-x-4 text-sm text-gray-600 mb-4">
+                        <div className="flex items-center bg-gray-100 px-3 py-1 rounded-full">
+                          <FaUser className="mr-1 text-blue-600" />
+                          <span className="font-medium">{room.capacity} guest{room.capacity > 1 ? 's' : ''}</span>
                         </div>
-                        <div className={`px-2 py-1 rounded-full text-xs ${
+                        <div className={`px-3 py-1 rounded-full text-xs font-medium transition-all duration-300 ${
                           room.isAvailable 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-red-100 text-red-800'
+                            ? 'bg-green-100 text-green-800 hover:bg-green-200' 
+                            : 'bg-red-100 text-red-800 hover:bg-red-200'
                         }`}>
-                          {room.isAvailable ? 'Available' : 'Unavailable'}
+                          {room.isAvailable ? '✓ Available' : '✗ Unavailable'}
                         </div>
                       </div>
 
-                      {/* Room Images */}
+                      {/* Room Images with Enhanced Gallery */}
                       {room.images && room.images.length > 0 && (
-                        <div className="grid grid-cols-2 gap-2 mb-3">
+                        <div className="grid grid-cols-2 gap-2 mb-4">
                           {room.images.slice(0, 4).map((image, imgIndex) => (
-                            <img
-                              key={imgIndex}
-                              src={makeAbsolute(image)}
-                              alt={`${room.roomNumber} - Image ${imgIndex + 1}`}
-                              className="w-full h-20 object-cover rounded-lg"
-                            />
+                            <div key={imgIndex} className="relative group/image overflow-hidden rounded-lg">
+                              <img
+                                src={makeAbsolute(image)}
+                                alt={`${room.roomNumber} - Image ${imgIndex + 1}`}
+                                className="w-full h-20 object-cover transition-transform duration-500 group-hover/image:scale-110"
+                              />
+                              <div className="absolute inset-0 bg-black bg-opacity-0 group-hover/image:bg-opacity-20 transition-all duration-300"></div>
+                            </div>
                           ))}
                         </div>
                       )}
 
-                      {/* Room Amenities */}
+                      {/* Room Amenities with Enhanced Design */}
                       {room.amenities && room.amenities.length > 0 && (
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap gap-2 mb-3">
                           {room.amenities.slice(0, 3).map((amenity, amenityIndex) => (
                             <span 
                               key={amenityIndex}
-                              className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full"
+                              className="px-3 py-1 bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 text-xs rounded-full font-medium hover:from-blue-200 hover:to-blue-300 transition-all duration-300"
                             >
                               {amenity}
                             </span>
                           ))}
                           {room.amenities.length > 3 && (
-                            <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
+                            <span className="px-3 py-1 bg-gradient-to-r from-purple-100 to-purple-200 text-purple-800 text-xs rounded-full font-medium hover:from-purple-200 hover:to-purple-300 transition-all duration-300">
                               +{room.amenities.length - 3} more
                             </span>
                           )}
                         </div>
                       )}
 
-                      {selectedRoom === index && (
-                        <div className="mt-4 pt-4 border-t">
-                          <h5 className="font-medium text-gray-800 mb-2">Room Details</h5>
-                          <div className="space-y-2 text-sm text-gray-600">
-                            <div className="flex justify-between">
-                              <span>Room Type:</span>
-                              <span className="capitalize">{room.roomType}</span>
+                      {/* Expandable Details with Smooth Animation */}
+                      <div className={`overflow-hidden transition-all duration-500 ${
+                        selectedRoom === index ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+                      }`}>
+                        <div className="mt-4 pt-4 border-t border-gray-200">
+                          <h5 className="font-semibold text-gray-800 mb-3 flex items-center">
+                            <FaBed className="mr-2 text-blue-600" />
+                            Room Details
+                          </h5>
+                          <div className="space-y-3 text-sm">
+                            <div className="flex justify-between items-center bg-gray-50 p-2 rounded-lg">
+                              <span className="text-gray-600">Room Type:</span>
+                              <span className="capitalize font-medium text-gray-800">{room.roomType}</span>
                             </div>
-                            <div className="flex justify-between">
-                              <span>Capacity:</span>
-                              <span>{room.capacity} guests</span>
+                            <div className="flex justify-between items-center bg-gray-50 p-2 rounded-lg">
+                              <span className="text-gray-600">Capacity:</span>
+                              <span className="font-medium text-gray-800">{room.capacity} guests</span>
                             </div>
-                            <div className="flex justify-between">
-                              <span>Price per night:</span>
-                              <span className="font-medium">RWF {room.pricePerNight?.toLocaleString()}</span>
+                            <div className="flex justify-between items-center bg-blue-50 p-2 rounded-lg">
+                              <span className="text-gray-600">Price per night:</span>
+                              <span className="font-bold text-blue-600 text-lg">RWF {room.pricePerNight?.toLocaleString() || '0'}</span>
                             </div>
                           </div>
                           
                           {room.amenities && room.amenities.length > 0 && (
-                            <div className="mt-3">
-                              <h6 className="font-medium text-gray-800 mb-2">Room Amenities</h6>
+                            <div className="mt-4">
+                              <h6 className="font-semibold text-gray-800 mb-3 flex items-center">
+                                <FaStar className="mr-2 text-yellow-500" />
+                                All Room Amenities
+                              </h6>
                               <div className="flex flex-wrap gap-2">
                                 {room.amenities.map((amenity, amenityIndex) => (
                                   <span 
                                     key={amenityIndex}
-                                    className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full"
+                                    className="px-3 py-1 bg-gradient-to-r from-green-100 to-green-200 text-green-800 text-xs rounded-full font-medium hover:from-green-200 hover:to-green-300 transition-all duration-300"
                                   >
                                     {amenity}
                                   </span>
@@ -432,6 +489,13 @@ const ApartmentDetails = () => {
                               </div>
                             </div>
                           )}
+                        </div>
+                      </div>
+
+                      {/* Selection Indicator */}
+                      {selectedRoom === index && (
+                        <div className="absolute top-2 right-2 w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center animate-pulse">
+                          <FaCheck className="text-white text-xs" />
                         </div>
                       )}
                     </div>

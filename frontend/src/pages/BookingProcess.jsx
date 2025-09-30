@@ -23,6 +23,7 @@ const BookingProcess = () => {
       lastName: '',
       email: '',
       phone: '',
+      age: '',
       country: 'Rwanda'
     }
   });
@@ -168,8 +169,8 @@ const BookingProcess = () => {
       return;
     }
 
-    if (!bookingData.contactInfo.firstName || !bookingData.contactInfo.lastName || !bookingData.contactInfo.email) {
-      toast.error('Please fill in all required contact information');
+    if (!bookingData.contactInfo.firstName || !bookingData.contactInfo.lastName || !bookingData.contactInfo.email || !bookingData.contactInfo.age) {
+      toast.error('Please fill in all required contact information including age');
       return;
     }
 
@@ -489,22 +490,34 @@ const BookingProcess = () => {
                   {budgetRanges.map((range, index) => (
                     <div
                       key={index}
-                      className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
+                      className={`group border-2 rounded-xl p-6 cursor-pointer transition-all duration-500 transform hover:scale-105 hover:shadow-xl ${
                         bookingData.budget === range.label
-                          ? `border-${range.color}-500 bg-${range.color}-50`
-                          : 'border-gray-200 hover:border-gray-300'
+                          ? `border-${range.color}-500 bg-gradient-to-br from-${range.color}-50 to-${range.color}-100 shadow-lg scale-105`
+                          : 'border-gray-200 hover:border-blue-300 bg-white'
                       }`}
                       onClick={() => handleInputChange('budget', range.label)}
                     >
                       <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="font-semibold text-gray-900">{range.label}</h3>
-                          <p className="text-sm text-gray-600">
+                        <div className="flex-1">
+                          <h3 className="font-bold text-gray-900 text-lg group-hover:text-blue-700 transition-colors duration-300">
+                            {range.label}
+                          </h3>
+                          <p className="text-sm text-gray-600 mt-1 font-medium">
                             RWF {range.min.toLocaleString()} - RWF {range.max.toLocaleString()}
                           </p>
+                          <div className="mt-2">
+                            <div className={`w-full h-2 rounded-full bg-${range.color}-200`}>
+                              <div 
+                                className={`h-2 rounded-full bg-gradient-to-r from-${range.color}-400 to-${range.color}-600 transition-all duration-500`}
+                                style={{ width: `${((range.max - range.min) / 1000000) * 100}%` }}
+                              ></div>
+                            </div>
+                          </div>
                         </div>
                         {bookingData.budget === range.label && (
-                          <FaCheck className="text-green-600 text-xl" />
+                          <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center animate-pulse">
+                            <FaCheck className="text-white text-lg" />
+                          </div>
                         )}
                       </div>
                     </div>
@@ -552,53 +565,87 @@ const BookingProcess = () => {
                     {filteredRooms.map((room, index) => (
                       <div
                         key={index}
-                        className={`border-2 rounded-lg p-6 cursor-pointer transition-all ${
+                        className={`group border-2 rounded-xl p-6 cursor-pointer transition-all duration-500 transform hover:scale-105 hover:shadow-xl ${
                           selectedRoom?._id === room._id
-                            ? 'border-blue-500 bg-blue-50'
-                            : 'border-gray-200 hover:border-gray-300'
+                            ? 'border-blue-500 bg-gradient-to-br from-blue-50 to-blue-100 shadow-lg scale-105'
+                            : 'border-gray-200 hover:border-blue-300 bg-white'
                         }`}
                         onClick={() => setSelectedRoom(room)}
                       >
                         <div className="flex items-start space-x-4">
-                          {/* Room Images */}
-                          <div className="w-32 h-24 rounded-lg overflow-hidden">
+                          {/* Enhanced Room Images */}
+                          <div className="w-32 h-24 rounded-lg overflow-hidden relative group/image">
                             {room.images && room.images.length > 0 ? (
                               <img
                                 src={room.images[0].startsWith('http') ? room.images[0] : `${API_URL}${room.images[0]}`}
                                 alt={room.roomNumber}
-                                className="w-full h-full object-cover"
+                                className="w-full h-full object-cover transition-transform duration-500 group-hover/image:scale-110"
                               />
                             ) : (
-                              <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                              <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
                                 <FaBed className="text-gray-400 text-2xl" />
+                              </div>
+                            )}
+                            {selectedRoom?._id === room._id && (
+                              <div className="absolute inset-0 bg-blue-500 bg-opacity-20 flex items-center justify-center">
+                                <FaCheck className="text-white text-2xl" />
                               </div>
                             )}
                           </div>
 
                           <div className="flex-1">
                             <div className="flex items-start justify-between">
-                              <div>
-                                <h3 className="text-lg font-semibold text-gray-900">{room.roomNumber}</h3>
-                                <p className="text-sm text-gray-600 capitalize">{room.roomType} Room</p>
-                                <div className="flex items-center mt-2 space-x-4 text-sm text-gray-600">
-                                  <div className="flex items-center">
-                                    <FaUsers className="mr-1" />
-                                    {room.capacity} guests
+                              <div className="flex-1">
+                                <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-700 transition-colors duration-300">
+                                  {room.roomNumber}
+                                </h3>
+                                <p className="text-sm text-gray-600 capitalize font-medium">
+                                  {room.roomType} Room
+                                </p>
+                                <div className="flex items-center mt-3 space-x-4 text-sm text-gray-600">
+                                  <div className="flex items-center bg-gray-100 px-3 py-1 rounded-full">
+                                    <FaUsers className="mr-1 text-blue-600" />
+                                    <span className="font-medium">{room.capacity} guests</span>
                                   </div>
-                                  <div className="flex items-center">
-                                    <FaBed className="mr-1" />
-                                    {room.amenities?.includes('WiFi') && <FaWifi className="mr-1" />}
-                                    {room.amenities?.join(', ')}
+                                  <div className={`px-3 py-1 rounded-full text-xs font-medium transition-all duration-300 ${
+                                    room.isAvailable 
+                                      ? 'bg-green-100 text-green-800 hover:bg-green-200' 
+                                      : 'bg-red-100 text-red-800 hover:bg-red-200'
+                                  }`}>
+                                    {room.isAvailable ? '✓ Available' : '✗ Unavailable'}
                                   </div>
                                 </div>
+                                
+                                {/* Room Amenities */}
+                                {room.amenities && room.amenities.length > 0 && (
+                                  <div className="flex flex-wrap gap-2 mt-3">
+                                    {room.amenities.slice(0, 3).map((amenity, amenityIndex) => (
+                                      <span 
+                                        key={amenityIndex}
+                                        className="px-2 py-1 bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 text-xs rounded-full font-medium"
+                                      >
+                                        {amenity}
+                                      </span>
+                                    ))}
+                                    {room.amenities.length > 3 && (
+                                      <span className="px-2 py-1 bg-gradient-to-r from-purple-100 to-purple-200 text-purple-800 text-xs rounded-full font-medium">
+                                        +{room.amenities.length - 3} more
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
                               </div>
                               <div className="text-right">
-                                <div className="text-xl font-bold text-blue-600">
-                                  RWF {room.pricePerNight?.toLocaleString()}
+                                <div className="text-xl font-bold text-blue-600 group-hover:text-blue-700 transition-colors duration-300">
+                                  RWF {room.pricePerNight?.toLocaleString() || '0'}
                                 </div>
                                 <div className="text-sm text-gray-500">per night</div>
                                 {selectedRoom?._id === room._id && (
-                                  <FaCheck className="text-green-600 text-xl mt-2" />
+                                  <div className="mt-2 flex items-center justify-center">
+                                    <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center animate-pulse">
+                                      <FaCheck className="text-white text-xs" />
+                                    </div>
+                                  </div>
                                 )}
                               </div>
                             </div>
@@ -686,20 +733,38 @@ const BookingProcess = () => {
                   </div>
                 </div>
 
-                <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Country
-                  </label>
-                  <select
-                    value={bookingData.contactInfo.country}
-                    onChange={(e) => handleInputChange('contactInfo.country', e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    {countries.map(country => (
-                      <option key={country} value={country}>{country}</option>
-                    ))}
-                  </select>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Age *
+                    </label>
+                    <input
+                      type="number"
+                      min="18"
+                      max="100"
+                      value={bookingData.contactInfo.age}
+                      onChange={(e) => handleInputChange('contactInfo.age', e.target.value)}
+                      placeholder="Enter your age"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Country
+                    </label>
+                    <select
+                      value={bookingData.contactInfo.country}
+                      onChange={(e) => handleInputChange('contactInfo.country', e.target.value)}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      {countries.map(country => (
+                        <option key={country} value={country}>{country}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
+
 
                 <div className="mb-6">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -723,7 +788,7 @@ const BookingProcess = () => {
                   </button>
                   <button
                     onClick={() => setCurrentStep(5)}
-                    disabled={!bookingData.contactInfo.firstName || !bookingData.contactInfo.lastName || !bookingData.contactInfo.email}
+                    disabled={!bookingData.contactInfo.firstName || !bookingData.contactInfo.lastName || !bookingData.contactInfo.email || !bookingData.contactInfo.age}
                     className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Continue to Payment
