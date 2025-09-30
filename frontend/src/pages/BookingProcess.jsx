@@ -177,16 +177,16 @@ const BookingProcess = () => {
       setLoading(true);
       
       const bookingPayload = {
-        property: id,
+        propertyId: id,
         room: selectedRoom._id,
         checkIn: bookingData.checkIn,
         checkOut: bookingData.checkOut,
         numberOfGuests: bookingData.guests,
-        totalAmount: totalPrice,
         contactInfo: bookingData.contactInfo,
         specialRequests: bookingData.specialRequests,
         groupBooking: bookingData.guests >= 4,
-        groupSize: bookingData.guests
+        groupSize: bookingData.guests,
+        paymentMethod: 'cash' // Default to cash, can be changed in payment step
       };
 
       const res = await fetch(`${API_URL}/api/bookings`, {
@@ -201,6 +201,65 @@ const BookingProcess = () => {
 
       toast.success('Booking created successfully!');
       navigate(`/booking-confirmation/${data.booking._id}`);
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePayment = async (paymentMethod) => {
+    if (!selectedRoom) {
+      toast.error('Please select a room');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      // First create the booking
+      const bookingPayload = {
+        propertyId: id,
+        room: selectedRoom._id,
+        checkIn: bookingData.checkIn,
+        checkOut: bookingData.checkOut,
+        numberOfGuests: bookingData.guests,
+        contactInfo: bookingData.contactInfo,
+        specialRequests: bookingData.specialRequests,
+        groupBooking: bookingData.guests >= 4,
+        groupSize: bookingData.guests,
+        paymentMethod: paymentMethod
+      };
+
+      const bookingRes = await fetch(`${API_URL}/api/bookings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(bookingPayload)
+      });
+
+      const bookingData = await bookingRes.json();
+      if (!bookingRes.ok) throw new Error(bookingData.message || 'Failed to create booking');
+
+      // Process payment
+      const paymentRes = await fetch(`${API_URL}/api/bookings/${bookingData.booking._id}/payment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          paymentMethod: paymentMethod,
+          paymentDetails: {
+            amount: totalPrice,
+            description: `Booking for ${property.title}`
+          }
+        })
+      });
+
+      const paymentData = await paymentRes.json();
+      if (!paymentRes.ok) throw new Error(paymentData.message || 'Payment failed');
+
+      toast.success('Booking and payment completed successfully!');
+      navigate(`/booking-confirmation/${bookingData.booking._id}`);
     } catch (error) {
       toast.error(error.message);
     } finally {
@@ -694,8 +753,11 @@ const BookingProcess = () => {
                   <h3 className="text-lg font-semibold text-gray-900">Payment Methods</h3>
                   
                   <div className="space-y-3">
-                    <label className="flex items-center p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
-                      <input type="radio" name="payment" value="cash" className="mr-3" defaultChecked />
+                    <button
+                      onClick={() => handlePayment('cash')}
+                      disabled={loading}
+                      className="w-full flex items-center p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
                       <div className="flex items-center">
                         <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center mr-3">
                           <span className="text-green-600 font-bold text-sm">C</span>
@@ -705,10 +767,13 @@ const BookingProcess = () => {
                           <div className="text-sm text-gray-600">Pay in cash when you arrive</div>
                         </div>
                       </div>
-                    </label>
+                    </button>
 
-                    <label className="flex items-center p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
-                      <input type="radio" name="payment" value="mobile_money" className="mr-3" />
+                    <button
+                      onClick={() => handlePayment('mobile_money')}
+                      disabled={loading}
+                      className="w-full flex items-center p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
                       <div className="flex items-center">
                         <div className="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center mr-3">
                           <FaMobile className="text-yellow-600" />
@@ -718,10 +783,13 @@ const BookingProcess = () => {
                           <div className="text-sm text-gray-600">Pay with your mobile money account</div>
                         </div>
                       </div>
-                    </label>
+                    </button>
 
-                    <label className="flex items-center p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
-                      <input type="radio" name="payment" value="card" className="mr-3" />
+                    <button
+                      onClick={() => handlePayment('card')}
+                      disabled={loading}
+                      className="w-full flex items-center p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
                       <div className="flex items-center">
                         <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
                           <FaCreditCard className="text-blue-600" />
@@ -731,7 +799,7 @@ const BookingProcess = () => {
                           <div className="text-sm text-gray-600">Pay securely with your card</div>
                         </div>
                       </div>
-                    </label>
+                    </button>
                   </div>
                 </div>
 
@@ -755,7 +823,7 @@ const BookingProcess = () => {
                     ) : (
                       <>
                         <FaCheck />
-                        Complete Booking
+                        Complete Booking (Pay Later)
                       </>
                     )}
                   </button>

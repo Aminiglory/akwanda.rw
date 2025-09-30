@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { FaCheckCircle, FaCalendarAlt, FaUsers, FaBed, FaMapMarkerAlt, FaPhone, FaEnvelope, FaDownload, FaPrint, FaShare, FaHome } from 'react-icons/fa';
+import { FaCheckCircle, FaCalendarAlt, FaUsers, FaBed, FaMapMarkerAlt, FaPhone, FaEnvelope, FaDownload, FaPrint, FaShare, FaHome, FaFileInvoice } from 'react-icons/fa';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import ReceiptComponent from '../components/ReceiptComponent';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -12,6 +13,7 @@ const BookingConfirmation = () => {
   const [booking, setBooking] = useState(null);
   const [property, setProperty] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showReceipt, setShowReceipt] = useState(false);
 
   useEffect(() => {
     fetchBookingDetails();
@@ -339,6 +341,14 @@ const BookingConfirmation = () => {
 
               <div className="mt-6 space-y-3">
                 <button
+                  onClick={() => setShowReceipt(!showReceipt)}
+                  className="w-full flex items-center justify-center space-x-2 bg-purple-600 hover:bg-purple-700 text-white px-4 py-3 rounded-lg font-medium transition-colors"
+                >
+                  <FaFileInvoice />
+                  <span>{showReceipt ? 'Hide Receipt' : 'View Receipt'}</span>
+                </button>
+                
+                <button
                   onClick={handlePrint}
                   className="w-full flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg font-medium transition-colors"
                 >
@@ -390,6 +400,26 @@ const BookingConfirmation = () => {
           </div>
         </div>
       </div>
+
+      {/* Receipt Modal */}
+      {showReceipt && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b p-4 flex justify-between items-center">
+              <h2 className="text-xl font-bold text-gray-900">Booking Receipt</h2>
+              <button
+                onClick={() => setShowReceipt(false)}
+                className="text-gray-400 hover:text-gray-600 text-2xl"
+              >
+                ×
+              </button>
+            </div>
+            <div className="p-4">
+              <ReceiptComponent bookingId={id} />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
