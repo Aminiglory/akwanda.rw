@@ -618,9 +618,12 @@ const BookingProcess = () => {
                   {selectedRoom && (
                     <div className="mt-2 p-2 bg-blue-50 rounded">
                       <p><strong>Selected Room Details:</strong></p>
-                      <p>ID: {selectedRoom._id}</p>
-                      <p>Price per night: RWF {selectedRoom.pricePerNight?.toLocaleString()}</p>
-                      <p>Price per month: RWF {(selectedRoom.pricePerMonth || (selectedRoom.pricePerNight * 30))?.toLocaleString()}</p>
+                      <p>ID: {selectedRoom._id || 'No ID'}</p>
+                      <p>Room Number: {selectedRoom.roomNumber || 'No room number'}</p>
+                      <p>Price per night: RWF {(selectedRoom.pricePerNight || 0).toLocaleString()}</p>
+                      <p>Price per month: RWF {(selectedRoom.pricePerMonth || (selectedRoom.pricePerNight * 30) || 0).toLocaleString()}</p>
+                      <p>Available: {selectedRoom.isAvailable ? 'Yes' : 'No'}</p>
+                      <p>Button should be enabled: {selectedRoom && selectedRoom._id ? 'Yes' : 'No'}</p>
                     </div>
                   )}
                 </div>
@@ -653,7 +656,19 @@ const BookingProcess = () => {
                           console.log('Room clicked:', room);
                           console.log('Room price per night:', room.pricePerNight);
                           console.log('Room price per month:', room.pricePerMonth);
-                          setSelectedRoom(room);
+                          console.log('Room ID:', room._id);
+                          console.log('Room availability:', room.isAvailable);
+                          
+                          // Ensure room has all required properties
+                          const roomWithDefaults = {
+                            ...room,
+                            pricePerNight: room.pricePerNight || 0,
+                            pricePerMonth: room.pricePerMonth || (room.pricePerNight * 30) || 0,
+                            isAvailable: room.isAvailable !== undefined ? room.isAvailable : true
+                          };
+                          
+                          console.log('Setting selected room:', roomWithDefaults);
+                          setSelectedRoom(roomWithDefaults);
                         }}
                       >
                         <div className="flex items-start space-x-4">
@@ -665,13 +680,18 @@ const BookingProcess = () => {
                                 alt={room.roomNumber}
                                 className="w-full h-full object-cover transition-transform duration-500 group-hover/image:scale-110"
                                 onError={(e) => {
+                                  console.error('Room image failed to load:', room.images[0]);
                                   e.target.style.display = 'none';
                                   e.target.nextSibling.style.display = 'flex';
+                                }}
+                                onLoad={() => {
+                                  console.log('Room image loaded successfully:', room.images[0]);
                                 }}
                               />
                             ) : null}
                             <div 
                               className={`w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center ${room.images && room.images.length > 0 ? 'hidden' : ''}`}
+                              style={{ display: room.images && room.images.length > 0 ? 'none' : 'flex' }}
                             >
                               <FaBed className="text-gray-400 text-2xl" />
                             </div>
@@ -726,11 +746,14 @@ const BookingProcess = () => {
                               </div>
                               <div className="text-right">
                                 <div className="text-xl font-bold text-blue-600 group-hover:text-blue-700 transition-colors duration-300">
-                                  RWF {room.pricePerMonth?.toLocaleString() || (room.pricePerNight * 30)?.toLocaleString() || '0'}
+                                  RWF {(() => {
+                                    const monthlyPrice = room.pricePerMonth || (room.pricePerNight * 30) || 0;
+                                    return monthlyPrice.toLocaleString();
+                                  })()}
                                 </div>
                                 <div className="text-sm text-gray-500">per month</div>
                                 <div className="text-xs text-gray-400">
-                                  RWF {room.pricePerNight?.toLocaleString() || '0'}/night
+                                  RWF {(room.pricePerNight || 0).toLocaleString()}/night
                                 </div>
                                 {selectedRoom?._id === room._id && (
                                   <div className="mt-2 flex items-center justify-center">
@@ -756,9 +779,16 @@ const BookingProcess = () => {
                     Back
                   </button>
                   <button
-                    onClick={() => setCurrentStep(4)}
-                    disabled={!selectedRoom}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    onClick={() => {
+                      console.log('Continue button clicked, selected room:', selectedRoom);
+                      setCurrentStep(4);
+                    }}
+                    disabled={!selectedRoom || !selectedRoom._id}
+                    className={`px-8 py-3 rounded-lg font-medium transition-colors ${
+                      selectedRoom && selectedRoom._id
+                        ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    }`}
                   >
                     Continue to Contact Info
                   </button>
