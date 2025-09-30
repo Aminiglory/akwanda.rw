@@ -59,11 +59,13 @@ const ApartmentDetails = () => {
   useEffect(() => {
     (async () => {
       try {
+        console.log('Fetching apartment details for ID:', id);
         const res = await fetch(`${API_URL}/api/properties/${id}`);
         const data = await res.json();
         if (!res.ok) throw new Error(data.message || 'Failed to load property');
 
         const p = data.property;
+        console.log('Property data received:', p);
         
         // Enhanced amenities mapping
         const amenityIcons = {
@@ -90,7 +92,8 @@ const ApartmentDetails = () => {
           id: p._id,
           title: p.title,
           location: `${p.address}, ${p.city}`,
-          price: p.pricePerNight,
+          price: p.pricePerNight * 30, // Convert to monthly price
+          pricePerNight: p.pricePerNight, // Keep original for reference
           rating: p.ratings?.length ? p.ratings.reduce((sum, r) => sum + r.rating, 0) / p.ratings.length : 0,
           reviews: p.ratings?.length || 0,
           type: p.category || 'Apartment',
@@ -103,7 +106,12 @@ const ApartmentDetails = () => {
               : [
                   'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&h=600&fit=crop'
                 ],
-          rooms: p.rooms || [],
+          rooms: (p.rooms || []).map(room => ({
+            ...room,
+            pricePerNight: room.pricePerNight,
+            pricePerMonth: room.pricePerNight * 30, // Add monthly price
+            images: room.images ? room.images.map(img => makeAbsolute(img)) : []
+          })),
           amenities: processedAmenities,
           description: p.description || 'Beautiful apartment with great amenities.',
           host: {
@@ -391,9 +399,12 @@ const ApartmentDetails = () => {
                         </div>
                         <div className="text-right">
                           <div className="text-xl font-bold text-blue-600 group-hover:text-blue-700 transition-colors duration-300">
-                            RWF {room.pricePerNight?.toLocaleString() || '0'}
+                            RWF {room.pricePerMonth?.toLocaleString() || (room.pricePerNight * 30)?.toLocaleString() || '0'}
                           </div>
-                          <div className="text-sm text-gray-500">per night</div>
+                          <div className="text-sm text-gray-500">per month</div>
+                          <div className="text-xs text-gray-400">
+                            RWF {room.pricePerNight?.toLocaleString() || '0'}/night
+                          </div>
                         </div>
                       </div>
                       
@@ -421,7 +432,18 @@ const ApartmentDetails = () => {
                                 src={makeAbsolute(image)}
                                 alt={`${room.roomNumber} - Image ${imgIndex + 1}`}
                                 className="w-full h-20 object-cover transition-transform duration-500 group-hover/image:scale-110"
+                                onError={(e) => {
+                                  console.error('Image failed to load:', image);
+                                  e.target.style.display = 'none';
+                                  e.target.nextSibling.style.display = 'flex';
+                                }}
                               />
+                              <div 
+                                className="absolute inset-0 bg-gray-200 flex items-center justify-center hidden"
+                                style={{ display: 'none' }}
+                              >
+                                <FaBed className="text-gray-400" />
+                              </div>
                               <div className="absolute inset-0 bg-black bg-opacity-0 group-hover/image:bg-opacity-20 transition-all duration-300"></div>
                             </div>
                           ))}
@@ -466,8 +488,12 @@ const ApartmentDetails = () => {
                               <span className="font-medium text-gray-800">{room.capacity} guests</span>
                             </div>
                             <div className="flex justify-between items-center bg-blue-50 p-2 rounded-lg">
+                              <span className="text-gray-600">Price per month:</span>
+                              <span className="font-bold text-blue-600 text-lg">RWF {room.pricePerMonth?.toLocaleString() || (room.pricePerNight * 30)?.toLocaleString() || '0'}</span>
+                            </div>
+                            <div className="flex justify-between items-center bg-gray-50 p-2 rounded-lg">
                               <span className="text-gray-600">Price per night:</span>
-                              <span className="font-bold text-blue-600 text-lg">RWF {room.pricePerNight?.toLocaleString() || '0'}</span>
+                              <span className="font-medium text-gray-800">RWF {room.pricePerNight?.toLocaleString() || '0'}</span>
                             </div>
                           </div>
                           

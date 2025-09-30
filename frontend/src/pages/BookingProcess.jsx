@@ -64,14 +64,31 @@ const BookingProcess = () => {
   const fetchProperty = async () => {
     try {
       setLoading(true);
+      console.log('Fetching property with ID:', id);
       const res = await fetch(`${API_URL}/api/properties/${id}`, { credentials: 'include' });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to fetch property');
       
+      console.log('Property data received:', data.property);
       setProperty(data.property);
-      setAvailableRooms(data.property.rooms || []);
+      
+      // Process rooms with proper image URLs and monthly prices
+      const processedRooms = (data.property.rooms || []).map(room => {
+        console.log('Processing room:', room);
+        return {
+          ...room,
+          pricePerMonth: room.pricePerNight * 30, // Add monthly price
+          images: room.images ? room.images.map(img => 
+            img.startsWith('http') ? img : `${API_URL}${img}`
+          ) : []
+        };
+      });
+      
+      console.log('Processed rooms:', processedRooms);
+      setAvailableRooms(processedRooms);
     } catch (error) {
-      toast.error(error.message);
+      console.error('Error fetching property:', error);
+      toast.error(`Failed to load property: ${error.message}`);
       navigate('/apartments');
     } finally {
       setLoading(false);
@@ -546,6 +563,15 @@ const BookingProcess = () => {
               <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
                 <h2 className="text-2xl font-bold text-gray-900 mb-6">Select Your Room</h2>
                 
+                {/* Debug Information */}
+                <div className="mb-4 p-3 bg-gray-100 rounded-lg text-sm">
+                  <p><strong>Debug Info:</strong></p>
+                  <p>Available Rooms: {availableRooms.length}</p>
+                  <p>Filtered Rooms: {filteredRooms.length}</p>
+                  <p>Selected Room: {selectedRoom ? selectedRoom.roomNumber : 'None'}</p>
+                  <p>Budget: {bookingData.budget || 'Not selected'}</p>
+                </div>
+                
                 {filteredRooms.length === 0 ? (
                   <div className="text-center py-12">
                     <FaBed className="text-4xl text-gray-300 mx-auto mb-4" />
@@ -570,22 +596,30 @@ const BookingProcess = () => {
                             ? 'border-blue-500 bg-gradient-to-br from-blue-50 to-blue-100 shadow-lg scale-105'
                             : 'border-gray-200 hover:border-blue-300 bg-white'
                         }`}
-                        onClick={() => setSelectedRoom(room)}
+                        onClick={() => {
+                          console.log('Room clicked:', room);
+                          setSelectedRoom(room);
+                        }}
                       >
                         <div className="flex items-start space-x-4">
                           {/* Enhanced Room Images */}
                           <div className="w-32 h-24 rounded-lg overflow-hidden relative group/image">
                             {room.images && room.images.length > 0 ? (
                               <img
-                                src={room.images[0].startsWith('http') ? room.images[0] : `${API_URL}${room.images[0]}`}
+                                src={room.images[0]}
                                 alt={room.roomNumber}
                                 className="w-full h-full object-cover transition-transform duration-500 group-hover/image:scale-110"
+                                onError={(e) => {
+                                  e.target.style.display = 'none';
+                                  e.target.nextSibling.style.display = 'flex';
+                                }}
                               />
-                            ) : (
-                              <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
-                                <FaBed className="text-gray-400 text-2xl" />
-                              </div>
-                            )}
+                            ) : null}
+                            <div 
+                              className={`w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center ${room.images && room.images.length > 0 ? 'hidden' : ''}`}
+                            >
+                              <FaBed className="text-gray-400 text-2xl" />
+                            </div>
                             {selectedRoom?._id === room._id && (
                               <div className="absolute inset-0 bg-blue-500 bg-opacity-20 flex items-center justify-center">
                                 <FaCheck className="text-white text-2xl" />
@@ -637,9 +671,12 @@ const BookingProcess = () => {
                               </div>
                               <div className="text-right">
                                 <div className="text-xl font-bold text-blue-600 group-hover:text-blue-700 transition-colors duration-300">
-                                  RWF {room.pricePerNight?.toLocaleString() || '0'}
+                                  RWF {room.pricePerMonth?.toLocaleString() || (room.pricePerNight * 30)?.toLocaleString() || '0'}
                                 </div>
-                                <div className="text-sm text-gray-500">per night</div>
+                                <div className="text-sm text-gray-500">per month</div>
+                                <div className="text-xs text-gray-400">
+                                  RWF {room.pricePerNight?.toLocaleString() || '0'}/night
+                                </div>
                                 {selectedRoom?._id === room._id && (
                                   <div className="mt-2 flex items-center justify-center">
                                     <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center animate-pulse">
