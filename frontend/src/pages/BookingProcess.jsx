@@ -54,8 +54,19 @@ const BookingProcess = () => {
   useEffect(() => {
     if (bookingData.checkIn && bookingData.checkOut) {
       checkAvailability();
+    } else if (property && property.rooms && property.rooms.length > 0 && availableRooms.length === 0) {
+      // Fallback: if no availability check was made, use all rooms from property
+      console.log('Using fallback: all property rooms');
+      const processedRooms = property.rooms.map(room => ({
+        ...room,
+        pricePerMonth: room.pricePerNight * 30,
+        images: room.images ? room.images.map(img => 
+          img.startsWith('http') ? img : `${API_URL}${img}`
+        ) : []
+      }));
+      setAvailableRooms(processedRooms);
     }
-  }, [bookingData.checkIn, bookingData.checkOut, bookingData.guests]);
+  }, [bookingData.checkIn, bookingData.checkOut, bookingData.guests, property]);
 
   useEffect(() => {
     filterRoomsByBudget();
@@ -110,7 +121,15 @@ const BookingProcess = () => {
       
       const data = await res.json();
       if (res.ok) {
-        setAvailableRooms(data.availableRooms || []);
+        // Process the available rooms with proper image URLs and monthly prices
+        const processedAvailableRooms = (data.availableRooms || []).map(room => ({
+          ...room,
+          pricePerMonth: room.pricePerNight * 30, // Add monthly price
+          images: room.images ? room.images.map(img => 
+            img.startsWith('http') ? img : `${API_URL}${img}`
+          ) : []
+        }));
+        setAvailableRooms(processedAvailableRooms);
       }
     } catch (error) {
       console.error('Availability check failed:', error);
@@ -118,6 +137,9 @@ const BookingProcess = () => {
   };
 
   const filterRoomsByBudget = () => {
+    console.log('Filtering rooms by budget:', bookingData.budget);
+    console.log('Available rooms:', availableRooms);
+    
     if (!bookingData.budget) {
       setFilteredRooms(availableRooms);
       return;
@@ -129,9 +151,18 @@ const BookingProcess = () => {
       return;
     }
 
-    const filtered = availableRooms.filter(room => 
-      room.pricePerNight >= budgetRange.min && room.pricePerNight <= budgetRange.max
-    );
+    // Filter by monthly price (convert budget range to monthly)
+    const monthlyMin = budgetRange.min * 30;
+    const monthlyMax = budgetRange.max * 30;
+    
+    const filtered = availableRooms.filter(room => {
+      const roomMonthlyPrice = room.pricePerMonth || (room.pricePerNight * 30);
+      const isInRange = roomMonthlyPrice >= monthlyMin && roomMonthlyPrice <= monthlyMax;
+      console.log(`Room ${room.roomNumber}: monthly price ${roomMonthlyPrice}, range: ${monthlyMin}-${monthlyMax}, in range: ${isInRange}`);
+      return isInRange;
+    });
+    
+    console.log('Filtered rooms:', filtered);
     setFilteredRooms(filtered);
   };
 
@@ -204,8 +235,13 @@ const BookingProcess = () => {
         specialRequests: bookingData.specialRequests,
         groupBooking: bookingData.guests >= 4,
         groupSize: bookingData.guests,
-        paymentMethod: 'cash' // Default to cash, can be changed in payment step
+        paymentMethod: 'cash', // Default to cash, can be changed in payment step
+        totalAmount: calculateTotalPrice(),
+        roomPrice: selectedRoom.pricePerNight,
+        roomPricePerMonth: selectedRoom.pricePerMonth || (selectedRoom.pricePerNight * 30)
       };
+      
+      console.log('Booking payload:', bookingPayload);
 
       const res = await fetch(`${API_URL}/api/bookings`, {
         method: 'POST',
@@ -217,6 +253,7 @@ const BookingProcess = () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to create booking');
 
+      console.log('Booking created successfully:', data);
       toast.success('Booking created successfully!');
       navigate(`/booking-confirmation/${data.booking._id}`);
     } catch (error) {
@@ -246,8 +283,13 @@ const BookingProcess = () => {
         specialRequests: bookingData.specialRequests,
         groupBooking: bookingData.guests >= 4,
         groupSize: bookingData.guests,
-        paymentMethod: paymentMethod
+        paymentMethod: paymentMethod,
+        totalAmount: calculateTotalPrice(),
+        roomPrice: selectedRoom.pricePerNight,
+        roomPricePerMonth: selectedRoom.pricePerMonth || (selectedRoom.pricePerNight * 30)
       };
+      
+      console.log('Payment booking payload:', bookingPayload);
 
       const bookingRes = await fetch(`${API_URL}/api/bookings`, {
         method: 'POST',
@@ -570,6 +612,17 @@ const BookingProcess = () => {
                   <p>Filtered Rooms: {filteredRooms.length}</p>
                   <p>Selected Room: {selectedRoom ? selectedRoom.roomNumber : 'None'}</p>
                   <p>Budget: {bookingData.budget || 'Not selected'}</p>
+                  <p>Check-in: {bookingData.checkIn || 'Not set'}</p>
+                  <p>Check-out: {bookingData.checkOut || 'Not set'}</p>
+                  <p>Guests: {bookingData.guests}</p>
+                  {selectedRoom && (
+                    <div className="mt-2 p-2 bg-blue-50 rounded">
+                      <p><strong>Selected Room Details:</strong></p>
+                      <p>ID: {selectedRoom._id}</p>
+                      <p>Price per night: RWF {selectedRoom.pricePerNight?.toLocaleString()}</p>
+                      <p>Price per month: RWF {(selectedRoom.pricePerMonth || (selectedRoom.pricePerNight * 30))?.toLocaleString()}</p>
+                    </div>
+                  )}
                 </div>
                 
                 {filteredRooms.length === 0 ? (
@@ -598,6 +651,8 @@ const BookingProcess = () => {
                         }`}
                         onClick={() => {
                           console.log('Room clicked:', room);
+                          console.log('Room price per night:', room.pricePerNight);
+                          console.log('Room price per month:', room.pricePerMonth);
                           setSelectedRoom(room);
                         }}
                       >
@@ -978,7 +1033,11 @@ const BookingProcess = () => {
                     <div className="border-t pt-4">
                       <div className="space-y-2 text-sm">
                         <div className="flex justify-between">
-                          <span className="text-gray-600">Room price:</span>
+                          <span className="text-gray-600">Room price (monthly):</span>
+                          <span>RWF {(selectedRoom.pricePerMonth || (selectedRoom.pricePerNight * 30))?.toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Room price (nightly):</span>
                           <span>RWF {selectedRoom.pricePerNight?.toLocaleString()}/night</span>
                         </div>
                         {discount > 0 && (
