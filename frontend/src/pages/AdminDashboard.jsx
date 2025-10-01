@@ -143,7 +143,7 @@ const AdminDashboard = () => {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-              <p className="text-gray-600 mt-1">Manage your platform like Booking.com</p>
+              <p className="text-gray-600 mt-1">Manage your AKWANDA platform</p>
             </div>
             <div className="flex items-center space-x-4">
               <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-xl font-semibold transition-colors duration-300 flex items-center gap-2">
