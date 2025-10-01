@@ -75,6 +75,13 @@ const BookingProcess = () => {
     filterRoomsByBudget();
   }, [availableRooms, bookingData.budget]);
 
+  // NEW: Effect to recalculate total price when relevant data changes
+  useEffect(() => {
+    if (selectedRoom && bookingData.checkIn && bookingData.checkOut) {
+      calculateTotalPrice();
+    }
+  }, [selectedRoom, bookingData.checkIn, bookingData.checkOut, bookingData.rooms, bookingData.guests]);
+
   const fetchProperty = async () => {
     try {
       setLoading(true);
@@ -134,6 +141,17 @@ const BookingProcess = () => {
           };
         });
         setAvailableRooms(processedAvailableRooms);
+        
+        // FIX: If selected room is no longer available, clear selection
+        if (selectedRoom) {
+          const isStillAvailable = processedAvailableRooms.some(room => 
+            room._id === selectedRoom._id || room.roomNumber === selectedRoom.roomNumber
+          );
+          if (!isStillAvailable) {
+            setSelectedRoom(null);
+            toast.error('Your previously selected room is no longer available');
+          }
+        }
       }
     } catch (error) {
       console.error('Availability check failed:', error);
@@ -162,19 +180,36 @@ const BookingProcess = () => {
     });
     
     setFilteredRooms(filtered);
+    
+    // FIX: If selected room doesn't match current budget filter, clear selection
+    if (selectedRoom && filtered.length > 0) {
+      const isInFiltered = filtered.some(room => 
+        room._id === selectedRoom._id || room.roomNumber === selectedRoom.roomNumber
+      );
+      if (!isInFiltered) {
+        setSelectedRoom(null);
+        toast.info('Your selected room no longer matches the budget filter');
+      }
+    }
   };
 
   const calculateTotalPrice = () => {
-    if (!selectedRoom || !bookingData.checkIn || !bookingData.checkOut) return 0;
+    if (!selectedRoom || !bookingData.checkIn || !bookingData.checkOut) {
+      setTotalPrice(0);
+      setDiscount(0);
+      return 0;
+    }
     
     const checkInDate = new Date(bookingData.checkIn);
     const checkOutDate = new Date(bookingData.checkOut);
     const nights = Math.ceil((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24));
     
-    let basePrice = selectedRoom.pricePerNight * nights * bookingData.rooms;
+    // FIX: Better fallback for room price
+    const roomPrice = selectedRoom.pricePerNight || selectedRoom.price || 0;
+    let basePrice = roomPrice * nights * bookingData.rooms;
     
     // Apply group discount if applicable
-    if (property.groupBookingEnabled && bookingData.guests >= 4) {
+    if (property?.groupBookingEnabled && bookingData.guests >= 4) {
       const groupDiscount = (basePrice * property.groupBookingDiscount) / 100;
       setDiscount(groupDiscount);
       basePrice -= groupDiscount;
@@ -184,6 +219,37 @@ const BookingProcess = () => {
     
     setTotalPrice(basePrice);
     return basePrice;
+  };
+
+  // FIX: Improved room selection handler with proper room data normalization
+  const handleRoomSelect = (room) => {
+    // Ensure room has all required properties with proper fallbacks
+    const pricePerNight = room.pricePerNight || room.price || 0;
+    const roomWithDefaults = {
+      ...room,
+      _id: room._id || room.id, // Handle both _id and id
+      roomNumber: room.roomNumber || room.name || 'Unknown Room',
+      roomType: room.roomType || 'Standard',
+      pricePerNight: pricePerNight,
+      pricePerMonth: room.pricePerMonth || (pricePerNight * 30),
+      isAvailable: room.isAvailable !== undefined ? room.isAvailable : true,
+      capacity: room.capacity || 1,
+      amenities: room.amenities || []
+    };
+    
+    console.log('Room selected:', roomWithDefaults);
+    setSelectedRoom(roomWithDefaults);
+  };
+
+  // FIX: Improved room comparison function
+  const isRoomSelected = (room) => {
+    if (!selectedRoom) return false;
+    
+    // Compare by _id if available, otherwise by roomNumber
+    if (selectedRoom._id && room._id) {
+      return selectedRoom._id === room._id;
+    }
+    return selectedRoom.roomNumber === room.roomNumber;
   };
 
   const handleInputChange = (field, value) => {
@@ -223,9 +289,15 @@ const BookingProcess = () => {
     try {
       setLoading(true);
       
+      // FIX: Ensure we have proper room ID for booking
+      const roomId = selectedRoom._id || selectedRoom.id;
+      if (!roomId) {
+        throw new Error('Invalid room selection');
+      }
+
       const bookingPayload = {
         propertyId: id,
-        room: selectedRoom._id,
+        room: roomId,
         checkIn: bookingData.checkIn,
         checkOut: bookingData.checkOut,
         numberOfGuests: bookingData.guests,
@@ -234,7 +306,7 @@ const BookingProcess = () => {
         groupBooking: bookingData.guests >= 4,
         groupSize: bookingData.guests,
         paymentMethod: 'cash', // Default to cash, can be changed in payment step
-        totalAmount: calculateTotalPrice(),
+        totalAmount: totalPrice,
         roomPrice: selectedRoom.pricePerNight || selectedRoom.price || 0,
         roomPricePerMonth: selectedRoom.pricePerMonth || ((selectedRoom.pricePerNight || selectedRoom.price || 0) * 30)
       };
@@ -267,10 +339,16 @@ const BookingProcess = () => {
     try {
       setLoading(true);
       
+      // FIX: Ensure we have proper room ID for booking
+      const roomId = selectedRoom._id || selectedRoom.id;
+      if (!roomId) {
+        throw new Error('Invalid room selection');
+      }
+
       // First create the booking
       const bookingPayload = {
         propertyId: id,
-        room: selectedRoom._id,
+        room: roomId,
         checkIn: bookingData.checkIn,
         checkOut: bookingData.checkOut,
         numberOfGuests: bookingData.guests,
@@ -279,7 +357,7 @@ const BookingProcess = () => {
         groupBooking: bookingData.guests >= 4,
         groupSize: bookingData.guests,
         paymentMethod: paymentMethod,
-        totalAmount: calculateTotalPrice(),
+        totalAmount: totalPrice,
         roomPrice: selectedRoom.pricePerNight || selectedRoom.price || 0,
         roomPricePerMonth: selectedRoom.pricePerMonth || ((selectedRoom.pricePerNight || selectedRoom.price || 0) * 30)
       };
@@ -291,11 +369,11 @@ const BookingProcess = () => {
         body: JSON.stringify(bookingPayload)
       });
 
-      const bookingData = await bookingRes.json();
-      if (!bookingRes.ok) throw new Error(bookingData.message || 'Failed to create booking');
+      const bookingDataResponse = await bookingRes.json();
+      if (!bookingRes.ok) throw new Error(bookingDataResponse.message || 'Failed to create booking');
 
       // Process payment
-      const paymentRes = await fetch(`${API_URL}/api/bookings/${bookingData.booking._id}/payment`, {
+      const paymentRes = await fetch(`${API_URL}/api/bookings/${bookingDataResponse.booking._id}/payment`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -312,7 +390,7 @@ const BookingProcess = () => {
       if (!paymentRes.ok) throw new Error(paymentData.message || 'Payment failed');
 
       toast.success('Booking and payment completed successfully!');
-      navigate(`/booking-confirmation/${bookingData.booking._id}`);
+      navigate(`/booking-confirmation/${bookingDataResponse.booking._id}`);
     } catch (error) {
       toast.error(error.message);
     } finally {
@@ -598,6 +676,14 @@ const BookingProcess = () => {
               <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
                 <h2 className="text-2xl font-bold text-gray-900 mb-6">Select Your Room</h2>
                 
+                {/* Debug info - remove in production */}
+                {process.env.NODE_ENV === 'development' && (
+                  <div className="mb-4 p-3 bg-yellow-100 border border-yellow-400 rounded text-sm">
+                    <strong>Debug Info:</strong> Selected Room: {selectedRoom ? `${selectedRoom.roomNumber} (ID: ${selectedRoom._id})` : 'None'}, 
+                    Available Rooms: {availableRooms.length}, 
+                    Filtered Rooms: {filteredRooms.length}
+                  </div>
+                )}
                 
                 {filteredRooms.length === 0 ? (
                   <div className="text-center py-12">
@@ -617,25 +703,13 @@ const BookingProcess = () => {
                   <div className="space-y-4">
                     {filteredRooms.map((room, index) => (
                       <div
-                        key={index}
+                        key={room._id || room.roomNumber || index}
                         className={`group border-2 rounded-xl p-6 cursor-pointer transition-all duration-500 transform hover:scale-105 hover:shadow-xl ${
-                          selectedRoom && (selectedRoom._id === room._id || selectedRoom.roomNumber === room.roomNumber)
+                          isRoomSelected(room)
                             ? 'border-blue-500 bg-gradient-to-br from-blue-50 to-blue-100 shadow-lg scale-105'
                             : 'border-gray-200 hover:border-blue-300 bg-white'
                         }`}
-                        onClick={() => {
-                          // Ensure room has all required properties
-                          const pricePerNight = room.pricePerNight || room.price || 0;
-                          const roomWithDefaults = {
-                            ...room,
-                            pricePerNight: pricePerNight,
-                            pricePerMonth: room.pricePerMonth || (pricePerNight * 30),
-                            isAvailable: room.isAvailable !== undefined ? room.isAvailable : true
-                          };
-                          
-                          console.log('Room selected:', roomWithDefaults);
-                          setSelectedRoom(roomWithDefaults);
-                        }}
+                        onClick={() => handleRoomSelect(room)}
                       >
                         <div className="flex items-start space-x-4">
                           {/* Enhanced Room Images */}
@@ -657,7 +731,7 @@ const BookingProcess = () => {
                             >
                               <FaBed className="text-gray-400 text-2xl" />
                             </div>
-                            {selectedRoom?._id === room._id && (
+                            {isRoomSelected(room) && (
                               <div className="absolute inset-0 bg-blue-500 bg-opacity-20 flex items-center justify-center">
                                 <FaCheck className="text-white text-2xl" />
                               </div>
@@ -668,22 +742,22 @@ const BookingProcess = () => {
                             <div className="flex items-start justify-between">
                               <div className="flex-1">
                                 <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-700 transition-colors duration-300">
-                                  {room.roomNumber}
+                                  {room.roomNumber || 'Room ' + (index + 1)}
                                 </h3>
                                 <p className="text-sm text-gray-600 capitalize font-medium">
-                                  {room.roomType} Room
+                                  {(room.roomType || 'Standard')} Room
                                 </p>
                                 <div className="flex items-center mt-3 space-x-4 text-sm text-gray-600">
                                   <div className="flex items-center bg-gray-100 px-3 py-1 rounded-full">
                                     <FaUsers className="mr-1 text-blue-600" />
-                                    <span className="font-medium">{room.capacity} guests</span>
+                                    <span className="font-medium">{room.capacity || 1} guests</span>
                                   </div>
                                   <div className={`px-3 py-1 rounded-full text-xs font-medium transition-all duration-300 ${
-                                    room.isAvailable 
+                                    room.isAvailable !== false 
                                       ? 'bg-green-100 text-green-800 hover:bg-green-200' 
                                       : 'bg-red-100 text-red-800 hover:bg-red-200'
                                   }`}>
-                                    {room.isAvailable ? '✓ Available' : '✗ Unavailable'}
+                                    {room.isAvailable !== false ? '✓ Available' : '✗ Unavailable'}
                                   </div>
                                 </div>
                                 
@@ -718,7 +792,7 @@ const BookingProcess = () => {
                                 <div className="text-xs text-gray-400">
                                   RWF {(room.pricePerNight || room.price || 0).toLocaleString()}/night
                                 </div>
-                                {selectedRoom && (selectedRoom._id === room._id || selectedRoom.roomNumber === room.roomNumber) && (
+                                {isRoomSelected(room) && (
                                   <div className="mt-2 flex items-center justify-center">
                                     <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center animate-pulse">
                                       <FaCheck className="text-white text-xs" />
@@ -744,11 +818,15 @@ const BookingProcess = () => {
                   <button
                     onClick={() => {
                       console.log('Continue button clicked, selectedRoom:', selectedRoom);
-                      setCurrentStep(4);
+                      if (selectedRoom) {
+                        setCurrentStep(4);
+                      } else {
+                        toast.error('Please select a room to continue');
+                      }
                     }}
-                    disabled={!selectedRoom || (!selectedRoom._id && !selectedRoom.roomNumber)}
+                    disabled={!selectedRoom}
                     className={`px-8 py-3 rounded-lg font-medium transition-colors ${
-                      selectedRoom && (selectedRoom._id || selectedRoom.roomNumber)
+                      selectedRoom
                         ? 'bg-blue-600 hover:bg-blue-700 text-white'
                         : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                     }`}
@@ -763,6 +841,13 @@ const BookingProcess = () => {
             {currentStep === 4 && (
               <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
                 <h2 className="text-2xl font-bold text-gray-900 mb-6">Contact Information</h2>
+                
+                {/* Debug info - remove in production */}
+                {process.env.NODE_ENV === 'development' && selectedRoom && (
+                  <div className="mb-4 p-3 bg-green-100 border border-green-400 rounded text-sm">
+                    <strong>Room Selection Active:</strong> {selectedRoom.roomNumber} (Step 4)
+                  </div>
+                )}
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                   <div>
@@ -887,6 +972,13 @@ const BookingProcess = () => {
               <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
                 <h2 className="text-2xl font-bold text-gray-900 mb-6">Payment & Confirmation</h2>
                 
+                {/* Debug info - remove in production */}
+                {process.env.NODE_ENV === 'development' && selectedRoom && (
+                  <div className="mb-4 p-3 bg-green-100 border border-green-400 rounded text-sm">
+                    <strong>Room Selection Active:</strong> {selectedRoom.roomNumber} (Step 5)
+                  </div>
+                )}
+                
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
                   <div className="flex items-start space-x-3">
                     <FaShieldAlt className="text-blue-600 text-lg mt-0.5" />
@@ -962,7 +1054,7 @@ const BookingProcess = () => {
                   </button>
                   <button
                     onClick={handleBooking}
-                    disabled={loading}
+                    disabled={loading || !selectedRoom}
                     className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-lg font-medium transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {loading ? (
@@ -987,17 +1079,24 @@ const BookingProcess = () => {
             <div className="bg-white rounded-2xl shadow-lg p-6 sticky top-24">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Booking Summary</h3>
               
-              {selectedRoom && (
+              {selectedRoom ? (
                 <div className="space-y-4">
                   <div className="flex items-center space-x-3">
                     <img
                       src={selectedRoom.images?.[0]?.startsWith('http') ? selectedRoom.images[0] : `${API_URL}${selectedRoom.images?.[0]}` || 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=100&h=100&fit=crop'}
                       alt={selectedRoom.roomNumber}
                       className="w-16 h-16 object-cover rounded-lg"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        e.target.nextSibling.style.display = 'block';
+                      }}
                     />
+                    <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center hidden">
+                      <FaBed className="text-gray-400" />
+                    </div>
                     <div>
-                      <h4 className="font-medium text-gray-900">{selectedRoom.roomNumber}</h4>
-                      <p className="text-sm text-gray-600 capitalize">{selectedRoom.roomType} Room</p>
+                      <h4 className="font-medium text-gray-900">{selectedRoom.roomNumber || 'Selected Room'}</h4>
+                      <p className="text-sm text-gray-600 capitalize">{(selectedRoom.roomType || 'Standard')} Room</p>
                     </div>
                   </div>
 
@@ -1022,7 +1121,7 @@ const BookingProcess = () => {
                     </div>
                   )}
 
-                  {calculateTotalPrice() > 0 && (
+                  {totalPrice > 0 && (
                     <div className="border-t pt-4">
                       <div className="space-y-2 text-sm">
                         <div className="flex justify-between">
@@ -1051,9 +1150,7 @@ const BookingProcess = () => {
                     </div>
                   )}
                 </div>
-              )}
-
-              {!selectedRoom && (
+              ) : (
                 <div className="text-center py-8 text-gray-500">
                   <FaBed className="text-4xl mx-auto mb-4 text-gray-300" />
                   <p>Select a room to see booking details</p>
