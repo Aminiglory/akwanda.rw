@@ -397,7 +397,7 @@ const BookingProcess = () => {
       setLoading(false);
     }
   };
-
+//remove eerors
   const renderStars = (rating) => {
     if (!rating) return null;
     return Array.from({ length: 5 }, (_, i) => (
