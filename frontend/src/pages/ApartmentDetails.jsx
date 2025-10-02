@@ -63,6 +63,8 @@ const ApartmentDetails = () => {
         const data = await res.json();
         if (!res.ok) throw new Error(data.message || 'Failed to load property');
 
+        console.log('Fetched property data:', data); // Debugging log
+
         const p = data.property;
         
         // Enhanced amenities mapping
@@ -503,7 +505,7 @@ const ApartmentDetails = () => {
                             </div>
                             <div className="flex justify-between items-center bg-gray-50 p-2 rounded-lg">
                               <span className="text-gray-600">Price per night:</span>
-                              <span className="font-medium text-gray-800">RWF {room.pricePerNight?.toLocaleString() || '0'}</span>
+                              <span className="font-medium text-gray-800">RWF {room.pricePerNight?.toLocaleString()}</span>
                             </div>
                           </div>
                           

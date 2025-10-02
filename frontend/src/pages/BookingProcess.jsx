@@ -61,7 +61,6 @@ const BookingProcess = () => {
         return {
           ...room,
           pricePerNight: pricePerNight,
-          pricePerMonth: pricePerNight * 30,
           images: room.images ? room.images.map(img => 
             img.startsWith('http') ? img : `${API_URL}${img}`
           ) : []
@@ -88,22 +87,21 @@ const BookingProcess = () => {
       const res = await fetch(`${API_URL}/api/properties/${id}`, { credentials: 'include' });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to fetch property');
-      
+
       setProperty(data.property);
-      
-      // Process rooms with proper image URLs and monthly prices
+
+      // Process rooms with proper image URLs and fallback image
       const processedRooms = (data.property.rooms || []).map(room => {
         const pricePerNight = room.pricePerNight || room.price || 0;
         return {
           ...room,
           pricePerNight: pricePerNight,
-          pricePerMonth: pricePerNight * 30, // Add monthly price
-          images: room.images ? room.images.map(img => 
-            img.startsWith('http') ? img : `${API_URL}${img}`
-          ) : []
+          images: room.images && room.images.length > 0
+            ? room.images.map(img => img.startsWith('http') ? img : `${API_URL}${img}`)
+            : ['https://via.placeholder.com/150?text=No+Image'] // Fallback image
         };
       });
-      
+
       setAvailableRooms(processedRooms);
     } catch (error) {
       toast.error(`Failed to load property: ${error.message}`);
@@ -134,7 +132,6 @@ const BookingProcess = () => {
           return {
             ...room,
             pricePerNight: pricePerNight,
-            pricePerMonth: pricePerNight * 30, // Add monthly price
             images: room.images ? room.images.map(img => 
               img.startsWith('http') ? img : `${API_URL}${img}`
             ) : []
@@ -194,31 +191,13 @@ const BookingProcess = () => {
   };
 
   const calculateTotalPrice = () => {
-    if (!selectedRoom || !bookingData.checkIn || !bookingData.checkOut) {
-      setTotalPrice(0);
-      setDiscount(0);
-      return 0;
+    if (selectedRoom && bookingData.checkIn && bookingData.checkOut) {
+      const checkInDate = new Date(bookingData.checkIn);
+      const checkOutDate = new Date(bookingData.checkOut);
+      const numberOfNights = Math.ceil((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24));
+      const total = selectedRoom.pricePerNight * numberOfNights;
+      setTotalPrice(total);
     }
-    
-    const checkInDate = new Date(bookingData.checkIn);
-    const checkOutDate = new Date(bookingData.checkOut);
-    const nights = Math.ceil((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24));
-    
-    // FIX: Better fallback for room price
-    const roomPrice = selectedRoom.pricePerNight || selectedRoom.price || 0;
-    let basePrice = roomPrice * nights * bookingData.rooms;
-    
-    // Apply group discount if applicable
-    if (property?.groupBookingEnabled && bookingData.guests >= 4) {
-      const groupDiscount = (basePrice * property.groupBookingDiscount) / 100;
-      setDiscount(groupDiscount);
-      basePrice -= groupDiscount;
-    } else {
-      setDiscount(0);
-    }
-    
-    setTotalPrice(basePrice);
-    return basePrice;
   };
 
   // FIX: Improved room selection handler with proper room data normalization
@@ -231,7 +210,6 @@ const BookingProcess = () => {
       roomNumber: room.roomNumber || room.name || 'Unknown Room',
       roomType: room.roomType || 'Standard',
       pricePerNight: pricePerNight,
-      pricePerMonth: room.pricePerMonth || (pricePerNight * 30),
       isAvailable: room.isAvailable !== undefined ? room.isAvailable : true,
       capacity: room.capacity || 1,
       amenities: room.amenities || []
@@ -307,8 +285,7 @@ const BookingProcess = () => {
         groupSize: bookingData.guests,
         paymentMethod: 'cash', // Default to cash, can be changed in payment step
         totalAmount: totalPrice,
-        roomPrice: selectedRoom.pricePerNight || selectedRoom.price || 0,
-        roomPricePerMonth: selectedRoom.pricePerMonth || ((selectedRoom.pricePerNight || selectedRoom.price || 0) * 30)
+        roomPrice: selectedRoom.pricePerNight || selectedRoom.price || 0
       };
 
       const res = await fetch(`${API_URL}/api/bookings`, {
@@ -338,14 +315,12 @@ const BookingProcess = () => {
 
     try {
       setLoading(true);
-      
-      // FIX: Ensure we have proper room ID for booking
+
       const roomId = selectedRoom._id || selectedRoom.id;
       if (!roomId) {
         throw new Error('Invalid room selection');
       }
 
-      // First create the booking
       const bookingPayload = {
         propertyId: id,
         room: roomId,
@@ -358,8 +333,7 @@ const BookingProcess = () => {
         groupSize: bookingData.guests,
         paymentMethod: paymentMethod,
         totalAmount: totalPrice,
-        roomPrice: selectedRoom.pricePerNight || selectedRoom.price || 0,
-        roomPricePerMonth: selectedRoom.pricePerMonth || ((selectedRoom.pricePerNight || selectedRoom.price || 0) * 30)
+        roomPrice: selectedRoom.pricePerNight || selectedRoom.price || 0
       };
 
       const bookingRes = await fetch(`${API_URL}/api/bookings`, {
@@ -369,10 +343,17 @@ const BookingProcess = () => {
         body: JSON.stringify(bookingPayload)
       });
 
-      const bookingDataResponse = await bookingRes.json();
+      const bookingText = await bookingRes.text();
+      let bookingDataResponse;
+      try {
+        bookingDataResponse = JSON.parse(bookingText);
+      } catch (error) {
+        console.error('Failed to parse booking response:', bookingText);
+        throw new Error('Unexpected response from server. Please try again later.');
+      }
+
       if (!bookingRes.ok) throw new Error(bookingDataResponse.message || 'Failed to create booking');
 
-      // Process payment
       const paymentRes = await fetch(`${API_URL}/api/bookings/${bookingDataResponse.booking._id}/payment`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -386,12 +367,21 @@ const BookingProcess = () => {
         })
       });
 
-      const paymentData = await paymentRes.json();
+      const paymentText = await paymentRes.text();
+      let paymentData;
+      try {
+        paymentData = JSON.parse(paymentText);
+      } catch (error) {
+        console.error('Failed to parse payment response:', paymentText);
+        throw new Error('Unexpected response from server. Please try again later.');
+      }
+
       if (!paymentRes.ok) throw new Error(paymentData.message || 'Payment failed');
 
       toast.success('Booking and payment completed successfully!');
       navigate(`/booking-confirmation/${bookingDataResponse.booking._id}`);
     } catch (error) {
+      console.error('Payment error:', error);
       toast.error(error.message);
     } finally {
       setLoading(false);
@@ -784,14 +774,10 @@ const BookingProcess = () => {
                                 <div className="text-xl font-bold text-blue-600 group-hover:text-blue-700 transition-colors duration-300">
                                   RWF {(() => {
                                     const pricePerNight = room.pricePerNight || room.price || 0;
-                                    const monthlyPrice = room.pricePerMonth || (pricePerNight * 30);
-                                    return monthlyPrice.toLocaleString();
+                                    return pricePerNight.toLocaleString();
                                   })()}
                                 </div>
-                                <div className="text-sm text-gray-500">per month</div>
-                                <div className="text-xs text-gray-400">
-                                  RWF {(room.pricePerNight || room.price || 0).toLocaleString()}/night
-                                </div>
+                                <div className="text-sm text-gray-500">per night</div>
                                 {isRoomSelected(room) && (
                                   <div className="mt-2 flex items-center justify-center">
                                     <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center animate-pulse">
@@ -1091,7 +1077,7 @@ const BookingProcess = () => {
                         e.target.nextSibling.style.display = 'block';
                       }}
                     />
-                    <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center hidden">
+                    <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center" style={{ display: 'none' }}>
                       <FaBed className="text-gray-400" />
                     </div>
                     <div>
@@ -1124,14 +1110,6 @@ const BookingProcess = () => {
                   {totalPrice > 0 && (
                     <div className="border-t pt-4">
                       <div className="space-y-2 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Room price (monthly):</span>
-                          <span>RWF {(() => {
-                            const pricePerNight = selectedRoom.pricePerNight || selectedRoom.price || 0;
-                            const monthlyPrice = selectedRoom.pricePerMonth || (pricePerNight * 30);
-                            return monthlyPrice.toLocaleString();
-                          })()}</span>
-                        </div>
                         <div className="flex justify-between">
                           <span className="text-gray-600">Room price (nightly):</span>
                           <span>RWF {(selectedRoom.pricePerNight || selectedRoom.price || 0).toLocaleString()}/night</span>
