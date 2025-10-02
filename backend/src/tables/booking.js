@@ -9,11 +9,15 @@ const bookingSchema = new mongoose.Schema(
     checkOut: { type: Date, required: true },
     numberOfGuests: { type: Number, required: true, min: 1 },
     totalAmount: { type: Number, required: true },
+    taxAmount: { type: Number, default: 0 }, // 3% RRA tax
+    taxRate: { type: Number, default: 3 }, // Tax rate percentage
+    amountBeforeTax: { type: Number, default: 0 },
     status: { type: String, enum: ['pending', 'commission_due', 'confirmed', 'cancelled', 'ended'], default: 'pending' },
     commissionAmount: { type: Number, default: 0 },
     commissionPaid: { type: Boolean, default: false },
-    paymentMethod: { type: String, enum: ['cash', 'card', 'mobile_money', 'bank_transfer'], default: 'cash' },
-    paymentStatus: { type: String, enum: ['pending', 'paid', 'failed', 'refunded'], default: 'pending' },
+    paymentMethod: { type: String, enum: ['mtn_mobile_money', 'cash'], default: 'cash' },
+    paymentStatus: { type: String, enum: ['pending', 'paid', 'failed', 'refunded', 'unpaid'], default: 'unpaid' },
+    transactionId: { type: String }, // MTN transaction ID
     contactPhone: { type: String },
     specialRequests: { type: String },
     groupBooking: { type: Boolean, default: false },

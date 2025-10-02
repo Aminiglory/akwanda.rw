@@ -313,6 +313,11 @@ const BookingProcess = () => {
       return;
     }
 
+    if (!bookingData.contactInfo.firstName || !bookingData.contactInfo.lastName || !bookingData.contactInfo.email || !bookingData.contactInfo.age) {
+      toast.error('Please fill in all required contact information including age');
+      return;
+    }
+
     try {
       setLoading(true);
 
@@ -336,6 +341,7 @@ const BookingProcess = () => {
         roomPrice: selectedRoom.pricePerNight || selectedRoom.price || 0
       };
 
+      // Create booking
       const bookingRes = await fetch(`${API_URL}/api/bookings`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -343,43 +349,33 @@ const BookingProcess = () => {
         body: JSON.stringify(bookingPayload)
       });
 
-      const bookingText = await bookingRes.text();
-      let bookingDataResponse;
-      try {
-        bookingDataResponse = JSON.parse(bookingText);
-      } catch (error) {
-        console.error('Failed to parse booking response:', bookingText);
-        throw new Error('Unexpected response from server. Please try again later.');
+      const bookingResponse = await bookingRes.json();
+      if (!bookingRes.ok) throw new Error(bookingResponse.message || 'Failed to create booking');
+
+      // If cash payment, go directly to confirmation
+      if (paymentMethod === 'cash') {
+        toast.success('Booking created successfully! Payment on arrival.');
+        navigate(`/booking-confirmation/${bookingResponse.booking._id}`);
+        return;
       }
 
-      if (!bookingRes.ok) throw new Error(bookingDataResponse.message || 'Failed to create booking');
-
-      const paymentRes = await fetch(`${API_URL}/api/bookings/${bookingDataResponse.booking._id}/payment`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          paymentMethod: paymentMethod,
-          paymentDetails: {
+      // If MTN Mobile Money, redirect to payment page
+      if (paymentMethod === 'mtn_mobile_money') {
+        toast.success('Booking created! Redirecting to payment...');
+        // Navigate to MTN payment page with booking details
+        navigate(`/mtn-payment`, {
+          state: {
+            bookingId: bookingResponse.booking._id,
             amount: totalPrice,
-            description: `Booking for ${property.title}`
+            description: `Booking for ${property.title}`,
+            customerName: `${bookingData.contactInfo.firstName} ${bookingData.contactInfo.lastName}`,
+            customerEmail: bookingData.contactInfo.email,
+            phoneNumber: bookingData.contactInfo.phone || ''
           }
-        })
-      });
-
-      const paymentText = await paymentRes.text();
-      let paymentData;
-      try {
-        paymentData = JSON.parse(paymentText);
-      } catch (error) {
-        console.error('Failed to parse payment response:', paymentText);
-        throw new Error('Unexpected response from server. Please try again later.');
+        });
+        return;
       }
 
-      if (!paymentRes.ok) throw new Error(paymentData.message || 'Payment failed');
-
-      toast.success('Booking and payment completed successfully!');
-      navigate(`/booking-confirmation/${bookingDataResponse.booking._id}`);
     } catch (error) {
       console.error('Payment error:', error);
       toast.error(error.message);
@@ -440,7 +436,7 @@ const BookingProcess = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b sticky top-0 z-10">
+      <div className="bg-white shadow-sm sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <button
@@ -978,7 +974,7 @@ const BookingProcess = () => {
                 </div>
 
                 <div className="space-y-4 mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900">Payment Methods</h3>
+                  <h3 className="text-lg font-semibold text-gray-900">Choose Payment Method</h3>
                   
                   <div className="space-y-3">
                     <button
@@ -998,7 +994,7 @@ const BookingProcess = () => {
                     </button>
 
                     <button
-                      onClick={() => handlePayment('mobile_money')}
+                      onClick={() => handlePayment('mtn_mobile_money')}
                       disabled={loading}
                       className="w-full flex items-center p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
@@ -1011,24 +1007,7 @@ const BookingProcess = () => {
                           <div className="text-sm text-gray-600">Pay with your mobile money account</div>
                         </div>
                       </div>
-                    </button>
-
-                    <button
-                      onClick={() => handlePayment('card')}
-                      disabled={loading}
-                      className="w-full flex items-center p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <div className="flex items-center">
-                        <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-                          <FaCreditCard className="text-blue-600" />
-                        </div>
-                        <div>
-                          <div className="font-medium text-gray-900">Credit/Debit Card</div>
-                          <div className="text-sm text-gray-600">Pay securely with your card</div>
-                        </div>
-                      </div>
-                    </button>
-                  </div>
+                    </button></div>
                 </div>
 
                 <div className="flex justify-between">

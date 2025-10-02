@@ -195,4 +195,120 @@ router.get('/bookings/:id', requireAdmin, async (req, res) => {
     res.json({ booking: b });
 });
 
+// Block a user (for unpaid commissions or violations)
+router.post('/users/:id/block', requireAdmin, async (req, res) => {
+    try {
+        const User = require('../tables/user');
+        const { reason } = req.body;
+        
+        if (!reason) {
+            return res.status(400).json({ message: 'Block reason is required' });
+        }
+        
+        const user = await User.findById(req.params.id);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+        
+        user.isBlocked = true;
+        user.blockReason = reason;
+        user.blockedAt = new Date();
+        await user.save();
+        
+        res.json({ message: 'User blocked successfully', user: { id: user._id, isBlocked: user.isBlocked, blockReason: user.blockReason } });
+    } catch (error) {
+        console.error('Block user error:', error);
+        res.status(500).json({ message: 'Failed to block user', error: error.message });
+    }
+});
+
+// Unblock a user
+router.post('/users/:id/unblock', requireAdmin, async (req, res) => {
+    try {
+        const User = require('../tables/user');
+        const user = await User.findById(req.params.id);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+        
+        user.isBlocked = false;
+        user.blockReason = null;
+        user.blockedAt = null;
+        await user.save();
+        
+        res.json({ message: 'User unblocked successfully', user: { id: user._id, isBlocked: user.isBlocked } });
+    } catch (error) {
+        console.error('Unblock user error:', error);
+        res.status(500).json({ message: 'Failed to unblock user', error: error.message });
+    }
+});
+
+// Add a fine to a user
+router.post('/users/:id/fines', requireAdmin, async (req, res) => {
+    try {
+        const User = require('../tables/user');
+        const { reason, amount } = req.body;
+        
+        if (!reason || !amount || amount <= 0) {
+            return res.status(400).json({ message: 'Valid reason and amount are required' });
+        }
+        
+        const user = await User.findById(req.params.id);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+        
+        if (!user.fines) {
+            user.fines = { totalDue: 0, currency: 'RWF', items: [] };
+        }
+        
+        user.fines.items.push({
+            reason,
+            amount: Number(amount),
+            createdAt: new Date(),
+            paid: false
+        });
+        
+        user.fines.totalDue = (user.fines.totalDue || 0) + Number(amount);
+        await user.save();
+        
+        res.json({ message: 'Fine added successfully', user: { id: user._id, fines: user.fines } });
+    } catch (error) {
+        console.error('Add fine error:', error);
+        res.status(500).json({ message: 'Failed to add fine', error: error.message });
+    }
+});
+
+// Mark a fine as paid
+router.post('/users/:userId/fines/:fineId/pay', requireAdmin, async (req, res) => {
+    try {
+        const User = require('../tables/user');
+        const user = await User.findById(req.params.userId);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+        
+        const fine = user.fines?.items?.id(req.params.fineId);
+        if (!fine) return res.status(404).json({ message: 'Fine not found' });
+        
+        if (fine.paid) {
+            return res.status(400).json({ message: 'Fine already paid' });
+        }
+        
+        fine.paid = true;
+        fine.paidAt = new Date();
+        user.fines.totalDue = Math.max(0, (user.fines.totalDue || 0) - fine.amount);
+        await user.save();
+        
+        res.json({ message: 'Fine marked as paid', user: { id: user._id, fines: user.fines } });
+    } catch (error) {
+        console.error('Mark fine paid error:', error);
+        res.status(500).json({ message: 'Failed to mark fine as paid', error: error.message });
+    }
+});
+
+// Get user details with fines and block status
+router.get('/users/:id', requireAdmin, async (req, res) => {
+    try {
+        const User = require('../tables/user');
+        const user = await User.findById(req.params.id).select('-passwordHash');
+        if (!user) return res.status(404).json({ message: 'User not found' });
+        res.json({ user });
+    } catch (error) {
+        console.error('Get user error:', error);
+        res.status(500).json({ message: 'Failed to fetch user', error: error.message });
+    }
+});
 

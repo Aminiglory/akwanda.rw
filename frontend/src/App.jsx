@@ -25,6 +25,7 @@ import RRAEBMIntegration from './pages/RRAEBMIntegration'
 import BookingProcess from './pages/BookingProcess'
 import BookingConfirmation from './pages/BookingConfirmation'
 import CustomerSupport from './pages/CustomerSupport'
+import PropertyOwnerBookings from './pages/PropertyOwnerBookings'
 
 function App() {
   const [isLoading, setIsLoading] = useState(true)
@@ -74,9 +75,11 @@ function App() {
             <Route path="/upload-legacy" element={<ProtectedRoute><UploadProperty /></ProtectedRoute>} />
             <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
             <Route path="/admin/profile" element={<AdminRoute><AdminProfile /></AdminRoute>} />
+            <Route path="/mtn-payment" element={<ProtectedRoute><MTNMobileMoneyPayment /></ProtectedRoute>} />
             <Route path="/payment/mtn-mobile-money" element={<MTNMobileMoneyPayment />} />
             <Route path="/billing/rra-ebm" element={<RRAEBMIntegration />} />
             <Route path="/support" element={<CustomerSupport />} />
+            <Route path="/my-bookings" element={<ProtectedRoute><PropertyOwnerBookings /></ProtectedRoute>} />
           </Routes>
           
           {/* Footer */}

@@ -1,18 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FaMobile, FaCreditCard, FaShieldAlt, FaCheckCircle, FaTimesCircle, FaSpinner } from 'react-icons/fa';
+import { useLocation, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const MTNMobileMoneyPayment = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const bookingDetails = location.state || {};
+
   const [paymentData, setPaymentData] = useState({
-    phoneNumber: '',
-    amount: '',
+    phoneNumber: bookingDetails.phoneNumber || '',
+    amount: bookingDetails.amount || '',
     currency: 'RWF',
-    description: '',
-    bookingId: '',
-    customerName: '',
-    customerEmail: ''
+    description: bookingDetails.description || '',
+    bookingId: bookingDetails.bookingId || '',
+    customerName: bookingDetails.customerName || '',
+    customerEmail: bookingDetails.customerEmail || ''
   });
 
   const [paymentStatus, setPaymentStatus] = useState('idle'); // idle, processing, success, failed
@@ -92,12 +97,18 @@ const MTNMobileMoneyPayment = () => {
         throw new Error(data.message || 'Payment failed');
       }
 
-      // Simulate payment processing
-      await new Promise(resolve => setTimeout(resolve, 3000));
-
+      // Set transaction ID and success status
       setTransactionId(data.transactionId || `MTN${Date.now()}`);
       setPaymentStatus('success');
-      toast.success('Payment processed successfully!');
+      toast.success('Payment processed successfully! Redirecting...');
+
+      // Wait a bit longer to ensure backend is updated, then redirect
+      if (paymentData.bookingId) {
+        setTimeout(() => {
+          // Use window.location for a clean redirect
+          window.location.href = `/booking-confirmation/${paymentData.bookingId}`;
+        }, 4000);
+      }
 
     } catch (error) {
       setPaymentStatus('failed');

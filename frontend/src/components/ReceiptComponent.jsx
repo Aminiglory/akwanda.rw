@@ -85,9 +85,19 @@ const ReceiptComponent = ({ bookingId, userType }) => {
           <FaFileInvoice className="text-3xl text-blue-600 mr-3" />
           <h1 className="text-2xl font-bold text-gray-900">Booking Receipt</h1>
         </div>
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 inline-block">
-          <p className="text-sm text-blue-800 font-medium">Confirmation Code</p>
-          <p className="text-2xl font-bold text-blue-900">{receipt.confirmationCode}</p>
+        <div className="space-y-3">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 inline-block">
+            <p className="text-sm text-blue-800 font-medium">Confirmation Code (Unique ID)</p>
+            <p className="text-2xl font-bold text-blue-900 select-all">{receipt.confirmationCode}</p>
+            <p className="text-xs text-blue-600 mt-1">This ID is unique and cannot be edited</p>
+          </div>
+          {receipt.payment.transactionId && receipt.payment.transactionId !== 'N/A' && (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4 inline-block">
+              <p className="text-sm text-green-800 font-medium">Transaction ID (Unique)</p>
+              <p className="text-xl font-bold text-green-900 select-all">{receipt.payment.transactionId}</p>
+              <p className="text-xs text-green-600 mt-1">MTN Mobile Money Transaction Reference</p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -146,17 +156,17 @@ const ReceiptComponent = ({ bookingId, userType }) => {
         </div>
       </div>
 
-      {/* Pricing Breakdown */}
+      {/* Pricing Breakdown with EBM Tax */}
       <div className="mb-8">
         <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
           <FaCreditCard className="text-orange-600 mr-2" />
-          Pricing Breakdown
+          Pricing Breakdown (EBM Tax Included)
         </h3>
         <div className="bg-gray-50 rounded-lg p-4">
           <div className="space-y-3">
             <div className="flex justify-between">
-              <span className="text-gray-600">Total Amount:</span>
-              <span className="font-semibold">{formatCurrency(receipt.pricing.totalAmount)}</span>
+              <span className="text-gray-600">Amount Before Tax:</span>
+              <span className="font-semibold">{formatCurrency(receipt.pricing.amountBeforeTax || 0)}</span>
             </div>
             {receipt.pricing.discountApplied > 0 && (
               <div className="flex justify-between text-green-600">
@@ -164,8 +174,16 @@ const ReceiptComponent = ({ bookingId, userType }) => {
                 <span>-{formatCurrency(receipt.pricing.discountApplied)}</span>
               </div>
             )}
-            <div className="flex justify-between">
-              <span className="text-gray-600">Commission ({((receipt.pricing.commissionAmount / receipt.pricing.totalAmount) * 100).toFixed(1)}%):</span>
+            <div className="flex justify-between border-t pt-2">
+              <span className="text-gray-600">EBM Tax ({receipt.pricing.taxRate || 3}%):</span>
+              <span className="font-semibold text-blue-600">+{formatCurrency(receipt.pricing.taxAmount || 0)}</span>
+            </div>
+            <div className="flex justify-between border-t pt-2">
+              <span className="text-gray-900 font-semibold">Total Amount (Inc. Tax):</span>
+              <span className="font-bold text-lg">{formatCurrency(receipt.pricing.totalAmount)}</span>
+            </div>
+            <div className="flex justify-between border-t pt-2 mt-4">
+              <span className="text-gray-600">Platform Commission ({((receipt.pricing.commissionAmount / (receipt.pricing.amountBeforeTax || receipt.pricing.totalAmount)) * 100).toFixed(1)}%):</span>
               <span className="font-semibold text-red-600">-{formatCurrency(receipt.pricing.commissionAmount)}</span>
             </div>
             <div className="border-t pt-3">
@@ -175,6 +193,14 @@ const ReceiptComponent = ({ bookingId, userType }) => {
               </div>
             </div>
           </div>
+        </div>
+        
+        {/* EBM Tax Notice */}
+        <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <p className="text-sm text-blue-900">
+            <strong>EBM Tax Notice:</strong> This receipt includes {receipt.pricing.taxRate || 3}% VAT as per Rwanda Revenue Authority (RRA) requirements. 
+            Tax Amount: {formatCurrency(receipt.pricing.taxAmount || 0)}
+          </p>
         </div>
       </div>
 
@@ -225,6 +251,22 @@ const ReceiptComponent = ({ bookingId, userType }) => {
           <span>Download Receipt</span>
         </button>
       </div>
+
+      {/* Print Styles */}
+      <style jsx>{`
+        @media print {
+          body {
+            print-color-adjust: exact;
+            -webkit-print-color-adjust: exact;
+          }
+          .print\\:hidden {
+            display: none !important;
+          }
+          .print\\:p-4 {
+            padding: 1rem !important;
+          }
+        }
+      `}</style>
     </div>
   );
 };

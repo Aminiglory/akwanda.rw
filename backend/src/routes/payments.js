@@ -1,5 +1,6 @@
 const { Router } = require('express');
 const jwt = require('jsonwebtoken');
+const Booking = require('../tables/booking');
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
@@ -43,6 +44,23 @@ router.post('/mtn-mobile-money', requireAuth, async (req, res) => {
         // Simulate processing delay
         await new Promise(resolve => setTimeout(resolve, 1000));
 
+        let booking;
+        if (bookingId) {
+            booking = await Booking.findById(bookingId).populate('property');
+            if (!booking) return res.status(404).json({ message: 'Booking not found' });
+            // Only the guest who created the booking can pay
+            if (String(booking.guest) !== String(req.user.id) && req.user.userType !== 'admin') {
+                return res.status(403).json({ message: 'Forbidden' });
+            }
+            // Update booking as paid via MTN
+            booking.paymentMethod = 'mtn_mobile_money';
+            booking.paymentStatus = 'paid';
+            booking.transactionId = transactionId;
+            // Confirm booking on successful payment
+            booking.status = 'confirmed';
+            await booking.save();
+        }
+
         // Mock successful payment response
         res.json({
             success: true,
@@ -57,7 +75,8 @@ router.post('/mtn-mobile-money', requireAuth, async (req, res) => {
                 customerEmail,
                 timestamp: new Date().toISOString(),
                 status: 'completed'
-            }
+            },
+            booking: booking || null
         });
 
     } catch (error) {
