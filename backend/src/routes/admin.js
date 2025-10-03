@@ -1,15 +1,15 @@
-const { Router } = require('express');
-const jwt = require('jsonwebtoken');
-const Commission = require('../tables/commission');
-const Booking = require('../tables/booking');
+const express = require('express');
+const router = express.Router();
+const User = require('../tables/user');
 const Property = require('../tables/property');
+const Booking = require('../tables/booking');
 const Notification = require('../tables/notification');
-
-const router = Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
+const jwt = require('jsonwebtoken');
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
+
+const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
 
 function requireAdmin(req, res, next) {
 	const token = req.cookies.akw_token || (req.headers.authorization || '').replace('Bearer ', '');
@@ -299,6 +299,51 @@ router.post('/users/:userId/fines/:fineId/pay', requireAdmin, async (req, res) =
     }
 });
 
+// Get users with unpaid commissions (MUST BE BEFORE /users/:id)
+router.get('/users/unpaid-commissions', requireAdmin, async (req, res) => {
+    try {
+        // Find all bookings with unpaid commissions
+        const unpaidBookings = await Booking.find({ 
+            paymentStatus: 'paid',
+            commissionPaid: false 
+        }).populate('property').populate('guest', 'firstName lastName email');
+
+        // Group by property owner
+        const ownerCommissions = {};
+        
+        for (const booking of unpaidBookings) {
+            if (!booking.property || !booking.property.host) continue;
+            
+            const ownerId = booking.property.host.toString();
+            
+            if (!ownerCommissions[ownerId]) {
+                ownerCommissions[ownerId] = {
+                    ownerId,
+                    totalCommission: 0,
+                    bookings: []
+                };
+            }
+            
+            ownerCommissions[ownerId].totalCommission += booking.commissionAmount || 0;
+            ownerCommissions[ownerId].bookings.push(booking);
+        }
+
+        // Get owner details
+        const ownerIds = Object.keys(ownerCommissions);
+        const owners = await User.find({ _id: { $in: ownerIds } }).select('firstName lastName email isBlocked');
+
+        const result = owners.map(owner => ({
+            ...owner.toObject(),
+            ...ownerCommissions[owner._id.toString()]
+        }));
+
+        res.json({ users: result });
+    } catch (error) {
+        console.error('Get unpaid commissions error:', error);
+        res.status(500).json({ message: 'Failed to fetch unpaid commissions', error: error.message });
+    }
+});
+
 // Get user details with fines and block status
 router.get('/users/:id', requireAdmin, async (req, res) => {
     try {
@@ -312,3 +357,63 @@ router.get('/users/:id', requireAdmin, async (req, res) => {
     }
 });
 
+// Deactivate user account (for unpaid commission)
+router.post('/users/:id/deactivate', requireAdmin, async (req, res) => {
+    try {
+        const { reason } = req.body;
+        const user = await User.findById(req.params.id);
+        
+        if (!user) return res.status(404).json({ message: 'User not found' });
+        
+        user.isBlocked = true;
+        await user.save();
+
+        // Create notification for user
+        await Notification.create({
+            type: 'account_blocked',
+            title: 'Account Deactivated',
+            message: reason || 'Your account has been deactivated due to unpaid commission. Please contact admin.',
+            recipientUser: user._id
+        });
+
+        res.json({ 
+            success: true, 
+            message: 'User account deactivated successfully',
+            user: { ...user.toObject(), passwordHash: undefined }
+        });
+    } catch (error) {
+        console.error('Deactivate user error:', error);
+        res.status(500).json({ message: 'Failed to deactivate user', error: error.message });
+    }
+});
+
+// Reactivate user account
+router.post('/users/:id/reactivate', requireAdmin, async (req, res) => {
+    try {
+        const user = await User.findById(req.params.id);
+        
+        if (!user) return res.status(404).json({ message: 'User not found' });
+        
+        user.isBlocked = false;
+        await user.save();
+
+        // Create notification for user
+        await Notification.create({
+            type: 'account_reactivated',
+            title: 'Account Reactivated',
+            message: 'Your account has been reactivated. You can now access all features.',
+            recipientUser: user._id
+        });
+
+        res.json({ 
+            success: true, 
+            message: 'User account reactivated successfully',
+            user: { ...user.toObject(), passwordHash: undefined }
+        });
+    } catch (error) {
+        console.error('Reactivate user error:', error);
+        res.status(500).json({ message: 'Failed to reactivate user', error: error.message });
+    }
+});
+
+module.exports = router;

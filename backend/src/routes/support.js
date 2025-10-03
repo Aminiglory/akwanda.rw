@@ -51,7 +51,15 @@ router.post('/tickets', async (req, res) => {
             status: 'open',
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
-            responses: []
+            responses: [
+                // Auto-acknowledgement to the user
+                {
+                    message: `Hi ${name || 'there'}, thanks for contacting AKWANDA.rw support. We've received your ticket (${ticketNumber}). Our team is currently offline and will get back to you within 2 hours during business hours. If this is urgent, call +250 788 123 456.`,
+                    isAdmin: true,
+                    auto: true,
+                    createdAt: new Date().toISOString()
+                }
+            ]
         };
 
         // In a real implementation, you would save this to a database

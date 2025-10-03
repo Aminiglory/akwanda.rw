@@ -1,23 +1,31 @@
 import React, { useState, useEffect } from 'react';
-import { FaCalendarAlt, FaUsers, FaMoneyBillWave, FaCheckCircle, FaClock, FaEye, FaFileInvoice, FaFilter, FaDownload } from 'react-icons/fa';
+import { FaCalendarAlt, FaUsers, FaMoneyBillWave, FaCheckCircle, FaClock, FaEye, FaFileInvoice, FaFilter, FaDownload, FaComments, FaHome, FaChartLine } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import BookingManagementPanel from '../components/BookingManagementPanel';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const PropertyOwnerBookings = () => {
   const navigate = useNavigate();
   const [bookings, setBookings] = useState([]);
+  const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all'); // all, paid, pending, unpaid
   const [searchTerm, setSearchTerm] = useState('');
+  const [activeTab, setActiveTab] = useState('bookings'); // bookings, properties, analytics
+  const [selectedBooking, setSelectedBooking] = useState(null);
+  const [showBookingPanel, setShowBookingPanel] = useState(false);
+  const [unreadByBooking, setUnreadByBooking] = useState({});
   const [stats, setStats] = useState({
     total: 0,
     paid: 0,
     pending: 0,
     unpaid: 0,
     totalRevenue: 0,
-    pendingRevenue: 0
+    pendingRevenue: 0,
+    totalProperties: 0,
+    activeProperties: 0
   });
 
   useEffect(() => {
@@ -31,16 +39,67 @@ const PropertyOwnerBookings = () => {
   const fetchBookings = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`${API_URL}/api/bookings/property-owner`, {
+      
+      // Fetch bookings
+      const bookingsRes = await fetch(`${API_URL}/api/bookings/property-owner`, {
         credentials: 'include'
       });
-      const data = await res.json();
       
-      if (!res.ok) throw new Error(data.message || 'Failed to fetch bookings');
+      if (bookingsRes.ok) {
+        const bookingsData = await bookingsRes.json();
+        setBookings(bookingsData.bookings || []);
+      } else {
+        console.warn('Failed to fetch bookings');
+        setBookings([]);
+      }
+
+      // Fetch unread messages grouped by booking
+      try {
+        const unreadRes = await fetch(`${API_URL}/api/messages/unread-by-booking`, { credentials: 'include' });
+        if (unreadRes.ok) {
+          const unreadData = await unreadRes.json();
+          setUnreadByBooking(unreadData.unreadByBooking || {});
+        } else {
+          setUnreadByBooking({});
+        }
+      } catch (e) {
+        console.warn('Unread-by-booking fetch failed:', e);
+        setUnreadByBooking({});
+      }
       
-      setBookings(data.bookings || []);
+      // Fetch properties (with fallback to older endpoint)
+      let loadedProperties = [];
+      try {
+        const propertiesRes = await fetch(`${API_URL}/api/properties/my-properties`, {
+          credentials: 'include'
+        });
+        if (propertiesRes.ok) {
+          const propertiesData = await propertiesRes.json();
+          loadedProperties = propertiesData.properties || [];
+        }
+      } catch (e) {
+        console.warn('Primary properties fetch failed:', e);
+      }
+
+      // Fallback to /api/properties/mine if primary route returned nothing
+      if (!loadedProperties || loadedProperties.length === 0) {
+        try {
+          const altRes = await fetch(`${API_URL}/api/properties/mine`, {
+            credentials: 'include'
+          });
+          if (altRes.ok) {
+            const altData = await altRes.json();
+            loadedProperties = altData.properties || [];
+          }
+        } catch (e) {
+          console.warn('Fallback properties fetch failed:', e);
+        }
+      }
+      setProperties(loadedProperties || []);
     } catch (error) {
-      toast.error(error.message);
+      console.error('Fetch error:', error);
+      setBookings([]);
+      setProperties([]);
     } finally {
       setLoading(false);
     }
@@ -48,6 +107,8 @@ const PropertyOwnerBookings = () => {
 
   const calculateStats = () => {
     const total = bookings.length;
+    const totalProperties = properties.length;
+    const activeProperties = properties.filter(p => p.isActive).length;
     const paid = bookings.filter(b => b.paymentStatus === 'paid').length;
     const pending = bookings.filter(b => b.paymentStatus === 'pending').length;
     const unpaid = bookings.filter(b => b.paymentStatus === 'unpaid').length;
@@ -60,7 +121,21 @@ const PropertyOwnerBookings = () => {
       .filter(b => b.paymentStatus === 'unpaid' || b.paymentStatus === 'pending')
       .reduce((sum, b) => sum + ((b.amountBeforeTax || b.totalAmount) - (b.commissionAmount || 0)), 0);
 
-    setStats({ total, paid, pending, unpaid, totalRevenue, pendingRevenue });
+    setStats({ total, paid, pending, unpaid, totalRevenue, pendingRevenue, totalProperties, activeProperties });
+  };
+
+  const handleViewBooking = (booking) => {
+    setSelectedBooking(booking);
+    setShowBookingPanel(true);
+  };
+
+  const handleCloseBookingPanel = () => {
+    setShowBookingPanel(false);
+    setSelectedBooking(null);
+  };
+
+  const handleBookingUpdate = () => {
+    fetchBookings();
   };
 
   const getFilteredBookings = () => {
@@ -152,6 +227,43 @@ const PropertyOwnerBookings = () => {
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-600">Loading your bookings...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If the property owner has no listings, show a clear CTA and stop here
+  if ((properties || []).length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-12">
+        <div className="max-w-3xl mx-auto px-4">
+          <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+            <div className="bg-gradient-to-r from-blue-600 to-blue-800 p-8 text-white">
+              <h1 className="text-3xl font-bold mb-2">Become a Property Owner on AKWANDA</h1>
+              <p className="text-blue-100">You need at least one active listing to access booking tracking and guest messaging.</p>
+            </div>
+            <div className="p-8">
+              <div className="space-y-4">
+                <p className="text-gray-700">
+                  Add your first property to start receiving bookings, track payments, and chat with your guests in real time.
+                </p>
+                <ul className="list-disc list-inside text-gray-600">
+                  <li>Full booking tracking (paid, pending, pay on arrival)</li>
+                  <li>Guest–Owner messaging with notifications</li>
+                  <li>Receipts with EBM tax breakdown</li>
+                  <li>Export bookings to CSV</li>
+                </ul>
+                <div className="pt-4">
+                  <button
+                    onClick={() => navigate('/upload')}
+                    className="inline-flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
+                  >
+                    <span>Add Your First Listing</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -302,7 +414,16 @@ const PropertyOwnerBookings = () => {
                     <tr key={booking._id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4">
                         <div>
-                          <p className="font-semibold text-gray-900">{booking.property?.title || 'N/A'}</p>
+                          <p className="font-semibold text-gray-900 flex items-center gap-2">
+                            {booking.property?.title || 'N/A'}
+                            {unreadByBooking[booking._id] > 0 && (
+                              <span
+                                className="inline-block w-2.5 h-2.5 rounded-full bg-red-600"
+                                title={`${unreadByBooking[booking._id]} unread message${unreadByBooking[booking._id] > 1 ? 's' : ''}`}
+                                aria-label="Unread messages"
+                              />
+                            )}
+                          </p>
                           <p className="text-sm text-gray-600">Code: {booking.confirmationCode}</p>
                           <p className="text-xs text-gray-500">{booking.numberOfGuests} guests</p>
                         </div>
@@ -341,8 +462,20 @@ const PropertyOwnerBookings = () => {
                       <td className="px-6 py-4">
                         <div className="flex space-x-2">
                           <button
+                            onClick={() => handleViewBooking(booking)}
+                            className="relative p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors"
+                            title="Manage & Message"
+                          >
+                            <FaComments />
+                            {unreadByBooking[booking._id] > 0 && (
+                              <span className="absolute -top-1 -right-1 inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-bold leading-none text-white bg-red-600 rounded-full">
+                                {unreadByBooking[booking._id]}
+                              </span>
+                            )}
+                          </button>
+                          <button
                             onClick={() => navigate(`/booking-confirmation/${booking._id}`)}
-                            className="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors"
+                            className="p-2 bg-purple-100 text-purple-600 rounded-lg hover:bg-purple-200 transition-colors"
                             title="View Details"
                           >
                             <FaEye />
@@ -389,6 +522,15 @@ const PropertyOwnerBookings = () => {
           </div>
         </div>
       </div>
+
+      {/* Booking Management Panel */}
+      {showBookingPanel && selectedBooking && (
+        <BookingManagementPanel
+          booking={selectedBooking}
+          onClose={handleCloseBookingPanel}
+          onUpdate={handleBookingUpdate}
+        />
+      )}
     </div>
   );
 };

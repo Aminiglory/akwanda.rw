@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { FaChartLine, FaUsers, FaBed, FaCalendarAlt, FaDollarSign, FaStar, FaMapMarkerAlt, FaEdit, FaTrash, FaPlus, FaEye, FaCheckCircle, FaTimesCircle, FaClock, FaHome, FaMoneyBillWave, FaCalendarCheck, FaCalendarTimes } from 'react-icons/fa';
-import { Link } from 'react-router-dom';
+import { FaChartLine, FaUsers, FaBed, FaCalendarAlt, FaDollarSign, FaStar, FaMapMarkerAlt, FaEdit, FaTrash, FaPlus, FaEye, FaCheckCircle, FaTimesCircle, FaClock, FaHome, FaMoneyBillWave, FaCalendarCheck, FaCalendarTimes, FaComments } from 'react-icons/fa';
+import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const UserDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
+  const navigate = useNavigate();
   const [metrics, setMetrics] = useState({
     totalProperties: 0,
     totalBookings: 0,
@@ -22,6 +23,7 @@ const UserDashboard = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     fetchDashboardData();
@@ -45,9 +47,10 @@ const UserDashboard = () => {
         }
       };
 
-      const [propertiesData, bookingsData] = await Promise.all([
+      const [propertiesData, bookingsData, messagesData] = await Promise.all([
         fetchWithFallback(`${API_URL}/api/properties/mine`, { properties: [] }),
-        fetchWithFallback(`${API_URL}/api/bookings/mine`, { bookings: [] })
+        fetchWithFallback(`${API_URL}/api/bookings/mine`, { bookings: [] }),
+        fetchWithFallback(`${API_URL}/api/messages/unread-count`, { count: 0 })
       ]);
 
       const properties = propertiesData.properties || [];
@@ -55,6 +58,7 @@ const UserDashboard = () => {
 
       setProperties(properties);
       setBookings(bookings);
+      setUnreadCount(messagesData.count || 0);
 
       // Calculate metrics with safe data
       const totalEarnings = bookings
@@ -134,15 +138,30 @@ const UserDashboard = () => {
 
   const handleBookingAction = async (bookingId, action) => {
     try {
-      const res = await fetch(`${API_URL}/api/bookings/${bookingId}/${action}`, {
-        method: 'POST',
-        credentials: 'include'
-      });
+      let res;
+      if (action === 'cancel') {
+        // Use status endpoint to cancel
+        res = await fetch(`${API_URL}/api/bookings/${bookingId}/status`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ status: 'cancelled' })
+        });
+      } else if (action === 'confirm') {
+        // Existing confirm endpoint
+        res = await fetch(`${API_URL}/api/bookings/${bookingId}/confirm`, {
+          method: 'POST',
+          credentials: 'include'
+        });
+      } else {
+        throw new Error('Unsupported action');
+      }
+
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to update booking');
-      
+
       toast.success(`Booking ${action}ed successfully`);
-      fetchDashboardData(); // Refresh data
+      fetchDashboardData();
     } catch (error) {
       toast.error(error.message);
     }
@@ -349,6 +368,50 @@ const UserDashboard = () => {
                     </div>
                   </div>
                 </div>
+
+                {/* Manage Bookings & Messages Tile */}
+                {metrics.totalProperties > 0 ? (
+                  <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <div className="p-3 bg-blue-100 rounded-xl">
+                          <FaComments className="text-blue-600 text-xl" />
+                        </div>
+                        <div className="ml-4">
+                          <p className="text-sm font-medium text-gray-600">Owner Tools</p>
+                          <h3 className="text-xl font-semibold text-gray-900">Manage Bookings & Messages</h3>
+                          <p className="text-gray-600">Open your bookings dashboard to chat with guests and manage statuses.</p>
+                        </div>
+                      </div>
+                      <Link
+                        to="/my-bookings"
+                        className="relative px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors"
+                      >
+                        Open Dashboard
+                        {unreadCount > 0 && (
+                          <span className="absolute -top-2 -right-2 inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold leading-none text-white bg-red-600 rounded-full">
+                            {unreadCount}
+                          </span>
+                        )}
+                      </Link>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-blue-50 border border-blue-200 rounded-2xl p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-lg font-semibold text-blue-900">Add your first listing to enable owner tools</h3>
+                        <p className="text-blue-800">Once you add a property, you'll unlock booking tracking and guest messaging.</p>
+                      </div>
+                      <Link
+                        to="/upload"
+                        className="px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors"
+                      >
+                        Add Listing
+                      </Link>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -579,7 +642,10 @@ const UserDashboard = () => {
                             {booking.status}
                           </span>
                           <div className="mt-2 flex items-center space-x-2">
-                            <button className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
+                            <button
+                              onClick={() => navigate(`/booking-confirmation/${booking._id}`)}
+                              className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 active:scale-[0.98] transition-all text-sm shadow-sm hover:shadow"
+                            >
                               View Details
                             </button>
                             {booking.status === 'pending' && (
@@ -592,8 +658,11 @@ const UserDashboard = () => {
                             )}
                             {booking.status === 'confirmed' && (
                               <button 
-                                onClick={() => handleBookingAction(booking._id, 'cancel')}
-                                className="px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
+                                onClick={async () => {
+                                  if (!window.confirm('Are you sure you want to cancel this booking?')) return;
+                                  await handleBookingAction(booking._id, 'cancel');
+                                }}
+                                className="px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 active:scale-[0.98] transition-all text-sm shadow-sm hover:shadow"
                               >
                                 Cancel
                               </button>

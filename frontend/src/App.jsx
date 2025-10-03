@@ -26,6 +26,7 @@ import BookingProcess from './pages/BookingProcess'
 import BookingConfirmation from './pages/BookingConfirmation'
 import CustomerSupport from './pages/CustomerSupport'
 import PropertyOwnerBookings from './pages/PropertyOwnerBookings'
+import EnhancedPropertyOwnerDashboard from './pages/EnhancedPropertyOwnerDashboard'
 
 function App() {
   const [isLoading, setIsLoading] = useState(true)
@@ -80,6 +81,7 @@ function App() {
             <Route path="/billing/rra-ebm" element={<RRAEBMIntegration />} />
             <Route path="/support" element={<CustomerSupport />} />
             <Route path="/my-bookings" element={<ProtectedRoute><PropertyOwnerBookings /></ProtectedRoute>} />
+            <Route path="/owner-dashboard" element={<ProtectedRoute><EnhancedPropertyOwnerDashboard /></ProtectedRoute>} />
           </Routes>
           
           {/* Footer */}

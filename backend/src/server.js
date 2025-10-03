@@ -13,6 +13,7 @@ const userRouter = require('./routes/user');
 const paymentsRouter = require('./routes/payments');
 const billingRouter = require('./routes/billing');
 const supportRouter = require('./routes/support');
+const messagesRouter = require('./routes/messages');
 const User = require('./tables/user');
 
 const app = express();
@@ -66,6 +67,7 @@ app.use('/api/user', userRouter);
 app.use('/api/payments', paymentsRouter);
 app.use('/api/billing', billingRouter);
 app.use('/api/support', supportRouter);
+app.use('/api/messages', messagesRouter);
 
 async function seedAdminIfNeeded() {
     const adminEmail = process.env.ADMIN_EMAIL;

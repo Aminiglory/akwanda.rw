@@ -99,10 +99,12 @@ router.post('/', requireAuth, async (req, res) => {
 
 		const amountBeforeTax = Math.round(basePrice - discountAmount);
 		
-		// Calculate 3% RRA tax
+		// Calculate 3% RRA tax as INCLUDED in the paid amount (deducted from gross, not added)
 		const taxRate = 3;
-		const taxAmount = Math.round((amountBeforeTax * taxRate) / 100);
-		const totalAmount = amountBeforeTax + taxAmount;
+		// amountBeforeTax here is treated as the gross paid amount
+		const taxAmount = Math.round((amountBeforeTax * taxRate) / (100 + taxRate));
+		// Total paid amount remains the gross value (no extra added)
+		const totalAmount = amountBeforeTax;
 
 		// Calculate commission
 		const commissionDoc = await Commission.findOne({ active: true }).sort({ createdAt: -1 });
@@ -264,7 +266,7 @@ router.get('/:id/rra-receipt', requireAuth, async (req, res) => {
 			taxDetails: {
 				taxType: 'VAT',
 				taxRate: `${booking.taxRate || 3}%`,
-				taxableAmount: booking.amountBeforeTax || 0,
+				taxableAmount: Math.max(0, (booking.totalAmount || 0) - (booking.taxAmount || 0)),
 				taxAmount: booking.taxAmount || 0,
 				description: 'Value Added Tax on accommodation services'
 			},
@@ -297,8 +299,8 @@ router.get('/:id/receipt', requireAuth, async (req, res) => {
 			return res.status(403).json({ message: 'Unauthorized' });
 		}
 
-		// Calculate commission for property owner
-		const propertyOwnerAmount = booking.amountBeforeTax - booking.commissionAmount;
+		// Calculate commission for property owner (commission and tax deducted from the paid total)
+		const propertyOwnerAmount = Math.max(0, (booking.totalAmount || 0) - (booking.commissionAmount || 0) - (booking.taxAmount || 0));
 
 		const receipt = {
 			bookingId: booking._id,
@@ -400,6 +402,51 @@ router.get('/:id', requireAuth, async (req, res) => {
     } catch (error) {
         console.error('Get booking error:', error);
         res.status(500).json({ message: 'Failed to fetch booking', error: error.message });
+    }
+});
+
+// Update booking status (property owner or admin only)
+router.patch('/:id/status', requireAuth, async (req, res) => {
+    try {
+        const { status } = req.body;
+        const validStatuses = ['pending', 'confirmed', 'cancelled', 'ended'];
+        
+        if (!validStatuses.includes(status)) {
+            return res.status(400).json({ message: 'Invalid status' });
+        }
+
+        const booking = await Booking.findById(req.params.id).populate('property');
+        if (!booking) return res.status(404).json({ message: 'Booking not found' });
+
+        // Check if user is property owner or admin
+        const isPropertyOwner = booking.property && String(booking.property.host) === String(req.user.id);
+        const isAdmin = req.user.userType === 'admin';
+
+        if (!isPropertyOwner && !isAdmin) {
+            return res.status(403).json({ message: 'Unauthorized' });
+        }
+
+        booking.status = status;
+        await booking.save();
+
+        // Create notification for guest
+        const Notification = require('../tables/notification');
+        await Notification.create({
+            type: 'booking_status_updated',
+            title: 'Booking Status Updated',
+            message: `Your booking ${booking.confirmationCode} has been ${status}`,
+            booking: booking._id,
+            recipientUser: booking.guest
+        });
+
+        res.json({ 
+            success: true, 
+            message: `Booking ${status} successfully`,
+            booking 
+        });
+    } catch (error) {
+        console.error('Update booking status error:', error);
+        res.status(500).json({ message: 'Failed to update booking status', error: error.message });
     }
 });
 

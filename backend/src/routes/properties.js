@@ -165,6 +165,65 @@ router.post('/:id/discount', requireAuth, async (req, res) => {
     res.json({ property });
 });
 
+// Toggle property active status (host only)
+router.patch('/:id/toggle-status', requireAuth, async (req, res) => {
+    try {
+        const property = await Property.findById(req.params.id);
+        if (!property) return res.status(404).json({ message: 'Property not found' });
+        
+        // Only property owner can toggle status
+        if (String(property.host) !== req.user.id) {
+            return res.status(403).json({ message: 'Not allowed' });
+        }
+        
+        const { isActive } = req.body;
+        property.isActive = isActive;
+        await property.save();
+        
+        res.json({ 
+            success: true,
+            message: `Property ${isActive ? 'activated' : 'deactivated'} successfully`,
+            property 
+        });
+    } catch (error) {
+        console.error('Toggle property status error:', error);
+        res.status(500).json({ message: 'Failed to update property status', error: error.message });
+    }
+});
+
+// Delete property (host only)
+router.delete('/:id', requireAuth, async (req, res) => {
+    try {
+        const property = await Property.findById(req.params.id);
+        if (!property) return res.status(404).json({ message: 'Property not found' });
+        
+        // Only property owner can delete
+        if (String(property.host) !== req.user.id) {
+            return res.status(403).json({ message: 'Not allowed' });
+        }
+        
+        await Property.findByIdAndDelete(req.params.id);
+        
+        res.json({ 
+            success: true,
+            message: 'Property deleted successfully'
+        });
+    } catch (error) {
+        console.error('Delete property error:', error);
+        res.status(500).json({ message: 'Failed to delete property', error: error.message });
+    }
+});
+
+// Get my properties (for property owner dashboard)
+router.get('/my-properties', requireAuth, async (req, res) => {
+    try {
+        const properties = await Property.find({ host: req.user.id }).sort({ createdAt: -1 });
+        res.json({ properties });
+    } catch (error) {
+        console.error('Get my properties error:', error);
+        res.status(500).json({ message: 'Failed to fetch properties', error: error.message });
+    }
+});
 
 module.exports = router;
 

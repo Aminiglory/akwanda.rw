@@ -21,8 +21,29 @@ const ReceiptComponent = ({ bookingId, userType }) => {
       const data = await res.json();
       
       if (!res.ok) throw new Error(data.message || 'Failed to fetch receipt');
-      
-      setReceipt(data.receipt);
+      // Normalize using API-provided amounts (inclusive tax model)
+      const r = data.receipt || {};
+      const pricing = r.pricing || {};
+      const amountBeforeTax = Number(pricing.amountBeforeTax ?? 0);
+      const discountApplied = Number(pricing.discountApplied ?? 0);
+      const taxRate = Number(pricing.taxRate ?? 3);
+      const taxAmount = Number(pricing.taxAmount ?? 0);
+      const totalAmount = Number(pricing.totalAmount ?? 0);
+      const commissionAmount = Number(pricing.commissionAmount ?? 0);
+      const propertyOwnerAmount = Math.max(0, totalAmount - commissionAmount - taxAmount);
+      setReceipt({
+        ...r,
+        pricing: {
+          ...pricing,
+          amountBeforeTax,
+          discountApplied,
+          taxRate,
+          taxAmount,
+          totalAmount,
+          commissionAmount,
+          propertyOwnerAmount,
+        },
+      });
     } catch (error) {
       toast.error(error.message);
     } finally {
@@ -30,20 +51,13 @@ const ReceiptComponent = ({ bookingId, userType }) => {
     }
   };
 
+  // Helpers restored
   const handlePrint = () => {
     window.print();
   };
-
   const handleDownload = () => {
-    const element = document.createElement('a');
-    const file = new Blob([document.getElementById('receipt-content').innerHTML], { type: 'text/html' });
-    element.href = URL.createObjectURL(file);
-    element.download = `receipt-${receipt.confirmationCode}.html`;
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
+    toast.info('Download feature coming soon!');
   };
-
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       weekday: 'long',
@@ -57,6 +71,7 @@ const ReceiptComponent = ({ bookingId, userType }) => {
     return `RWF ${amount.toLocaleString()}`;
   };
 
+  // Guards
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -67,147 +82,50 @@ const ReceiptComponent = ({ bookingId, userType }) => {
       </div>
     );
   }
-
   if (!receipt) {
     return (
       <div className="text-center p-8">
-        <FaFileInvoice className="text-4xl text-gray-300 mx-auto mb-4" />
         <p className="text-gray-600">Receipt not found</p>
       </div>
     );
   }
 
+  // Begin JSX
   return (
-    <div className="bg-white rounded-2xl shadow-lg p-8 print:p-4" id="receipt-content">
+    <div id="receipt-content" className="max-w-3xl mx-auto p-6 bg-white rounded-xl border">
       {/* Header */}
-      <div className="text-center mb-8 border-b pb-6">
-        <div className="flex items-center justify-center mb-4">
-          <FaFileInvoice className="text-3xl text-blue-600 mr-3" />
-          <h1 className="text-2xl font-bold text-gray-900">Booking Receipt</h1>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-2">
+          <FaFileInvoice className="text-blue-600" />
+          <h2 className="text-xl font-semibold text-gray-900">Receipt</h2>
         </div>
-        <div className="space-y-3">
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 inline-block">
-            <p className="text-sm text-blue-800 font-medium">Confirmation Code (Unique ID)</p>
-            <p className="text-2xl font-bold text-blue-900 select-all">{receipt.confirmationCode}</p>
-            <p className="text-xs text-blue-600 mt-1">This ID is unique and cannot be edited</p>
-          </div>
-          {receipt.payment.transactionId && receipt.payment.transactionId !== 'N/A' && (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4 inline-block">
-              <p className="text-sm text-green-800 font-medium">Transaction ID (Unique)</p>
-              <p className="text-xl font-bold text-green-900 select-all">{receipt.payment.transactionId}</p>
-              <p className="text-xs text-green-600 mt-1">MTN Mobile Money Transaction Reference</p>
-            </div>
-          )}
+        <div className="text-sm text-gray-500">{formatDate(receipt.createdAt)}</div>
+      </div>
+
+      {/* Totals */}
+      <div className="space-y-2 mb-6">
+        <div className="flex justify-between">
+          <span className="text-gray-600">EBM Tax (included) ({receipt.pricing.taxRate || 3}%):</span>
+          <span className="font-semibold text-blue-600">{formatCurrency(receipt.pricing.taxAmount || 0)}</span>
+        </div>
+        <div className="flex justify-between border-t pt-2">
+          <span className="text-gray-900 font-semibold">Total Paid (Tax Included):</span>
+          <span className="font-bold">{formatCurrency(receipt.pricing.totalAmount)}</span>
+        </div>
+        <div className="flex justify-between border-t pt-2">
+          <span className="text-gray-600">Platform Commission ({((receipt.pricing.commissionAmount / (receipt.pricing.totalAmount || 1)) * 100).toFixed(1)}%):</span>
+          <span className="font-semibold text-red-600">-{formatCurrency(receipt.pricing.commissionAmount)}</span>
+        </div>
+        <div className="flex justify-between border-t pt-2">
+          <span className="text-gray-900 font-semibold">Amount to Property Owner:</span>
+          <span className="font-bold text-green-600">{formatCurrency(receipt.pricing.propertyOwnerAmount)}</span>
         </div>
       </div>
 
-      {/* Receipt Details */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-        {/* Property Information */}
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-            <FaMapMarkerAlt className="text-blue-600 mr-2" />
-            Property Information
-          </h3>
-          <div className="space-y-2 text-sm">
-            <p><span className="font-medium">Property:</span> {receipt.property.title}</p>
-            <p><span className="font-medium">Address:</span> {receipt.property.address}</p>
-            <p><span className="font-medium">City:</span> {receipt.property.city}</p>
-          </div>
-        </div>
-
-        {/* Guest Information */}
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-            <FaUser className="text-green-600 mr-2" />
-            Guest Information
-          </h3>
-          <div className="space-y-2 text-sm">
-            <p><span className="font-medium">Name:</span> {receipt.guest.name}</p>
-            <p><span className="font-medium">Email:</span> {receipt.guest.email}</p>
-            <p><span className="font-medium">Phone:</span> {receipt.guest.phone || 'Not provided'}</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Booking Details */}
-      <div className="mb-8">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-          <FaCalendarAlt className="text-purple-600 mr-2" />
-          Booking Details
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-          <div>
-            <p className="font-medium text-gray-600">Check-in Date</p>
-            <p className="text-gray-900">{formatDate(receipt.dates.checkIn)}</p>
-          </div>
-          <div>
-            <p className="font-medium text-gray-600">Check-out Date</p>
-            <p className="text-gray-900">{formatDate(receipt.dates.checkOut)}</p>
-          </div>
-          <div>
-            <p className="font-medium text-gray-600">Duration</p>
-            <p className="text-gray-900">{receipt.dates.nights} nights</p>
-          </div>
-        </div>
-        <div className="mt-4">
-          <p className="font-medium text-gray-600">Number of Guests</p>
-          <p className="text-gray-900">{receipt.guests} guests</p>
-        </div>
-      </div>
-
-      {/* Pricing Breakdown with EBM Tax */}
-      <div className="mb-8">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-          <FaCreditCard className="text-orange-600 mr-2" />
-          Pricing Breakdown (EBM Tax Included)
-        </h3>
-        <div className="bg-gray-50 rounded-lg p-4">
-          <div className="space-y-3">
-            <div className="flex justify-between">
-              <span className="text-gray-600">Amount Before Tax:</span>
-              <span className="font-semibold">{formatCurrency(receipt.pricing.amountBeforeTax || 0)}</span>
-            </div>
-            {receipt.pricing.discountApplied > 0 && (
-              <div className="flex justify-between text-green-600">
-                <span>Discount Applied:</span>
-                <span>-{formatCurrency(receipt.pricing.discountApplied)}</span>
-              </div>
-            )}
-            <div className="flex justify-between border-t pt-2">
-              <span className="text-gray-600">EBM Tax ({receipt.pricing.taxRate || 3}%):</span>
-              <span className="font-semibold text-blue-600">+{formatCurrency(receipt.pricing.taxAmount || 0)}</span>
-            </div>
-            <div className="flex justify-between border-t pt-2">
-              <span className="text-gray-900 font-semibold">Total Amount (Inc. Tax):</span>
-              <span className="font-bold text-lg">{formatCurrency(receipt.pricing.totalAmount)}</span>
-            </div>
-            <div className="flex justify-between border-t pt-2 mt-4">
-              <span className="text-gray-600">Platform Commission ({((receipt.pricing.commissionAmount / (receipt.pricing.amountBeforeTax || receipt.pricing.totalAmount)) * 100).toFixed(1)}%):</span>
-              <span className="font-semibold text-red-600">-{formatCurrency(receipt.pricing.commissionAmount)}</span>
-            </div>
-            <div className="border-t pt-3">
-              <div className="flex justify-between text-lg font-bold">
-                <span>Amount to Property Owner:</span>
-                <span className="text-green-600">{formatCurrency(receipt.pricing.propertyOwnerAmount)}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        {/* EBM Tax Notice */}
-        <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
-          <p className="text-sm text-blue-900">
-            <strong>EBM Tax Notice:</strong> This receipt includes {receipt.pricing.taxRate || 3}% VAT as per Rwanda Revenue Authority (RRA) requirements. 
-            Tax Amount: {formatCurrency(receipt.pricing.taxAmount || 0)}
-          </p>
-        </div>
-      </div>
-
-      {/* Payment Information */}
-      <div className="mb-8">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-          <FaCheckCircle className="text-green-600 mr-2" />
+      {/* Payment Info */}
+      <div className="mb-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-2 flex items-center gap-2">
+          <FaCheckCircle className="text-green-600" />
           Payment Information
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
@@ -228,43 +146,26 @@ const ReceiptComponent = ({ bookingId, userType }) => {
         </div>
       </div>
 
-      {/* Footer */}
-      <div className="border-t pt-6 text-center text-sm text-gray-500">
-        <p>Receipt generated on {formatDate(receipt.createdAt)}</p>
-        <p className="mt-2">Thank you for using AKWANDA.rw</p>
-      </div>
-
-      {/* Action Buttons */}
-      <div className="mt-8 flex justify-center space-x-4 print:hidden">
-        <button
-          onClick={handlePrint}
-          className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
-        >
+      {/* Footer Actions */}
+      <div className="mt-6 flex justify-center gap-3 print:hidden">
+        <button onClick={handlePrint} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">
           <FaPrint />
-          <span>Print Receipt</span>
+          <span>Print</span>
         </button>
-        <button
-          onClick={handleDownload}
-          className="flex items-center space-x-2 bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
-        >
+        <button onClick={handleDownload} className="flex items-center gap-2 bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg">
           <FaDownload />
-          <span>Download Receipt</span>
+          <span>Download</span>
         </button>
       </div>
 
       {/* Print Styles */}
       <style jsx>{`
         @media print {
-          body {
-            print-color-adjust: exact;
-            -webkit-print-color-adjust: exact;
-          }
-          .print\\:hidden {
-            display: none !important;
-          }
-          .print\\:p-4 {
-            padding: 1rem !important;
-          }
+          body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+          body * { visibility: hidden; }
+          #receipt-content, #receipt-content * { visibility: visible; }
+          #receipt-content { position: absolute; left: 0; top: 0; width: 100%; }
+          .print\\:hidden { display: none !important; }
         }
       `}</style>
     </div>
