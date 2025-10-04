@@ -360,19 +360,38 @@ router.get('/users/:id', requireAdmin, async (req, res) => {
 // Deactivate user account (for unpaid commission)
 router.post('/users/:id/deactivate', requireAdmin, async (req, res) => {
     try {
-        const { reason } = req.body;
+        const { reason, durationDays, durationWeeks, blockedUntil } = req.body;
         const user = await User.findById(req.params.id);
         
         if (!user) return res.status(404).json({ message: 'User not found' });
+
+        // Calculate blockedUntil if provided as duration
+        let until = null;
+        if (blockedUntil) {
+            until = new Date(blockedUntil);
+        } else if (durationWeeks) {
+            const weeks = Number(durationWeeks) || 0;
+            until = new Date(Date.now() + weeks * 7 * 24 * 60 * 60 * 1000);
+        } else if (durationDays) {
+            const days = Number(durationDays) || 0;
+            until = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+        }
         
         user.isBlocked = true;
+        user.blockedAt = new Date();
+        user.blockedUntil = until || null;
+        user.blockReason = reason || user.blockReason;
         await user.save();
 
         // Create notification for user
+        let msg = reason || 'Your account has been deactivated due to unpaid commission. Please contact admin.';
+        if (user.blockedUntil) {
+            msg += ` Punishment ends on ${user.blockedUntil.toLocaleString()}.`;
+        }
         await Notification.create({
             type: 'account_blocked',
             title: 'Account Deactivated',
-            message: reason || 'Your account has been deactivated due to unpaid commission. Please contact admin.',
+            message: msg,
             recipientUser: user._id
         });
 
@@ -395,6 +414,8 @@ router.post('/users/:id/reactivate', requireAdmin, async (req, res) => {
         if (!user) return res.status(404).json({ message: 'User not found' });
         
         user.isBlocked = false;
+        user.blockedUntil = null;
+        user.blockReason = null;
         await user.save();
 
         // Create notification for user

@@ -53,8 +53,16 @@ const ApartmentDetails = () => {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
-  const makeAbsolute = (u) =>
-    u && !u.startsWith('http') ? `${API_URL}${u}` : u;
+  const makeAbsolute = (u) => {
+    if (!u) return u;
+    // Replace Windows-style backslashes and ensure leading slash for uploads
+    let s = String(u).replace(/\\/g, '/');
+    if (!s.startsWith('http')) {
+      if (!s.startsWith('/')) s = `/${s}`;
+      return `${API_URL}${s}`;
+    }
+    return s;
+  };
 
   useEffect(() => {
     (async () => {
@@ -233,6 +241,7 @@ const ApartmentDetails = () => {
             <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
               <div className="relative group">
                 <img
+                  loading="lazy"
                   src={apartment.images[selectedImage]}
                   alt={apartment.title}
                   className="w-full h-96 object-cover transition-all duration-500 group-hover:scale-105"
@@ -291,6 +300,7 @@ const ApartmentDetails = () => {
                       }`}
                     >
                       <img
+                        loading="lazy"
                         src={image}
                         alt={`View ${index + 1}`}
                         className="w-full h-full object-cover transition-transform duration-300 group-hover/thumb:scale-110"
@@ -442,6 +452,7 @@ const ApartmentDetails = () => {
                           {room.images.slice(0, 4).map((image, imgIndex) => (
                             <div key={imgIndex} className="relative group/image overflow-hidden rounded-lg">
                               <img
+                                loading="lazy"
                                 src={makeAbsolute(image)}
                                 alt={`${room.roomNumber} - Image ${imgIndex + 1}`}
                                 className="w-full h-20 object-cover transition-transform duration-500 group-hover/image:scale-110"

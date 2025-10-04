@@ -4,6 +4,9 @@ const cors = require('cors');
 const mongoose = require('mongoose');
 const cookieParser = require('cookie-parser');
 const bcrypt = require('bcryptjs');
+const http = require('http');
+const { Server } = require('socket.io');
+const jwt = require('jsonwebtoken');
 
 const authRouter = require('./tables/auth');
 const propertiesRouter = require('./routes/properties');
@@ -69,6 +72,66 @@ app.use('/api/billing', billingRouter);
 app.use('/api/support', supportRouter);
 app.use('/api/messages', messagesRouter);
 
+// Create HTTP server and bind Socket.IO
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: { origin: CLIENT_URL, credentials: true }
+});
+
+// Expose io to routes (e.g., messages.js)
+app.set('io', io);
+
+// Socket auth helper
+const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
+function getTokenFromHandshake(handshake) {
+  // Prefer cookie, fallback to auth header
+  const cookieHeader = handshake.headers.cookie || '';
+  const match = cookieHeader.match(/akw_token=([^;]+)/);
+  if (match) return decodeURIComponent(match[1]);
+  const auth = handshake.auth?.token || handshake.headers.authorization || '';
+  return auth.startsWith('Bearer ') ? auth.slice(7) : auth;
+}
+
+io.use((socket, next) => {
+  try {
+    const token = getTokenFromHandshake(socket.handshake);
+    if (!token) return next(new Error('Unauthorized'));
+    const user = jwt.verify(token, JWT_SECRET);
+    socket.user = user;
+    // Join personal room for direct notifications
+    socket.join(`user:${user.id}`);
+    return next();
+  } catch (e) {
+    return next(new Error('Unauthorized'));
+  }
+});
+
+io.on('connection', (socket) => {
+  // Join a booking room after validation
+  socket.on('join_booking', async ({ bookingId }) => {
+    try {
+      const Booking = require('./tables/booking');
+      const Property = require('./tables/property');
+      const b = await Booking.findById(bookingId).populate('property');
+      if (!b) return;
+      const isGuest = String(b.guest) === String(socket.user.id);
+      const isOwner = b.property && String(b.property.host) === String(socket.user.id);
+      const isAdmin = socket.user.userType === 'admin';
+      if (!isGuest && !isOwner && !isAdmin) return;
+      socket.join(`booking:${bookingId}`);
+      io.to(socket.id).emit('joined_booking', { bookingId });
+    } catch (_) {}
+  });
+
+  // Typing indicator within a booking room
+  socket.on('typing', ({ bookingId, typing }) => {
+    io.to(`booking:${bookingId}`).emit('typing', { bookingId, userId: socket.user.id, typing: !!typing });
+  });
+
+  // Optional: simple ping
+  socket.on('ping', () => socket.emit('pong'));
+});
+
 async function seedAdminIfNeeded() {
     const adminEmail = process.env.ADMIN_EMAIL;
     let adminPasswordHash = process.env.ADMIN_PASSWORD_HASH; // pre-hash recommended
@@ -104,7 +167,7 @@ async function start() {
 		await mongoose.connect(MONGO_URI);
 		console.log('Connected to MongoDB');
 		await seedAdminIfNeeded();
-		app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+		server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 	} catch (err) {
 		console.error('Failed to start server', err);
 		process.exit(1);

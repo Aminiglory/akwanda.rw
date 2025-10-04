@@ -24,6 +24,7 @@ const Navbar = () => {
   const [userNotifs, setUserNotifs] = useState([]);
   const [showAllUserNotifs, setShowAllUserNotifs] = useState(false);
   const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+  const [unreadMsgCount, setUnreadMsgCount] = useState(0);
 
   useEffect(() => {
     if (user?.userType === "admin") {
@@ -52,6 +53,25 @@ const Navbar = () => {
       })();
     }
   }, [isAuthenticated, user?.userType]);
+
+  // Poll unread message count
+  useEffect(() => {
+    let timer;
+    async function fetchUnread() {
+      try {
+        if (!isAuthenticated) {
+          setUnreadMsgCount(0);
+          return;
+        }
+        const res = await fetch(`${API_URL}/api/messages/unread-count`, { credentials: 'include' });
+        const data = await res.json();
+        if (res.ok) setUnreadMsgCount(data.count || 0);
+      } catch (_) { /* ignore */ }
+    }
+    fetchUnread();
+    timer = setInterval(fetchUnread, 45000);
+    return () => clearInterval(timer);
+  }, [isAuthenticated, API_URL]);
 
   const navButtons = [
     { icon: FaBed, text: "Stays", href: "/apartments" },
@@ -170,6 +190,21 @@ const Navbar = () => {
 
             {/* Right Side */}
             <div className="flex items-center space-x-3 lg:space-x-4">
+              {/* Messages link in main nav */}
+              {isAuthenticated && (
+                <Link
+                  to="/messages"
+                  className="hidden lg:flex items-center space-x-2 px-3 py-2 rounded-xl text-gray-700 hover:text-blue-600 hover:bg-gray-100 relative"
+                  title="Messages"
+                >
+                  <span className="font-medium">Messages</span>
+                  {unreadMsgCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs rounded-full px-1.5">
+                      {unreadMsgCount}
+                    </span>
+                  )}
+                </Link>
+              )}
               {/* Notifications (admin only) */}
               {user?.userType === "admin" && (
                 <div className="hidden lg:block relative group">

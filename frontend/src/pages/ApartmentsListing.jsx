@@ -31,8 +31,15 @@ const ApartmentsListing = () => {
   const [allApartments, setAllApartments] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const makeAbsolute = (u) =>
-    u && !u.startsWith("http") ? `${API_URL}${u}` : u;
+  const makeAbsolute = (u) => {
+    if (!u) return u;
+    let s = String(u).replace(/\\/g, '/');
+    if (!s.startsWith('http')) {
+      if (!s.startsWith('/')) s = `/${s}`;
+      return `${API_URL}${s}`;
+    }
+    return s;
+  };
 
   useEffect(() => {
     (async () => {
@@ -349,9 +356,13 @@ const ApartmentsListing = () => {
                   {/* Image */}
                   <div className="relative h-48 overflow-hidden">
                     <img
+                      loading="lazy"
                       src={apartment.image}
                       alt={apartment.title}
                       className="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
+                      onError={(e) => {
+                        e.target.src = 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=500&h=300&fit=crop';
+                      }}
                     />
                     {!apartment.isAvailable && (
                       <div className="absolute top-4 right-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-semibold">

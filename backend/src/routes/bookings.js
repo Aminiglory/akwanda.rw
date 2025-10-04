@@ -69,11 +69,18 @@ router.post('/', requireAuth, async (req, res) => {
 			return res.status(400).json({ message: 'Invalid payment method. Please choose MTN Mobile Money or Pay on Arrival.' });
 		}
 
-		// Blocked user cannot create bookings
+		// Blocked user cannot create bookings (auto-expire if punishment ended)
 		const currentUser = await User.findById(req.user.id);
 		if (!currentUser) return res.status(401).json({ message: 'Unauthorized' });
 		if (currentUser.isBlocked) {
-			return res.status(403).json({ message: 'Your account is blocked. Please contact support.' });
+			const now = new Date();
+			if (currentUser.blockedUntil && new Date(currentUser.blockedUntil) < now) {
+				currentUser.isBlocked = false;
+				currentUser.blockedUntil = null;
+				await currentUser.save();
+			} else {
+				return res.status(403).json({ message: 'Your account is blocked. Please contact support.' });
+			}
 		}
 
 		const property = await Property.findById(propertyId);
@@ -81,10 +88,17 @@ router.post('/', requireAuth, async (req, res) => {
 			return res.status(404).json({ message: 'Property not found or inactive' });
 		}
 
-		// Prevent bookings when host is blocked (e.g., unpaid commissions)
+		// Prevent bookings when host is blocked (auto-expire if punishment ended)
 		const hostUser = await User.findById(property.host);
 		if (hostUser && hostUser.isBlocked) {
-			return res.status(403).json({ message: 'This property is temporarily unavailable.' });
+			const now = new Date();
+			if (hostUser.blockedUntil && new Date(hostUser.blockedUntil) < now) {
+				hostUser.isBlocked = false;
+				hostUser.blockedUntil = null;
+				await hostUser.save();
+			} else {
+				return res.status(403).json({ message: 'This property is temporarily unavailable.' });
+			}
 		}
 
 		// Calculate pricing
@@ -355,6 +369,21 @@ router.post('/:id/commission/confirm', requireAuth, async (req, res) => {
 	booking.status = 'confirmed';
 	await booking.save();
 	res.json({ booking });
+});
+
+// List all bookings (admin only)
+router.get('/', requireAuth, async (req, res) => {
+    try {
+        if (req.user.userType !== 'admin') return res.status(403).json({ message: 'Admin only' });
+        const bookings = await Booking.find({})
+            .populate('property', 'title city address images host')
+            .populate('guest', 'firstName lastName email phone')
+            .sort({ createdAt: -1 });
+        res.json({ bookings });
+    } catch (error) {
+        console.error('List bookings error:', error);
+        res.status(500).json({ message: 'Failed to fetch bookings', error: error.message });
+    }
 });
 
 router.get('/mine', requireAuth, async (req, res) => {

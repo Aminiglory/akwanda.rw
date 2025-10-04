@@ -14,6 +14,7 @@ const mongoose = require('mongoose');
       isBlocked: { type: Boolean, default: false },
       blockReason: { type: String, maxlength: 500 },
       blockedAt: { type: Date },
+      blockedUntil: { type: Date },
       // Fines/dues tracking for unpaid commissions or penalties
       fines: {
         totalDue: { type: Number, default: 0 },

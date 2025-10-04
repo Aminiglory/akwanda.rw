@@ -7,6 +7,8 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 const AdminCommissionManager = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [processingId, setProcessingId] = useState(null);
+  const [punishment, setPunishment] = useState({ durationDays: '', durationWeeks: '', until: '' });
 
   useEffect(() => {
     fetchUsersWithUnpaidCommissions();
@@ -30,18 +32,48 @@ const AdminCommissionManager = () => {
     }
   };
 
+  // Add a fine for a user
+  const handleAddFine = async (userId) => {
+    const reason = prompt('Fine reason (e.g., Unpaid commissions)');
+    if (!reason) return;
+    const amountStr = prompt('Fine amount (RWF)');
+    const amount = Number(amountStr || 0);
+    if (!amount || amount <= 0) return;
+    try {
+      setProcessingId(userId);
+      const res = await fetch(`${API_URL}/api/admin/users/${userId}/fines`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ reason, amount })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to add fine');
+      toast.success('Fine added and owner will be notified');
+      fetchUsersWithUnpaidCommissions();
+    } catch (e) {
+      toast.error(e.message);
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
   const handleDeactivateUser = async (userId, totalCommission) => {
     if (!window.confirm(`Are you sure you want to deactivate this user? They owe RWF ${totalCommission.toLocaleString()} in commission.`)) {
       return;
     }
 
     try {
+      setProcessingId(userId);
       const res = await fetch(`${API_URL}/api/admin/users/${userId}/deactivate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
-          reason: `Account deactivated due to unpaid commission of RWF ${totalCommission.toLocaleString()}`
+          reason: `Account deactivated due to unpaid commission of RWF ${totalCommission.toLocaleString()}`,
+          durationDays: punishment.durationDays ? Number(punishment.durationDays) : undefined,
+          durationWeeks: punishment.durationWeeks ? Number(punishment.durationWeeks) : undefined,
+          blockedUntil: punishment.until || undefined
         })
       });
 
@@ -53,6 +85,8 @@ const AdminCommissionManager = () => {
       fetchUsersWithUnpaidCommissions();
     } catch (error) {
       toast.error(error.message);
+    } finally {
+      setProcessingId(null);
     }
   };
 
@@ -62,6 +96,7 @@ const AdminCommissionManager = () => {
     }
 
     try {
+      setProcessingId(userId);
       const res = await fetch(`${API_URL}/api/admin/users/${userId}/reactivate`, {
         method: 'POST',
         credentials: 'include'
@@ -75,6 +110,8 @@ const AdminCommissionManager = () => {
       fetchUsersWithUnpaidCommissions();
     } catch (error) {
       toast.error(error.message);
+    } finally {
+      setProcessingId(null);
     }
   };
 
@@ -162,18 +199,20 @@ const AdminCommissionManager = () => {
                     {user.isBlocked ? (
                       <button
                         onClick={() => handleReactivateUser(user._id)}
-                        className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                        disabled={processingId === user._id}
+                        className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-colors ${processingId === user._id ? 'bg-green-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 text-white'}`}
                       >
                         <FaToggleOn />
-                        <span>Reactivate</span>
+                        <span>{processingId === user._id ? 'Reactivating...' : 'Reactivate'}</span>
                       </button>
                     ) : (
                       <button
                         onClick={() => handleDeactivateUser(user._id, user.totalCommission)}
-                        className="flex items-center space-x-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                        disabled={processingId === user._id}
+                        className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-colors ${processingId === user._id ? 'bg-red-400 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700 text-white'}`}
                       >
                         <FaToggleOff />
-                        <span>Deactivate</span>
+                        <span>{processingId === user._id ? 'Deactivating...' : 'Deactivate'}</span>
                       </button>
                     )}
                   </td>

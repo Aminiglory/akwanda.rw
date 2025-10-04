@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   FaCalendarAlt, FaUser, FaEnvelope, FaPhone, FaMapMarkerAlt, 
   FaCheckCircle, FaClock, FaBan, FaComments, FaPaperPlane, FaTimes,
   FaMoneyBillWave, FaFileInvoice, FaExclamationCircle
 } from 'react-icons/fa';
 import toast from 'react-hot-toast';
+import { io } from 'socket.io-client';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -13,12 +14,50 @@ const BookingManagementPanel = ({ booking, onClose, onUpdate }) => {
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('details'); // details, messages
+  const socketRef = useRef(null);
+  const [isTyping, setIsTyping] = useState(false);
+  const typingTimeout = useRef(null);
 
   useEffect(() => {
     if (activeTab === 'messages') {
       fetchMessages();
       markMessagesAsRead();
+
+      // Connect socket
+      if (!socketRef.current) {
+        socketRef.current = io(API_URL, { withCredentials: true });
+        // On connect, join booking room
+        socketRef.current.on('connect', () => {
+          socketRef.current.emit('join_booking', { bookingId: booking._id });
+        });
+        // New message event
+        socketRef.current.on('message:new', (payload) => {
+          if (payload?.bookingId === String(booking._id)) {
+            setMessages((prev) => [...prev, payload.message]);
+          }
+        });
+        // Typing indicator
+        socketRef.current.on('typing', ({ bookingId, userId, typing }) => {
+          if (String(bookingId) === String(booking._id)) {
+            setIsTyping(!!typing);
+          }
+        });
+        // Read receipts
+        socketRef.current.on('message:read', ({ bookingId }) => {
+          if (String(bookingId) === String(booking._id)) {
+            // Best-effort: refresh read state
+            fetchMessages();
+          }
+        });
+      } else {
+        // If already connected, ensure joining correct room
+        socketRef.current.emit('join_booking', { bookingId: booking._id });
+      }
     }
+
+    return () => {
+      // No explicit leave required; component keeps socket for the panel lifetime
+    };
   }, [activeTab]);
 
   const fetchMessages = async () => {
@@ -68,6 +107,10 @@ const BookingManagementPanel = ({ booking, onClose, onUpdate }) => {
 
       setMessages([...messages, data.message]);
       setNewMessage('');
+      // After sending, also emit typing false
+      if (socketRef.current) {
+        socketRef.current.emit('typing', { bookingId: booking._id, typing: false });
+      }
       toast.success('Message sent successfully');
     } catch (error) {
       toast.error(error.message);
@@ -348,6 +391,9 @@ const BookingManagementPanel = ({ booking, onClose, onUpdate }) => {
                     })}
                   </div>
                 )}
+                {isTyping && (
+                  <div className="mt-2 text-xs text-gray-500">Typing...</div>
+                )}
               </div>
 
               {/* Message Input */}
@@ -355,7 +401,16 @@ const BookingManagementPanel = ({ booking, onClose, onUpdate }) => {
                 <input
                   type="text"
                   value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
+                  onChange={(e) => {
+                    setNewMessage(e.target.value);
+                    if (activeTab === 'messages' && socketRef.current) {
+                      socketRef.current.emit('typing', { bookingId: booking._id, typing: true });
+                      if (typingTimeout.current) clearTimeout(typingTimeout.current);
+                      typingTimeout.current = setTimeout(() => {
+                        socketRef.current.emit('typing', { bookingId: booking._id, typing: false });
+                      }, 1200);
+                    }
+                  }}
                   onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
                   placeholder="Type your message..."
                   className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"

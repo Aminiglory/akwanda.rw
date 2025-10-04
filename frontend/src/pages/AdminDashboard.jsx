@@ -51,6 +51,16 @@ const AdminDashboard = () => {
         }
       };
 
+  const makeAbsolute = (u) => {
+    if (!u) return u;
+    let s = String(u).replace(/\\/g, '/');
+    if (!s.startsWith('http')) {
+      if (!s.startsWith('/')) s = `/${s}`;
+      return `${API_URL}${s}`;
+    }
+    return s;
+  };
+
       // Fetch all data with fallbacks
       const [metricsData, propertiesData, bookingsData, usersData] = await Promise.all([
         fetchWithFallback(`${API_URL}/api/admin/metrics`, { 
@@ -326,9 +336,11 @@ const AdminDashboard = () => {
                     .map((property) => (
                     <div key={property._id} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
                       <img
-                        src={property.images?.[0] || 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400&h=250&fit=crop'}
+                        loading="lazy"
+                        src={property.images?.[0] ? makeAbsolute(property.images[0]) : 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400&h=250&fit=crop'}
                         alt={property.title}
                         className="w-full h-48 object-cover"
+                        onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400&h=250&fit=crop'; }}
                       />
                       <div className="p-4">
                         <div className="flex items-start justify-between mb-2">
@@ -411,9 +423,11 @@ const AdminDashboard = () => {
                         <div className="flex-1">
                           <div className="flex items-start space-x-4">
                             <img
-                              src={booking.property?.images?.[0] || 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=100&h=100&fit=crop'}
+                              loading="lazy"
+                              src={booking.property?.images?.[0] ? makeAbsolute(booking.property.images[0]) : 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=100&h=100&fit=crop'}
                               alt={booking.property?.title}
                               className="w-20 h-20 rounded-lg object-cover"
+                              onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=100&h=100&fit=crop'; }}
                             />
                             <div className="flex-1">
                               <h4 className="font-semibold text-gray-900">{booking.property?.title}</h4>

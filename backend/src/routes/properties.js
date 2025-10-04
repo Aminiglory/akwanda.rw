@@ -22,8 +22,34 @@ function requireAuth(req, res, next) {
 }
 
 router.get('/', async (req, res) => {
-    const properties = await Property.find({ isActive: true }).populate('host', 'firstName lastName');
-    res.json({ properties });
+    // Load active properties with host
+    const properties = await Property.find({ isActive: true }).populate('host', 'firstName lastName isBlocked blockedUntil');
+    const now = new Date();
+
+    const visible = [];
+    for (const p of properties) {
+        const host = p.host;
+        if (host && host.isBlocked) {
+            // Auto-expire past punishments
+            if (host.blockedUntil && new Date(host.blockedUntil) < now) {
+                try {
+                    const u = await User.findById(host._id);
+                    if (u) {
+                        u.isBlocked = false;
+                        u.blockedUntil = null;
+                        await u.save();
+                    }
+                } catch (e) { /* ignore */ }
+                visible.push(p);
+            } else {
+                // Still punished: hide property
+                continue;
+            }
+        } else {
+            visible.push(p);
+        }
+    }
+    res.json({ properties: visible });
 });
 
 router.get('/mine', requireAuth, async (req, res) => {
@@ -32,8 +58,26 @@ router.get('/mine', requireAuth, async (req, res) => {
 });
 
 router.get('/:id', async (req, res) => {
-    const property = await Property.findById(req.params.id).populate('host', 'firstName lastName');
+    const property = await Property.findById(req.params.id).populate('host', 'firstName lastName isBlocked blockedUntil');
     if (!property || !property.isActive) return res.status(404).json({ message: 'Property not found' });
+
+    const host = property.host;
+    const now = new Date();
+    if (host && host.isBlocked) {
+        if (host.blockedUntil && new Date(host.blockedUntil) < now) {
+            // Auto-expire
+            try {
+                const u = await User.findById(host._id);
+                if (u) {
+                    u.isBlocked = false;
+                    u.blockedUntil = null;
+                    await u.save();
+                }
+            } catch (e) { /* ignore */ }
+        } else {
+            return res.status(403).json({ message: 'This property is temporarily unavailable.' });
+        }
+    }
     res.json({ property });
 });
 
@@ -90,7 +134,18 @@ router.post('/', requireAuth, upload.array('images', 10), async (req, res) => {
         }
     }
 	const imagePaths = (req.files || []).map(f => `/uploads/${path.basename(f.path)}`);
-    const created = await Property.create({ ...req.body, images: imagePaths, host: req.user.id });
+    // Merge any imageUrls from body (e.g., prior upload call)
+    let mergedImages = [...imagePaths];
+    if (req.body.imageUrls) {
+        const urls = Array.isArray(req.body.imageUrls) ? req.body.imageUrls : [req.body.imageUrls];
+        mergedImages.push(...urls.map(u => String(u).replace(/\\+/g, '/')));
+    }
+    const payload = { ...req.body, images: mergedImages, host: req.user.id };
+    // Coerce roomRules to array if provided
+    if (payload.roomRules && !Array.isArray(payload.roomRules)) {
+        payload.roomRules = [payload.roomRules];
+    }
+    const created = await Property.create(payload);
     // Notify admin of new property upload
     await Notification.create({
         type: 'booking_created', // reuse type bucket with message context
@@ -117,10 +172,22 @@ router.put('/:id', requireAuth, upload.array('images', 10), async (req, res) => 
     if (updates.amenities && !Array.isArray(updates.amenities)) {
         updates.amenities = [updates.amenities];
     }
+    // Room rules: coerce to array if provided
+    if (updates.roomRules && !Array.isArray(updates.roomRules)) {
+        updates.roomRules = [updates.roomRules];
+    }
     // Merge or replace images if new files provided
     if (req.files && req.files.length) {
         const imagePaths = req.files.map(f => `/uploads/${path.basename(f.path)}`);
         updates.images = imagePaths;
+    }
+    // Merge explicit imageUrls if provided
+    if (req.body.imageUrls) {
+        const urls = Array.isArray(req.body.imageUrls) ? req.body.imageUrls : [req.body.imageUrls];
+        const normalized = urls.map(u => String(u).replace(/\\+/g, '/'));
+        updates.images = (updates.images && updates.images.length)
+            ? [...updates.images, ...normalized]
+            : normalized;
     }
     Object.assign(property, updates);
     await property.save();

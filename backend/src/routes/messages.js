@@ -107,6 +107,19 @@ router.post('/booking/:bookingId', requireAuth, async (req, res) => {
             recipientUser: recipientId
         });
 
+        // Socket.IO: emit to booking room and recipient's room
+        try {
+            const io = req.app.get('io');
+            if (io) {
+                const payload = { 
+                    bookingId: String(booking._id), 
+                    message: newMessage 
+                };
+                io.to(`booking:${String(booking._id)}`).emit('message:new', payload);
+                io.to(`user:${String(recipientId)}`).emit('message:new', payload);
+            }
+        } catch (_) {}
+
         res.status(201).json({ message: newMessage });
     } catch (error) {
         console.error('Send message error:', error);
@@ -117,7 +130,7 @@ router.post('/booking/:bookingId', requireAuth, async (req, res) => {
 // Mark messages as read
 router.patch('/booking/:bookingId/read', requireAuth, async (req, res) => {
     try {
-        await Message.updateMany(
+        const result = await Message.updateMany(
             {
                 booking: req.params.bookingId,
                 recipient: req.user.id,
@@ -128,8 +141,18 @@ router.patch('/booking/:bookingId/read', requireAuth, async (req, res) => {
                 readAt: new Date()
             }
         );
+        // Socket.IO: notify booking room that recipient read
+        try {
+            const io = req.app.get('io');
+            if (io) {
+                io.to(`booking:${String(req.params.bookingId)}`).emit('message:read', { 
+                    bookingId: String(req.params.bookingId), 
+                    userId: req.user.id 
+                });
+            }
+        } catch (_) {}
 
-        res.json({ success: true, message: 'Messages marked as read' });
+        res.json({ success: true, message: 'Messages marked as read', updated: result.modifiedCount });
     } catch (error) {
         console.error('Mark as read error:', error);
         res.status(500).json({ message: 'Failed to mark messages as read', error: error.message });

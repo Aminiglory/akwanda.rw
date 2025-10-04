@@ -1,9 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { FaCheckCircle, FaCalendarAlt, FaUsers, FaBed, FaMapMarkerAlt, FaPhone, FaEnvelope, FaDownload, FaPrint, FaShare, FaHome, FaFileInvoice, FaFileAlt } from 'react-icons/fa';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import ReceiptComponent from '../components/ReceiptComponent';
 import RRAReceiptComponent from '../components/RRAReceiptComponent';
+// Optional live chat if socket.io-client is available
+let ioClient = null;
+try {
+  // Dynamically require to avoid build error if not installed yet
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  ioClient = (await import('socket.io-client')).io;
+} catch (_) {}
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -16,10 +23,43 @@ const BookingConfirmation = () => {
   const [loading, setLoading] = useState(true);
   const [showReceipt, setShowReceipt] = useState(false);
   const [showRRAReceipt, setShowRRAReceipt] = useState(false);
+  const [showChat, setShowChat] = useState(false);
+  const [messages, setMessages] = useState([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [sending, setSending] = useState(false);
+  const socketRef = useRef(null);
+  const [isTyping, setIsTyping] = useState(false);
+  const typingTimeout = useRef(null);
 
   useEffect(() => {
     fetchBookingDetails();
   }, [id]);
+
+  useEffect(() => {
+    if (showChat && booking?._id) {
+      fetchMessages();
+      markMessagesAsRead();
+      if (ioClient && !socketRef.current) {
+        socketRef.current = ioClient(API_URL, { withCredentials: true });
+        socketRef.current.on('connect', () => {
+          socketRef.current.emit('join_booking', { bookingId: booking._id });
+        });
+        socketRef.current.on('message:new', (payload) => {
+          if (payload?.bookingId === String(booking._id)) {
+            setMessages(prev => [...prev, payload.message]);
+          }
+        });
+        socketRef.current.on('typing', ({ bookingId, typing }) => {
+          if (String(bookingId) === String(booking._id)) setIsTyping(!!typing);
+        });
+        socketRef.current.on('message:read', ({ bookingId }) => {
+          if (String(bookingId) === String(booking._id)) fetchMessages();
+        });
+      } else if (ioClient && socketRef.current) {
+        socketRef.current.emit('join_booking', { bookingId: booking._id });
+      }
+    }
+  }, [showChat, booking?._id]);
 
   const fetchBookingDetails = async () => {
     try {
@@ -60,6 +100,47 @@ const BookingConfirmation = () => {
       }, 2000);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchMessages = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/messages/booking/${id}`, { credentials: 'include' });
+      const data = await res.json();
+      if (res.ok) setMessages(data.messages || []);
+    } catch (e) {
+      console.error('Fetch messages error:', e);
+    }
+  };
+
+  const markMessagesAsRead = async () => {
+    try {
+      await fetch(`${API_URL}/api/messages/booking/${id}/read`, { method: 'PATCH', credentials: 'include' });
+    } catch (e) {
+      console.error('Mark as read error:', e);
+    }
+  };
+
+  const sendMessage = async () => {
+    if (!newMessage.trim()) return toast.error('Please type a message');
+    try {
+      setSending(true);
+      const res = await fetch(`${API_URL}/api/messages/booking/${id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ message: newMessage })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to send');
+      setMessages(prev => [...prev, data.message]);
+      setNewMessage('');
+      if (socketRef.current) socketRef.current.emit('typing', { bookingId: booking._id, typing: false });
+      toast.success('Message sent');
+    } catch (e) {
+      toast.error(e.message);
+    } finally {
+      setSending(false);
     }
   };
 
@@ -360,6 +441,13 @@ const BookingConfirmation = () => {
 
               <div className="mt-6 space-y-3">
                 <button
+                  onClick={() => setShowChat(true)}
+                  className="w-full flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg font-medium transition-colors"
+                >
+                  <FaComments />
+                  <span>Message Property Owner</span>
+                </button>
+                <button
                   onClick={() => setShowRRAReceipt(!showRRAReceipt)}
                   className="w-full flex items-center justify-center space-x-2 bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg font-medium transition-colors"
                 >
@@ -463,6 +551,62 @@ const BookingConfirmation = () => {
             </div>
             <div className="p-4">
               <ReceiptComponent bookingId={id} />
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Chat Modal */}
+      {showChat && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[85vh] overflow-hidden flex flex-col">
+            <div className="sticky top-0 bg-white border-b p-4 flex justify-between items-center">
+              <h2 className="text-xl font-bold text-gray-900">Chat with Property Owner</h2>
+              <button onClick={() => setShowChat(false)} className="text-gray-400 hover:text-gray-600 text-2xl">×</button>
+            </div>
+            <div className="flex-1 p-4 overflow-y-auto bg-gray-50">
+              {messages.length === 0 ? (
+                <div className="text-center text-gray-500 py-10">No messages yet. Start the conversation.</div>
+              ) : (
+                <div className="space-y-3">
+                  {messages.map((m) => {
+                    const isGuest = String(m.sender?._id || m.sender) === String(booking.guest);
+                    return (
+                      <div key={m._id} className={`flex ${isGuest ? 'justify-end' : 'justify-start'}`}>
+                        <div className={`max-w-[75%] rounded-lg px-4 py-3 ${isGuest ? 'bg-blue-600 text-white' : 'bg-white border'}`}>
+                          <div className={`text-xs mb-1 ${isGuest ? 'text-blue-100' : 'text-gray-500'}`}>
+                            {new Date(m.createdAt).toLocaleString()}
+                          </div>
+                          <div className={isGuest ? 'text-white' : 'text-gray-800'}>{m.message}</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              {isTyping && <div className="mt-2 text-xs text-gray-500">Owner is typing...</div>}
+            </div>
+            <div className="p-4 border-t flex items-center space-x-2">
+              <input
+                value={newMessage}
+                onChange={(e) => {
+                  setNewMessage(e.target.value);
+                  if (socketRef.current && booking?._id) {
+                    socketRef.current.emit('typing', { bookingId: booking._id, typing: true });
+                    if (typingTimeout.current) clearTimeout(typingTimeout.current);
+                    typingTimeout.current = setTimeout(() => {
+                      socketRef.current?.emit('typing', { bookingId: booking._id, typing: false });
+                    }, 1200);
+                  }
+                }}
+                onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
+                placeholder="Type your message"
+                className="flex-1 px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              />
+              <button
+                onClick={sendMessage}
+                disabled={sending || !newMessage.trim()}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-lg disabled:opacity-50"
+              >Send</button>
             </div>
           </div>
         </div>
