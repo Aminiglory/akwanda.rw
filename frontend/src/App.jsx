@@ -57,7 +57,7 @@ function App() {
           <Toaster position="top-right" />
           {/* Header */}
           <Navbar />
-          
+          {/* commit routes */}
           {/* Main Content */}
           <Routes>
             <Route path="/" element={<Home />} />
