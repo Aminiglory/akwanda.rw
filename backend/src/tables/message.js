@@ -2,7 +2,8 @@ const mongoose = require('mongoose');
 
 const messageSchema = new mongoose.Schema(
   {
-    booking: { type: mongoose.Schema.Types.ObjectId, ref: 'Booking', required: true },
+    booking: { type: mongoose.Schema.Types.ObjectId, ref: 'Booking' },
+    carBooking: { type: mongoose.Schema.Types.ObjectId, ref: 'CarRentalBooking' },
     sender: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     recipient: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     message: { type: String, required: true },

@@ -12,7 +12,18 @@ const roomSchema = new mongoose.Schema({
     startDate: { type: Date },
     endDate: { type: Date },
     reason: { type: String }
-  }]
+  }],
+  maxAdults: { type: Number, default: 2, min: 1 },
+  maxChildren: { type: Number, default: 2, min: 0 },
+  maxInfants: { type: Number, default: 1, min: 0 },
+  childrenPolicy: {
+    chargePercent: { type: Number, default: 50, min: 0, max: 100 }, // percent of adult price
+    minAge: { type: Number, default: 2 },
+    maxAge: { type: Number, default: 12 }
+  },
+  infantPolicy: {
+    freeUnderAge: { type: Number, default: 2 }
+  }
 });
 
 const propertySchema = new mongoose.Schema(
@@ -35,7 +46,7 @@ const propertySchema = new mongoose.Schema(
     rooms: [roomSchema],
     groupBookingEnabled: { type: Boolean, default: false },
     groupBookingDiscount: { type: Number, default: 0 },
-    commissionRate: { type: Number, default: 10, min: 0, max: 50 },
+    commissionRate: { type: Number, default: 10, min: 8, max: 12 },
     visibilityLevel: { type: String, enum: ['standard', 'premium', 'featured'], default: 'standard' },
     featuredUntil: { type: Date },
     ratings: [{

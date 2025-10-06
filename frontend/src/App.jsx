@@ -19,6 +19,11 @@ import UserDashboard from './pages/UserDashboard'
 import UploadProperty from './pages/UploadProperty'
 import EnhancedUploadProperty from './pages/EnhancedUploadProperty'
 import AdminDashboard from './pages/AdminDashboard'
+import AdminLanding from './pages/AdminLanding'
+import AdminAttractions from './pages/AdminAttractions'
+import CarsList from './pages/CarsList'
+import CarDetail from './pages/CarDetail'
+import CarOwnerDashboard from './pages/CarOwnerDashboard'
 import AdminProfile from './pages/AdminProfile'
 import MTNMobileMoneyPayment from './pages/MTNMobileMoneyPayment'
 import RRAEBMIntegration from './pages/RRAEBMIntegration'
@@ -26,7 +31,8 @@ import BookingProcess from './pages/BookingProcess'
 import BookingConfirmation from './pages/BookingConfirmation'
 import CustomerSupport from './pages/CustomerSupport'
 import PropertyOwnerBookings from './pages/PropertyOwnerBookings'
-import EnhancedPropertyOwnerDashboard from './pages/EnhancedPropertyOwnerDashboard'
+// Removed EnhancedPropertyOwnerDashboard (deprecated)
+import Messages from './pages/Messages'
 
 function App() {
   const [isLoading, setIsLoading] = useState(true)
@@ -64,6 +70,8 @@ function App() {
             <Route path="/apartments" element={<ProtectedRoute><ApartmentsListing /></ProtectedRoute>} />
             <Route path="/flights" element={<Flights />} />
             <Route path="/attractions" element={<Attractions />} />
+            <Route path="/cars" element={<CarsList />} />
+            <Route path="/cars/:id" element={<CarDetail />} />
             <Route path="/taxis" element={<AirportTaxis />} />
             <Route path="/apartment/:id" element={<ApartmentDetails />} />
             <Route path="/booking/:id" element={<BookingProcess />} />
@@ -76,12 +84,16 @@ function App() {
             <Route path="/upload-legacy" element={<ProtectedRoute><UploadProperty /></ProtectedRoute>} />
             <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
             <Route path="/admin/profile" element={<AdminRoute><AdminProfile /></AdminRoute>} />
+            <Route path="/admin/landing" element={<AdminRoute><AdminLanding /></AdminRoute>} />
+            <Route path="/admin/attractions" element={<AdminRoute><AdminAttractions /></AdminRoute>} />
             <Route path="/mtn-payment" element={<ProtectedRoute><MTNMobileMoneyPayment /></ProtectedRoute>} />
             <Route path="/payment/mtn-mobile-money" element={<MTNMobileMoneyPayment />} />
             <Route path="/billing/rra-ebm" element={<RRAEBMIntegration />} />
             <Route path="/support" element={<CustomerSupport />} />
             <Route path="/my-bookings" element={<ProtectedRoute><PropertyOwnerBookings /></ProtectedRoute>} />
-            <Route path="/owner-dashboard" element={<ProtectedRoute><EnhancedPropertyOwnerDashboard /></ProtectedRoute>} />
+            {/* Removed /owner-dashboard route; use /my-bookings */}
+            <Route path="/owner/cars" element={<ProtectedRoute><CarOwnerDashboard /></ProtectedRoute>} />
+            <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
           </Routes>
           
           {/* Footer */}

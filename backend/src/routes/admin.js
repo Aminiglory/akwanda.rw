@@ -12,16 +12,16 @@ const multer = require('multer');
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
 
 function requireAdmin(req, res, next) {
-	const token = req.cookies.akw_token || (req.headers.authorization || '').replace('Bearer ', '');
-	if (!token) return res.status(401).json({ message: 'Unauthorized' });
-	try {
-		const user = jwt.verify(token, JWT_SECRET);
-		if (user.userType !== 'admin') return res.status(403).json({ message: 'Admin only' });
-		req.user = user;
-		return next();
-	} catch (e) {
-		return res.status(401).json({ message: 'Invalid token' });
-	}
+    const token = req.cookies.akw_token || (req.headers.authorization || '').replace('Bearer ', '');
+    if (!token) return res.status(401).json({ message: 'Unauthorized' });
+    try {
+        const user = jwt.verify(token, JWT_SECRET);
+        if (user.userType !== 'admin') return res.status(403).json({ message: 'Admin only' });
+        req.user = user;
+        return next();
+    } catch (e) {
+        return res.status(401).json({ message: 'Invalid token' });
+    }
 }
 
 router.get('/overview', requireAdmin, async (req, res) => {
@@ -166,6 +166,78 @@ router.post('/me/avatar', requireAdmin, upload.single('avatar'), async (req, res
     u.avatar = `/uploads/${path.basename(req.file.path)}`;
     await u.save();
     res.json({ user: { id: u._id, avatar: u.avatar } });
+});
+
+// --- Admin CMS: Landing Page Content ---
+router.get('/landing-content', requireAdmin, async (req, res) => {
+    try {
+        const LandingContent = require('../tables/landingContent');
+        const doc = await LandingContent.findOne({}).sort({ updatedAt: -1 });
+        res.json({ content: doc || null });
+    } catch (e) {
+        res.status(500).json({ message: 'Failed to fetch landing content' });
+    }
+});
+
+router.post('/landing-content', requireAdmin, async (req, res) => {
+    try {
+        const LandingContent = require('../tables/landingContent');
+        const payload = req.body || {};
+        let doc = await LandingContent.findOne({});
+        if (!doc) doc = await LandingContent.create(payload);
+        else {
+            Object.assign(doc, payload);
+            await doc.save();
+        }
+        res.json({ content: doc });
+    } catch (e) {
+        res.status(500).json({ message: 'Failed to save landing content' });
+    }
+});
+
+router.post('/landing-content/images', requireAdmin, upload.array('images', 12), async (req, res) => {
+    try {
+        const files = (req.files || []).map(f => `/uploads/${path.basename(f.path)}`);
+        res.json({ images: files });
+    } catch (e) {
+        res.status(500).json({ message: 'Failed to upload images' });
+    }
+});
+
+// --- Admin CMS: Attractions Page Content ---
+router.get('/attractions-content', requireAdmin, async (req, res) => {
+    try {
+        const AttractionsPageContent = require('../tables/attractionsPageContent');
+        const doc = await AttractionsPageContent.findOne({}).sort({ updatedAt: -1 });
+        res.json({ content: doc || null });
+    } catch (e) {
+        res.status(500).json({ message: 'Failed to fetch attractions content' });
+    }
+});
+
+router.post('/attractions-content', requireAdmin, async (req, res) => {
+    try {
+        const AttractionsPageContent = require('../tables/attractionsPageContent');
+        const payload = req.body || {};
+        let doc = await AttractionsPageContent.findOne({});
+        if (!doc) doc = await AttractionsPageContent.create(payload);
+        else {
+            Object.assign(doc, payload);
+            await doc.save();
+        }
+        res.json({ content: doc });
+    } catch (e) {
+        res.status(500).json({ message: 'Failed to save attractions content' });
+    }
+});
+
+router.post('/attractions-content/images', requireAdmin, upload.array('images', 12), async (req, res) => {
+    try {
+        const files = (req.files || []).map(f => `/uploads/${path.basename(f.path)}`);
+        res.json({ images: files });
+    } catch (e) {
+        res.status(500).json({ message: 'Failed to upload images' });
+    }
 });
 
 // Notifications

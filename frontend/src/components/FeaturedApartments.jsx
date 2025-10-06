@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FaStar, FaMapMarkerAlt, FaBed, FaBath } from 'react-icons/fa';
 
@@ -37,6 +37,19 @@ const FeaturedApartments = () => {
     })();
   }, []);
 
+  // Reveal animation on scroll
+  const gridRef = useRef(null);
+  const [gridInView, setGridInView] = useState(false);
+  useEffect(() => {
+    const el = gridRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting) setGridInView(true); });
+    }, { threshold: 0.2 });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
   const renderStars = (rating) => {
     return Array.from({ length: 5 }, (_, i) => (
       <FaStar
@@ -50,52 +63,52 @@ const FeaturedApartments = () => {
     <div className="bg-white py-16 px-4">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold text-gray-800 mb-4">
-            Featured Apartments
-          </h2>
-          <p className="text-gray-600 text-lg">
-            Discover our most popular and highly-rated apartments
-          </p>
+          <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-2 text-gray-900">Featured Apartments</h2>
+          <p className="text-gray-600 text-lg">Discover our most popular and highly-rated stays</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div ref={gridRef} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {apartments.map((apartment, index) => (
             <div
               key={apartment.id}
-              className="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-105 overflow-hidden border border-gray-100"
-              style={{ animationDelay: `${index * 0.1}s` }}
+              className={`bg-white rounded-2xl shadow-md hover:shadow-2xl transition-all duration-500 hover:-translate-y-1 overflow-hidden border border-gray-100 ${gridInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}
+              style={{ transitionDelay: `${index * 80}ms` }}
             >
               {/* Image */}
               <div className="relative h-48 overflow-hidden">
                 <img
                   src={apartment.image}
                   alt={apartment.title}
-                  className="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
+                  loading="lazy"
+                  decoding="async"
+                  sizes="(min-width:1024px) 25vw, (min-width:768px) 50vw, 100vw"
+                  className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
                 />
                 {!apartment.isAvailable && (
                   <div className="absolute top-4 right-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
                     Unavailable
                   </div>
                 )}
-                <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1 text-sm font-semibold text-gray-800">
-                  RWF {apartment.price.toLocaleString()}/month
+                <div className="absolute top-4 left-4 bg-black/60 text-white backdrop-blur-sm rounded-full px-3 py-1 text-xs font-semibold">
+                  From RWF {apartment.price.toLocaleString()}/night
                 </div>
                 {apartment.discountPercent > 0 && (
-                  <div className="absolute top-4 left-40 bg-green-600 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                  <div className="absolute top-4 left-40 bg-green-600 text-white px-3 py-1 rounded-full text-xs font-semibold">
                     {apartment.discountPercent}% OFF
                   </div>
                 )}
+                {/* Removed gradient overlay */}
               </div>
 
               {/* Content */}
               <div className="p-6">
-                <h3 className="text-xl font-bold text-gray-800 mb-2 line-clamp-2">
+                <h3 className="text-lg font-bold text-gray-900 mb-1 line-clamp-2">
                   {apartment.title}
                 </h3>
                 
-                <div className="flex items-center text-gray-600 mb-3">
-                  <FaMapMarkerAlt className="text-blue-600 mr-2" />
-                  <span className="text-sm">{apartment.location}</span>
+                <div className="flex items-center text-gray-600 mb-2">
+                  <FaMapMarkerAlt className="text-blue-600 mr-1" />
+                  <span className="text-sm truncate">{apartment.location}</span>
                 </div>
 
                 {/* Rating */}
@@ -142,7 +155,7 @@ const FeaturedApartments = () => {
                   to={`/apartment/${apartment.id}`}
                   className={`w-full py-3 rounded-xl font-semibold transition-all duration-300 block text-center ${
                     apartment.isAvailable
-                      ? 'bg-blue-600 hover:bg-blue-700 text-white hover:scale-105'
+                      ? 'bg-blue-600 hover:bg-blue-700 text-white hover:scale-[1.02]'
                       : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   }`}
                 >
@@ -153,10 +166,16 @@ const FeaturedApartments = () => {
           ))}
         </div>
 
-        <div className="text-center mt-12">
-          <Link to="/apartments" className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-semibold transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl inline-block">
-            View All Apartments
-          </Link>
+        <div className="mt-12">
+          <div className="bg-blue-600 rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between text-white shadow-lg">
+            <div className="mb-4 md:mb-0">
+              <h4 className="text-xl font-semibold">Looking for more options?</h4>
+              <p className="text-blue-100">Browse all apartments and filter by location, price, and amenities.</p>
+            </div>
+            <Link to="/apartments" className="bg-white text-blue-700 px-6 py-3 rounded-xl font-semibold hover:bg-blue-50 transition-all duration-300 shadow">
+              View All Apartments
+            </Link>
+          </div>
         </div>
       </div>
     </div>

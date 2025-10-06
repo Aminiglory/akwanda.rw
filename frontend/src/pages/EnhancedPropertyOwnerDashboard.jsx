@@ -8,6 +8,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import BookingManagementPanel from '../components/BookingManagementPanel';
+import RoomCalendarPanel from '../components/RoomCalendarPanel';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -491,6 +492,21 @@ const EnhancedPropertyOwnerDashboard = () => {
                           <FaTrash />
                         </button>
                       </div>
+                      {Array.isArray(property.rooms) && property.rooms.length > 0 && (
+                        <div className="mt-4 border-t pt-4">
+                          <div className="text-sm font-semibold text-gray-800 mb-2">Room Availability</div>
+                          <div className="space-y-4">
+                            {property.rooms.map((room) => (
+                              <RoomCalendarPanel
+                                key={room._id || room.roomNumber}
+                                propertyId={property._id}
+                                room={room}
+                                onChanged={fetchDashboardData}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}

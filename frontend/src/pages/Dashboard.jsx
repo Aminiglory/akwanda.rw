@@ -1,5 +1,11 @@
 import React, { useState, useEffect } from 'react';
 
+import { FaBed, FaMapMarkerAlt, FaCheckCircle, FaCalendarAlt, FaStar, FaHeart, FaEdit, FaTrash, FaPlus, FaFilter, FaSearch } from 'react-icons/fa';
+import { useAuth } from '../contexts/AuthContext';
+import { Link } from 'react-router-dom';
+import toast from 'react-hot-toast';
+
+
 // ReadMore component for notification messages
 function ReadMore({ text, maxLength }) {
   const [expanded, setExpanded] = useState(false);
@@ -14,11 +20,6 @@ function ReadMore({ text, maxLength }) {
     </div>
   );
 }
-import { FaBed, FaMapMarkerAlt, FaCheckCircle, FaCalendarAlt, FaStar, FaHeart, FaEdit, FaTrash, FaPlus, FaFilter, FaSearch } from 'react-icons/fa';
-import { useAuth } from '../contexts/AuthContext';
-import { Link } from 'react-router-dom';
-import toast from 'react-hot-toast';
-
 // Interactive star rating form for booking rating
 function StarRatingForm({ booking, setBookings, bookings }) {
   const [starRating, setStarRating] = useState(0);
@@ -105,6 +106,7 @@ const Dashboard = () => {
   const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
+    if (!user) return; // wait for user to be available to avoid undefined access
     (async () => {
       try {
         const makeAbsolute = (u) => (u && !u.startsWith('http') ? `${API_URL}${u}` : u);
@@ -132,7 +134,7 @@ const Dashboard = () => {
         setListings((pData.properties || []).filter(p => {
           // p.host may be an object or string
           const hostId = typeof p.host === 'object' && p.host !== null ? p.host._id || p.host.id : p.host;
-          return String(hostId) === String(user.id);
+          return user?.id && String(hostId) === String(user.id);
         }).map(p => ({
           id: p._id,
           title: p.title,
@@ -147,7 +149,7 @@ const Dashboard = () => {
         toast.error(e.message);
       }
     })();
-  }, []);
+  }, [user?.id]);
 
   useEffect(() => {
     if (user) {
@@ -819,63 +821,67 @@ const Dashboard = () => {
                   </div>
                 </div>)}
             </div>
-            <div className="p-6 space-y-4 overflow-y-auto">
-              <div>
-                <div className="text-gray-600">Check-in</div>
-                <div className="font-medium text-gray-900">{new Date(bookingModal.details.checkIn).toLocaleString()}</div>
-              </div>
-              <div>
-                <div className="text-gray-600">Check-out</div>
-                <div className="font-medium text-gray-900">{new Date(bookingModal.details.checkOut).toLocaleString()}</div>
-              </div>
-              <div>
-                <div className="text-gray-600">Guests</div>
-                <div className="font-medium text-gray-900">{bookingModal.details.numberOfGuests}</div>
-              </div>
-              <div>
-                <div className="text-gray-600">Total Amount</div>
-                <div className="font-medium text-gray-900">RWF {Number(bookingModal.details.totalAmount || 0).toLocaleString()}</div>
-              </div>
-              {bookingModal.details.paymentMethod && (
-                <div>
-                  <div className="text-gray-600">Payment Method</div>
-                  <div className="font-medium text-gray-900">{String(bookingModal.details.paymentMethod).replace('_', ' ')}</div>
+            {bookingModal.open && bookingModal.details && (
+              <>
+                <div className="p-6 space-y-4 overflow-y-auto">
+                  <div>
+                    <div className="text-gray-600">Check-in</div>
+                    <div className="font-medium text-gray-900">{new Date(bookingModal.details.checkIn).toLocaleString()}</div>
+                  </div>
+                  <div>
+                    <div className="text-gray-600">Check-out</div>
+                    <div className="font-medium text-gray-900">{new Date(bookingModal.details.checkOut).toLocaleString()}</div>
+                  </div>
+                  <div>
+                    <div className="text-gray-600">Guests</div>
+                    <div className="font-medium text-gray-900">{bookingModal.details.numberOfGuests}</div>
+                  </div>
+                  <div>
+                    <div className="text-gray-600">Total Amount</div>
+                    <div className="font-medium text-gray-900">RWF {Number(bookingModal.details.totalAmount || 0).toLocaleString()}</div>
+                  </div>
+                  {bookingModal.details.paymentMethod && (
+                    <div>
+                      <div className="text-gray-600">Payment Method</div>
+                      <div className="font-medium text-gray-900">{String(bookingModal.details.paymentMethod).replace('_', ' ')}</div>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-            <div className="border-t bg-gray-50 p-4 flex items-center justify-end gap-2">
-              <button
-                onClick={() => {
-                  // Navigate to full page for receipts and chat
-                  window.open(`/booking-confirmation/${bookingModal.details._id}`, '_blank');
-                }}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
-              >
-                Open Full Details
-              </button>
-              {(bookingModal.details.status === 'pending' || bookingModal.details.status === 'confirmed') && (
-                <button
-                  onClick={async () => {
-                    try {
-                      const res = await fetch(`${API_URL}/api/bookings/${bookingModal.details._id}/status`, {
-                        method: 'PATCH',
-                        headers: { 'Content-Type': 'application/json' },
-                        credentials: 'include',
-                        body: JSON.stringify({ status: 'cancelled' })
-                      });
-                      const data = await res.json();
-                      if (!res.ok) throw new Error(data.message || 'Failed to cancel');
-                      toast.success('Booking cancelled');
-                      setBookings(prev => prev.map(b => b.id === bookingModal.details._id ? { ...b, status: 'cancelled' } : b));
-                      setBookingModal(m => ({ ...m, details: { ...m.details, status: 'cancelled' } }));
-                    } catch (e) { toast.error(e.message); }
-                  }}
-                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100"
-                >
-                  Cancel Booking
-                </button>
-              )}
-            </div>
+                <div className="border-t bg-gray-50 p-4 flex items-center justify-end gap-2">
+                  <button
+                    onClick={() => {
+                      // Navigate to full page for receipts and chat
+                      window.open(`/booking-confirmation/${bookingModal.details._id}`, '_blank');
+                    }}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+                  >
+                    Open Full Details
+                  </button>
+                  {(bookingModal.details.status === 'pending' || bookingModal.details.status === 'confirmed') && (
+                    <button
+                      onClick={async () => {
+                        try {
+                          const res = await fetch(`${API_URL}/api/bookings/${bookingModal.details._id}/status`, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'include',
+                            body: JSON.stringify({ status: 'cancelled' })
+                          });
+                          const data = await res.json();
+                          if (!res.ok) throw new Error(data.message || 'Failed to cancel');
+                          toast.success('Booking cancelled');
+                          setBookings(prev => prev.map(b => b.id === bookingModal.details._id ? { ...b, status: 'cancelled' } : b));
+                          setBookingModal(m => ({ ...m, details: { ...m.details, status: 'cancelled' } }));
+                        } catch (e) { toast.error(e.message); }
+                      }}
+                      className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100"
+                    >
+                      Cancel Booking
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>

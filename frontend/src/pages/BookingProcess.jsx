@@ -332,6 +332,7 @@ const BookingProcess = () => {
         checkIn: bookingData.checkIn,
         checkOut: bookingData.checkOut,
         numberOfGuests: bookingData.guests,
+        guestBreakdown: bookingData.guestBreakdown,
         contactInfo: bookingData.contactInfo,
         specialRequests: bookingData.specialRequests,
         groupBooking: bookingData.guests >= 4,

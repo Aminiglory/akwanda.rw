@@ -1,8 +1,13 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FaStar, FaQuoteLeft } from 'react-icons/fa';
+import { FaStar, FaQuoteLeft, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 
 const Testimonials = () => {
+  const [index, setIndex] = useState(0);
+  const timerRef = useRef(null);
+  const [paused, setPaused] = useState(false);
+  const [reduceMotion, setReduceMotion] = useState(false);
+  const touchStartX = useRef(null);
   const testimonials = [
     {
       id: 1,
@@ -69,6 +74,30 @@ const Testimonials = () => {
     ));
   };
 
+  // Reduced motion
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const handler = () => setReduceMotion(!!mq.matches);
+    handler();
+    mq.addEventListener?.('change', handler);
+    return () => mq.removeEventListener?.('change', handler);
+  }, []);
+
+  // Autoplay
+  useEffect(() => {
+    if (paused || reduceMotion) return;
+    timerRef.current = setInterval(() => {
+      setIndex(i => (i + 1) % Math.ceil(testimonials.length / 3));
+    }, 6000);
+    return () => clearInterval(timerRef.current);
+  }, [paused, reduceMotion]);
+
+  const pageSize = 3; // show 3 cards on desktop
+  const pages = [];
+  for (let i = 0; i < testimonials.length; i += pageSize) {
+    pages.push(testimonials.slice(i, i + pageSize));
+  }
+
   return (
     <div className="bg-gray-50 py-16 px-4">
       <div className="max-w-6xl mx-auto">
@@ -81,49 +110,119 @@ const Testimonials = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {testimonials.map((testimonial, index) => (
+        {/* Carousel */}
+        <div className="relative">
+          <div
+            className="overflow-hidden"
+            onMouseEnter={() => setPaused(true)}
+            onMouseLeave={() => setPaused(false)}
+            onFocusCapture={() => setPaused(true)}
+            onBlurCapture={() => setPaused(false)}
+            onTouchStart={(e) => { touchStartX.current = e.touches[0].clientX; }}
+            onTouchEnd={(e) => {
+              const endX = e.changedTouches[0].clientX;
+              const delta = (touchStartX.current ?? endX) - endX;
+              if (Math.abs(delta) > 40) {
+                if (delta > 0) setIndex(i => (i + 1) % pages.length);
+                else setIndex(i => (i - 1 + pages.length) % pages.length);
+              }
+              touchStartX.current = null;
+            }}
+          >
             <div
-              key={testimonial.id}
-              className="bg-white rounded-2xl shadow-lg p-6 hover:shadow-xl transition-all duration-300 hover:scale-105 relative"
-              style={{ animationDelay: `${index * 0.1}s` }}
+              role="region"
+              aria-label="User testimonials"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'ArrowRight') setIndex(i => (i + 1) % pages.length);
+                if (e.key === 'ArrowLeft') setIndex(i => (i - 1 + pages.length) % pages.length);
+              }}
+              className="whitespace-nowrap transition-transform duration-500"
+              style={{ transform: `translateX(-${index * 100}%)` }}
             >
-              {/* Quote Icon */}
-              <div className="absolute top-4 right-4 text-blue-200">
-                <FaQuoteLeft className="text-2xl" />
-              </div>
+              {pages.map((page, pIdx) => (
+                <div className="inline-grid w-full align-top grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pr-0 md:pr-8" key={pIdx} style={{ width: '100%' }}>
+                  {page.map((testimonial, idx) => (
+                    <div
+                      key={testimonial.id}
+                      className={`bg-white rounded-2xl shadow-lg p-6 hover:shadow-xl transition-all duration-500 hover:-translate-y-1 relative ${pIdx === index ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}
+                      style={{ transitionDelay: `${idx * 80}ms` }}
+                    >
+                      {/* Quote Icon */}
+                      <div className="absolute top-4 right-4 text-blue-200">
+                        <FaQuoteLeft className="text-2xl" />
+                      </div>
 
-              {/* Rating */}
-              <div className="flex items-center mb-4">
-                {renderStars(testimonial.rating)}
-              </div>
+                      {/* Rating */}
+                      <div className="flex items-center mb-4">
+                        {renderStars(testimonial.rating)}
+                      </div>
 
-              {/* Testimonial Text */}
-              <p className="text-gray-700 mb-6 leading-relaxed">
-                "{testimonial.text}"
-              </p>
+                      {/* Testimonial Text */}
+                      <p className="text-gray-700 mb-6 leading-relaxed">
+                        "{testimonial.text}"
+                      </p>
 
-              {/* User Info */}
-              <div className="flex items-center">
-                <img
-                  src={testimonial.avatar}
-                  alt={testimonial.name}
-                  className="w-12 h-12 rounded-full object-cover mr-4"
-                />
-                <div>
-                  <h4 className="font-semibold text-gray-800">
-                    {testimonial.name}
-                  </h4>
-                  <p className="text-sm text-gray-600">
-                    {testimonial.role}
-                  </p>
-                  <p className="text-sm text-blue-600">
-                    📍 {testimonial.location}
-                  </p>
+                      {/* User Info */}
+                      <div className="flex items-center">
+                        <img
+                          src={testimonial.avatar}
+                          alt={testimonial.name}
+                          className="w-12 h-12 rounded-full object-cover mr-4"
+                        />
+                        <div>
+                          <h4 className="font-semibold text-gray-800">
+                            {testimonial.name}
+                          </h4>
+                          <p className="text-sm text-gray-600">
+                            {testimonial.role}
+                          </p>
+                          <p className="text-sm text-blue-600">
+                            📍 {testimonial.location}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              </div>
+              ))}
             </div>
-          ))}
+          </div>
+
+          {/* Controls */}
+          <div className="flex items-center justify-between mt-6">
+            <button
+              aria-label="Previous testimonials"
+              onClick={() => setIndex(i => (i - 1 + pages.length) % pages.length)}
+              className="group inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-gray-200 shadow-lg hover:shadow-xl hover:bg-gray-50 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            >
+              <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-50 text-blue-700 border border-blue-100">
+                <FaChevronLeft />
+              </span>
+              <span className="text-sm font-semibold text-gray-800 hidden sm:inline">Prev</span>
+            </button>
+            <div className="flex items-center gap-3">
+              {pages.map((_, i) => (
+                <button
+                  key={i}
+                  aria-label={`Go to testimonials page ${i + 1}`}
+                  aria-pressed={i === index}
+                  onClick={() => setIndex(i)}
+                  className={`rounded-full transition-all ${i === index ? 'bg-blue-600' : 'bg-gray-300'} w-3 h-3 md:w-2.5 md:h-2.5`}
+                />
+              ))}
+            </div>
+            <button
+              aria-label="Next testimonials"
+              onClick={() => setIndex(i => (i + 1) % pages.length)}
+              className="group inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-gray-200 shadow-lg hover:shadow-xl hover:bg-gray-50 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            >
+              <span className="text-sm font-semibold text-gray-800 hidden sm:inline">Next</span>
+              <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-50 text-blue-700 border border-blue-100">
+                <FaChevronRight />
+              </span>
+            </button>
+          </div>
         </div>
 
         {/* Call to Action */}
@@ -133,14 +232,13 @@ const Testimonials = () => {
               Ready to Join Our Community?
             </h3>
             <p className="text-blue-100 mb-6">
-              Whether you're looking for a place to stay or want to earn from your space, 
-              AKWANDA.rw is here for you.
+              Whether you're looking for a place to stay or want to earn from your space, AKWANDA.rw is here for you.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link to="/apartments" className="bg-white text-blue-600 px-8 py-3 rounded-xl font-semibold hover:bg-gray-100 transition-all duration-300 hover:scale-105 text-center">
+              <Link to="/apartments" className="bg-white text-blue-600 px-8 py-3 rounded-xl font-semibold hover:bg-gray-100 transition-all duration-300 text-center">
                 Find an Apartment
               </Link>
-              <Link to="/register" className="border-2 border-white text-white px-8 py-3 rounded-xl font-semibold hover:bg-white hover:text-blue-600 transition-all duration-300 hover:scale-105 text-center">
+              <Link to="/register" className="border-2 border-white text-white px-8 py-3 rounded-xl font-semibold hover:bg-white hover:text-blue-600 transition-all duration-300 text-center">
                 Sign Up to Host
               </Link>
             </div>

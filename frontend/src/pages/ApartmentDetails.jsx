@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import RoomCalendarPanel from '../components/RoomCalendarPanel';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
@@ -538,6 +539,19 @@ const ApartmentDetails = () => {
                               </div>
                             </div>
                           )}
+
+                          {/* Guest Read-only Availability Calendar */}
+                          <div className="mt-6">
+                            <h6 className="font-semibold text-gray-800 mb-2 flex items-center">
+                              <FaCalendarAlt className="mr-2 text-blue-600" />
+                              Availability Calendar
+                            </h6>
+                            <RoomCalendarPanel
+                              propertyId={apartment.id}
+                              room={room}
+                              readOnly={true}
+                            />
+                          </div>
                         </div>
                       </div>
 
