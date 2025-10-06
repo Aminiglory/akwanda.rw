@@ -26,6 +26,11 @@ const bookingSchema = new mongoose.Schema(
     rating: { type: Number, min: 1, max: 5 },
     comment: { type: String },
     confirmationCode: { type: String, unique: true },
+    guestBreakdown: {
+      adults: { type: Number, default: 1, min: 1 },
+      children: { type: Number, default: 0, min: 0 },
+      infants: { type: Number, default: 0, min: 0 }
+    },
     guestContact: {
       phone: { type: String },
       email: { type: String },

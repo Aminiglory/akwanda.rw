@@ -88,6 +88,37 @@ router.post('/', requireAuth, async (req, res) => {
 			return res.status(404).json({ message: 'Property not found or inactive' });
 		}
 
+		// Prevent overlapping bookings for the same room/property
+		const start = new Date(checkIn);
+		const end = new Date(checkOut);
+		if (isNaN(start.getTime()) || isNaN(end.getTime()) || end <= start) {
+			return res.status(400).json({ message: 'Invalid check-in/check-out dates' });
+		}
+		// If room specified, ensure it exists under property
+		let roomDoc = null;
+		if (room) {
+			roomDoc = (property.rooms || []).id(room);
+			if (!roomDoc) return res.status(400).json({ message: 'Selected room not found in property' });
+			// Check room closedDates overlap
+			const roomClosed = Array.isArray(roomDoc.closedDates) && roomDoc.closedDates.some(cd => {
+				if (!cd || !cd.startDate || !cd.endDate) return false;
+				const cs = new Date(cd.startDate); const ce = new Date(cd.endDate);
+				return cs < end && ce > start;
+			});
+			if (roomClosed) return res.status(409).json({ message: 'Room is locked for selected dates' });
+		}
+		// Overlap query: any booking on this property (and same room if provided) overlapping dates and not cancelled/ended
+		const overlapQuery = {
+			property: property._id,
+			status: { $nin: ['cancelled', 'ended'] },
+			$or: [ { checkIn: { $lt: end }, checkOut: { $gt: start } } ]
+		};
+		if (room) overlapQuery.room = room;
+		const conflict = await Booking.findOne(overlapQuery).lean();
+		if (conflict) {
+			return res.status(409).json({ message: 'Selected dates are no longer available' });
+		}
+
 		// Prevent bookings when host is blocked (auto-expire if punishment ended)
 		const hostUser = await User.findById(property.host);
 		if (hostUser && hostUser.isBlocked) {
@@ -101,9 +132,41 @@ router.post('/', requireAuth, async (req, res) => {
 			}
 		}
 
+		// Guest breakdown (adults/children/infants) and capacity checks
+		const gb = {
+			adults: Math.max(1, Number(req.body?.guestBreakdown?.adults || req.body?.numberOfGuests || 1)),
+			children: Math.max(0, Number(req.body?.guestBreakdown?.children || 0)),
+			infants: Math.max(0, Number(req.body?.guestBreakdown?.infants || 0))
+		};
+		const totalGuests = gb.adults + gb.children + gb.infants;
+		// Room capacity and per-type limits if room is specified
+		if (roomDoc) {
+			const withinCapacity = totalGuests <= Number(roomDoc.capacity || 0);
+			const withinTypes = gb.adults <= (roomDoc.maxAdults || gb.adults)
+				&& gb.children <= (roomDoc.maxChildren ?? gb.children)
+				&& gb.infants <= (roomDoc.maxInfants ?? gb.infants);
+			if (!withinCapacity || !withinTypes) {
+				return res.status(400).json({ message: 'Guest count exceeds room capacity or policy limits' });
+			}
+		} else {
+			if (totalGuests > Number(property.bedrooms || 1) * 3) {
+				return res.status(400).json({ message: 'Guest count too large for selected property' });
+			}
+		}
+
 		// Calculate pricing
 		const nights = Math.max(1, Math.ceil((new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24)));
-		let basePrice = property.pricePerNight * nights;
+		// Determine nightly base from room if provided
+		let nightlyBase = property.pricePerNight;
+		if (roomDoc) nightlyBase = roomDoc.pricePerNight || nightlyBase;
+		// Apply simple guest-type pricing: adults 100%, children policy percent, infants free
+		const childPercent = roomDoc && roomDoc.childrenPolicy && typeof roomDoc.childrenPolicy.chargePercent === 'number'
+			? roomDoc.childrenPolicy.chargePercent : 50;
+		const infantsChargePercent = 0;
+		const perNightFactor = Math.max(1,
+			gb.adults + (gb.children * (childPercent / 100)) + (gb.infants * (infantsChargePercent / 100))
+		);
+		let basePrice = Math.round(nightlyBase * perNightFactor) * nights;
 
 		// Apply group discount if applicable
 		let discountAmount = 0;
@@ -147,6 +210,7 @@ router.post('/', requireAuth, async (req, res) => {
 			groupBooking: groupBooking || false,
 			groupSize: groupSize || numberOfGuests,
 			discountApplied: discountAmount,
+			guestBreakdown: gb,
 			guestContact: {
 				phone: contactInfo?.phone,
 				email: contactInfo?.email,
@@ -374,8 +438,36 @@ router.post('/:id/commission/confirm', requireAuth, async (req, res) => {
 // List all bookings (admin only)
 router.get('/', requireAuth, async (req, res) => {
     try {
-        if (req.user.userType !== 'admin') return res.status(403).json({ message: 'Admin only' });
-        const bookings = await Booking.find({})
+        const { propertyId, month, year } = req.query;
+        // If propertyId filter is provided, allow property owner or admin to view; also allow owner of that property
+        let query = {};
+        if (propertyId) {
+            query.property = propertyId;
+            // Date window if month/year provided
+            if (month && year) {
+                const m = Number(month) - 1; // JS months 0-based
+                const y = Number(year);
+                const start = new Date(y, m, 1);
+                const end = new Date(y, m + 1, 1);
+                query.$or = [ { checkIn: { $lt: end }, checkOut: { $gt: start } } ];
+            }
+            // Access control: guest can view their own bookings; property owner and admin can view property bookings
+            const property = await Property.findById(propertyId).select('host');
+            const isOwner = property && String(property.host) === String(req.user.id);
+            const isAdmin = req.user.userType === 'admin';
+            const isGuest = !isOwner && !isAdmin; // fall back to guest scope
+            if (!isOwner && !isAdmin && !isGuest) {
+                return res.status(403).json({ message: 'Forbidden' });
+            }
+            if (isGuest) {
+                query.guest = req.user.id;
+            }
+        } else {
+            // No property filter: admin only
+            if (req.user.userType !== 'admin') return res.status(403).json({ message: 'Admin only' });
+        }
+
+        const bookings = await Booking.find(query)
             .populate('property', 'title city address images host')
             .populate('guest', 'firstName lastName email phone')
             .sort({ createdAt: -1 });

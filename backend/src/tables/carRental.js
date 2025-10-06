@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 
 const carRentalSchema = new mongoose.Schema(
   {
+    owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     vehicleName: { type: String, required: true },
     vehicleType: { type: String, enum: ['economy', 'compact', 'mid-size', 'full-size', 'luxury', 'suv', 'minivan'], required: true },
     brand: { type: String, required: true },

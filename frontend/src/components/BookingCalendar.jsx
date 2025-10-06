@@ -60,7 +60,8 @@ const BookingCalendar = ({ propertyId, onBookingSelect }) => {
     return bookings.filter(booking => {
       const checkIn = new Date(booking.checkIn);
       const checkOut = new Date(booking.checkOut);
-      return date >= checkIn && date <= checkOut;
+      // Treat checkout day as available (end-exclusive)
+      return date >= checkIn && date < checkOut;
     });
   };
 

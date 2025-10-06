@@ -20,16 +20,21 @@ const ApartmentsListing = () => {
   const { isAuthenticated, isLoading } = useAuth();
   const [filters, setFilters] = useState({
     location: "",
-    priceRange: "",
+    priceMin: 0,
+    priceMax: 500000,
     bedrooms: "",
     amenities: [],
     sortBy: "price-asc",
+    checkIn: "",
+    checkOut: "",
+    guests: 1,
   });
 
   const [showFilters, setShowFilters] = useState(false);
   const [apartments, setApartments] = useState([]);
-  const [allApartments, setAllApartments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [fetchTimer, setFetchTimer] = useState(null);
+  const [budgetBounds, setBudgetBounds] = useState({ min: 0, max: 1000000 });
 
   const makeAbsolute = (u) => {
     if (!u) return u;
@@ -41,45 +46,78 @@ const ApartmentsListing = () => {
     return s;
   };
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch(`${API_URL}/api/properties`, {
-          credentials: "include",
-        });
-        const data = await res.json();
-        if (!res.ok)
-          throw new Error(data.message || "Failed to load properties");
-        const mapped = (data.properties || []).map((p) => ({
-          id: p._id,
-          title: p.title,
-          location: `${p.address}, ${p.city}`,
-          price: p.pricePerNight,
-          rating: 4.7,
-          reviews: 0,
-          bedrooms: p.bedrooms ?? 0,
-          bathrooms: p.bathrooms ?? 0,
-          size: p.size || "—",
-          image:
-            p.images && p.images.length
-              ? makeAbsolute(p.images[0])
-              : "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=500&h=300&fit=crop",
-          amenities:
-            Array.isArray(p.amenities) && p.amenities.length
-              ? p.amenities
-              : ["WiFi", "Parking", "Kitchen"],
-          isAvailable: p.isActive,
-          host: p.host ? `${p.host.firstName} ${p.host.lastName}` : "—",
-        }));
-        setAllApartments(mapped);
-        setApartments(mapped);
-      } catch (e) {
-        toast.error(e.message);
-      } finally {
-        setLoading(false);
+  const fetchProperties = async (signal) => {
+    try {
+      setLoading(true);
+      const params = new URLSearchParams();
+      if (filters.location) params.set('q', filters.location);
+      if (filters.priceMin != null) params.set('minPrice', String(filters.priceMin));
+      if (filters.priceMax != null) params.set('maxPrice', String(filters.priceMax));
+      if (filters.bedrooms) params.set('bedrooms', filters.bedrooms);
+      if (filters.amenities.length) params.set('amenities', filters.amenities.join(','));
+      if (filters.checkIn && filters.checkOut) {
+        params.set('startDate', filters.checkIn);
+        params.set('endDate', filters.checkOut);
       }
-    })();
-  }, []);
+      const res = await fetch(`${API_URL}/api/properties?${params.toString()}`, { credentials: 'include', signal });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to load properties');
+      const list = (data.properties || []);
+      const mapped = list.map((p) => ({
+        id: p._id,
+        title: p.title,
+        location: `${p.address}, ${p.city}`,
+        price: p.pricePerNight,
+        rating: p.ratings?.length ? (p.ratings.reduce((s, r) => s + r.rating, 0) / p.ratings.length).toFixed(1) : 0,
+        reviews: p.ratings?.length || 0,
+        bedrooms: p.bedrooms ?? 0,
+        bathrooms: p.bathrooms ?? 0,
+        size: p.size || "—",
+        image:
+          p.images && p.images.length
+            ? makeAbsolute(p.images[0])
+            : "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=500&h=300&fit=crop",
+        amenities:
+          Array.isArray(p.amenities) && p.amenities.length
+            ? p.amenities
+            : ["WiFi", "Parking", "Kitchen"],
+        isAvailable: p.isActive,
+        host: p.host ? `${p.host.firstName} ${p.host.lastName}` : "—",
+      }));
+      setApartments(mapped);
+      // Auto-scale slider bounds from returned data
+      if (mapped.length) {
+        const prices = mapped.map(m => m.price).filter(n => typeof n === 'number' && !isNaN(n));
+        if (prices.length) {
+          const min = Math.max(0, Math.min(...prices));
+          const max = Math.max(...prices);
+          setBudgetBounds({ min: 0, max: Math.max(max, 100000) });
+          // Keep selected range within new bounds but not force to 0 if user selected higher lower-bound
+          setFilters(prev => ({
+            ...prev,
+            priceMin: Math.max(Math.min(prev.priceMin, Math.max(max, 100000)), 0),
+            priceMax: Math.min(Math.max(prev.priceMax, prev.priceMin + 5000), Math.max(max, 100000))
+          }));
+        }
+      }
+    } catch (e) {
+      if (e.name !== 'AbortError') toast.error(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const controller = new AbortController();
+    // simple debounce
+    if (fetchTimer) clearTimeout(fetchTimer);
+    const t = setTimeout(() => fetchProperties(controller.signal), 300);
+    setFetchTimer(t);
+    return () => {
+      controller.abort();
+      clearTimeout(t);
+    };
+  }, [filters.location, filters.priceMin, filters.priceMax, filters.bedrooms, filters.amenities.join(','), filters.checkIn, filters.checkOut]);
 
   const handleFilterChange = (field, value) => {
     setFilters((prev) => ({
@@ -98,50 +136,25 @@ const ApartmentsListing = () => {
   };
 
   useEffect(() => {
-    let list = [...allApartments];
-    // Location
-    if (filters.location) {
-      const q = filters.location.toLowerCase();
-      list = list.filter(
-        (a) =>
-          a.location.toLowerCase().includes(q) ||
-          a.title.toLowerCase().includes(q)
-      );
-    }
-    // Price
-    if (filters.priceRange) {
-      const [minStr, maxStr] = filters.priceRange.split("-");
-      const min = Number(minStr || 0);
-      const max = maxStr === "+" ? Infinity : Number(maxStr || Infinity);
-      list = list.filter((a) => a.price >= min && a.price <= max);
-    }
-    // Bedrooms
-    if (filters.bedrooms) {
-      const b = filters.bedrooms === "4+" ? 4 : Number(filters.bedrooms);
-      list = list.filter((a) => a.bedrooms >= b);
-    }
-    // Amenities
-    if (filters.amenities.length) {
-      list = list.filter((a) =>
-        filters.amenities.every((am) => a.amenities.includes(am))
-      );
-    }
-    // Sort
-    switch (filters.sortBy) {
-      case "price-asc":
-        list.sort((x, y) => x.price - y.price);
-        break;
-      case "price-desc":
-        list.sort((x, y) => y.price - x.price);
-        break;
-      case "newest":
-        // not in mapping; keep as-is
-        break;
-      default:
-        break;
-    }
-    setApartments(list);
-  }, [filters, allApartments]);
+    // client-side sort only (data is already filtered server-side)
+    setApartments((prev) => {
+      const list = [...prev];
+      switch (filters.sortBy) {
+        case 'price-asc':
+          list.sort((x, y) => x.price - y.price);
+          break;
+        case 'price-desc':
+          list.sort((x, y) => y.price - x.price);
+          break;
+        case 'rating-desc':
+          list.sort((x, y) => (Number(y.rating) || 0) - (Number(x.rating) || 0));
+          break;
+        default:
+          break;
+      }
+      return list;
+    });
+  }, [filters.sortBy]);
 
   const renderStars = (rating) => {
     return Array.from({ length: 5 }, (_, i) => (
@@ -240,24 +253,64 @@ const ApartmentsListing = () => {
                 </div>
               </div>
 
-              {/* Price Range */}
+              {/* Budget Range Slider (Booking.com-like) */}
               <div className="mb-6">
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Price Range
-                </label>
-                <select
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  value={filters.priceRange}
-                  onChange={(e) =>
-                    handleFilterChange("priceRange", e.target.value)
-                  }
-                >
-                  <option value="">Any Price</option>
-                  <option value="0-50000">RWF 0 - 50,000</option>
-                  <option value="50000-100000">RWF 50,000 - 100,000</option>
-                  <option value="100000-150000">RWF 100,000 - 150,000</option>
-                  <option value="150000+">RWF 150,000+</option>
-                </select>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Budget (per night)</label>
+                <div className="px-1">
+                  <div className="flex items-center justify-between text-xs text-gray-600 mb-1">
+                    <span>RWF {filters.priceMin.toLocaleString()}</span>
+                    <span>RWF {filters.priceMax.toLocaleString()}</span>
+                  </div>
+                  <div className="relative h-6">
+                    <input
+                      type="range"
+                      min={budgetBounds.min}
+                      max={budgetBounds.max}
+                      step="5000"
+                      value={filters.priceMin}
+                      onChange={(e) => handleFilterChange('priceMin', Math.min(Number(e.target.value), filters.priceMax - 5000))}
+                      className="absolute w-full pointer-events-auto appearance-none bg-transparent"
+                      style={{ top: 12 }}
+                    />
+                    <input
+                      type="range"
+                      min={budgetBounds.min}
+                      max={budgetBounds.max}
+                      step="5000"
+                      value={filters.priceMax}
+                      onChange={(e) => handleFilterChange('priceMax', Math.max(Number(e.target.value), filters.priceMin + 5000))}
+                      className="absolute w-full pointer-events-auto appearance-none bg-transparent"
+                      style={{ top: 12 }}
+                    />
+                  </div>
+                  {/* Slider auto-scales bounds based on results; no extra inputs required */}
+                </div>
+              </div>
+
+              {/* Dates & Guests */}
+              <div className="mb-6 grid grid-cols-1 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Check-in</label>
+                  <input type="date" className="w-full px-3 py-2 border rounded-lg"
+                    value={filters.checkIn}
+                    onChange={(e) => handleFilterChange('checkIn', e.target.value)} />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Check-out</label>
+                  <input type="date" className="w-full px-3 py-2 border rounded-lg"
+                    min={filters.checkIn || undefined}
+                    value={filters.checkOut}
+                    onChange={(e) => handleFilterChange('checkOut', e.target.value)} />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Guests</label>
+                  <select className="w-full px-3 py-2 border rounded-lg" value={filters.guests}
+                    onChange={(e) => handleFilterChange('guests', Number(e.target.value))}>
+                    {Array.from({ length: 10 }, (_, i) => (
+                      <option key={i+1} value={i+1}>{i+1} {i===0?'Guest':'Guests'}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               {/* Bedrooms */}
@@ -308,10 +361,14 @@ const ApartmentsListing = () => {
                 onClick={() =>
                   setFilters({
                     location: "",
-                    priceRange: "",
+                    priceMin: 0,
+                    priceMax: 500000,
                     bedrooms: "",
                     amenities: [],
                     sortBy: "price-asc",
+                    checkIn: "",
+                    checkOut: "",
+                    guests: 1,
                   })
                 }
                 className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 rounded-lg transition-colors"

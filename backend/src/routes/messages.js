@@ -18,6 +18,106 @@ function requireAuth(req, res, next) {
     }
 }
 
+// Threads list (generic): recent conversation partners and last message
+router.get('/threads', requireAuth, async (req, res) => {
+    try {
+        const msgs = await Message.find({ $or: [{ sender: req.user.id }, { recipient: req.user.id }] })
+            .sort({ createdAt: -1 })
+            .limit(100)
+            .populate('sender', 'firstName lastName')
+            .populate('recipient', 'firstName lastName');
+        const seen = new Set();
+        const threads = [];
+        for (const m of msgs) {
+            const other = String(m.sender._id) === String(req.user.id) ? m.recipient : m.sender;
+            const key = String(other._id);
+            if (seen.has(key)) continue;
+            seen.add(key);
+            threads.push({ userId: key, name: `${other.firstName || ''} ${other.lastName || ''}`.trim() || 'User', lastMessage: { text: m.message, createdAt: m.createdAt }, context: m.booking ? { bookingId: String(m.booking) } : (m.carBooking ? { carBookingId: String(m.carBooking) } : undefined) });
+        }
+        res.json({ threads });
+    } catch (e) {
+        res.status(500).json({ message: 'Failed to load threads' });
+    }
+});
+
+// Message history between current user and another, optional booking context
+router.get('/history', requireAuth, async (req, res) => {
+    try {
+        const { userId, bookingId, carBookingId } = req.query;
+        if (!userId) return res.status(400).json({ message: 'userId required' });
+        const q = {
+            $and: [
+                { $or: [ { sender: req.user.id, recipient: userId }, { sender: userId, recipient: req.user.id } ] }
+            ]
+        };
+        if (bookingId) q.$and.push({ booking: bookingId });
+        if (carBookingId) q.$and.push({ carBooking: carBookingId });
+        const list = await Message.find(q).sort({ createdAt: 1 });
+        res.json({ messages: list });
+    } catch (e) {
+        res.status(500).json({ message: 'Failed to load history' });
+    }
+});
+
+// Generic send endpoint (supports property booking or car booking contexts)
+router.post('/send', requireAuth, async (req, res) => {
+    try {
+        const { to, text, bookingId, carBookingId } = req.body || {};
+        if (!to || !text || !text.trim()) return res.status(400).json({ message: 'Invalid payload' });
+
+        let allowed = false;
+        let context = {};
+        if (bookingId) {
+            const book = await Booking.findById(bookingId).populate('property');
+            if (!book) return res.status(404).json({ message: 'Booking not found' });
+            const isGuest = String(book.guest) === String(req.user.id);
+            const isOwner = book.property && String(book.property.host) === String(req.user.id);
+            allowed = isGuest || isOwner || req.user.userType === 'admin';
+            context.booking = book._id;
+        }
+        if (carBookingId && !allowed) {
+            const CarRentalBooking = require('../tables/carRentalBooking');
+            const CarRental = require('../tables/carRental');
+            const cb = await CarRentalBooking.findById(carBookingId);
+            if (!cb) return res.status(404).json({ message: 'Car booking not found' });
+            const car = await CarRental.findById(cb.car).select('owner');
+            const isGuest = String(cb.guest) === String(req.user.id);
+            const isOwner = car && String(car.owner) === String(req.user.id);
+            allowed = isGuest || isOwner || req.user.userType === 'admin';
+            context.carBooking = cb._id;
+        }
+        if (!bookingId && !carBookingId) {
+            // Allow direct messaging (fallback) between any two authenticated users
+            allowed = true;
+        }
+        if (!allowed) return res.status(403).json({ message: 'Unauthorized' });
+
+        const newMessage = await Message.create({
+            booking: context.booking,
+            carBooking: context.carBooking,
+            sender: req.user.id,
+            recipient: to,
+            message: text.trim()
+        });
+
+        // Socket events
+        try {
+            const io = req.app.get('io');
+            if (io) {
+                const payload = { message: newMessage, bookingId: context.booking ? String(context.booking) : undefined, carBookingId: context.carBooking ? String(context.carBooking) : undefined };
+                if (context.booking) io.to(`booking:${String(context.booking)}`).emit('message:new', payload);
+                if (context.carBooking) io.to(`carBooking:${String(context.carBooking)}`).emit('message:new', payload);
+                io.to(`user:${String(to)}`).emit('message:new', payload);
+            }
+        } catch (_) {}
+
+        res.status(201).json({ message: newMessage });
+    } catch (e) {
+        res.status(500).json({ message: 'Failed to send message' });
+    }
+});
+
 // Get messages for a booking
 router.get('/booking/:bookingId', requireAuth, async (req, res) => {
     try {

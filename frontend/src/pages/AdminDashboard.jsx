@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaChartLine, FaUsers, FaBed, FaCalendarAlt, FaDollarSign, FaStar, FaMapMarkerAlt, FaCar, FaPlane, FaCamera, FaFilter, FaSearch, FaEdit, FaTrash, FaPlus, FaEye, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
+import { FaChartLine, FaUsers, FaBed, FaCalendarAlt, FaDollarSign, FaStar, FaMapMarkerAlt, FaCar, FaPlane, FaCamera, FaFilter, FaSearch, FaEdit, FaTrash, FaPlus, FaEye, FaCheckCircle, FaTimesCircle, FaComments } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import AdminCommissionManager from '../components/AdminCommissionManager';
@@ -227,6 +227,8 @@ const AdminDashboard = () => {
                 { id: 'properties', label: 'Properties', icon: FaBed },
                 { id: 'bookings', label: 'Bookings', icon: FaCalendarAlt },
                 { id: 'users', label: 'Users', icon: FaUsers },
+                { id: 'content', label: 'Content', icon: FaCamera },
+                { id: 'cars', label: 'Cars', icon: FaCar },
                 { id: 'commissions', label: 'Commissions', icon: FaDollarSign }
               ].map(({ id, label, icon: Icon }) => (
                 <button
@@ -551,6 +553,66 @@ const AdminDashboard = () => {
             {activeTab === 'commissions' && (
               <div>
                 <AdminCommissionManager />
+              </div>
+            )}
+
+            {/* Content Tab */}
+            {activeTab === 'content' && (
+              <div className="space-y-6">
+                <h3 className="text-lg font-semibold text-gray-900">Site Content</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <Link to="/admin/landing" className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
+                    <div className="flex items-center gap-3 mb-3">
+                      <FaCamera className="text-blue-600 text-xl" />
+                      <div className="font-semibold text-gray-900">Landing Page CMS</div>
+                    </div>
+                    <p className="text-sm text-gray-600">Edit hero title/subtitle, manage slideshow images and captions, and publish changes.</p>
+                  </Link>
+                  <Link to="/admin/attractions" className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
+                    <div className="flex items-center gap-3 mb-3">
+                      <FaCamera className="text-purple-600 text-xl" />
+                      <div className="font-semibold text-gray-900">Attractions Page CMS</div>
+                    </div>
+                    <p className="text-sm text-gray-600">Manage attractions content, images, and publish the page.</p>
+                  </Link>
+                  <Link to="/messages" className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
+                    <div className="flex items-center gap-3 mb-3">
+                      <FaComments className="text-green-600 text-xl" />
+                      <div className="font-semibold text-gray-900">Messages</div>
+                    </div>
+                    <p className="text-sm text-gray-600">Open conversations with users and property/car owners.</p>
+                  </Link>
+                </div>
+              </div>
+            )}
+
+            {/* Cars Tab */}
+            {activeTab === 'cars' && (
+              <div className="space-y-6">
+                <h3 className="text-lg font-semibold text-gray-900">Car Rentals</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <Link to="/owner/cars" className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
+                    <div className="flex items-center gap-3 mb-3">
+                      <FaCar className="text-blue-600 text-xl" />
+                      <div className="font-semibold text-gray-900">Manage Fleet</div>
+                    </div>
+                    <p className="text-sm text-gray-600">Create and edit cars, upload images, view and manage bookings.</p>
+                  </Link>
+                  <Link to="/cars" className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
+                    <div className="flex items-center gap-3 mb-3">
+                      <FaEye className="text-indigo-600 text-xl" />
+                      <div className="font-semibold text-gray-900">Public Car Listings</div>
+                    </div>
+                    <p className="text-sm text-gray-600">View the public car rental page as users see it.</p>
+                  </Link>
+                  <Link to="/messages" className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
+                    <div className="flex items-center gap-3 mb-3">
+                      <FaComments className="text-green-600 text-xl" />
+                      <div className="font-semibold text-gray-900">Messages</div>
+                    </div>
+                    <p className="text-sm text-gray-600">Chat with renters and owners in real-time.</p>
+                  </Link>
+                </div>
               </div>
             )}
           </div>

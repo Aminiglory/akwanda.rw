@@ -17,6 +17,9 @@ const paymentsRouter = require('./routes/payments');
 const billingRouter = require('./routes/billing');
 const supportRouter = require('./routes/support');
 const messagesRouter = require('./routes/messages');
+const contentRouter = require('./routes/content');
+const carsRouter = require('./routes/cars');
+const carBookingsRouter = require('./routes/carBookings');
 const User = require('./tables/user');
 
 const app = express();
@@ -71,6 +74,9 @@ app.use('/api/payments', paymentsRouter);
 app.use('/api/billing', billingRouter);
 app.use('/api/support', supportRouter);
 app.use('/api/messages', messagesRouter);
+app.use('/api/content', contentRouter);
+app.use('/api/cars', carsRouter);
+app.use('/api/car-bookings', carBookingsRouter);
 
 // Create HTTP server and bind Socket.IO
 const server = http.createServer(app);
