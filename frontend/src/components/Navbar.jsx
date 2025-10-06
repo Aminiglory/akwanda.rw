@@ -119,6 +119,14 @@ const Navbar = () => {
                   </Link>
                   {user?.userType === 'host' && (
                     <Link
+                      to="/my-bookings"
+                      className="hidden sm:inline hover:text-blue-200 font-medium"
+                    >
+                      My Bookings
+                    </Link>
+                  )}
+                  {user?.userType === 'host' && (
+                    <Link
                       to="/owner/cars"
                       className="hidden sm:inline hover:text-blue-200 font-medium"
                     >
@@ -417,6 +425,16 @@ const Navbar = () => {
                           >
                             <FaUser className="mr-3 text-blue-600" />
                             My Cars
+                          </Link>
+                        )}
+                        {user?.userType === 'host' && (
+                          <Link
+                            to="/my-bookings"
+                            className="flex items-center px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-700"
+                            onClick={() => setIsUserMenuOpen(false)}
+                          >
+                            <FaUser className="mr-3 text-blue-600" />
+                            My Bookings
                           </Link>
                         )}
                         

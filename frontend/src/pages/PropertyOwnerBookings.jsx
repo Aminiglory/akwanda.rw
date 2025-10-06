@@ -3,6 +3,7 @@ import { FaCalendarAlt, FaUsers, FaMoneyBillWave, FaCheckCircle, FaClock, FaEye,
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import BookingManagementPanel from '../components/BookingManagementPanel';
+import RoomCalendarPanel from '../components/RoomCalendarPanel';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -274,10 +275,30 @@ const PropertyOwnerBookings = () => {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4">
-        {/* Header */}
-        <div className="mb-8">
+        {/* Header + Tabs */}
+        <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">My Property Bookings</h1>
-          <p className="text-gray-600">Track and manage all bookings for your properties</p>
+          <p className="text-gray-600 mb-4">Track bookings, view room calendars, and manage availability</p>
+          <div className="flex items-center gap-4 border-b">
+            {[
+              { id: 'bookings', label: 'Bookings', icon: FaCalendarAlt },
+              { id: 'properties', label: 'Calendars', icon: FaHome },
+              { id: 'analytics', label: 'Analytics', icon: FaChartLine }
+            ].map(tab => {
+              const Icon = tab.icon;
+              const active = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center gap-2 px-3 py-2 -mb-px border-b-2 ${active ? 'border-gray-900 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-800'}`}
+                >
+                  <Icon />
+                  <span className="font-medium text-sm">{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Stats Cards */}
@@ -333,7 +354,7 @@ const PropertyOwnerBookings = () => {
           </div>
         </div>
 
-        {/* Filters and Search */}
+        {activeTab === 'bookings' && (
         <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div className="flex items-center space-x-4">
@@ -373,8 +394,9 @@ const PropertyOwnerBookings = () => {
             </div>
           </div>
         </div>
+        )}
 
-        {/* Bookings Table */}
+        {activeTab === 'bookings' && (
         <div className="bg-white rounded-xl shadow-lg overflow-hidden">
           {filteredBookings.length === 0 ? (
             <div className="text-center py-12">
@@ -499,6 +521,37 @@ const PropertyOwnerBookings = () => {
             </div>
           )}
         </div>
+        )}
+
+        {activeTab === 'properties' && (
+          <div className="space-y-6">
+            {properties.map((p) => (
+              <div key={p._id} className="bg-white rounded-xl shadow p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">{p.title}</h3>
+                    <p className="text-sm text-gray-600">{p.city} • {p.address}</p>
+                  </div>
+                  <span className="text-xs px-2 py-1 rounded border text-gray-600">{(p.category || 'apartment').toUpperCase()}</span>
+                </div>
+                {Array.isArray(p.rooms) && p.rooms.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {p.rooms.map((room) => (
+                      <RoomCalendarPanel
+                        key={room._id || room.roomNumber}
+                        propertyId={p._id}
+                        room={room}
+                        onChanged={fetchBookings}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-600">No rooms configured for this property.</p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Summary Footer */}
         <div className="mt-8 bg-blue-50 border border-blue-200 rounded-xl p-6">
@@ -523,7 +576,6 @@ const PropertyOwnerBookings = () => {
         </div>
       </div>
 
-      {/* Booking Management Panel */}
       {showBookingPanel && selectedBooking && (
         <BookingManagementPanel
           booking={selectedBooking}

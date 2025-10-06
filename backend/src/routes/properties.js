@@ -122,6 +122,17 @@ router.get('/mine', requireAuth, async (req, res) => {
     res.json({ properties: list });
 });
 
+// IMPORTANT: Specific routes must come BEFORE parameter routes like '/:id'
+router.get('/my-properties', requireAuth, async (req, res) => {
+    try {
+        const properties = await Property.find({ host: req.user.id }).sort({ createdAt: -1 });
+        res.json({ properties });
+    } catch (error) {
+        console.error('Get my properties error:', error);
+        res.status(500).json({ message: 'Failed to fetch properties', error: error.message });
+    }
+});
+
 router.get('/:id', async (req, res) => {
     const property = await Property.findById(req.params.id).populate('host', 'firstName lastName isBlocked blockedUntil');
     if (!property || !property.isActive) return res.status(404).json({ message: 'Property not found' });
@@ -206,6 +217,11 @@ router.post('/', requireAuth, upload.array('images', 10), async (req, res) => {
         mergedImages.push(...urls.map(u => String(u).replace(/\\+/g, '/')));
     }
     const payload = { ...req.body, images: mergedImages, host: req.user.id };
+    // Clamp commissionRate to [8,12] if provided
+    if (payload.commissionRate != null) {
+        const cr = Number(payload.commissionRate);
+        payload.commissionRate = Math.min(12, Math.max(8, isNaN(cr) ? 10 : cr));
+    }
     // Coerce roomRules to array if provided
     if (payload.roomRules && !Array.isArray(payload.roomRules)) {
         payload.roomRules = [payload.roomRules];
@@ -230,9 +246,13 @@ router.put('/:id', requireAuth, upload.array('images', 10), async (req, res) => 
     }
     const updates = { ...req.body };
     // Coerce number fields
-    ['pricePerNight','bedrooms','bathrooms','discountPercent'].forEach(k => {
+    ['pricePerNight','bedrooms','bathrooms','discountPercent','commissionRate'].forEach(k => {
         if (updates[k] != null) updates[k] = Number(updates[k]);
     });
+    // Clamp commissionRate to [8,12]
+    if (updates.commissionRate != null) {
+        updates.commissionRate = Math.min(12, Math.max(8, Number(updates.commissionRate)));
+    }
     // Amenities (multer form arrays come as string or array)
     if (updates.amenities && !Array.isArray(updates.amenities)) {
         updates.amenities = [updates.amenities];
@@ -463,15 +483,7 @@ router.delete('/:id', requireAuth, async (req, res) => {
 });
 
 // Get my properties (for property owner dashboard)
-router.get('/my-properties', requireAuth, async (req, res) => {
-    try {
-        const properties = await Property.find({ host: req.user.id }).sort({ createdAt: -1 });
-        res.json({ properties });
-    } catch (error) {
-        console.error('Get my properties error:', error);
-        res.status(500).json({ message: 'Failed to fetch properties', error: error.message });
-    }
-});
+// (moved above '/:id')
 
 module.exports = router;
 

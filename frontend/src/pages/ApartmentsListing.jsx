@@ -46,6 +46,12 @@ const ApartmentsListing = () => {
     return s;
   };
 
+  const isImageUrl = (url) => {
+    if (!url) return false;
+    const s = String(url).toLowerCase();
+    return s.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/);
+  };
+
   const fetchProperties = async (signal) => {
     try {
       setLoading(true);
@@ -63,27 +69,33 @@ const ApartmentsListing = () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to load properties');
       const list = (data.properties || []);
-      const mapped = list.map((p) => ({
+      const mapped = list.map((p) => {
+        // choose first valid image (skip videos or invalid)
+        let img = undefined;
+        if (Array.isArray(p.images) && p.images.length) {
+          const firstImg = p.images.find(isImageUrl) || p.images.find(Boolean);
+          img = firstImg ? makeAbsolute(firstImg) : undefined;
+        }
+        return ({
         id: p._id,
         title: p.title,
         location: `${p.address}, ${p.city}`,
         price: p.pricePerNight,
+        category: p.category || 'apartment',
         rating: p.ratings?.length ? (p.ratings.reduce((s, r) => s + r.rating, 0) / p.ratings.length).toFixed(1) : 0,
         reviews: p.ratings?.length || 0,
         bedrooms: p.bedrooms ?? 0,
         bathrooms: p.bathrooms ?? 0,
         size: p.size || "—",
-        image:
-          p.images && p.images.length
-            ? makeAbsolute(p.images[0])
-            : "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=500&h=300&fit=crop",
+        image: img || "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=500&h=300&fit=crop",
         amenities:
           Array.isArray(p.amenities) && p.amenities.length
             ? p.amenities
             : ["WiFi", "Parking", "Kitchen"],
         isAvailable: p.isActive,
         host: p.host ? `${p.host.firstName} ${p.host.lastName}` : "—",
-      }));
+      });
+      });
       setApartments(mapped);
       // Auto-scale slider bounds from returned data
       if (mapped.length) {
@@ -383,9 +395,7 @@ const ApartmentsListing = () => {
             {/* Sort and Results */}
             <div className="flex items-center justify-between mb-6">
               <p className="text-gray-600">
-                {loading
-                  ? "Loading..."
-                  : `${apartments.length} apartments found`}
+                {loading ? "Loading..." : `${apartments.length} stays found`}
               </p>
               <div className="flex items-center space-x-2">
                 <FaSortAmountDown className="text-gray-400" />
@@ -428,6 +438,9 @@ const ApartmentsListing = () => {
                     )}
                     <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1 text-sm font-semibold text-gray-800">
                       RWF {apartment.price.toLocaleString()}/month
+                    </div>
+                    <div className="absolute bottom-4 left-4 bg-gray-800/80 text-white px-2 py-0.5 rounded text-xs font-medium">
+                      {apartment.category.charAt(0).toUpperCase() + apartment.category.slice(1)}
                     </div>
                   </div>
 

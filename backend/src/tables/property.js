@@ -46,7 +46,7 @@ const propertySchema = new mongoose.Schema(
     rooms: [roomSchema],
     groupBookingEnabled: { type: Boolean, default: false },
     groupBookingDiscount: { type: Number, default: 0 },
-    commissionRate: { type: Number, default: 10, min: 0, max: 50 },
+    commissionRate: { type: Number, default: 10, min: 8, max: 12 },
     visibilityLevel: { type: String, enum: ['standard', 'premium', 'featured'], default: 'standard' },
     featuredUntil: { type: Date },
     ratings: [{

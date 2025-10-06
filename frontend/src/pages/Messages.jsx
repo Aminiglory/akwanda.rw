@@ -107,7 +107,7 @@ export default function Messages() {
       </div>
 
       {/* Chat */}
-      <div className="md:col-span-2 bg-white rounded-lg shadow flex flex-col">
+      <div className="md:col-span-2 bg-white rounded-lg shadow flex flex-col overflow-y-scroll">
         <div className="px-4 py-3 border-b">
           <div className="font-semibold">{active?.name || 'Select a conversation'}</div>
           {active?.context?.bookingId && <div className="text-xs text-gray-600">Booking: {active.context.bookingId}</div>}

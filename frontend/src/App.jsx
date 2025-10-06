@@ -31,7 +31,7 @@ import BookingProcess from './pages/BookingProcess'
 import BookingConfirmation from './pages/BookingConfirmation'
 import CustomerSupport from './pages/CustomerSupport'
 import PropertyOwnerBookings from './pages/PropertyOwnerBookings'
-import EnhancedPropertyOwnerDashboard from './pages/EnhancedPropertyOwnerDashboard'
+// Removed EnhancedPropertyOwnerDashboard (deprecated)
 import Messages from './pages/Messages'
 
 function App() {
@@ -91,7 +91,7 @@ function App() {
             <Route path="/billing/rra-ebm" element={<RRAEBMIntegration />} />
             <Route path="/support" element={<CustomerSupport />} />
             <Route path="/my-bookings" element={<ProtectedRoute><PropertyOwnerBookings /></ProtectedRoute>} />
-            <Route path="/owner-dashboard" element={<ProtectedRoute><EnhancedPropertyOwnerDashboard /></ProtectedRoute>} />
+            {/* Removed /owner-dashboard route; use /my-bookings */}
             <Route path="/owner/cars" element={<ProtectedRoute><CarOwnerDashboard /></ProtectedRoute>} />
             <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
           </Routes>

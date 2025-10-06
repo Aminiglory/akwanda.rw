@@ -19,37 +19,59 @@ function daysInMonth(date) {
   return cells;
 }
 
-export default function RoomCalendarPanel({ propertyId, room, onChanged }) {
+export default function RoomCalendarPanel({ propertyId, room, onChanged, readOnly = false }) {
   const [current, setCurrent] = useState(new Date());
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(false);
   const [lockRange, setLockRange] = useState({ start: '', end: '' });
+  const [localClosedDates, setLocalClosedDates] = useState(Array.isArray(room?.closedDates) ? room.closedDates : []);
+  const [pendingRange, setPendingRange] = useState({ start: null, end: null });
 
   const monthName = useMemo(() => current.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }), [current]);
   const cells = useMemo(() => daysInMonth(current), [current]);
 
+  const fetchMonthBookings = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch(`${API_URL}/api/bookings?propertyId=${propertyId}&month=${current.getMonth()+1}&year=${current.getFullYear()}`, { credentials: 'include' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to load bookings');
+      const roomId = room?._id || room?.id;
+      const filtered = (data.bookings || []).filter(b => {
+        if (!roomId) return true;
+        return String(b.room || '') === String(roomId);
+      });
+      setBookings(filtered);
+    } catch (e) { toast.error(e.message); } finally { setLoading(false); }
+  };
+
+  useEffect(() => { fetchMonthBookings(); }, [propertyId, room?._id, current]);
+
+  // Keep local closed dates in sync when room changes
   useEffect(() => {
-    (async () => {
-      try {
-        setLoading(true);
-        const res = await fetch(`${API_URL}/api/bookings?propertyId=${propertyId}&month=${current.getMonth()+1}&year=${current.getFullYear()}`, { credentials: 'include' });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || 'Failed to load bookings');
-        // Filter bookings for this room only when room id exists
-        const roomId = room?._id || room?.id;
-        const filtered = (data.bookings || []).filter(b => {
-          if (!roomId) return true; // show all for property if no id
-          return String(b.room || '') === String(roomId);
-        });
-        setBookings(filtered);
-      } catch (e) { toast.error(e.message); } finally { setLoading(false); }
-    })();
+    setLocalClosedDates(Array.isArray(room?.closedDates) ? room.closedDates : []);
+  }, [room?._id, JSON.stringify(room?.closedDates || [])]);
+
+  // Light periodic refresh for near real-time updates
+  useEffect(() => {
+    const t = setInterval(fetchMonthBookings, 45000);
+    return () => clearInterval(t);
   }, [propertyId, room?._id, current]);
 
-  const closedDates = Array.isArray(room?.closedDates) ? room.closedDates : [];
+  const closedDates = Array.isArray(localClosedDates) ? localClosedDates : [];
 
   const dayStatus = (date) => {
     if (!date) return 'empty';
+    // highlight pending selection when choosing a range
+    if (!readOnly && pendingRange.start && !pendingRange.end) {
+      if (sameDay(date, pendingRange.start)) return 'selected';
+    }
+    if (!readOnly && pendingRange.start && pendingRange.end) {
+      if (date >= new Date(pendingRange.start.getFullYear(), pendingRange.start.getMonth(), pendingRange.start.getDate()) &&
+          date <= new Date(pendingRange.end.getFullYear(), pendingRange.end.getMonth(), pendingRange.end.getDate())) {
+        return 'selected';
+      }
+    }
     // booked if any booking overlaps [checkIn, checkOut) end-exclusive
     const isBooked = bookings.some(b => {
       const ci = new Date(b.checkIn), co = new Date(b.checkOut);
@@ -66,6 +88,30 @@ export default function RoomCalendarPanel({ propertyId, room, onChanged }) {
     return 'free';
   };
 
+  const onCellClick = (d) => {
+    if (readOnly || !d) return;
+    // quick range selection: first click -> start, second click -> end (>= start)
+    if (!pendingRange.start) {
+      setPendingRange({ start: d, end: null });
+      setLockRange(r => ({ ...r, start: d.toISOString().slice(0,10), end: r.end }));
+      return;
+    }
+    if (!pendingRange.end) {
+      if (d < pendingRange.start) {
+        // swap
+        setPendingRange({ start: d, end: pendingRange.start });
+        setLockRange({ start: d.toISOString().slice(0,10), end: pendingRange.start.toISOString().slice(0,10) });
+      } else {
+        setPendingRange({ start: pendingRange.start, end: d });
+        setLockRange(r => ({ ...r, end: d.toISOString().slice(0,10) }));
+      }
+      return;
+    }
+    // third click resets to start
+    setPendingRange({ start: d, end: null });
+    setLockRange({ start: d.toISOString().slice(0,10), end: '' });
+  };
+
   const lockRoom = async () => {
     if (!lockRange.start || !lockRange.end) { toast.error('Select start and end dates'); return; }
     try {
@@ -75,11 +121,25 @@ export default function RoomCalendarPanel({ propertyId, room, onChanged }) {
         credentials: 'include',
         body: JSON.stringify({ startDate: lockRange.start, endDate: lockRange.end, reason: 'Locked by owner' })
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed to lock room');
+      let data;
+      const ct = res.headers.get('content-type') || '';
+      if (ct.includes('application/json')) {
+        data = await res.json();
+      } else {
+        const text = await res.text();
+        if (text && text.startsWith('<!DOCTYPE')) {
+          throw new Error('Server returned HTML. Check you are logged in and VITE_API_URL points to the backend.');
+        } else {
+          throw new Error(text || 'Unexpected response from server');
+        }
+      }
+      if (!res.ok) throw new Error(data?.message || 'Failed to lock room');
       toast.success('Room locked');
       setLockRange({ start: '', end: '' });
+      // Update local closed dates for immediate visual feedback
+      setLocalClosedDates(prev => ([...(prev || []), { startDate: lockRange.start, endDate: lockRange.end, reason: 'Locked by owner' }]));
       onChanged && onChanged();
+      fetchMonthBookings();
     } catch (e) { toast.error(e.message); }
   };
 
@@ -92,11 +152,29 @@ export default function RoomCalendarPanel({ propertyId, room, onChanged }) {
         credentials: 'include',
         body: JSON.stringify({ startDate: lockRange.start, endDate: lockRange.end })
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed to unlock room');
+      let data;
+      const ct = res.headers.get('content-type') || '';
+      if (ct.includes('application/json')) {
+        data = await res.json();
+      } else {
+        const text = await res.text();
+        if (text && text.startsWith('<!DOCTYPE')) {
+          throw new Error('Server returned HTML. You may be unauthenticated or VITE_API_URL is pointing to the frontend.');
+        } else {
+          throw new Error(text || 'Unexpected response from server');
+        }
+      }
+      if (!res.ok) throw new Error(data?.message || 'Failed to unlock room');
       toast.success('Room unlocked');
       setLockRange({ start: '', end: '' });
+      // Remove matching range locally for immediate visual feedback
+      setLocalClosedDates(prev => (prev || []).filter(cd => {
+        const cs = new Date(cd.startDate).toISOString().slice(0,10);
+        const ce = new Date(cd.endDate).toISOString().slice(0,10);
+        return !(cs === lockRange.start && ce === lockRange.end);
+      }));
       onChanged && onChanged();
+      fetchMonthBookings();
     } catch (e) { toast.error(e.message); }
   };
 
@@ -128,28 +206,31 @@ export default function RoomCalendarPanel({ propertyId, room, onChanged }) {
               free: 'bg-gray-50 hover:bg-gray-100',
               booked: 'bg-blue-100 border border-blue-300',
               closed: 'bg-red-100 border border-red-300',
-              today: 'bg-green-50 border border-green-300'
+              today: 'bg-green-50 border border-green-300',
+              selected: 'bg-amber-100 border border-amber-300'
             }[status] || 'bg-gray-50';
             return (
-              <div key={idx} className={`min-h-[80px] p-2 rounded ${cls}`}>
+              <button type="button" onClick={() => onCellClick(d)} key={idx} className={`min-h-[80px] p-2 rounded ${cls} text-left w-full`}>
                 {d && <div className="text-xs font-semibold text-gray-800">{d.getDate()}</div>}
-              </div>
+              </button>
             );
           })}
         </div>
       )}
-      <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-2">
-        <input type="date" value={lockRange.start} onChange={e => setLockRange(r => ({...r, start: e.target.value}))} className="px-3 py-2 border rounded" />
-        <input type="date" value={lockRange.end} onChange={e => setLockRange(r => ({...r, end: e.target.value}))} className="px-3 py-2 border rounded" />
-        <div className="flex gap-2">
-          <button onClick={lockRoom} className="flex-1 inline-flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded">
-            <FaLock /> Lock
-          </button>
-          <button onClick={unlockRoom} className="flex-1 inline-flex items-center justify-center gap-2 border border-gray-300 text-gray-700 px-3 py-2 rounded hover:bg-gray-50">
-            <FaUnlock /> Unlock
-          </button>
+      {!readOnly && (
+        <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-2">
+          <input type="date" value={lockRange.start} onChange={e => setLockRange(r => ({...r, start: e.target.value}))} className="px-3 py-2 border rounded" />
+          <input type="date" value={lockRange.end} onChange={e => setLockRange(r => ({...r, end: e.target.value}))} className="px-3 py-2 border rounded" />
+          <div className="flex gap-2">
+            <button onClick={lockRoom} className="flex-1 inline-flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded">
+              <FaLock /> Lock
+            </button>
+            <button onClick={unlockRoom} className="flex-1 inline-flex items-center justify-center gap-2 border border-gray-300 text-gray-700 px-3 py-2 rounded hover:bg-gray-50">
+              <FaUnlock /> Unlock
+            </button>
+          </div>
         </div>
-      </div>
+      )}
       <div className="mt-3 text-xs text-gray-500 flex gap-3">
         <div><span className="inline-block w-3 h-3 bg-blue-200 border border-blue-300 mr-1 align-middle"></span>Booked</div>
         <div><span className="inline-block w-3 h-3 bg-red-200 border border-red-300 mr-1 align-middle"></span>Closed</div>
