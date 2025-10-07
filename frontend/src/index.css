@@ -1,5 +1,80 @@
 @import "tailwindcss";
 
+@theme {
+  /* Cocoa palette remapping of commonly used Tailwind tokens */
+  /* Blues (used as primary/accent in the codebase) → Toffee/Cocoa/Cream */
+  --color-blue-100: #F2E2CE; /* Cream Beige */
+  --color-blue-400: #CDAF8B; /* Light Toffee */
+  --color-blue-500: #B57F50; /* Toffee */
+  --color-blue-600: #B57F50; /* Toffee - buttons/accent */
+  --color-blue-700: #8F633E; /* Darker Toffee */
+  --color-blue-800: #4B2E05; /* Cocoa Brown - strong emphasis */
+  --color-blue-900: #2B1B0E; /* Espresso - deepest tone */
+
+  /* Grays (UI chrome, text) → Espresso/Cocoa/Cream/White Chocolate scale */
+  --color-gray-50:  #FFF9F3; /* White Chocolate - general background */
+  --color-gray-100: #F2E2CE; /* Cream Beige - cards/backgrounds */
+  --color-gray-200: #E8D6BE;
+  --color-gray-300: #DCC6A8;
+  --color-gray-400: #CDAF8B;
+  --color-gray-500: #B57F50; /* Toffee */
+  --color-gray-600: #8F633E;
+  --color-gray-700: #6E4C2F;
+  --color-gray-800: #4B2E05; /* Cocoa Brown */
+  --color-gray-900: #2B1B0E; /* Espresso - text/headings */
+
+  /* Whites → off-white to fit palette */
+  --color-white: #FFF9F3; /* White Chocolate */
+
+  /* Status colors remapped into cocoa palette tones */
+  /* Greens (success) → rich toffee/espresso accents */
+  --color-green-100: #E8D6BE; /* soft background */
+  --color-green-600: #8F633E; /* text/icon */
+  --color-green-700: #6E4C2F; /* darker */
+
+  /* Yellows (warning) → warm cream/toffee */
+  --color-yellow-100: #F2E2CE;
+  --color-yellow-600: #B57F50;
+
+  /* Reds (error) → deep cocoa */
+  --color-red-100: #E8D6BE;
+  --color-red-500: #6E4C2F;
+  --color-red-600: #4B2E05;
+
+  /* Additional accents used in UI */
+  --color-yellow-400: #CDAF8B;
+}
+
+/* Base document colors to adopt the new palette without touching components */
+:root, html, body {
+  background-color: #FFF9F3; /* White Chocolate */
+  color: #2B1B0E; /* Espresso */
+}
+
+/* Scrollbar styling - apply cocoa palette */
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #B57F50 #F2E2CE; /* thumb track */
+}
+
+/* WebKit-based browsers */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #F2E2CE; /* Cream Beige */
+}
+::-webkit-scrollbar-thumb {
+  background-color: #B57F50; /* Toffee */
+  border-radius: 9999px;
+  border: 2px solid #F2E2CE; /* creates padding around thumb */
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: #8F633E; /* Darker Toffee */
+}
+
 /* Custom Animations */
 @keyframes fadeInDown {
   from {
