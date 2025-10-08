@@ -4,6 +4,9 @@ const Message = require('../tables/message');
 const Booking = require('../tables/booking');
 const Notification = require('../tables/notification');
 const jwt = require('jsonwebtoken');
+const multer = require('multer');
+const fs = require('fs');
+const path = require('path');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
 
@@ -17,6 +20,37 @@ function requireAuth(req, res, next) {
         return res.status(401).json({ message: 'Invalid token' });
     }
 }
+
+// Set up uploads folder and storage
+const uploadDir = path.join(process.cwd(), 'uploads');
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) { cb(null, uploadDir); },
+  filename: function (req, file, cb) {
+    const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    const ext = path.extname(file.originalname);
+    cb(null, unique + ext);
+  }
+});
+const upload = multer({ storage });
+
+// Upload attachments (images/docs) for messages
+router.post('/upload', requireAuth, upload.array('files', 5), async (req, res) => {
+  try {
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ message: 'No files uploaded' });
+    }
+    const attachments = req.files.map(f => ({
+      url: `/uploads/${path.basename(f.path)}`,
+      name: f.originalname,
+      size: f.size,
+      mime: f.mimetype
+    }));
+    res.json({ success: true, attachments });
+  } catch (e) {
+    res.status(500).json({ message: 'Failed to upload files' });
+  }
+});
 
 // Threads list (generic): recent conversation partners and last message
 router.get('/threads', requireAuth, async (req, res) => {
@@ -63,7 +97,7 @@ router.get('/history', requireAuth, async (req, res) => {
 // Generic send endpoint (supports property booking or car booking contexts)
 router.post('/send', requireAuth, async (req, res) => {
     try {
-        const { to, text, bookingId, carBookingId } = req.body || {};
+        const { to, text, bookingId, carBookingId, attachments } = req.body || {};
         if (!to || !text || !text.trim()) return res.status(400).json({ message: 'Invalid payload' });
 
         let allowed = false;
@@ -98,14 +132,29 @@ router.post('/send', requireAuth, async (req, res) => {
             carBooking: context.carBooking,
             sender: req.user.id,
             recipient: to,
-            message: text.trim()
+            message: text.trim(),
+            attachments: Array.isArray(attachments) ? attachments.map(a => ({
+              url: a.url,
+              name: a.name,
+              size: a.size,
+              mime: a.mime
+            })) : []
         });
 
         // Socket events
         try {
             const io = req.app.get('io');
             if (io) {
-                const payload = { message: newMessage, bookingId: context.booking ? String(context.booking) : undefined, carBookingId: context.carBooking ? String(context.carBooking) : undefined };
+                // Emit in a flattened structure the frontend expects
+                const payload = {
+                    from: String(newMessage.sender),
+                    to: String(newMessage.recipient),
+                    text: newMessage.message,
+                    attachments: newMessage.attachments || [],
+                    createdAt: newMessage.createdAt,
+                    bookingId: context.booking ? String(context.booking) : undefined,
+                    carBookingId: context.carBooking ? String(context.carBooking) : undefined
+                };
                 if (context.booking) io.to(`booking:${String(context.booking)}`).emit('message:new', payload);
                 if (context.carBooking) io.to(`carBooking:${String(context.carBooking)}`).emit('message:new', payload);
                 io.to(`user:${String(to)}`).emit('message:new', payload);

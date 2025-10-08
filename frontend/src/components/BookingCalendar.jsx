@@ -121,7 +121,33 @@ const BookingCalendar = ({ propertyId, onBookingSelect }) => {
       <div className="space-y-4">
         {/* Month Header */}
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-gray-900">{monthName}</h2>
+          <div className="flex items-center gap-3">
+            <h2 className="text-2xl font-bold text-gray-900">{monthName}</h2>
+            <select
+              className="px-2 py-1 border rounded"
+              value={currentDate.getMonth()}
+              onChange={(e)=>{
+                const m = Number(e.target.value);
+                setCurrentDate(prev=> new Date(prev.getFullYear(), m, 1));
+              }}
+            >
+              {["January","February","March","April","May","June","July","August","September","October","November","December"].map((m,i)=>(
+                <option key={m} value={i}>{m}</option>
+              ))}
+            </select>
+            <select
+              className="px-2 py-1 border rounded"
+              value={currentDate.getFullYear()}
+              onChange={(e)=>{
+                const y = Number(e.target.value);
+                setCurrentDate(prev=> new Date(y, prev.getMonth(), 1));
+              }}
+            >
+              {Array.from({length: 11}, (_,k)=> currentDate.getFullYear()-5 + k).map(y=>(
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
+          </div>
           <div className="flex items-center space-x-2">
             <button
               onClick={() => navigateMonth(-1)}

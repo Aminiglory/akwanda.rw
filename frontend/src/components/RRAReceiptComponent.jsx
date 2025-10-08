@@ -35,7 +35,23 @@ const RRAReceiptComponent = ({ bookingId }) => {
   };
 
   const handleDownload = () => {
-    toast.info('Download feature coming soon!');
+    try {
+      const container = document.getElementById('rra-receipt-content');
+      if (!container) { toast.error('Receipt not ready'); return; }
+      const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>RRA Receipt</title></head><body>${container.outerHTML}</body></html>`;
+      const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `rra-receipt-${bookingId}.html`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success('Receipt downloaded');
+    } catch (_) {
+      toast.error('Failed to download receipt');
+    }
   };
 
   if (loading) {
@@ -55,7 +71,7 @@ const RRAReceiptComponent = ({ bookingId }) => {
   }
 
   return (
-    <div className="bg-white p-8 max-w-4xl mx-auto">
+    <div id="rra-receipt-content" className="bg-white p-8 max-w-4xl mx-auto">
       {/* Header */}
       <div className="border-b-4 border-green-600 pb-6 mb-6">
         <div className="flex items-center justify-between mb-4">

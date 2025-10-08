@@ -187,6 +187,30 @@ export default function RoomCalendarPanel({ propertyId, room, onChanged, readOnl
             <FaChevronLeft />
           </button>
           <div className="text-sm font-medium text-gray-700">{monthName}</div>
+          <select
+            className="px-2 py-1 border rounded text-sm"
+            value={current.getMonth()}
+            onChange={(e)=>{
+              const m = Number(e.target.value);
+              setCurrent(new Date(current.getFullYear(), m, 1));
+            }}
+          >
+            {["January","February","March","April","May","June","July","August","September","October","November","December"].map((m,i)=>(
+              <option key={m} value={i}>{m}</option>
+            ))}
+          </select>
+          <select
+            className="px-2 py-1 border rounded text-sm"
+            value={current.getFullYear()}
+            onChange={(e)=>{
+              const y = Number(e.target.value);
+              setCurrent(new Date(y, current.getMonth(), 1));
+            }}
+          >
+            {Array.from({length: 11}, (_,k)=> current.getFullYear()-5 + k).map(y=>(
+              <option key={y} value={y}>{y}</option>
+            ))}
+          </select>
           <button onClick={() => setCurrent(new Date(current.getFullYear(), current.getMonth()+1, 1))} className="p-2 hover:bg-gray-100 rounded">
             <FaChevronRight />
           </button>

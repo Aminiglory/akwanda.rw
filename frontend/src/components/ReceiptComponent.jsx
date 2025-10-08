@@ -56,7 +56,26 @@ const ReceiptComponent = ({ bookingId, userType }) => {
     window.print();
   };
   const handleDownload = () => {
-    toast.info('Download feature coming soon!');
+    try {
+      const node = document.getElementById('receipt-content');
+      if (!node) {
+        toast.error('Receipt not ready');
+        return;
+      }
+      const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Receipt</title></head><body>${node.outerHTML}</body></html>`;
+      const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `receipt-${bookingId}.html`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success('Receipt downloaded');
+    } catch (e) {
+      toast.error('Failed to download receipt');
+    }
   };
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {

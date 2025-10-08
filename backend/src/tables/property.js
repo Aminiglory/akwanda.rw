@@ -35,7 +35,6 @@ const propertySchema = new mongoose.Schema(
     pricePerNight: { type: Number, required: true },
     bedrooms: { type: Number, default: 1, min: 0 },
     bathrooms: { type: Number, default: 1, min: 0 },
-    size: { type: String },
     amenities: [{ type: String }],
     images: [{ type: String }],
     host: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
@@ -49,14 +48,29 @@ const propertySchema = new mongoose.Schema(
     commissionRate: { type: Number, default: 10, min: 8, max: 12 },
     visibilityLevel: { type: String, enum: ['standard', 'premium', 'featured'], default: 'standard' },
     featuredUntil: { type: Date },
+    promotions: [{
+      type: { type: String, enum: ['last_minute','advance_purchase','coupon','member_rate'], required: true },
+      title: { type: String },
+      description: { type: String },
+      discountPercent: { type: Number, min: 1, max: 90, required: true },
+      startDate: { type: Date },
+      endDate: { type: Date },
+      // last-minute: applies if check-in within N days
+      lastMinuteWithinDays: { type: Number, min: 0 },
+      // advance purchase: applies if booked at least N days ahead
+      minAdvanceDays: { type: Number, min: 0 },
+      // coupon
+      couponCode: { type: String },
+      active: { type: Boolean, default: true },
+      createdAt: { type: Date, default: Date.now }
+    }],
     ratings: [{
       guest: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
       rating: { type: Number, min: 1, max: 5 },
       comment: { type: String },
       createdAt: { type: Date, default: Date.now }
     }]
-  },
-  { timestamps: true }
+  }, { timestamps: true }
 );
 
 module.exports = mongoose.model('Property', propertySchema);

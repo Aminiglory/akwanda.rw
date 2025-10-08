@@ -33,6 +33,8 @@ import CustomerSupport from './pages/CustomerSupport'
 import PropertyOwnerBookings from './pages/PropertyOwnerBookings'
 // Removed EnhancedPropertyOwnerDashboard (deprecated)
 import Messages from './pages/Messages'
+import OwnerPromotions from './pages/OwnerPromotions'
+import OwnerReviews from './pages/OwnerReviews'
 
 function App() {
   const [isLoading, setIsLoading] = useState(true)
@@ -94,6 +96,8 @@ function App() {
             {/* Removed /owner-dashboard route; use /my-bookings */}
             <Route path="/owner/cars" element={<ProtectedRoute><CarOwnerDashboard /></ProtectedRoute>} />
             <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
+            <Route path="/owner/promotions" element={<ProtectedRoute><OwnerPromotions /></ProtectedRoute>} />
+            <Route path="/owner/reviews" element={<ProtectedRoute><OwnerReviews /></ProtectedRoute>} />
           </Routes>
           
           {/* Footer */}

@@ -55,7 +55,8 @@ router.post('/', requireAuth, async (req, res) => {
 			specialRequests,
 			groupBooking,
 			groupSize,
-			paymentMethod = 'mtn_mobile_money'
+			paymentMethod = 'mtn_mobile_money',
+			couponCode
 		} = req.body;
 
 		// Validate required fields
@@ -167,6 +168,39 @@ router.post('/', requireAuth, async (req, res) => {
 			gb.adults + (gb.children * (childPercent / 100)) + (gb.infants * (infantsChargePercent / 100))
 		);
 		let basePrice = Math.round(nightlyBase * perNightFactor) * nights;
+
+		// Apply best active promotion (last-minute, advance-purchase, coupon, member rate)
+		try {
+			const nowTs = new Date();
+			const withinDateRange = (promo) => {
+				const sOk = !promo.startDate || nowTs >= new Date(promo.startDate);
+				const eOk = !promo.endDate || nowTs <= new Date(promo.endDate);
+				return sOk && eOk;
+			};
+			const daysUntilCheckIn = Math.max(0, Math.ceil((new Date(checkIn) - nowTs) / (1000 * 60 * 60 * 24)));
+			const promos = Array.isArray(property.promotions) ? property.promotions.filter(p => p && p.active) : [];
+			let bestPercent = 0;
+			for (const p of promos) {
+				if (!withinDateRange(p)) continue;
+				if (p.type === 'coupon') {
+					if (!couponCode || !p.couponCode || String(p.couponCode).toLowerCase() !== String(couponCode).toLowerCase()) continue;
+				}
+				if (p.type === 'last_minute') {
+					const within = p.lastMinuteWithinDays != null ? daysUntilCheckIn <= Number(p.lastMinuteWithinDays) : false;
+					if (!within) continue;
+				}
+				if (p.type === 'advance_purchase') {
+					const meets = p.minAdvanceDays != null ? daysUntilCheckIn >= Number(p.minAdvanceDays) : false;
+					if (!meets) continue;
+				}
+				if (typeof p.discountPercent === 'number') {
+					bestPercent = Math.max(bestPercent, Math.min(90, Math.max(1, Number(p.discountPercent))));
+				}
+			}
+			if (bestPercent > 0) {
+				basePrice = Math.round(basePrice * (1 - (bestPercent / 100)));
+			}
+		} catch (_) {}
 
 		// Apply group discount if applicable
 		let discountAmount = 0;
@@ -568,6 +602,59 @@ router.patch('/:id/status', requireAuth, async (req, res) => {
     } catch (error) {
         console.error('Update booking status error:', error);
         res.status(500).json({ message: 'Failed to update booking status', error: error.message });
+    }
+});
+
+// Visitors analytics for property owners
+// GET /api/bookings/owner/visitors-analytics?start=YYYY-MM-DD&end=YYYY-MM-DD
+router.get('/owner/visitors-analytics', requireAuth, async (req, res) => {
+    try {
+        // Identify properties owned by the current user
+        const properties = await Property.find({ host: req.user.id }).select('_id rooms');
+        if (!properties.length) return res.json({ kpis: { uniqueGuests: 0, totalBookings: 0, totalNights: 0, occupancyPercent: 0 } });
+
+        const ids = properties.map(p => p._id);
+        const roomsCount = properties.reduce((sum, p) => sum + (Array.isArray(p.rooms) ? p.rooms.length : 0), 0) || 1;
+
+        // Date range (defaults last 30 days)
+        const now = new Date();
+        const defaultStart = new Date(now); defaultStart.setDate(now.getDate() - 29);
+        const start = req.query.start ? new Date(req.query.start) : defaultStart;
+        const end = req.query.end ? new Date(req.query.end) : now;
+        if (isNaN(start.getTime()) || isNaN(end.getTime()) || end < start) {
+            return res.status(400).json({ message: 'Invalid date range' });
+        }
+
+        // Get bookings overlapping the range (exclude cancelled)
+        const bookings = await Booking.find({
+            property: { $in: ids },
+            status: { $nin: ['cancelled'] },
+            $or: [ { checkIn: { $lt: end }, checkOut: { $gt: start } } ]
+        }).select('guest checkIn checkOut');
+
+        const uniqueGuestsSet = new Set(bookings.map(b => String(b.guest)));
+        const totalBookings = bookings.length;
+        // Compute booked room nights within range
+        let totalNights = 0;
+        for (const b of bookings) {
+            const s = new Date(Math.max(new Date(b.checkIn).getTime(), new Date(start).getTime()));
+            const e = new Date(Math.min(new Date(b.checkOut).getTime(), new Date(end).getTime()));
+            const nights = Math.max(0, Math.ceil((e - s) / (1000 * 60 * 60 * 24)));
+            totalNights += nights;
+        }
+        const rangeDays = Math.max(1, Math.ceil((end - start) / (1000 * 60 * 60 * 24)));
+        const capacityRoomNights = roomsCount * rangeDays;
+        const occupancyPercent = capacityRoomNights ? Math.round((totalNights / capacityRoomNights) * 1000) / 10 : 0;
+
+        res.json({ kpis: {
+            uniqueGuests: uniqueGuestsSet.size,
+            totalBookings,
+            totalNights,
+            occupancyPercent
+        }});
+    } catch (error) {
+        console.error('Visitors analytics error:', error);
+        res.status(500).json({ message: 'Failed to compute visitors analytics', error: error.message });
     }
 });
 

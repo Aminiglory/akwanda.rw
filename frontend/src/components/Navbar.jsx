@@ -206,6 +206,68 @@ const Navbar = () => {
 
             {/* Right Side */}
             <div className="flex items-center space-x-3 lg:space-x-4">
+              {/* Owner Menu (hosts) */}
+              {isAuthenticated && user?.userType === 'host' && (
+                <div className="hidden lg:block relative group">
+                  <button className="flex items-center space-x-2 px-3 py-2 rounded-xl text-gray-700 hover:text-blue-600 hover:bg-gray-100">
+                    <span className="font-medium">Owner</span>
+                    <FaCaretDown className="text-gray-500 text-sm" />
+                  </button>
+                  <div className="hidden group-hover:block absolute right-0 mt-2 w-[720px] bg-white rounded-2xl shadow-2xl border border-gray-200 p-4 z-50">
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                      <div>
+                        <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Reservations</div>
+                        <Link to="/my-bookings?tab=bookings&scope=all" className="block px-2 py-1 rounded hover:bg-blue-50 hover:text-blue-700">All</Link>
+                        <Link to="/my-bookings?tab=bookings&scope=paid" className="block px-2 py-1 rounded hover:bg-blue-50 hover:text-blue-700">Paid</Link>
+                        <Link to="/my-bookings?tab=bookings&scope=pending" className="block px-2 py-1 rounded hover:bg-blue-50 hover:text-blue-700">Pending</Link>
+                        <Link to="/my-bookings?tab=bookings&scope=unpaid" className="block px-2 py-1 rounded hover:bg-blue-50 hover:text-blue-700">Unpaid</Link>
+                      </div>
+                      <div>
+                        <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Calendars</div>
+                        <Link to="/my-bookings?tab=properties" className="block px-2 py-1 rounded hover:bg-blue-50 hover:text-blue-700">This month</Link>
+                        <Link to="/my-bookings?tab=properties" className="block px-2 py-1 rounded hover:bg-blue-50 hover:text-blue-700">Next month</Link>
+                      </div>
+                      <div>
+                        <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Finance</div>
+                        <Link to="/my-bookings?tab=finance&finance_status=all" className="block px-2 py-1 rounded hover:bg-blue-50 hover:text-blue-700">All</Link>
+                        <Link to="/my-bookings?tab=finance&finance_status=paid" className="block px-2 py-1 rounded hover:bg-blue-50 hover:text-blue-700">Paid</Link>
+                        <Link to="/my-bookings?tab=finance&finance_status=pending" className="block px-2 py-1 rounded hover:bg-blue-50 hover:text-blue-700">Pending</Link>
+                        <Link to="/my-bookings?tab=finance&finance_status=unpaid" className="block px-2 py-1 rounded hover:bg-blue-50 hover:text-blue-700">Unpaid</Link>
+                        <Link to="/my-bookings?tab=finance&view=last30" className="block px-2 py-1 rounded hover:bg-blue-50 hover:text-blue-700">Last 30 days</Link>
+                        <Link to="/my-bookings?tab=finance&view=mtd" className="block px-2 py-1 rounded hover:bg-blue-50 hover:text-blue-700">Month to date</Link>
+                      </div>
+                      <div>
+                        <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Analytics</div>
+                        <Link to="/my-bookings?tab=analytics&range=30" className="block px-2 py-1 rounded hover:bg-blue-50 hover:text-blue-700">Last 30 days</Link>
+                        <Link to="/my-bookings?tab=analytics&range=90" className="block px-2 py-1 rounded hover:bg-blue-50 hover:text-blue-700">Last 90 days</Link>
+                        <Link to="/my-bookings?tab=analytics&range=ytd" className="block px-2 py-1 rounded hover:bg-blue-50 hover:text-blue-700">Year to date</Link>
+                      </div>
+                      <div>
+                        <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Promotions</div>
+                        <Link to="/owner/promotions" className="block px-2 py-1 rounded hover:bg-blue-50 hover:text-blue-700">Manage</Link>
+                        <Link to="/owner/promotions?mode=new" className="block px-2 py-1 rounded hover:bg-blue-50 hover:text-blue-700">Create new</Link>
+                      </div>
+                      <div>
+                        <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Reviews</div>
+                        <Link to="/owner/reviews" className="block px-2 py-1 rounded hover:bg-blue-50 hover:text-blue-700">All reviews</Link>
+                        <Link to="/owner/reviews?filter=unreplied" className="block px-2 py-1 rounded hover:bg-blue-50 hover:text-blue-700">Unreplied</Link>
+                      </div>
+                      <div>
+                        <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Messages</div>
+                        <Link to="/messages" className="block px-2 py-1 rounded hover:bg-blue-50 hover:text-blue-700">Inbox</Link>
+                      </div>
+                      <div>
+                        <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Settings</div>
+                        <Link to="/upload" className="block px-2 py-1 rounded hover:bg-blue-50 hover:text-blue-700">Property settings</Link>
+                      </div>
+                      <div>
+                        <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Help</div>
+                        <Link to="/support" className="block px-2 py-1 rounded hover:bg-blue-50 hover:text-blue-700">Support</Link>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
               {/* Messages link in main nav */}
               {isAuthenticated && (
                 <Link

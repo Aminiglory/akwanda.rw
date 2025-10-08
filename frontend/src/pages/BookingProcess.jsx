@@ -25,9 +25,10 @@ const BookingProcess = () => {
       phone: '',
       age: '',
       country: 'Rwanda'
-    }
+    },
+    couponCode: ''
   });
-  
+
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [availableRooms, setAvailableRooms] = useState([]);

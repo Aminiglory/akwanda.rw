@@ -10,6 +10,27 @@ const Notification = require('../tables/notification');
 const User = require('../tables/user');
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
 
+// Ensure commissionRate stays within [8,12] before any save (handles legacy docs)
+function clampCommission(doc) {
+    if (!doc) return;
+    if (doc.commissionRate != null) {
+        const cr = Number(doc.commissionRate);
+        doc.commissionRate = Math.min(12, Math.max(8, isNaN(cr) ? 10 : cr));
+    }
+}
+
+// One-time startup sanitization for legacy documents having invalid commissionRate
+(async () => {
+    try {
+        // Clamp >12 to 12
+        await Property.updateMany({ commissionRate: { $gt: 12 } }, { $set: { commissionRate: 12 } });
+        // Clamp <8 (and non-number) to default 10 where it exists
+        await Property.updateMany({ commissionRate: { $lt: 8 } }, { $set: { commissionRate: 10 } });
+    } catch (e) {
+        console.warn('Commission sanitize skipped:', e?.message || e);
+    }
+})();
+
 function requireAuth(req, res, next) {
 	const token = req.cookies.akw_token || (req.headers.authorization || '').replace('Bearer ', '');
 	if (!token) return res.status(401).json({ message: 'Unauthorized' });
@@ -157,6 +178,98 @@ router.get('/:id', async (req, res) => {
     res.json({ property });
 });
 
+// Booking.com-style monthly calendar endpoint
+// GET /api/properties/:id/calendar?month=YYYY-MM
+router.get('/:id/calendar', requireAuth, async (req, res) => {
+    try {
+        const property = await Property.findById(req.params.id).select('rooms host');
+        if (!property) return res.status(404).json({ message: 'Property not found' });
+        // Access: property owner or admin can view
+        if (String(property.host) !== String(req.user.id) && req.user.userType !== 'admin') {
+            return res.status(403).json({ message: 'Not allowed' });
+        }
+
+        const { month } = req.query; // YYYY-MM
+        const today = new Date();
+        let year = today.getFullYear();
+        let m = today.getMonth();
+        if (typeof month === 'string' && /^\d{4}-\d{2}$/.test(month)) {
+            const [y, mm] = month.split('-').map(Number);
+            year = y; m = mm - 1;
+        }
+        const start = new Date(year, m, 1);
+        const end = new Date(year, m + 1, 1);
+        const daysInMonth = Math.round((end - start) / (1000 * 60 * 60 * 24));
+
+        const Booking = require('../tables/booking');
+        const bookings = await Booking.find({
+            property: property._id,
+            status: { $nin: ['cancelled', 'ended'] },
+            $or: [ { checkIn: { $lt: end }, checkOut: { $gt: start } } ]
+        }).select('room checkIn checkOut _id');
+
+        // Index bookings by room for quick lookups
+        const bookingsByRoom = new Map();
+        for (const b of bookings) {
+            const key = b.room ? String(b.room) : '*';
+            if (!bookingsByRoom.has(key)) bookingsByRoom.set(key, []);
+            bookingsByRoom.get(key).push(b);
+        }
+
+        const rooms = (property.rooms || []).map(r => ({
+            roomId: String(r._id),
+            roomNumber: r.roomNumber,
+            roomType: r.roomType,
+            capacity: r.capacity,
+            daily: []
+        }));
+
+        // Helper to check if a date range overlaps a day
+        function overlapsDay(rangeStart, rangeEnd, dayDate) {
+            const d0 = new Date(dayDate.getFullYear(), dayDate.getMonth(), dayDate.getDate());
+            const d1 = new Date(dayDate.getFullYear(), dayDate.getMonth(), dayDate.getDate() + 1);
+            return rangeStart < d1 && rangeEnd > d0;
+        }
+
+        for (const room of rooms) {
+            const roomDoc = (property.rooms || []).id(room.roomId);
+            const roomBookings = bookingsByRoom.get(room.roomId) || [];
+            const noRoomBookings = bookingsByRoom.get('*') || []; // property-level bookings, if any
+            for (let i = 0; i < daysInMonth; i++) {
+                const date = new Date(year, m, 1 + i);
+                const iso = date.toISOString().slice(0, 10);
+                let status = 'available';
+                let bookingIds = [];
+                let lockReason = undefined;
+
+                // Check room locks
+                const locked = Array.isArray(roomDoc?.closedDates) && roomDoc.closedDates.some(cd => {
+                    if (!cd || !cd.startDate || !cd.endDate) return false;
+                    return overlapsDay(new Date(cd.startDate), new Date(cd.endDate), date);
+                });
+                if (locked) {
+                    status = 'closed';
+                    const cd = (roomDoc.closedDates || []).find(cd => cd && cd.startDate && cd.endDate && overlapsDay(new Date(cd.startDate), new Date(cd.endDate), date));
+                    lockReason = cd?.reason || 'Locked';
+                }
+
+                // Check bookings
+                if (status !== 'closed') {
+                    const hits = [...roomBookings, ...noRoomBookings].filter(b => overlapsDay(new Date(b.checkIn), new Date(b.checkOut), date));
+                    if (hits.length) { status = 'booked'; bookingIds = hits.map(h => String(h._id)); }
+                }
+
+                room.daily.push({ date: iso, status, bookingIds: bookingIds.length ? bookingIds : undefined, lockReason });
+            }
+        }
+
+        return res.json({ month: `${year}-${String(m + 1).padStart(2, '0')}`, days: daysInMonth, rooms });
+    } catch (error) {
+        console.error('Calendar endpoint error:', error);
+        return res.status(500).json({ message: 'Failed to build calendar', error: error.message });
+    }
+});
+
 const uploadDir = path.join(process.cwd(), 'uploads');
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 const storage = multer.diskStorage({
@@ -275,20 +388,12 @@ router.put('/:id', requireAuth, upload.array('images', 10), async (req, res) => 
             : normalized;
     }
     Object.assign(property, updates);
+    clampCommission(property);
     await property.save();
     res.json({ property });
 });
 
-// Delete a property (owner or admin)
-router.delete('/:id', requireAuth, async (req, res) => {
-    const property = await Property.findById(req.params.id);
-    if (!property) return res.status(404).json({ message: 'Property not found' });
-    if (String(property.host) !== req.user.id && req.user.userType !== 'admin') {
-        return res.status(403).json({ message: 'Not allowed' });
-    }
-    await property.deleteOne();
-    res.json({ success: true });
-});
+// [Removed duplicate delete route here] Use the later host-only delete route below instead.
 
 // Toggle availability (admin-only)
 router.post('/:id/availability', requireAuth, async (req, res) => {
@@ -364,6 +469,7 @@ router.post('/:id/availability', requireAuth, async (req, res) => {
     if (req.user.userType !== 'admin') return res.status(403).json({ message: 'Admin only' });
     const next = property.availability === 'available' ? 'in_use' : 'available';
     property.availability = next;
+    clampCommission(property);
     await property.save();
     res.json({ property });
 });
@@ -386,8 +492,124 @@ router.post('/:id/rooms/:roomId/lock', requireAuth, async (req, res) => {
     if (!room) return res.status(404).json({ message: 'Room not found' });
     room.closedDates = room.closedDates || [];
     room.closedDates.push({ startDate: s, endDate: e, reason: reason || 'Locked' });
+    clampCommission(property);
     await property.save();
     res.json({ success: true, room });
+});
+
+// Create a new room under a property (owner or admin)
+router.post('/:id/rooms', requireAuth, async (req, res) => {
+    try {
+        const property = await Property.findById(req.params.id);
+        if (!property) return res.status(404).json({ message: 'Property not found' });
+        if (String(property.host) !== req.user.id && req.user.userType !== 'admin') {
+            return res.status(403).json({ message: 'Not allowed' });
+        }
+
+        const {
+            roomNumber,
+            roomType,
+            pricePerNight,
+            capacity,
+            amenities = [],
+            images = [],
+            maxAdults,
+            maxChildren,
+            maxInfants,
+            childrenPolicy,
+            infantPolicy
+        } = req.body || {};
+
+        if (!roomNumber || !roomType || pricePerNight == null || capacity == null) {
+            return res.status(400).json({ message: 'Missing required room fields' });
+        }
+
+        property.rooms = property.rooms || [];
+        property.rooms.push({
+            roomNumber,
+            roomType,
+            pricePerNight: Number(pricePerNight),
+            capacity: Number(capacity),
+            amenities: Array.isArray(amenities) ? amenities : String(amenities).split(',').map(s => s.trim()).filter(Boolean),
+            images: Array.isArray(images) ? images : [images].filter(Boolean),
+            maxAdults: maxAdults != null ? Number(maxAdults) : undefined,
+            maxChildren: maxChildren != null ? Number(maxChildren) : undefined,
+            maxInfants: maxInfants != null ? Number(maxInfants) : undefined,
+            childrenPolicy: childrenPolicy || undefined,
+            infantPolicy: infantPolicy || undefined
+        });
+        clampCommission(property);
+        await property.save();
+
+        const newRoom = property.rooms[property.rooms.length - 1];
+        res.status(201).json({ room: newRoom, propertyId: property._id });
+    } catch (e) {
+        console.error('Create room error:', e);
+        res.status(500).json({ message: 'Failed to create room', error: e.message });
+    }
+});
+
+// Update a room (owner or admin)
+router.put('/:id/rooms/:roomId', requireAuth, async (req, res) => {
+    try {
+        const property = await Property.findById(req.params.id);
+        if (!property) return res.status(404).json({ message: 'Property not found' });
+        if (String(property.host) !== req.user.id && req.user.userType !== 'admin') {
+            return res.status(403).json({ message: 'Not allowed' });
+        }
+        let room = (property.rooms || []).id(req.params.roomId);
+        if (!room && req.body && req.body.roomNumber) {
+            room = (property.rooms || []).find(r => String(r.roomNumber) === String(req.body.roomNumber));
+        }
+        if (!room) return res.status(404).json({ message: 'Room not found' });
+
+        const updates = { ...req.body };
+        // Coerce numeric fields
+        ['pricePerNight','capacity','maxAdults','maxChildren','maxInfants'].forEach(k => {
+            if (updates[k] != null && updates[k] !== '') updates[k] = Number(updates[k]);
+            else if (updates[k] === '') delete updates[k];
+        });
+        // Normalize arrays
+        if (updates.amenities && !Array.isArray(updates.amenities)) {
+            updates.amenities = String(updates.amenities).split(',').map(s => s.trim()).filter(Boolean);
+        }
+        if (updates.images && !Array.isArray(updates.images)) {
+            updates.images = [updates.images].filter(Boolean);
+        }
+        // Basic enum validation for roomType if provided
+        const validTypes = ['single','double','suite','family','deluxe'];
+        if (updates.roomType && !validTypes.includes(String(updates.roomType))) {
+            return res.status(400).json({ message: 'Invalid roomType' });
+        }
+
+        Object.assign(room, updates);
+        clampCommission(property);
+        await property.save();
+        res.json({ room, propertyId: property._id });
+    } catch (e) {
+        console.error('Update room error:', e);
+        res.status(500).json({ message: 'Failed to update room', error: e.message });
+    }
+});
+
+// Delete a room (owner or admin)
+router.delete('/:id/rooms/:roomId', requireAuth, async (req, res) => {
+    try {
+        const property = await Property.findById(req.params.id);
+        if (!property) return res.status(404).json({ message: 'Property not found' });
+        if (String(property.host) !== req.user.id && req.user.userType !== 'admin') {
+            return res.status(403).json({ message: 'Not allowed' });
+        }
+        const room = (property.rooms || []).id(req.params.roomId);
+        if (!room) return res.status(404).json({ message: 'Room not found' });
+        room.deleteOne();
+        clampCommission(property);
+        await property.save();
+        res.json({ success: true });
+    } catch (e) {
+        console.error('Delete room error:', e);
+        res.status(500).json({ message: 'Failed to delete room', error: e.message });
+    }
 });
 
 router.post('/:id/rooms/:roomId/unlock', requireAuth, async (req, res) => {
@@ -484,6 +706,124 @@ router.delete('/:id', requireAuth, async (req, res) => {
 
 // Get my properties (for property owner dashboard)
 // (moved above '/:id')
+
+// List promotions for a property (owner/admin)
+router.get('/:id/promotions', requireAuth, async (req, res) => {
+    const property = await Property.findById(req.params.id).select('host promotions');
+    if (!property) return res.status(404).json({ message: 'Property not found' });
+    if (String(property.host) !== req.user.id && req.user.userType !== 'admin') {
+        return res.status(403).json({ message: 'Not allowed' });
+    }
+    res.json({ promotions: property.promotions || [] });
+});
+
+// Create or update a promotion (if body._id present -> update)
+router.post('/:id/promotions', requireAuth, async (req, res) => {
+    const property = await Property.findById(req.params.id);
+    if (!property) return res.status(404).json({ message: 'Property not found' });
+    if (String(property.host) !== req.user.id && req.user.userType !== 'admin') {
+        return res.status(403).json({ message: 'Not allowed' });
+    }
+    const p = req.body || {};
+    // Basic validation
+    if (!p.type || !['last_minute','advance_purchase','coupon','member_rate'].includes(p.type)) {
+        return res.status(400).json({ message: 'Invalid type' });
+    }
+    if (p.discountPercent == null || Number(p.discountPercent) < 1 || Number(p.discountPercent) > 90) {
+        return res.status(400).json({ message: 'Invalid discountPercent' });
+    }
+    if (p._id) {
+        const existing = (property.promotions || []).id(p._id);
+        if (!existing) return res.status(404).json({ message: 'Promotion not found' });
+        Object.assign(existing, {
+            title: p.title,
+            description: p.description,
+            discountPercent: Number(p.discountPercent),
+            startDate: p.startDate ? new Date(p.startDate) : undefined,
+            endDate: p.endDate ? new Date(p.endDate) : undefined,
+            lastMinuteWithinDays: p.lastMinuteWithinDays != null ? Number(p.lastMinuteWithinDays) : undefined,
+            minAdvanceDays: p.minAdvanceDays != null ? Number(p.minAdvanceDays) : undefined,
+            couponCode: p.couponCode,
+            type: p.type,
+            active: p.active != null ? !!p.active : existing.active
+        });
+    } else {
+        property.promotions = property.promotions || [];
+        property.promotions.push({
+            type: p.type,
+            title: p.title,
+            description: p.description,
+            discountPercent: Number(p.discountPercent),
+            startDate: p.startDate ? new Date(p.startDate) : undefined,
+            endDate: p.endDate ? new Date(p.endDate) : undefined,
+            lastMinuteWithinDays: p.lastMinuteWithinDays != null ? Number(p.lastMinuteWithinDays) : undefined,
+            minAdvanceDays: p.minAdvanceDays != null ? Number(p.minAdvanceDays) : undefined,
+            couponCode: p.couponCode,
+            active: p.active != null ? !!p.active : true
+        });
+    }
+    await property.save();
+    res.json({ promotions: property.promotions });
+});
+
+// Toggle a promotion active flag
+router.patch('/:id/promotions/:promoId/toggle', requireAuth, async (req, res) => {
+    const property = await Property.findById(req.params.id);
+    if (!property) return res.status(404).json({ message: 'Property not found' });
+    if (String(property.host) !== req.user.id && req.user.userType !== 'admin') {
+        return res.status(403).json({ message: 'Not allowed' });
+    }
+    const promo = (property.promotions || []).id(req.params.promoId);
+    if (!promo) return res.status(404).json({ message: 'Promotion not found' });
+    promo.active = !promo.active;
+    await property.save();
+    res.json({ promotion: promo });
+});
+
+// Delete a promotion
+router.delete('/:id/promotions/:promoId', requireAuth, async (req, res) => {
+    const property = await Property.findById(req.params.id);
+    if (!property) return res.status(404).json({ message: 'Property not found' });
+    if (String(property.host) !== req.user.id && req.user.userType !== 'admin') {
+        return res.status(403).json({ message: 'Not allowed' });
+    }
+    const promo = (property.promotions || []).id(req.params.promoId);
+    if (!promo) return res.status(404).json({ message: 'Promotion not found' });
+    promo.deleteOne();
+    await property.save();
+    res.json({ success: true });
+});
+
+// Reviews: summary for a specific property (average, count)
+router.get('/:id/reviews/summary', async (req, res) => {
+    try {
+        const property = await Property.findById(req.params.id).select('ratings host isActive');
+        if (!property || !property.isActive) return res.status(404).json({ message: 'Property not found' });
+        const ratings = Array.isArray(property.ratings) ? property.ratings : [];
+        const count = ratings.length;
+        const avg = count ? Math.round((ratings.reduce((s, r) => s + Number(r.rating || 0), 0) / count) * 10) / 10 : 0;
+        res.json({ summary: { average: avg, count } });
+    } catch (e) {
+        res.status(500).json({ message: 'Failed to compute reviews summary', error: e.message });
+    }
+});
+
+// Reviews: summary across all properties owned by the current user
+router.get('/my-reviews/summary', requireAuth, async (req, res) => {
+    try {
+        const props = await Property.find({ host: req.user.id, isActive: true }).select('ratings');
+        let total = 0; let sum = 0;
+        for (const p of props) {
+            const ratings = Array.isArray(p.ratings) ? p.ratings : [];
+            total += ratings.length;
+            sum += ratings.reduce((s, r) => s + Number(r.rating || 0), 0);
+        }
+        const avg = total ? Math.round((sum / total) * 10) / 10 : 0;
+        res.json({ summary: { average: avg, count: total } });
+    } catch (e) {
+        res.status(500).json({ message: 'Failed to compute my reviews summary', error: e.message });
+    }
+});
 
 module.exports = router;
 

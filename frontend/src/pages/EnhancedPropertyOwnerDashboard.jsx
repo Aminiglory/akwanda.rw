@@ -33,6 +33,10 @@ const EnhancedPropertyOwnerDashboard = () => {
     pendingRevenue: 0,
     commissionOwed: 0
   });
+  const [addRoomOpen, setAddRoomOpen] = useState({}); // { [propertyId]: boolean }
+  const [addRoomData, setAddRoomData] = useState({}); // { [propertyId]: { roomNumber, roomType, pricePerNight, capacity, amenities, images } }
+  const [editingRoom, setEditingRoom] = useState(null); // { propertyId, room }
+  const [editRoomData, setEditRoomData] = useState({}); // fields for edit
 
   useEffect(() => {
     fetchDashboardData();
@@ -67,6 +71,98 @@ const EnhancedPropertyOwnerDashboard = () => {
       toast.error('Failed to load dashboard data');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAddRoom = async (propertyId) => {
+    try {
+      const payload = addRoomData[propertyId] || {};
+      if (!payload.roomNumber || !payload.roomType || !payload.pricePerNight || !payload.capacity) {
+        toast.error('Please fill all required room fields');
+        return;
+      }
+      const res = await fetch(`${API_URL}/api/properties/${propertyId}/rooms`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          ...payload,
+          pricePerNight: Number(payload.pricePerNight),
+          capacity: Number(payload.capacity),
+          amenities: payload.amenities ? String(payload.amenities).split(',').map(s=>s.trim()).filter(Boolean) : [],
+          images: payload.images ? String(payload.images).split(',').map(s=>s.trim()).filter(Boolean) : []
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to add room');
+      toast.success('Room added');
+      setAddRoomOpen(prev => ({ ...prev, [propertyId]: false }));
+      setAddRoomData(prev => ({ ...prev, [propertyId]: {} }));
+      fetchDashboardData();
+    } catch (e) {
+      toast.error(e.message);
+    }
+  };
+
+  const handleStartEditRoom = (propertyId, room) => {
+    setEditingRoom({ propertyId, roomId: room._id });
+    setEditRoomData({
+      roomNumber: room.roomNumber,
+      roomType: room.roomType,
+      pricePerNight: room.pricePerNight,
+      capacity: room.capacity,
+      amenities: (room.amenities || []).join(', '),
+      images: (room.images || []).join(', '),
+      maxAdults: room.maxAdults ?? '',
+      maxChildren: room.maxChildren ?? '',
+      maxInfants: room.maxInfants ?? ''
+    });
+  };
+
+  const handleSaveEditRoom = async () => {
+    if (!editingRoom) return;
+    const { propertyId, roomId } = editingRoom;
+    try {
+      const payload = { ...editRoomData };
+      const res = await fetch(`${API_URL}/api/properties/${propertyId}/rooms/${roomId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          ...payload,
+          pricePerNight: payload.pricePerNight != null ? Number(payload.pricePerNight) : undefined,
+          capacity: payload.capacity != null ? Number(payload.capacity) : undefined,
+          maxAdults: payload.maxAdults !== '' ? Number(payload.maxAdults) : undefined,
+          maxChildren: payload.maxChildren !== '' ? Number(payload.maxChildren) : undefined,
+          maxInfants: payload.maxInfants !== '' ? Number(payload.maxInfants) : undefined,
+          amenities: payload.amenities ? String(payload.amenities).split(',').map(s=>s.trim()).filter(Boolean) : undefined,
+          images: payload.images ? String(payload.images).split(',').map(s=>s.trim()).filter(Boolean) : undefined
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to update room');
+      toast.success('Room updated');
+      setEditingRoom(null);
+      setEditRoomData({});
+      fetchDashboardData();
+    } catch (e) {
+      toast.error(e.message);
+    }
+  };
+
+  const handleDeleteRoom = async (propertyId, room) => {
+    if (!window.confirm('Delete this room? This cannot be undone.')) return;
+    try {
+      const res = await fetch(`${API_URL}/api/properties/${propertyId}/rooms/${room._id}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      const data = await res.json().catch(()=>({}));
+      if (!res.ok) throw new Error(data.message || 'Failed to delete room');
+      toast.success('Room deleted');
+      fetchDashboardData();
+    } catch (e) {
+      toast.error(e.message);
     }
   };
 
@@ -492,21 +588,79 @@ const EnhancedPropertyOwnerDashboard = () => {
                           <FaTrash />
                         </button>
                       </div>
-                      {Array.isArray(property.rooms) && property.rooms.length > 0 && (
-                        <div className="mt-4 border-t pt-4">
-                          <div className="text-sm font-semibold text-gray-800 mb-2">Room Availability</div>
+                      <div className="mt-4 border-t pt-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="text-sm font-semibold text-gray-800">Room Availability</div>
+                          <button
+                            onClick={() => setAddRoomOpen(prev => ({ ...prev, [property._id]: !prev[property._id] }))}
+                            className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded bg-blue-600 text-white hover:bg-blue-700"
+                          >
+                            <FaPlus /> Add Room
+                          </button>
+                        </div>
+
+                        {addRoomOpen[property._id] && (
+                          <div className="mb-4 p-4 bg-gray-50 rounded-lg border">
+                            <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
+                              <input placeholder="Room Number" className="px-3 py-2 border rounded" value={(addRoomData[property._id]?.roomNumber)||''} onChange={e=>setAddRoomData(p=>({ ...p, [property._id]: { ...(p[property._id]||{}), roomNumber:e.target.value } }))} />
+                              <select className="px-3 py-2 border rounded" value={(addRoomData[property._id]?.roomType)||''} onChange={e=>setAddRoomData(p=>({ ...p, [property._id]: { ...(p[property._id]||{}), roomType:e.target.value } }))}>
+                                <option value="">Room Type</option>
+                                {['single','double','suite','family','deluxe'].map(t=> (<option key={t} value={t}>{t}</option>))}
+                              </select>
+                              <input type="number" placeholder="Price/night" className="px-3 py-2 border rounded" value={(addRoomData[property._id]?.pricePerNight)||''} onChange={e=>setAddRoomData(p=>({ ...p, [property._id]: { ...(p[property._id]||{}), pricePerNight:e.target.value } }))} />
+                              <input type="number" placeholder="Capacity" className="px-3 py-2 border rounded" value={(addRoomData[property._id]?.capacity)||''} onChange={e=>setAddRoomData(p=>({ ...p, [property._id]: { ...(p[property._id]||{}), capacity:e.target.value } }))} />
+                              <input placeholder="Amenities (comma separated)" className="px-3 py-2 border rounded md:col-span-2" value={(addRoomData[property._id]?.amenities)||''} onChange={e=>setAddRoomData(p=>({ ...p, [property._id]: { ...(p[property._id]||{}), amenities:e.target.value } }))} />
+                              <input placeholder="Image URLs (comma separated)" className="px-3 py-2 border rounded md:col-span-3" value={(addRoomData[property._id]?.images)||''} onChange={e=>setAddRoomData(p=>({ ...p, [property._id]: { ...(p[property._id]||{}), images:e.target.value } }))} />
+                              <div className="md:col-span-3 flex gap-2">
+                                <button onClick={()=>handleAddRoom(property._id)} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Save Room</button>
+                                <button onClick={()=>setAddRoomOpen(prev=>({...prev,[property._id]:false}))} className="flex-1 border px-4 py-2 rounded">Cancel</button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {Array.isArray(property.rooms) && property.rooms.length > 0 ? (
                           <div className="space-y-4">
                             {property.rooms.map((room) => (
-                              <RoomCalendarPanel
-                                key={room._id || room.roomNumber}
-                                propertyId={property._id}
-                                room={room}
-                                onChanged={fetchDashboardData}
-                              />
+                              <div key={room._id || room.roomNumber} className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                  <div className="text-sm text-gray-700">{room.roomNumber} • {room.roomType} • Capacity {room.capacity}</div>
+                                  <div className="flex gap-2">
+                                    <button onClick={()=>handleStartEditRoom(property._id, room)} className="px-3 py-1 text-xs rounded border">Edit</button>
+                                    <button onClick={()=>handleDeleteRoom(property._id, room)} className="px-3 py-1 text-xs rounded border text-red-600">Delete</button>
+                                  </div>
+                                </div>
+                                {editingRoom && editingRoom.propertyId===property._id && editingRoom.roomId===(room._id) && (
+                                  <div className="p-3 bg-gray-50 border rounded">
+                                    <div className="grid grid-cols-1 md:grid-cols-6 gap-2">
+                                      <input className="px-3 py-2 border rounded" value={editRoomData.roomNumber||''} onChange={e=>setEditRoomData(d=>({...d, roomNumber:e.target.value}))} />
+                                      <select className="px-3 py-2 border rounded" value={editRoomData.roomType||''} onChange={e=>setEditRoomData(d=>({...d, roomType:e.target.value}))}>
+                                        {['single','double','suite','family','deluxe'].map(t=> (<option key={t} value={t}>{t}</option>))}
+                                      </select>
+                                      <input type="number" className="px-3 py-2 border rounded" value={editRoomData.pricePerNight||''} onChange={e=>setEditRoomData(d=>({...d, pricePerNight:e.target.value}))} />
+                                      <input type="number" className="px-3 py-2 border rounded" value={editRoomData.capacity||''} onChange={e=>setEditRoomData(d=>({...d, capacity:e.target.value}))} />
+                                      <input className="px-3 py-2 border rounded md:col-span-2" placeholder="Amenities" value={editRoomData.amenities||''} onChange={e=>setEditRoomData(d=>({...d, amenities:e.target.value}))} />
+                                      <input className="px-3 py-2 border rounded md:col-span-3" placeholder="Image URLs" value={editRoomData.images||''} onChange={e=>setEditRoomData(d=>({...d, images:e.target.value}))} />
+                                      <div className="md:col-span-3 flex gap-2">
+                                        <button onClick={handleSaveEditRoom} className="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">Save</button>
+                                        <button onClick={()=>{setEditingRoom(null); setEditRoomData({});}} className="flex-1 border px-4 py-2 rounded">Cancel</button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+                                <RoomCalendarPanel
+                                  key={(room._id || room.roomNumber)+"-cal"}
+                                  propertyId={property._id}
+                                  room={room}
+                                  onChanged={fetchDashboardData}
+                                />
+                              </div>
                             ))}
                           </div>
-                        </div>
-                      )}
+                        ) : (
+                          <p className="text-sm text-gray-600">No rooms configured for this property.</p>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}

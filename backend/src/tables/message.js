@@ -7,6 +7,12 @@ const messageSchema = new mongoose.Schema(
     sender: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     recipient: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     message: { type: String, required: true },
+    attachments: [{
+      url: { type: String },
+      name: { type: String },
+      size: { type: Number },
+      mime: { type: String }
+    }],
     isRead: { type: Boolean, default: false },
     readAt: { type: Date }
   },

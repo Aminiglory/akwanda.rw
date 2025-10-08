@@ -14,6 +14,7 @@ export default function Messages() {
   const [active, setActive] = useState(null);
   const [history, setHistory] = useState([]);
   const [text, setText] = useState('');
+  const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef(null);
 
@@ -63,6 +64,12 @@ export default function Messages() {
       const res = await fetch(`${API_URL}/api/messages/history?${qs.toString()}`, { credentials: 'include' });
       const data = await res.json();
       if (res.ok) setHistory(data.messages || []);
+      // Mark as read for booking threads
+      if (thread.context?.bookingId) {
+        try {
+          await fetch(`${API_URL}/api/messages/booking/${thread.context.bookingId}/read`, { method: 'PATCH', credentials: 'include' });
+        } catch (_) {}
+      }
       scrollToBottom();
     } catch (e) {
       // ignore if endpoint not available
@@ -73,18 +80,30 @@ export default function Messages() {
     e.preventDefault();
     if (!text.trim() || !active?.userId) return;
     const payload = { to: active.userId, text: text.trim(), bookingId: active.context?.bookingId || undefined };
+    // If there are files, upload first
+    let attachments = [];
+    if (files && files.length) {
+      const fd = new FormData();
+      Array.from(files).forEach(f => fd.append('files', f));
+      try {
+        const upRes = await fetch(`${API_URL}/api/messages/upload`, { method: 'POST', credentials: 'include', body: fd });
+        const upData = await upRes.json();
+        if (upRes.ok) attachments = upData.attachments || [];
+      } catch (_) {}
+    }
     // Try REST first
     try {
       const res = await fetch(`${API_URL}/api/messages/send`, {
-        method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+        method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...payload, attachments })
       });
       if (!res.ok) throw new Error('REST send failed');
     } catch (_) {
       // Fallback to socket
-      socket.emit('message:send', payload);
+      socket.emit('message:send', { ...payload, attachments });
     }
-    setHistory(h => [...h, { ...payload, createdAt: new Date().toISOString(), fromMe: true }]);
+    setHistory(h => [...h, { ...payload, attachments, createdAt: new Date().toISOString(), fromMe: true }]);
     setText('');
+    setFiles([]);
     scrollToBottom();
   }
 
@@ -116,14 +135,22 @@ export default function Messages() {
           {history.map((m, i) => (
             <div key={i} className={`max-w-[80%] px-3 py-2 rounded ${m.fromMe ? 'ml-auto bg-blue-600 text-white' : 'bg-gray-100'}`}>
               <div className="text-sm whitespace-pre-wrap">{m.text || m.message}</div>
+              {Array.isArray(m.attachments) && m.attachments.length > 0 && (
+                <div className="mt-2 space-y-1">
+                  {m.attachments.map((a, ai) => (
+                    <a key={ai} href={a.url} target="_blank" rel="noreferrer" className={`block text-xs underline ${m.fromMe ? 'text-white' : 'text-blue-700'}`}>{a.name || a.url}</a>
+                  ))}
+                </div>
+              )}
               <div className="text-[10px] opacity-70 mt-1">{m.createdAt ? new Date(m.createdAt).toLocaleString() : ''}</div>
             </div>
           ))}
           <div ref={bottomRef} />
         </div>
-        <form onSubmit={sendMessage} className="p-3 border-t flex gap-2">
-          <input value={text} onChange={e => setText(e.target.value)} className="flex-1 px-3 py-2 border rounded" placeholder="Type a message" />
-          <button className="px-4 py-2 bg-blue-600 text-white rounded">Send</button>
+        <form onSubmit={sendMessage} className="p-3 border-t grid grid-cols-1 md:grid-cols-6 gap-2">
+          <input value={text} onChange={e => setText(e.target.value)} className="md:col-span-4 px-3 py-2 border rounded" placeholder="Type a message" />
+          <input type="file" multiple onChange={e => setFiles(e.target.files)} className="md:col-span-1 px-3 py-2 border rounded" />
+          <button className="md:col-span-1 px-4 py-2 bg-blue-600 text-white rounded">Send</button>
         </form>
       </div>
     </div>
