@@ -260,7 +260,7 @@ const ApartmentsListing = () => {
           {/* Sidebar Filters */}
           <div className="lg:col-span-1">
             <div
-              className={`bg-white rounded-2xl shadow-lg p-6 ${
+              className={`modern-card p-6 ${
                 showFilters ? "block" : "hidden lg:block"
               }`}
             >
@@ -439,7 +439,7 @@ const ApartmentsListing = () => {
               {apartments.map((apartment, index) => (
                 <div
                   key={apartment.id}
-                  className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 hover:scale-105"
+                  className="modern-card-elevated overflow-hidden hover:scale-105 transition-all duration-300"
                   style={{ animationDelay: `${index * 0.1}s` }}
                 >
                   {/* Image */}

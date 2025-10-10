@@ -79,7 +79,7 @@ const FeaturedApartments = () => {
           {apartments.map((apartment, index) => (
             <div
               key={apartment.id}
-              className={`bg-white rounded-2xl shadow-md hover:shadow-2xl transition-all duration-500 hover:-translate-y-1 overflow-hidden border border-gray-100 ${gridInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}
+              className={`modern-card-elevated overflow-hidden hover:scale-105 transition-all duration-500 ${gridInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}
               style={{ transitionDelay: `${index * 80}ms` }}
             >
               {/* Image */}
@@ -176,12 +176,12 @@ const FeaturedApartments = () => {
         </div>
 
         <div className="mt-12">
-          <div className="bg-blue-600 rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between text-white shadow-lg">
+          <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl p-8 flex flex-col md:flex-row items-center justify-between text-white shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.02]">
             <div className="mb-4 md:mb-0">
-              <h4 className="text-xl font-semibold">Looking for more options?</h4>
-              <p className="text-blue-100">Browse all apartments and filter by location, price, and amenities.</p>
+              <h4 className="text-2xl font-bold mb-2">Looking for more options?</h4>
+              <p className="text-blue-100 text-lg">Browse all apartments and filter by location, price, and amenities.</p>
             </div>
-            <Link to="/apartments" className="bg-white text-blue-700 px-6 py-3 rounded-xl font-semibold hover:bg-blue-50 transition-all duration-300 shadow">
+            <Link to="/apartments" className="bg-white text-blue-700 px-8 py-4 rounded-xl font-bold hover:bg-blue-50 transition-all duration-300 shadow-lg hover:scale-105 transform">
               View All Apartments
             </Link>
           </div>

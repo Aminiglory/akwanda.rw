@@ -146,70 +146,144 @@ export default function Messages() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-      {/* Threads */}
-      <div className="neu-card p-6 animate-fade-in-up">
-        <div className="text-xl font-bold mb-4 uppercase tracking-wide text-gray-900">CONVERSATIONS</div>
-        {loading ? <div className="animate-pulse text-center py-8">Loading...</div> : (
-          <div className="space-y-3 max-h-[70vh] overflow-auto">
-            {threads.map(t => (
-              <button key={t.id || t.userId} onClick={() => openChat(t)} className={`w-full text-left px-4 py-3 neu-card-inset transition-all duration-300 hover:neu-card ${active?.userId === t.userId ? 'neu-card bg-blue-50' : ''}`}>
-                <div className="font-semibold text-gray-900 uppercase tracking-wide">{t.name || t.userId}</div>
-                {t.lastMessage && <div className="text-xs text-gray-600 truncate mt-1">{t.lastMessage.text}</div>}
-              </button>
-            ))}
-            {threads.length === 0 && <div className="text-sm text-gray-500 text-center py-8 uppercase font-semibold">NO CONVERSATIONS YET</div>}
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      <div className="max-w-7xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-4 gap-6 h-[calc(100vh-120px)]">
+        {/* Threads */}
+        <div className="lg:col-span-1 modern-card-elevated p-6 animate-fade-in-up">
+          <div className="text-xl font-bold mb-6 uppercase tracking-wide text-gray-900 flex items-center gap-3">
+            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-sm">💬</span>
+            </div>
+            CONVERSATIONS
           </div>
-        )}
-      </div>
-
-      {/* Chat */}
-      <div className="md:col-span-2 neu-card flex flex-col overflow-y-scroll animate-fade-in-up-delayed">
-        <div className="px-6 py-4 neu-card-inset">
-          <div className="font-bold text-lg uppercase tracking-wide text-gray-900">{active?.name || 'SELECT A CONVERSATION'}</div>
-          {active?.context?.bookingId && <div className="text-xs text-gray-600 font-semibold mt-1">BOOKING: {active.context.bookingId}</div>}
-          {isOtherTyping && (
-            <div className="text-xs text-blue-600 mt-2 font-semibold animate-pulse">TYPING…</div>
-          )}
-        </div>
-        <div className="flex-1 p-6 space-y-4 overflow-auto" style={{ minHeight: '50vh' }}>
-          {history.map((m, i) => (
-            <div key={i} className={`max-w-[80%] px-4 py-3 neu-card-inset transition-all duration-300 hover:scale-105 ${m.fromMe ? 'ml-auto neu-card bg-blue-600 text-white' : 'neu-card-inset'}`}>
-              <div className="text-sm whitespace-pre-wrap font-medium">{m.text || m.message}</div>
-              {Array.isArray(m.attachments) && m.attachments.length > 0 && (
-                <div className="mt-3 space-y-2">
-                  {m.attachments.map((a, ai) => (
-                    <a key={ai} href={a.url} target="_blank" rel="noreferrer" className={`block text-xs font-semibold underline ${m.fromMe ? 'text-white' : 'text-blue-700'}`}>{a.name || a.url}</a>
-                  ))}
+          {loading ? (
+            <div className="animate-pulse text-center py-8">
+              <div className="space-y-3">
+                {[1,2,3].map(i => (
+                  <div key={i} className="h-16 bg-gray-200 rounded-lg"></div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3 max-h-[calc(100vh-200px)] overflow-auto">
+              {threads.map(t => (
+                <button 
+                  key={t.id || t.userId} 
+                  onClick={() => openChat(t)} 
+                  className={`w-full text-left p-4 rounded-xl transition-all duration-300 hover:scale-105 ${
+                    active?.userId === t.userId 
+                      ? 'bg-blue-600 text-white shadow-lg transform scale-105' 
+                      : 'bg-gray-50 hover:bg-gray-100 border border-gray-200'
+                  }`}
+                >
+                  <div className="font-semibold text-sm uppercase tracking-wide">{t.name || t.userId}</div>
+                  {t.lastMessage && (
+                    <div className="text-xs opacity-75 truncate mt-1">
+                      {t.lastMessage.text}
+                    </div>
+                  )}
+                </button>
+              ))}
+              {threads.length === 0 && (
+                <div className="text-sm text-gray-500 text-center py-8 uppercase font-semibold">
+                  NO CONVERSATIONS YET
                 </div>
               )}
-              <div className="text-[10px] opacity-70 mt-2 font-semibold">{m.createdAt ? new Date(m.createdAt).toLocaleString() : ''}</div>
-            </div>
-          ))}
-          <div ref={bottomRef} />
-        </div>
-        <form onSubmit={sendMessage} className="p-6 neu-card-inset space-y-4">
-          {files && files.length > 0 && (
-            <div className="flex flex-wrap gap-3">
-              {files.map((f, idx) => (
-                <span key={idx} className="inline-flex items-center gap-2 px-3 py-2 text-xs neu-card-inset">
-                  <span className="max-w-[160px] truncate font-semibold">{f.name}</span>
-                  <button type="button" onClick={() => removeFileAt(idx)} className="text-gray-500 hover:text-red-600 font-bold">×</button>
-                </span>
-              ))}
             </div>
           )}
-          <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
-            <input value={text} onChange={handleTextChange} className="md:col-span-4" placeholder="TYPE A MESSAGE" />
-            <div className="md:col-span-1 flex items-center">
-              <label className="w-full text-center neu-btn cursor-pointer font-semibold tracking-wide">
-                ATTACH
-                <input type="file" multiple className="hidden" onChange={handleChooseFiles} />
-              </label>
-            </div>
-            <button className="md:col-span-1 btn-primary font-semibold tracking-wide">SEND</button>
+        </div>
+
+        {/* Chat */}
+        <div className="lg:col-span-3 modern-card-elevated flex flex-col animate-fade-in-up-delayed">
+          <div className="px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-t-xl">
+            <div className="font-bold text-lg uppercase tracking-wide">{active?.name || 'SELECT A CONVERSATION'}</div>
+            {active?.context?.bookingId && (
+              <div className="text-xs opacity-90 font-semibold mt-1">
+                BOOKING: {active.context.bookingId}
+              </div>
+            )}
+            {isOtherTyping && (
+              <div className="text-xs mt-2 font-semibold animate-pulse flex items-center gap-2">
+                <div className="w-2 h-2 bg-white rounded-full animate-bounce"></div>
+                <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+                <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                TYPING…
+              </div>
+            )}
           </div>
-        </form>
+          
+          <div className="flex-1 p-6 space-y-4 overflow-auto bg-gray-50" style={{ minHeight: '50vh' }}>
+            {history.map((m, i) => (
+              <div 
+                key={i} 
+                className={`max-w-[80%] px-4 py-3 rounded-2xl transition-all duration-300 hover:scale-105 ${
+                  m.fromMe 
+                    ? 'ml-auto bg-blue-600 text-white shadow-lg' 
+                    : 'bg-white border border-gray-200 shadow-md'
+                }`}
+              >
+                <div className="text-sm whitespace-pre-wrap font-medium">{m.text || m.message}</div>
+                {Array.isArray(m.attachments) && m.attachments.length > 0 && (
+                  <div className="mt-3 space-y-2">
+                    {m.attachments.map((a, ai) => (
+                      <a 
+                        key={ai} 
+                        href={a.url} 
+                        target="_blank" 
+                        rel="noreferrer" 
+                        className={`block text-xs font-semibold underline hover:no-underline transition-all duration-300 ${
+                          m.fromMe ? 'text-white hover:text-blue-200' : 'text-blue-700 hover:text-blue-900'
+                        }`}
+                      >
+                        📎 {a.name || a.url}
+                      </a>
+                    ))}
+                  </div>
+                )}
+                <div className="text-[10px] opacity-70 mt-2 font-semibold">
+                  {m.createdAt ? new Date(m.createdAt).toLocaleString() : ''}
+                </div>
+              </div>
+            ))}
+            <div ref={bottomRef} />
+          </div>
+          
+          <form onSubmit={sendMessage} className="p-6 bg-white border-t border-gray-200 space-y-4">
+            {files && files.length > 0 && (
+              <div className="flex flex-wrap gap-3">
+                {files.map((f, idx) => (
+                  <span key={idx} className="inline-flex items-center gap-2 px-3 py-2 text-xs bg-gray-100 rounded-lg border">
+                    <span className="max-w-[160px] truncate font-semibold">📎 {f.name}</span>
+                    <button 
+                      type="button" 
+                      onClick={() => removeFileAt(idx)} 
+                      className="text-gray-500 hover:text-red-600 font-bold hover:scale-110 transition-all duration-300"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+            <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
+              <input 
+                value={text} 
+                onChange={handleTextChange} 
+                className="md:col-span-4 px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300" 
+                placeholder="Type your message..." 
+              />
+              <div className="md:col-span-1 flex items-center">
+                <label className="w-full text-center bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-3 rounded-xl cursor-pointer font-semibold tracking-wide transition-all duration-300 hover:scale-105">
+                  📎 ATTACH
+                  <input type="file" multiple className="hidden" onChange={handleChooseFiles} />
+                </label>
+              </div>
+              <button className="md:col-span-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-xl font-semibold tracking-wide transition-all duration-300 hover:scale-105 shadow-lg">
+                SEND
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );

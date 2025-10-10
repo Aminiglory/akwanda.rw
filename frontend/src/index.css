@@ -311,29 +311,56 @@ textarea:focus {
   transform: translateY(-1px);
 }
 
-/* Enhanced Neumorphism utilities */
-.neu-card {
+/* Enhanced Neumorphism utilities - Dashboard only */
+.dashboard .neu-card {
   background: #FFF9F3;
   border-radius: 1.5rem;
   box-shadow: 
-    12px 12px 24px rgba(75, 46, 5, 0.08), 
-    -12px -12px 24px rgba(255, 249, 243, 0.9);
+    8px 8px 16px rgba(75, 46, 5, 0.06), 
+    -8px -8px 16px rgba(255, 249, 243, 0.9);
   transition: all 0.3s ease;
 }
 
-.neu-card:hover {
-  transform: translateY(-2px);
+.dashboard .neu-card:hover {
+  transform: translateY(-1px);
   box-shadow: 
-    16px 16px 32px rgba(75, 46, 5, 0.12), 
-    -16px -16px 32px rgba(255, 249, 243, 1);
+    12px 12px 20px rgba(75, 46, 5, 0.08), 
+    -12px -12px 20px rgba(255, 249, 243, 1);
 }
 
-.neu-card-inset {
+.dashboard .neu-card-inset {
   background: #FFF9F3;
   border-radius: 1.5rem;
   box-shadow: 
-    inset 8px 8px 16px rgba(75, 46, 5, 0.06), 
-    inset -8px -8px 16px rgba(255, 249, 243, 0.9);
+    inset 6px 6px 12px rgba(75, 46, 5, 0.04), 
+    inset -6px -6px 12px rgba(255, 249, 243, 0.9);
+}
+
+/* Modern card styles for non-dashboard pages */
+.modern-card {
+  background: white;
+  border-radius: 1rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  transition: all 0.3s ease;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.modern-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.modern-card-elevated {
+  background: white;
+  border-radius: 1.25rem;
+  box-shadow: 0 8px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -5px rgba(0, 0, 0, 0.04);
+  transition: all 0.3s ease;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.modern-card-elevated:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
 .neu-btn {

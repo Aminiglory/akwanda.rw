@@ -511,59 +511,59 @@ const PropertyOwnerBookings = () => {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-xl shadow-lg p-6">
+          <div className="neu-card p-6 hover:scale-105 transition-all duration-300">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 mb-1">Total Bookings</p>
+                <p className="text-sm text-gray-600 mb-1 font-medium">Total Bookings</p>
                 <p className="text-3xl font-bold text-gray-900">{stats.total}</p>
               </div>
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center shadow-lg">
                 <FaCalendarAlt className="text-2xl text-blue-600" />
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-lg p-6">
+          <div className="neu-card p-6 hover:scale-105 transition-all duration-300">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 mb-1">Paid Bookings</p>
+                <p className="text-sm text-gray-600 mb-1 font-medium">Paid Bookings</p>
                 <p className="text-3xl font-bold text-green-600">{stats.paid}</p>
               </div>
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+              <div className="w-12 h-12 bg-gradient-to-br from-green-100 to-green-200 rounded-xl flex items-center justify-center shadow-lg">
                 <FaCheckCircle className="text-2xl text-green-600" />
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-lg p-6">
+          <div className="neu-card p-6 hover:scale-105 transition-all duration-300">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 mb-1">Total Revenue</p>
+                <p className="text-sm text-gray-600 mb-1 font-medium">Total Revenue</p>
                 <p className="text-2xl font-bold text-green-600">{formatCurrency(stats.totalRevenue)}</p>
               </div>
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+              <div className="w-12 h-12 bg-gradient-to-br from-green-100 to-green-200 rounded-xl flex items-center justify-center shadow-lg">
                 <FaMoneyBillWave className="text-2xl text-green-600" />
               </div>
             </div>
-            <p className="text-xs text-gray-500 mt-2">After commission</p>
+            <p className="text-xs text-gray-500 mt-2 font-medium">After commission</p>
           </div>
 
-          <div className="bg-white rounded-xl shadow-lg p-6">
+          <div className="neu-card p-6 hover:scale-105 transition-all duration-300">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 mb-1">Pending Revenue</p>
+                <p className="text-sm text-gray-600 mb-1 font-medium">Pending Revenue</p>
                 <p className="text-2xl font-bold text-yellow-600">{formatCurrency(stats.pendingRevenue)}</p>
               </div>
-              <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+              <div className="w-12 h-12 bg-gradient-to-br from-yellow-100 to-yellow-200 rounded-xl flex items-center justify-center shadow-lg">
                 <FaClock className="text-2xl text-yellow-600" />
               </div>
             </div>
-            <p className="text-xs text-gray-500 mt-2">{stats.pending + stats.unpaid} pending bookings</p>
+            <p className="text-xs text-gray-500 mt-2 font-medium">{stats.pending + stats.unpaid} pending bookings</p>
           </div>
         </div>
 
         {activeTab === 'bookings' && (
-        <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
+        <div className="neu-card p-6 mb-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div className="flex items-center space-x-4">
               <FaFilter className="text-gray-400" />
@@ -572,10 +572,10 @@ const PropertyOwnerBookings = () => {
                   <button
                     key={status}
                     onClick={() => setFilter(status)}
-                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                    className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 ${
                       filter === status
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        ? 'bg-blue-600 text-white shadow-lg transform scale-105'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:scale-105'
                     }`}
                   >
                     {status.charAt(0).toUpperCase() + status.slice(1)}
@@ -590,11 +590,11 @@ const PropertyOwnerBookings = () => {
                 placeholder="Search bookings..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
               />
               <button
                 onClick={exportToCSV}
-                className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-all duration-300 hover:scale-105 shadow-lg"
               >
                 <FaDownload />
                 <span>Export CSV</span>
@@ -775,7 +775,7 @@ const PropertyOwnerBookings = () => {
         )}
 
         {activeTab === 'bookings' && (
-        <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+        <div className="neu-card overflow-hidden">
           {filteredBookings.length === 0 ? (
             <div className="text-center py-12">
               <FaCalendarAlt className="text-4xl text-gray-300 mx-auto mb-4" />
@@ -787,7 +787,7 @@ const PropertyOwnerBookings = () => {
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gray-50 border-b">
+                <thead className="bg-gradient-to-r from-gray-50 to-gray-100 border-b">
                   <tr>
                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Booking Details
@@ -811,14 +811,14 @@ const PropertyOwnerBookings = () => {
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {filteredBookings.map((booking) => (
-                    <tr key={booking._id} className="hover:bg-gray-50 transition-colors">
+                    <tr key={booking._id} className="hover:bg-gray-50 transition-all duration-300 hover:scale-[1.01]">
                       <td className="px-6 py-4">
                         <div>
                           <p className="font-semibold text-gray-900 flex items-center gap-2">
                             {booking.property?.title || 'N/A'}
                             {unreadByBooking[booking._id] > 0 && (
                               <span
-                                className="inline-block w-2.5 h-2.5 rounded-full bg-red-600"
+                                className="inline-block w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse"
                                 title={`${unreadByBooking[booking._id]} unread message${unreadByBooking[booking._id] > 1 ? 's' : ''}`}
                                 aria-label="Unread messages"
                               />
@@ -863,19 +863,19 @@ const PropertyOwnerBookings = () => {
                         <div className="flex space-x-2">
                           <button
                             onClick={() => handleViewBooking(booking)}
-                            className="relative p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors"
+                            className="relative p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-all duration-300 hover:scale-110 shadow-md"
                             title="Manage & Message"
                           >
                             <FaComments />
                             {unreadByBooking[booking._id] > 0 && (
-                              <span className="absolute -top-1 -right-1 inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-bold leading-none text-white bg-red-600 rounded-full">
+                              <span className="absolute -top-1 -right-1 inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-bold leading-none text-white bg-red-600 rounded-full animate-pulse">
                                 {unreadByBooking[booking._id]}
                               </span>
                             )}
                           </button>
                           <button
                             onClick={() => navigate(`/booking-confirmation/${booking._id}`)}
-                            className="p-2 bg-purple-100 text-purple-600 rounded-lg hover:bg-purple-200 transition-colors"
+                            className="p-2 bg-purple-100 text-purple-600 rounded-lg hover:bg-purple-200 transition-all duration-300 hover:scale-110 shadow-md"
                             title="View Details"
                           >
                             <FaEye />
@@ -885,7 +885,7 @@ const PropertyOwnerBookings = () => {
                               // Open receipt in new tab
                               window.open(`/booking-confirmation/${booking._id}`, '_blank');
                             }}
-                            className="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200 transition-colors"
+                            className="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200 transition-all duration-300 hover:scale-110 shadow-md"
                             title="View Receipt"
                           >
                             <FaFileInvoice />

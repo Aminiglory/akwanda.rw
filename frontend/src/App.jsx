@@ -35,6 +35,9 @@ import PropertyOwnerBookings from './pages/PropertyOwnerBookings'
 import Messages from './pages/Messages'
 import OwnerPromotions from './pages/OwnerPromotions'
 import OwnerReviews from './pages/OwnerReviews'
+import Homes from './pages/Homes'
+import Experiences from './pages/Experiences'
+import Deals from './pages/Deals'
 
 function App() {
   const [isLoading, setIsLoading] = useState(true)
@@ -70,6 +73,9 @@ function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/apartments" element={<ProtectedRoute><ApartmentsListing /></ProtectedRoute>} />
+            <Route path="/homes" element={<Homes />} />
+            <Route path="/experiences" element={<Experiences />} />
+            <Route path="/deals" element={<Deals />} />
             <Route path="/flights" element={<Flights />} />
             <Route path="/attractions" element={<Attractions />} />
             <Route path="/cars" element={<CarsList />} />
@@ -80,28 +86,31 @@ function App() {
             <Route path="/booking-confirmation/:id" element={<BookingConfirmation />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
-            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-            <Route path="/user-dashboard" element={<ProtectedRoute><UserDashboard /></ProtectedRoute>} />
+            <Route path="/dashboard" element={<ProtectedRoute><div className="dashboard"><Dashboard /></div></ProtectedRoute>} />
+            <Route path="/user-dashboard" element={<ProtectedRoute><div className="dashboard"><UserDashboard /></div></ProtectedRoute>} />
             <Route path="/upload" element={<ProtectedRoute><EnhancedUploadProperty /></ProtectedRoute>} />
             <Route path="/upload-legacy" element={<ProtectedRoute><UploadProperty /></ProtectedRoute>} />
-            <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
-            <Route path="/admin/profile" element={<AdminRoute><AdminProfile /></AdminRoute>} />
-            <Route path="/admin/landing" element={<AdminRoute><AdminLanding /></AdminRoute>} />
-            <Route path="/admin/attractions" element={<AdminRoute><AdminAttractions /></AdminRoute>} />
+            <Route path="/admin" element={<AdminRoute><div className="dashboard"><AdminDashboard /></div></AdminRoute>} />
+            <Route path="/admin/profile" element={<AdminRoute><div className="dashboard"><AdminProfile /></div></AdminRoute>} />
+            <Route path="/admin/landing" element={<AdminRoute><div className="dashboard"><AdminLanding /></div></AdminRoute>} />
+            <Route path="/admin/attractions" element={<AdminRoute><div className="dashboard"><AdminAttractions /></div></AdminRoute>} />
             <Route path="/mtn-payment" element={<ProtectedRoute><MTNMobileMoneyPayment /></ProtectedRoute>} />
             <Route path="/payment/mtn-mobile-money" element={<MTNMobileMoneyPayment />} />
             <Route path="/billing/rra-ebm" element={<RRAEBMIntegration />} />
             <Route path="/support" element={<CustomerSupport />} />
-            <Route path="/my-bookings" element={<ProtectedRoute><PropertyOwnerBookings /></ProtectedRoute>} />
+            <Route path="/my-bookings" element={<ProtectedRoute><div className="dashboard"><PropertyOwnerBookings /></div></ProtectedRoute>} />
             {/* Removed /owner-dashboard route; use /my-bookings */}
-            <Route path="/owner/cars" element={<ProtectedRoute><CarOwnerDashboard /></ProtectedRoute>} />
+            <Route path="/owner/cars" element={<ProtectedRoute><div className="dashboard"><CarOwnerDashboard /></div></ProtectedRoute>} />
             <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
-            <Route path="/owner/promotions" element={<ProtectedRoute><OwnerPromotions /></ProtectedRoute>} />
-            <Route path="/owner/reviews" element={<ProtectedRoute><OwnerReviews /></ProtectedRoute>} />
+            <Route path="/owner/promotions" element={<ProtectedRoute><div className="dashboard"><OwnerPromotions /></div></ProtectedRoute>} />
+            <Route path="/owner/reviews" element={<ProtectedRoute><div className="dashboard"><OwnerReviews /></div></ProtectedRoute>} />
           </Routes>
           
-          {/* Footer */}
-          <Footer />
+          {/* Footer - Hidden on messages page */}
+          <Routes>
+            <Route path="/messages" element={null} />
+            <Route path="*" element={<Footer />} />
+          </Routes>
         </div>
       </Router>
     </AuthProvider>
