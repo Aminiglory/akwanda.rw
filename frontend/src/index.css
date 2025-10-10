@@ -45,6 +45,38 @@
   --color-yellow-400: #CDAF8B;
 }
 
+/* Neumorphism utilities tuned for bg-gray-50 (#F9FAFB) pages */
+.neu-card {
+  background: #F9FAFB;
+  border-radius: 20px;
+  box-shadow:
+    10px 10px 24px #E5E7EB, /* gray-200 shadow */
+    -10px -10px 24px #FFFFFF; /* highlight */
+}
+
+.neu-card-sm {
+  background: #F9FAFB;
+  border-radius: 16px;
+  box-shadow:
+    6px 6px 16px #E5E7EB,
+    -6px -6px 16px #FFFFFF;
+}
+
+.neu-inset {
+  background: #F9FAFB;
+  border-radius: 16px;
+  box-shadow:
+    inset 6px 6px 12px #E5E7EB,
+    inset -6px -6px 12px #FFFFFF;
+}
+
+.neu-pill {
+  background: #F9FAFB;
+  border-radius: 9999px;
+  box-shadow:
+    4px 4px 10px #E5E7EB,
+    -4px -4px 10px #FFFFFF;
+}
 /* Base document colors to adopt the new palette without touching components */
 :root, html, body {
   background-color: #FFF9F3; /* White Chocolate */
