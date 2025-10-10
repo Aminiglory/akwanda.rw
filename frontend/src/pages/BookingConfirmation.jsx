@@ -588,7 +588,7 @@ const BookingConfirmation = () => {
       {/* Chat Modal */}
       {showChat && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[85vh] overflow-hidden flex flex-col neu-card">
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[85vh] overflow-hidden flex flex-col neu-card animate-fade-in-up">
             <div className="sticky top-0 bg-white/80 backdrop-blur border-b p-4 flex justify-between items-center">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-semibold">{(property?.host?.firstName?.[0] || 'O').toUpperCase()}</div>
@@ -608,7 +608,7 @@ const BookingConfirmation = () => {
                     const isGuest = String(m.sender?._id || m.sender) === String(booking.guest);
                     const time = new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                     return (
-                      <div key={m._id} className={`flex items-end gap-2 ${isGuest ? 'justify-end' : 'justify-start'}`}>
+                      <div key={m._id} className={`flex items-end gap-2 ${isGuest ? 'justify-end' : 'justify-start'} animate-fade-in-up`}>
                         {!isGuest && (
                           <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 text-xs">H</div>
                         )}

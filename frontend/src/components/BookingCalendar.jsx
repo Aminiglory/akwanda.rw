@@ -118,7 +118,7 @@ const BookingCalendar = ({ propertyId, onBookingSelect }) => {
     const monthName = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
     
     return (
-      <div className="space-y-4">
+      <div className="space-y-4 animate-fade-in-up">
         {/* Month Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -189,7 +189,7 @@ const BookingCalendar = ({ propertyId, onBookingSelect }) => {
             return (
               <div
                 key={index}
-                className={`min-h-[120px] p-2 border rounded-lg cursor-pointer transition-colors ${
+                className={`min-h-[120px] p-2 border rounded-lg cursor-pointer transition-colors hover:shadow-sm ${
                   date ? 'hover:bg-gray-50' : 'bg-gray-100'
                 } ${
                   isToday ? 'bg-blue-50 border-blue-200' : 'border-gray-200'
@@ -200,7 +200,7 @@ const BookingCalendar = ({ propertyId, onBookingSelect }) => {
               >
                 {date && (
                   <>
-                    <div className={`text-sm font-medium mb-1 ${
+                    <div className={`text-sm font-medium mb-1 transition-colors ${
                       isToday ? 'text-blue-600' : 'text-gray-900'
                     }`}>
                       {date.getDate()}
@@ -209,7 +209,7 @@ const BookingCalendar = ({ propertyId, onBookingSelect }) => {
                       {dayBookings.slice(0, 2).map(booking => (
                         <div
                           key={booking._id}
-                          className={`text-xs p-1 rounded border ${getStatusColor(booking.status)} cursor-pointer hover:shadow-sm transition-shadow`}
+                          className={`text-xs p-1 rounded border ${getStatusColor(booking.status)} cursor-pointer hover:shadow-md transition-shadow`}
                           onClick={(e) => {
                             e.stopPropagation();
                             onBookingSelect && onBookingSelect(booking);

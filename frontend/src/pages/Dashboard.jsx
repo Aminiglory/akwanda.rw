@@ -267,8 +267,8 @@ const Dashboard = () => {
 
         <div className="max-w-7xl mx-auto px-4 py-8">
           {/* Stats Cards (Neumorphism) */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <div className="rounded-2xl p-6 bg-gradient-to-b from-blue-50 to-white border border-blue-100 shadow-sm hover:shadow-md transition-shadow neu-card">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8 animate-fade-in-up">
+            <div className="rounded-2xl p-6 bg-gradient-to-b from-blue-50 to-white border border-blue-100 shadow-sm hover:shadow-md transition-shadow neu-card hover:scale-[1.01]">
               <div className="flex items-center">
                 <div className="p-3 bg-blue-100 rounded-xl ring-1 ring-blue-200">
                   <FaBed className="text-blue-600 text-xl" />
@@ -279,7 +279,7 @@ const Dashboard = () => {
                 </div>
               </div>
             </div>
-            <div className="rounded-2xl p-6 bg-gradient-to-b from-blue-50/60 to-white border border-blue-100 shadow-sm hover:shadow-md transition-shadow neu-card">
+            <div className="rounded-2xl p-6 bg-gradient-to-b from-blue-50/60 to-white border border-blue-100 shadow-sm hover:shadow-md transition-shadow neu-card hover:scale-[1.01]">
               <div className="flex items-center">
                 <div className="p-3 bg-blue-100 rounded-xl ring-1 ring-blue-200">
                   <FaCalendarAlt className="text-blue-600 text-xl" />
@@ -290,7 +290,7 @@ const Dashboard = () => {
                 </div>
               </div>
             </div>
-            <div className="rounded-2xl p-6 bg-gradient-to-b from-blue-50/60 to-white border border-blue-100 shadow-sm hover:shadow-md transition-shadow neu-card">
+            <div className="rounded-2xl p-6 bg-gradient-to-b from-blue-50/60 to-white border border-blue-100 shadow-sm hover:shadow-md transition-shadow neu-card hover:scale-[1.01]">
               <div className="flex items-center">
                 <div className="p-3 bg-blue-100 rounded-xl ring-1 ring-blue-200">
                   <FaStar className="text-blue-600 text-xl" />
@@ -318,7 +318,7 @@ const Dashboard = () => {
                 </div>
               </div>
             </div>
-            <div className="rounded-2xl p-6 bg-gradient-to-b from-blue-50/60 to-white border border-blue-100 shadow-sm hover:shadow-md transition-shadow neu-card">
+            <div className="rounded-2xl p-6 bg-gradient-to-b from-blue-50/60 to-white border border-blue-100 shadow-sm hover:shadow-md transition-shadow neu-card hover:scale-[1.01]">
               <div className="flex items-center">
                 <div className="p-3 bg-blue-100 rounded-xl ring-1 ring-blue-200">
                   <FaHeart className="text-blue-600 text-xl" />
