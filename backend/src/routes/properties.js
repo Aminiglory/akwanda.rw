@@ -175,7 +175,22 @@ router.get('/:id', async (req, res) => {
             return res.status(403).json({ message: 'This property is temporarily unavailable.' });
         }
     }
-    res.json({ property });
+    // Normalize image paths for property and rooms so frontend gets clean URLs
+    const norm = (u) => {
+        if (!u) return u;
+        let s = String(u).replace(/\\+/g, '/');
+        if (!s.startsWith('/')) s = `/${s}`;
+        return s;
+    };
+    const out = property.toObject({ virtuals: true });
+    if (Array.isArray(out.images)) out.images = out.images.map(norm);
+    if (Array.isArray(out.rooms)) {
+        out.rooms = out.rooms.map(r => ({
+            ...r,
+            images: Array.isArray(r.images) ? r.images.map(norm) : []
+        }));
+    }
+    res.json({ property: out });
 });
 
 // Booking.com-style monthly calendar endpoint

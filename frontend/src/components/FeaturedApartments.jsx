@@ -6,7 +6,15 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const FeaturedApartments = () => {
   const [apartments, setApartments] = useState([]);
-  const makeAbsolute = (u) => (u && !u.startsWith('http') ? `${API_URL}${u}` : u);
+  const makeAbsolute = (u) => {
+    if (!u) return u;
+    let s = String(u).replace(/\\/g, '/');
+    if (!s.startsWith('http')) {
+      if (!s.startsWith('/')) s = `/${s}`;
+      return `${API_URL}${s}`;
+    }
+    return s;
+  };
 
   useEffect(() => {
     (async () => {
@@ -83,6 +91,7 @@ const FeaturedApartments = () => {
                   decoding="async"
                   sizes="(min-width:1024px) 25vw, (min-width:768px) 50vw, 100vw"
                   className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
+                  onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=500&h=300&fit=crop'; }}
                 />
                 {!apartment.isAvailable && (
                   <div className="absolute top-4 right-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
