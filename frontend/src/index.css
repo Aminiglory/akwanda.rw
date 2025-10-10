@@ -237,6 +237,37 @@ html {
   background-clip: text;
 }
 
+/* Neumorphism utilities (soft UI) */
+.neu-card {
+  background: #FFF9F3;
+  border-radius: 1rem;
+  box-shadow: 8px 8px 20px rgba(75, 46, 5, 0.08), -8px -8px 20px rgba(255, 249, 243, 0.9);
+}
+
+.neu-card-inset {
+  background: #FFF9F3;
+  border-radius: 1rem;
+  box-shadow: inset 8px 8px 16px rgba(75, 46, 5, 0.06), inset -8px -8px 16px rgba(255, 249, 243, 0.9);
+}
+
+.neu-btn {
+  background: linear-gradient(145deg, #F2E2CE, #FFF9F3);
+  color: #2B1B0E;
+  border-radius: 0.875rem;
+  box-shadow: 6px 6px 14px rgba(75, 46, 5, 0.12), -6px -6px 14px rgba(255, 249, 243, 0.9);
+  transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
+}
+
+.neu-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 10px 10px 20px rgba(75, 46, 5, 0.14), -10px -10px 20px rgba(255, 249, 243, 1);
+}
+
+.neu-btn:active {
+  transform: translateY(0);
+  box-shadow: inset 6px 6px 12px rgba(75, 46, 5, 0.1), inset -6px -6px 12px rgba(255, 249, 243, 0.9);
+}
+
 /* Print styles - only print receipt content */
 @media print {
   body * {

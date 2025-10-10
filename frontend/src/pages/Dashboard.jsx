@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 
 import { FaBed, FaMapMarkerAlt, FaCheckCircle, FaCalendarAlt, FaStar, FaHeart, FaEdit, FaTrash, FaPlus, FaFilter, FaSearch } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
@@ -165,7 +165,7 @@ const Dashboard = () => {
   }, [user]);
 
 
-  // Automatically mark bookings as ended if checkout date has passed
+  // Automatically mark bookings as ended if checkout date has passed (single effect)
   useEffect(() => {
     const autoEndBookings = async () => {
       for (const b of bookings) {
@@ -180,27 +180,11 @@ const Dashboard = () => {
               setBookings(current => current.map(b2 => b2.id === b.id ? { ...b2, status: 'ended' } : b2));
             }
           } catch (e) {
-            // Optionally handle error
           }
         }
       }
     };
     if (bookings.length > 0) autoEndBookings();
-  }, [bookings]);
-  // Automatically mark bookings as ended if checkout date has passed
-  useEffect(() => {
-    bookings.forEach(b => {
-      if (b.status !== 'ended' && b.checkOut && new Date(b.checkOut) < new Date()) {
-        fetch(`${API_URL}/api/bookings/${b.id}/end`, {
-          method: 'POST',
-          credentials: 'include'
-        }).then(res => res.json()).then(data => {
-          if (data.booking && data.booking.status === 'ended') {
-            setBookings(current => current.map(b2 => b2.id === b.id ? { ...b2, status: 'ended' } : b2));
-          }
-        });
-      }
-    });
   }, [bookings]);
 
   const renderStars = (rating) => {
@@ -258,7 +242,7 @@ const Dashboard = () => {
         <div className="max-w-7xl mx-auto px-4 py-8">
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <div className="rounded-2xl p-6 bg-gradient-to-b from-blue-50 to-white border border-blue-100 shadow-sm hover:shadow-md transition-shadow">
+            <div className="rounded-2xl p-6 bg-gradient-to-b from-blue-50 to-white border border-blue-100 shadow-sm hover:shadow-md transition-shadow neu-card">
               <div className="flex items-center">
                 <div className="p-3 bg-blue-100 rounded-xl ring-1 ring-blue-200">
                   <FaBed className="text-blue-600 text-xl" />
@@ -269,7 +253,7 @@ const Dashboard = () => {
                 </div>
               </div>
             </div>
-            <div className="rounded-2xl p-6 bg-gradient-to-b from-blue-50/60 to-white border border-blue-100 shadow-sm hover:shadow-md transition-shadow">
+            <div className="rounded-2xl p-6 bg-gradient-to-b from-blue-50/60 to-white border border-blue-100 shadow-sm hover:shadow-md transition-shadow neu-card">
               <div className="flex items-center">
                 <div className="p-3 bg-blue-100 rounded-xl ring-1 ring-blue-200">
                   <FaCalendarAlt className="text-blue-600 text-xl" />
@@ -280,7 +264,7 @@ const Dashboard = () => {
                 </div>
               </div>
             </div>
-            <div className="rounded-2xl p-6 bg-gradient-to-b from-blue-50/60 to-white border border-blue-100 shadow-sm hover:shadow-md transition-shadow">
+            <div className="rounded-2xl p-6 bg-gradient-to-b from-blue-50/60 to-white border border-blue-100 shadow-sm hover:shadow-md transition-shadow neu-card">
               <div className="flex items-center">
                 <div className="p-3 bg-blue-100 rounded-xl ring-1 ring-blue-200">
                   <FaStar className="text-blue-600 text-xl" />
@@ -308,7 +292,7 @@ const Dashboard = () => {
                 </div>
               </div>
             </div>
-            <div className="rounded-2xl p-6 bg-gradient-to-b from-blue-50/60 to-white border border-blue-100 shadow-sm hover:shadow-md transition-shadow">
+            <div className="rounded-2xl p-6 bg-gradient-to-b from-blue-50/60 to-white border border-blue-100 shadow-sm hover:shadow-md transition-shadow neu-card">
               <div className="flex items-center">
                 <div className="p-3 bg-blue-100 rounded-xl ring-1 ring-blue-200">
                   <FaHeart className="text-blue-600 text-xl" />
@@ -322,7 +306,7 @@ const Dashboard = () => {
           </div>
 
           {/* Tabs */}
-          <div className="bg-white rounded-2xl shadow-lg">
+          <div className="bg-white rounded-2xl shadow-lg neu-card">
             <div className="border-b border-gray-200">
               <nav className="flex space-x-8 px-6">
                 <button
@@ -401,7 +385,7 @@ const Dashboard = () => {
                 <div>
                   <div className="flex items-center justify-between mb-6">
                     <h3 className="text-lg font-semibold text-gray-900">Your Bookings</h3>
-                    <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-2">
                       <div className="relative">
                         <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                         <input
@@ -409,13 +393,13 @@ const Dashboard = () => {
                           value={searchTerm}
                           onChange={e => setSearchTerm(e.target.value)}
                           placeholder="Search bookings..."
-                          className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="pl-10 pr-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
                         />
                       </div>
                       <select
                         value={filterStatus}
                         onChange={e => setFilterStatus(e.target.value)}
-                        className="p-2 border border-gray-300 rounded-lg bg-white text-gray-700"
+                        className="p-2 border border-gray-200 rounded-xl bg-white text-gray-700"
                       >
                         <option value="">All Statuses</option>
                         <option value="confirmed">Confirmed</option>
@@ -427,7 +411,7 @@ const Dashboard = () => {
                   </div>
 
                   <div className="space-y-4">
-                    {bookings
+                    {useMemo(() => bookings
                       .filter(b => {
                         const term = searchTerm.toLowerCase();
                         const matchesSearch =
@@ -436,7 +420,7 @@ const Dashboard = () => {
                           b.status.toLowerCase().includes(term);
                         const matchesStatus = filterStatus ? b.status === filterStatus : true;
                         return matchesSearch && matchesStatus;
-                      })
+                      }), [bookings, searchTerm, filterStatus])
                       .map((booking) => (
                         <div key={booking.id} className="bg-gray-50 rounded-xl p-6 hover:shadow-md transition-shadow duration-300">
                           {/* Host can confirm booking if status is pending */}

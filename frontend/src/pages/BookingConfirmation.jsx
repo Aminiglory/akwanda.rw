@@ -26,6 +26,7 @@ const BookingConfirmation = () => {
   const [showChat, setShowChat] = useState(false);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
+  const [attachment, setAttachment] = useState(null);
   const [sending, setSending] = useState(false);
   const socketRef = useRef(null);
   const [isTyping, setIsTyping] = useState(false);
@@ -122,19 +123,33 @@ const BookingConfirmation = () => {
   };
 
   const sendMessage = async () => {
-    if (!newMessage.trim()) return toast.error('Please type a message');
+    if (!newMessage.trim() && !attachment) return toast.error('Type a message or attach a file');
     try {
       setSending(true);
-      const res = await fetch(`${API_URL}/api/messages/booking/${id}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ message: newMessage })
-      });
-      const data = await res.json();
+      let res, data;
+      if (attachment) {
+        const form = new FormData();
+        if (newMessage.trim()) form.append('message', newMessage.trim());
+        form.append('file', attachment);
+        res = await fetch(`${API_URL}/api/messages/booking/${id}`, {
+          method: 'POST',
+          credentials: 'include',
+          body: form
+        });
+        data = await res.json();
+      } else {
+        res = await fetch(`${API_URL}/api/messages/booking/${id}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ message: newMessage })
+        });
+        data = await res.json();
+      }
       if (!res.ok) throw new Error(data.message || 'Failed to send');
       setMessages(prev => [...prev, data.message]);
       setNewMessage('');
+      setAttachment(null);
       if (socketRef.current) socketRef.current.emit('typing', { bookingId: booking._id, typing: false });
       toast.success('Message sent');
     } catch (e) {
@@ -295,9 +310,10 @@ const BookingConfirmation = () => {
                 
                 <div className="flex items-start space-x-4">
                   <img
-                    src={property.images?.[0]?.startsWith('http') ? property.images[0] : `${API_URL}${property.images?.[0]}` || 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=200&h=150&fit=crop'}
+                    src={(property?.images && property.images[0]) ? ((String(property.images[0]).startsWith('http')) ? property.images[0] : `${API_URL}${String(property.images[0]).replace(/\\/g, '/')}`) : 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=200&h=150&fit=crop'}
                     alt={property.title}
                     className="w-32 h-24 object-cover rounded-lg"
+                    onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=200&h=150&fit=crop'; }}
                   />
                   <div className="flex-1">
                     <h3 className="text-lg font-semibold text-gray-900 mb-2">{property.title}</h3>
@@ -447,6 +463,20 @@ const BookingConfirmation = () => {
                   <FaComments />
                   <span>Message Property Owner</span>
                 </button>
+                <div className="grid grid-cols-1 gap-2">
+                  <a
+                    href={`${API_URL}/api/bookings/${id}/receipt.csv`}
+                    className="w-full text-center bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-3 rounded-lg font-medium transition-colors"
+                  >
+                    Download Owner Receipt CSV
+                  </a>
+                  <a
+                    href={`${API_URL}/api/bookings/${id}/rra-receipt.csv`}
+                    className="w-full text-center bg-amber-600 hover:bg-amber-700 text-white px-4 py-3 rounded-lg font-medium transition-colors"
+                  >
+                    Download RRA Receipt CSV
+                  </a>
+                </div>
                 <button
                   onClick={() => setShowRRAReceipt(!showRRAReceipt)}
                   className="w-full flex items-center justify-center space-x-2 bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg font-medium transition-colors"
@@ -558,9 +588,15 @@ const BookingConfirmation = () => {
       {/* Chat Modal */}
       {showChat && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[85vh] overflow-hidden flex flex-col">
-            <div className="sticky top-0 bg-white border-b p-4 flex justify-between items-center">
-              <h2 className="text-xl font-bold text-gray-900">Chat with Property Owner</h2>
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[85vh] overflow-hidden flex flex-col neu-card">
+            <div className="sticky top-0 bg-white/80 backdrop-blur border-b p-4 flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-semibold">{(property?.host?.firstName?.[0] || 'O').toUpperCase()}</div>
+                <div>
+                  <h2 className="text-lg font-bold text-gray-900 leading-tight">Chat with Property Owner</h2>
+                  <div className="text-xs text-gray-500">Booking {booking?.confirmationCode}</div>
+                </div>
+              </div>
               <button onClick={() => setShowChat(false)} className="text-gray-400 hover:text-gray-600 text-2xl">×</button>
             </div>
             <div className="flex-1 p-4 overflow-y-auto bg-gray-50">
@@ -570,14 +606,19 @@ const BookingConfirmation = () => {
                 <div className="space-y-3">
                   {messages.map((m) => {
                     const isGuest = String(m.sender?._id || m.sender) === String(booking.guest);
+                    const time = new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                     return (
-                      <div key={m._id} className={`flex ${isGuest ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`max-w-[75%] rounded-lg px-4 py-3 ${isGuest ? 'bg-blue-600 text-white' : 'bg-white border'}`}>
-                          <div className={`text-xs mb-1 ${isGuest ? 'text-blue-100' : 'text-gray-500'}`}>
-                            {new Date(m.createdAt).toLocaleString()}
-                          </div>
+                      <div key={m._id} className={`flex items-end gap-2 ${isGuest ? 'justify-end' : 'justify-start'}`}>
+                        {!isGuest && (
+                          <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 text-xs">H</div>
+                        )}
+                        <div className={`max-w-[75%] rounded-2xl px-4 py-2 shadow-sm ${isGuest ? 'bg-blue-600 text-white rounded-br-sm' : 'bg-white border rounded-bl-sm'}`}>
+                          <div className={`text-[10px] mb-1 ${isGuest ? 'text-blue-100' : 'text-gray-500'}`}>{time}</div>
                           <div className={isGuest ? 'text-white' : 'text-gray-800'}>{m.message}</div>
                         </div>
+                        {isGuest && (
+                          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 text-xs">You</div>
+                        )}
                       </div>
                     );
                   })}
@@ -585,7 +626,7 @@ const BookingConfirmation = () => {
               )}
               {isTyping && <div className="mt-2 text-xs text-gray-500">Owner is typing...</div>}
             </div>
-            <div className="p-4 border-t flex items-center space-x-2">
+            <div className="p-4 border-t flex items-center gap-2 bg-white/60">
               <input
                 value={newMessage}
                 onChange={(e) => {
@@ -600,12 +641,20 @@ const BookingConfirmation = () => {
                 }}
                 onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
                 placeholder="Type your message"
-                className="flex-1 px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="flex-1 px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 bg-white neu-card"
               />
+              <div className="relative">
+                <input id="chat-attachment" type="file" className="hidden" onChange={(e)=> setAttachment(e.target.files && e.target.files[0] ? e.target.files[0] : null)} />
+                <label htmlFor="chat-attachment" className="cursor-pointer px-3 py-3 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-gray-700">+
+                </label>
+              </div>
+              {attachment && (
+                <div className="text-xs text-gray-600 px-2 py-1 bg-gray-100 rounded">{attachment.name}</div>
+              )}
               <button
                 onClick={sendMessage}
-                disabled={sending || !newMessage.trim()}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-lg disabled:opacity-50"
+                disabled={sending || (!newMessage.trim() && !attachment)}
+                className="neu-btn px-5 py-3 disabled:opacity-50"
               >Send</button>
             </div>
           </div>

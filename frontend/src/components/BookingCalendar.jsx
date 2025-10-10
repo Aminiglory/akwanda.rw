@@ -388,13 +388,13 @@ const BookingCalendar = ({ propertyId, onBookingSelect }) => {
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg p-6">
+    <div className="bg-white rounded-2xl shadow-lg p-6 neu-card">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Booking Calendar</h1>
         <div className="flex items-center space-x-2">
           <button
             onClick={() => setViewMode('month')}
-            className={`px-4 py-2 rounded-lg transition-colors ${
+            className={`px-4 py-2 rounded-xl transition-colors ${
               viewMode === 'month' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
@@ -402,7 +402,7 @@ const BookingCalendar = ({ propertyId, onBookingSelect }) => {
           </button>
           <button
             onClick={() => setViewMode('week')}
-            className={`px-4 py-2 rounded-lg transition-colors ${
+            className={`px-4 py-2 rounded-xl transition-colors ${
               viewMode === 'week' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
@@ -410,7 +410,7 @@ const BookingCalendar = ({ propertyId, onBookingSelect }) => {
           </button>
           <button
             onClick={() => setViewMode('day')}
-            className={`px-4 py-2 rounded-lg transition-colors ${
+            className={`px-4 py-2 rounded-xl transition-colors ${
               viewMode === 'day' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
@@ -433,7 +433,7 @@ const BookingCalendar = ({ propertyId, onBookingSelect }) => {
 
       {/* Selected Date Info */}
       {selectedDate && (
-        <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
           <h3 className="font-semibold text-blue-900 mb-2">
             Bookings for {formatDate(selectedDate)}
           </h3>
