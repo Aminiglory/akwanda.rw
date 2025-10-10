@@ -268,11 +268,7 @@ const Dashboard = () => {
         <div className="max-w-7xl mx-auto px-4 py-8">
           {/* Stats Cards (Neumorphism) */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-<<<<<<< HEAD
             <div className="rounded-2xl p-6 bg-gradient-to-b from-blue-50 to-white border border-blue-100 shadow-sm hover:shadow-md transition-shadow neu-card">
-=======
-            <div className="neu-card p-6 transition-all">
->>>>>>> 91099b3fca3fb4f43c5f902adb930426c86a9ddb
               <div className="flex items-center">
                 <div className="p-3 bg-blue-100 rounded-xl ring-1 ring-blue-200">
                   <FaBed className="text-blue-600 text-xl" />
@@ -283,11 +279,7 @@ const Dashboard = () => {
                 </div>
               </div>
             </div>
-<<<<<<< HEAD
             <div className="rounded-2xl p-6 bg-gradient-to-b from-blue-50/60 to-white border border-blue-100 shadow-sm hover:shadow-md transition-shadow neu-card">
-=======
-            <div className="neu-card p-6 transition-all">
->>>>>>> 91099b3fca3fb4f43c5f902adb930426c86a9ddb
               <div className="flex items-center">
                 <div className="p-3 bg-blue-100 rounded-xl ring-1 ring-blue-200">
                   <FaCalendarAlt className="text-blue-600 text-xl" />
@@ -298,11 +290,7 @@ const Dashboard = () => {
                 </div>
               </div>
             </div>
-<<<<<<< HEAD
             <div className="rounded-2xl p-6 bg-gradient-to-b from-blue-50/60 to-white border border-blue-100 shadow-sm hover:shadow-md transition-shadow neu-card">
-=======
-            <div className="neu-card p-6 transition-all">
->>>>>>> 91099b3fca3fb4f43c5f902adb930426c86a9ddb
               <div className="flex items-center">
                 <div className="p-3 bg-blue-100 rounded-xl ring-1 ring-blue-200">
                   <FaStar className="text-blue-600 text-xl" />
@@ -330,11 +318,7 @@ const Dashboard = () => {
                 </div>
               </div>
             </div>
-<<<<<<< HEAD
             <div className="rounded-2xl p-6 bg-gradient-to-b from-blue-50/60 to-white border border-blue-100 shadow-sm hover:shadow-md transition-shadow neu-card">
-=======
-            <div className="neu-card p-6 transition-all">
->>>>>>> 91099b3fca3fb4f43c5f902adb930426c86a9ddb
               <div className="flex items-center">
                 <div className="p-3 bg-blue-100 rounded-xl ring-1 ring-blue-200">
                   <FaHeart className="text-blue-600 text-xl" />
@@ -347,48 +331,8 @@ const Dashboard = () => {
             </div>
           </div>
 
-<<<<<<< HEAD
           {/* Tabs */}
           <div className="bg-white rounded-2xl shadow-lg neu-card">
-=======
-          {/* Earnings & Growth (Neumorphism) */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-            {/* Earnings Summary */}
-            <div className="neu-card p-6 lg:col-span-2">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">Earnings Summary</h3>
-                <span className="neu-pill px-3 py-1 text-xs text-gray-700">Auto-updated</span>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="neu-inset p-4 rounded-xl">
-                  <div className="text-xs text-gray-500 mb-1">Last 30 days</div>
-                  <div className="text-2xl font-bold text-gray-900">RWF {earnings.last30.toLocaleString()}</div>
-                </div>
-                <div className="neu-inset p-4 rounded-xl">
-                  <div className="text-xs text-gray-500 mb-1">Year to date</div>
-                  <div className="text-2xl font-bold text-gray-900">RWF {earnings.ytd.toLocaleString()}</div>
-                </div>
-                <div className="neu-inset p-4 rounded-xl">
-                  <div className="text-xs text-gray-500 mb-1">Upcoming (confirmed)</div>
-                  <div className="text-2xl font-bold text-gray-900">RWF {earnings.upcoming.toLocaleString()}</div>
-                </div>
-              </div>
-              <div className="mt-4 text-sm text-gray-600">Completed stays: <span className="font-semibold text-gray-900">{earnings.countEnded}</span></div>
-            </div>
-
-            {/* Referral Banner */}
-            <div className="neu-card p-6 flex flex-col justify-between">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">Invite & Earn</h3>
-                <p className="text-sm text-gray-600 mt-1">Earn rewards when your friends list or book properties via your link.</p>
-              </div>
-              <button onClick={() => window.location.href = '/referrals'} className="mt-4 neu-pill px-4 py-2 text-blue-700 font-semibold hover:opacity-90">Get referral link</button>
-            </div>
-          </div>
-
-          {/* Tabs Container (Neumorphism) */}
-          <div className="neu-card">
->>>>>>> 91099b3fca3fb4f43c5f902adb930426c86a9ddb
             <div className="border-b border-gray-200">
               <nav className="flex space-x-8 px-6">
                 <button
