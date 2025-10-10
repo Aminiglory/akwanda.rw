@@ -145,7 +145,7 @@ const Testimonials = () => {
                   {page.map((testimonial, idx) => (
                     <div
                       key={testimonial.id}
-                      className={`bg-white rounded-2xl shadow-lg p-6 hover:shadow-xl transition-all duration-500 hover:-translate-y-1 relative ${pIdx === index ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}
+                      className={`modern-card-elevated p-6 hover:scale-105 transition-all duration-500 relative ${pIdx === index ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}
                       style={{ transitionDelay: `${idx * 80}ms` }}
                     >
                       {/* Quote Icon */}

@@ -190,7 +190,7 @@ const HowItWorks = () => {
       {steps.map((s, i) => {
         const Icon = s.icon;
         return (
-          <div key={i} className="group relative rounded-2xl p-6 bg-white/90 backdrop-blur shadow-md hover:shadow-2xl transition-all duration-300 hover:-translate-y-0.5">
+          <div key={i} className="group relative modern-card-elevated p-6 hover:scale-105 transition-all duration-300">
             {/* Decorative blob */}
             <div className="pointer-events-none absolute -top-6 -right-6 w-24 h-24 bg-blue-50 rounded-full opacity-60"></div>
             <div className="relative mb-6">

@@ -311,56 +311,150 @@ textarea:focus {
   transform: translateY(-1px);
 }
 
-/* Enhanced Neumorphism utilities - Dashboard only */
+/* Modern Design System - Professional Shadows */
 .dashboard .neu-card {
   background: #FFF9F3;
-  border-radius: 1.5rem;
+  border-radius: 1rem;
   box-shadow: 
-    8px 8px 16px rgba(75, 46, 5, 0.06), 
-    -8px -8px 16px rgba(255, 249, 243, 0.9);
-  transition: all 0.3s ease;
+    0 1px 3px rgba(0, 0, 0, 0.12),
+    0 1px 2px rgba(0, 0, 0, 0.24);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .dashboard .neu-card:hover {
   transform: translateY(-1px);
   box-shadow: 
-    12px 12px 20px rgba(75, 46, 5, 0.08), 
-    -12px -12px 20px rgba(255, 249, 243, 1);
+    0 4px 8px rgba(0, 0, 0, 0.12),
+    0 2px 4px rgba(0, 0, 0, 0.08);
 }
 
 .dashboard .neu-card-inset {
   background: #FFF9F3;
-  border-radius: 1.5rem;
+  border-radius: 1rem;
   box-shadow: 
-    inset 6px 6px 12px rgba(75, 46, 5, 0.04), 
-    inset -6px -6px 12px rgba(255, 249, 243, 0.9);
+    inset 0 2px 4px rgba(0, 0, 0, 0.06);
 }
 
-/* Modern card styles for non-dashboard pages */
+/* Modern card styles with professional shadows */
 .modern-card {
   background: white;
-  border-radius: 1rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  transition: all 0.3s ease;
+  border-radius: 0.75rem;
+  box-shadow: 
+    0 1px 3px rgba(0, 0, 0, 0.12),
+    0 1px 2px rgba(0, 0, 0, 0.24);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .modern-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  box-shadow: 
+    0 4px 12px rgba(0, 0, 0, 0.15),
+    0 2px 4px rgba(0, 0, 0, 0.12);
 }
 
 .modern-card-elevated {
   background: white;
-  border-radius: 1.25rem;
-  box-shadow: 0 8px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -5px rgba(0, 0, 0, 0.04);
-  transition: all 0.3s ease;
+  border-radius: 1rem;
+  box-shadow: 
+    0 4px 6px rgba(0, 0, 0, 0.07),
+    0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .modern-card-elevated:hover {
   transform: translateY(-3px);
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  box-shadow: 
+    0 8px 25px rgba(0, 0, 0, 0.15),
+    0 3px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Navbar specific styles */
+.navbar-shadow {
+  box-shadow: 
+    0 1px 3px rgba(0, 0, 0, 0.12),
+    0 1px 2px rgba(0, 0, 0, 0.24);
+}
+
+.dropdown-shadow {
+  box-shadow: 
+    0 10px 25px rgba(0, 0, 0, 0.15),
+    0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Compact navbar styles */
+.navbar-compact {
+  padding: 0.5rem 0;
+}
+
+.navbar-compact .nav-item {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  border-radius: 0.5rem;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.navbar-compact .nav-item:hover {
+  background-color: rgba(59, 130, 246, 0.1);
+  color: rgb(37, 99, 235);
+}
+
+.navbar-compact .nav-item.active {
+  background-color: rgb(37, 99, 235);
+  color: white;
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.3);
+}
+
+/* Mobile menu improvements */
+.mobile-menu {
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+}
+
+.mobile-menu-item {
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  margin: 0.25rem 0;
+  transition: all 0.2s ease;
+}
+
+.mobile-menu-item:hover {
+  background-color: rgba(59, 130, 246, 0.1);
+  color: rgb(37, 99, 235);
+}
+
+/* Professional button styles */
+.btn-primary {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, #1d4ed8, #1e40af);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.4);
+}
+
+.btn-secondary {
+  background: white;
+  color: #374151;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  border: 1px solid #d1d5db;
+  transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+  background: #f9fafb;
+  border-color: #9ca3af;
+  transform: translateY(-1px);
 }
 
 .neu-btn {
