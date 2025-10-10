@@ -171,16 +171,16 @@ const BookingCalendar = ({ propertyId, onBookingSelect }) => {
         </div>
 
         {/* Days of Week Header */}
-        <div className="grid grid-cols-7 gap-1">
-          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-            <div key={day} className="p-2 text-center font-medium text-gray-700 bg-gray-50 rounded-lg">
+        <div className="grid grid-cols-7 gap-2 mb-4">
+          {['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map(day => (
+            <div key={day} className="p-4 text-center font-bold text-gray-700 neu-card-inset uppercase tracking-wide">
               {day}
             </div>
           ))}
         </div>
 
         {/* Calendar Grid */}
-        <div className="grid grid-cols-7 gap-1">
+        <div className="grid grid-cols-7 gap-2">
           {days.map((date, index) => {
             const dayBookings = getBookingsForDate(date);
             const isToday = date && date.toDateString() === new Date().toDateString();
@@ -189,39 +189,39 @@ const BookingCalendar = ({ propertyId, onBookingSelect }) => {
             return (
               <div
                 key={index}
-                className={`min-h-[120px] p-2 border rounded-lg cursor-pointer transition-colors hover:shadow-sm ${
-                  date ? 'hover:bg-gray-50' : 'bg-gray-100'
+                className={`min-h-[140px] p-3 neu-card-inset cursor-pointer transition-all duration-300 hover:scale-105 ${
+                  date ? 'hover:neu-card' : 'bg-gray-100'
                 } ${
-                  isToday ? 'bg-blue-50 border-blue-200' : 'border-gray-200'
+                  isToday ? 'neu-card bg-blue-50' : ''
                 } ${
-                  isSelected ? 'bg-blue-100 border-blue-300' : ''
+                  isSelected ? 'neu-card bg-blue-100' : ''
                 }`}
                 onClick={() => date && setSelectedDate(date)}
               >
                 {date && (
                   <>
-                    <div className={`text-sm font-medium mb-1 transition-colors ${
+                    <div className={`text-lg font-bold mb-2 transition-colors ${
                       isToday ? 'text-blue-600' : 'text-gray-900'
                     }`}>
                       {date.getDate()}
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-2">
                       {dayBookings.slice(0, 2).map(booking => (
                         <div
                           key={booking._id}
-                          className={`text-xs p-1 rounded border ${getStatusColor(booking.status)} cursor-pointer hover:shadow-md transition-shadow`}
+                          className={`text-xs p-2 neu-card-inset cursor-pointer hover:neu-card transition-all duration-300 ${getStatusColor(booking.status)}`}
                           onClick={(e) => {
                             e.stopPropagation();
                             onBookingSelect && onBookingSelect(booking);
                           }}
                         >
-                          <div className="font-medium truncate">{booking.guest?.firstName} {booking.guest?.lastName}</div>
-                          <div className="text-xs opacity-75">RWF {booking.totalAmount?.toLocaleString()}</div>
+                          <div className="font-semibold truncate uppercase tracking-wide">{booking.guest?.firstName} {booking.guest?.lastName}</div>
+                          <div className="text-xs opacity-75 font-medium">RWF {booking.totalAmount?.toLocaleString()}</div>
                         </div>
                       ))}
                       {dayBookings.length > 2 && (
-                        <div className="text-xs text-gray-500 text-center">
-                          +{dayBookings.length - 2} more
+                        <div className="text-xs text-gray-500 text-center font-semibold">
+                          +{dayBookings.length - 2} MORE
                         </div>
                       )}
                     </div>
@@ -388,33 +388,33 @@ const BookingCalendar = ({ propertyId, onBookingSelect }) => {
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg p-6 neu-card">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Booking Calendar</h1>
-        <div className="flex items-center space-x-2">
+    <div className="neu-card p-8 animate-fade-in-up">
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 tracking-tight uppercase">BOOKING CALENDAR</h1>
+        <div className="flex items-center space-x-3">
           <button
             onClick={() => setViewMode('month')}
-            className={`px-4 py-2 rounded-xl transition-colors ${
-              viewMode === 'month' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            className={`px-6 py-3 rounded-xl transition-all duration-300 font-semibold tracking-wide ${
+              viewMode === 'month' ? 'btn-primary text-white' : 'neu-btn text-gray-700 hover:text-blue-600'
             }`}
           >
-            Month
+            MONTH
           </button>
           <button
             onClick={() => setViewMode('week')}
-            className={`px-4 py-2 rounded-xl transition-colors ${
-              viewMode === 'week' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            className={`px-6 py-3 rounded-xl transition-all duration-300 font-semibold tracking-wide ${
+              viewMode === 'week' ? 'btn-primary text-white' : 'neu-btn text-gray-700 hover:text-blue-600'
             }`}
           >
-            Week
+            WEEK
           </button>
           <button
             onClick={() => setViewMode('day')}
-            className={`px-4 py-2 rounded-xl transition-colors ${
-              viewMode === 'day' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            className={`px-6 py-3 rounded-xl transition-all duration-300 font-semibold tracking-wide ${
+              viewMode === 'day' ? 'btn-primary text-white' : 'neu-btn text-gray-700 hover:text-blue-600'
             }`}
           >
-            Day
+            DAY
           </button>
         </div>
       </div>

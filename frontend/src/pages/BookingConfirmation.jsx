@@ -228,17 +228,17 @@ const BookingConfirmation = () => {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4">
         {/* Success Header */}
-        <div className="bg-white rounded-2xl shadow-lg p-8 mb-8 text-center">
-          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <FaCheckCircle className="text-4xl text-green-600" />
+        <div className="neu-card p-8 mb-8 text-center animate-fade-in-up">
+          <div className="w-24 h-24 neu-card-inset flex items-center justify-center mx-auto mb-6">
+            <FaCheckCircle className="text-5xl text-green-600 animate-bounce-gentle" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Booking Confirmed!</h1>
-          <p className="text-lg text-gray-600 mb-4">
-            Your reservation has been successfully created
+          <h1 className="text-4xl font-bold text-gray-900 mb-2 uppercase tracking-wide">BOOKING CONFIRMED!</h1>
+          <p className="text-xl text-gray-600 mb-6 font-medium">
+            Your Reservation Has Been Successfully Created
           </p>
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 inline-block">
-            <p className="text-sm text-blue-800 font-medium">Confirmation Code</p>
-            <p className="text-2xl font-bold text-blue-900">{booking.confirmationCode}</p>
+          <div className="neu-card-inset p-6 inline-block">
+            <p className="text-sm text-blue-800 font-semibold uppercase tracking-wide">CONFIRMATION CODE</p>
+            <p className="text-3xl font-bold text-blue-900 tracking-wider">{booking.confirmationCode}</p>
           </div>
         </div>
 
@@ -246,67 +246,67 @@ const BookingConfirmation = () => {
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
             {/* Booking Details */}
-            <div className="bg-white rounded-2xl shadow-lg p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-6">Booking Details</h2>
+            <div className="neu-card p-6 animate-fade-in-up-delayed">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6 uppercase tracking-wide">BOOKING DETAILS</h2>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
                   <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                      <FaCalendarAlt className="text-blue-600" />
+                    <div className="w-12 h-12 neu-card-inset flex items-center justify-center">
+                      <FaCalendarAlt className="text-blue-600 text-lg" />
                     </div>
                     <div>
-                      <p className="text-sm text-gray-600">Check-in Date</p>
-                      <p className="font-semibold text-gray-900">{formatDate(booking.checkIn)}</p>
+                      <p className="text-sm text-gray-600 font-semibold uppercase tracking-wide">CHECK-IN DATE</p>
+                      <p className="font-bold text-gray-900 text-lg">{formatDate(booking.checkIn)}</p>
                     </div>
                   </div>
                   
                   <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                      <FaCalendarAlt className="text-blue-600" />
+                    <div className="w-12 h-12 neu-card-inset flex items-center justify-center">
+                      <FaCalendarAlt className="text-blue-600 text-lg" />
                     </div>
                     <div>
-                      <p className="text-sm text-gray-600">Check-out Date</p>
-                      <p className="font-semibold text-gray-900">{formatDate(booking.checkOut)}</p>
+                      <p className="text-sm text-gray-600 font-semibold uppercase tracking-wide">CHECK-OUT DATE</p>
+                      <p className="font-bold text-gray-900 text-lg">{formatDate(booking.checkOut)}</p>
                     </div>
                   </div>
                 </div>
 
                 <div className="space-y-4">
                   <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                      <FaUsers className="text-blue-600" />
+                    <div className="w-12 h-12 neu-card-inset flex items-center justify-center">
+                      <FaUsers className="text-blue-600 text-lg" />
                     </div>
                     <div>
-                      <p className="text-sm text-gray-600">Number of Guests</p>
-                      <p className="font-semibold text-gray-900">{booking.numberOfGuests}</p>
+                      <p className="text-sm text-gray-600 font-semibold uppercase tracking-wide">NUMBER OF GUESTS</p>
+                      <p className="font-bold text-gray-900 text-lg">{booking.numberOfGuests}</p>
                     </div>
                   </div>
                   
                   <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                      <FaBed className="text-blue-600" />
+                    <div className="w-12 h-12 neu-card-inset flex items-center justify-center">
+                      <FaBed className="text-blue-600 text-lg" />
                     </div>
                     <div>
-                      <p className="text-sm text-gray-600">Duration</p>
-                      <p className="font-semibold text-gray-900">{calculateNights()} nights</p>
+                      <p className="text-sm text-gray-600 font-semibold uppercase tracking-wide">DURATION</p>
+                      <p className="font-bold text-gray-900 text-lg">{calculateNights()} NIGHTS</p>
                     </div>
                   </div>
                 </div>
               </div>
 
               {booking.specialRequests && (
-                <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                  <h3 className="font-medium text-gray-900 mb-2">Special Requests</h3>
-                  <p className="text-gray-700">{booking.specialRequests}</p>
+                <div className="mt-6 p-6 neu-card-inset">
+                  <h3 className="font-bold text-gray-900 mb-3 uppercase tracking-wide">SPECIAL REQUESTS</h3>
+                  <p className="text-gray-700 font-medium">{booking.specialRequests}</p>
                 </div>
               )}
             </div>
 
             {/* Property Information */}
             {property && (
-              <div className="bg-white rounded-2xl shadow-lg p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-6">Property Information</h2>
+              <div className="neu-card p-6 animate-fade-in-up-slow">
+                <h2 className="text-2xl font-bold text-gray-900 mb-6 uppercase tracking-wide">PROPERTY INFORMATION</h2>
                 
                 <div className="flex items-start space-x-4">
                   <img
@@ -429,92 +429,92 @@ const BookingConfirmation = () => {
 
           {/* Sidebar */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-2xl shadow-lg p-6 sticky top-8">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Booking Summary</h3>
+            <div className="neu-card p-6 sticky top-8 animate-fade-in-up-slower">
+              <h3 className="text-xl font-bold text-gray-900 mb-6 uppercase tracking-wide">BOOKING SUMMARY</h3>
               
-              <div className="space-y-4">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Total Amount:</span>
-                  <span className="font-semibold text-gray-900">RWF {booking.totalAmount?.toLocaleString()}</span>
+              <div className="space-y-6">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600 font-semibold uppercase tracking-wide">TOTAL AMOUNT:</span>
+                  <span className="font-bold text-gray-900 text-lg">RWF {booking.totalAmount?.toLocaleString()}</span>
                 </div>
                 
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Status:</span>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    booking.status === 'confirmed' ? 'bg-green-100 text-green-800' :
-                    booking.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-gray-100 text-gray-800'
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600 font-semibold uppercase tracking-wide">STATUS:</span>
+                  <span className={`px-4 py-2 rounded-full text-sm font-bold uppercase tracking-wide ${
+                    booking.status === 'confirmed' ? 'neu-card-inset bg-green-100 text-green-800' :
+                    booking.status === 'pending' ? 'neu-card-inset bg-yellow-100 text-yellow-800 animate-pulse' :
+                    'neu-card-inset bg-gray-100 text-gray-800'
                   }`}>
-                    {booking.status?.charAt(0).toUpperCase() + booking.status?.slice(1)}
+                    {booking.status?.toUpperCase()}
                   </span>
                 </div>
                 
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Payment:</span>
-                  <span className="text-gray-900">{booking.paymentMethod?.replace('_', ' ')}</span>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600 font-semibold uppercase tracking-wide">PAYMENT:</span>
+                  <span className="text-gray-900 font-bold">{booking.paymentMethod?.replace('_', ' ').toUpperCase()}</span>
                 </div>
               </div>
 
-              <div className="mt-6 space-y-3">
+              <div className="mt-8 space-y-4">
                 <button
                   onClick={() => setShowChat(true)}
-                  className="w-full flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg font-medium transition-colors"
+                  className="w-full flex items-center justify-center space-x-3 btn-primary font-semibold tracking-wide"
                 >
                   <FaComments />
-                  <span>Message Property Owner</span>
+                  <span>MESSAGE PROPERTY OWNER</span>
                 </button>
-                <div className="grid grid-cols-1 gap-2">
+                <div className="grid grid-cols-1 gap-3">
                   <a
                     href={`${API_URL}/api/bookings/${id}/receipt.csv`}
-                    className="w-full text-center bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-3 rounded-lg font-medium transition-colors"
+                    className="w-full text-center neu-btn font-semibold tracking-wide"
                   >
-                    Download Owner Receipt CSV
+                    DOWNLOAD OWNER RECEIPT CSV
                   </a>
                   <a
                     href={`${API_URL}/api/bookings/${id}/rra-receipt.csv`}
-                    className="w-full text-center bg-amber-600 hover:bg-amber-700 text-white px-4 py-3 rounded-lg font-medium transition-colors"
+                    className="w-full text-center neu-btn font-semibold tracking-wide"
                   >
-                    Download RRA Receipt CSV
+                    DOWNLOAD RRA RECEIPT CSV
                   </a>
                 </div>
                 <button
                   onClick={() => setShowRRAReceipt(!showRRAReceipt)}
-                  className="w-full flex items-center justify-center space-x-2 bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg font-medium transition-colors"
+                  className="w-full flex items-center justify-center space-x-3 neu-btn font-semibold tracking-wide"
                 >
                   <FaFileAlt />
-                  <span>{showRRAReceipt ? 'Hide RRA Receipt' : 'View RRA Tax Receipt'}</span>
+                  <span>{showRRAReceipt ? 'HIDE RRA RECEIPT' : 'VIEW RRA TAX RECEIPT'}</span>
                 </button>
                 
                 <button
                   onClick={() => setShowReceipt(!showReceipt)}
-                  className="w-full flex items-center justify-center space-x-2 bg-purple-600 hover:bg-purple-700 text-white px-4 py-3 rounded-lg font-medium transition-colors"
+                  className="w-full flex items-center justify-center space-x-3 neu-btn font-semibold tracking-wide"
                 >
                   <FaFileInvoice />
-                  <span>{showReceipt ? 'Hide Receipt' : 'View Booking Receipt'}</span>
+                  <span>{showReceipt ? 'HIDE RECEIPT' : 'VIEW BOOKING RECEIPT'}</span>
                 </button>
                 
                 <button
                   onClick={handlePrint}
-                  className="w-full flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg font-medium transition-colors"
+                  className="w-full flex items-center justify-center space-x-3 neu-btn font-semibold tracking-wide"
                 >
                   <FaPrint />
-                  <span>Print Confirmation</span>
+                  <span>PRINT CONFIRMATION</span>
                 </button>
                 
                 <button
                   onClick={handleShare}
-                  className="w-full flex items-center justify-center space-x-2 bg-gray-600 hover:bg-gray-700 text-white px-4 py-3 rounded-lg font-medium transition-colors"
+                  className="w-full flex items-center justify-center space-x-3 neu-btn font-semibold tracking-wide"
                 >
                   <FaShare />
-                  <span>Share Booking</span>
+                  <span>SHARE BOOKING</span>
                 </button>
                 
                 <Link
                   to="/apartments"
-                  className="w-full flex items-center justify-center space-x-2 bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg font-medium transition-colors"
+                  className="w-full flex items-center justify-center space-x-3 btn-primary font-semibold tracking-wide"
                 >
                   <FaHome />
-                  <span>Browse More Properties</span>
+                  <span>BROWSE MORE PROPERTIES</span>
                 </Link>
               </div>
 

@@ -269,66 +269,126 @@ html {
   background-clip: text;
 }
 
-/* Global soft borders for a modern (less harsh) look */
-/* Lighten common Tailwind border utilities without touching layout */
-.border { border-color: var(--color-gray-200) !important; }
-.border-gray-300 { border-color: var(--color-gray-200) !important; }
-.border-gray-400 { border-color: var(--color-gray-200) !important; }
-.border-blue-100 { border-color: #E8D6BE !important; }
-.border-blue-200 { border-color: #E8D6BE !important; }
+/* Global border removal for modern design */
+/* Remove borders globally and use shadows instead */
+.border { border: none !important; }
+.border-gray-300 { border: none !important; }
+.border-gray-400 { border: none !important; }
+.border-blue-100 { border: none !important; }
+.border-blue-200 { border: none !important; }
+.border-b { border-bottom: none !important; }
+.border-t { border-top: none !important; }
+.border-l { border-left: none !important; }
+.border-r { border-right: none !important; }
 
-/* Form controls: softer borders, subtle inset shadow, rounded corners */
+/* Modern form controls with neumorphism */
 input[type="text"],
 input[type="email"],
 input[type="tel"],
 input[type="number"],
 input[type="password"],
+input[type="date"],
 select,
 textarea {
-  border-color: var(--color-gray-200) !important;
-  border-width: 1px;
-  border-radius: 0.75rem;
-  background-color: #fff;
-  box-shadow: inset 0 1px 2px rgba(75, 46, 5, 0.04);
+  border: none !important;
+  border-radius: 1rem;
+  background: linear-gradient(145deg, #FFF9F3, #F2E2CE);
+  box-shadow: 
+    inset 4px 4px 8px rgba(75, 46, 5, 0.08),
+    inset -4px -4px 8px rgba(255, 249, 243, 0.9);
+  transition: all 0.3s ease;
+  padding: 0.75rem 1rem;
 }
 
 input:focus,
 select:focus,
 textarea:focus {
   outline: none;
-  border-color: var(--color-blue-400) !important;
-  box-shadow: 0 0 0 3px rgba(181, 127, 80, 0.18);
+  box-shadow: 
+    inset 2px 2px 4px rgba(75, 46, 5, 0.06),
+    inset -2px -2px 4px rgba(255, 249, 243, 0.9),
+    0 0 0 3px rgba(181, 127, 80, 0.2);
+  transform: translateY(-1px);
 }
 
-/* Neumorphism utilities (soft UI) */
+/* Enhanced Neumorphism utilities */
 .neu-card {
   background: #FFF9F3;
-  border-radius: 1rem;
-  box-shadow: 8px 8px 20px rgba(75, 46, 5, 0.08), -8px -8px 20px rgba(255, 249, 243, 0.9);
+  border-radius: 1.5rem;
+  box-shadow: 
+    12px 12px 24px rgba(75, 46, 5, 0.08), 
+    -12px -12px 24px rgba(255, 249, 243, 0.9);
+  transition: all 0.3s ease;
+}
+
+.neu-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    16px 16px 32px rgba(75, 46, 5, 0.12), 
+    -16px -16px 32px rgba(255, 249, 243, 1);
 }
 
 .neu-card-inset {
   background: #FFF9F3;
-  border-radius: 1rem;
-  box-shadow: inset 8px 8px 16px rgba(75, 46, 5, 0.06), inset -8px -8px 16px rgba(255, 249, 243, 0.9);
+  border-radius: 1.5rem;
+  box-shadow: 
+    inset 8px 8px 16px rgba(75, 46, 5, 0.06), 
+    inset -8px -8px 16px rgba(255, 249, 243, 0.9);
 }
 
 .neu-btn {
   background: linear-gradient(145deg, #F2E2CE, #FFF9F3);
   color: #2B1B0E;
-  border-radius: 0.875rem;
-  box-shadow: 6px 6px 14px rgba(75, 46, 5, 0.12), -6px -6px 14px rgba(255, 249, 243, 0.9);
-  transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
+  border-radius: 1rem;
+  box-shadow: 
+    8px 8px 16px rgba(75, 46, 5, 0.12), 
+    -8px -8px 16px rgba(255, 249, 243, 0.9);
+  transition: all 0.3s ease;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
 }
 
 .neu-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 10px 10px 20px rgba(75, 46, 5, 0.14), -10px -10px 20px rgba(255, 249, 243, 1);
+  transform: translateY(-2px);
+  box-shadow: 
+    12px 12px 24px rgba(75, 46, 5, 0.16), 
+    -12px -12px 24px rgba(255, 249, 243, 1);
 }
 
 .neu-btn:active {
   transform: translateY(0);
-  box-shadow: inset 6px 6px 12px rgba(75, 46, 5, 0.1), inset -6px -6px 12px rgba(255, 249, 243, 0.9);
+  box-shadow: 
+    inset 6px 6px 12px rgba(75, 46, 5, 0.1), 
+    inset -6px -6px 12px rgba(255, 249, 243, 0.9);
+}
+
+/* Modern button variants */
+.btn-primary {
+  background: linear-gradient(145deg, #B57F50, #8F633E);
+  color: white;
+  border-radius: 1rem;
+  box-shadow: 
+    8px 8px 16px rgba(75, 46, 5, 0.2), 
+    -8px -8px 16px rgba(181, 127, 80, 0.3);
+  transition: all 0.3s ease;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    12px 12px 24px rgba(75, 46, 5, 0.25), 
+    -12px -12px 24px rgba(181, 127, 80, 0.4);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+  box-shadow: 
+    inset 6px 6px 12px rgba(75, 46, 5, 0.3), 
+    inset -6px -6px 12px rgba(181, 127, 80, 0.2);
 }
 
 /* Print styles - only print receipt content */

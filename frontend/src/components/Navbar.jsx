@@ -12,6 +12,31 @@ import {
   FaCaretDown,
   FaSignOutAlt,
   FaTimes,
+  FaHome,
+  FaCar,
+  FaShip,
+  FaTrain,
+  FaBus,
+  FaUtensils,
+  FaShoppingBag,
+  FaTicketAlt,
+  FaMapMarkedAlt,
+  FaCalendarAlt,
+  FaQuestionCircle,
+  FaCog,
+  FaUserCircle,
+  FaSignInAlt,
+  FaUserPlus,
+  FaComments,
+  FaHeart,
+  FaHistory,
+  FaGift,
+  FaBookmark,
+  FaCreditCard,
+  FaShieldAlt,
+  FaHeadset,
+  FaLanguage,
+  FaChevronDown,
 } from "react-icons/fa";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -74,10 +99,92 @@ const Navbar = () => {
   }, [isAuthenticated, API_URL]);
 
   const navButtons = [
-    { icon: FaBed, text: "Stays", href: "/apartments" },
-    { icon: FaPlane, text: "Flights", href: "/flights" },
-    { icon: FaBuffer, text: "Attractions", href: "/attractions" },
-    { icon: FaTaxi, text: "Airport taxis", href: "/taxis" },
+    { 
+      icon: FaBed, 
+      text: "STAYS", 
+      href: "/apartments",
+      sublinks: [
+        { text: "Hotels", href: "/apartments?type=hotel" },
+        { text: "Apartments", href: "/apartments?type=apartment" },
+        { text: "Villas", href: "/apartments?type=villa" },
+        { text: "Hostels", href: "/apartments?type=hostel" },
+        { text: "Resorts", href: "/apartments?type=resort" },
+        { text: "Guesthouses", href: "/apartments?type=guesthouse" },
+        { text: "Homes", href: "/homes" },
+        { text: "Vacation Rentals", href: "/apartments?type=vacation" }
+      ]
+    },
+    { 
+      icon: FaPlane, 
+      text: "FLIGHTS", 
+      href: "/flights",
+      sublinks: [
+        { text: "Domestic Flights", href: "/flights?type=domestic" },
+        { text: "International Flights", href: "/flights?type=international" },
+        { text: "Round Trip", href: "/flights?trip=round" },
+        { text: "One Way", href: "/flights?trip=oneway" },
+        { text: "Multi-city", href: "/flights?trip=multicity" }
+      ]
+    },
+    { 
+      icon: FaCar, 
+      text: "CAR RENTALS", 
+      href: "/cars",
+      sublinks: [
+        { text: "Economy Cars", href: "/cars?type=economy" },
+        { text: "Luxury Cars", href: "/cars?type=luxury" },
+        { text: "SUVs", href: "/cars?type=suv" },
+        { text: "Convertibles", href: "/cars?type=convertible" },
+        { text: "Electric Vehicles", href: "/cars?type=electric" }
+      ]
+    },
+    { 
+      icon: FaBuffer, 
+      text: "ATTRACTIONS", 
+      href: "/attractions",
+      sublinks: [
+        { text: "Museums", href: "/attractions?type=museum" },
+        { text: "Parks", href: "/attractions?type=park" },
+        { text: "Historical Sites", href: "/attractions?type=historical" },
+        { text: "Adventure", href: "/attractions?type=adventure" },
+        { text: "Cultural Sites", href: "/attractions?type=cultural" }
+      ]
+    },
+    { 
+      icon: FaTaxi, 
+      text: "AIRPORT TAXIS", 
+      href: "/taxis",
+      sublinks: [
+        { text: "Airport Transfer", href: "/taxis?type=airport" },
+        { text: "City Transfer", href: "/taxis?type=city" },
+        { text: "Long Distance", href: "/taxis?type=long" },
+        { text: "Hourly Rental", href: "/taxis?type=hourly" }
+      ]
+    },
+    { 
+      icon: FaGlobe, 
+      text: "EXPERIENCES", 
+      href: "/experiences",
+      sublinks: [
+        { text: "Tours", href: "/experiences?type=tour" },
+        { text: "Activities", href: "/experiences?type=activity" },
+        { text: "Adventures", href: "/experiences?type=adventure" },
+        { text: "Cultural Experiences", href: "/experiences?type=cultural" },
+        { text: "Food & Drink", href: "/experiences?type=food" }
+      ]
+    },
+    { 
+      icon: FaTicketAlt, 
+      text: "DEALS", 
+      href: "/deals",
+      sublinks: [
+        { text: "Hotel Deals", href: "/deals?type=hotel" },
+        { text: "Flight Deals", href: "/deals?type=flight" },
+        { text: "Package Deals", href: "/deals?type=package" },
+        { text: "Last Minute", href: "/deals?type=lastminute" },
+        { text: "Early Bird", href: "/deals?type=earlybird" }
+      ]
+    }
   ];
 
   const isActiveRoute = (href) => {
@@ -179,25 +286,46 @@ const Navbar = () => {
 
               {/* Nav Buttons (desktop) */}
               {user?.userType !== "admin" && (
-                <div className="hidden lg:flex items-center space-x-1 bg-gray-100 rounded-full p-1.5">
+                <div className="hidden lg:flex items-center space-x-2 neu-card-inset p-2">
                   {navButtons.map((button, index) => {
                     const Icon = button.icon;
                     const isActive = isActiveRoute(button.href);
                     return (
-                      <Link
-                        key={index}
-                        to={button.href}
-                        className={`flex items-center space-x-2 px-4 py-2.5 rounded-full transition-all duration-300 ${
-                          isActive
-                            ? "bg-white text-blue-600 shadow-md scale-105"
-                            : "text-gray-600 hover:text-blue-600 hover:bg-gray-200 hover:scale-105"
-                        }`}
-                      >
-                        <Icon className="text-sm" />
-                        <span className="font-medium text-sm">
-                          {button.text}
-                        </span>
-                      </Link>
+                      <div key={index} className="relative group">
+                        <Link
+                          to={button.href}
+                          className={`flex items-center space-x-2 px-4 py-3 rounded-xl transition-all duration-300 font-semibold ${
+                            isActive
+                              ? "neu-card text-blue-600 scale-105"
+                              : "text-gray-600 hover:text-blue-600 hover:scale-105"
+                          }`}
+                        >
+                          <Icon className="text-sm" />
+                          <span className="text-sm tracking-wide">
+                            {button.text}
+                          </span>
+                          {button.sublinks && (
+                            <FaChevronDown className="text-xs transition-transform duration-300 group-hover:rotate-180" />
+                          )}
+                        </Link>
+                        
+                        {/* Dropdown Menu */}
+                        {button.sublinks && (
+                          <div className="absolute top-full left-0 mt-2 w-64 neu-card opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50">
+                            <div className="p-4 space-y-2">
+                              {button.sublinks.map((sublink, subIndex) => (
+                                <Link
+                                  key={subIndex}
+                                  to={sublink.href}
+                                  className="block px-4 py-3 text-sm text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-300 font-medium"
+                                >
+                                  {sublink.text}
+                                </Link>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     );
                   })}
                 </div>
@@ -272,12 +400,12 @@ const Navbar = () => {
               {isAuthenticated && (
                 <Link
                   to="/messages"
-                  className="hidden lg:flex items-center space-x-2 px-3 py-2 rounded-xl text-gray-700 hover:text-blue-600 hover:bg-gray-100 relative"
+                  className="hidden lg:flex items-center space-x-2 px-4 py-3 neu-btn text-gray-700 hover:text-blue-600 relative"
                   title="Messages"
                 >
-                  <span className="font-medium">Messages</span>
+                  <span className="font-semibold tracking-wide">MESSAGES</span>
                   {unreadMsgCount > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs rounded-full px-1.5">
+                    <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs rounded-full px-2 py-1 animate-pulse">
                       {unreadMsgCount}
                     </span>
                   )}
@@ -500,15 +628,17 @@ const Navbar = () => {
                           </Link>
                         )}
                         
-                        {/* Admin Dashboard Link for all users */}
-                        <Link
-                          to="/admin"
-                          className="flex items-center px-4 py-3 text-gray-700 hover:bg-purple-50 hover:text-purple-700"
-                          onClick={() => setIsUserMenuOpen(false)}
-                        >
-                          <FaUser className="mr-3 text-purple-600" />
-                          Admin Dashboard
-                        </Link>
+                        {/* Admin Dashboard Link visible only to admins */}
+                        {user?.userType === 'admin' && (
+                          <Link
+                            to="/admin"
+                            className="flex items-center px-4 py-3 text-gray-700 hover:bg-purple-50 hover:text-purple-700"
+                            onClick={() => setIsUserMenuOpen(false)}
+                          >
+                            <FaUser className="mr-3 text-purple-600" />
+                            Admin Dashboard
+                          </Link>
+                        )}
                         
                         <hr className="my-2 border-gray-100" />
                         <button
