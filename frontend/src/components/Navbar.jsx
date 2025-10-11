@@ -34,6 +34,7 @@ import {
   FaBuilding,
   FaMapMarkerAlt,
   FaUmbrellaBeach,
+  FaChevronRight,
 } from "react-icons/fa";
 import { useSocket } from "../contexts/SocketContext";
 
@@ -48,7 +49,7 @@ const Navbar = () => {
   const [unreadMsgCount, setUnreadMsgCount] = useState(0);
   const { socket } = useSocket();
 
-  // Main navigation categories with hierarchical structure
+  // Main navigation items like Booking.com
   const mainNavItems = [
     {
       label: "Stays",
@@ -58,16 +59,7 @@ const Navbar = () => {
         { label: "Apartments", href: "/apartments", icon: FaBuilding },
         { label: "Hotels", href: "/hotels", icon: FaBed },
         { label: "Homes", href: "/homes", icon: FaHome },
-        { label: "List your property", href: "/upload", icon: FaBuilding },
-      ]
-    },
-    {
-      label: "Cars",
-      icon: FaCar,
-      href: "/cars",
-      children: [
-        { label: "Rent a car", href: "/cars", icon: FaCar },
-        { label: "My Cars", href: "/owner/cars", icon: FaCar },
+        { label: "Resorts", href: "/resorts", icon: FaUmbrellaBeach },
       ]
     },
     {
@@ -77,10 +69,21 @@ const Navbar = () => {
       children: [
         { label: "Search flights", href: "/flights", icon: FaPlane },
         { label: "Flight deals", href: "/flights?deals=true", icon: FaPlane },
+        { label: "Multi-city", href: "/flights?multi=true", icon: FaPlane },
       ]
     },
     {
-      label: "Experiences",
+      label: "Car Rentals",
+      icon: FaCar,
+      href: "/cars",
+      children: [
+        { label: "Rent a car", href: "/cars", icon: FaCar },
+        { label: "My Cars", href: "/owner/cars", icon: FaCar },
+        { label: "Car deals", href: "/cars?deals=true", icon: FaCar },
+      ]
+    },
+    {
+      label: "Attractions",
       icon: FaUmbrellaBeach,
       href: "/experiences",
       children: [
@@ -88,72 +91,100 @@ const Navbar = () => {
         { label: "Restaurants", href: "/restaurants", icon: FaUtensils },
         { label: "Deals", href: "/deals", icon: FaShoppingBag },
       ]
+    },
+    {
+      label: "Airport taxis",
+      icon: FaCar,
+      href: "/airport-taxis",
+      children: [
+        { label: "Book airport taxi", href: "/airport-taxis", icon: FaCar },
+        { label: "Taxi deals", href: "/airport-taxis?deals=true", icon: FaCar },
+      ]
     }
   ];
 
-  // Owner management links organized by category
+  // Owner management links organized exactly like Booking.com
   const ownerManagementLinks = [
     {
       category: "Reservations",
       icon: FaCalendarAlt,
       links: [
-        { label: "All Bookings", href: "/my-bookings?tab=bookings&scope=all" },
-        { label: "Paid Bookings", href: "/my-bookings?tab=bookings&scope=paid" },
-        { label: "Pending Bookings", href: "/my-bookings?tab=bookings&scope=pending" },
-        { label: "Unpaid Bookings", href: "/my-bookings?tab=bookings&scope=unpaid" },
+        { label: "All reservations", href: "/my-bookings?tab=bookings&scope=all" },
+        { label: "Paid reservations", href: "/my-bookings?tab=bookings&scope=paid" },
+        { label: "Pending reservations", href: "/my-bookings?tab=bookings&scope=pending" },
+        { label: "Unpaid reservations", href: "/my-bookings?tab=bookings&scope=unpaid" },
+        { label: "Cancelled reservations", href: "/my-bookings?tab=bookings&scope=cancelled" },
       ]
     },
     {
       category: "Calendar",
       icon: FaCalendarAlt,
       links: [
-        { label: "This Month", href: "/my-bookings?tab=properties" },
-        { label: "Next Month", href: "/my-bookings?tab=properties" },
+        { label: "This month", href: "/my-bookings?tab=properties" },
+        { label: "Next month", href: "/my-bookings?tab=properties" },
+        { label: "This year", href: "/my-bookings?tab=properties" },
       ]
     },
     {
       category: "Finance",
       icon: FaDollarSign,
       links: [
-        { label: "All Payments", href: "/my-bookings?tab=finance&finance_status=all" },
+        { label: "All payments", href: "/my-bookings?tab=finance&finance_status=all" },
         { label: "Paid", href: "/my-bookings?tab=finance&finance_status=paid" },
         { label: "Pending", href: "/my-bookings?tab=finance&finance_status=pending" },
         { label: "Unpaid", href: "/my-bookings?tab=finance&finance_status=unpaid" },
-        { label: "Last 30 Days", href: "/my-bookings?tab=finance&view=last30" },
-        { label: "Month to Date", href: "/my-bookings?tab=finance&view=mtd" },
+        { label: "Last 30 days", href: "/my-bookings?tab=finance&view=last30" },
+        { label: "Month to date", href: "/my-bookings?tab=finance&view=mtd" },
+        { label: "Year to date", href: "/my-bookings?tab=finance&view=ytd" },
       ]
     },
     {
       category: "Analytics",
       icon: FaChartLine,
       links: [
-        { label: "Last 30 Days", href: "/my-bookings?tab=analytics&range=30" },
-        { label: "Last 90 Days", href: "/my-bookings?tab=analytics&range=90" },
-        { label: "Year to Date", href: "/my-bookings?tab=analytics&range=ytd" },
+        { label: "Last 30 days", href: "/my-bookings?tab=analytics&range=30" },
+        { label: "Last 90 days", href: "/my-bookings?tab=analytics&range=90" },
+        { label: "Year to date", href: "/my-bookings?tab=analytics&range=ytd" },
+        { label: "Custom range", href: "/my-bookings?tab=analytics&range=custom" },
       ]
     },
     {
       category: "Promotions",
       icon: FaShoppingBag,
       links: [
-        { label: "Manage Promotions", href: "/owner/promotions" },
-        { label: "Create New", href: "/owner/promotions?mode=new" },
+        { label: "Manage promotions", href: "/owner/promotions" },
+        { label: "Create new promotion", href: "/owner/promotions?mode=new" },
+        { label: "Active promotions", href: "/owner/promotions?status=active" },
+        { label: "Expired promotions", href: "/owner/promotions?status=expired" },
       ]
     },
     {
       category: "Reviews",
       icon: FaStar,
       links: [
-        { label: "All Reviews", href: "/owner/reviews" },
-        { label: "Unreplied", href: "/owner/reviews?filter=unreplied" },
+        { label: "All reviews", href: "/owner/reviews" },
+        { label: "Unreplied reviews", href: "/owner/reviews?filter=unreplied" },
+        { label: "5-star reviews", href: "/owner/reviews?filter=5star" },
+        { label: "Low ratings", href: "/owner/reviews?filter=low" },
+      ]
+    },
+    {
+      category: "Messages",
+      icon: FaEnvelope,
+      links: [
+        { label: "Inbox", href: "/messages" },
+        { label: "Unread messages", href: "/messages?filter=unread" },
+        { label: "Archived messages", href: "/messages?filter=archived" },
       ]
     },
     {
       category: "Settings",
       icon: FaSettings,
       links: [
-        { label: "Property Settings", href: "/upload" },
-        { label: "Account Settings", href: "/settings" },
+        { label: "Property settings", href: "/upload" },
+        { label: "Account settings", href: "/settings" },
+        { label: "Payment settings", href: "/settings?tab=payment" },
+        { label: "Notification settings", href: "/settings?tab=notifications" },
       ]
     }
   ];
@@ -177,7 +208,6 @@ const Navbar = () => {
 
   useEffect(() => {
     if (isAuthenticated && user?.userType === "admin") {
-      // Mock notifications for admin
       setNotifications([
         {
           id: 1,
@@ -228,10 +258,10 @@ const Navbar = () => {
   return (
     <>
       <nav className="w-full bg-white navbar-shadow border-b border-gray-200 relative">
-        {/* Top Bar */}
+        {/* Top Bar - Like Booking.com */}
         <div className="bg-blue-800 text-white py-2 px-4">
           <div className="max-w-7xl mx-auto flex justify-between items-center text-xs">
-            <div className="flex items-center space-x-3 lg:space-x-4">
+            <div className="flex items-center space-x-4 lg:space-x-6">
               {isAuthenticated && user?.userType !== "admin" && (
                 <>
                   <Link
@@ -244,7 +274,7 @@ const Navbar = () => {
                     to="/upload"
                     className="hidden sm:inline hover:text-blue-200 font-medium"
                   >
-                    List Property
+                    List your property
                   </Link>
                   {user?.userType === 'host' && (
                     <Link
@@ -282,31 +312,31 @@ const Navbar = () => {
                 Partner Portal
               </span>
             </div>
-            <div className="flex items-center space-x-3">
-              <div className="flex items-center space-x-1 hover:text-blue-200 cursor-pointer">
-                <FaGlobe className="text-xs" />
-                <span className="hidden sm:inline">EN</span>
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2 hover:text-blue-200 cursor-pointer">
+                <FaGlobe className="text-sm" />
+                <span className="hidden sm:inline">English</span>
               </div>
-              <div className="flex items-center space-x-1 hover:text-blue-200 cursor-pointer">
-                <span className="font-semibold text-xs">RWF</span>
+              <div className="flex items-center space-x-2 hover:text-blue-200 cursor-pointer">
+                <span className="font-semibold">RWF</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Main Navigation */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+        {/* Main Navigation - Booking.com Style */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
             {/* Logo */}
-            <div className="flex items-center space-x-4 lg:space-x-6">
+            <div className="flex items-center space-x-8">
               <Link
                 to="/"
-                className="text-lg sm:text-xl font-bold text-blue-800 hover:text-blue-600"
+                className="text-2xl font-bold text-blue-800 hover:text-blue-600"
               >
                 AKWANDA.rw
               </Link>
 
-              {/* Main Navigation Items with Dropdowns */}
+              {/* Main Navigation Items - Booking.com Style */}
               {user?.userType !== "admin" && (
                 <div className="hidden lg:flex items-center space-x-1">
                   {mainNavItems.map((item, index) => {
@@ -318,20 +348,20 @@ const Navbar = () => {
                       <div key={index} className="relative group">
                         <button
                           onClick={() => toggleDropdown(item.label)}
-                          className={`flex items-center space-x-1.5 px-3 py-2 rounded-lg transition-all duration-300 font-medium text-sm ${
+                          className={`flex items-center space-x-2 px-4 py-3 rounded-lg transition-all duration-300 font-medium ${
                             isActive
                               ? "bg-blue-600 text-white shadow-md"
                               : "text-gray-700 hover:text-blue-600 hover:bg-gray-50"
                           }`}
                         >
-                          <Icon className="text-sm" />
+                          <Icon className="text-lg" />
                           <span>{item.label}</span>
-                          <FaCaretDown className={`text-xs transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                          <FaCaretDown className={`text-sm transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
                         </button>
 
-                        {/* Dropdown Menu */}
+                        {/* Dropdown Menu - Booking.com Style */}
                         {isDropdownOpen && (
-                          <div className="absolute top-full left-0 mt-1 w-64 bg-white rounded-xl dropdown-shadow border border-gray-200 py-2 z-50">
+                          <div className="absolute top-full left-0 mt-1 w-64 bg-white rounded-xl dropdown-shadow border border-gray-200 py-3 z-50">
                             {item.children.map((child, childIndex) => {
                               const ChildIcon = child.icon;
                               const isChildActive = isActiveRoute(child.href);
@@ -339,13 +369,14 @@ const Navbar = () => {
                                 <Link
                                   key={childIndex}
                                   to={child.href}
-                                  className={`flex items-center space-x-3 px-4 py-3 text-sm hover:bg-gray-50 ${
+                                  className={`flex items-center space-x-3 px-4 py-3 text-sm hover:bg-gray-50 transition-colors ${
                                     isChildActive ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
                                   }`}
                                   onClick={() => setActiveDropdown(null)}
                                 >
                                   <ChildIcon className="text-sm" />
                                   <span>{child.label}</span>
+                                  {isChildActive && <FaChevronRight className="text-xs ml-auto" />}
                                 </Link>
                               );
                             })}
@@ -358,48 +389,50 @@ const Navbar = () => {
               )}
             </div>
 
-            {/* Right Side */}
-            <div className="flex items-center space-x-2 lg:space-x-3">
-              {/* Owner Management Dropdown */}
+            {/* Right Side - Booking.com Style */}
+            <div className="flex items-center space-x-4">
+              {/* Owner Management Dropdown - Booking.com Style */}
               {isAuthenticated && user?.userType === 'host' && (
                 <div className="hidden lg:block relative">
                   <button
                     onClick={() => toggleDropdown('owner')}
-                    className={`flex items-center space-x-1.5 px-3 py-2 rounded-lg transition-all duration-300 font-medium text-sm ${
+                    className={`flex items-center space-x-2 px-4 py-3 rounded-lg transition-all duration-300 font-medium ${
                       activeDropdown === 'owner'
                         ? "bg-blue-600 text-white shadow-md"
                         : "text-gray-700 hover:text-blue-600 hover:bg-gray-50"
                     }`}
                   >
-                    <FaUser className="text-sm" />
+                    <FaUser className="text-lg" />
                     <span>Owner</span>
-                    <FaCaretDown className={`text-xs transition-transform ${activeDropdown === 'owner' ? 'rotate-180' : ''}`} />
+                    <FaCaretDown className={`text-sm transition-transform ${activeDropdown === 'owner' ? 'rotate-180' : ''}`} />
                   </button>
 
-                  {/* Owner Management Dropdown */}
+                  {/* Owner Management Dropdown - Booking.com Style */}
                   {activeDropdown === 'owner' && (
-                    <div className="absolute top-full right-0 mt-1 w-[800px] bg-white rounded-xl dropdown-shadow border border-gray-200 p-4 z-50">
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-6 text-sm">
+                    <div className="absolute top-full right-0 mt-1 w-[900px] bg-white rounded-xl dropdown-shadow border border-gray-200 p-6 z-50">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-sm">
                         {ownerManagementLinks.map((category, index) => {
                           const CategoryIcon = category.icon;
                           return (
                             <div key={index}>
-                              <div className="flex items-center space-x-2 mb-3">
-                                <CategoryIcon className="text-blue-600 text-sm" />
-                                <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                              <div className="flex items-center space-x-2 mb-4">
+                                <CategoryIcon className="text-blue-600 text-lg" />
+                                <div className="text-sm font-semibold text-gray-700">
                                   {category.category}
                                 </div>
                               </div>
-                              {category.links.map((link, linkIndex) => (
-                                <Link
-                                  key={linkIndex}
-                                  to={link.href}
-                                  className="block px-2 py-1.5 rounded hover:bg-blue-50 hover:text-blue-700 text-gray-700 transition-colors"
-                                  onClick={() => setActiveDropdown(null)}
-                                >
-                                  {link.label}
-                                </Link>
-                              ))}
+                              <div className="space-y-1">
+                                {category.links.map((link, linkIndex) => (
+                                  <Link
+                                    key={linkIndex}
+                                    to={link.href}
+                                    className="block px-3 py-2 rounded hover:bg-blue-50 hover:text-blue-700 text-gray-600 transition-colors"
+                                    onClick={() => setActiveDropdown(null)}
+                                  >
+                                    {link.label}
+                                  </Link>
+                                ))}
+                              </div>
                             </div>
                           );
                         })}
@@ -413,13 +446,13 @@ const Navbar = () => {
               {isAuthenticated && (
                 <Link
                   to="/messages"
-                  className="hidden lg:flex items-center space-x-1 px-3 py-2 modern-card text-gray-700 hover:text-blue-600 relative"
+                  className="hidden lg:flex items-center space-x-2 px-4 py-3 modern-card text-gray-700 hover:text-blue-600 relative"
                   title="Messages"
                 >
-                  <FaEnvelope className="text-sm" />
-                  <span className="font-medium text-xs">Messages</span>
+                  <FaEnvelope className="text-lg" />
+                  <span className="font-medium">Messages</span>
                   {unreadMsgCount > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs rounded-full px-1.5 py-0.5 min-w-[18px] text-center">
+                    <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center">
                       {unreadMsgCount}
                     </span>
                   )}
@@ -429,10 +462,10 @@ const Navbar = () => {
               {/* Notifications (admin only) */}
               {user?.userType === "admin" && (
                 <div className="hidden lg:block relative group">
-                  <button className="relative p-2 text-gray-700 hover:text-blue-600 hover:bg-gray-100 rounded-lg">
-                    <FaBell className="text-sm" />
+                  <button className="relative p-3 text-gray-700 hover:text-blue-600 hover:bg-gray-100 rounded-lg">
+                    <FaBell className="text-lg" />
                     {notifications.filter((n) => !n.isRead).length > 0 && (
-                      <span className="absolute -top-1 -right-1 bg-green-600 text-white text-xs rounded-full px-1.5 py-0.5 min-w-[16px] text-center">
+                      <span className="absolute -top-1 -right-1 bg-green-600 text-white text-xs rounded-full px-2 py-1 min-w-[18px] text-center">
                         {notifications.filter((n) => !n.isRead).length}
                       </span>
                     )}
@@ -469,50 +502,50 @@ const Navbar = () => {
                 <div className="relative">
                   <button
                     onClick={toggleProfile}
-                    className="flex items-center space-x-2 px-3 py-2 modern-card text-gray-700 hover:text-blue-600"
+                    className="flex items-center space-x-2 px-4 py-3 modern-card text-gray-700 hover:text-blue-600"
                   >
-                    <FaUserCircle className="text-sm" />
-                    <span className="hidden sm:inline font-medium text-sm">
+                    <FaUserCircle className="text-lg" />
+                    <span className="hidden sm:inline font-medium">
                       {user?.name || user?.email}
                     </span>
                     {isProfileOpen ? (
-                      <FaChevronUp className="text-xs" />
+                      <FaChevronUp className="text-sm" />
                     ) : (
-                      <FaChevronDown className="text-xs" />
+                      <FaChevronDown className="text-sm" />
                     )}
                   </button>
 
                   {isProfileOpen && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl dropdown-shadow border border-gray-200 py-2 z-50">
+                    <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl dropdown-shadow border border-gray-200 py-2 z-50">
                       <Link
                         to="/profile"
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                        className="flex items-center space-x-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50"
                         onClick={() => setIsProfileOpen(false)}
                       >
-                        <FaUser className="inline mr-2" />
-                        Profile
+                        <FaUser className="text-sm" />
+                        <span>Profile</span>
                       </Link>
                       <Link
                         to="/settings"
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                        className="flex items-center space-x-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50"
                         onClick={() => setIsProfileOpen(false)}
                       >
-                        <FaCog className="inline mr-2" />
-                        Settings
+                        <FaCog className="text-sm" />
+                        <span>Settings</span>
                       </Link>
                       <hr className="my-2" />
                       <button
                         onClick={handleLogout}
-                        className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                        className="flex items-center space-x-3 w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50"
                       >
-                        <FaSignOutAlt className="inline mr-2" />
-                        Logout
+                        <FaSignOutAlt className="text-sm" />
+                        <span>Logout</span>
                       </button>
                     </div>
                   )}
                 </div>
               ) : (
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-3">
                   <Link
                     to="/login"
                     className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-blue-600"
@@ -533,13 +566,13 @@ const Navbar = () => {
                 onClick={toggleMenu}
                 className="lg:hidden p-2 text-gray-700 hover:text-blue-600"
               >
-                {isMenuOpen ? <FaTimes /> : <FaBars />}
+                {isMenuOpen ? <FaTimes className="text-xl" /> : <FaBars className="text-xl" />}
               </button>
             </div>
           </div>
         </div>
 
-        {/* Mobile Menu */}
+        {/* Mobile Menu - Booking.com Style */}
         {isMenuOpen && (
           <div className="lg:hidden bg-white border-t border-gray-200 mobile-menu">
             <div className="px-4 py-2 space-y-1">
@@ -595,12 +628,12 @@ const Navbar = () => {
               {isAuthenticated && user?.userType === 'host' && (
                 <>
                   <div className="border-t border-gray-200 my-2"></div>
-                  <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  <div className="px-4 py-2 text-sm font-semibold text-gray-700 bg-gray-50">
                     Owner Management
                   </div>
                   {ownerManagementLinks.map((category, index) => (
                     <div key={index}>
-                      <div className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-50">
+                      <div className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100">
                         {category.category}
                       </div>
                       {category.links.map((link, linkIndex) => (

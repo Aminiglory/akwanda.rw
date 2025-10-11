@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import './App.css'
 import { AuthProvider } from './contexts/AuthContext'
+import { SocketProvider } from './contexts/SocketContext'
 import { Toaster } from 'react-hot-toast'
 import { ProtectedRoute, AdminRoute } from './components/ProtectedRoute'
 import Navbar from './components/Navbar'
@@ -63,11 +64,12 @@ function App() {
 
   return (
     <AuthProvider>
-      <Router>
-        <div className="min-h-screen bg-gray-50">
-          <Toaster position="top-right" />
-          {/* Header */}
-          <Navbar />
+      <SocketProvider>
+        <Router>
+          <div className="min-h-screen bg-gray-50">
+            <Toaster position="top-right" />
+            {/* Header */}
+            <Navbar />
           {/* commit routes */}
           {/* Main Content */}
           <Routes>
@@ -111,8 +113,9 @@ function App() {
             <Route path="/messages" element={null} />
             <Route path="*" element={<Footer />} />
           </Routes>
-        </div>
-      </Router>
+          </div>
+        </Router>
+      </SocketProvider>
     </AuthProvider>
   )
 }
