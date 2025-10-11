@@ -23,6 +23,17 @@ import {
   FaUserCircle,
   FaChevronDown,
   FaChevronUp,
+  FaChartLine,
+  FaCalendarAlt,
+  FaDollarSign,
+  FaStar,
+  FaCog as FaSettings,
+  FaQuestionCircle,
+  FaFileAlt,
+  FaUsers,
+  FaBuilding,
+  FaMapMarkerAlt,
+  FaUmbrellaBeach,
 } from "react-icons/fa";
 import { useSocket } from "../contexts/SocketContext";
 
@@ -32,30 +43,119 @@ const Navbar = () => {
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [isOwnerMenuOpen, setIsOwnerMenuOpen] = useState(false);
+  const [activeDropdown, setActiveDropdown] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [unreadMsgCount, setUnreadMsgCount] = useState(0);
   const { socket } = useSocket();
 
-  // Navigation buttons for main categories
-  const navButtons = [
-    { href: "/apartments", label: "Apartments", icon: FaHome },
-    { href: "/cars", label: "Cars", icon: FaCar },
-    { href: "/flights", label: "Flights", icon: FaPlane },
-    { href: "/hotels", label: "Hotels", icon: FaBed },
-    { href: "/restaurants", label: "Restaurants", icon: FaUtensils },
-    { href: "/homes", label: "Homes", icon: FaHome },
-    { href: "/experiences", label: "Experiences", icon: FaShoppingBag },
-    { href: "/deals", label: "Deals", icon: FaShoppingBag },
+  // Main navigation categories with hierarchical structure
+  const mainNavItems = [
+    {
+      label: "Stays",
+      icon: FaHome,
+      href: "/apartments",
+      children: [
+        { label: "Apartments", href: "/apartments", icon: FaBuilding },
+        { label: "Hotels", href: "/hotels", icon: FaBed },
+        { label: "Homes", href: "/homes", icon: FaHome },
+        { label: "List your property", href: "/upload", icon: FaBuilding },
+      ]
+    },
+    {
+      label: "Cars",
+      icon: FaCar,
+      href: "/cars",
+      children: [
+        { label: "Rent a car", href: "/cars", icon: FaCar },
+        { label: "My Cars", href: "/owner/cars", icon: FaCar },
+      ]
+    },
+    {
+      label: "Flights",
+      icon: FaPlane,
+      href: "/flights",
+      children: [
+        { label: "Search flights", href: "/flights", icon: FaPlane },
+        { label: "Flight deals", href: "/flights?deals=true", icon: FaPlane },
+      ]
+    },
+    {
+      label: "Experiences",
+      icon: FaUmbrellaBeach,
+      href: "/experiences",
+      children: [
+        { label: "Tours & Activities", href: "/experiences", icon: FaUmbrellaBeach },
+        { label: "Restaurants", href: "/restaurants", icon: FaUtensils },
+        { label: "Deals", href: "/deals", icon: FaShoppingBag },
+      ]
+    }
   ];
 
-  // Owner management links (integrated into main nav)
-  const ownerLinks = [
-    { href: "/my-bookings", label: "Bookings", icon: FaBed },
-    { href: "/owner/cars", label: "My Cars", icon: FaCar },
-    { href: "/owner/promotions", label: "Promotions", icon: FaShoppingBag },
-    { href: "/owner/reviews", label: "Reviews", icon: FaUser },
-    { href: "/upload", label: "List Property", icon: FaHome },
+  // Owner management links organized by category
+  const ownerManagementLinks = [
+    {
+      category: "Reservations",
+      icon: FaCalendarAlt,
+      links: [
+        { label: "All Bookings", href: "/my-bookings?tab=bookings&scope=all" },
+        { label: "Paid Bookings", href: "/my-bookings?tab=bookings&scope=paid" },
+        { label: "Pending Bookings", href: "/my-bookings?tab=bookings&scope=pending" },
+        { label: "Unpaid Bookings", href: "/my-bookings?tab=bookings&scope=unpaid" },
+      ]
+    },
+    {
+      category: "Calendar",
+      icon: FaCalendarAlt,
+      links: [
+        { label: "This Month", href: "/my-bookings?tab=properties" },
+        { label: "Next Month", href: "/my-bookings?tab=properties" },
+      ]
+    },
+    {
+      category: "Finance",
+      icon: FaDollarSign,
+      links: [
+        { label: "All Payments", href: "/my-bookings?tab=finance&finance_status=all" },
+        { label: "Paid", href: "/my-bookings?tab=finance&finance_status=paid" },
+        { label: "Pending", href: "/my-bookings?tab=finance&finance_status=pending" },
+        { label: "Unpaid", href: "/my-bookings?tab=finance&finance_status=unpaid" },
+        { label: "Last 30 Days", href: "/my-bookings?tab=finance&view=last30" },
+        { label: "Month to Date", href: "/my-bookings?tab=finance&view=mtd" },
+      ]
+    },
+    {
+      category: "Analytics",
+      icon: FaChartLine,
+      links: [
+        { label: "Last 30 Days", href: "/my-bookings?tab=analytics&range=30" },
+        { label: "Last 90 Days", href: "/my-bookings?tab=analytics&range=90" },
+        { label: "Year to Date", href: "/my-bookings?tab=analytics&range=ytd" },
+      ]
+    },
+    {
+      category: "Promotions",
+      icon: FaShoppingBag,
+      links: [
+        { label: "Manage Promotions", href: "/owner/promotions" },
+        { label: "Create New", href: "/owner/promotions?mode=new" },
+      ]
+    },
+    {
+      category: "Reviews",
+      icon: FaStar,
+      links: [
+        { label: "All Reviews", href: "/owner/reviews" },
+        { label: "Unreplied", href: "/owner/reviews?filter=unreplied" },
+      ]
+    },
+    {
+      category: "Settings",
+      icon: FaSettings,
+      links: [
+        { label: "Property Settings", href: "/upload" },
+        { label: "Account Settings", href: "/settings" },
+      ]
+    }
   ];
 
   useEffect(() => {
@@ -112,8 +212,8 @@ const Navbar = () => {
     setIsProfileOpen(!isProfileOpen);
   };
 
-  const toggleOwnerMenu = () => {
-    setIsOwnerMenuOpen(!isOwnerMenuOpen);
+  const toggleDropdown = (dropdownName) => {
+    setActiveDropdown(activeDropdown === dropdownName ? null : dropdownName);
   };
 
   const groupedNotifications = () => {
@@ -128,7 +228,7 @@ const Navbar = () => {
   return (
     <>
       <nav className="w-full bg-white navbar-shadow border-b border-gray-200 relative">
-        {/* Compact Top Bar */}
+        {/* Top Bar */}
         <div className="bg-blue-800 text-white py-2 px-4">
           <div className="max-w-7xl mx-auto flex justify-between items-center text-xs">
             <div className="flex items-center space-x-3 lg:space-x-4">
@@ -151,7 +251,7 @@ const Navbar = () => {
                       to="/my-bookings"
                       className="hidden sm:inline hover:text-blue-200 font-medium"
                     >
-                      Bookings
+                      My Bookings
                     </Link>
                   )}
                   {user?.userType === 'host' && (
@@ -159,7 +259,7 @@ const Navbar = () => {
                       to="/owner/cars"
                       className="hidden sm:inline hover:text-blue-200 font-medium"
                     >
-                      Cars
+                      My Cars
                     </Link>
                   )}
                 </>
@@ -169,15 +269,18 @@ const Navbar = () => {
                   to="/admin"
                   className="hidden sm:inline hover:text-blue-200 font-medium"
                 >
-                  Admin
+                  Admin Dashboard
                 </Link>
               )}
               <Link
                 to="/support"
                 className="hover:text-blue-200 font-medium"
               >
-                Support
+                Customer Support
               </Link>
+              <span className="hidden lg:inline hover:text-blue-200 cursor-pointer font-medium">
+                Partner Portal
+              </span>
             </div>
             <div className="flex items-center space-x-3">
               <div className="flex items-center space-x-1 hover:text-blue-200 cursor-pointer">
@@ -191,7 +294,7 @@ const Navbar = () => {
           </div>
         </div>
 
-        {/* Main Navigation - Compact */}
+        {/* Main Navigation */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
           <div className="flex justify-between items-center">
             {/* Logo */}
@@ -203,16 +306,18 @@ const Navbar = () => {
                 AKWANDA.rw
               </Link>
 
-              {/* Nav Buttons (desktop) - Compact */}
+              {/* Main Navigation Items with Dropdowns */}
               {user?.userType !== "admin" && (
-                <div className="hidden lg:flex items-center space-x-1 modern-card p-1">
-                  {navButtons.map((button, index) => {
-                    const Icon = button.icon;
-                    const isActive = isActiveRoute(button.href);
+                <div className="hidden lg:flex items-center space-x-1">
+                  {mainNavItems.map((item, index) => {
+                    const Icon = item.icon;
+                    const isActive = isActiveRoute(item.href);
+                    const isDropdownOpen = activeDropdown === item.label;
+                    
                     return (
                       <div key={index} className="relative group">
-                        <Link
-                          to={button.href}
+                        <button
+                          onClick={() => toggleDropdown(item.label)}
                           className={`flex items-center space-x-1.5 px-3 py-2 rounded-lg transition-all duration-300 font-medium text-sm ${
                             isActive
                               ? "bg-blue-600 text-white shadow-md"
@@ -220,8 +325,32 @@ const Navbar = () => {
                           }`}
                         >
                           <Icon className="text-sm" />
-                          <span>{button.label}</span>
-                        </Link>
+                          <span>{item.label}</span>
+                          <FaCaretDown className={`text-xs transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                        </button>
+
+                        {/* Dropdown Menu */}
+                        {isDropdownOpen && (
+                          <div className="absolute top-full left-0 mt-1 w-64 bg-white rounded-xl dropdown-shadow border border-gray-200 py-2 z-50">
+                            {item.children.map((child, childIndex) => {
+                              const ChildIcon = child.icon;
+                              const isChildActive = isActiveRoute(child.href);
+                              return (
+                                <Link
+                                  key={childIndex}
+                                  to={child.href}
+                                  className={`flex items-center space-x-3 px-4 py-3 text-sm hover:bg-gray-50 ${
+                                    isChildActive ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
+                                  }`}
+                                  onClick={() => setActiveDropdown(null)}
+                                >
+                                  <ChildIcon className="text-sm" />
+                                  <span>{child.label}</span>
+                                </Link>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -229,29 +358,54 @@ const Navbar = () => {
               )}
             </div>
 
-            {/* Right Side - Compact */}
+            {/* Right Side */}
             <div className="flex items-center space-x-2 lg:space-x-3">
-              {/* Owner Management Links (integrated) */}
+              {/* Owner Management Dropdown */}
               {isAuthenticated && user?.userType === 'host' && (
-                <div className="hidden lg:flex items-center space-x-1">
-                  {ownerLinks.slice(0, 3).map((link, index) => {
-                    const Icon = link.icon;
-                    const isActive = isActiveRoute(link.href);
-                    return (
-                      <Link
-                        key={index}
-                        to={link.href}
-                        className={`flex items-center space-x-1 px-2 py-1.5 rounded-md transition-all duration-300 text-xs font-medium ${
-                          isActive
-                            ? "bg-blue-100 text-blue-700"
-                            : "text-gray-600 hover:text-blue-600 hover:bg-gray-50"
-                        }`}
-                      >
-                        <Icon className="text-xs" />
-                        <span>{link.label}</span>
-                      </Link>
-                    );
-                  })}
+                <div className="hidden lg:block relative">
+                  <button
+                    onClick={() => toggleDropdown('owner')}
+                    className={`flex items-center space-x-1.5 px-3 py-2 rounded-lg transition-all duration-300 font-medium text-sm ${
+                      activeDropdown === 'owner'
+                        ? "bg-blue-600 text-white shadow-md"
+                        : "text-gray-700 hover:text-blue-600 hover:bg-gray-50"
+                    }`}
+                  >
+                    <FaUser className="text-sm" />
+                    <span>Owner</span>
+                    <FaCaretDown className={`text-xs transition-transform ${activeDropdown === 'owner' ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {/* Owner Management Dropdown */}
+                  {activeDropdown === 'owner' && (
+                    <div className="absolute top-full right-0 mt-1 w-[800px] bg-white rounded-xl dropdown-shadow border border-gray-200 p-4 z-50">
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-6 text-sm">
+                        {ownerManagementLinks.map((category, index) => {
+                          const CategoryIcon = category.icon;
+                          return (
+                            <div key={index}>
+                              <div className="flex items-center space-x-2 mb-3">
+                                <CategoryIcon className="text-blue-600 text-sm" />
+                                <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                  {category.category}
+                                </div>
+                              </div>
+                              {category.links.map((link, linkIndex) => (
+                                <Link
+                                  key={linkIndex}
+                                  to={link.href}
+                                  className="block px-2 py-1.5 rounded hover:bg-blue-50 hover:text-blue-700 text-gray-700 transition-colors"
+                                  onClick={() => setActiveDropdown(null)}
+                                >
+                                  {link.label}
+                                </Link>
+                              ))}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -387,60 +541,84 @@ const Navbar = () => {
 
         {/* Mobile Menu */}
         {isMenuOpen && (
-          <div className="lg:hidden bg-white border-t border-gray-200">
+          <div className="lg:hidden bg-white border-t border-gray-200 mobile-menu">
             <div className="px-4 py-2 space-y-1">
+              {/* Main Navigation Items */}
               {user?.userType !== "admin" && (
                 <>
-                  {navButtons.map((button, index) => {
-                    const Icon = button.icon;
-                    const isActive = isActiveRoute(button.href);
+                  {mainNavItems.map((item, index) => {
+                    const Icon = item.icon;
+                    const isActive = isActiveRoute(item.href);
                     return (
-                      <Link
-                        key={index}
-                        to={button.href}
-                        className={`flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium ${
-                          isActive
-                            ? "bg-blue-100 text-blue-700"
-                            : "text-gray-700 hover:bg-gray-50"
-                        }`}
-                        onClick={() => setIsMenuOpen(false)}
-                      >
-                        <Icon className="text-lg" />
-                        <span>{button.label}</span>
-                      </Link>
+                      <div key={index}>
+                        <Link
+                          to={item.href}
+                          className={`flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium ${
+                            isActive
+                              ? "bg-blue-100 text-blue-700"
+                              : "text-gray-700 hover:bg-gray-50"
+                          }`}
+                          onClick={() => setIsMenuOpen(false)}
+                        >
+                          <Icon className="text-lg" />
+                          <span>{item.label}</span>
+                        </Link>
+                        {/* Mobile submenu */}
+                        <div className="ml-8 space-y-1">
+                          {item.children.map((child, childIndex) => {
+                            const ChildIcon = child.icon;
+                            const isChildActive = isActiveRoute(child.href);
+                            return (
+                              <Link
+                                key={childIndex}
+                                to={child.href}
+                                className={`flex items-center space-x-3 px-4 py-2 rounded-lg text-sm ${
+                                  isChildActive
+                                    ? "bg-blue-50 text-blue-700"
+                                    : "text-gray-600 hover:bg-gray-50"
+                                }`}
+                                onClick={() => setIsMenuOpen(false)}
+                              >
+                                <ChildIcon className="text-sm" />
+                                <span>{child.label}</span>
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      </div>
                     );
                   })}
                 </>
               )}
 
+              {/* Owner Management Links */}
               {isAuthenticated && user?.userType === 'host' && (
                 <>
                   <div className="border-t border-gray-200 my-2"></div>
                   <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Owner Tools
+                    Owner Management
                   </div>
-                  {ownerLinks.map((link, index) => {
-                    const Icon = link.icon;
-                    const isActive = isActiveRoute(link.href);
-                    return (
-                      <Link
-                        key={index}
-                        to={link.href}
-                        className={`flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium ${
-                          isActive
-                            ? "bg-blue-100 text-blue-700"
-                            : "text-gray-700 hover:bg-gray-50"
-                        }`}
-                        onClick={() => setIsMenuOpen(false)}
-                      >
-                        <Icon className="text-lg" />
-                        <span>{link.label}</span>
-                      </Link>
-                    );
-                  })}
+                  {ownerManagementLinks.map((category, index) => (
+                    <div key={index}>
+                      <div className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-50">
+                        {category.category}
+                      </div>
+                      {category.links.map((link, linkIndex) => (
+                        <Link
+                          key={linkIndex}
+                          to={link.href}
+                          className="flex items-center space-x-3 px-6 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-50"
+                          onClick={() => setIsMenuOpen(false)}
+                        >
+                          <span>{link.label}</span>
+                        </Link>
+                      ))}
+                    </div>
+                  ))}
                 </>
               )}
 
+              {/* Messages */}
               {isAuthenticated && (
                 <>
                   <div className="border-t border-gray-200 my-2"></div>
