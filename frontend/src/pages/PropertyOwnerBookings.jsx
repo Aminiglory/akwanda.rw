@@ -485,7 +485,7 @@ const PropertyOwnerBookings = () => {
         {/* Header + Tabs */}
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">My Property Bookings</h1>
-          <p className="text-gray-600 mb-4">Track bookings, view room calendars, and manage availability</p>
+          <p class="p" className="text-gray-600 mb-4">Track bookings, view room calendars, and manage availability</p>
           <div className="flex items-center gap-4 border-b">
             {[
               { id: 'bookings', label: 'Bookings', icon: FaCalendarAlt },

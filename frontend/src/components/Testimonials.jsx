@@ -1,8 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FaStar, FaQuoteLeft, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import { useAuth } from '../contexts/AuthContext';
 
 const Testimonials = () => {
+  const { user } = useAuth();
   const [index, setIndex] = useState(0);
   const timerRef = useRef(null);
   const [paused, setPaused] = useState(false);
@@ -227,19 +229,22 @@ const Testimonials = () => {
 
         {/* Call to Action */}
         <div className="text-center mt-12">
-          <div className="bg-blue-600 rounded-2xl p-8 text-white">
-            <h3 className="text-2xl font-bold mb-4">
+          <div className="chocolate-gradient rounded-2xl p-8 shadow-lg">
+            <h3 className="text-2xl font-bold mb-4 high-contrast-text">
               Ready to Join Our Community?
             </h3>
-            <p className="text-blue-100 mb-6">
+            <p className="medium-contrast-text mb-6 text-base">
               Whether you're looking for a place to stay or want to earn from your space, AKWANDA.rw is here for you.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link to="/apartments" className="bg-white text-blue-600 px-8 py-3 rounded-xl font-semibold hover:bg-gray-100 transition-all duration-300 text-center">
+              <Link to="/apartments" className="modern-btn text-center">
                 Find an Apartment
               </Link>
-              <Link to="/register" className="border-2 border-white text-white px-8 py-3 rounded-xl font-semibold hover:bg-white hover:text-blue-600 transition-all duration-300 text-center">
-                Sign Up to Host
+              <Link 
+                to={user ? "/upload-property" : "/register"} 
+                className="border-2 border-gray-600 high-contrast-text px-8 py-3 rounded-xl font-semibold hover:bg-gray-600 hover:text-white transition-all duration-300 text-center"
+              >
+                {user ? "List Your Property" : "Sign Up to Host"}
               </Link>
             </div>
           </div>

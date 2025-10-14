@@ -112,7 +112,7 @@ const Navbar = () => {
                     Dashboard
                   </Link>
                   <Link
-                    to="/upload"
+                    to="/upload-property"
                     className="hidden sm:inline hover:text-blue-200 font-medium"
                   >
                     List your property
@@ -149,9 +149,6 @@ const Navbar = () => {
               >
                 Customer Support
               </Link>
-              <span className="hidden lg:inline hover:text-blue-200 cursor-pointer font-medium">
-                Partner Portal
-              </span>
             </div>
             <div className="flex items-center space-x-3 lg:space-x-4">
               <div className="flex items-center space-x-2 hover:text-blue-200 cursor-pointer">

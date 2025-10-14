@@ -1,78 +1,132 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
 @theme {
-  /* Cocoa palette remapping of commonly used Tailwind tokens */
-  /* Blues (used as primary/accent in the codebase) → Toffee/Cocoa/Cream */
-  --color-blue-100: #F2E2CE; /* Cream Beige */
-  --color-blue-400: #CDAF8B; /* Light Toffee */
-  --color-blue-500: #B57F50; /* Toffee */
-  --color-blue-600: #B57F50; /* Toffee - buttons/accent */
-  --color-blue-700: #8F633E; /* Darker Toffee */
-  --color-blue-800: #4B2E05; /* Cocoa Brown - strong emphasis */
-  --color-blue-900: #2B1B0E; /* Espresso - deepest tone */
+  /* Chocolate Palette with #855330 as primary */
+  --color-blue-50: #fdf8f3; /* Very light cream */
+  --color-blue-100: #f7f0e6; /* Light cream */
+  --color-blue-200: #f0e6d6; /* Cream */
+  --color-blue-300: #e8d4c0; /* Light caramel */
+  --color-blue-400: #d4a574; /* Caramel */
+  --color-blue-500: #855330; /* Chocolate brown - primary */
+  --color-blue-600: #6b4226; /* Darker chocolate */
+  --color-blue-700: #5a361f; /* Dark chocolate */
+  --color-blue-800: #4a2c18; /* Very dark chocolate */
+  --color-blue-900: #3a2212; /* Darkest chocolate */
 
-  /* Grays (UI chrome, text) → Espresso/Cocoa/Cream/White Chocolate scale */
-  --color-gray-50:  #FFF9F3; /* White Chocolate - general background */
-  --color-gray-100: #F2E2CE; /* Cream Beige - cards/backgrounds */
-  --color-gray-200: #E8D6BE;
-  --color-gray-300: #DCC6A8;
-  --color-gray-400: #CDAF8B;
-  --color-gray-500: #B57F50; /* Toffee */
-  --color-gray-600: #8F633E;
-  --color-gray-700: #6E4C2F;
-  --color-gray-800: #4B2E05; /* Cocoa Brown */
-  --color-gray-900: #2B1B0E; /* Espresso - text/headings */
+  /* Grays - balanced for readability */
+  --color-gray-50: #fafafa; /* Pure white */
+  --color-gray-100: #f5f5f5; /* Light gray */
+  --color-gray-200: #eeeeee; /* Light gray */
+  --color-gray-300: #e0e0e0; /* Medium light gray */
+  --color-gray-400: #bdbdbd; /* Medium gray */
+  --color-gray-500: #9e9e9e; /* Medium gray */
+  --color-gray-600: #757575; /* Dark gray */
+  --color-gray-700: #616161; /* Darker gray */
+  --color-gray-800: #424242; /* Very dark gray */
+  --color-gray-900: #212121; /* Almost black */
 
-  /* Whites → off-white to fit palette */
-  --color-white: #FFF9F3; /* White Chocolate */
+  /* Whites - pure for contrast */
+  --color-white: #ffffff; /* Pure white */
 
-  /* Status colors remapped into cocoa palette tones */
-  /* Greens (success) → rich toffee/espresso accents */
-  --color-green-100: #E8D6BE; /* soft background */
-  --color-green-600: #8F633E; /* text/icon */
-  --color-green-700: #6E4C2F; /* darker */
+  /* Status colors - balanced */
+  --color-green-100: #e8f5e8;
+  --color-green-600: #2e7d32;
+  --color-green-700: #1b5e20;
 
-  /* Yellows (warning) → warm cream/toffee */
-  --color-yellow-100: #F2E2CE;
-  --color-yellow-600: #B57F50;
+  --color-yellow-100: #fff8e1;
+  --color-yellow-600: #f57c00;
+  --color-yellow-700: #e65100;
 
-  /* Reds (error) → deep cocoa */
-  --color-red-100: #E8D6BE;
-  --color-red-500: #6E4C2F;
-  --color-red-600: #4B2E05;
+  --color-red-100: #ffebee;
+  --color-red-500: #f44336;
+  --color-red-600: #d32f2f;
 
-  /* Additional accents used in UI */
-  --color-yellow-400: #CDAF8B;
+  /* Additional chocolate accents */
+  --color-yellow-400: #d4a574;
 }
 
-/* Base document colors to adopt the new palette without touching components */
+/* Base document colors - high contrast for readability */
 :root, html, body {
-  background-color: #FFF9F3; /* White Chocolate */
-  color: #2B1B0E; /* Espresso */
+  background-color: #ffffff; /* Pure white for maximum contrast */
+  color: #212121; /* Almost black for maximum readability */
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  font-optical-sizing: auto;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Scrollbar styling - apply cocoa palette */
+/* Typography improvements */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+}
+
+h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+h2 {
+  font-size: 2rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+p {
+  line-height: 1.6;
+  /* color: #ffffff93; */
+  font-weight: 500;
+  font-size: 16px;
+}
+
+
+/* Button typography */
+button, .btn {
+  font-weight: 500;
+  letter-spacing: 0.025em;
+}
+
+/* Link styling */
+a {
+  transition: all 0.2s ease-in-out;
+}
+
+a:hover {
+  text-decoration: none;
+}
+
+/* Scrollbar styling - chocolate palette */
 /* Firefox */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #B57F50 #F2E2CE; /* thumb track */
+  scrollbar-color: #855330 #f5f5f5; /* thumb track */
 }
 
 /* WebKit-based browsers */
 ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: #F2E2CE; /* Cream Beige */
+  background: #f5f5f5; /* Light gray */
 }
 ::-webkit-scrollbar-thumb {
-  background-color: #B57F50; /* Toffee */
+  background-color: #855330; /* Chocolate brown */
   border-radius: 9999px;
-  border: 2px solid #F2E2CE; /* creates padding around thumb */
+  border: 1px solid #f5f5f5; /* creates padding around thumb */
 }
 ::-webkit-scrollbar-thumb:hover {
-  background-color: #8F633E; /* Darker Toffee */
+  background-color: #6b4226; /* Darker chocolate */
 }
 
 /* Custom Animations */
@@ -229,12 +283,167 @@ html {
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-/* Gradient text */
+/* Gradient text - chocolate theme */
 .gradient-text {
-  background: linear-gradient(45deg, #ffffff, #93c5fd);
+  background: linear-gradient(135deg, #855330, #6b4226);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+
+/* Modern card styling - chocolate theme */
+.modern-card {
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 4px 6px -1px rgba(133, 83, 48, 0.1), 0 2px 4px -1px rgba(133, 83, 48, 0.06);
+  border: 1px solid #e0e0e0;
+  transition: all 0.3s ease;
+}
+
+.modern-card:hover {
+  box-shadow: 0 20px 25px -5px rgba(133, 83, 48, 0.15), 0 10px 10px -5px rgba(133, 83, 48, 0.1);
+  transform: translateY(-4px);
+  border-color: #d4a574;
+}
+
+/* Modern button styling - chocolate theme */
+.modern-btn {
+  background: linear-gradient(135deg, #855330, #6b4226);
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  padding: 14px 28px;
+  font-weight: 600;
+  font-size: 16px;
+  letter-spacing: 0.025em;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 14px 0 rgba(133, 83, 48, 0.3);
+}
+
+.modern-btn:hover {
+  background: linear-gradient(135deg, #6b4226, #5a361f);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px 0 rgba(133, 83, 48, 0.4);
+}
+
+/* Modern input styling - chocolate theme */
+.modern-input {
+  background: #ffffff;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 14px 18px;
+  font-size: 16px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px 0 rgba(133, 83, 48, 0.1);
+  color: #212121;
+}
+
+.modern-input:focus {
+  outline: none;
+  border-color: #855330;
+  box-shadow: 0 0 0 3px rgba(133, 83, 48, 0.1);
+  background: #ffffff;
+}
+
+.modern-input::placeholder {
+  color: #757575;
+  font-size: 16px;
+}
+
+/* Section spacing */
+.section-padding {
+  padding: 80px 0;
+}
+
+/* Container improvements */
+.container-modern {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* Text improvements */
+.text-balance {
+  text-wrap: balance;
+}
+
+/* Focus improvements - chocolate theme */
+.focus-ring {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+}
+
+.focus-ring:focus {
+  outline: 2px solid #855330;
+  outline-offset: 2px;
+}
+
+/* Chocolate-themed additional styles */
+.chocolate-gradient {
+  background: linear-gradient(135deg, #f7f0e6, #e8d4c0, #d4a574);
+}
+
+.chocolate-text {
+  color: #855330;
+}
+
+.chocolate-bg {
+  background-color: #fdf8f3;
+}
+
+.chocolate-border {
+  border-color: #d4a574;
+}
+
+.chocolate-shadow {
+  box-shadow: 0 4px 14px 0 rgba(133, 83, 48, 0.2);
+}
+
+/* Chocolate accent colors */
+.warm-gold {
+  color: #d4a574;
+}
+
+.warm-cream {
+  background-color: #fdf8f3;
+}
+
+.warm-brown {
+  color: #6b4226;
+}
+
+/* Improved text for better readability */
+.high-contrast-text {
+  color: #212121;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.medium-contrast-text {
+  color: #424242;
+  font-weight: 500;
+  font-size: 16px;
+}
+
+.light-contrast-text {
+  color: #757575;
+  font-weight: 400;
+  font-size: 16px;
+}
+
+/* Additional readability improvements */
+.readable-text {
+  color: #212121;
+  font-weight: 500;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.readable-text-small {
+  color: #424242;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 /* Print styles - only print receipt content */

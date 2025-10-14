@@ -65,6 +65,12 @@ const ApartmentDetails = () => {
     return s;
   };
 
+  const isValidImageUrl = (url) => {
+    if (!url) return false;
+    const imageExtensions = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i;
+    return imageExtensions.test(url) || url.startsWith('http');
+  };
+
   useEffect(() => {
     (async () => {
       try {
@@ -448,9 +454,12 @@ const ApartmentDetails = () => {
                       </div>
 
                       {/* Room Images with Enhanced Gallery */}
-                      {room.images && room.images.length > 0 && (
+                      {room.images && room.images.length > 0 && room.images.some(img => isValidImageUrl(img)) ? (
                         <div className="grid grid-cols-2 gap-2 mb-4">
-                          {room.images.slice(0, 4).map((image, imgIndex) => (
+                          {room.images
+                            .filter(img => isValidImageUrl(img))
+                            .slice(0, 4)
+                            .map((image, imgIndex) => (
                             <div key={imgIndex} className="relative group/image overflow-hidden rounded-lg">
                               <img
                                 loading="lazy"
@@ -471,6 +480,11 @@ const ApartmentDetails = () => {
                               <div className="absolute inset-0 bg-black bg-opacity-0 group-hover/image:bg-opacity-20 transition-all duration-300"></div>
                             </div>
                           ))}
+                        </div>
+                      ) : (
+                        <div className="mb-4 p-4 bg-gray-100 rounded-lg text-center text-gray-500">
+                          <FaBed className="mx-auto mb-2 text-2xl" />
+                          <p className="text-sm">No images available for this room</p>
                         </div>
                       )}
 
@@ -495,7 +509,7 @@ const ApartmentDetails = () => {
 
                       {/* Expandable Details with Smooth Animation */}
                       <div className={`overflow-hidden transition-all duration-500 ${
-                        selectedRoom === index ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+                        selectedRoom === index ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0'
                       }`}>
                         <div className="mt-4 pt-4 border-t border-gray-200">
                           <h5 className="font-semibold text-gray-800 mb-3 flex items-center">

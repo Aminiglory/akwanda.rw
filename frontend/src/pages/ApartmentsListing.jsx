@@ -92,7 +92,7 @@ const ApartmentsListing = () => {
           Array.isArray(p.amenities) && p.amenities.length
             ? p.amenities
             : ["WiFi", "Parking", "Kitchen"],
-        isAvailable: p.isActive,
+        isAvailable: p.isActive && (!p.rooms || p.rooms.length === 0 || p.rooms.some(room => room.isAvailable !== false)),
         host: p.host ? `${p.host.firstName} ${p.host.lastName}` : "—",
       });
       });

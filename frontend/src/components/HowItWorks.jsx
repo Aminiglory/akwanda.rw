@@ -2,10 +2,12 @@ import React, { useEffect, useRef, useState } from 'react';
 import { FaBuilding, FaSmile, FaThumbsUp, FaArrowRight } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 import { FaSearch, FaHandshake, FaCreditCard, FaKey, FaUpload, FaCheckCircle } from 'react-icons/fa';
+import { useAuth } from '../contexts/AuthContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const HowItWorks = () => {
+  const { user } = useAuth();
   const [metrics, setMetrics] = useState({ activeListings: 0, happyGuests: 0, satisfactionRate: 0 });
   const [animated, setAnimated] = useState({ activeListings: 0, happyGuests: 0, satisfactionRate: 0 });
   const statsRef = useRef(null);
@@ -424,11 +426,16 @@ const HowItWorks = () => {
         </div>
 
         {/* CTA for hosts */}
-        <div className="rounded-2xl p-8 bg-blue-50/80 backdrop-blur shadow-md text-center">
-          <Link to="/register" className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-semibold transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl inline-block">
+        <div className="rounded-2xl p-8 chocolate-gradient backdrop-blur shadow-md text-center">
+          <Link 
+            to={user ? "/upload-property" : "/register"} 
+            className="modern-btn inline-block"
+          >
             Become a Host
           </Link>
-          <p className="text-gray-600 text-sm mt-2">Sign up to start listing your apartment</p>
+          <p className="high-contrast-text text-sm mt-3 font-medium">
+            {user ? "List your apartment and start earning" : "Sign up to start listing your apartment"}
+          </p>
         </div>
 
         {/* Stats Section */}
