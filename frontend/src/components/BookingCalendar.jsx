@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-const BookingCalendar = ({ propertyId, onBookingSelect }) => {
+const BookingCalendar = ({ propertyId, onBookingSelect, initialDate }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [bookings, setBookings] = useState([]);
   const [selectedDate, setSelectedDate] = useState(null);
@@ -12,8 +12,19 @@ const BookingCalendar = ({ propertyId, onBookingSelect }) => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    if (!propertyId) return;
     fetchBookings();
   }, [currentDate, propertyId]);
+
+  // React to initialDate changes (e.g., navigate from navbar: next month)
+  useEffect(() => {
+    if (initialDate instanceof Date && !isNaN(initialDate)) {
+      const a = currentDate;
+      if (a.getFullYear() !== initialDate.getFullYear() || a.getMonth() !== initialDate.getMonth()) {
+        setCurrentDate(new Date(initialDate));
+      }
+    }
+  }, [initialDate]);
 
   const fetchBookings = async () => {
     try {

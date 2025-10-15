@@ -140,12 +140,7 @@ const ApartmentDetails = () => {
             checkIn: '3:00 PM',
             checkOut: '11:00 AM',
             cancellation: 'Free cancellation up to 24 hours before check-in',
-            houseRules: [
-              'No smoking',
-              'No pets',
-              'No parties or events',
-              'Check-in is anytime after 3:00 PM'
-            ]
+            houseRules: Array.isArray(p.houseRules) && p.houseRules.length > 0 ? p.houseRules : null
           }
         });
       } catch (e) {
@@ -615,7 +610,7 @@ const ApartmentDetails = () => {
             </div>
 
             {/* House Rules */}
-            {apartment.features?.houseRules && (
+            {Array.isArray(apartment.features?.houseRules) && apartment.features.houseRules.length > 0 && (
               <div className="bg-white rounded-2xl shadow-lg p-6">
                 <h3 className="text-lg font-semibold text-gray-800 mb-4">
                   House Rules

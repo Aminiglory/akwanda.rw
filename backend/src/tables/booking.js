@@ -23,6 +23,7 @@ const bookingSchema = new mongoose.Schema(
     groupBooking: { type: Boolean, default: false },
     groupSize: { type: Number },
     discountApplied: { type: Number, default: 0 },
+    isDirect: { type: Boolean, default: false },
     rating: { type: Number, min: 1, max: 5 },
     comment: { type: String },
     confirmationCode: { type: String, unique: true },

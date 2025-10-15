@@ -1,12 +1,3 @@
-  const makeAbsolute = (u) => {
-    if (!u) return u;
-    let s = String(u).replace(/\\/g, '/');
-    if (!s.startsWith('http')) {
-      if (!s.startsWith('/')) s = `/${s}`;
-      return `${API_URL}${s}`;
-    }
-    return s;
-  };
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { FaChartLine, FaUsers, FaBed, FaCalendarAlt, FaDollarSign, FaStar, FaMapMarkerAlt, FaEdit, FaTrash, FaPlus, FaEye, FaCheckCircle, FaTimesCircle, FaClock, FaHome, FaMoneyBillWave, FaCalendarCheck, FaCalendarTimes, FaComments } from 'react-icons/fa';
@@ -14,6 +5,16 @@ import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+const makeAbsolute = (u) => {
+  if (!u) return u;
+  let s = String(u).replace(/\\/g, '/');
+  if (!s.startsWith('http')) {
+    if (!s.startsWith('/')) s = `/${s}`;
+    return `${API_URL}${s}`;
+  }
+  return s;
+};
 
 const UserDashboard = () => {
   const { user, updateAvatar } = useAuth();

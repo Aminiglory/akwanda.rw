@@ -55,19 +55,51 @@ router.post('/upload', requireAuth, upload.array('files', 5), async (req, res) =
 // Threads list (generic): recent conversation partners and last message
 router.get('/threads', requireAuth, async (req, res) => {
     try {
+        // Unread counts grouped by sender (other user)
+        const unreadAgg = await Message.aggregate([
+            { $match: { recipient: req.user.id, isRead: false } },
+            { $group: { _id: '$sender', count: { $sum: 1 } } }
+        ]);
+        const unreadMap = {};
+        for (const r of unreadAgg) unreadMap[String(r._id)] = r.count;
+
+        // Recent messages with nested booking.property populated for titles
         const msgs = await Message.find({ $or: [{ sender: req.user.id }, { recipient: req.user.id }] })
             .sort({ createdAt: -1 })
             .limit(100)
             .populate('sender', 'firstName lastName')
-            .populate('recipient', 'firstName lastName');
+            .populate('recipient', 'firstName lastName')
+            .populate({ path: 'booking', populate: { path: 'property', select: 'title' } });
+
         const seen = new Set();
         const threads = [];
         for (const m of msgs) {
-            const other = String(m.sender._id) === String(req.user.id) ? m.recipient : m.sender;
-            const key = String(other._id);
+            const selfId = String(req.user.id);
+            const senderId = m.sender && (m.sender._id || m.sender);
+            const recipientId = m.recipient && (m.recipient._id || m.recipient);
+            const other = String(senderId) === selfId ? m.recipient : m.sender;
+            const key = String(other._id || other);
+            if (!key) continue;
             if (seen.has(key)) continue;
             seen.add(key);
-            threads.push({ userId: key, name: `${other.firstName || ''} ${other.lastName || ''}`.trim() || 'User', lastMessage: { text: m.message, createdAt: m.createdAt }, context: m.booking ? { bookingId: String(m.booking) } : (m.carBooking ? { carBookingId: String(m.carBooking) } : undefined) });
+
+            // Context
+            let context = undefined;
+            if (m.booking) {
+                const b = m.booking;
+                const propertyTitle = (b.property && b.property.title) ? String(b.property.title) : undefined;
+                context = { bookingId: String(b._id || b), propertyTitle };
+            } else if (m.carBooking) {
+                context = { carBookingId: String(m.carBooking) };
+            }
+
+            threads.push({
+                userId: key,
+                name: `${other.firstName || ''} ${other.lastName || ''}`.trim() || 'User',
+                lastMessage: { text: m.message, createdAt: m.createdAt },
+                unreadCount: unreadMap[key] || 0,
+                context
+            });
         }
         res.json({ threads });
     } catch (e) {
@@ -87,7 +119,9 @@ router.get('/history', requireAuth, async (req, res) => {
         };
         if (bookingId) q.$and.push({ booking: bookingId });
         if (carBookingId) q.$and.push({ carBooking: carBookingId });
-        const list = await Message.find(q).sort({ createdAt: 1 });
+        const list = await Message.find(q)
+            .sort({ createdAt: 1 })
+            .populate({ path: 'replyTo', select: 'sender message', populate: { path: 'sender', select: 'firstName lastName' } });
         res.json({ messages: list });
     } catch (e) {
         res.status(500).json({ message: 'Failed to load history' });
@@ -97,7 +131,7 @@ router.get('/history', requireAuth, async (req, res) => {
 // Generic send endpoint (supports property booking or car booking contexts)
 router.post('/send', requireAuth, async (req, res) => {
     try {
-        const { to, text, bookingId, carBookingId, attachments } = req.body || {};
+        const { to, text, bookingId, carBookingId, attachments, replyTo } = req.body || {};
         if (!to || !text || !text.trim()) return res.status(400).json({ message: 'Invalid payload' });
 
         let allowed = false;
@@ -133,6 +167,7 @@ router.post('/send', requireAuth, async (req, res) => {
             sender: req.user.id,
             recipient: to,
             message: text.trim(),
+            replyTo: replyTo || undefined,
             attachments: Array.isArray(attachments) ? attachments.map(a => ({
               url: a.url,
               name: a.name,
@@ -153,7 +188,8 @@ router.post('/send', requireAuth, async (req, res) => {
                     attachments: newMessage.attachments || [],
                     createdAt: newMessage.createdAt,
                     bookingId: context.booking ? String(context.booking) : undefined,
-                    carBookingId: context.carBooking ? String(context.carBooking) : undefined
+                    carBookingId: context.carBooking ? String(context.carBooking) : undefined,
+                    replyTo: newMessage.replyTo ? String(newMessage.replyTo) : undefined
                 };
                 if (context.booking) io.to(`booking:${String(context.booking)}`).emit('message:new', payload);
                 if (context.carBooking) io.to(`carBooking:${String(context.carBooking)}`).emit('message:new', payload);

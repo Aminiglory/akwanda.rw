@@ -39,6 +39,9 @@ import OwnerReviews from './pages/OwnerReviews'
 import Homes from './pages/Homes'
 import Experiences from './pages/Experiences'
 import Deals from './pages/Deals'
+import DirectBooking from './pages/DirectBooking'
+import Invoice from './pages/Invoice'
+import Receipt from './pages/Receipt'
 
 function App() {
   const [isLoading, setIsLoading] = useState(true)
@@ -106,6 +109,9 @@ function App() {
             <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
             <Route path="/owner/promotions" element={<ProtectedRoute><div className="dashboard"><OwnerPromotions /></div></ProtectedRoute>} />
             <Route path="/owner/reviews" element={<ProtectedRoute><div className="dashboard"><OwnerReviews /></div></ProtectedRoute>} />
+            <Route path="/owner/direct-booking" element={<ProtectedRoute><DirectBooking /></ProtectedRoute>} />
+            <Route path="/invoice/:id" element={<ProtectedRoute><Invoice /></ProtectedRoute>} />
+            <Route path="/receipt/:id" element={<ProtectedRoute><Receipt /></ProtectedRoute>} />
           </Routes>
           
           {/* Footer - Hidden on messages page */}

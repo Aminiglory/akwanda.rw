@@ -1,16 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   FaCalendarAlt, FaUsers, FaMoneyBillWave, FaCheckCircle, FaClock, 
   FaEye, FaFileInvoice, FaFilter, FaDownload, FaComments, FaHome, 
   FaChartLine, FaPlus, FaSearch, FaChevronDown, FaChevronUp, 
-  FaEdit, FaTrash, FaStar, FaMessage, FaPhone, FaEnvelope,
+  FaEdit, FaTrash, FaStar, FaPhone, FaEnvelope,
   FaMapMarkerAlt, FaBed, FaBath, FaWifi, FaCar, FaSwimmingPool,
-  FaUtensils, FaTv, FaAirConditioner, FaPaw, FaSmokingBan,
+  FaUtensils, FaTv, FaSnowflake, FaPaw, FaSmokingBan,
   FaExclamationTriangle, FaTimes, FaCheck, FaArrowRight,
   FaCalendarCheck, FaCalendarTimes, FaUserCheck, FaUserTimes
 } from 'react-icons/fa';
 import { useNavigate, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import BookingCalendar from '../components/BookingCalendar';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -36,12 +37,28 @@ const PropertyOwnerBookings = () => {
     occupancyRate: 0,
     averageRating: 0
   });
+  const [showDirectBooking, setShowDirectBooking] = useState(false);
+  const [directForm, setDirectForm] = useState({
+    propertyId: '',
+    roomId: '',
+    checkIn: '',
+    checkOut: '',
+    guests: 1,
+    guestInfo: { firstName: '', lastName: '', email: '', phone: '' },
+    contactInfo: { email: '', phone: '' },
+    paymentMethod: 'cash',
+    markPaid: true,
+    specialRequests: ''
+  });
+  const [ownerRooms, setOwnerRooms] = useState([]);
   const [filters, setFilters] = useState({
     status: 'all',
     property: 'all',
     dateRange: 'all',
+    year: new Date().getFullYear(),
     search: ''
   });
+  const [ownerView, setOwnerView] = useState('table'); // 'table' | 'calendar'
   const [expandedSections, setExpandedSections] = useState({
     reservations: true,
     calendar: false,
@@ -52,93 +69,9 @@ const PropertyOwnerBookings = () => {
     messages: false,
     settings: false
   });
+  const calendarRef = useRef(null);
 
-  // Mock data for demonstration
-  const mockBookings = [
-    {
-      _id: '1',
-      property: { name: 'Luxury Apartment Kigali', location: 'Kigali, Rwanda' },
-      guest: { name: 'John Doe', email: 'john@example.com', phone: '+250788123456' },
-      checkIn: '2024-01-15',
-      checkOut: '2024-01-18',
-      guests: 2,
-      totalAmount: 450000,
-      status: 'paid',
-      bookingDate: '2024-01-10',
-      paymentStatus: 'paid',
-      rating: 4.8,
-      review: 'Excellent stay, highly recommended!',
-      specialRequests: 'Late check-in requested',
-      amenities: ['WiFi', 'Parking', 'Pool', 'Kitchen']
-    },
-    {
-      _id: '2',
-      property: { name: 'Cozy Studio Musanze', location: 'Musanze, Rwanda' },
-      guest: { name: 'Jane Smith', email: 'jane@example.com', phone: '+250788654321' },
-      checkIn: '2024-01-20',
-      checkOut: '2024-01-22',
-      guests: 1,
-      totalAmount: 180000,
-      status: 'pending',
-      bookingDate: '2024-01-12',
-      paymentStatus: 'pending',
-      rating: null,
-      review: null,
-      specialRequests: 'Vegetarian breakfast',
-      amenities: ['WiFi', 'Kitchen']
-    },
-    {
-      _id: '3',
-      property: { name: 'Beach House Gisenyi', location: 'Gisenyi, Rwanda' },
-      guest: { name: 'Mike Johnson', email: 'mike@example.com', phone: '+250788789012' },
-      checkIn: '2024-01-25',
-      checkOut: '2024-01-28',
-      guests: 4,
-      totalAmount: 720000,
-      status: 'unpaid',
-      bookingDate: '2024-01-14',
-      paymentStatus: 'unpaid',
-      rating: 4.5,
-      review: 'Great location, beautiful views',
-      specialRequests: 'Extra towels needed',
-      amenities: ['WiFi', 'Parking', 'Pool', 'Beach Access']
-    }
-  ];
-
-  const mockProperties = [
-    {
-      _id: '1',
-      name: 'Luxury Apartment Kigali',
-      location: 'Kigali, Rwanda',
-      type: 'Apartment',
-      bedrooms: 2,
-      bathrooms: 2,
-      guests: 4,
-      price: 150000,
-      rating: 4.8,
-      images: ['/api/images/property1.jpg'],
-      amenities: ['WiFi', 'Parking', 'Pool', 'Kitchen', 'AC'],
-      status: 'active',
-      bookings: 12,
-      revenue: 1800000
-    },
-    {
-      _id: '2',
-      name: 'Cozy Studio Musanze',
-      location: 'Musanze, Rwanda',
-      type: 'Studio',
-      bedrooms: 1,
-      bathrooms: 1,
-      guests: 2,
-      price: 90000,
-      rating: 4.6,
-      images: ['/api/images/property2.jpg'],
-      amenities: ['WiFi', 'Kitchen'],
-      status: 'active',
-      bookings: 8,
-      revenue: 720000
-    }
-  ];
+  // Removed mock data. We will fetch live data from the backend.
 
   useEffect(() => {
     loadData();
@@ -147,25 +80,137 @@ const PropertyOwnerBookings = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      // In a real app, these would be API calls
-      setBookings(mockBookings);
-      setProperties(mockProperties);
+      const [bookRes, propRes, occRes] = await Promise.all([
+        fetch(`${API_URL}/api/bookings/property-owner`, { credentials: 'include' }),
+        fetch(`${API_URL}/api/properties/my-properties`, { credentials: 'include' }),
+        fetch(`${API_URL}/api/bookings/owner/visitors-analytics`, { credentials: 'include' })
+      ]);
+      const [bookJson, propJson, occJson] = await Promise.all([bookRes.json(), propRes.json(), occRes.json()]);
+      if (bookRes.ok) setBookings(bookJson.bookings || []);
+      if (propRes.ok) {
+        const props = propJson.properties || [];
+        setProperties(props);
+        // Ensure a concrete propertyId is selected so the calendar fetch runs
+        if (props.length && filters.property === 'all') {
+          setFilters(prev => ({ ...prev, property: props[0]._id }));
+        }
+      }
+      const list = bookRes.ok ? (bookJson.bookings || []) : [];
       setStats({
-        total: mockBookings.length,
-        paid: mockBookings.filter(b => b.status === 'paid').length,
-        pending: mockBookings.filter(b => b.status === 'pending').length,
-        unpaid: mockBookings.filter(b => b.status === 'unpaid').length,
-        totalRevenue: mockBookings.reduce((sum, b) => sum + b.totalAmount, 0),
-        pendingRevenue: mockBookings.filter(b => b.status === 'pending').reduce((sum, b) => sum + b.totalAmount, 0),
-        totalProperties: mockProperties.length,
-        activeProperties: mockProperties.filter(p => p.status === 'active').length,
-        occupancyRate: 75,
-        averageRating: 4.7
+        total: list.length,
+        paid: list.filter(b => b.paymentStatus === 'paid' || b.status === 'confirmed').length,
+        pending: list.filter(b => b.paymentStatus === 'pending' || b.status === 'pending').length,
+        unpaid: list.filter(b => b.paymentStatus === 'unpaid').length,
+        totalRevenue: list.reduce((sum, b) => sum + (b.totalAmount || 0), 0),
+        pendingRevenue: list.filter(b => (b.paymentStatus === 'pending' || b.status === 'pending')).reduce((sum, b) => sum + (b.totalAmount || 0), 0),
+        totalProperties: (propJson.properties || []).length,
+        activeProperties: (propJson.properties || []).filter(p => p.status === 'active').length,
+        occupancyRate: Math.max(0, Math.min(100, Number(occJson?.kpis?.occupancyPercent || 0))),
+        averageRating: 0
       });
     } catch (error) {
       toast.error('Failed to load data');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadOwnerProperties = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/properties/my-properties`, { credentials: 'include' });
+      const data = await res.json();
+      if (res.ok) setProperties(data.properties || []);
+    } catch (_) {}
+  };
+
+  useEffect(() => { loadOwnerProperties(); }, []);
+
+  // Respond to navbar dropdown links like /my-bookings?tab=properties
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tab = params.get('tab');
+    if (tab === 'properties' || tab === 'calendar') {
+      setOwnerView('calendar');
+      // Ensure a property is selected to render the calendar
+      if (properties.length && filters.property === 'all') {
+        setFilters(prev => ({ ...prev, property: properties[0]._id }));
+      }
+      // Expand and scroll to calendar
+      setExpandedSections(prev => ({ ...prev, calendar: true }));
+      setTimeout(() => {
+        if (calendarRef.current) {
+          calendarRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
+    }
+  }, [location.search, properties, filters.property]);
+
+  const onDirectChange = (path, value) => {
+    setDirectForm(prev => {
+      if (path.includes('.')) {
+        const [p, c] = path.split('.');
+        return { ...prev, [p]: { ...prev[p], [c]: value } };
+      }
+      return { ...prev, [path]: value };
+    });
+  };
+
+  const onSelectProperty = async (pid) => {
+    onDirectChange('propertyId', pid);
+    onDirectChange('roomId', '');
+    setOwnerRooms([]);
+    if (!pid) return;
+    try {
+      const res = await fetch(`${API_URL}/api/properties/${pid}`, { credentials: 'include' });
+      const data = await res.json();
+      if (res.ok) setOwnerRooms(data.property?.rooms || []);
+    } catch (_) {}
+  };
+
+  const submitDirectBooking = async () => {
+    try {
+      if (!directForm.propertyId || !directForm.roomId || !directForm.checkIn || !directForm.checkOut) {
+        toast.error('Please fill property, room, dates');
+        return;
+      }
+      if (!directForm.guestInfo.firstName || !directForm.guestInfo.lastName || !directForm.guestInfo.phone) {
+        toast.error('Guest name and phone are required');
+        return;
+      }
+      const payload = {
+        propertyId: directForm.propertyId,
+        room: directForm.roomId,
+        checkIn: directForm.checkIn,
+        checkOut: directForm.checkOut,
+        numberOfGuests: directForm.guests,
+        contactInfo: directForm.contactInfo,
+        specialRequests: directForm.specialRequests,
+        groupBooking: directForm.guests >= 4,
+        groupSize: directForm.guests,
+        paymentMethod: directForm.paymentMethod,
+        guestInfo: directForm.guestInfo,
+        markPaid: directForm.paymentMethod === 'cash' ? directForm.markPaid : false,
+        directBooking: true
+      };
+      const res = await fetch(`${API_URL}/api/bookings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to create booking');
+      toast.success('Direct booking recorded');
+      setShowDirectBooking(false);
+      // Open simplified direct receipt for printing/saving
+      if (data?.booking?._id) {
+        window.open(`${API_URL}/api/bookings/${data.booking._id}/direct-receipt.csv`, '_blank');
+        navigate(`/booking-confirmation/${data.booking._id}`);
+      } else {
+        loadData();
+      }
+    } catch (e) {
+      toast.error(e.message);
     }
   };
 
@@ -199,9 +244,10 @@ const PropertyOwnerBookings = () => {
   };
 
   const filteredBookings = bookings.filter(booking => {
-    if (filters.status !== 'all' && booking.status !== filters.status) return false;
-    if (filters.property !== 'all' && booking.property._id !== filters.property) return false;
-    if (filters.search && !booking.guest.name.toLowerCase().includes(filters.search.toLowerCase())) return false;
+    if (filters.status !== 'all' && booking.status !== filters.status && booking.paymentStatus !== filters.status) return false;
+    if (filters.property !== 'all' && String(booking.property?._id) !== String(filters.property)) return false;
+    const guestName = `${booking.guest?.firstName || ''} ${booking.guest?.lastName || ''}`.trim().toLowerCase();
+    if (filters.search && !guestName.includes(filters.search.toLowerCase())) return false;
     return true;
   });
 
@@ -237,6 +283,47 @@ const PropertyOwnerBookings = () => {
         </div>
       </div>
 
+      {/* Finance History */}
+      <div className="max-w-7xl mx-auto px-4 pb-10">
+        <div className="mt-10">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Finance History</h2>
+          <div ref={calendarRef} className="neu-card p-0 overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Booking</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Property</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Method</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {bookings.map(tr => (
+                  <tr key={`fin-${tr._id}`} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 text-sm">{new Date(tr.createdAt).toLocaleString()}</td>
+                    <td className="px-4 py-3 text-sm">{tr.confirmationCode || tr._id}</td>
+                    <td className="px-4 py-3 text-sm">{tr.property?.title || tr.property?.name || 'Property'}</td>
+                    <td className="px-4 py-3 text-sm">{`${tr.guest?.firstName || ''} ${tr.guest?.lastName || ''}`.trim() || tr.guest?.email || 'Guest'}</td>
+                    <td className="px-4 py-3 text-right font-semibold">RWF {(tr.totalAmount || 0).toLocaleString()}</td>
+                    <td className="px-4 py-3 text-sm">{tr.paymentMethod}</td>
+                    <td className="px-4 py-3 text-sm">{tr.paymentStatus || tr.status}</td>
+                  </tr>
+                ))}
+                {bookings.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="px-4 py-12 text-center text-gray-500">No finance history yet.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
       <div className="flex justify-between items-center mb-4">
         <div>
           <p className="text-sm text-gray-600">Total Amount</p>
@@ -269,12 +356,11 @@ const PropertyOwnerBookings = () => {
           onClick={() => navigate(`/messages?booking=${booking._id}`)}
           className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
         >
-          <FaMessage />
+          <FaComments />
         </button>
       </div>
     </div>
   );
-
   const renderBookingDetails = () => (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
@@ -406,7 +492,7 @@ const PropertyOwnerBookings = () => {
                     onClick={() => navigate(`/messages?booking=${selectedBooking._id}`)}
                     className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center"
                   >
-                    <FaMessage className="mr-2" />
+                    <FaComments className="mr-2" />
                     Send Message
                   </button>
                 </div>
@@ -508,8 +594,19 @@ const PropertyOwnerBookings = () => {
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Property Owner Dashboard</h1>
-          <p className="text-gray-600">Manage your properties, bookings, and revenue</p>
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">Property Owner Dashboard</h1>
+              <p className="text-gray-600">Manage your properties, bookings, and revenue</p>
+            </div>
+            <button
+              onClick={() => setShowDirectBooking(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+            >
+              <FaPlus />
+              New Direct Booking
+            </button>
+          </div>
         </div>
 
         {/* Stats Cards */}
@@ -575,6 +672,15 @@ const PropertyOwnerBookings = () => {
                 <option key={prop._id} value={prop._id}>{prop.name}</option>
               ))}
             </select>
+            <select
+              value={filters.year}
+              onChange={(e) => setFilters(prev => ({ ...prev, year: Number(e.target.value) }))}
+              className="modern-input"
+            >
+              {Array.from({ length: 11 }, (_, k) => new Date().getFullYear() - 5 + k).map(y => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
             <div className="flex-1 min-w-64">
               <div className="relative">
                 <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
@@ -590,23 +696,252 @@ const PropertyOwnerBookings = () => {
           </div>
         </div>
 
-        {/* Bookings Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredBookings.map(renderBookingCard)}
-        </div>
-
-        {filteredBookings.length === 0 && (
-          <div className="text-center py-12">
-            <FaCalendarAlt className="text-6xl text-gray-300 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-600 mb-2">No bookings found</h3>
-            <p className="text-gray-500">Try adjusting your filters or check back later.</p>
+        {/* Bookings / Calendar Card */}
+        <div className="neu-card p-0 overflow-x-auto">
+          <div className="flex items-center justify-between p-4 border-b">
+            <div className="font-semibold text-gray-800">Clients & Calendar</div>
+            <div className="flex gap-2">
+              <button
+                className={`px-3 py-1 rounded ${ownerView === 'table' ? 'bg-blue-600 text-white' : 'bg-gray-100'}`}
+                onClick={() => setOwnerView('table')}
+              >
+                Table
+              </button>
+              <button
+                className={`px-3 py-1 rounded ${ownerView === 'calendar' ? 'bg-blue-600 text-white' : 'bg-gray-100'}`}
+                onClick={() => setOwnerView('calendar')}
+              >
+                Calendar
+              </button>
+            </div>
           </div>
-        )}
+
+          {ownerView === 'table' && (
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Property</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dates</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Guests</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Direct</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {filteredBookings.map(b => {
+                const guestName = `${b.guest?.firstName || ''} ${b.guest?.lastName || ''}`.trim() || b.guest?.email || 'Guest';
+                const propertyTitle = b.property?.title || b.property?.name || 'Property';
+                const propertyLocation = b.property?.city || b.property?.address || '';
+                const checkIn = new Date(b.checkIn).toLocaleDateString();
+                const checkOut = new Date(b.checkOut).toLocaleDateString();
+                return (
+                  <tr key={b._id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3">
+                      <div className="font-medium text-gray-900">{guestName}</div>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-600">
+                      <div>{b.guest?.email || '-'}</div>
+                      <div>{b.guest?.phone || '-'}</div>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-600">
+                      <div className="font-medium text-gray-900">{propertyTitle}</div>
+                      <div className="text-gray-500">{propertyLocation}</div>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-600">
+                      <div>{checkIn} → {checkOut}</div>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-600">{b.numberOfGuests || b.guests || 1}</td>
+                    <td className="px-4 py-3 text-right font-semibold">RWF {(b.totalAmount || 0).toLocaleString()}</td>
+                    <td className="px-4 py-3 text-sm">
+                      <span className={`px-2 py-1 rounded-full text-xs ${
+                        (b.paymentStatus === 'paid' || b.status === 'confirmed') ? 'bg-green-100 text-green-800' :
+                        (b.paymentStatus === 'pending' || b.status === 'pending') ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {b.paymentStatus || b.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-sm">{b.isDirect ? 'Yes' : 'No'}</td>
+                    <td className="px-4 py-3 text-sm space-x-2">
+                      <button
+                        onClick={() => navigate(`/receipt/${b._id}?direct=${b.isDirect ? 'true' : 'false'}`)}
+                        className="inline-flex items-center bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
+                      >
+                        <FaFileInvoice className="mr-1" /> Receipt
+                      </button>
+                      <button
+                        onClick={() => navigate(`/invoice/${b._id}?direct=${b.isDirect ? 'true' : 'false'}`)}
+                        className="inline-flex items-center bg-purple-600 text-white px-3 py-1 rounded hover:bg-purple-700"
+                      >
+                        <FaDownload className="mr-1" /> Invoice
+                      </button>
+                      <button
+                        onClick={() => navigate(`/messages?booking=${b._id}`)}
+                        className="inline-flex items-center bg-gray-600 text-white px-3 py-1 rounded hover:bg-gray-700"
+                      >
+                        <FaComments className="mr-1" /> Chat
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+              {filteredBookings.length === 0 && (
+                <tr>
+                  <td colSpan={9} className="px-4 py-12 text-center text-gray-500">
+                    No bookings found.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+          )}
+
+          {ownerView === 'calendar' && (
+            <div className="p-4">
+              {(() => {
+                const propertyForCalendar = filters.property !== 'all' ? filters.property : (properties[0]?._id || '');
+                if (!propertyForCalendar) {
+                  return (
+                    <div className="text-gray-500 py-8 text-center">Select a property to view its calendar.</div>
+                  );
+                }
+                const params = new URLSearchParams(location.search);
+                const mo = parseInt(params.get('monthOffset') || '0', 10);
+                const base = new Date(filters.year, new Date().getMonth(), 1);
+                if (!isNaN(mo)) {
+                  base.setMonth(base.getMonth() + mo);
+                }
+                return (
+                  <BookingCalendar
+                    propertyId={propertyForCalendar}
+                    initialDate={base}
+                    onBookingSelect={(booking) => {
+                      setSelectedBooking(booking);
+                      setShowBookingDetails(true);
+                    }}
+                  />
+                );
+              })()}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Modals */}
       {showBookingDetails && renderBookingDetails()}
       {showReceipt && renderReceipt()}
+      {showDirectBooking && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+              <h2 className="text-2xl font-bold">New Direct Booking</h2>
+              <button onClick={() => setShowDirectBooking(false)} className="text-gray-500 hover:text-gray-700">
+                <FaTimes className="text-xl" />
+              </button>
+            </div>
+            <div className="p-6 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm text-gray-600 mb-1">Property</label>
+                  <select
+                    value={directForm.propertyId}
+                    onChange={(e) => onSelectProperty(e.target.value)}
+                    className="modern-input w-full"
+                  >
+                    <option value="">Select property</option>
+                    {properties.map(p => (
+                      <option key={p._id} value={p._id}>{p.title || p.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-600 mb-1">Room</label>
+                  <select
+                    value={directForm.roomId}
+                    onChange={(e) => onDirectChange('roomId', e.target.value)}
+                    className="modern-input w-full"
+                  >
+                    <option value="">Select room</option>
+                    {ownerRooms.map(r => (
+                      <option key={r._id} value={r._id}>{r.roomNumber} • {r.roomType}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-600 mb-1">Check-in</label>
+                  <input type="date" value={directForm.checkIn} onChange={(e) => onDirectChange('checkIn', e.target.value)} className="modern-input w-full" />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-600 mb-1">Check-out</label>
+                  <input type="date" value={directForm.checkOut} onChange={(e) => onDirectChange('checkOut', e.target.value)} className="modern-input w-full" />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-600 mb-1">Guests</label>
+                  <input type="number" min={1} value={directForm.guests} onChange={(e) => onDirectChange('guests', Number(e.target.value))} className="modern-input w-full" />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-600 mb-1">Payment Method</label>
+                  <select value={directForm.paymentMethod} onChange={(e) => onDirectChange('paymentMethod', e.target.value)} className="modern-input w-full">
+                    <option value="cash">Cash</option>
+                    <option value="mtn_mobile_money">MTN Mobile Money</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm text-gray-600 mb-1">Guest First Name</label>
+                  <input type="text" value={directForm.guestInfo.firstName} onChange={(e) => onDirectChange('guestInfo.firstName', e.target.value)} className="modern-input w-full" />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-600 mb-1">Guest Last Name</label>
+                  <input type="text" value={directForm.guestInfo.lastName} onChange={(e) => onDirectChange('guestInfo.lastName', e.target.value)} className="modern-input w-full" />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-600 mb-1">Guest Phone</label>
+                  <input type="tel" value={directForm.guestInfo.phone} onChange={(e) => onDirectChange('guestInfo.phone', e.target.value)} className="modern-input w-full" />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-600 mb-1">Guest Email (optional)</label>
+                  <input type="email" value={directForm.guestInfo.email} onChange={(e) => onDirectChange('guestInfo.email', e.target.value)} className="modern-input w-full" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm text-gray-600 mb-1">Contact Phone</label>
+                  <input type="tel" value={directForm.contactInfo.phone} onChange={(e) => onDirectChange('contactInfo.phone', e.target.value)} className="modern-input w-full" />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-600 mb-1">Contact Email</label>
+                  <input type="email" value={directForm.contactInfo.email} onChange={(e) => onDirectChange('contactInfo.email', e.target.value)} className="modern-input w-full" />
+                </div>
+              </div>
+
+              {directForm.paymentMethod === 'cash' && (
+                <div className="flex items-center gap-2">
+                  <input id="markPaid" type="checkbox" checked={!!directForm.markPaid} onChange={(e) => onDirectChange('markPaid', e.target.checked)} />
+                  <label htmlFor="markPaid" className="text-sm text-gray-600">Mark as paid now</label>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm text-gray-600 mb-1">Special Requests</label>
+                <textarea value={directForm.specialRequests} onChange={(e) => onDirectChange('specialRequests', e.target.value)} className="modern-input w-full" rows={3} />
+              </div>
+
+              <div className="flex justify-end gap-3">
+                <button onClick={() => setShowDirectBooking(false)} className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-lg">Cancel</button>
+                <button onClick={submitDirectBooking} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">Create Booking</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

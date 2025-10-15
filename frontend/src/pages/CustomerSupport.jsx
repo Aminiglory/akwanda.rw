@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FaHeadset, FaTicketAlt, FaPhone, FaEnvelope, FaClock, FaCheckCircle, FaExclamationTriangle, FaInfoCircle } from 'react-icons/fa';
 import toast from 'react-hot-toast';
+import { useAuth } from '../contexts/AuthContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const CustomerSupport = () => {
+  const { user, isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState('contact');
   const [supportForm, setSupportForm] = useState({
     name: '',
@@ -17,6 +19,18 @@ const CustomerSupport = () => {
     message: ''
   });
   const [submitting, setSubmitting] = useState(false);
+
+  // Prefill support form from logged-in user profile
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const fullName = user?.name || [user?.firstName, user?.lastName].filter(Boolean).join(' ');
+    setSupportForm(prev => ({
+      ...prev,
+      name: fullName || prev.name,
+      email: user?.email || prev.email,
+      phone: user?.phone || prev.phone,
+    }));
+  }, [isAuthenticated, user]);
 
   const categories = [
     { value: 'general', label: 'General Inquiry', icon: FaInfoCircle },
@@ -110,6 +124,7 @@ const CustomerSupport = () => {
               {[
                 { id: 'contact', label: 'Contact Us', icon: FaPhone },
                 { id: 'ticket', label: 'Submit Ticket', icon: FaTicketAlt },
+                ...(user?.userType === 'admin' ? [{ id: 'admin', label: 'Admin Tools', icon: FaHeadset }] : []),
                 { id: 'faq', label: 'FAQ', icon: FaInfoCircle }
               ].map(({ id, label, icon: Icon }) => (
                 <button
@@ -211,6 +226,35 @@ const CustomerSupport = () => {
                       Send Message
                     </button>
                   </form>
+                </div>
+              </div>
+            )}
+
+            {/* Admin Tools Tab */}
+            {activeTab === 'admin' && user?.userType === 'admin' && (
+              <div className="max-w-5xl mx-auto">
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">Admin Support Tools</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="bg-white rounded-xl shadow p-6 border border-gray-100">
+                    <h3 className="font-semibold text-gray-900 mb-3">Recent Tickets</h3>
+                    <p className="text-sm text-gray-600">View and manage latest support tickets.</p>
+                    <a href="/admin/support/tickets" className="inline-block mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm">Open Tickets</a>
+                  </div>
+                  <div className="bg-white rounded-xl shadow p-6 border border-gray-100">
+                    <h3 className="font-semibold text-gray-900 mb-3">User Reports</h3>
+                    <p className="text-sm text-gray-600">See user issue reports and flagged content.</p>
+                    <a href="/admin/reports" className="inline-block mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm">Open Reports</a>
+                  </div>
+                  <div className="bg-white rounded-xl shadow p-6 border border-gray-100">
+                    <h3 className="font-semibold text-gray-900 mb-3">System Health</h3>
+                    <p className="text-sm text-gray-600">Monitor uptime and API error rates.</p>
+                    <a href="/admin/monitoring" className="inline-block mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm">Open Monitoring</a>
+                  </div>
+                  <div className="bg-white rounded-xl shadow p-6 border border-gray-100">
+                    <h3 className="font-semibold text-gray-900 mb-3">Knowledge Base</h3>
+                    <p className="text-sm text-gray-600">Manage FAQs and canned responses.</p>
+                    <a href="/admin/knowledge-base" className="inline-block mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm">Open KB</a>
+                  </div>
                 </div>
               </div>
             )}

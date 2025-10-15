@@ -6,6 +6,16 @@ import AdminCommissionManager from '../components/AdminCommissionManager';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
+const makeAbsolute = (u) => {
+  if (!u) return u;
+  let s = String(u).replace(/\\/g, '/');
+  if (!s.startsWith('http')) {
+    if (!s.startsWith('/')) s = `/${s}`;
+    return `${API_URL}${s}`;
+  }
+  return s;
+};
+
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [metrics, setMetrics] = useState({
@@ -50,16 +60,6 @@ const AdminDashboard = () => {
           return fallbackData;
         }
       };
-
-  const makeAbsolute = (u) => {
-    if (!u) return u;
-    let s = String(u).replace(/\\/g, '/');
-    if (!s.startsWith('http')) {
-      if (!s.startsWith('/')) s = `/${s}`;
-      return `${API_URL}${s}`;
-    }
-    return s;
-  };
 
       // Fetch all data with fallbacks
       const [metricsData, propertiesData, bookingsData, usersData] = await Promise.all([

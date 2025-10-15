@@ -256,6 +256,9 @@ const Dashboard = () => {
                 <p className="text-gray-600 mt-1">Manage your apartments and bookings</p>
               </div>
               <div className="flex items-center space-x-4">
+                <Link to="/owner/direct-booking" className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-xl font-semibold transition-colors duration-300 flex items-center gap-2">
+                  Direct Booking
+                </Link>
                 <Link to="/upload" className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-xl font-semibold transition-colors duration-300 flex items-center gap-2">
                   <FaPlus />
                   List Your Property
@@ -437,16 +440,16 @@ const Dashboard = () => {
                   </div>
 
                   <div className="space-y-4">
-                    {useMemo(() => bookings
+                    {bookings
                       .filter(b => {
                         const term = searchTerm.toLowerCase();
                         const matchesSearch =
-                          b.apartment.title.toLowerCase().includes(term) ||
-                          b.apartment.location.toLowerCase().includes(term) ||
-                          b.status.toLowerCase().includes(term);
+                          (b.apartment.title || '').toLowerCase().includes(term) ||
+                          (b.apartment.location || '').toLowerCase().includes(term) ||
+                          (b.status || '').toLowerCase().includes(term);
                         const matchesStatus = filterStatus ? b.status === filterStatus : true;
                         return matchesSearch && matchesStatus;
-                      }), [bookings, searchTerm, filterStatus])
+                      })
                       .map((booking) => (
                         <div key={booking.id} className="neu-card-sm p-6 transition-all">
                           {/* Host can confirm booking if status is pending */}
@@ -632,7 +635,7 @@ const Dashboard = () => {
                             <span className="text-sm">{listing.location}</span>
                           </div>
                           <div className="flex items-center justify-between mb-4">
-                            <span className="text-lg font-bold text-blue-600">RWF {listing.price.toLocaleString()}/month</span>
+                            <span className="text-lg font-bold text-blue-600">RWF {listing.price.toLocaleString()}/night</span>
                             <div className="flex items-center">
                               {/* Show real average rating for property */}
                               {listing.ratings && listing.ratings.length > 0 ? (

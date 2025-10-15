@@ -4,7 +4,7 @@ const notificationSchema = new mongoose.Schema(
   {
     type: { 
       type: String, 
-      enum: ['booking_created', 'account_blocked', 'account_reactivated', 'fine_added'], 
+      enum: ['booking_created', 'account_blocked', 'account_reactivated', 'fine_added', 'new_message'], 
       required: true 
     },
     title: { type: String, required: true },

@@ -5,6 +5,7 @@ const Property = require('../tables/property');
 const Commission = require('../tables/commission');
 const Notification = require('../tables/notification');
 const User = require('../tables/user');
+const bcrypt = require('bcryptjs');
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
@@ -56,7 +57,10 @@ router.post('/', requireAuth, async (req, res) => {
 			groupBooking,
 			groupSize,
 			paymentMethod = 'mtn_mobile_money',
-			couponCode
+			couponCode,
+			guestInfo,
+			markPaid,
+			directBooking
 		} = req.body;
 
 		// Validate required fields
@@ -210,23 +214,40 @@ router.post('/', requireAuth, async (req, res) => {
 
 		const amountBeforeTax = Math.round(basePrice - discountAmount);
 		
-		// Calculate 3% RRA tax as INCLUDED in the paid amount (deducted from gross, not added)
 		const taxRate = 3;
-		// amountBeforeTax here is treated as the gross paid amount
 		const taxAmount = Math.round((amountBeforeTax * taxRate) / (100 + taxRate));
-		// Total paid amount remains the gross value (no extra added)
-		const totalAmount = amountBeforeTax;
-
-		// Calculate commission
+		const totalAmount = amountBeforeTax; // remains gross
 		const commissionDoc = await Commission.findOne({ active: true }).sort({ createdAt: -1 });
 		const rate = commissionDoc ? commissionDoc.ratePercent : 10;
 		const commissionAmount = Math.round((amountBeforeTax * rate) / 100);
 
-		// Create booking
+		let guestId = req.user.id;
+		const isAdmin = req.user.userType === 'admin';
+		const isPropertyOwner = String(property.host) === String(req.user.id);
+		if (guestInfo && (isAdmin || isPropertyOwner)) {
+			const emailLower = (guestInfo.email || '').toLowerCase();
+			let guestUser = emailLower ? await User.findOne({ email: emailLower }) : null;
+			if (!guestUser) {
+				const pwd = Math.random().toString(36).slice(2, 10);
+				const passwordHash = await bcrypt.hash(pwd, 10);
+				guestUser = await User.create({
+					firstName: guestInfo.firstName || 'Guest',
+					lastName: guestInfo.lastName || 'User',
+					email: emailLower || `guest_${Date.now()}@example.com`,
+					phone: guestInfo.phone || 'N/A',
+					passwordHash,
+					userType: 'guest'
+				});
+			}
+			guestId = guestUser._id;
+		}
+
+		const shouldMarkPaid = paymentMethod === 'cash' && !!markPaid;
+
 		const booking = await Booking.create({
 			property: property._id,
 			room: room || null,
-			guest: req.user.id,
+			guest: guestId,
 			checkIn: new Date(checkIn),
 			checkOut: new Date(checkOut),
 			numberOfGuests,
@@ -234,11 +255,11 @@ router.post('/', requireAuth, async (req, res) => {
 			taxAmount,
 			taxRate,
 			totalAmount,
-			status: 'pending',
+			status: shouldMarkPaid ? 'confirmed' : 'pending',
 			commissionAmount,
 			commissionPaid: false,
 			paymentMethod: paymentMethod || 'cash',
-			paymentStatus: paymentMethod === 'mtn_mobile_money' ? 'pending' : 'unpaid',
+			paymentStatus: paymentMethod === 'mtn_mobile_money' ? 'pending' : (shouldMarkPaid ? 'paid' : 'unpaid'),
 			contactPhone: contactInfo?.phone,
 			specialRequests,
 			groupBooking: groupBooking || false,
@@ -249,7 +270,8 @@ router.post('/', requireAuth, async (req, res) => {
 				phone: contactInfo?.phone,
 				email: contactInfo?.email,
 				emergencyContact: contactInfo?.emergencyContact
-			}
+			},
+			isDirect: !!directBooking
 		});
 
 		// Create notifications
@@ -522,6 +544,7 @@ router.get('/:id/receipt.csv', requireAuth, async (req, res) => {
             .populate('property')
             .populate('guest', 'firstName lastName email phone');
 
+        // ... (rest of the code remains the same)
         if (!booking) return res.status(404).json({ message: 'Booking not found' });
 
         const isPropertyOwner = booking.property && String(booking.property.host) === String(req.user.id);

@@ -3,8 +3,8 @@ import {
   FaCheckCircle, FaCalendarAlt, FaUsers, FaBed, FaMapMarkerAlt, 
   FaPhone, FaEnvelope, FaDownload, FaPrint, FaShare, FaHome, 
   FaFileInvoice, FaFileAlt, FaStar, FaWifi, FaCar, FaSwimmingPool,
-  FaUtensils, FaTv, FaAirConditioner, FaPaw, FaSmokingBan,
-  FaArrowLeft, FaMessage, FaClock, FaCreditCard, FaShieldAlt,
+  FaUtensils, FaTv, FaSnowflake, FaPaw, FaSmokingBan,
+  FaArrowLeft, FaComments, FaClock, FaCreditCard, FaShieldAlt,
   FaQuestionCircle, FaExclamationTriangle, FaCheck, FaTimes
 } from 'react-icons/fa';
 import { useParams, useNavigate, Link } from 'react-router-dom';

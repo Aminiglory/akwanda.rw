@@ -38,6 +38,8 @@ import {
 } from "react-icons/fa";
 import { useSocket } from "../contexts/SocketContext";
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 const Navbar = () => {
   const { user, logout, isAuthenticated } = useAuth();
   const location = useLocation();
@@ -46,6 +48,7 @@ const Navbar = () => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [notifications, setNotifications] = useState([]);
+  const [unreadNotifCount, setUnreadNotifCount] = useState(0);
   const [unreadMsgCount, setUnreadMsgCount] = useState(0);
   const { socket } = useSocket();
 
@@ -120,9 +123,9 @@ const Navbar = () => {
       category: "Calendar",
       icon: FaCalendarAlt,
       links: [
-        { label: "This month", href: "/my-bookings?tab=properties" },
-        { label: "Next month", href: "/my-bookings?tab=properties" },
-        { label: "This year", href: "/my-bookings?tab=properties" },
+        { label: "This month", href: "/my-bookings?tab=calendar&monthOffset=0" },
+        { label: "Next month", href: "/my-bookings?tab=calendar&monthOffset=1" },
+        { label: "This year", href: "/my-bookings?tab=calendar" },
       ]
     },
     {
@@ -207,23 +210,66 @@ const Navbar = () => {
   }, [socket, isAuthenticated]);
 
   useEffect(() => {
-    if (isAuthenticated && user?.userType === "admin") {
-      setNotifications([
-        {
-          id: 1,
-          message: "New property listing pending approval",
-          timestamp: new Date(),
-          isRead: false,
-        },
-        {
-          id: 2,
-          message: "User reported an issue",
-          timestamp: new Date(),
-          isRead: true,
-        },
-      ]);
+    if (!isAuthenticated) return;
+    let timer;
+    const loadUnread = async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/notifications/unread-count`, { credentials: 'include' });
+        const data = await res.json();
+        if (res.ok) setUnreadNotifCount(Number(data.count || 0));
+      } catch (_) {}
+    };
+    const loadList = async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/notifications/list`, { credentials: 'include' });
+        const data = await res.json();
+        if (res.ok) {
+          const list = (data.notifications || []).map(n => ({
+            id: n._id,
+            type: n.type,
+            title: n.title || n.message,
+            message: n.message || n.title,
+            isRead: !!n.isRead,
+            booking: n.booking,
+            property: n.property,
+            createdAt: n.createdAt
+          }));
+          setNotifications(list);
+          setUnreadNotifCount(list.filter(x => !x.isRead).length);
+        }
+      } catch (_) {}
+    };
+    loadUnread();
+    loadList();
+    timer = setInterval(loadUnread, 30000);
+    return () => { if (timer) clearInterval(timer); };
+  }, [isAuthenticated]);
+
+  const markNotificationRead = async (id) => {
+    try {
+      await fetch(`${API_URL}/api/notifications/${id}/read`, { method: 'PATCH', credentials: 'include' });
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+      setUnreadNotifCount(prev => Math.max(0, prev - 1));
+    } catch (_) {}
+  };
+
+  const getNotificationLink = (n) => {
+    if (!n) return '#';
+    // Route mapping by type and attached entities
+    if (n.type?.startsWith('booking') && (n.booking?._id || n.booking)) {
+      const bid = n.booking?._id || n.booking;
+      return `/booking/${bid}`;
     }
-  }, [isAuthenticated, user]);
+    if (n.type?.includes('receipt') && (n.booking?._id || n.booking)) {
+      const bid = n.booking?._id || n.booking;
+      return `/booking-confirmation/${bid}`;
+    }
+    if (n.property?._id || n.property) {
+      const pid = n.property?._id || n.property;
+      return `/properties/${pid}`;
+    }
+    return '/admin';
+  };
 
   const isActiveRoute = (path) => {
     return location.pathname === path;
@@ -248,7 +294,7 @@ const Navbar = () => {
 
   const groupedNotifications = () => {
     return notifications.reduce((acc, n) => {
-      const cat = n.message.includes("property") ? "Properties" : "Users";
+      const cat = n.type?.includes('property') ? 'Properties' : (n.type?.includes('booking') ? 'Bookings' : 'General');
       if (!acc[cat]) acc[cat] = [];
       acc[cat].push(n);
       return acc;
@@ -459,14 +505,14 @@ const Navbar = () => {
                 </Link>
               )}
 
-              {/* Notifications (admin only) */}
-              {user?.userType === "admin" && (
+              {/* Notifications (admin and host) */}
+              {(user?.userType === "admin" || user?.userType === 'host') && (
                 <div className="hidden lg:block relative group">
                   <button className="relative p-3 text-gray-700 hover:text-blue-600 hover:bg-gray-100 rounded-lg">
                     <FaBell className="text-lg" />
-                    {notifications.filter((n) => !n.isRead).length > 0 && (
+                    {unreadNotifCount > 0 && (
                       <span className="absolute -top-1 -right-1 bg-green-600 text-white text-xs rounded-full px-2 py-1 min-w-[18px] text-center">
-                        {notifications.filter((n) => !n.isRead).length}
+                        {unreadNotifCount}
                       </span>
                     )}
                   </button>
@@ -481,14 +527,20 @@ const Navbar = () => {
                             {category}
                           </div>
                           {notifs.map((n) => (
-                            <div
+                            <Link
                               key={n.id}
-                              className={`text-xs py-1 ${
-                                !n.isRead ? "font-semibold" : "text-gray-600"
-                              }`}
+                              to={getNotificationLink(n)}
+                              onClick={() => markNotificationRead(n.id)}
+                              className={`block text-xs py-2 rounded hover:bg-gray-50 ${!n.isRead ? 'font-semibold' : 'text-gray-600'}`}
                             >
-                              {n.message}
-                            </div>
+                              <div className="flex items-start gap-2">
+                                <div className={`w-2 h-2 mt-1 rounded-full ${!n.isRead ? 'bg-blue-600' : 'bg-gray-300'}`}></div>
+                                <div>
+                                  <div className="text-gray-800 line-clamp-2">{n.title || n.message}</div>
+                                  <div className="text-[10px] text-gray-500">{n.createdAt ? new Date(n.createdAt).toLocaleString() : ''}</div>
+                                </div>
+                              </div>
+                            </Link>
                           ))}
                         </div>
                       ))}

@@ -90,12 +90,32 @@ router.put('/me', requireAuth, async (req, res) => {
 // User notifications (host)
 router.get('/notifications', requireAuth, async (req, res) => {
     const Notification = require('../tables/notification');
-    const list = await Notification.find({ recipientUser: req.user.id })
+    const Property = require('../tables/property');
+    // Fetch recent notifications for this user
+    const raw = await Notification.find({ recipientUser: req.user.id })
         .sort({ createdAt: -1 })
         .limit(50)
         .populate({ path: 'booking', populate: { path: 'guest', select: 'firstName lastName email phone' } })
         .populate('property');
-    res.json({ notifications: list });
+
+    // Filter to ensure property exists and is still owned by this user when property is attached
+    const filtered = [];
+    for (const n of raw) {
+        if (!n.property) {
+            // Allow non-property notifications (e.g., account messages)
+            filtered.push(n);
+            continue;
+        }
+        // Verify property still exists and owned by requester
+        try {
+            const p = await Property.findById(n.property._id).select('host');
+            if (p && String(p.host) === String(req.user.id)) {
+                filtered.push(n);
+            }
+        } catch (_) { /* ignore */ }
+    }
+
+    res.json({ notifications: filtered });
 });
 
 router.post('/notifications/:id/read', requireAuth, async (req, res) => {

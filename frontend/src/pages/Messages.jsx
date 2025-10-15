@@ -7,7 +7,7 @@ import {
   FaPaperPlane, FaImage, FaFile, FaSmile, FaPhone, FaVideo,
   FaEllipsisV, FaSearch, FaFilter, FaDownload, FaTrash,
   FaCheck, FaCheckDouble, FaClock, FaUser, FaCalendarAlt,
-  FaMapMarkerAlt, FaBed, FaMoneyBillWave, FaStar
+  FaMapMarkerAlt, FaBed, FaMoneyBillWave, FaStar, FaComments, FaTimes, FaReply
 } from 'react-icons/fa';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -31,110 +31,15 @@ export default function Messages() {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showFilePicker, setShowFilePicker] = useState(false);
   const [showImagePicker, setShowImagePicker] = useState(false);
+  const [replyTarget, setReplyTarget] = useState(null); // { id, senderName, text }
   
   const bottomRef = useRef(null);
   const fileInputRef = useRef(null);
   const imageInputRef = useRef(null);
   const typingTimeoutRef = useRef(null);
 
-  // Mock data for demonstration
-  const mockThreads = [
-    {
-      id: '1',
-      userId: 'guest1',
-      userName: 'John Doe',
-      userAvatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face',
-      lastMessage: 'Thank you for the great stay!',
-      lastMessageTime: '2024-01-15T10:30:00Z',
-      unreadCount: 2,
-      booking: {
-        id: 'booking1',
-        propertyName: 'Luxury Apartment Kigali',
-        checkIn: '2024-01-15',
-        checkOut: '2024-01-18',
-        totalAmount: 450000,
-        status: 'paid'
-      }
-    },
-    {
-      id: '2',
-      userId: 'guest2',
-      userName: 'Jane Smith',
-      userAvatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100&h=100&fit=crop&crop=face',
-      lastMessage: 'Can I get a late check-in?',
-      lastMessageTime: '2024-01-14T15:45:00Z',
-      unreadCount: 0,
-      booking: {
-        id: 'booking2',
-        propertyName: 'Cozy Studio Musanze',
-        checkIn: '2024-01-20',
-        checkOut: '2024-01-22',
-        totalAmount: 180000,
-        status: 'pending'
-      }
-    }
-  ];
-
-  const mockMessages = {
-    '1': [
-      {
-        id: 'msg1',
-        senderId: 'guest1',
-        senderName: 'John Doe',
-        content: 'Hi! I\'m checking in today. What time is best?',
-        timestamp: '2024-01-15T09:00:00Z',
-        type: 'text',
-        status: 'read'
-      },
-      {
-        id: 'msg2',
-        senderId: user?._id,
-        senderName: user?.name,
-        content: 'Hello John! Check-in is at 3 PM. I\'ll send you the key location details.',
-        timestamp: '2024-01-15T09:15:00Z',
-        type: 'text',
-        status: 'read'
-      },
-      {
-        id: 'msg3',
-        senderId: 'guest1',
-        senderName: 'John Doe',
-        content: 'Perfect! Thank you so much.',
-        timestamp: '2024-01-15T09:20:00Z',
-        type: 'text',
-        status: 'read'
-      },
-      {
-        id: 'msg4',
-        senderId: 'guest1',
-        senderName: 'John Doe',
-        content: 'Thank you for the great stay!',
-        timestamp: '2024-01-15T10:30:00Z',
-        type: 'text',
-        status: 'delivered'
-      }
-    ],
-    '2': [
-      {
-        id: 'msg5',
-        senderId: 'guest2',
-        senderName: 'Jane Smith',
-        content: 'Hi! Can I get a late check-in around 8 PM?',
-        timestamp: '2024-01-14T15:30:00Z',
-        type: 'text',
-        status: 'read'
-      },
-      {
-        id: 'msg6',
-        senderId: user?._id,
-        senderName: user?.name,
-        content: 'Of course! I\'ll arrange for a late check-in. The key will be in the lockbox.',
-        timestamp: '2024-01-14T15:45:00Z',
-        type: 'text',
-        status: 'read'
-      }
-    ]
-  };
+  // Placeholder avatar if backend doesn't return one
+  const placeholderAvatar = 'https://ui-avatars.com/api/?name=A&background=0D8ABC&color=fff&size=64';
 
   useEffect(() => {
     loadThreads();
@@ -147,17 +52,15 @@ export default function Messages() {
   }, [activeThread]);
 
   useEffect(() => {
-    if (socket) {
-      socket.on('message:new', handleNewMessage);
-      socket.on('typing', handleTyping);
-      socket.on('message:read', handleMessageRead);
-
-      return () => {
-        socket.off('message:new', handleNewMessage);
-        socket.off('typing', handleTyping);
-        socket.off('message:read', handleMessageRead);
-      };
-    }
+    if (!socket) return;
+    socket.on('message:new', handleNewMessage);
+    socket.on('typing', handleTyping);
+    socket.on('message:read', handleMessageRead);
+    return () => {
+      socket.off('message:new', handleNewMessage);
+      socket.off('typing', handleTyping);
+      socket.off('message:read', handleMessageRead);
+    };
   }, [socket, activeThread]);
 
   useEffect(() => {
@@ -167,8 +70,26 @@ export default function Messages() {
   const loadThreads = async () => {
     setLoading(true);
     try {
-      // In a real app, this would be an API call
-      setThreads(mockThreads);
+      const res = await fetch(`${API_URL}/api/messages/threads`, { credentials: 'include' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to load threads');
+      const mapped = (data.threads || []).map((t) => ({
+        id: t.userId,
+        userId: t.userId,
+        userName: t.name || 'User',
+        userAvatar: placeholderAvatar,
+        lastMessage: t.lastMessage?.text || '',
+        lastMessageTime: t.lastMessage?.createdAt || null,
+        unreadCount: 0,
+        booking: t.context?.bookingId ? { id: t.context.bookingId, propertyName: 'Booking', status: '' } : null,
+        context: t.context || {}
+      }));
+      setThreads(mapped);
+      // Preselect thread via query: by userId or bookingId
+      let preset = null;
+      if (prefillTo) preset = mapped.find(x => String(x.userId) === String(prefillTo)) || null;
+      if (!preset && prefillBookingId) preset = mapped.find(x => x.context?.bookingId && String(x.context.bookingId) === String(prefillBookingId)) || null;
+      if (preset) setActiveThread(preset);
     } catch (error) {
       toast.error('Failed to load conversations');
     } finally {
@@ -178,65 +99,185 @@ export default function Messages() {
 
   const loadMessages = async (threadId) => {
     try {
-      // In a real app, this would be an API call
-      setMessages(mockMessages[threadId] || []);
+      const thread = threads.find(t => t.id === threadId);
+      const params = new URLSearchParams({ userId: thread.userId });
+      if (thread?.context?.bookingId) params.set('bookingId', thread.context.bookingId);
+      const res = await fetch(`${API_URL}/api/messages/history?${params.toString()}`, { credentials: 'include' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to load messages');
+      const mapped = (data.messages || []).map(m => {
+        const replied = m.replyTo ? {
+          id: String(m.replyTo._id || m.replyTo),
+          senderName: m.replyTo.sender ? `${m.replyTo.sender.firstName || ''} ${m.replyTo.sender.lastName || ''}`.trim() : 'User',
+          text: m.replyTo.message
+        } : null;
+        return {
+        id: String(m._id || m.id || Math.random()),
+        senderId: String(m.sender || m.senderId),
+        senderName: m.senderName || (String(m.sender) === String(user?._id) ? (user?.name || 'You') : thread.userName),
+        content: m.message || m.text || '',
+        attachments: m.attachments || [],
+        timestamp: m.createdAt,
+        type: (m.attachments && m.attachments.length) ? 'file' : 'text',
+        status: m.isRead ? 'read' : 'delivered',
+        reply: replied
+      };
+      });
+      setMessages(mapped);
+      // Join booking room for typing/real-time if applicable
+      if (socket && thread?.context?.bookingId) {
+        socket.emit('join_booking', { bookingId: thread.context.bookingId });
+        // Mark as read
+        try { await fetch(`${API_URL}/api/messages/booking/${thread.context.bookingId}/read`, { method: 'PATCH', credentials: 'include' }); } catch (_) {}
+      }
     } catch (error) {
       toast.error('Failed to load messages');
     }
   };
 
-  const handleNewMessage = (message) => {
-    if (activeThread && message.threadId === activeThread.id) {
-      setMessages(prev => [...prev, message]);
+  const handleNewMessage = (payload) => {
+    // Handle both generic payload from /send and booking payload from /messages booking route
+    const thread = activeThread;
+    if (!thread) return;
+    const myId = String(user?._id || user?.id || '');
+    // Case 1: booking payload: { bookingId, message: {...} }
+    if (payload && payload.message && payload.bookingId) {
+      const m = payload.message;
+      // Ignore own echoes
+      if (String(m.sender) === myId) return;
+      if (thread.context?.bookingId && String(thread.context.bookingId) === String(payload.bookingId)) {
+        // Resolve reply reference from existing messages if available
+        const ref = payload.replyTo ? messages.find(x => String(x.id) === String(payload.replyTo)) : null;
+        // Dedupe by server id if exists
+        if (m._id && messages.some(x => String(x.id) === String(m._id))) return;
+        setMessages(prev => [...prev, {
+          id: String(m._id || Math.random()),
+          senderId: String(m.sender),
+          senderName: String(m.sender) === String(user?._id) ? (user?.name || 'You') : thread.userName,
+          content: m.message,
+          attachments: m.attachments || [],
+          timestamp: m.createdAt,
+          type: (m.attachments && m.attachments.length) ? 'file' : 'text',
+          status: 'delivered',
+          reply: ref ? { id: ref.id, senderName: ref.senderName, text: ref.content } : null
+        }]);
+      }
+      return;
+    }
+    // Case 2: flattened payload from /send
+    if (payload && payload.from && payload.to) {
+      const peerId = String(thread.userId);
+      const isMine = String(payload.from) === myId;
+      const isRelevant = String(payload.from) === peerId || String(payload.to) === peerId;
+      if (!isRelevant) return;
+      // If this flattened payload is also scoped to the same booking as the active thread,
+      // skip it because the booking-room handler above already handled it.
+      if (thread.context?.bookingId && payload.bookingId && String(payload.bookingId) === String(thread.context.bookingId)) {
+        return;
+      }
+      // Ignore own echoes
+      if (isMine) return;
+      const ref = payload.replyTo ? messages.find(x => String(x.id) === String(payload.replyTo)) : null;
+      setMessages(prev => [...prev, {
+        id: String(Math.random()),
+        senderId: String(payload.from),
+        senderName: isMine ? (user?.name || 'You') : thread.userName,
+        content: payload.text || '',
+        attachments: payload.attachments || [],
+        timestamp: payload.createdAt,
+        type: (payload.attachments && payload.attachments.length) ? 'file' : 'text',
+        status: 'delivered',
+        reply: ref ? { id: ref.id, senderName: ref.senderName, text: ref.content } : null
+      }]);
     }
   };
 
   const handleTyping = (data) => {
-    if (activeThread && data.userId !== user?._id) {
-      setOtherTyping(data.isTyping);
+    const thread = activeThread;
+    if (!thread) return;
+    // Server emits { bookingId, userId, typing }
+    if (thread.context?.bookingId && String(data.bookingId) === String(thread.context.bookingId) && String(data.userId) !== String(user?._id)) {
+      setOtherTyping(!!data.typing);
     }
   };
 
   const handleMessageRead = (data) => {
-    setMessages(prev => prev.map(msg => 
-      msg.id === data.messageId ? { ...msg, status: 'read' } : msg
-    ));
+    const thread = activeThread;
+    if (!thread) return;
+    // Server sends { bookingId, userId } when that user has read messages in the booking
+    if (thread.context?.bookingId && String(data.bookingId) === String(thread.context.bookingId)) {
+      setMessages(prev => prev.map(m => (
+        // Mark messages SENT BY the notified user as read on our side
+        String(m.senderId) === String(data.userId) ? { ...m, status: 'read' } : m
+      )));
+    }
   };
 
   const sendMessage = async () => {
+    if (!activeThread) return;
     if (!newMessage.trim() && attachments.length === 0) return;
 
-    const message = {
-      id: Date.now().toString(),
-      threadId: activeThread.id,
-      senderId: user?._id,
-      senderName: user?.name,
+    // Optimistic render
+    const tempId = String(Date.now());
+    const optimistic = {
+      id: tempId,
+      senderId: String(user?._id || user?.id || ''),
+      senderName: user?.name || 'You',
       content: newMessage,
       attachments: attachments,
       timestamp: new Date().toISOString(),
       type: attachments.length > 0 ? 'file' : 'text',
-      status: 'sending'
+      status: 'sending',
+      reply: replyTarget ? { id: replyTarget.id, senderName: replyTarget.senderName, text: replyTarget.text } : null
     };
-
-    setMessages(prev => [...prev, message]);
-    setNewMessage('');
-    setAttachments([]);
+    setMessages(prev => [...prev, optimistic]);
 
     try {
-      // In a real app, this would be an API call
-      if (socket) {
-        socket.emit('message:send', message);
+      // Upload attachments first if any
+      let uploaded = [];
+      if (attachments.length) {
+        const form = new FormData();
+        attachments.forEach(a => form.append('files', a.file));
+        const up = await fetch(`${API_URL}/api/messages/upload`, { method: 'POST', credentials: 'include', body: form });
+        const upJson = await up.json();
+        if (!up.ok) throw new Error(upJson.message || 'Upload failed');
+        uploaded = upJson.attachments || [];
       }
-      
-      // Update message status
-      setTimeout(() => {
-        setMessages(prev => prev.map(msg => 
-          msg.id === message.id ? { ...msg, status: 'delivered' } : msg
-        ));
-      }, 1000);
+
+      const payload = {
+        to: activeThread.userId,
+        text: newMessage,
+        bookingId: activeThread?.context?.bookingId,
+        attachments: uploaded,
+        replyTo: replyTarget?.id
+      };
+      const res = await fetch(`${API_URL}/api/messages/send`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Send failed');
+      // Replace optimistic with server message
+      setMessages(prev => prev.map(m => m.id === tempId ? {
+        id: String(data.message._id),
+        senderId: String(data.message.sender),
+        senderName: user?.name || 'You',
+        content: data.message.message,
+        attachments: data.message.attachments || [],
+        timestamp: data.message.createdAt,
+        type: (data.message.attachments && data.message.attachments.length) ? 'file' : 'text',
+        status: 'delivered',
+        reply: optimistic.reply || null
+      } : m));
     } catch (error) {
-      toast.error('Failed to send message');
-      setMessages(prev => prev.filter(msg => msg.id !== message.id));
+      toast.error(error.message || 'Failed to send message');
+      setMessages(prev => prev.filter(m => m.id !== tempId));
+    } finally {
+      setNewMessage('');
+      setAttachments([]);
+      setReplyTarget(null);
     }
   };
 
@@ -275,11 +316,8 @@ export default function Messages() {
   const handleTypingStart = () => {
     if (!isTyping) {
       setIsTyping(true);
-      if (socket && activeThread) {
-        socket.emit('typing', { 
-          threadId: activeThread.id, 
-          isTyping: true 
-        });
+      if (socket && activeThread?.context?.bookingId) {
+        socket.emit('typing', { bookingId: activeThread.context.bookingId, typing: true });
       }
     }
 
@@ -294,11 +332,8 @@ export default function Messages() {
 
   const handleTypingStop = () => {
     setIsTyping(false);
-    if (socket && activeThread) {
-      socket.emit('typing', { 
-        threadId: activeThread.id, 
-        isTyping: false 
-      });
+    if (socket && activeThread?.context?.bookingId) {
+      socket.emit('typing', { bookingId: activeThread.context.bookingId, typing: false });
     }
   };
 
@@ -322,7 +357,8 @@ export default function Messages() {
   };
 
   const renderMessage = (message) => {
-    const isOwn = message.senderId === user?._id;
+    const myId = String(user?._id || user?.id || '');
+    const isOwn = String(message.senderId) === myId;
     
     return (
       <div key={message.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'} mb-4`}>
@@ -337,7 +373,12 @@ export default function Messages() {
               <span className="text-sm font-medium text-gray-700">{message.senderName}</span>
             </div>
           )}
-          
+          {message.reply && (
+            <div className={`mb-1 text-xs border-l-4 pl-2 ${isOwn ? 'border-blue-300' : 'border-gray-300'} text-gray-600`}>
+              <div className="font-medium">Replying to {message.reply.senderName}</div>
+              <div className="truncate max-w-[240px]">{message.reply.text}</div>
+            </div>
+          )}
           <div className={`rounded-2xl px-4 py-2 ${
             isOwn 
               ? 'bg-blue-600 text-white' 
@@ -377,6 +418,14 @@ export default function Messages() {
                 {message.status === 'read' && <FaCheckDouble className="text-blue-500 text-xs" />}
               </div>
             )}
+          </div>
+          <div className={`mt-1 ${isOwn ? 'text-right' : 'text-left'}`}>
+            <button
+              className="text-xs text-gray-500 hover:text-blue-600 inline-flex items-center gap-1"
+              onClick={() => setReplyTarget({ id: message.id, senderName: message.senderName, text: message.content })}
+            >
+              <FaReply /> Reply
+            </button>
           </div>
         </div>
       </div>
@@ -441,7 +490,8 @@ export default function Messages() {
         {/* Threads Sidebar */}
         <div className="lg:col-span-1 modern-card-elevated p-6">
           <div className="mb-4">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Messages</h2>
+            <h2 className="text-xl font-bold text-gray-900 mb-1">AKWANDA Chat</h2>
+            <p className="text-sm text-gray-500 mb-3 animate-pulse">Fast, simple and reliable messaging</p>
             <div className="relative">
               <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <input
@@ -456,10 +506,12 @@ export default function Messages() {
           
           <div className="space-y-1 overflow-y-auto max-h-[calc(100vh-200px)]">
             {threads
-              .filter(thread => 
-                thread.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                thread.lastMessage.toLowerCase().includes(searchTerm.toLowerCase())
-              )
+              .filter(thread => {
+                const name = (thread.userName || '').toLowerCase();
+                const last = (thread.lastMessage || '').toLowerCase();
+                const q = (searchTerm || '').toLowerCase();
+                return name.includes(q) || last.includes(q);
+              })
               .map(renderThread)}
           </div>
         </div>
@@ -544,6 +596,19 @@ export default function Messages() {
                 </div>
               )}
 
+              {/* Reply banner */}
+              {replyTarget && (
+                <div className="px-4 py-2 border-t border-gray-200 bg-gray-50 flex items-center justify-between">
+                  <div className="text-sm">
+                    <span className="font-medium">Replying to {replyTarget.senderName}:</span>
+                    <span className="ml-2 text-gray-600 truncate inline-block max-w-[60vw]">{replyTarget.text}</span>
+                  </div>
+                  <button className="text-gray-500 hover:text-gray-700" onClick={() => setReplyTarget(null)}>
+                    <FaTimes />
+                  </button>
+                </div>
+              )}
+
               {/* Message Input */}
               <div className="p-4 border-t border-gray-200">
                 <div className="flex items-center space-x-2">
@@ -590,7 +655,7 @@ export default function Messages() {
           ) : (
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center">
-                <FaMessage className="text-6xl text-gray-300 mx-auto mb-4" />
+                <FaComments className="text-6xl text-gray-300 mx-auto mb-4" />
                 <h3 className="text-xl font-semibold text-gray-600 mb-2">Select a conversation</h3>
                 <p className="text-gray-500">Choose a conversation from the sidebar to start messaging</p>
               </div>
