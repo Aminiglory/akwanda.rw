@@ -7,6 +7,7 @@ const messageSchema = new mongoose.Schema(
     sender: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     recipient: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     message: { type: String, required: true },
+    replyTo: { type: mongoose.Schema.Types.ObjectId, ref: 'Message' },
     attachments: [{
       url: { type: String },
       name: { type: String },

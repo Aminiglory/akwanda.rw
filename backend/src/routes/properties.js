@@ -175,7 +175,22 @@ router.get('/:id', async (req, res) => {
             return res.status(403).json({ message: 'This property is temporarily unavailable.' });
         }
     }
-    res.json({ property });
+    // Normalize image paths for property and rooms so frontend gets clean URLs
+    const norm = (u) => {
+        if (!u) return u;
+        let s = String(u).replace(/\\+/g, '/');
+        if (!s.startsWith('/')) s = `/${s}`;
+        return s;
+    };
+    const out = property.toObject({ virtuals: true });
+    if (Array.isArray(out.images)) out.images = out.images.map(norm);
+    if (Array.isArray(out.rooms)) {
+        out.rooms = out.rooms.map(r => ({
+            ...r,
+            images: Array.isArray(r.images) ? r.images.map(norm) : []
+        }));
+    }
+    res.json({ property: out });
 });
 
 // Booking.com-style monthly calendar endpoint
@@ -329,9 +344,14 @@ router.post('/', requireAuth, upload.array('images', 10), async (req, res) => {
         const urls = Array.isArray(req.body.imageUrls) ? req.body.imageUrls : [req.body.imageUrls];
         mergedImages.push(...urls.map(u => String(u).replace(/\\+/g, '/')));
     }
+    // Deduplicate & normalize
+    mergedImages = Array.from(new Set(mergedImages.map(u => String(u).replace(/\\+/g, '/'))));
     const payload = { ...req.body, images: mergedImages, host: req.user.id };
-    // Clamp commissionRate to [8,12] if provided
-    if (payload.commissionRate != null) {
+    // Visibility-based commission: 'top' -> 30%
+    if (payload.visibilityLevel && String(payload.visibilityLevel).toLowerCase() === 'top') {
+        payload.commissionRate = 30;
+    } else if (payload.commissionRate != null) {
+        // Clamp commissionRate to [8,12] if provided
         const cr = Number(payload.commissionRate);
         payload.commissionRate = Math.min(12, Math.max(8, isNaN(cr) ? 10 : cr));
     }
@@ -362,8 +382,10 @@ router.put('/:id', requireAuth, upload.array('images', 10), async (req, res) => 
     ['pricePerNight','bedrooms','bathrooms','discountPercent','commissionRate'].forEach(k => {
         if (updates[k] != null) updates[k] = Number(updates[k]);
     });
-    // Clamp commissionRate to [8,12]
-    if (updates.commissionRate != null) {
+    // Visibility-based commission: 'top' -> 30%; otherwise clamp [8,12]
+    if (updates.visibilityLevel && String(updates.visibilityLevel).toLowerCase() === 'top') {
+        updates.commissionRate = 30;
+    } else if (updates.commissionRate != null) {
         updates.commissionRate = Math.min(12, Math.max(8, Number(updates.commissionRate)));
     }
     // Amenities (multer form arrays come as string or array)
@@ -386,6 +408,14 @@ router.put('/:id', requireAuth, upload.array('images', 10), async (req, res) => 
         updates.images = (updates.images && updates.images.length)
             ? [...updates.images, ...normalized]
             : normalized;
+    }
+    // Allow clearing images explicitly
+    if (String(req.body.clearImages).toLowerCase() === 'true') {
+        updates.images = [];
+    }
+    // Deduplicate if images present
+    if (updates.images) {
+        updates.images = Array.from(new Set(updates.images.map(u => String(u).replace(/\\+/g, '/'))));
     }
     Object.assign(property, updates);
     clampCommission(property);

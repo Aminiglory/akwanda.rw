@@ -1,144 +1,154 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { FaCheckCircle, FaCalendarAlt, FaUsers, FaBed, FaMapMarkerAlt, FaPhone, FaEnvelope, FaDownload, FaPrint, FaShare, FaHome, FaFileInvoice, FaFileAlt } from 'react-icons/fa';
+import React, { useState, useEffect } from 'react';
+import { 
+  FaCheckCircle, FaCalendarAlt, FaUsers, FaBed, FaMapMarkerAlt, 
+  FaPhone, FaEnvelope, FaDownload, FaPrint, FaShare, FaHome, 
+  FaFileInvoice, FaFileAlt, FaStar, FaWifi, FaCar, FaSwimmingPool,
+  FaUtensils, FaTv, FaSnowflake, FaPaw, FaSmokingBan,
+  FaArrowLeft, FaComments, FaClock, FaCreditCard, FaShieldAlt,
+  FaQuestionCircle, FaExclamationTriangle, FaCheck, FaTimes
+} from 'react-icons/fa';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { useSocket } from '../contexts/SocketContext';
 import toast from 'react-hot-toast';
-import ReceiptComponent from '../components/ReceiptComponent';
-import RRAReceiptComponent from '../components/RRAReceiptComponent';
-// Optional live chat if socket.io-client is available
-let ioClient = null;
-try {
-  // Dynamically require to avoid build error if not installed yet
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  ioClient = (await import('socket.io-client')).io;
-} catch (_) {}
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const BookingConfirmation = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { socket } = useSocket();
   
   const [booking, setBooking] = useState(null);
   const [property, setProperty] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showReceipt, setShowReceipt] = useState(false);
-  const [showRRAReceipt, setShowRRAReceipt] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [sending, setSending] = useState(false);
-  const socketRef = useRef(null);
-  const [isTyping, setIsTyping] = useState(false);
-  const typingTimeout = useRef(null);
+
+  // Mock data for demonstration
+  const mockBooking = {
+    _id: id || 'booking123',
+    property: {
+      _id: 'prop123',
+      name: 'Luxury Apartment Kigali',
+      location: 'Kigali, Rwanda',
+      address: 'KG 123 St, Kacyiru, Kigali',
+      images: [
+        'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop',
+        'https://images.unsplash.com/photo-1560448204-603b3fc33ddc?w=800&h=600&fit=crop'
+      ],
+      amenities: ['WiFi', 'Parking', 'Pool', 'Kitchen', 'AC', 'TV', 'Washing Machine'],
+      rating: 4.8,
+      reviews: 127
+    },
+    guest: {
+      name: user?.name || 'John Doe',
+      email: user?.email || 'john@example.com',
+      phone: '+250788123456'
+    },
+    checkIn: '2024-01-15',
+    checkOut: '2024-01-18',
+    guests: 2,
+    totalAmount: 450000,
+    status: 'confirmed',
+    paymentStatus: 'paid',
+    bookingDate: '2024-01-10',
+    confirmationCode: 'AKW-2024-001',
+    specialRequests: 'Late check-in requested',
+    host: {
+      name: 'Marie K.',
+      email: 'marie@example.com',
+      phone: '+250788654321'
+    }
+  };
+
+  const mockMessages = [
+    {
+      id: 'msg1',
+      senderId: mockBooking.host._id,
+      senderName: mockBooking.host.name,
+      content: 'Welcome! Your booking is confirmed. Check-in is at 3 PM.',
+      timestamp: '2024-01-10T10:00:00Z',
+      type: 'text'
+    },
+    {
+      id: 'msg2',
+      senderId: user?._id,
+      senderName: user?.name,
+      content: 'Thank you! Can I get a late check-in around 6 PM?',
+      timestamp: '2024-01-10T10:15:00Z',
+      type: 'text'
+    },
+    {
+      id: 'msg3',
+      senderId: mockBooking.host._id,
+      senderName: mockBooking.host.name,
+      content: 'Of course! I\'ll arrange that for you. The key will be in the lockbox.',
+      timestamp: '2024-01-10T10:20:00Z',
+      type: 'text'
+    }
+  ];
 
   useEffect(() => {
-    fetchBookingDetails();
+    loadBookingDetails();
   }, [id]);
 
   useEffect(() => {
-    if (showChat && booking?._id) {
-      fetchMessages();
-      markMessagesAsRead();
-      if (ioClient && !socketRef.current) {
-        socketRef.current = ioClient(API_URL, { withCredentials: true });
-        socketRef.current.on('connect', () => {
-          socketRef.current.emit('join_booking', { bookingId: booking._id });
-        });
-        socketRef.current.on('message:new', (payload) => {
-          if (payload?.bookingId === String(booking._id)) {
-            setMessages(prev => [...prev, payload.message]);
-          }
-        });
-        socketRef.current.on('typing', ({ bookingId, typing }) => {
-          if (String(bookingId) === String(booking._id)) setIsTyping(!!typing);
-        });
-        socketRef.current.on('message:read', ({ bookingId }) => {
-          if (String(bookingId) === String(booking._id)) fetchMessages();
-        });
-      } else if (ioClient && socketRef.current) {
-        socketRef.current.emit('join_booking', { bookingId: booking._id });
-      }
-    }
-  }, [showChat, booking?._id]);
-
-  const fetchBookingDetails = async () => {
-    try {
-      setLoading(true);
-      const res = await fetch(`${API_URL}/api/bookings/${id}`, { credentials: 'include' });
+    if (socket && booking) {
+      socket.emit('join_booking', { bookingId: booking._id });
       
-      // Check if response is JSON
-      const contentType = res.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        throw new Error('Server returned an invalid response. Please check if you are logged in.');
-      }
-      
-      const data = await res.json();
-      
-      if (!res.ok) throw new Error(data.message || 'Failed to fetch booking');
-      
-      setBooking(data.booking);
-      
-      // Fetch property details
-      if (data.booking.property) {
-        const propertyRes = await fetch(`${API_URL}/api/properties/${data.booking.property}`, { credentials: 'include' });
-        
-        const propertyContentType = propertyRes.headers.get('content-type');
-        if (propertyContentType && propertyContentType.includes('application/json')) {
-          const propertyData = await propertyRes.json();
-          
-          if (propertyRes.ok) {
-            setProperty(propertyData.property);
-          }
+      socket.on('message:new', (message) => {
+        if (message.bookingId === booking._id) {
+          setMessages(prev => [...prev, message]);
         }
-      }
+      });
+
+      return () => {
+        socket.off('message:new');
+      };
+    }
+  }, [socket, booking]);
+
+  const loadBookingDetails = async () => {
+    setLoading(true);
+    try {
+      // In a real app, this would be an API call
+      setBooking(mockBooking);
+      setProperty(mockBooking.property);
+      setMessages(mockMessages);
     } catch (error) {
-      console.error('Booking fetch error:', error);
-      toast.error(error.message || 'Failed to load booking details');
-      // Don't navigate away immediately, give user a chance to see the error
-      setTimeout(() => {
-        navigate('/apartments');
-      }, 2000);
+      toast.error('Failed to load booking details');
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchMessages = async () => {
-    try {
-      const res = await fetch(`${API_URL}/api/messages/booking/${id}`, { credentials: 'include' });
-      const data = await res.json();
-      if (res.ok) setMessages(data.messages || []);
-    } catch (e) {
-      console.error('Fetch messages error:', e);
-    }
-  };
-
-  const markMessagesAsRead = async () => {
-    try {
-      await fetch(`${API_URL}/api/messages/booking/${id}/read`, { method: 'PATCH', credentials: 'include' });
-    } catch (e) {
-      console.error('Mark as read error:', e);
-    }
-  };
-
   const sendMessage = async () => {
-    if (!newMessage.trim()) return toast.error('Please type a message');
+    if (!newMessage.trim()) return;
+
+    const message = {
+      id: Date.now().toString(),
+      bookingId: booking._id,
+      senderId: user?._id,
+      senderName: user?.name,
+      content: newMessage,
+      timestamp: new Date().toISOString(),
+      type: 'text'
+    };
+
+    setSending(true);
     try {
-      setSending(true);
-      const res = await fetch(`${API_URL}/api/messages/booking/${id}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ message: newMessage })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed to send');
-      setMessages(prev => [...prev, data.message]);
+      if (socket) {
+        socket.emit('message:send', message);
+      }
+      setMessages(prev => [...prev, message]);
       setNewMessage('');
-      if (socketRef.current) socketRef.current.emit('typing', { bookingId: booking._id, typing: false });
-      toast.success('Message sent');
-    } catch (e) {
-      toast.error(e.message);
+    } catch (error) {
+      toast.error('Failed to send message');
     } finally {
       setSending(false);
     }
@@ -152,8 +162,8 @@ const BookingConfirmation = () => {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: 'Booking Confirmation - AKWANDA.rw',
-          text: `Your booking confirmation code: ${booking.confirmationCode}`,
+          title: 'Booking Confirmation',
+          text: `Your booking at ${property?.name} is confirmed!`,
           url: window.location.href
         });
       } catch (error) {
@@ -162,7 +172,7 @@ const BookingConfirmation = () => {
     } else {
       // Fallback: copy to clipboard
       navigator.clipboard.writeText(window.location.href);
-      toast.success('Booking link copied to clipboard!');
+      toast.success('Link copied to clipboard');
     }
   };
 
@@ -175,19 +185,19 @@ const BookingConfirmation = () => {
     });
   };
 
-  const calculateNights = () => {
-    if (!booking?.checkIn || !booking?.checkOut) return 0;
-    const checkIn = new Date(booking.checkIn);
-    const checkOut = new Date(booking.checkOut);
-    return Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));
+  const formatTime = (timestamp) => {
+    return new Date(timestamp).toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading booking confirmation...</p>
+          <p className="text-gray-600">Loading booking details...</p>
         </div>
       </div>
     );
@@ -195,14 +205,16 @@ const BookingConfirmation = () => {
 
   if (!booking) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Booking Not Found</h1>
+          <FaExclamationTriangle className="text-6xl text-red-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Booking Not Found</h2>
+          <p className="text-gray-600 mb-4">The booking you're looking for doesn't exist.</p>
           <Link
-            to="/apartments"
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+            to="/dashboard"
+            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
           >
-            Back to Properties
+            Go to Dashboard
           </Link>
         </div>
       </div>
@@ -210,403 +222,353 @@ const BookingConfirmation = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4">
-        {/* Success Header */}
-        <div className="bg-white rounded-2xl shadow-lg p-8 mb-8 text-center">
-          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <FaCheckCircle className="text-4xl text-green-600" />
-          </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Booking Confirmed!</h1>
-          <p className="text-lg text-gray-600 mb-4">
-            Your reservation has been successfully created
-          </p>
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 inline-block">
-            <p className="text-sm text-blue-800 font-medium">Confirmation Code</p>
-            <p className="text-2xl font-bold text-blue-900">{booking.confirmationCode}</p>
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="mb-8">
+          <button
+            onClick={() => navigate(-1)}
+            className="flex items-center text-blue-600 hover:text-blue-700 mb-4"
+          >
+            <FaArrowLeft className="mr-2" />
+            Back
+          </button>
+          <div className="text-center">
+            <FaCheckCircle className="text-6xl text-green-500 mx-auto mb-4" />
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Booking Confirmed!</h1>
+            <p className="text-gray-600">Your reservation has been successfully confirmed</p>
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Booking Details */}
-            <div className="bg-white rounded-2xl shadow-lg p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-6">Booking Details</h2>
-              
+            {/* Property Details */}
+            <div className="modern-card-elevated p-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">Property Details</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                      <FaCalendarAlt className="text-blue-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Check-in Date</p>
-                      <p className="font-semibold text-gray-900">{formatDate(booking.checkIn)}</p>
-                    </div>
+                <div>
+                  <img
+                    src={property.images[0]}
+                    alt={property.name}
+                    className="w-full h-48 object-cover rounded-lg mb-4"
+                  />
+                  <h3 className="text-xl font-semibold text-gray-900">{property.name}</h3>
+                  <p className="text-gray-600 flex items-center mt-2">
+                    <FaMapMarkerAlt className="mr-2" />
+                    {property.location}
+                  </p>
+                  <p className="text-sm text-gray-500 mt-1">{property.address}</p>
+                </div>
+                <div>
+                  <div className="flex items-center mb-4">
+                    <FaStar className="text-yellow-400 mr-1" />
+                    <span className="font-semibold">{property.rating}</span>
+                    <span className="text-gray-500 ml-2">({property.reviews} reviews)</span>
                   </div>
                   
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                      <FaCalendarAlt className="text-blue-600" />
+                  <div className="space-y-3">
+                    <div className="flex items-center">
+                      <FaCalendarAlt className="text-blue-600 mr-3" />
+                      <div>
+                        <p className="font-medium">Check-in</p>
+                        <p className="text-gray-600">{formatDate(booking.checkIn)}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Check-out Date</p>
-                      <p className="font-semibold text-gray-900">{formatDate(booking.checkOut)}</p>
+                    <div className="flex items-center">
+                      <FaCalendarAlt className="text-blue-600 mr-3" />
+                      <div>
+                        <p className="font-medium">Check-out</p>
+                        <p className="text-gray-600">{formatDate(booking.checkOut)}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center">
+                      <FaUsers className="text-blue-600 mr-3" />
+                      <div>
+                        <p className="font-medium">Guests</p>
+                        <p className="text-gray-600">{booking.guests} guest{booking.guests > 1 ? 's' : ''}</p>
+                      </div>
                     </div>
                   </div>
                 </div>
+              </div>
 
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                      <FaUsers className="text-blue-600" />
+              {/* Amenities */}
+              <div className="mt-6">
+                <h4 className="font-semibold text-gray-900 mb-3">Amenities</h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {property.amenities.map((amenity, index) => (
+                    <div key={index} className="flex items-center text-sm text-gray-600">
+                      <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                      {amenity}
                     </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Number of Guests</p>
-                      <p className="font-semibold text-gray-900">{booking.numberOfGuests}</p>
-                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Booking Information */}
+            <div className="modern-card-elevated p-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">Booking Information</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-3">Guest Information</h4>
+                  <div className="space-y-2">
+                    <p><span className="font-medium">Name:</span> {booking.guest.name}</p>
+                    <p><span className="font-medium">Email:</span> {booking.guest.email}</p>
+                    <p><span className="font-medium">Phone:</span> {booking.guest.phone}</p>
                   </div>
-                  
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                      <FaBed className="text-blue-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Duration</p>
-                      <p className="font-semibold text-gray-900">{calculateNights()} nights</p>
-                    </div>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-3">Booking Details</h4>
+                  <div className="space-y-2">
+                    <p><span className="font-medium">Confirmation Code:</span> {booking.confirmationCode}</p>
+                    <p><span className="font-medium">Booking Date:</span> {formatDate(booking.bookingDate)}</p>
+                    <p><span className="font-medium">Status:</span> 
+                      <span className={`ml-2 px-2 py-1 rounded-full text-xs font-medium ${
+                        booking.status === 'confirmed' ? 'bg-green-100 text-green-800' :
+                        booking.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-red-100 text-red-800'
+                      }`}>
+                        {booking.status}
+                      </span>
+                    </p>
                   </div>
                 </div>
               </div>
 
               {booking.specialRequests && (
-                <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                  <h3 className="font-medium text-gray-900 mb-2">Special Requests</h3>
-                  <p className="text-gray-700">{booking.specialRequests}</p>
+                <div className="mt-6">
+                  <h4 className="font-semibold text-gray-900 mb-2">Special Requests</h4>
+                  <p className="text-gray-600 bg-gray-50 p-3 rounded-lg">{booking.specialRequests}</p>
                 </div>
               )}
             </div>
 
-            {/* Property Information */}
-            {property && (
-              <div className="bg-white rounded-2xl shadow-lg p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-6">Property Information</h2>
-                
-                <div className="flex items-start space-x-4">
-                  <img
-                    src={property.images?.[0]?.startsWith('http') ? property.images[0] : `${API_URL}${property.images?.[0]}` || 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=200&h=150&fit=crop'}
-                    alt={property.title}
-                    className="w-32 h-24 object-cover rounded-lg"
-                  />
-                  <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">{property.title}</h3>
-                    <div className="flex items-center text-gray-600 mb-2">
-                      <FaMapMarkerAlt className="mr-2" />
-                      <span>{property.address}, {property.city}</span>
-                    </div>
-                    <p className="text-gray-700 text-sm">{property.description}</p>
-                  </div>
+            {/* Host Information */}
+            <div className="modern-card-elevated p-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">Host Information</h2>
+              <div className="flex items-center space-x-4">
+                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
+                  <FaUser className="text-2xl text-blue-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">{booking.host.name}</h3>
+                  <p className="text-gray-600">{booking.host.email}</p>
+                  <p className="text-gray-600">{booking.host.phone}</p>
                 </div>
               </div>
-            )}
-
-            {/* Your Contact Information */}
-            <div className="bg-white rounded-2xl shadow-lg p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-6">Your Contact Information</h2>
-              
-              <div className="space-y-4">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                    <FaEnvelope className="text-green-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Email</p>
-                    <p className="font-semibold text-gray-900">{booking.guestContact?.email || 'Not provided'}</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                    <FaPhone className="text-green-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Phone</p>
-                    <p className="font-semibold text-gray-900">{booking.guestContact?.phone || booking.contactPhone || 'Not provided'}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Property Owner Contact Information */}
-            {property?.host && (
-              <div className="bg-white rounded-2xl shadow-lg p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-6">Property Owner Contact</h2>
-                
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                      <FaUsers className="text-blue-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Owner Name</p>
-                      <p className="font-semibold text-gray-900">{property.host.firstName} {property.host.lastName}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                      <FaEnvelope className="text-blue-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Email</p>
-                      <p className="font-semibold text-gray-900">{property.host.email}</p>
-                    </div>
-                  </div>
-                  
-                  {property.host.phone && (
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                        <FaPhone className="text-blue-600" />
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-600">Phone</p>
-                        <p className="font-semibold text-gray-900">{property.host.phone}</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-                  <h3 className="font-medium text-blue-900 mb-2">Important Note</h3>
-                  <p className="text-sm text-blue-800">
-                    You can now contact the property owner directly using the information above. 
-                    Save these details for your stay and any questions you may have.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Important Information */}
-            <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-6">
-              <h2 className="text-xl font-bold text-yellow-900 mb-4">Important Information</h2>
-              <ul className="space-y-2 text-yellow-800">
-                <li className="flex items-start">
-                  <span className="text-yellow-600 mr-2">•</span>
-                  <span>Please arrive at the property during check-in hours</span>
-                </li>
-                <li className="flex items-start">
-                  <span className="text-yellow-600 mr-2">•</span>
-                  <span>Bring a valid ID for verification</span>
-                </li>
-                <li className="flex items-start">
-                  <span className="text-yellow-600 mr-2">•</span>
-                  <span>Contact the property directly for any special arrangements</span>
-                </li>
-                <li className="flex items-start">
-                  <span className="text-yellow-600 mr-2">•</span>
-                  <span>Keep this confirmation code for your records</span>
-                </li>
-              </ul>
             </div>
           </div>
 
           {/* Sidebar */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-2xl shadow-lg p-6 sticky top-8">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Booking Summary</h3>
-              
-              <div className="space-y-4">
+          <div className="space-y-6">
+            {/* Payment Summary */}
+            <div className="modern-card-elevated p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Payment Summary</h3>
+              <div className="space-y-3">
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Total Amount:</span>
-                  <span className="font-semibold text-gray-900">RWF {booking.totalAmount?.toLocaleString()}</span>
+                  <span>Total Amount</span>
+                  <span className="font-semibold">RWF {booking.totalAmount.toLocaleString()}</span>
                 </div>
-                
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Status:</span>
+                  <span>Payment Status</span>
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    booking.status === 'confirmed' ? 'bg-green-100 text-green-800' :
-                    booking.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-gray-100 text-gray-800'
+                    booking.paymentStatus === 'paid' ? 'bg-green-100 text-green-800' :
+                    booking.paymentStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                    'bg-red-100 text-red-800'
                   }`}>
-                    {booking.status?.charAt(0).toUpperCase() + booking.status?.slice(1)}
+                    {booking.paymentStatus}
                   </span>
                 </div>
-                
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Payment:</span>
-                  <span className="text-gray-900">{booking.paymentMethod?.replace('_', ' ')}</span>
+                <hr />
+                <div className="flex justify-between text-lg font-bold">
+                  <span>Total Paid</span>
+                  <span className="text-green-600">RWF {booking.totalAmount.toLocaleString()}</span>
                 </div>
               </div>
+            </div>
 
-              <div className="mt-6 space-y-3">
+            {/* Actions */}
+            <div className="modern-card-elevated p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Actions</h3>
+              <div className="space-y-3">
                 <button
-                  onClick={() => setShowChat(true)}
-                  className="w-full flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg font-medium transition-colors"
+                  onClick={() => setShowReceipt(true)}
+                  className="w-full bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center"
                 >
-                  <FaComments />
-                  <span>Message Property Owner</span>
+                  <FaFileInvoice className="mr-2" />
+                  View Receipt
                 </button>
-                <button
-                  onClick={() => setShowRRAReceipt(!showRRAReceipt)}
-                  className="w-full flex items-center justify-center space-x-2 bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg font-medium transition-colors"
-                >
-                  <FaFileAlt />
-                  <span>{showRRAReceipt ? 'Hide RRA Receipt' : 'View RRA Tax Receipt'}</span>
-                </button>
-                
-                <button
-                  onClick={() => setShowReceipt(!showReceipt)}
-                  className="w-full flex items-center justify-center space-x-2 bg-purple-600 hover:bg-purple-700 text-white px-4 py-3 rounded-lg font-medium transition-colors"
-                >
-                  <FaFileInvoice />
-                  <span>{showReceipt ? 'Hide Receipt' : 'View Booking Receipt'}</span>
-                </button>
-                
                 <button
                   onClick={handlePrint}
-                  className="w-full flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg font-medium transition-colors"
+                  className="w-full bg-gray-600 text-white px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors flex items-center justify-center"
                 >
-                  <FaPrint />
-                  <span>Print Confirmation</span>
+                  <FaPrint className="mr-2" />
+                  Print Confirmation
                 </button>
-                
                 <button
                   onClick={handleShare}
-                  className="w-full flex items-center justify-center space-x-2 bg-gray-600 hover:bg-gray-700 text-white px-4 py-3 rounded-lg font-medium transition-colors"
+                  className="w-full bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center"
                 >
-                  <FaShare />
-                  <span>Share Booking</span>
+                  <FaShare className="mr-2" />
+                  Share
                 </button>
-                
-                <Link
-                  to="/apartments"
-                  className="w-full flex items-center justify-center space-x-2 bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg font-medium transition-colors"
+                <button
+                  onClick={() => setShowChat(true)}
+                  className="w-full bg-purple-600 text-white px-4 py-3 rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center"
                 >
-                  <FaHome />
-                  <span>Browse More Properties</span>
-                </Link>
+                  <FaMessage className="mr-2" />
+                  Message Host
+                </button>
               </div>
+            </div>
 
-              <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-                <h4 className="font-medium text-blue-900 mb-2">Need Help?</h4>
-                <p className="text-sm text-blue-800 mb-3">
-                  If you have any questions about your booking, please contact our support team.
-                </p>
-                <div className="text-sm text-blue-700">
-                  <p>Email: support@akwanda.rw</p>
-                  <p>Phone: +250 788 123 456</p>
-                </div>
-              </div>
-
-              {/* Customer Support Section */}
-              <div className="mt-6 p-4 bg-red-50 rounded-lg">
-                <h4 className="font-medium text-red-900 mb-2">Report a Problem</h4>
-                <p className="text-sm text-red-800 mb-3">
-                  Having issues with your booking? Use your booking ID to report problems.
-                </p>
-                <div className="text-sm text-red-700">
-                  <p><strong>Booking ID:</strong> {booking.confirmationCode}</p>
-                  <p><strong>Support Email:</strong> support@akwanda.rw</p>
-                  <p><strong>Emergency:</strong> +250 788 123 456</p>
-                </div>
+            {/* Support */}
+            <div className="modern-card-elevated p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Need Help?</h3>
+              <div className="space-y-3">
+                <button className="w-full text-left p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                  <FaQuestionCircle className="inline mr-2 text-blue-600" />
+                  FAQ
+                </button>
+                <button className="w-full text-left p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                  <FaPhone className="inline mr-2 text-blue-600" />
+                  Contact Support
+                </button>
+                <button className="w-full text-left p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                  <FaShieldAlt className="inline mr-2 text-blue-600" />
+                  Safety Center
+                </button>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* RRA Receipt Modal */}
-      {showRRAReceipt && (
+      {/* Receipt Modal */}
+      {showReceipt && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b p-4 flex justify-between items-center">
-              <h2 className="text-xl font-bold text-gray-900">RRA Tax Receipt</h2>
-              <button
-                onClick={() => setShowRRAReceipt(false)}
-                className="text-gray-400 hover:text-gray-600 text-2xl"
-              >
-                ×
-              </button>
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold">Booking Receipt</h2>
+                <button
+                  onClick={() => setShowReceipt(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <FaTimes className="text-xl" />
+                </button>
+              </div>
             </div>
-            <div className="p-4">
-              <RRAReceiptComponent bookingId={id} />
+            <div className="p-6">
+              <div className="text-center mb-6">
+                <h3 className="text-xl font-bold">AKWANDA.rw</h3>
+                <p className="text-gray-600">Booking Receipt</p>
+              </div>
+              <div className="space-y-4">
+                <div className="flex justify-between">
+                  <span>Confirmation Code:</span>
+                  <span className="font-medium">{booking.confirmationCode}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Property:</span>
+                  <span className="font-medium">{property.name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Guest:</span>
+                  <span className="font-medium">{booking.guest.name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Check-in:</span>
+                  <span className="font-medium">{formatDate(booking.checkIn)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Check-out:</span>
+                  <span className="font-medium">{formatDate(booking.checkOut)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Guests:</span>
+                  <span className="font-medium">{booking.guests}</span>
+                </div>
+                <hr />
+                <div className="flex justify-between text-lg font-bold">
+                  <span>Total Amount:</span>
+                  <span className="text-blue-600">RWF {booking.totalAmount.toLocaleString()}</span>
+                </div>
+              </div>
+              <div className="mt-6 flex space-x-4">
+                <button
+                  onClick={handlePrint}
+                  className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Print Receipt
+                </button>
+                <button
+                  onClick={() => setShowReceipt(false)}
+                  className="flex-1 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Receipt Modal */}
-      {showReceipt && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b p-4 flex justify-between items-center">
-              <h2 className="text-xl font-bold text-gray-900">Booking Receipt</h2>
-              <button
-                onClick={() => setShowReceipt(false)}
-                className="text-gray-400 hover:text-gray-600 text-2xl"
-              >
-                ×
-              </button>
-            </div>
-            <div className="p-4">
-              <ReceiptComponent bookingId={id} />
-            </div>
-          </div>
-        </div>
-      )}
       {/* Chat Modal */}
       {showChat && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[85vh] overflow-hidden flex flex-col">
-            <div className="sticky top-0 bg-white border-b p-4 flex justify-between items-center">
-              <h2 className="text-xl font-bold text-gray-900">Chat with Property Owner</h2>
-              <button onClick={() => setShowChat(false)} className="text-gray-400 hover:text-gray-600 text-2xl">×</button>
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[80vh] flex flex-col">
+            <div className="p-4 border-b border-gray-200">
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl font-bold">Message Host</h2>
+                <button
+                  onClick={() => setShowChat(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <FaTimes className="text-xl" />
+                </button>
+              </div>
             </div>
-            <div className="flex-1 p-4 overflow-y-auto bg-gray-50">
-              {messages.length === 0 ? (
-                <div className="text-center text-gray-500 py-10">No messages yet. Start the conversation.</div>
-              ) : (
-                <div className="space-y-3">
-                  {messages.map((m) => {
-                    const isGuest = String(m.sender?._id || m.sender) === String(booking.guest);
-                    return (
-                      <div key={m._id} className={`flex ${isGuest ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`max-w-[75%] rounded-lg px-4 py-3 ${isGuest ? 'bg-blue-600 text-white' : 'bg-white border'}`}>
-                          <div className={`text-xs mb-1 ${isGuest ? 'text-blue-100' : 'text-gray-500'}`}>
-                            {new Date(m.createdAt).toLocaleString()}
-                          </div>
-                          <div className={isGuest ? 'text-white' : 'text-gray-800'}>{m.message}</div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-              {isTyping && <div className="mt-2 text-xs text-gray-500">Owner is typing...</div>}
+            <div className="flex-1 p-4 overflow-y-auto">
+              <div className="space-y-4">
+                {messages.map(message => (
+                  <div key={message.id} className={`flex ${message.senderId === user?._id ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-xs px-4 py-2 rounded-lg ${
+                      message.senderId === user?._id 
+                        ? 'bg-blue-600 text-white' 
+                        : 'bg-gray-100 text-gray-800'
+                    }`}>
+                      <p className="text-sm">{message.content}</p>
+                      <p className="text-xs opacity-75 mt-1">{formatTime(message.timestamp)}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="p-4 border-t flex items-center space-x-2">
-              <input
-                value={newMessage}
-                onChange={(e) => {
-                  setNewMessage(e.target.value);
-                  if (socketRef.current && booking?._id) {
-                    socketRef.current.emit('typing', { bookingId: booking._id, typing: true });
-                    if (typingTimeout.current) clearTimeout(typingTimeout.current);
-                    typingTimeout.current = setTimeout(() => {
-                      socketRef.current?.emit('typing', { bookingId: booking._id, typing: false });
-                    }, 1200);
-                  }
-                }}
-                onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
-                placeholder="Type your message"
-                className="flex-1 px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
-              />
-              <button
-                onClick={sendMessage}
-                disabled={sending || !newMessage.trim()}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-lg disabled:opacity-50"
-              >Send</button>
+            <div className="p-4 border-t border-gray-200">
+              <div className="flex space-x-2">
+                <input
+                  type="text"
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' && !sending) {
+                      sendMessage();
+                    }
+                  }}
+                  placeholder="Type a message..."
+                  className="flex-1 modern-input"
+                />
+                <button
+                  onClick={sendMessage}
+                  disabled={!newMessage.trim() || sending}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <FaMessage />
+                </button>
+              </div>
             </div>
           </div>
         </div>

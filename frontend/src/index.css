@@ -46,7 +46,43 @@
   --color-yellow-400: #d4a574;
 }
 
+<<<<<<< HEAD
 /* Base document colors - high contrast for readability */
+=======
+/* Neumorphism utilities tuned for bg-gray-50 (#F9FAFB) pages */
+.neu-card {
+  background: #F9FAFB;
+  border-radius: 20px;
+  box-shadow:
+    10px 10px 24px #E5E7EB, /* gray-200 shadow */
+    -10px -10px 24px #FFFFFF; /* highlight */
+}
+
+.neu-card-sm {
+  background: #F9FAFB;
+  border-radius: 16px;
+  box-shadow:
+    6px 6px 16px #E5E7EB,
+    -6px -6px 16px #FFFFFF;
+}
+
+.neu-inset {
+  background: #F9FAFB;
+  border-radius: 16px;
+  box-shadow:
+    inset 6px 6px 12px #E5E7EB,
+    inset -6px -6px 12px #FFFFFF;
+}
+
+.neu-pill {
+  background: #F9FAFB;
+  border-radius: 9999px;
+  box-shadow:
+    4px 4px 10px #E5E7EB,
+    -4px -4px 10px #FFFFFF;
+}
+/* Base document colors to adopt the new palette without touching components */
+>>>>>>> 4dc9325dd639458291d85614c2108bcb898d74d0
 :root, html, body {
   background-color: #ffffff; /* Pure white for maximum contrast */
   color: #212121; /* Almost black for maximum readability */
@@ -291,6 +327,7 @@ html {
   background-clip: text;
 }
 
+<<<<<<< HEAD
 /* Modern card styling - chocolate theme */
 .modern-card {
   background: #ffffff;
@@ -444,6 +481,250 @@ html {
   font-weight: 500;
   font-size: 14px;
   line-height: 1.5;
+=======
+/* Global border removal for modern design */
+/* Remove borders globally and use shadows instead */
+.border { border: none !important; }
+.border-gray-300 { border: none !important; }
+.border-gray-400 { border: none !important; }
+.border-blue-100 { border: none !important; }
+.border-blue-200 { border: none !important; }
+.border-b { border-bottom: none !important; }
+.border-t { border-top: none !important; }
+.border-l { border-left: none !important; }
+.border-r { border-right: none !important; }
+
+/* Modern form controls - NO NEUMORPHISM */
+input[type="text"],
+input[type="email"],
+input[type="tel"],
+input[type="number"],
+input[type="password"],
+input[type="date"],
+select,
+textarea {
+  border: 2px solid #e5e7eb !important;
+  border-radius: 0.75rem;
+  background: white;
+  transition: all 0.3s ease;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+input:hover,
+select:hover,
+textarea:hover {
+  border-color: #9ca3af !important;
+}
+
+/* Modern Design System - Professional Shadows */
+.dashboard .neu-card {
+  background: #FFF9F3;
+  border-radius: 1rem;
+  box-shadow: 
+    0 1px 3px rgba(0, 0, 0, 0.12),
+    0 1px 2px rgba(0, 0, 0, 0.24);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dashboard .neu-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 
+    0 4px 8px rgba(0, 0, 0, 0.12),
+    0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+.dashboard .neu-card-inset {
+  background: #FFF9F3;
+  border-radius: 1rem;
+  box-shadow: 
+    inset 0 2px 4px rgba(0, 0, 0, 0.06);
+}
+
+/* Modern card styles with professional shadows */
+.modern-card {
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 
+    0 1px 3px rgba(0, 0, 0, 0.12),
+    0 1px 2px rgba(0, 0, 0, 0.24);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.modern-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 4px 12px rgba(0, 0, 0, 0.15),
+    0 2px 4px rgba(0, 0, 0, 0.12);
+}
+
+.modern-card-elevated {
+  background: white;
+  border-radius: 1rem;
+  box-shadow: 
+    0 4px 6px rgba(0, 0, 0, 0.07),
+    0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.modern-card-elevated:hover {
+  transform: translateY(-3px);
+  box-shadow: 
+    0 8px 25px rgba(0, 0, 0, 0.15),
+    0 3px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Navbar specific styles */
+.navbar-shadow {
+  box-shadow: 
+    0 1px 3px rgba(0, 0, 0, 0.12),
+    0 1px 2px rgba(0, 0, 0, 0.24);
+}
+
+.dropdown-shadow {
+  box-shadow: 
+    0 10px 25px rgba(0, 0, 0, 0.15),
+    0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Compact navbar styles */
+.navbar-compact {
+  padding: 0.5rem 0;
+}
+
+.navbar-compact .nav-item {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  border-radius: 0.5rem;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.navbar-compact .nav-item:hover {
+  background-color: rgba(59, 130, 246, 0.1);
+  color: rgb(37, 99, 235);
+}
+
+.navbar-compact .nav-item.active {
+  background-color: rgb(37, 99, 235);
+  color: white;
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.3);
+}
+
+/* Mobile menu improvements */
+.mobile-menu {
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+}
+
+.mobile-menu-item {
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  margin: 0.25rem 0;
+  transition: all 0.2s ease;
+}
+
+.mobile-menu-item:hover {
+  background-color: rgba(59, 130, 246, 0.1);
+  color: rgb(37, 99, 235);
+}
+
+/* Professional button styles */
+.btn-primary {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, #1d4ed8, #1e40af);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.4);
+}
+
+.btn-secondary {
+  background: white;
+  color: #374151;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  border: 1px solid #d1d5db;
+  transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+  background: #f9fafb;
+  border-color: #9ca3af;
+  transform: translateY(-1px);
+}
+
+.neu-btn {
+  background: linear-gradient(145deg, #F2E2CE, #FFF9F3);
+  color: #2B1B0E;
+  border-radius: 1rem;
+  box-shadow: 
+    8px 8px 16px rgba(75, 46, 5, 0.12), 
+    -8px -8px 16px rgba(255, 249, 243, 0.9);
+  transition: all 0.3s ease;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+}
+
+.neu-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    12px 12px 24px rgba(75, 46, 5, 0.16), 
+    -12px -12px 24px rgba(255, 249, 243, 1);
+}
+
+.neu-btn:active {
+  transform: translateY(0);
+  box-shadow: 
+    inset 6px 6px 12px rgba(75, 46, 5, 0.1), 
+    inset -6px -6px 12px rgba(255, 249, 243, 0.9);
+}
+
+/* Modern button variants */
+.btn-primary {
+  background: linear-gradient(145deg, #B57F50, #8F633E);
+  color: white;
+  border-radius: 1rem;
+  box-shadow: 
+    8px 8px 16px rgba(75, 46, 5, 0.2), 
+    -8px -8px 16px rgba(181, 127, 80, 0.3);
+  transition: all 0.3s ease;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    12px 12px 24px rgba(75, 46, 5, 0.25), 
+    -12px -12px 24px rgba(181, 127, 80, 0.4);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+  box-shadow: 
+    inset 6px 6px 12px rgba(75, 46, 5, 0.3), 
+    inset -6px -6px 12px rgba(181, 127, 80, 0.2);
+>>>>>>> 4dc9325dd639458291d85614c2108bcb898d74d0
 }
 
 /* Print styles - only print receipt content */

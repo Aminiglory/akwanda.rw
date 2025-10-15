@@ -1,20 +1,23 @@
-  const makeAbsolute = (u) => {
-    if (!u) return u;
-    let s = String(u).replace(/\\/g, '/');
-    if (!s.startsWith('http')) {
-      if (!s.startsWith('/')) s = `/${s}`;
-      return `${API_URL}${s}`;
-    }
-    return s;
-  };
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 import { FaChartLine, FaUsers, FaBed, FaCalendarAlt, FaDollarSign, FaStar, FaMapMarkerAlt, FaEdit, FaTrash, FaPlus, FaEye, FaCheckCircle, FaTimesCircle, FaClock, FaHome, FaMoneyBillWave, FaCalendarCheck, FaCalendarTimes, FaComments } from 'react-icons/fa';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
+const makeAbsolute = (u) => {
+  if (!u) return u;
+  let s = String(u).replace(/\\/g, '/');
+  if (!s.startsWith('http')) {
+    if (!s.startsWith('/')) s = `/${s}`;
+    return `${API_URL}${s}`;
+  }
+  return s;
+};
+
 const UserDashboard = () => {
+  const { user, updateAvatar } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
   const navigate = useNavigate();
   const [metrics, setMetrics] = useState({
@@ -197,17 +200,50 @@ const UserDashboard = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 py-6">
+      <div className="neu-card-inset mx-4 mt-4 mb-8">
+        <div className="max-w-7xl mx-auto px-6 py-8">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Property Owner Dashboard</h1>
-              <p className="text-gray-600 mt-1">Manage your properties and track your earnings</p>
+            <div className="animate-fade-in-down">
+              <h1 className="text-4xl font-bold text-gray-900 tracking-tight">PROPERTY OWNER DASHBOARD</h1>
+              <p className="text-gray-600 mt-2 text-lg">Manage Your Properties And Track Your Earnings</p>
             </div>
             <div className="flex items-center space-x-4">
-              <Link to="/upload" className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-xl font-semibold transition-colors duration-300 flex items-center gap-2">
-                <FaPlus />
-                Add New Property
+              <div className="flex items-center gap-3">
+                {user?.avatar ? (
+                  <img
+                    src={user.avatar.startsWith('http') ? user.avatar : `${API_URL}${user.avatar.startsWith('/') ? '' : '/'}${user.avatar}`}
+                    alt={user?.firstName || 'Avatar'}
+                    className="w-10 h-10 rounded-full object-cover ring-2 ring-blue-100"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center ring-2 ring-blue-100">
+                    <span className="text-sm font-semibold">{(user?.firstName?.[0] || user?.email?.[0] || 'U').toUpperCase()}</span>
+                  </div>
+                )}
+                <label className="neu-btn text-sm cursor-pointer animate-fade-in-up-delayed">
+                  UPDATE AVATAR
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      try {
+                        await updateAvatar(file, user?.userType === 'admin');
+                        toast.success('Profile photo updated');
+                      } catch (err) {
+                        toast.error(err.message || 'Failed to update');
+                      } finally {
+                        e.target.value = '';
+                      }
+                    }}
+                  />
+                </label>
+              </div>
+              <Link to="/upload" className="btn-primary text-white px-8 py-3 font-semibold flex items-center gap-3 animate-fade-in-up-slow">
+                <FaPlus className="animate-bounce-gentle" />
+                ADD NEW PROPERTY
               </Link>
             </div>
           </div>
@@ -217,50 +253,50 @@ const UserDashboard = () => {
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow">
+          <div className="neu-card p-6 animate-fade-in-up">
             <div className="flex items-center">
-              <div className="p-3 bg-blue-100 rounded-xl">
-                <FaHome className="text-blue-600 text-xl" />
+              <div className="neu-card-inset p-4">
+                <FaHome className="text-blue-600 text-2xl animate-float" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Properties</p>
-                <p className="text-2xl font-bold text-gray-900">{metrics.totalProperties}</p>
+                <p className="text-sm font-semibold text-gray-600 uppercase tracking-wide">TOTAL PROPERTIES</p>
+                <p className="text-3xl font-bold text-gray-900">{metrics.totalProperties}</p>
               </div>
             </div>
           </div>
           
-          <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow">
+          <div className="neu-card p-6 animate-fade-in-up-delayed">
             <div className="flex items-center">
-              <div className="p-3 bg-green-100 rounded-xl">
-                <FaCalendarCheck className="text-green-600 text-xl" />
+              <div className="neu-card-inset p-4">
+                <FaCalendarCheck className="text-green-600 text-2xl animate-float-delayed" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Bookings</p>
-                <p className="text-2xl font-bold text-gray-900">{metrics.totalBookings}</p>
+                <p className="text-sm font-semibold text-gray-600 uppercase tracking-wide">TOTAL BOOKINGS</p>
+                <p className="text-3xl font-bold text-gray-900">{metrics.totalBookings}</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow">
+          <div className="neu-card p-6 animate-fade-in-up-slow">
             <div className="flex items-center">
-              <div className="p-3 bg-yellow-100 rounded-xl">
-                <FaMoneyBillWave className="text-yellow-600 text-xl" />
+              <div className="neu-card-inset p-4">
+                <FaMoneyBillWave className="text-yellow-600 text-2xl animate-float-slow" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Earnings</p>
-                <p className="text-2xl font-bold text-gray-900">RWF {metrics.totalEarnings?.toLocaleString()}</p>
+                <p className="text-sm font-semibold text-gray-600 uppercase tracking-wide">TOTAL EARNINGS</p>
+                <p className="text-3xl font-bold text-gray-900">RWF {metrics.totalEarnings?.toLocaleString()}</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow">
+          <div className="neu-card p-6 animate-fade-in-up-slower">
             <div className="flex items-center">
-              <div className="p-3 bg-purple-100 rounded-xl">
-                <FaStar className="text-purple-600 text-xl" />
+              <div className="neu-card-inset p-4">
+                <FaStar className="text-purple-600 text-2xl animate-bounce-gentle" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Average Rating</p>
-                <p className="text-2xl font-bold text-gray-900">{metrics.averageRating}</p>
+                <p className="text-sm font-semibold text-gray-600 uppercase tracking-wide">AVERAGE RATING</p>
+                <p className="text-3xl font-bold text-gray-900">{metrics.averageRating}</p>
               </div>
             </div>
           </div>

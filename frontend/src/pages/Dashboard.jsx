@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 
 import { FaBed, FaMapMarkerAlt, FaCheckCircle, FaCalendarAlt, FaStar, FaHeart, FaEdit, FaTrash, FaPlus, FaFilter, FaSearch } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
@@ -105,11 +105,37 @@ const Dashboard = () => {
   const [bookingModal, setBookingModal] = useState({ open: false, booking: null, details: null });
   const [showAll, setShowAll] = useState(false);
 
+  // Derived earnings and growth metrics for monetization widgets
+  const earnings = useMemo(() => {
+    const now = new Date();
+    const startOfYear = new Date(now.getFullYear(), 0, 1);
+    let last30 = 0, ytd = 0, upcoming = 0, countEnded = 0;
+    const days30Ago = new Date(now);
+    days30Ago.setDate(now.getDate() - 30);
+    (bookings || []).forEach(b => {
+      const amt = Number(b.total || 0) || 0;
+      const co = b.checkOut ? new Date(b.checkOut) : null;
+      if (co && co >= days30Ago && co <= now) last30 += amt;
+      if (co && co >= startOfYear && co <= now) ytd += amt;
+      if (b.status === 'confirmed' && co && co > now) upcoming += amt;
+      if (b.status === 'ended') countEnded += 1;
+    });
+    return { last30, ytd, upcoming, countEnded };
+  }, [bookings]);
+
   useEffect(() => {
     if (!user) return; // wait for user to be available to avoid undefined access
     (async () => {
       try {
-        const makeAbsolute = (u) => (u && !u.startsWith('http') ? `${API_URL}${u}` : u);
+        const makeAbsolute = (u) => {
+          if (!u) return u;
+          let s = String(u).replace(/\\/g, '/');
+          if (!s.startsWith('http')) {
+            if (!s.startsWith('/')) s = `/${s}`;
+            return `${API_URL}${s}`;
+          }
+          return s;
+        };
         const [bRes, pRes] = await Promise.all([
           fetch(`${API_URL}/api/bookings/mine`, { credentials: 'include' }),
           fetch(`${API_URL}/api/properties/mine`, { credentials: 'include' })
@@ -121,7 +147,7 @@ const Dashboard = () => {
           id: b._id,
           apartment: {
             title: b.property?.title,
-            image: (b.property?.images && b.property.images[0]) ? makeAbsolute(String(b.property.images[0]).replace(/\\\\/g, '/').startsWith('/') ? String(b.property.images[0]).replace(/\\\\/g, '/') : `/${String(b.property.images[0]).replace(/\\\\/g, '/')}`) : 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=300&h=200&fit=crop',
+            image: (b.property?.images && b.property.images[0]) ? makeAbsolute(b.property.images[0]) : 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=300&h=200&fit=crop',
             location: `${b.property?.address}, ${b.property?.city}`
           },
           checkIn: b.checkIn?.slice(0, 10),
@@ -140,7 +166,7 @@ const Dashboard = () => {
           title: p.title,
           location: `${p.address}, ${p.city}`,
           price: p.pricePerNight,
-          image: (p.images && p.images.length ? makeAbsolute(String(p.images[0]).replace(/\\\\/g, '/').startsWith('/') ? String(p.images[0]).replace(/\\\\/g, '/') : `/${String(p.images[0]).replace(/\\\\/g, '/')}`) : 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=300&h=200&fit=crop'),
+          image: (p.images && p.images.length ? makeAbsolute(p.images[0]) : 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=300&h=200&fit=crop'),
           status: p.isActive ? 'active' : 'inactive',
           bookings: 0,
           rating: null
@@ -165,7 +191,7 @@ const Dashboard = () => {
   }, [user]);
 
 
-  // Automatically mark bookings as ended if checkout date has passed
+  // Automatically mark bookings as ended if checkout date has passed (single effect)
   useEffect(() => {
     const autoEndBookings = async () => {
       for (const b of bookings) {
@@ -180,27 +206,11 @@ const Dashboard = () => {
               setBookings(current => current.map(b2 => b2.id === b.id ? { ...b2, status: 'ended' } : b2));
             }
           } catch (e) {
-            // Optionally handle error
           }
         }
       }
     };
     if (bookings.length > 0) autoEndBookings();
-  }, [bookings]);
-  // Automatically mark bookings as ended if checkout date has passed
-  useEffect(() => {
-    bookings.forEach(b => {
-      if (b.status !== 'ended' && b.checkOut && new Date(b.checkOut) < new Date()) {
-        fetch(`${API_URL}/api/bookings/${b.id}/end`, {
-          method: 'POST',
-          credentials: 'include'
-        }).then(res => res.json()).then(data => {
-          if (data.booking && data.booking.status === 'ended') {
-            setBookings(current => current.map(b2 => b2.id === b.id ? { ...b2, status: 'ended' } : b2));
-          }
-        });
-      }
-    });
   }, [bookings]);
 
   const renderStars = (rating) => {
@@ -246,7 +256,14 @@ const Dashboard = () => {
                 <p className="text-gray-600 mt-1">Manage your apartments and bookings</p>
               </div>
               <div className="flex items-center space-x-4">
+<<<<<<< HEAD
                 <Link to="/upload-property" className="modern-btn flex items-center gap-2">
+=======
+                <Link to="/owner/direct-booking" className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-xl font-semibold transition-colors duration-300 flex items-center gap-2">
+                  Direct Booking
+                </Link>
+                <Link to="/upload" className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-xl font-semibold transition-colors duration-300 flex items-center gap-2">
+>>>>>>> 4dc9325dd639458291d85614c2108bcb898d74d0
                   <FaPlus />
                   List Your Property
                 </Link>
@@ -256,9 +273,9 @@ const Dashboard = () => {
         </div>
 
         <div className="max-w-7xl mx-auto px-4 py-8">
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <div className="rounded-2xl p-6 bg-gradient-to-b from-blue-50 to-white border border-blue-100 shadow-sm hover:shadow-md transition-shadow">
+          {/* Stats Cards (Neumorphism) */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8 animate-fade-in-up">
+            <div className="rounded-2xl p-6 bg-gradient-to-b from-blue-50 to-white border border-blue-100 shadow-sm hover:shadow-md transition-shadow neu-card hover:scale-[1.01]">
               <div className="flex items-center">
                 <div className="p-3 bg-blue-100 rounded-xl ring-1 ring-blue-200">
                   <FaBed className="text-blue-600 text-xl" />
@@ -269,7 +286,7 @@ const Dashboard = () => {
                 </div>
               </div>
             </div>
-            <div className="rounded-2xl p-6 bg-gradient-to-b from-blue-50/60 to-white border border-blue-100 shadow-sm hover:shadow-md transition-shadow">
+            <div className="rounded-2xl p-6 bg-gradient-to-b from-blue-50/60 to-white border border-blue-100 shadow-sm hover:shadow-md transition-shadow neu-card hover:scale-[1.01]">
               <div className="flex items-center">
                 <div className="p-3 bg-blue-100 rounded-xl ring-1 ring-blue-200">
                   <FaCalendarAlt className="text-blue-600 text-xl" />
@@ -280,7 +297,7 @@ const Dashboard = () => {
                 </div>
               </div>
             </div>
-            <div className="rounded-2xl p-6 bg-gradient-to-b from-blue-50/60 to-white border border-blue-100 shadow-sm hover:shadow-md transition-shadow">
+            <div className="rounded-2xl p-6 bg-gradient-to-b from-blue-50/60 to-white border border-blue-100 shadow-sm hover:shadow-md transition-shadow neu-card hover:scale-[1.01]">
               <div className="flex items-center">
                 <div className="p-3 bg-blue-100 rounded-xl ring-1 ring-blue-200">
                   <FaStar className="text-blue-600 text-xl" />
@@ -308,7 +325,7 @@ const Dashboard = () => {
                 </div>
               </div>
             </div>
-            <div className="rounded-2xl p-6 bg-gradient-to-b from-blue-50/60 to-white border border-blue-100 shadow-sm hover:shadow-md transition-shadow">
+            <div className="rounded-2xl p-6 bg-gradient-to-b from-blue-50/60 to-white border border-blue-100 shadow-sm hover:shadow-md transition-shadow neu-card hover:scale-[1.01]">
               <div className="flex items-center">
                 <div className="p-3 bg-blue-100 rounded-xl ring-1 ring-blue-200">
                   <FaHeart className="text-blue-600 text-xl" />
@@ -322,7 +339,7 @@ const Dashboard = () => {
           </div>
 
           {/* Tabs */}
-          <div className="bg-white rounded-2xl shadow-lg">
+          <div className="bg-white rounded-2xl shadow-lg neu-card">
             <div className="border-b border-gray-200">
               <nav className="flex space-x-8 px-6">
                 <button
@@ -401,7 +418,7 @@ const Dashboard = () => {
                 <div>
                   <div className="flex items-center justify-between mb-6">
                     <h3 className="text-lg font-semibold text-gray-900">Your Bookings</h3>
-                    <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-2">
                       <div className="relative">
                         <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                         <input
@@ -409,13 +426,13 @@ const Dashboard = () => {
                           value={searchTerm}
                           onChange={e => setSearchTerm(e.target.value)}
                           placeholder="Search bookings..."
-                          className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="pl-10 pr-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
                         />
                       </div>
                       <select
                         value={filterStatus}
                         onChange={e => setFilterStatus(e.target.value)}
-                        className="p-2 border border-gray-300 rounded-lg bg-white text-gray-700"
+                        className="p-2 border border-gray-200 rounded-xl bg-white text-gray-700"
                       >
                         <option value="">All Statuses</option>
                         <option value="confirmed">Confirmed</option>
@@ -431,14 +448,14 @@ const Dashboard = () => {
                       .filter(b => {
                         const term = searchTerm.toLowerCase();
                         const matchesSearch =
-                          b.apartment.title.toLowerCase().includes(term) ||
-                          b.apartment.location.toLowerCase().includes(term) ||
-                          b.status.toLowerCase().includes(term);
+                          (b.apartment.title || '').toLowerCase().includes(term) ||
+                          (b.apartment.location || '').toLowerCase().includes(term) ||
+                          (b.status || '').toLowerCase().includes(term);
                         const matchesStatus = filterStatus ? b.status === filterStatus : true;
                         return matchesSearch && matchesStatus;
                       })
                       .map((booking) => (
-                        <div key={booking.id} className="bg-gray-50 rounded-xl p-6 hover:shadow-md transition-shadow duration-300">
+                        <div key={booking.id} className="neu-card-sm p-6 transition-all">
                           {/* Host can confirm booking if status is pending */}
                           {user.userType === 'host' && booking.status === 'pending' && (
                             <div className="mb-4 flex items-center justify-between bg-blue-100 border border-blue-400 rounded-lg px-4 py-3">
@@ -602,7 +619,7 @@ const Dashboard = () => {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {listings.map((listing) => (
-                      <div key={listing.id} className="bg-gray-50 rounded-xl overflow-hidden hover:shadow-md transition-shadow duration-300">
+                      <div key={listing.id} className="neu-card-sm overflow-hidden transition-all">
                         <img
                           loading="lazy"
                           src={listing.image}
@@ -622,7 +639,7 @@ const Dashboard = () => {
                             <span className="text-sm">{listing.location}</span>
                           </div>
                           <div className="flex items-center justify-between mb-4">
-                            <span className="text-lg font-bold text-blue-600">RWF {listing.price.toLocaleString()}/month</span>
+                            <span className="text-lg font-bold text-blue-600">RWF {listing.price.toLocaleString()}/night</span>
                             <div className="flex items-center">
                               {/* Show real average rating for property */}
                               {listing.ratings && listing.ratings.length > 0 ? (

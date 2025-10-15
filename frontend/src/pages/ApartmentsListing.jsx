@@ -28,6 +28,10 @@ const ApartmentsListing = () => {
     checkIn: "",
     checkOut: "",
     guests: 1,
+    propertyType: "",
+    rating: "",
+    availability: "",
+    features: [],
   });
 
   const [showFilters, setShowFilters] = useState(false);
@@ -161,6 +165,24 @@ const ApartmentsListing = () => {
         case 'rating-desc':
           list.sort((x, y) => (Number(y.rating) || 0) - (Number(x.rating) || 0));
           break;
+        case 'rating-asc':
+          list.sort((x, y) => (Number(x.rating) || 0) - (Number(y.rating) || 0));
+          break;
+        case 'name-asc':
+          list.sort((x, y) => x.title.localeCompare(y.title));
+          break;
+        case 'name-desc':
+          list.sort((x, y) => y.title.localeCompare(x.title));
+          break;
+        case 'newest':
+          list.sort((x, y) => new Date(y.createdAt) - new Date(x.createdAt));
+          break;
+        case 'oldest':
+          list.sort((x, y) => new Date(x.createdAt) - new Date(y.createdAt));
+          break;
+        case 'popular':
+          list.sort((x, y) => (y.reviews || 0) - (x.reviews || 0));
+          break;
         default:
           break;
       }
@@ -189,11 +211,11 @@ const ApartmentsListing = () => {
         <div className="max-w-7xl mx-auto px-4 py-6">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">
-                Find Your Perfect Stay
+              <h1 className="text-4xl font-bold text-gray-900 uppercase tracking-wide">
+                FIND YOUR PERFECT STAY
               </h1>
-              <p className="text-gray-600 mt-1">
-                Discover amazing apartments across Rwanda
+              <p className="text-gray-600 mt-2 text-lg font-medium">
+                DISCOVER AMAZING APARTMENTS ACROSS RWANDA
               </p>
             </div>
 
@@ -238,7 +260,7 @@ const ApartmentsListing = () => {
           {/* Sidebar Filters */}
           <div className="lg:col-span-1">
             <div
-              className={`bg-white rounded-2xl shadow-lg p-6 ${
+              className={`modern-card p-6 ${
                 showFilters ? "block" : "hidden lg:block"
               }`}
             >
@@ -417,7 +439,7 @@ const ApartmentsListing = () => {
               {apartments.map((apartment, index) => (
                 <div
                   key={apartment.id}
-                  className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 hover:scale-105"
+                  className="modern-card-elevated overflow-hidden hover:scale-105 transition-all duration-300"
                   style={{ animationDelay: `${index * 0.1}s` }}
                 >
                   {/* Image */}

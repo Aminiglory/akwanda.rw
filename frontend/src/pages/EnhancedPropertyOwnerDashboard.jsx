@@ -653,6 +653,7 @@ const EnhancedPropertyOwnerDashboard = () => {
                                   propertyId={property._id}
                                   room={room}
                                   onChanged={fetchDashboardData}
+                                  compact={true}
                                 />
                               </div>
                             ))}

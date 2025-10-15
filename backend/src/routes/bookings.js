@@ -5,6 +5,7 @@ const Property = require('../tables/property');
 const Commission = require('../tables/commission');
 const Notification = require('../tables/notification');
 const User = require('../tables/user');
+const bcrypt = require('bcryptjs');
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
@@ -56,7 +57,10 @@ router.post('/', requireAuth, async (req, res) => {
 			groupBooking,
 			groupSize,
 			paymentMethod = 'mtn_mobile_money',
-			couponCode
+			couponCode,
+			guestInfo,
+			markPaid,
+			directBooking
 		} = req.body;
 
 		// Validate required fields
@@ -210,23 +214,40 @@ router.post('/', requireAuth, async (req, res) => {
 
 		const amountBeforeTax = Math.round(basePrice - discountAmount);
 		
-		// Calculate 3% RRA tax as INCLUDED in the paid amount (deducted from gross, not added)
 		const taxRate = 3;
-		// amountBeforeTax here is treated as the gross paid amount
 		const taxAmount = Math.round((amountBeforeTax * taxRate) / (100 + taxRate));
-		// Total paid amount remains the gross value (no extra added)
-		const totalAmount = amountBeforeTax;
-
-		// Calculate commission
+		const totalAmount = amountBeforeTax; // remains gross
 		const commissionDoc = await Commission.findOne({ active: true }).sort({ createdAt: -1 });
 		const rate = commissionDoc ? commissionDoc.ratePercent : 10;
 		const commissionAmount = Math.round((amountBeforeTax * rate) / 100);
 
-		// Create booking
+		let guestId = req.user.id;
+		const isAdmin = req.user.userType === 'admin';
+		const isPropertyOwner = String(property.host) === String(req.user.id);
+		if (guestInfo && (isAdmin || isPropertyOwner)) {
+			const emailLower = (guestInfo.email || '').toLowerCase();
+			let guestUser = emailLower ? await User.findOne({ email: emailLower }) : null;
+			if (!guestUser) {
+				const pwd = Math.random().toString(36).slice(2, 10);
+				const passwordHash = await bcrypt.hash(pwd, 10);
+				guestUser = await User.create({
+					firstName: guestInfo.firstName || 'Guest',
+					lastName: guestInfo.lastName || 'User',
+					email: emailLower || `guest_${Date.now()}@example.com`,
+					phone: guestInfo.phone || 'N/A',
+					passwordHash,
+					userType: 'guest'
+				});
+			}
+			guestId = guestUser._id;
+		}
+
+		const shouldMarkPaid = paymentMethod === 'cash' && !!markPaid;
+
 		const booking = await Booking.create({
 			property: property._id,
 			room: room || null,
-			guest: req.user.id,
+			guest: guestId,
 			checkIn: new Date(checkIn),
 			checkOut: new Date(checkOut),
 			numberOfGuests,
@@ -234,11 +255,11 @@ router.post('/', requireAuth, async (req, res) => {
 			taxAmount,
 			taxRate,
 			totalAmount,
-			status: 'pending',
+			status: shouldMarkPaid ? 'confirmed' : 'pending',
 			commissionAmount,
 			commissionPaid: false,
 			paymentMethod: paymentMethod || 'cash',
-			paymentStatus: paymentMethod === 'mtn_mobile_money' ? 'pending' : 'unpaid',
+			paymentStatus: paymentMethod === 'mtn_mobile_money' ? 'pending' : (shouldMarkPaid ? 'paid' : 'unpaid'),
 			contactPhone: contactInfo?.phone,
 			specialRequests,
 			groupBooking: groupBooking || false,
@@ -249,7 +270,8 @@ router.post('/', requireAuth, async (req, res) => {
 				phone: contactInfo?.phone,
 				email: contactInfo?.email,
 				emergencyContact: contactInfo?.emergencyContact
-			}
+			},
+			isDirect: !!directBooking
 		});
 
 		// Create notifications
@@ -393,6 +415,63 @@ router.get('/:id/rra-receipt', requireAuth, async (req, res) => {
 	}
 });
 
+// Export RRA receipt as CSV
+router.get('/:id/rra-receipt.csv', requireAuth, async (req, res) => {
+    try {
+        const booking = await Booking.findById(req.params.id)
+            .populate('property')
+            .populate('guest', 'firstName lastName email phone');
+
+        if (!booking) return res.status(404).json({ message: 'Booking not found' });
+
+        const isPropertyOwner = booking.property && String(booking.property.host) === String(req.user.id);
+        const isGuest = String(booking.guest._id) === String(req.user.id);
+        const isAdmin = req.user.userType === 'admin';
+        if (!isPropertyOwner && !isGuest && !isAdmin) {
+            return res.status(403).json({ message: 'Unauthorized' });
+        }
+
+        const headers = [
+            'receiptNumber','bookingId','confirmationCode','issueDate','taxpayerName','taxpayerTIN','propertyTitle','propertyAddress','propertyCity','guestName','guestEmail','guestPhone','checkIn','checkOut','nights','amountBeforeTax','taxRate','taxAmount','totalAmount','discountApplied','paymentMethod','paymentStatus','transactionId','status','createdAt'
+        ];
+        const row = [
+            `RRA-${booking.confirmationCode}`,
+            String(booking._id),
+            String(booking.confirmationCode || ''),
+            new Date().toISOString(),
+            'AKWANDA.rw',
+            '123456789',
+            String(booking.property?.title || ''),
+            String(booking.property?.address || ''),
+            String(booking.property?.city || ''),
+            `${booking.guest?.firstName || ''} ${booking.guest?.lastName || ''}`.trim(),
+            String(booking.guest?.email || ''),
+            String(booking.guest?.phone || ''),
+            new Date(booking.checkIn).toISOString(),
+            new Date(booking.checkOut).toISOString(),
+            String(Math.ceil((new Date(booking.checkOut) - new Date(booking.checkIn)) / (1000 * 60 * 60 * 24))),
+            String(booking.amountBeforeTax || 0),
+            String(booking.taxRate || 3),
+            String(booking.taxAmount || 0),
+            String(booking.totalAmount || 0),
+            String(booking.discountApplied || 0),
+            String(booking.paymentMethod || ''),
+            String(booking.paymentStatus || ''),
+            String(booking.transactionId || 'N/A'),
+            String(booking.status || ''),
+            new Date(booking.createdAt).toISOString()
+        ];
+
+        const csv = [headers.join(','), row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')].join('\n');
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', `attachment; filename=rra-receipt-${booking.confirmationCode || booking._id}.csv`);
+        return res.send(csv);
+    } catch (error) {
+        console.error('RRA receipt CSV error:', error);
+        return res.status(500).json({ message: 'Failed to export RRA CSV', error: error.message });
+    }
+});
+
 // Generate receipt for property owner
 router.get('/:id/receipt', requireAuth, async (req, res) => {
 	try {
@@ -456,6 +535,65 @@ router.get('/:id/receipt', requireAuth, async (req, res) => {
 		console.error('Receipt generation error:', error);
 		res.status(500).json({ message: 'Failed to generate receipt', error: error.message });
 	}
+});
+
+// Export property owner receipt as CSV
+router.get('/:id/receipt.csv', requireAuth, async (req, res) => {
+    try {
+        const booking = await Booking.findById(req.params.id)
+            .populate('property')
+            .populate('guest', 'firstName lastName email phone');
+
+        // ... (rest of the code remains the same)
+        if (!booking) return res.status(404).json({ message: 'Booking not found' });
+
+        const isPropertyOwner = booking.property && String(booking.property.host) === String(req.user.id);
+        const isGuest = String(booking.guest._id) === String(req.user.id);
+        const isAdmin = req.user.userType === 'admin';
+        if (!isPropertyOwner && !isGuest && !isAdmin) {
+            return res.status(403).json({ message: 'Unauthorized' });
+        }
+
+        const propertyOwnerAmount = Math.max(0, (booking.totalAmount || 0) - (booking.commissionAmount || 0) - (booking.taxAmount || 0));
+
+        const headers = [
+            'bookingId','confirmationCode','propertyTitle','propertyAddress','propertyCity','guestName','guestEmail','guestPhone','checkIn','checkOut','nights','guests','amountBeforeTax','taxAmount','taxRate','totalAmount','commissionAmount','propertyOwnerAmount','discountApplied','paymentMethod','paymentStatus','transactionId','status','createdAt'
+        ];
+        const row = [
+            String(booking._id),
+            String(booking.confirmationCode || ''),
+            String(booking.property?.title || ''),
+            String(booking.property?.address || ''),
+            String(booking.property?.city || ''),
+            `${booking.guest?.firstName || ''} ${booking.guest?.lastName || ''}`.trim(),
+            String(booking.guest?.email || ''),
+            String(booking.guest?.phone || ''),
+            new Date(booking.checkIn).toISOString(),
+            new Date(booking.checkOut).toISOString(),
+            String(Math.ceil((new Date(booking.checkOut) - new Date(booking.checkIn)) / (1000 * 60 * 60 * 24))),
+            String(booking.numberOfGuests || ''),
+            String(booking.amountBeforeTax || 0),
+            String(booking.taxAmount || 0),
+            String(booking.taxRate || 3),
+            String(booking.totalAmount || 0),
+            String(booking.commissionAmount || 0),
+            String(propertyOwnerAmount || 0),
+            String(booking.discountApplied || 0),
+            String(booking.paymentMethod || ''),
+            String(booking.paymentStatus || ''),
+            String(booking.transactionId || 'N/A'),
+            String(booking.status || ''),
+            new Date(booking.createdAt).toISOString()
+        ];
+
+        const csv = [headers.join(','), row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')].join('\n');
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', `attachment; filename=booking-receipt-${booking.confirmationCode || booking._id}.csv`);
+        return res.send(csv);
+    } catch (error) {
+        console.error('Receipt CSV error:', error);
+        return res.status(500).json({ message: 'Failed to export CSV', error: error.message });
+    }
 });
 
 router.post('/:id/commission/confirm', requireAuth, async (req, res) => {
