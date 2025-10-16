@@ -32,19 +32,19 @@ const UploadSection = () => {
   ];
 
   return (
-    <div className="bg-gradient-to-br from-blue-50 to-blue-100 py-16 px-4">
+    <div className="warm-cream py-16 px-4">
       <div className="max-w-6xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           {/* Left Side - Upload Form */}
-          <div className="bg-white rounded-2xl shadow-2xl p-8">
+          <div className="modern-card p-8">
             <div className="text-center mb-8">
-              <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 chocolate-bg chocolate-shadow">
                 <FaHome className="text-white text-2xl" />
               </div>
               <h2 className="text-3xl font-bold text-gray-800 mb-2">
                 List Your Property
               </h2>
-              <p className="text-gray-600">
+              <p className="medium-contrast-text">
                 Start earning money by renting out your space
               </p>
             </div>
@@ -55,7 +55,7 @@ const UploadSection = () => {
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Property Type
                 </label>
-                <select className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300">
+                <select className="modern-input w-full">
                   <option>Select Property Type</option>
                   <option>Studio Apartment</option>
                   <option>1 Bedroom</option>
@@ -71,11 +71,11 @@ const UploadSection = () => {
                   Location
                 </label>
                 <div className="relative">
-                  <FaMapMarkerAlt className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-600" />
+                  <FaMapMarkerAlt className="absolute left-3 top-1/2 transform -translate-y-1/2 chocolate-text" />
                   <input
                     type="text"
                     placeholder="Enter your address"
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
+                    className="modern-input w-full pl-10"
                   />
                 </div>
               </div>
@@ -86,11 +86,11 @@ const UploadSection = () => {
                   Monthly Rent (RWF)
                 </label>
                 <div className="relative">
-                  <FaDollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-600" />
+                  <FaDollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 chocolate-text" />
                   <input
                     type="number"
                     placeholder="Enter monthly rent"
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
+                    className="modern-input w-full pl-10"
                   />
                 </div>
               </div>
@@ -103,7 +103,7 @@ const UploadSection = () => {
                 <textarea
                   rows="4"
                   placeholder="Describe your apartment, amenities, and what makes it special..."
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 resize-none"
+                  className="modern-input w-full resize-none"
                 />
               </div>
 
@@ -112,10 +112,10 @@ const UploadSection = () => {
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Photos
                 </label>
-                <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-500 transition-colors duration-300 cursor-pointer">
+                <div className="border-2 border-dashed chocolate-border rounded-xl p-8 text-center hover:bg-gray-50 transition-colors duration-300 cursor-pointer">
                   <FaCamera className="text-4xl text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-600 mb-2">Upload photos of your apartment</p>
-                  <p className="text-sm text-gray-500">Drag & drop or click to browse</p>
+                  <p className="medium-contrast-text mb-2">Upload photos of your apartment</p>
+                  <p className="text-sm light-contrast-text">Drag & drop or click to browse</p>
                 </div>
               </div>
 
@@ -123,7 +123,7 @@ const UploadSection = () => {
               <button
                 onClick={handleUpload}
                 disabled={isUploading}
-                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white py-4 rounded-xl font-semibold transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+                className="w-full modern-btn disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {isUploading ? (
                   <>
@@ -146,7 +146,7 @@ const UploadSection = () => {
               <h3 className="text-3xl font-bold text-gray-800 mb-4">
                 Why List with AKWANDA.rw?
               </h3>
-              <p className="text-gray-600 text-lg mb-8">
+              <p className="medium-contrast-text text-lg mb-8">
                 Join thousands of hosts who are earning extra income by sharing their space
               </p>
             </div>
@@ -157,17 +157,17 @@ const UploadSection = () => {
                 return (
                   <div
                     key={index}
-                    className="flex items-start gap-4 p-6 bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+                    className="flex items-start gap-4 modern-card p-6 hover:shadow-xl transition-all duration-300 hover:scale-105"
                     style={{ animationDelay: `${index * 0.1}s` }}
                   >
-                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                      <IconComponent className="text-blue-600 text-xl" />
+                    <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 chocolate-bg">
+                      <IconComponent className="text-white text-xl" />
                     </div>
                     <div>
                       <h4 className="text-xl font-semibold text-gray-800 mb-2">
                         {benefit.title}
                       </h4>
-                      <p className="text-gray-600">
+                      <p className="medium-contrast-text">
                         {benefit.description}
                       </p>
                     </div>
@@ -176,12 +176,12 @@ const UploadSection = () => {
               })}
             </div>
 
-            <div className="bg-blue-600 rounded-2xl p-6 text-white">
+            <div className="chocolate-bg rounded-2xl p-6 text-white">
               <h4 className="text-xl font-bold mb-2">Start Earning Today!</h4>
               <p className="mb-4">
                 The average host earns RWF 150,000+ per month by listing their apartment.
               </p>
-              <button className="bg-white text-blue-600 px-6 py-2 rounded-lg font-semibold hover:bg-gray-100 transition-colors duration-300">
+              <button className="bg-white text-gray-900 px-6 py-2 rounded-lg font-semibold hover:bg-gray-100 transition-colors duration-300">
                 Learn More
               </button>
             </div>

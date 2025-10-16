@@ -313,7 +313,7 @@ const Navbar = () => {
                     Dashboard
                   </Link>
                   <Link
-                    to="/upload"
+                    to="/upload-property"
                     className="hidden sm:inline hover:text-blue-200 font-medium"
                   >
                     List your property
@@ -350,6 +350,7 @@ const Navbar = () => {
               >
                 Customer Support
               </Link>
+<<<<<<< HEAD
               <Link
                 to="/notifications"
                 className="hidden sm:inline hover:text-blue-200 font-medium"
@@ -359,6 +360,8 @@ const Navbar = () => {
               <span className="hidden lg:inline hover:text-blue-200 cursor-pointer font-medium">
                 Partner Portal
               </span>
+=======
+>>>>>>> 9cf889e1315970081c3ed21b0c193a5b9963cd57
             </div>
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2 hover:text-blue-200 cursor-pointer">

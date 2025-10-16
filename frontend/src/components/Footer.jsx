@@ -6,50 +6,39 @@ const Footer = () => {
     {
       title: "For Guests",
       links: [
-        { name: "Search Apartments", href: "#search" },
+        { name: "Search Apartments", href: "/apartments" },
         { name: "How to Book", href: "#how-to-book" },
-        { name: "Guest Reviews", href: "#reviews" },
-        { name: "Travel Guide", href: "#travel-guide" },
-        { name: "Safety & Security", href: "#safety" }
+        { name: "Guest Reviews", href: "#reviews" }
       ]
     },
     {
       title: "For Hosts",
       links: [
-        { name: "List Your Property", href: "#list" },
-        { name: "Host Resources", href: "#host-resources" },
+        { name: "List Your Property", href: "/upload-property" },
         { name: "Host Guidelines", href: "#guidelines" },
-        { name: "Pricing Calculator", href: "#pricing" },
-        { name: "Host Support", href: "#support" }
+        { name: "Host Support", href: "/support" }
       ]
     },
     {
       title: "Company",
       links: [
         { name: "About Us", href: "#about" },
-        { name: "Careers", href: "#careers" },
-        { name: "Press", href: "#press" },
-        { name: "Blog", href: "#blog" },
-        { name: "Investors", href: "#investors" }
+        { name: "Contact Us", href: "#contact" }
       ]
     },
     {
       title: "Support",
       links: [
-        { name: "Help Center", href: "#help" },
-        { name: "Contact Us", href: "#contact" },
+        { name: "Help Center", href: "/support" },
         { name: "Safety Center", href: "#safety" },
-        { name: "Dispute Resolution", href: "#disputes" },
         { name: "Terms of Service", href: "#terms" }
       ]
     }
   ];
 
   const quickLinks = [
-    { icon: FaBed, name: "Stays", href: "#stays" },
-    { icon: FaPlane, name: "Flights", href: "#flights" },
-    { icon: FaBuffer, name: "Attractions", href: "#attractions" },
-    { icon: FaTaxi, name: "Airport Taxis", href: "#taxis" }
+    { icon: FaBed, name: "Apartments", href: "/apartments" },
+    { icon: FaBuffer, name: "List Property", href: "/upload-property" }
   ];
 
   return (
@@ -61,7 +50,7 @@ const Footer = () => {
           <div className="lg:col-span-1">
             <div className="mb-6">
               <h2 className="text-2xl font-bold text-white mb-4">AKWANDA.rw</h2>
-              <p className="text-gray-300 leading-relaxed">
+              <p className="text-white-300 leading-relaxed">
                 Rwanda's leading apartment rental platform. Connect guests with amazing hosts across the country.
               </p>
             </div>
@@ -74,7 +63,7 @@ const Footer = () => {
               </div>
               <div className="flex items-center">
                 <FaPhone className="text-blue-400 mr-3" />
-                <span className="text-gray-300">+250 788 123 456</span>
+                <span className="text-gray-300">0781714167</span>
               </div>
               <div className="flex items-center">
                 <FaEnvelope className="text-blue-400 mr-3" />
@@ -153,12 +142,6 @@ const Footer = () => {
               </a>
               <a href="#terms" className="text-gray-300 hover:text-white transition-colors duration-300">
                 Terms of Service
-              </a>
-              <a href="#cookies" className="text-gray-300 hover:text-white transition-colors duration-300">
-                Cookie Policy
-              </a>
-              <a href="#accessibility" className="text-gray-300 hover:text-white transition-colors duration-300">
-                Accessibility
               </a>
             </div>
           </div>

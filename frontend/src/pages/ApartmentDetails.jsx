@@ -65,6 +65,12 @@ const ApartmentDetails = () => {
     return s;
   };
 
+  const isValidImageUrl = (url) => {
+    if (!url) return false;
+    const imageExtensions = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i;
+    return imageExtensions.test(url) || url.startsWith('http');
+  };
+
   useEffect(() => {
     (async () => {
       try {
@@ -459,9 +465,18 @@ const ApartmentDetails = () => {
                       </div>
 
                       {/* Room Images with Enhanced Gallery */}
+<<<<<<< HEAD
+                      {room.images && room.images.length > 0 && room.images.some(img => isValidImageUrl(img)) ? (
+                        <div className="grid grid-cols-2 gap-2 mb-4">
+                          {room.images
+                            .filter(img => isValidImageUrl(img))
+                            .slice(0, 4)
+                            .map((image, imgIndex) => (
+=======
                       {room.images && room.images.length > 0 ? (
                         <div className="grid grid-cols-2 gap-2 mb-3" data-interactive="true" onClick={(e) => e.stopPropagation()}>
                           {room.images.slice(0, 4).map((image, imgIndex) => (
+>>>>>>> 4dc9325dd639458291d85614c2108bcb898d74d0
                             <div key={imgIndex} className="relative group/image overflow-hidden rounded-lg">
                               <img
                                 loading="lazy"
@@ -484,6 +499,11 @@ const ApartmentDetails = () => {
                           ))}
                         </div>
                       ) : (
+<<<<<<< HEAD
+                        <div className="mb-4 p-4 bg-gray-100 rounded-lg text-center text-gray-500">
+                          <FaBed className="mx-auto mb-2 text-2xl" />
+                          <p className="text-sm">No images available for this room</p>
+=======
                         <div className="mb-3" data-interactive="true" onClick={(e) => e.stopPropagation()}>
                           <img
                             loading="lazy"
@@ -491,6 +511,7 @@ const ApartmentDetails = () => {
                             alt={`${room.roomNumber} placeholder`}
                             className="w-full h-20 object-cover rounded-lg"
                           />
+>>>>>>> 4dc9325dd639458291d85614c2108bcb898d74d0
                         </div>
                       )}
 
@@ -513,9 +534,15 @@ const ApartmentDetails = () => {
                         </div>
                       )}
 
+<<<<<<< HEAD
+                      {/* Expandable Details with Smooth Animation */}
+                      <div className={`overflow-hidden transition-all duration-500 ${
+                        selectedRoom === index ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0'
+=======
                       {/* Expandable Details with Smooth Animation, increased height for calendar visibility */}
                       <div id={`room-panel-${index}`} className={`overflow-hidden transition-all duration-300 ${
                         selectedRoom === index ? 'max-h-[420px] opacity-100' : 'max-h-0 opacity-0'
+>>>>>>> 4dc9325dd639458291d85614c2108bcb898d74d0
                       }`}>
                         <div className="mt-3 pt-3 border-t border-gray-200 overflow-y-auto max-h-[380px] pr-1" data-interactive="true" onClick={(e) => e.stopPropagation()}>
                           <h5 className="font-semibold text-gray-800 mb-3 flex items-center">

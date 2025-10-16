@@ -590,6 +590,34 @@ const PropertyOwnerBookings = () => {
   }
 
   return (
+<<<<<<< HEAD
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-7xl mx-auto px-4">
+        {/* Header + Tabs */}
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">My Property Bookings</h1>
+          <p class="p" className="text-gray-600 mb-4">Track bookings, view room calendars, and manage availability</p>
+          <div className="flex items-center gap-4 border-b">
+            {[
+              { id: 'bookings', label: 'Bookings', icon: FaCalendarAlt },
+              { id: 'properties', label: 'Calendars', icon: FaHome },
+              { id: 'finance', label: 'Finance', icon: FaMoneyBillWave },
+              { id: 'analytics', label: 'Analytics', icon: FaChartLine }
+            ].map(tab => {
+              const Icon = tab.icon;
+              const active = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => goTab(tab.id)}
+                  className={`flex items-center gap-2 px-3 py-2 -mb-px border-b-2 ${active ? 'border-gray-900 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-800'}`}
+                >
+                  <Icon />
+                  <span className="font-medium text-sm">{tab.label}</span>
+                </button>
+              );
+            })}
+=======
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Header */}
@@ -606,6 +634,7 @@ const PropertyOwnerBookings = () => {
               <FaPlus />
               New Direct Booking
             </button>
+>>>>>>> 4dc9325dd639458291d85614c2108bcb898d74d0
           </div>
         </div>
 
