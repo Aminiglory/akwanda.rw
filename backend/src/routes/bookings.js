@@ -20,6 +20,24 @@ function requireAuth(req, res, next) {
 	} catch (e) {
 		return res.status(401).json({ message: 'Invalid token' });
 	}
+
+}
+
+// Normalize a YYYY-MM-DD (or ISO) to a local date at 12:00 to avoid TZ edge cases
+function normalizeYMDToLocal(dateLike) {
+    if (!dateLike) return new Date(NaN);
+    const s = String(dateLike);
+    // If it's a pure date (YYYY-MM-DD), parse components to local date
+    const m = s.match(/^\d{4}-\d{2}-\d{2}$/);
+    if (m) {
+        const [y, mm, dd] = s.split('-').map(Number);
+        const d = new Date(y, mm - 1, dd, 12, 0, 0, 0);
+        return d;
+    }
+    // Fallback: rely on Date parsing, then shift to midday local to remove DST/TZ midnight flips
+    const d = new Date(s);
+    if (!isNaN(d.getTime())) d.setHours(12, 0, 0, 0);
+    return d;
 }
 
 // Host confirms a booking, notifies guest
@@ -93,9 +111,14 @@ router.post('/', requireAuth, async (req, res) => {
 			return res.status(404).json({ message: 'Property not found or inactive' });
 		}
 
+		// Prevent property owner from booking their own property
+		if (String(property.host) === String(req.user.id)) {
+			return res.status(403).json({ message: 'Owners cannot book their own properties' });
+		}
+
 		// Prevent overlapping bookings for the same room/property
-		const start = new Date(checkIn);
-		const end = new Date(checkOut);
+		const start = normalizeYMDToLocal(checkIn);
+		const end = normalizeYMDToLocal(checkOut);
 		if (isNaN(start.getTime()) || isNaN(end.getTime()) || end <= start) {
 			return res.status(400).json({ message: 'Invalid check-in/check-out dates' });
 		}
@@ -160,7 +183,7 @@ router.post('/', requireAuth, async (req, res) => {
 		}
 
 		// Calculate pricing
-		const nights = Math.max(1, Math.ceil((new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24)));
+		const nights = Math.max(1, Math.ceil((end - start) / (1000 * 60 * 60 * 24)));
 		// Determine nightly base from room if provided
 		let nightlyBase = property.pricePerNight;
 		if (roomDoc) nightlyBase = roomDoc.pricePerNight || nightlyBase;
@@ -248,8 +271,8 @@ router.post('/', requireAuth, async (req, res) => {
 			property: property._id,
 			room: room || null,
 			guest: guestId,
-			checkIn: new Date(checkIn),
-			checkOut: new Date(checkOut),
+			checkIn: start,
+			checkOut: end,
 			numberOfGuests,
 			amountBeforeTax,
 			taxAmount,
@@ -604,7 +627,87 @@ router.post('/:id/commission/confirm', requireAuth, async (req, res) => {
 	booking.commissionPaid = true;
 	booking.status = 'confirmed';
 	await booking.save();
+	// Notify owner and admin (admin-wide) that commission was paid
+	try {
+		await Notification.create({
+			type: 'commission_paid',
+			title: 'Commission paid',
+			message: `Commission has been marked as paid for booking ${booking.confirmationCode || booking._id}.`,
+			booking: booking._id,
+			recipientUser: null
+		});
+		const prop = await Property.findById(booking.property).select('host');
+		if (prop?.host) {
+			await Notification.create({
+				type: 'commission_paid',
+				title: 'Commission settled',
+				message: 'Commission on your booking has been settled by admin.',
+				booking: booking._id,
+				recipientUser: prop.host
+			});
+		}
+	} catch (_) {}
 	res.json({ booking });
+});
+
+// Cancel a booking (guest who made it, property owner, or admin). Not allowed after end date or if already cancelled.
+router.post('/:id/cancel', requireAuth, async (req, res) => {
+    try {
+        const b = await Booking.findById(req.params.id).populate('property').populate('guest');
+        if (!b) return res.status(404).json({ message: 'Booking not found' });
+
+        const isGuest = String(b.guest?._id || b.guest) === String(req.user.id);
+        const isOwner = b.property && String(b.property.host) === String(req.user.id);
+        const isAdmin = req.user.userType === 'admin';
+        if (!isGuest && !isOwner && !isAdmin) return res.status(403).json({ message: 'Unauthorized' });
+
+        if (b.status === 'cancelled' || b.status === 'ended') {
+            return res.status(400).json({ message: 'Cannot cancel this booking' });
+        }
+        // Simple policy: cannot cancel after check-in date starts
+        const now = new Date();
+        if (b.checkIn && now >= new Date(b.checkIn) && !isAdmin) {
+            return res.status(400).json({ message: 'Cannot cancel after check-in' });
+        }
+
+        b.status = 'cancelled';
+        await b.save();
+
+        // Notify parties
+        try {
+            await Notification.create({
+                type: 'booking_cancelled',
+                title: 'Booking cancelled',
+                message: `Booking ${b.confirmationCode || b._id} was cancelled.`,
+                booking: b._id,
+                property: b.property?._id,
+                recipientUser: null
+            });
+            if (b.property?.host) {
+                await Notification.create({
+                    type: 'booking_cancelled',
+                    title: 'Your booking was cancelled',
+                    message: `A booking at your property was cancelled.`,
+                    booking: b._id,
+                    property: b.property._id,
+                    recipientUser: b.property.host
+                });
+            }
+            await Notification.create({
+                type: 'booking_cancelled',
+                title: 'Your booking was cancelled',
+                message: `Your booking was cancelled.`,
+                booking: b._id,
+                property: b.property?._id,
+                recipientUser: b.guest?._id || b.guest
+            });
+        } catch (_) {}
+
+        return res.json({ booking: b });
+    } catch (error) {
+        console.error('Cancel booking error:', error);
+        return res.status(500).json({ message: 'Failed to cancel booking', error: error.message });
+    }
 });
 
 // List all bookings (admin only)
@@ -796,6 +899,92 @@ router.get('/owner/visitors-analytics', requireAuth, async (req, res) => {
     }
 });
 
+// Post review to a booking (guest or admin). Stores on Booking.rating/comment
+router.post('/:id/review', requireAuth, async (req, res) => {
+    try {
+        const { rating, comment } = req.body || {};
+        const booking = await Booking.findById(req.params.id).populate('property');
+        if (!booking) return res.status(404).json({ message: 'Booking not found' });
+
+        const isGuest = String(booking.guest) === String(req.user.id);
+        const isAdmin = req.user.userType === 'admin';
+        if (!isGuest && !isAdmin) return res.status(403).json({ message: 'Forbidden' });
+
+        // Optional: only allow review after checkout date
+        if (booking.checkOut && new Date() < new Date(booking.checkOut)) {
+            return res.status(400).json({ message: 'You can only review after your stay' });
+        }
+
+        const r = Number(rating);
+        if (!(r >= 1 && r <= 5)) return res.status(400).json({ message: 'Rating must be between 1 and 5' });
+
+        booking.rating = r;
+        booking.comment = String(comment || '').slice(0, 2000);
+        await booking.save();
+
+        // Notify the property owner about the new review
+        try {
+            if (booking.property?.host) {
+                await Notification.create({
+                    type: 'review_received',
+                    title: 'New review received',
+                    message: `A guest left a rating of ${r}/5 on a recent stay.`,
+                    booking: booking._id,
+                    property: booking.property._id,
+                    recipientUser: booking.property.host
+                });
+            }
+        } catch (_) { /* ignore notification errors */ }
+
+        return res.json({ bookingId: booking._id, rating: booking.rating, comment: booking.comment });
+    } catch (error) {
+        console.error('Post review error:', error);
+        res.status(500).json({ message: 'Failed to post review', error: error.message });
+    }
+});
+
+// Get reviews for properties owned by the authenticated host
+router.get('/owner/reviews', requireAuth, async (req, res) => {
+    try {
+        const myProps = await Property.find({ host: req.user.id }).select('_id title');
+        const ids = myProps.map(p => String(p._id));
+        if (!ids.length) return res.json({ reviews: [], avgRating: 0, count: 0 });
+
+        const bookings = await Booking.find({ property: { $in: ids }, rating: { $exists: true, $ne: null } })
+            .select('property rating comment guest createdAt')
+            .populate('guest', 'firstName lastName');
+
+        const byPropTitle = new Map(myProps.map(p => [String(p._id), p.title]));
+        const reviews = bookings.map(b => ({
+            propertyId: String(b.property),
+            propertyTitle: byPropTitle.get(String(b.property)) || '',
+            rating: b.rating,
+            comment: b.comment,
+            guest: b.guest,
+            createdAt: b.createdAt
+        }));
+
+        const count = reviews.length;
+        const avgRating = count ? Math.round((reviews.reduce((s, r) => s + (Number(r.rating) || 0), 0) / count) * 10) / 10 : 0;
+        return res.json({ reviews, avgRating, count });
+    } catch (error) {
+        console.error('Get reviews error:', error);
+        res.status(500).json({ message: 'Failed to fetch reviews', error: error.message });
+    }
+});
+
+// List bookings for the authenticated guest
+router.get('/mine', requireAuth, async (req, res) => {
+    try {
+        const list = await Booking.find({ guest: req.user.id })
+            .sort({ createdAt: -1 })
+            .select('property checkIn checkOut totalAmount status paymentStatus rating comment createdAt confirmationCode')
+            .populate('property', 'title images city address');
+        res.json({ bookings: list });
+    } catch (error) {
+        console.error('List my bookings error:', error);
+        res.status(500).json({ message: 'Failed to fetch your bookings', error: error.message });
+    }
+});
+
 module.exports = router;
-
-

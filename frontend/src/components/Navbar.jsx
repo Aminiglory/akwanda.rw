@@ -256,11 +256,7 @@ const Navbar = () => {
   const getNotificationLink = (n) => {
     if (!n) return '#';
     // Route mapping by type and attached entities
-    if (n.type?.startsWith('booking') && (n.booking?._id || n.booking)) {
-      const bid = n.booking?._id || n.booking;
-      return `/booking/${bid}`;
-    }
-    if (n.type?.includes('receipt') && (n.booking?._id || n.booking)) {
+    if ((n.type?.startsWith('booking') || n.type?.includes('receipt')) && (n.booking?._id || n.booking)) {
       const bid = n.booking?._id || n.booking;
       return `/booking-confirmation/${bid}`;
     }
@@ -353,6 +349,12 @@ const Navbar = () => {
                 className="hover:text-blue-200 font-medium"
               >
                 Customer Support
+              </Link>
+              <Link
+                to="/notifications"
+                className="hidden sm:inline hover:text-blue-200 font-medium"
+              >
+                Notifications
               </Link>
               <span className="hidden lg:inline hover:text-blue-200 cursor-pointer font-medium">
                 Partner Portal

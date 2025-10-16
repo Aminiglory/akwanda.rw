@@ -436,7 +436,20 @@ const ApartmentsListing = () => {
 
             {/* Apartments Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-              {apartments.map((apartment, index) => (
+              {loading ? (
+                Array.from({ length: 6 }).map((_, index) => (
+                  <div key={index} className="modern-card-elevated overflow-hidden">
+                    <div className="h-48 bg-gray-200 animate-pulse" />
+                    <div className="p-6 space-y-3">
+                      <div className="h-5 bg-gray-200 rounded w-2/3 animate-pulse" />
+                      <div className="h-4 bg-gray-200 rounded w-1/2 animate-pulse" />
+                      <div className="h-4 bg-gray-200 rounded w-1/3 animate-pulse" />
+                      <div className="h-8 bg-gray-200 rounded w-full animate-pulse" />
+                    </div>
+                  </div>
+                ))
+              ) : (
+              apartments.map((apartment, index) => (
                 <div
                   key={apartment.id}
                   className="modern-card-elevated overflow-hidden hover:scale-105 transition-all duration-300"
@@ -537,7 +550,8 @@ const ApartmentsListing = () => {
                     </Link>
                   </div>
                 </div>
-              ))}
+              ))
+              )}
             </div>
 
             {/* Load More */}

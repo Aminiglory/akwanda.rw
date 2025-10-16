@@ -199,7 +199,7 @@ const PropertyOwnerDashboard = () => {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Guest
+                    Client
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Property
@@ -230,12 +230,6 @@ const PropertyOwnerDashboard = () => {
                           <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
                             <FaUsers className="text-blue-600" />
                           </div>
-                        </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">
-                            {booking.guest?.firstName} {booking.guest?.lastName}
-                          </div>
-                          <div className="text-sm text-gray-500">{booking.guest?.email}</div>
                         </div>
                       </div>
                     </td>
@@ -274,18 +268,20 @@ const PropertyOwnerDashboard = () => {
                         {booking.status === 'pending' && (
                           <button
                             onClick={() => handleConfirmBooking(booking._id)}
-                            className="text-green-600 hover:text-green-900 flex items-center"
+                            className="p-2 rounded hover:bg-green-50 text-green-600"
+                            aria-label="Confirm booking"
+                            title="Confirm"
                           >
-                            <FaCheckCircle className="mr-1" />
-                            Confirm
+                            <FaCheckCircle />
                           </button>
                         )}
                         <button
                           onClick={() => handleViewReceipt(booking)}
-                          className="text-blue-600 hover:text-blue-900 flex items-center"
+                          className="p-2 rounded hover:bg-blue-50 text-blue-600"
+                          aria-label="View receipt"
+                          title="Receipt"
                         >
-                          <FaFileInvoice className="mr-1" />
-                          Receipt
+                          <FaFileInvoice />
                         </button>
                       </div>
                     </td>

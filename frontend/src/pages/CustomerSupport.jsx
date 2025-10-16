@@ -8,6 +8,8 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 const CustomerSupport = () => {
   const { user, isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState('contact');
+  const [ownerReviews, setOwnerReviews] = useState({ reviews: [], avgRating: 0, count: 0 });
+  const [loadingReviews, setLoadingReviews] = useState(false);
   const [supportForm, setSupportForm] = useState({
     name: '',
     email: '',
@@ -39,6 +41,29 @@ const CustomerSupport = () => {
     { value: 'technical', label: 'Technical Support', icon: FaHeadset },
     { value: 'refund', label: 'Refund Request', icon: FaCheckCircle }
   ];
+
+  useEffect(() => {
+    const loadReviews = async () => {
+      if (activeTab !== 'reviews') return;
+      if (!(user?.userType === 'host' || user?.userType === 'admin')) return;
+      try {
+        setLoadingReviews(true);
+        const res = await fetch(`${API_URL}/api/bookings/owner/reviews`, { credentials: 'include' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.message || 'Failed to fetch reviews');
+        setOwnerReviews({
+          reviews: data.reviews || [],
+          avgRating: data.avgRating || 0,
+          count: data.count || 0
+        });
+      } catch (e) {
+        toast.error(e.message || 'Failed to load reviews');
+      } finally {
+        setLoadingReviews(false);
+      }
+    };
+    loadReviews();
+  }, [activeTab, user]);
 
   const priorities = [
     { value: 'low', label: 'Low', color: 'text-green-600' },
@@ -124,6 +149,7 @@ const CustomerSupport = () => {
               {[
                 { id: 'contact', label: 'Contact Us', icon: FaPhone },
                 { id: 'ticket', label: 'Submit Ticket', icon: FaTicketAlt },
+                ...(user?.userType === 'host' || user?.userType === 'admin' ? [{ id: 'reviews', label: 'Reviews', icon: FaCheckCircle }] : []),
                 ...(user?.userType === 'admin' ? [{ id: 'admin', label: 'Admin Tools', icon: FaHeadset }] : []),
                 { id: 'faq', label: 'FAQ', icon: FaInfoCircle }
               ].map(({ id, label, icon: Icon }) => (
@@ -227,6 +253,44 @@ const CustomerSupport = () => {
                     </button>
                   </form>
                 </div>
+              </div>
+            )}
+
+            {/* Reviews Tab (Host/Admin) */}
+            {activeTab === 'reviews' && (user?.userType === 'host' || user?.userType === 'admin') && (
+              <div className="max-w-4xl mx-auto">
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">Customer Reviews</h2>
+                <div className="bg-white rounded-xl shadow p-6 border border-gray-100 mb-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-sm text-gray-600">Average Rating</div>
+                      <div className="text-3xl font-bold text-yellow-600">{ownerReviews.avgRating.toFixed(1)} / 5</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-sm text-gray-600">Total Reviews</div>
+                      <div className="text-3xl font-bold text-gray-900">{ownerReviews.count}</div>
+                    </div>
+                  </div>
+                </div>
+                {loadingReviews ? (
+                  <div className="text-center text-gray-600 py-10">Loading reviews...</div>
+                ) : ownerReviews.reviews.length === 0 ? (
+                  <div className="text-center text-gray-600 py-10">No reviews yet.</div>
+                ) : (
+                  <div className="space-y-4">
+                    {ownerReviews.reviews.map((r, idx) => (
+                      <div key={idx} className="bg-white rounded-xl shadow p-5 border border-gray-100">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="font-semibold text-gray-900">{r.propertyTitle || 'Property'}</div>
+                          <div className="text-yellow-600 font-semibold">{r.rating} / 5</div>
+                        </div>
+                        <div className="text-sm text-gray-600 mb-2">By {r.guest?.firstName} {r.guest?.lastName}</div>
+                        <div className="text-gray-800">{r.comment || 'No comment provided.'}</div>
+                        <div className="text-xs text-gray-500 mt-2">{new Date(r.createdAt).toLocaleString()}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 

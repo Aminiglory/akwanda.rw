@@ -1,6 +1,7 @@
 const { Router } = require('express');
 const jwt = require('jsonwebtoken');
 const Booking = require('../tables/booking');
+const Notification = require('../tables/notification');
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
@@ -56,9 +57,42 @@ router.post('/mtn-mobile-money', requireAuth, async (req, res) => {
             booking.paymentMethod = 'mtn_mobile_money';
             booking.paymentStatus = 'paid';
             booking.transactionId = transactionId;
-            // Confirm booking on successful payment
-            booking.status = 'confirmed';
+            // Do NOT auto-confirm. Keep pending for owner confirmation.
+            if (booking.status !== 'cancelled' && booking.status !== 'ended') {
+                booking.status = 'pending';
+            }
             await booking.save();
+
+            // Notify property owner to confirm the paid booking
+            try {
+                if (booking.property?.host) {
+                    await Notification.create({
+                        type: 'booking_paid',
+                        title: 'Booking paid - awaiting your confirmation',
+                        message: `A booking has been paid and is awaiting your confirmation.`,
+                        booking: booking._id,
+                        property: booking.property._id,
+                        recipientUser: booking.property.host
+                    });
+                    // Also notify admin and owner that a commission is due
+                    await Notification.create({
+                        type: 'commission_due',
+                        title: 'Commission due',
+                        message: `A commission is due for a paid booking.`,
+                        booking: booking._id,
+                        property: booking.property._id,
+                        recipientUser: null
+                    });
+                    await Notification.create({
+                        type: 'commission_due',
+                        title: 'Commission due',
+                        message: `Commission will be deducted according to policy.`,
+                        booking: booking._id,
+                        property: booking.property._id,
+                        recipientUser: booking.property.host
+                    });
+                }
+            } catch (_) { /* ignore */ }
         }
 
         // Mock successful payment response

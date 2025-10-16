@@ -6,6 +6,7 @@ import { SocketProvider } from './contexts/SocketContext'
 import { Toaster } from 'react-hot-toast'
 import { ProtectedRoute, AdminRoute } from './components/ProtectedRoute'
 import Navbar from './components/Navbar'
+import ErrorBoundary from './components/ErrorBoundary'
 import Footer from './components/Footer'
 import Home from './pages/Home'
 import ApartmentsListing from './pages/ApartmentsListing'
@@ -42,6 +43,7 @@ import Deals from './pages/Deals'
 import DirectBooking from './pages/DirectBooking'
 import Invoice from './pages/Invoice'
 import Receipt from './pages/Receipt'
+import Notifications from './pages/Notifications'
 
 function App() {
   const [isLoading, setIsLoading] = useState(true)
@@ -69,13 +71,14 @@ function App() {
     <AuthProvider>
       <SocketProvider>
         <Router>
-          <div className="min-h-screen bg-gray-50">
-            <Toaster position="top-right" />
-            {/* Header */}
-            <Navbar />
-          {/* commit routes */}
-          {/* Main Content */}
-          <Routes>
+          <ErrorBoundary>
+            <div className="min-h-screen bg-gray-50">
+              <Toaster position="top-right" />
+              {/* Header */}
+              <Navbar />
+            {/* commit routes */}
+            {/* Main Content */}
+            <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/apartments" element={<ProtectedRoute><ApartmentsListing /></ProtectedRoute>} />
             <Route path="/homes" element={<Homes />} />
@@ -103,6 +106,7 @@ function App() {
             <Route path="/payment/mtn-mobile-money" element={<MTNMobileMoneyPayment />} />
             <Route path="/billing/rra-ebm" element={<RRAEBMIntegration />} />
             <Route path="/support" element={<CustomerSupport />} />
+            <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
             <Route path="/my-bookings" element={<ProtectedRoute><div className="dashboard"><PropertyOwnerBookings /></div></ProtectedRoute>} />
             {/* Removed /owner-dashboard route; use /my-bookings */}
             <Route path="/owner/cars" element={<ProtectedRoute><div className="dashboard"><CarOwnerDashboard /></div></ProtectedRoute>} />
@@ -112,14 +116,15 @@ function App() {
             <Route path="/owner/direct-booking" element={<ProtectedRoute><DirectBooking /></ProtectedRoute>} />
             <Route path="/invoice/:id" element={<ProtectedRoute><Invoice /></ProtectedRoute>} />
             <Route path="/receipt/:id" element={<ProtectedRoute><Receipt /></ProtectedRoute>} />
-          </Routes>
-          
-          {/* Footer - Hidden on messages page */}
-          <Routes>
-            <Route path="/messages" element={null} />
-            <Route path="*" element={<Footer />} />
-          </Routes>
-          </div>
+            </Routes>
+            
+            {/* Footer - Hidden on messages page */}
+            <Routes>
+              <Route path="/messages" element={null} />
+              <Route path="*" element={<Footer />} />
+            </Routes>
+            </div>
+          </ErrorBoundary>
         </Router>
       </SocketProvider>
     </AuthProvider>

@@ -28,70 +28,96 @@ const BookingConfirmation = () => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [sending, setSending] = useState(false);
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [review, setReview] = useState({ rating: 0, comment: '' });
 
-  // Mock data for demonstration
-  const mockBooking = {
-    _id: id || 'booking123',
-    property: {
-      _id: 'prop123',
-      name: 'Luxury Apartment Kigali',
-      location: 'Kigali, Rwanda',
-      address: 'KG 123 St, Kacyiru, Kigali',
-      images: [
-        'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop',
-        'https://images.unsplash.com/photo-1560448204-603b3fc33ddc?w=800&h=600&fit=crop'
-      ],
-      amenities: ['WiFi', 'Parking', 'Pool', 'Kitchen', 'AC', 'TV', 'Washing Machine'],
-      rating: 4.8,
-      reviews: 127
-    },
-    guest: {
-      name: user?.name || 'John Doe',
-      email: user?.email || 'john@example.com',
-      phone: '+250788123456'
-    },
-    checkIn: '2024-01-15',
-    checkOut: '2024-01-18',
-    guests: 2,
-    totalAmount: 450000,
-    status: 'confirmed',
-    paymentStatus: 'paid',
-    bookingDate: '2024-01-10',
-    confirmationCode: 'AKW-2024-001',
-    specialRequests: 'Late check-in requested',
-    host: {
-      name: 'Marie K.',
-      email: 'marie@example.com',
-      phone: '+250788654321'
+  // Defaults for resilient rendering
+  const fallbackProperty = {
+    images: ['https://via.placeholder.com/800x600?text=Property'],
+    name: 'Your Property',
+    location: '',
+    address: '',
+    amenities: []
+  };
+
+  const canCancel = () => {
+    if (!booking) return false;
+    const now = new Date();
+    const ci = new Date(booking.checkIn);
+    const beforeCheckIn = !isNaN(ci) ? now < ci : true;
+    const notEndedOrCancelled = booking.status !== 'cancelled' && booking.status !== 'ended';
+    // Guest who owns the booking or property owner can cancel before check-in; admin can always cancel
+    const hostId = property?.host?._id || property?.host;
+    const isOwner = hostId && user && String(hostId) === String(user._id);
+    const isGuest = booking?.guest && (booking.guest._id ? String(booking.guest._id) === String(user?._id) : false);
+    const isAdmin = user?.userType === 'admin';
+    return notEndedOrCancelled && (isAdmin || (beforeCheckIn && (isGuest || isOwner)));
+  };
+
+  const cancelBooking = async () => {
+    if (!booking?._id) return;
+    try {
+      const confirmMsg = 'Are you sure you want to cancel this booking?';
+      if (!window.confirm(confirmMsg)) return;
+      const res = await fetch(`${API_URL}/api/bookings/${booking._id}/cancel`, {
+        method: 'POST',
+        credentials: 'include'
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.message || 'Failed to cancel booking');
+      toast.success('Booking cancelled');
+      setBooking(prev => ({ ...prev, status: 'cancelled' }));
+    } catch (e) {
+      toast.error(e.message);
     }
   };
 
-  const mockMessages = [
-    {
-      id: 'msg1',
-      senderId: mockBooking.host._id,
-      senderName: mockBooking.host.name,
-      content: 'Welcome! Your booking is confirmed. Check-in is at 3 PM.',
-      timestamp: '2024-01-10T10:00:00Z',
-      type: 'text'
-    },
-    {
-      id: 'msg2',
-      senderId: user?._id,
-      senderName: user?.name,
-      content: 'Thank you! Can I get a late check-in around 6 PM?',
-      timestamp: '2024-01-10T10:15:00Z',
-      type: 'text'
-    },
-    {
-      id: 'msg3',
-      senderId: mockBooking.host._id,
-      senderName: mockBooking.host.name,
-      content: 'Of course! I\'ll arrange that for you. The key will be in the lockbox.',
-      timestamp: '2024-01-10T10:20:00Z',
-      type: 'text'
+  const confirmAsOwner = async () => {
+    if (!booking?._id) return;
+    try {
+      const res = await fetch(`${API_URL}/api/bookings/${booking._id}/confirm`, {
+        method: 'POST',
+        credentials: 'include'
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.message || 'Failed to confirm booking');
+      toast.success('Booking confirmed');
+      setBooking(prev => ({ ...prev, status: 'confirmed' }));
+    } catch (e) {
+      toast.error(e.message);
     }
-  ];
+  };
+
+  const canReview = () => {
+    if (!booking) return false;
+    const now = new Date();
+    const co = new Date(booking.checkOut);
+    return now > co && !booking?.rating;
+  };
+
+  const submitReview = async () => {
+    if (!review.rating || review.rating < 1 || review.rating > 5) {
+      toast.error('Please select a rating between 1 and 5');
+      return;
+    }
+    try {
+      setSubmittingReview(true);
+      const res = await fetch(`${API_URL}/api/bookings/${id}/review`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ rating: review.rating, comment: review.comment })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.message || 'Failed to submit review');
+      toast.success('Thank you for your review!');
+      setBooking(prev => ({ ...prev, rating: review.rating, comment: review.comment }));
+    } catch (e) {
+      toast.error(e.message);
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
 
   useEffect(() => {
     loadBookingDetails();
@@ -116,12 +142,47 @@ const BookingConfirmation = () => {
   const loadBookingDetails = async () => {
     setLoading(true);
     try {
-      // In a real app, this would be an API call
-      setBooking(mockBooking);
-      setProperty(mockBooking.property);
-      setMessages(mockMessages);
+      const res = await fetch(`${API_URL}/api/bookings/${id}`, { credentials: 'include' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.message || 'Failed to fetch booking');
+
+      const b = data.booking;
+      setBooking({
+        _id: b._id,
+        property: b.property,
+        guest: {
+          name: [b.guest?.firstName, b.guest?.lastName].filter(Boolean).join(' ') || 'Guest',
+          email: b.guest?.email || '',
+          phone: b.guest?.phone || ''
+        },
+        checkIn: b.checkIn,
+        checkOut: b.checkOut,
+        guests: b.numberOfGuests || 1,
+        totalAmount: b.totalAmount || 0,
+        status: b.status,
+        paymentStatus: b.paymentStatus,
+        bookingDate: b.createdAt,
+        confirmationCode: b.confirmationCode,
+        specialRequests: b.specialRequests || '',
+        host: {
+          name: '',
+          email: '',
+          phone: ''
+        }
+      });
+      setProperty({
+        images: (b.property?.images || []).map(u => (String(u).startsWith('http') ? u : `${API_URL}${u}`)),
+        name: b.property?.title || 'Property',
+        location: b.property?.city || '',
+        address: b.property?.address || '',
+        amenities: b.property?.amenities || [],
+        rating: b.property?.rating || 0,
+        reviews: b.property?.reviewsCount || 0,
+        host: b.property?.host
+      });
+      setMessages([]);
     } catch (error) {
-      toast.error('Failed to load booking details');
+      toast.error(error.message || 'Failed to load booking details');
     } finally {
       setLoading(false);
     }
@@ -221,358 +282,186 @@ const BookingConfirmation = () => {
     );
   }
 
+  // Final render when booking exists
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <button
-            onClick={() => navigate(-1)}
-            className="flex items-center text-blue-600 hover:text-blue-700 mb-4"
-          >
-            <FaArrowLeft className="mr-2" />
-            Back
-          </button>
-          <div className="text-center">
-            <FaCheckCircle className="text-6xl text-green-500 mx-auto mb-4" />
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Booking Confirmed!</h1>
-            <p className="text-gray-600">Your reservation has been successfully confirmed</p>
-          </div>
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center text-blue-600 hover:text-blue-700 mb-4"
+        >
+          <FaArrowLeft className="mr-2" />
+          Back
+        </button>
+
+        <div className="text-center">
+          {booking.status === 'confirmed' ? (
+            <>
+              <FaCheckCircle className="text-6xl text-green-500 mx-auto mb-4" />
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">Booking Confirmed!</h1>
+              <p className="text-gray-600">Your reservation has been confirmed by the property owner.</p>
+              <div className="mt-3 flex items-center justify-center gap-2 flex-wrap">
+                <span className="text-xs px-2 py-1 rounded bg-green-100 text-green-700 capitalize">{booking.status}</span>
+                <span className="text-xs px-2 py-1 rounded bg-blue-100 text-blue-700 capitalize">{booking.paymentStatus}</span>
+                {booking.paymentMethod && (
+                  <span className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-700 capitalize">{booking.paymentMethod.replace(/_/g,' ')}</span>
+                )}
+                {booking.directBooking && (
+                  <span className="text-xs px-2 py-1 rounded bg-purple-100 text-purple-700">Direct booking</span>
+                )}
+              </div>
+            </>
+          ) : (
+            <>
+              <FaClock className="text-6xl text-yellow-500 mx-auto mb-4" />
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">Awaiting Confirmation</h1>
+              <p className="text-gray-600">Your booking is paid and pending owner confirmation. You'll be notified once the owner confirms.</p>
+              <div className="mt-3 flex items-center justify-center gap-2 flex-wrap">
+                <span className="text-xs px-2 py-1 rounded bg-yellow-100 text-yellow-700 capitalize">{booking.status}</span>
+                <span className="text-xs px-2 py-1 rounded bg-blue-100 text-blue-700 capitalize">{booking.paymentStatus}</span>
+                {booking.paymentMethod && (
+                  <span className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-700 capitalize">{booking.paymentMethod.replace(/_/g,' ')}</span>
+                )}
+                {booking.directBooking && (
+                  <span className="text-xs px-2 py-1 rounded bg-purple-100 text-purple-700">Direct booking</span>
+                )}
+              </div>
+              {/* Owner quick confirm button */}
+              {(() => {
+                const hostId = property?.host?._id || property?.host;
+                const isOwner = hostId && user && String(hostId) === String(user._id);
+                return isOwner ? (
+                  <button
+                    onClick={confirmAsOwner}
+                    className="mt-4 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+                  >
+                    Confirm this booking
+                  </button>
+                ) : null;
+              })()}
+            </>
+          )}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Content */}
+        {/* Actions row */}
+        <div className="flex items-center justify-center gap-3 mt-4">
+          {canCancel() && (
+            <button onClick={cancelBooking} className="px-5 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg">
+              Cancel booking
+            </button>
+          )}
+        </div>
+
+        {canReview() && (
+          <div className="modern-card-elevated p-6 mt-6">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Rate your stay</h2>
+            <p className="text-gray-600 mb-4">Share your experience to help the host improve.</p>
+            <div className="flex items-center gap-2 mb-4">
+              {[1,2,3,4,5].map(n => (
+                <button
+                  key={n}
+                  onClick={() => setReview(r => ({ ...r, rating: n }))}
+                  className={`text-2xl ${review.rating >= n ? 'text-yellow-500' : 'text-gray-300'}`}
+                  aria-label={`Rate ${n}`}
+                >
+                  ★
+                </button>
+              ))}
+            </div>
+            <textarea
+              className="w-full border border-gray-300 rounded-lg p-3 mb-4"
+              placeholder="Write a comment (optional)"
+              rows={4}
+              value={review.comment}
+              onChange={(e) => setReview(r => ({ ...r, comment: e.target.value }))}
+            />
+            <button
+              onClick={submitReview}
+              disabled={submittingReview || review.rating === 0}
+              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50"
+            >
+              {submittingReview ? 'Submitting...' : 'Submit review'}
+            </button>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
           <div className="lg:col-span-2 space-y-6">
-            {/* Property Details */}
             <div className="modern-card-elevated p-6">
               <h2 className="text-2xl font-bold text-gray-900 mb-4">Property Details</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <img
-                    src={property.images[0]}
-                    alt={property.name}
+                    loading="lazy"
+                    src={(property?.images && property.images[0]) ? property.images[0] : fallbackProperty.images[0]}
+                    alt={(property?.name || fallbackProperty.name)}
                     className="w-full h-48 object-cover rounded-lg mb-4"
+                    onError={(e) => { e.currentTarget.src = fallbackProperty.images[0]; }}
                   />
-                  <h3 className="text-xl font-semibold text-gray-900">{property.name}</h3>
+                  <h3 className="text-xl font-semibold text-gray-900">{property?.name}</h3>
                   <p className="text-gray-600 flex items-center mt-2">
                     <FaMapMarkerAlt className="mr-2" />
-                    {property.location}
+                    {property?.location}
                   </p>
-                  <p className="text-sm text-gray-500 mt-1">{property.address}</p>
+                  <p className="text-sm text-gray-500 mt-1">{property?.address}</p>
                 </div>
                 <div>
-                  <div className="flex items-center mb-4">
-                    <FaStar className="text-yellow-400 mr-1" />
-                    <span className="font-semibold">{property.rating}</span>
-                    <span className="text-gray-500 ml-2">({property.reviews} reviews)</span>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    <div className="flex items-center">
-                      <FaCalendarAlt className="text-blue-600 mr-3" />
-                      <div>
-                        <p className="font-medium">Check-in</p>
-                        <p className="text-gray-600">{formatDate(booking.checkIn)}</p>
-                      </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <div className="text-sm text-gray-500">Check-in</div>
+                      <div className="font-semibold">{formatDate(booking.checkIn)}</div>
                     </div>
-                    <div className="flex items-center">
-                      <FaCalendarAlt className="text-blue-600 mr-3" />
-                      <div>
-                        <p className="font-medium">Check-out</p>
-                        <p className="text-gray-600">{formatDate(booking.checkOut)}</p>
-                      </div>
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <div className="text-sm text-gray-500">Check-out</div>
+                      <div className="font-semibold">{formatDate(booking.checkOut)}</div>
                     </div>
-                    <div className="flex items-center">
-                      <FaUsers className="text-blue-600 mr-3" />
-                      <div>
-                        <p className="font-medium">Guests</p>
-                        <p className="text-gray-600">{booking.guests} guest{booking.guests > 1 ? 's' : ''}</p>
-                      </div>
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <div className="text-sm text-gray-500">Guests</div>
+                      <div className="font-semibold">{booking.guests}</div>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <div className="text-sm text-gray-500">Total</div>
+                      <div className="font-semibold">RWF {(booking.totalAmount || 0).toLocaleString()}</div>
                     </div>
                   </div>
-                </div>
-              </div>
-
-              {/* Amenities */}
-              <div className="mt-6">
-                <h4 className="font-semibold text-gray-900 mb-3">Amenities</h4>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  {property.amenities.map((amenity, index) => (
-                    <div key={index} className="flex items-center text-sm text-gray-600">
-                      <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-                      {amenity}
-                    </div>
-                  ))}
                 </div>
               </div>
             </div>
-
-            {/* Booking Information */}
             <div className="modern-card-elevated p-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Booking Information</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <h4 className="font-semibold text-gray-900 mb-3">Guest Information</h4>
-                  <div className="space-y-2">
-                    <p><span className="font-medium">Name:</span> {booking.guest.name}</p>
-                    <p><span className="font-medium">Email:</span> {booking.guest.email}</p>
-                    <p><span className="font-medium">Phone:</span> {booking.guest.phone}</p>
-                  </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">Booking Details</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <div className="text-gray-600">Status</div>
+                  <div className="font-semibold capitalize">{booking.status}</div>
                 </div>
-                <div>
-                  <h4 className="font-semibold text-gray-900 mb-3">Booking Details</h4>
-                  <div className="space-y-2">
-                    <p><span className="font-medium">Confirmation Code:</span> {booking.confirmationCode}</p>
-                    <p><span className="font-medium">Booking Date:</span> {formatDate(booking.bookingDate)}</p>
-                    <p><span className="font-medium">Status:</span> 
-                      <span className={`ml-2 px-2 py-1 rounded-full text-xs font-medium ${
-                        booking.status === 'confirmed' ? 'bg-green-100 text-green-800' :
-                        booking.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-red-100 text-red-800'
-                      }`}>
-                        {booking.status}
-                      </span>
-                    </p>
-                  </div>
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <div className="text-gray-600">Payment</div>
+                  <div className="font-semibold capitalize">{booking.paymentStatus}</div>
                 </div>
-              </div>
-
-              {booking.specialRequests && (
-                <div className="mt-6">
-                  <h4 className="font-semibold text-gray-900 mb-2">Special Requests</h4>
-                  <p className="text-gray-600 bg-gray-50 p-3 rounded-lg">{booking.specialRequests}</p>
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <div className="text-gray-600">Confirmation code</div>
+                  <div className="font-semibold">{booking.confirmationCode || '—'}</div>
                 </div>
-              )}
-            </div>
-
-            {/* Host Information */}
-            <div className="modern-card-elevated p-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Host Information</h2>
-              <div className="flex items-center space-x-4">
-                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
-                  <FaUser className="text-2xl text-blue-600" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900">{booking.host.name}</h3>
-                  <p className="text-gray-600">{booking.host.email}</p>
-                  <p className="text-gray-600">{booking.host.phone}</p>
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <div className="text-gray-600">Booked on</div>
+                  <div className="font-semibold">{booking.bookingDate ? new Date(booking.bookingDate).toLocaleString() : '—'}</div>
                 </div>
               </div>
             </div>
           </div>
-
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Payment Summary */}
+          <div>
             <div className="modern-card-elevated p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Payment Summary</h3>
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span>Total Amount</span>
-                  <span className="font-semibold">RWF {booking.totalAmount.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Payment Status</span>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    booking.paymentStatus === 'paid' ? 'bg-green-100 text-green-800' :
-                    booking.paymentStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-red-100 text-red-800'
-                  }`}>
-                    {booking.paymentStatus}
-                  </span>
-                </div>
-                <hr />
-                <div className="flex justify-between text-lg font-bold">
-                  <span>Total Paid</span>
-                  <span className="text-green-600">RWF {booking.totalAmount.toLocaleString()}</span>
-                </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">Booking Summary</h3>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between"><span className="text-gray-600">Status</span><span className="font-medium">{booking.status}</span></div>
+                <div className="flex justify-between"><span className="text-gray-600">Payment</span><span className="font-medium">{booking.paymentStatus}</span></div>
+                <div className="flex justify-between"><span className="text-gray-600">Code</span><span className="font-medium">{booking.confirmationCode || '—'}</span></div>
               </div>
-            </div>
-
-            {/* Actions */}
-            <div className="modern-card-elevated p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Actions</h3>
-              <div className="space-y-3">
-                <button
-                  onClick={() => setShowReceipt(true)}
-                  className="w-full bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center"
-                >
-                  <FaFileInvoice className="mr-2" />
-                  View Receipt
-                </button>
-                <button
-                  onClick={handlePrint}
-                  className="w-full bg-gray-600 text-white px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors flex items-center justify-center"
-                >
-                  <FaPrint className="mr-2" />
-                  Print Confirmation
-                </button>
-                <button
-                  onClick={handleShare}
-                  className="w-full bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center"
-                >
-                  <FaShare className="mr-2" />
-                  Share
-                </button>
-                <button
-                  onClick={() => setShowChat(true)}
-                  className="w-full bg-purple-600 text-white px-4 py-3 rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center"
-                >
-                  <FaMessage className="mr-2" />
-                  Message Host
-                </button>
-              </div>
-            </div>
-
-            {/* Support */}
-            <div className="modern-card-elevated p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Need Help?</h3>
-              <div className="space-y-3">
-                <button className="w-full text-left p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                  <FaQuestionCircle className="inline mr-2 text-blue-600" />
-                  FAQ
-                </button>
-                <button className="w-full text-left p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                  <FaPhone className="inline mr-2 text-blue-600" />
-                  Contact Support
-                </button>
-                <button className="w-full text-left p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                  <FaShieldAlt className="inline mr-2 text-blue-600" />
-                  Safety Center
-                </button>
-              </div>
+              <a href="/my-bookings" className="mt-4 inline-block text-blue-600 hover:text-blue-700 text-sm">Go to My Bookings</a>
             </div>
           </div>
         </div>
       </div>
-
-      {/* Receipt Modal */}
-      {showReceipt && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold">Booking Receipt</h2>
-                <button
-                  onClick={() => setShowReceipt(false)}
-                  className="text-gray-500 hover:text-gray-700"
-                >
-                  <FaTimes className="text-xl" />
-                </button>
-              </div>
-            </div>
-            <div className="p-6">
-              <div className="text-center mb-6">
-                <h3 className="text-xl font-bold">AKWANDA.rw</h3>
-                <p className="text-gray-600">Booking Receipt</p>
-              </div>
-              <div className="space-y-4">
-                <div className="flex justify-between">
-                  <span>Confirmation Code:</span>
-                  <span className="font-medium">{booking.confirmationCode}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Property:</span>
-                  <span className="font-medium">{property.name}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Guest:</span>
-                  <span className="font-medium">{booking.guest.name}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Check-in:</span>
-                  <span className="font-medium">{formatDate(booking.checkIn)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Check-out:</span>
-                  <span className="font-medium">{formatDate(booking.checkOut)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Guests:</span>
-                  <span className="font-medium">{booking.guests}</span>
-                </div>
-                <hr />
-                <div className="flex justify-between text-lg font-bold">
-                  <span>Total Amount:</span>
-                  <span className="text-blue-600">RWF {booking.totalAmount.toLocaleString()}</span>
-                </div>
-              </div>
-              <div className="mt-6 flex space-x-4">
-                <button
-                  onClick={handlePrint}
-                  className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  Print Receipt
-                </button>
-                <button
-                  onClick={() => setShowReceipt(false)}
-                  className="flex-1 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Chat Modal */}
-      {showChat && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[80vh] flex flex-col">
-            <div className="p-4 border-b border-gray-200">
-              <div className="flex justify-between items-center">
-                <h2 className="text-xl font-bold">Message Host</h2>
-                <button
-                  onClick={() => setShowChat(false)}
-                  className="text-gray-500 hover:text-gray-700"
-                >
-                  <FaTimes className="text-xl" />
-                </button>
-              </div>
-            </div>
-            <div className="flex-1 p-4 overflow-y-auto">
-              <div className="space-y-4">
-                {messages.map(message => (
-                  <div key={message.id} className={`flex ${message.senderId === user?._id ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-xs px-4 py-2 rounded-lg ${
-                      message.senderId === user?._id 
-                        ? 'bg-blue-600 text-white' 
-                        : 'bg-gray-100 text-gray-800'
-                    }`}>
-                      <p className="text-sm">{message.content}</p>
-                      <p className="text-xs opacity-75 mt-1">{formatTime(message.timestamp)}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="p-4 border-t border-gray-200">
-              <div className="flex space-x-2">
-                <input
-                  type="text"
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter' && !sending) {
-                      sendMessage();
-                    }
-                  }}
-                  placeholder="Type a message..."
-                  className="flex-1 modern-input"
-                />
-                <button
-                  onClick={sendMessage}
-                  disabled={!newMessage.trim() || sending}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <FaMessage />
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

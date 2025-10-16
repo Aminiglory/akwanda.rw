@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaCalendarAlt, FaUsers, FaBed, FaBath, FaWifi, FaCar, FaSwimmingPool, FaUtensils, FaStar, FaMapMarkerAlt, FaHeart, FaShare, FaChevronLeft, FaChevronRight, FaCheck, FaTimes, FaCreditCard, FaMobile, FaShieldAlt } from 'react-icons/fa';
+import { FaCalendarAlt, FaUsers, FaBed, FaBath, FaWifi, FaCar, FaSwimmingPool, FaUtensils, FaStar, FaMapMarkerAlt, FaHeart, FaShare, FaChevronLeft, FaChevronRight, FaCheck, FaTimes, FaCreditCard, FaMobile, FaShieldAlt, FaDollarSign } from 'react-icons/fa';
 import { useParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
@@ -31,10 +31,12 @@ const BookingProcess = () => {
 
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [loadingRooms, setLoadingRooms] = useState(false);
   const [availableRooms, setAvailableRooms] = useState([]);
   const [filteredRooms, setFilteredRooms] = useState([]);
   const [totalPrice, setTotalPrice] = useState(0);
   const [discount, setDiscount] = useState(0);
+  const [selectedRoomUnavailable, setSelectedRoomUnavailable] = useState(false);
 
   const budgetRanges = [
     { label: 'Budget', min: 0, max: 50000, color: 'green' },
@@ -73,8 +75,45 @@ const BookingProcess = () => {
         }));
       } catch (_) {}
     };
+
+  // Dedupe helper by _id or roomNumber
+  const dedupeRooms = (rooms) => {
+    const map = new Map();
+    for (const r of rooms || []) {
+      const key = r._id || r.id || r.roomNumber || `${r.roomType || ''}-${r.pricePerNight || ''}-${r.capacity || ''}`;
+      if (!map.has(key)) map.set(key, r);
+    }
+    return Array.from(map.values());
+  };
     prefillContact();
   }, []);
+
+  // Restore date/budget from localStorage on first mount
+  useEffect(() => {
+    try {
+      const cached = JSON.parse(localStorage.getItem('akw_booking_pref') || '{}');
+      if (cached && (cached.checkIn || cached.checkOut || cached.budget || cached.guests)) {
+        setBookingData(prev => ({
+          ...prev,
+          checkIn: cached.checkIn || prev.checkIn,
+          checkOut: cached.checkOut || prev.checkOut,
+          budget: cached.budget || prev.budget,
+          guests: cached.guests || prev.guests
+        }));
+      }
+    } catch (_) {}
+  }, []);
+
+  // Persist date/budget whenever they change
+  useEffect(() => {
+    const payload = {
+      checkIn: bookingData.checkIn,
+      checkOut: bookingData.checkOut,
+      budget: bookingData.budget,
+      guests: bookingData.guests
+    };
+    try { localStorage.setItem('akw_booking_pref', JSON.stringify(payload)); } catch (_) {}
+  }, [bookingData.checkIn, bookingData.checkOut, bookingData.budget, bookingData.guests]);
 
   const handlePayment = async (paymentMethod) => {
     if (!selectedRoom) {
@@ -199,7 +238,7 @@ const BookingProcess = () => {
         };
       });
 
-      setAvailableRooms(processedRooms);
+      setAvailableRooms(dedupeRooms(processedRooms));
     } catch (error) {
       toast.error(`Failed to load property: ${error.message}`);
       navigate('/apartments');
@@ -210,6 +249,7 @@ const BookingProcess = () => {
 
   const checkAvailability = async () => {
     try {
+      setLoadingRooms(true);
       const res = await fetch(`${API_URL}/api/properties/${id}/availability`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -234,27 +274,39 @@ const BookingProcess = () => {
             ) : []
           };
         });
-        setAvailableRooms(processedAvailableRooms);
+        setAvailableRooms(dedupeRooms(processedAvailableRooms));
         
-        // FIX: If selected room is no longer available, clear selection
+        // If selected room is no longer available, keep it visible and mark as unavailable with message
         if (selectedRoom) {
           const isStillAvailable = processedAvailableRooms.some(room => 
             room._id === selectedRoom._id || room.roomNumber === selectedRoom.roomNumber
           );
+          setSelectedRoomUnavailable(!isStillAvailable);
           if (!isStillAvailable) {
-            setSelectedRoom(null);
-            toast.error('Your previously selected room is no longer available');
+            toast.error(`Sorry, ${selectedRoom.roomNumber || 'this room'} is not available for ${new Date(bookingData.checkIn).toLocaleDateString()} to ${new Date(bookingData.checkOut).toLocaleDateString()}.`);
           }
+        } else {
+          setSelectedRoomUnavailable(false);
         }
       }
     } catch (error) {
       console.error('Availability check failed:', error);
     }
+    finally {
+      setLoadingRooms(false);
+    }
   };
 
   const filterRoomsByBudget = () => {
     if (!bookingData.budget) {
-      setFilteredRooms(availableRooms);
+      // If the selected room is not available, append it (marked unavailable) so it doesn't disappear
+      if (selectedRoom && selectedRoomUnavailable) {
+        const exists = availableRooms.some(r => (r._id && r._id === selectedRoom._id) || r.roomNumber === selectedRoom.roomNumber);
+        const merged = exists ? availableRooms : [...availableRooms, { ...selectedRoom, isAvailable: false }];
+        setFilteredRooms(dedupeRooms(merged));
+      } else {
+        setFilteredRooms(dedupeRooms(availableRooms));
+      }
       return;
     }
 
@@ -268,7 +320,7 @@ const BookingProcess = () => {
     const monthlyMin = budgetRange.min * 30;
     const monthlyMax = budgetRange.max * 30;
     
-    const filtered = availableRooms.filter(room => {
+    const filtered = dedupeRooms(availableRooms).filter(room => {
       const roomMonthlyPrice = room.pricePerMonth || ((room.pricePerNight || 0) * 30);
       return roomMonthlyPrice >= monthlyMin && roomMonthlyPrice <= monthlyMax;
     });
@@ -312,7 +364,6 @@ const BookingProcess = () => {
       amenities: room.amenities || []
     };
     
-    console.log('Room selected:', roomWithDefaults);
     setSelectedRoom(roomWithDefaults);
   };
 
@@ -408,12 +459,83 @@ const BookingProcess = () => {
           <div className="lg:col-span-2">
             {/* NOTE: Budget step is skipped by navigating from step 1 directly to step 3. */}
                 
-            {/* Debug info - remove in production */}
-            {import.meta.env.MODE === 'development' && (
-              <div className="mb-4 p-3 bg-yellow-100 border border-yellow-400 rounded text-sm">
-                <strong>Debug Info:</strong> Selected Room: {selectedRoom ? `${selectedRoom.roomNumber} (ID: ${selectedRoom._id})` : 'None'}, 
-                Available Rooms: {availableRooms.length}, 
-                Filtered Rooms: {filteredRooms.length}
+            {/* Summary is shown in the sidebar; debug info removed in production */}
+            {currentStep === 1 && (
+              <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">Plan your stay</h2>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Check-in</label>
+                    <div className="relative">
+                      <FaCalendarAlt className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                      <input
+                        type="date"
+                        value={bookingData.checkIn}
+                        onChange={(e) => handleInputChange('checkIn', e.target.value)}
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Check-out</label>
+                    <div className="relative">
+                      <FaCalendarAlt className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                      <input
+                        type="date"
+                        value={bookingData.checkOut}
+                        onChange={(e) => handleInputChange('checkOut', e.target.value)}
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Guests</label>
+                    <div className="relative">
+                      <FaUsers className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                      <input
+                        type="number"
+                        min={1}
+                        value={bookingData.guests}
+                        onChange={(e) => handleInputChange('guests', Number(e.target.value) || 1)}
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Budget</label>
+                    <div className="relative">
+                      <FaDollarSign className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                      <select
+                        value={bookingData.budget}
+                        onChange={(e) => handleInputChange('budget', e.target.value)}
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      >
+                        <option value="">Any</option>
+                        {budgetRanges.map(b => (
+                          <option key={b.label} value={b.label}>{b.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="flex items-end">
+                    <button
+                      onClick={async () => {
+                        if (!bookingData.checkIn || !bookingData.checkOut) {
+                          toast.error('Please select check-in and check-out dates');
+                          return;
+                        }
+                        await checkAvailability();
+                        setCurrentStep(2);
+                      }}
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+                    >
+                      Find available rooms
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
             
@@ -425,7 +547,7 @@ const BookingProcess = () => {
                   No rooms match your selected criteria. Try adjusting your budget or dates.
                 </p>
                 <button
-                  onClick={() => setCurrentStep(2)}
+                  onClick={() => setCurrentStep(1)}
                   className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
                 >
                   Adjust Budget
@@ -542,7 +664,7 @@ const BookingProcess = () => {
                       No rooms match your selected criteria. Try adjusting your budget or dates.
                     </p>
                     <button
-                      onClick={() => setCurrentStep(2)}
+                      onClick={() => setCurrentStep(1)}
                       className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
                     >
                       Adjust Budget
@@ -661,7 +783,6 @@ const BookingProcess = () => {
                   </button>
                   <button
                     onClick={() => {
-                      console.log('Continue button clicked, selectedRoom:', selectedRoom);
                       if (selectedRoom) {
                         setCurrentStep(4);
                       } else {
@@ -686,12 +807,7 @@ const BookingProcess = () => {
               <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
                 <h2 className="text-2xl font-bold text-gray-900 mb-6">Contact Information</h2>
                 
-                {/* Debug info - remove in production */}
-                {import.meta.env.MODE === 'development' && selectedRoom && (
-                  <div className="mb-4 p-3 bg-green-100 border border-green-400 rounded text-sm">
-                    <strong>Room Selection Active:</strong> {selectedRoom.roomNumber} (Step 4)
-                  </div>
-                )}
+                {/* Clean UI in production */}
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                   <div>
@@ -890,24 +1006,18 @@ const BookingProcess = () => {
           <div className="lg:col-span-1">
             <div className="bg-white rounded-2xl shadow-lg p-6 sticky top-24">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Booking Summary</h3>
-              
               {selectedRoom ? (
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-3">
+                <>
+                  <div className="flex items-center gap-3 mb-4">
                     <img
-                      src={selectedRoom.images?.[0]?.startsWith('http') ? selectedRoom.images[0] : `${API_URL}${selectedRoom.images?.[0]}` || 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=100&h=100&fit=crop'}
+                      loading="lazy"
+                      src={selectedRoom.images?.[0]?.startsWith('http') ? selectedRoom.images[0] : `${API_URL}${selectedRoom.images?.[0]}` || 'https://via.placeholder.com/150?text=Room'}
                       alt={selectedRoom.roomNumber}
                       className="w-16 h-16 object-cover rounded-lg"
-                      onError={(e) => {
-                        e.target.style.display = 'none';
-                        e.target.nextSibling.style.display = 'block';
-                      }}
+                      onError={(e) => { e.currentTarget.src = 'https://via.placeholder.com/150?text=Room'; }}
                     />
-                    <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center" style={{ display: 'none' }}>
-                      <FaBed className="text-gray-400" />
-                    </div>
                     <div>
-                      <h4 className="font-medium text-gray-900">{selectedRoom.roomNumber || 'Selected Room'}</h4>
+                      <div className="font-semibold text-gray-900">{selectedRoom.roomNumber}</div>
                       <p className="text-sm text-gray-600 capitalize">{(selectedRoom.roomType || 'Standard')} Room</p>
                     </div>
                   </div>
@@ -934,7 +1044,7 @@ const BookingProcess = () => {
                   )}
 
                   {totalPrice > 0 && (
-                    <div className="border-t pt-4">
+                    <div className="border-t pt-4 mt-4">
                       <div className="space-y-2 text-sm">
                         <div className="flex justify-between">
                           <span className="text-gray-600">Room price (nightly):</span>
@@ -953,7 +1063,7 @@ const BookingProcess = () => {
                       </div>
                     </div>
                   )}
-                </div>
+                </>
               ) : (
                 <div className="text-center py-8 text-gray-500">
                   <FaBed className="text-4xl mx-auto mb-4 text-gray-300" />

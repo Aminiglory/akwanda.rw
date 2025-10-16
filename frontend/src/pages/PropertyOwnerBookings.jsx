@@ -766,24 +766,30 @@ const PropertyOwnerBookings = () => {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-sm">{b.isDirect ? 'Yes' : 'No'}</td>
-                    <td className="px-4 py-3 text-sm space-x-2">
+                    <td className="px-4 py-3 text-sm space-x-1">
                       <button
                         onClick={() => navigate(`/receipt/${b._id}?direct=${b.isDirect ? 'true' : 'false'}`)}
-                        className="inline-flex items-center bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
+                        className="p-2 rounded bg-green-50 text-green-700 hover:bg-green-100"
+                        aria-label="Receipt"
+                        title="Receipt"
                       >
-                        <FaFileInvoice className="mr-1" /> Receipt
+                        <FaFileInvoice />
                       </button>
                       <button
                         onClick={() => navigate(`/invoice/${b._id}?direct=${b.isDirect ? 'true' : 'false'}`)}
-                        className="inline-flex items-center bg-purple-600 text-white px-3 py-1 rounded hover:bg-purple-700"
+                        className="p-2 rounded bg-purple-50 text-purple-700 hover:bg-purple-100"
+                        aria-label="Invoice"
+                        title="Invoice"
                       >
-                        <FaDownload className="mr-1" /> Invoice
+                        <FaDownload />
                       </button>
                       <button
                         onClick={() => navigate(`/messages?booking=${b._id}`)}
-                        className="inline-flex items-center bg-gray-600 text-white px-3 py-1 rounded hover:bg-gray-700"
+                        className="p-2 rounded bg-gray-100 text-gray-700 hover:bg-gray-200"
+                        aria-label="Chat"
+                        title="Chat"
                       >
-                        <FaComments className="mr-1" /> Chat
+                        <FaComments />
                       </button>
                     </td>
                   </tr>
