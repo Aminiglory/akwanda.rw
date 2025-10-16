@@ -256,14 +256,7 @@ const Dashboard = () => {
                 <p className="text-gray-600 mt-1">Manage your apartments and bookings</p>
               </div>
               <div className="flex items-center space-x-4">
-<<<<<<< HEAD
                 <Link to="/upload-property" className="modern-btn flex items-center gap-2">
-=======
-                <Link to="/owner/direct-booking" className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-xl font-semibold transition-colors duration-300 flex items-center gap-2">
-                  Direct Booking
-                </Link>
-                <Link to="/upload" className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-xl font-semibold transition-colors duration-300 flex items-center gap-2">
->>>>>>> 4dc9325dd639458291d85614c2108bcb898d74d0
                   <FaPlus />
                   List Your Property
                 </Link>

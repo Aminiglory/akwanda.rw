@@ -440,7 +440,6 @@ const HowItWorks = () => {
         </div>
 
         {/* CTA for hosts */}
-<<<<<<< HEAD
         <div className="rounded-2xl p-8 chocolate-gradient backdrop-blur shadow-md text-center">
           <Link 
             to={user ? "/upload-property" : "/register"} 
@@ -451,13 +450,6 @@ const HowItWorks = () => {
           <p className="high-contrast-text text-sm mt-3 font-medium">
             {user ? "List your apartment and start earning" : "Sign up to start listing your apartment"}
           </p>
-=======
-        <div className="rounded-2xl p-8 bg-[#F2E8DC] shadow-md text-center">
-          <Link to="/register" className="bg-[#8B5E34] hover:bg-[#6F4E2C] text-white px-8 py-3 rounded-xl font-semibold transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl inline-block">
-            Become a Host
-          </Link>
-          <p className="text-[#55381F] text-sm mt-2">Sign up to start listing your apartment</p>
->>>>>>> 4dc9325dd639458291d85614c2108bcb898d74d0
         </div>
 
         {/* Stats Section */}
