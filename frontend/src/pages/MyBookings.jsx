@@ -15,12 +15,15 @@ const MyBookings = () => {
   const loadBookings = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/bookings/mine`, { credentials: 'include' });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.message || 'Failed to load bookings');
+      const data = await safeApiGet('/api/bookings/mine', {
+        fallback: { bookings: [] },
+        timeout: 15000
+      });
       setBookings(data.bookings || []);
     } catch (e) {
-      toast.error(e.message);
+      console.error('Failed to load bookings:', e);
+      toast.error(e.message || 'Failed to load bookings');
+      setBookings([]);
     } finally {
       setLoading(false);
     }
@@ -40,19 +43,13 @@ const MyBookings = () => {
   const submitQuickReview = async (b, rating) => {
     try {
       setRatingBusy(prev => ({ ...prev, [b._id]: true }));
-      const res = await fetch(`${API_URL}/api/bookings/${b._id}/review`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ rating })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.message || 'Failed to submit review');
+      const data = await apiPost(`/api/bookings/${b._id}/review`, { rating });
       toast.success('Thanks for your rating!');
       // Refresh item in list
       setBookings(prev => prev.map(x => x._id === b._id ? { ...x, rating } : x));
     } catch (e) {
-      toast.error(e.message);
+      console.error('Failed to submit review:', e);
+      toast.error(e.message || 'Failed to submit review');
     } finally {
       setRatingBusy(prev => ({ ...prev, [b._id]: false }));
     }
@@ -91,7 +88,14 @@ const MyBookings = () => {
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className={`text-xs inline-block px-2 py-1 rounded ${b.status === 'confirmed' ? 'bg-green-100 text-green-700' : b.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600'}`}>{b.status}</div>
+                        <div className={`text-xs inline-block px-2 py-1 rounded ${
+                          b.status === 'confirmed' ? 'bg-green-100 text-green-700' : 
+                          b.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 
+                          b.status === 'awaiting' ? 'bg-orange-100 text-orange-700' :
+                          b.status === 'cancelled' ? 'bg-red-100 text-red-700' :
+                          b.status === 'ended' ? 'bg-blue-100 text-blue-700' :
+                          'bg-gray-100 text-gray-600'
+                        }`}>{b.status}</div>
                         <div className="text-xs text-gray-500">{b.paymentStatus}</div>
                       </div>
                     </div>
