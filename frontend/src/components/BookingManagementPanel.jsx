@@ -6,6 +6,7 @@ import {
 } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { io } from 'socket.io-client';
+import { safeApiGet, apiGet, apiPost, apiPatch } from '../utils/apiUtils';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -62,25 +63,20 @@ const BookingManagementPanel = ({ booking, onClose, onUpdate }) => {
 
   const fetchMessages = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/messages/booking/${booking._id}`, {
-        credentials: 'include'
+      const data = await safeApiGet(`/api/messages/booking/${booking._id}`, {
+        fallback: { messages: [] },
+        timeout: 10000
       });
-      const data = await res.json();
-      
-      if (res.ok) {
-        setMessages(data.messages || []);
-      }
+      setMessages(data.messages || []);
     } catch (error) {
       console.error('Fetch messages error:', error);
+      setMessages([]);
     }
   };
 
   const markMessagesAsRead = async () => {
     try {
-      await fetch(`${API_URL}/api/messages/booking/${booking._id}/read`, {
-        method: 'PATCH',
-        credentials: 'include'
-      });
+      await apiPatch(`/api/messages/booking/${booking._id}/read`, {});
     } catch (error) {
       console.error('Mark as read error:', error);
     }
@@ -94,16 +90,9 @@ const BookingManagementPanel = ({ booking, onClose, onUpdate }) => {
 
     try {
       setLoading(true);
-      const res = await fetch(`${API_URL}/api/messages/booking/${booking._id}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ message: newMessage })
+      const data = await apiPost(`/api/messages/booking/${booking._id}`, {
+        message: newMessage
       });
-
-      const data = await res.json();
-
-      if (!res.ok) throw new Error(data.message || 'Failed to send message');
 
       setMessages([...messages, data.message]);
       setNewMessage('');
@@ -113,7 +102,8 @@ const BookingManagementPanel = ({ booking, onClose, onUpdate }) => {
       }
       toast.success('Message sent successfully');
     } catch (error) {
-      toast.error(error.message);
+      console.error('Failed to send message:', error);
+      toast.error(error.message || 'Failed to send message');
     } finally {
       setLoading(false);
     }

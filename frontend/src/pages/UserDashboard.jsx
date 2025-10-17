@@ -603,9 +603,11 @@ const UserDashboard = () => {
                     >
                       <option value="">All Statuses</option>
                       <option value="pending">Pending</option>
+                      <option value="awaiting">Awaiting Confirmation</option>
                       <option value="confirmed">Confirmed</option>
                       <option value="cancelled">Cancelled</option>
                       <option value="ended">Ended</option>
+                      <option value="commission_due">Commission Due</option>
                     </select>
                   </div>
                 </div>
@@ -682,7 +684,7 @@ const UserDashboard = () => {
                             >
                               View Details
                             </button>
-                            {booking.status === 'pending' && (
+                            {(booking.status === 'pending' || booking.status === 'awaiting') && (
                               <button 
                                 onClick={() => handleBookingAction(booking._id, 'confirm')}
                                 className="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
@@ -755,6 +757,9 @@ const UserDashboard = () => {
                               <div key={booking._id} className={`text-xs p-1 rounded ${
                                 booking.status === 'confirmed' ? 'bg-green-100 text-green-800' :
                                 booking.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                booking.status === 'awaiting' ? 'bg-orange-100 text-orange-800' :
+                                booking.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                                booking.status === 'ended' ? 'bg-blue-100 text-blue-800' :
                                 'bg-gray-100 text-gray-800'
                               }`}>
                                 {booking.property?.title}
