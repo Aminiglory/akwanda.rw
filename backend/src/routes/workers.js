@@ -1,0 +1,587 @@
+const express = require('express');
+const router = express.Router();
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+const mongoose = require('mongoose');
+const Worker = require('../tables/worker');
+const WorkerActionLog = require('../tables/workerActionLog');
+const Property = require('../tables/property');
+const User = require('../tables/user');
+
+const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
+
+// Auth middleware
+function requireAuth(req, res, next) {
+  const token = req.cookies.akw_token || (req.headers.authorization || '').replace('Bearer ', '');
+  if (!token) return res.status(401).json({ message: 'Unauthorized' });
+  try {
+    req.user = jwt.verify(token, JWT_SECRET);
+    return next();
+  } catch (e) {
+    return res.status(401).json({ message: 'Invalid token' });
+  }
+}
+
+// Middleware to check if user is property owner
+function requirePropertyOwner(req, res, next) {
+  if (req.user.userType !== 'host') {
+    return res.status(403).json({ message: 'Only property owners can manage workers' });
+  }
+  next();
+}
+
+// File upload setup
+const uploadDir = path.join(process.cwd(), 'uploads');
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) { cb(null, uploadDir); },
+  filename: function (req, file, cb) {
+    const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    const ext = path.extname(file.originalname);
+    cb(null, unique + ext);
+  }
+});
+const upload = multer({ storage });
+
+// Helper function to log worker actions
+async function logWorkerAction(workerId, employerId, action, targetType, targetId, description, details = {}, req = null) {
+  try {
+    await WorkerActionLog.logAction({
+      workerId,
+      employerId,
+      action,
+      targetType,
+      targetId,
+      targetName: details.targetName,
+      description,
+      details,
+      ipAddress: req?.ip,
+      userAgent: req?.get('User-Agent'),
+      sessionId: req?.sessionID
+    });
+  } catch (error) {
+    console.error('Failed to log worker action:', error);
+  }
+}
+
+// Get all workers for a property owner
+router.get('/', requireAuth, requirePropertyOwner, async (req, res) => {
+  try {
+    const { page = 1, limit = 10, status, search, department } = req.query;
+    const employerId = req.user.id;
+    
+    // Build query
+    const query = { employerId };
+    if (status) query.status = status;
+    if (department) query.department = department;
+    if (search) {
+      query.$or = [
+        { firstName: { $regex: search, $options: 'i' } },
+        { lastName: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+        { employeeId: { $regex: search, $options: 'i' } }
+      ];
+    }
+    
+    const workers = await Worker.find(query)
+      .populate('assignedProperties', 'title city')
+      .sort({ createdAt: -1 })
+      .limit(limit * 1)
+      .skip((page - 1) * limit);
+    
+    const total = await Worker.countDocuments(query);
+    
+    res.json({
+      workers,
+      totalPages: Math.ceil(total / limit),
+      currentPage: page,
+      total
+    });
+  } catch (error) {
+    console.error('Get workers error:', error);
+    res.status(500).json({ message: 'Failed to fetch workers' });
+  }
+});
+
+// Get single worker details
+router.get('/:id', requireAuth, requirePropertyOwner, async (req, res) => {
+  try {
+    const worker = await Worker.findOne({ 
+      _id: req.params.id, 
+      employerId: req.user.id 
+    }).populate('assignedProperties', 'title city country');
+    
+    if (!worker) {
+      return res.status(404).json({ message: 'Worker not found' });
+    }
+    
+    // Get recent activity
+    const recentActivity = await WorkerActionLog.find({ workerId: worker._id })
+      .sort({ createdAt: -1 })
+      .limit(20);
+    
+    // Get activity summary
+    const activitySummary = await WorkerActionLog.getActivitySummary(worker._id);
+    
+    res.json({
+      worker,
+      recentActivity,
+      activitySummary
+    });
+  } catch (error) {
+    console.error('Get worker error:', error);
+    res.status(500).json({ message: 'Failed to fetch worker details' });
+  }
+});
+
+// Create new worker
+router.post('/', requireAuth, requirePropertyOwner, async (req, res) => {
+  try {
+    const {
+      firstName, lastName, email, phone, nationalId, position, department,
+      salary, privileges, assignedProperties, address, emergencyContact
+    } = req.body;
+    
+    // Check if email already exists
+    const existingWorker = await Worker.findOne({ email: email.toLowerCase() });
+    if (existingWorker) {
+      return res.status(400).json({ message: 'Email already registered' });
+    }
+    
+    // Check if national ID already exists
+    const existingNationalId = await Worker.findOne({ nationalId });
+    if (existingNationalId) {
+      return res.status(400).json({ message: 'National ID already registered' });
+    }
+    
+    // Generate employee ID
+    const employeeId = await Worker.generateEmployeeId(req.user.id);
+    
+    // Create worker
+    const worker = new Worker({
+      firstName,
+      lastName,
+      email: email.toLowerCase(),
+      phone,
+      nationalId,
+      employerId: req.user.id,
+      employeeId,
+      position,
+      department: department || 'General',
+      salary: {
+        amount: salary?.amount || 0,
+        currency: salary?.currency || 'RWF',
+        paymentFrequency: salary?.paymentFrequency || 'monthly'
+      },
+      privileges: privileges || {},
+      assignedProperties: assignedProperties || [],
+      address,
+      emergencyContact,
+      createdBy: req.user.id
+    });
+    
+    await worker.save();
+    
+    // Log action
+    await logWorkerAction(
+      worker._id,
+      req.user.id,
+      'worker_created',
+      'worker',
+      worker._id,
+      `Created new worker: ${worker.fullName}`,
+      { targetName: worker.fullName, position, department },
+      req
+    );
+    
+    res.status(201).json({ 
+      message: 'Worker created successfully', 
+      worker: await worker.populate('assignedProperties', 'title city')
+    });
+  } catch (error) {
+    console.error('Create worker error:', error);
+    res.status(500).json({ message: 'Failed to create worker' });
+  }
+});
+
+// Update worker
+router.put('/:id', requireAuth, requirePropertyOwner, async (req, res) => {
+  try {
+    const worker = await Worker.findOne({ 
+      _id: req.params.id, 
+      employerId: req.user.id 
+    });
+    
+    if (!worker) {
+      return res.status(404).json({ message: 'Worker not found' });
+    }
+    
+    const {
+      firstName, lastName, phone, position, department, salary,
+      privileges, assignedProperties, address, emergencyContact, status
+    } = req.body;
+    
+    // Track changes for logging
+    const changes = [];
+    
+    if (firstName && firstName !== worker.firstName) {
+      changes.push(`Name: ${worker.firstName} → ${firstName}`);
+      worker.firstName = firstName;
+    }
+    if (lastName && lastName !== worker.lastName) {
+      changes.push(`Last name: ${worker.lastName} → ${lastName}`);
+      worker.lastName = lastName;
+    }
+    if (phone && phone !== worker.phone) {
+      changes.push(`Phone: ${worker.phone} → ${phone}`);
+      worker.phone = phone;
+    }
+    if (position && position !== worker.position) {
+      changes.push(`Position: ${worker.position} → ${position}`);
+      worker.position = position;
+    }
+    if (department && department !== worker.department) {
+      changes.push(`Department: ${worker.department} → ${department}`);
+      worker.department = department;
+    }
+    if (status && status !== worker.status) {
+      changes.push(`Status: ${worker.status} → ${status}`);
+      worker.status = status;
+    }
+    
+    if (salary) {
+      if (salary.amount !== undefined && salary.amount !== worker.salary.amount) {
+        changes.push(`Salary: ${worker.salary.amount} → ${salary.amount} ${salary.currency || worker.salary.currency}`);
+        worker.salary.amount = salary.amount;
+      }
+      if (salary.currency) worker.salary.currency = salary.currency;
+      if (salary.paymentFrequency) worker.salary.paymentFrequency = salary.paymentFrequency;
+    }
+    
+    if (privileges) {
+      const privilegeChanges = [];
+      Object.keys(privileges).forEach(key => {
+        if (worker.privileges[key] !== privileges[key]) {
+          privilegeChanges.push(`${key}: ${worker.privileges[key]} → ${privileges[key]}`);
+        }
+      });
+      if (privilegeChanges.length > 0) {
+        changes.push(`Privileges: ${privilegeChanges.join(', ')}`);
+      }
+      worker.privileges = { ...worker.privileges, ...privileges };
+    }
+    
+    if (assignedProperties) {
+      worker.assignedProperties = assignedProperties;
+      changes.push('Updated assigned properties');
+    }
+    if (address) worker.address = { ...worker.address, ...address };
+    if (emergencyContact) worker.emergencyContact = { ...worker.emergencyContact, ...emergencyContact };
+    
+    worker.updatedBy = req.user.id;
+    await worker.save();
+    
+    // Log action
+    if (changes.length > 0) {
+      await logWorkerAction(
+        worker._id,
+        req.user.id,
+        'worker_updated',
+        'worker',
+        worker._id,
+        `Updated worker: ${changes.join('; ')}`,
+        { targetName: worker.fullName, changes },
+        req
+      );
+    }
+    
+    res.json({ 
+      message: 'Worker updated successfully', 
+      worker: await worker.populate('assignedProperties', 'title city')
+    });
+  } catch (error) {
+    console.error('Update worker error:', error);
+    res.status(500).json({ message: 'Failed to update worker' });
+  }
+});
+
+// Upload worker avatar
+router.post('/:id/avatar', requireAuth, requirePropertyOwner, upload.single('avatar'), async (req, res) => {
+  try {
+    const worker = await Worker.findOne({ 
+      _id: req.params.id, 
+      employerId: req.user.id 
+    });
+    
+    if (!worker) {
+      return res.status(404).json({ message: 'Worker not found' });
+    }
+    
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded' });
+    }
+    
+    const avatarUrl = `/uploads/${path.basename(req.file.path)}`;
+    worker.avatar = avatarUrl;
+    await worker.save();
+    
+    // Log action
+    await logWorkerAction(
+      worker._id,
+      req.user.id,
+      'profile_updated',
+      'worker',
+      worker._id,
+      `Updated avatar for ${worker.fullName}`,
+      { targetName: worker.fullName },
+      req
+    );
+    
+    res.json({ message: 'Avatar updated successfully', avatarUrl });
+  } catch (error) {
+    console.error('Avatar upload error:', error);
+    res.status(500).json({ message: 'Failed to upload avatar' });
+  }
+});
+
+// Delete worker
+router.delete('/:id', requireAuth, requirePropertyOwner, async (req, res) => {
+  try {
+    const worker = await Worker.findOne({ 
+      _id: req.params.id, 
+      employerId: req.user.id 
+    });
+    
+    if (!worker) {
+      return res.status(404).json({ message: 'Worker not found' });
+    }
+    
+    // Instead of deleting, mark as terminated
+    worker.status = 'terminated';
+    worker.isActive = false;
+    worker.updatedBy = req.user.id;
+    await worker.save();
+    
+    // Log action
+    await logWorkerAction(
+      worker._id,
+      req.user.id,
+      'worker_deleted',
+      'worker',
+      worker._id,
+      `Terminated worker: ${worker.fullName}`,
+      { targetName: worker.fullName },
+      req
+    );
+    
+    res.json({ message: 'Worker terminated successfully' });
+  } catch (error) {
+    console.error('Delete worker error:', error);
+    res.status(500).json({ message: 'Failed to terminate worker' });
+  }
+});
+
+// Get worker activity logs
+router.get('/:id/activity', requireAuth, requirePropertyOwner, async (req, res) => {
+  try {
+    const { page = 1, limit = 20, action, startDate, endDate } = req.query;
+    
+    const worker = await Worker.findOne({ 
+      _id: req.params.id, 
+      employerId: req.user.id 
+    });
+    
+    if (!worker) {
+      return res.status(404).json({ message: 'Worker not found' });
+    }
+    
+    // Build query
+    const query = { workerId: worker._id };
+    if (action) query.action = action;
+    if (startDate || endDate) {
+      query.createdAt = {};
+      if (startDate) query.createdAt.$gte = new Date(startDate);
+      if (endDate) query.createdAt.$lte = new Date(endDate);
+    }
+    
+    const logs = await WorkerActionLog.find(query)
+      .sort({ createdAt: -1 })
+      .limit(limit * 1)
+      .skip((page - 1) * limit);
+    
+    const total = await WorkerActionLog.countDocuments(query);
+    
+    res.json({
+      logs,
+      totalPages: Math.ceil(total / limit),
+      currentPage: page,
+      total
+    });
+  } catch (error) {
+    console.error('Get activity logs error:', error);
+    res.status(500).json({ message: 'Failed to fetch activity logs' });
+  }
+});
+
+// Get worker performance metrics
+router.get('/:id/performance', requireAuth, requirePropertyOwner, async (req, res) => {
+  try {
+    const { days = 30 } = req.query;
+    
+    const worker = await Worker.findOne({ 
+      _id: req.params.id, 
+      employerId: req.user.id 
+    });
+    
+    if (!worker) {
+      return res.status(404).json({ message: 'Worker not found' });
+    }
+    
+    // Get activity summary
+    const activitySummary = await WorkerActionLog.getActivitySummary(worker._id, days);
+    
+    // Get daily activity
+    const dailyActivity = await WorkerActionLog.getDailyActivity(worker._id, Math.min(days, 30));
+    
+    // Calculate performance metrics
+    const totalActions = activitySummary.reduce((sum, item) => sum + item.count, 0);
+    const avgSuccessRate = activitySummary.reduce((sum, item) => sum + item.successRate, 0) / activitySummary.length || 0;
+    
+    res.json({
+      worker: {
+        id: worker._id,
+        name: worker.fullName,
+        position: worker.position,
+        rating: worker.performance.rating
+      },
+      metrics: {
+        totalActions,
+        averageSuccessRate: Math.round(avgSuccessRate * 100),
+        tasksCompleted: worker.performance.totalTasksCompleted,
+        tasksAssigned: worker.performance.totalTasksAssigned,
+        completionRate: worker.performance.totalTasksAssigned > 0 
+          ? Math.round((worker.performance.totalTasksCompleted / worker.performance.totalTasksAssigned) * 100)
+          : 0
+      },
+      activitySummary,
+      dailyActivity
+    });
+  } catch (error) {
+    console.error('Get performance metrics error:', error);
+    res.status(500).json({ message: 'Failed to fetch performance metrics' });
+  }
+});
+
+// Update worker privileges
+router.put('/:id/privileges', requireAuth, requirePropertyOwner, async (req, res) => {
+  try {
+    const worker = await Worker.findOne({ 
+      _id: req.params.id, 
+      employerId: req.user.id 
+    });
+    
+    if (!worker) {
+      return res.status(404).json({ message: 'Worker not found' });
+    }
+    
+    const { privileges } = req.body;
+    const oldPrivileges = { ...worker.privileges };
+    
+    worker.privileges = { ...worker.privileges, ...privileges };
+    worker.updatedBy = req.user.id;
+    await worker.save();
+    
+    // Log privilege changes
+    const changes = [];
+    Object.keys(privileges).forEach(key => {
+      if (oldPrivileges[key] !== privileges[key]) {
+        changes.push(`${key}: ${oldPrivileges[key]} → ${privileges[key]}`);
+      }
+    });
+    
+    await logWorkerAction(
+      worker._id,
+      req.user.id,
+      'privileges_changed',
+      'worker',
+      worker._id,
+      `Updated privileges for ${worker.fullName}: ${changes.join(', ')}`,
+      { targetName: worker.fullName, changes, oldPrivileges, newPrivileges: privileges },
+      req
+    );
+    
+    res.json({ message: 'Privileges updated successfully', worker });
+  } catch (error) {
+    console.error('Update privileges error:', error);
+    res.status(500).json({ message: 'Failed to update privileges' });
+  }
+});
+
+// Get dashboard summary for workers management
+router.get('/dashboard/summary', requireAuth, requirePropertyOwner, async (req, res) => {
+  try {
+    const employerId = req.user.id;
+    
+    // Get worker counts by status
+    const workerStats = await Worker.aggregate([
+      { $match: { employerId: new mongoose.Types.ObjectId(employerId) } },
+      {
+        $group: {
+          _id: '$status',
+          count: { $sum: 1 },
+          totalSalary: { $sum: '$salary.amount' }
+        }
+      }
+    ]);
+    
+    // Get recent activity
+    const recentActivity = await WorkerActionLog.find({ employerId })
+      .sort({ createdAt: -1 })
+      .limit(10)
+      .populate('workerId', 'firstName lastName position');
+    
+    // Get top performers (by activity)
+    const topPerformers = await WorkerActionLog.aggregate([
+      { 
+        $match: { 
+          employerId: new mongoose.Types.ObjectId(employerId),
+          createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } // Last 30 days
+        } 
+      },
+      {
+        $group: {
+          _id: '$workerId',
+          actionCount: { $sum: 1 },
+          successRate: { $avg: { $cond: ['$success', 1, 0] } }
+        }
+      },
+      { $sort: { actionCount: -1 } },
+      { $limit: 5 },
+      {
+        $lookup: {
+          from: 'workers',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'worker'
+        }
+      },
+      { $unwind: '$worker' }
+    ]);
+    
+    res.json({
+      workerStats,
+      recentActivity,
+      topPerformers,
+      totalWorkers: await Worker.countDocuments({ employerId }),
+      activeWorkers: await Worker.countDocuments({ employerId, status: 'active' })
+    });
+  } catch (error) {
+    console.error('Get dashboard summary error:', error);
+    res.status(500).json({ message: 'Failed to fetch dashboard summary' });
+  }
+});
+
+module.exports = router;

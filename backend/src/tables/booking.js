@@ -12,7 +12,7 @@ const bookingSchema = new mongoose.Schema(
     taxAmount: { type: Number, default: 0 }, // 3% RRA tax
     taxRate: { type: Number, default: 3 }, // Tax rate percentage
     amountBeforeTax: { type: Number, default: 0 },
-    status: { type: String, enum: ['pending', 'commission_due', 'confirmed', 'cancelled', 'ended'], default: 'pending' },
+    status: { type: String, enum: ['pending', 'awaiting', 'commission_due', 'confirmed', 'cancelled', 'ended'], default: 'pending' },
     commissionAmount: { type: Number, default: 0 },
     commissionPaid: { type: Boolean, default: false },
     paymentMethod: { type: String, enum: ['mtn_mobile_money', 'cash'], default: 'cash' },

@@ -27,6 +27,8 @@ import CarsList from './pages/CarsList'
 import CarDetail from './pages/CarDetail'
 import CarOwnerDashboard from './pages/CarOwnerDashboard'
 import AdminProfile from './pages/AdminProfile'
+import UserProfile from './pages/UserProfile'
+import Settings from './pages/Settings'
 import MTNMobileMoneyPayment from './pages/MTNMobileMoneyPayment'
 import RRAEBMIntegration from './pages/RRAEBMIntegration'
 import BookingProcess from './pages/BookingProcess'
@@ -44,6 +46,9 @@ import DirectBooking from './pages/DirectBooking'
 import Invoice from './pages/Invoice'
 import Receipt from './pages/Receipt'
 import Notifications from './pages/Notifications'
+import TestUpload from './pages/TestUpload'
+import QuickLogin from './pages/QuickLogin'
+import AdminUserManagement from './pages/AdminUserManagement'
 
 function App() {
   const [isLoading, setIsLoading] = useState(true)
@@ -96,12 +101,16 @@ function App() {
             <Route path="/register" element={<Register />} />
             <Route path="/dashboard" element={<ProtectedRoute><div className="dashboard"><Dashboard /></div></ProtectedRoute>} />
             <Route path="/user-dashboard" element={<ProtectedRoute><div className="dashboard"><UserDashboard /></div></ProtectedRoute>} />
+            <Route path="/profile" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
+            <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
             <Route path="/upload" element={<ProtectedRoute><EnhancedUploadProperty /></ProtectedRoute>} />
+            <Route path="/upload-property" element={<ProtectedRoute><EnhancedUploadProperty /></ProtectedRoute>} />
             <Route path="/upload-legacy" element={<ProtectedRoute><UploadProperty /></ProtectedRoute>} />
             <Route path="/admin" element={<AdminRoute><div className="dashboard"><AdminDashboard /></div></AdminRoute>} />
             <Route path="/admin/profile" element={<AdminRoute><div className="dashboard"><AdminProfile /></div></AdminRoute>} />
             <Route path="/admin/landing" element={<AdminRoute><div className="dashboard"><AdminLanding /></div></AdminRoute>} />
             <Route path="/admin/attractions" element={<AdminRoute><div className="dashboard"><AdminAttractions /></div></AdminRoute>} />
+            <Route path="/admin/users" element={<AdminRoute><div className="dashboard"><AdminUserManagement /></div></AdminRoute>} />
             <Route path="/mtn-payment" element={<ProtectedRoute><MTNMobileMoneyPayment /></ProtectedRoute>} />
             <Route path="/payment/mtn-mobile-money" element={<MTNMobileMoneyPayment />} />
             <Route path="/billing/rra-ebm" element={<RRAEBMIntegration />} />
@@ -116,6 +125,8 @@ function App() {
             <Route path="/owner/direct-booking" element={<ProtectedRoute><DirectBooking /></ProtectedRoute>} />
             <Route path="/invoice/:id" element={<ProtectedRoute><Invoice /></ProtectedRoute>} />
             <Route path="/receipt/:id" element={<ProtectedRoute><Receipt /></ProtectedRoute>} />
+            <Route path="/test-upload" element={<TestUpload />} />
+            <Route path="/quick-login" element={<QuickLogin />} />
             </Routes>
             
             {/* Footer - Hidden on messages page */}

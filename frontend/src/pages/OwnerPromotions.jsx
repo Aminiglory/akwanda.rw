@@ -197,7 +197,7 @@ export default function OwnerPromotions() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs text-gray-600">Type</label>
-                  <select className="w-full px-3 py-2 border rounded" value={form.type} onChange={e=>setForm(f=>({...f, type:e.target.value}))}>
+                  <select className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" value={form.type} onChange={e=>setForm(f=>({...f, type:e.target.value}))}>
                     <option value="">Select type</option>
                     <option value="last_minute">Last-minute</option>
                     <option value="advance_purchase">Advance purchase</option>
@@ -207,40 +207,40 @@ export default function OwnerPromotions() {
                 </div>
                 <div>
                   <label className="text-xs text-gray-600">Discount %</label>
-                  <input type="number" min="1" max="90" className="w-full px-3 py-2 border rounded" value={form.discountPercent} onChange={e=>setForm(f=>({...f, discountPercent:e.target.value}))} />
+                  <input type="number" min="1" max="90" className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" value={form.discountPercent} onChange={e=>setForm(f=>({...f, discountPercent:e.target.value}))} />
                 </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs text-gray-600">Start</label>
-                  <input type="date" className="w-full px-3 py-2 border rounded" value={form.startDate} onChange={e=>setForm(f=>({...f, startDate:e.target.value}))} />
+                  <input type="date" className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" value={form.startDate} onChange={e=>setForm(f=>({...f, startDate:e.target.value}))} />
                 </div>
                 <div>
                   <label className="text-xs text-gray-600">End</label>
-                  <input type="date" className="w-full px-3 py-2 border rounded" value={form.endDate} onChange={e=>setForm(f=>({...f, endDate:e.target.value}))} />
+                  <input type="date" className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" value={form.endDate} onChange={e=>setForm(f=>({...f, endDate:e.target.value}))} />
                 </div>
               </div>
               {form.type === 'last_minute' && (
                 <div>
                   <label className="text-xs text-gray-600">Within days</label>
-                  <input type="number" min="0" className="w-full px-3 py-2 border rounded" value={form.lastMinuteWithinDays} onChange={e=>setForm(f=>({...f, lastMinuteWithinDays:e.target.value}))} />
+                  <input type="number" min="0" className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" value={form.lastMinuteWithinDays} onChange={e=>setForm(f=>({...f, lastMinuteWithinDays:e.target.value}))} />
                 </div>
               )}
               {form.type === 'advance_purchase' && (
                 <div>
                   <label className="text-xs text-gray-600">Min advance days</label>
-                  <input type="number" min="0" className="w-full px-3 py-2 border rounded" value={form.minAdvanceDays} onChange={e=>setForm(f=>({...f, minAdvanceDays:e.target.value}))} />
+                  <input type="number" min="0" className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" value={form.minAdvanceDays} onChange={e=>setForm(f=>({...f, minAdvanceDays:e.target.value}))} />
                 </div>
               )}
               {form.type === 'coupon' && (
                 <div>
                   <label className="text-xs text-gray-600">Coupon code</label>
-                  <input className="w-full px-3 py-2 border rounded" value={form.couponCode} onChange={e=>setForm(f=>({...f, couponCode:e.target.value}))} />
+                  <input className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" value={form.couponCode} onChange={e=>setForm(f=>({...f, couponCode:e.target.value}))} />
                 </div>
               )}
               <div>
                 <label className="text-xs text-gray-600">Title</label>
-                <input className="w-full px-3 py-2 border rounded" value={form.title} onChange={e=>setForm(f=>({...f, title:e.target.value}))} />
+                <input className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" value={form.title} onChange={e=>setForm(f=>({...f, title:e.target.value}))} />
               </div>
               <div>
                 <label className="text-xs text-gray-600">Description</label>

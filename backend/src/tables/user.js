@@ -4,7 +4,7 @@ const mongoose = require('mongoose');
     {
       firstName: { type: String, required: true },
       lastName: { type: String, required: true },
-      email: { type: String, required: true, unique: true, lowercase: true, index: true },
+      email: { type: String, required: true, unique: true, lowercase: true },
       phone: { type: String, required: true },
       passwordHash: { type: String, required: true },
       userType: { type: String, enum: ['guest', 'host', 'admin'], default: 'guest' },

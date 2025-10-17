@@ -127,7 +127,7 @@ const DirectBooking = () => {
               <select
                 value={form.propertyId}
                 onChange={(e) => update('propertyId', e.target.value)}
-                className="w-full border rounded-lg px-3 py-2"
+                className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 required
               >
                 <option value="">Select property…</option>
@@ -143,7 +143,7 @@ const DirectBooking = () => {
                 <select
                   value={form.roomId}
                   onChange={(e) => update('roomId', e.target.value)}
-                  className="w-full border rounded-lg px-3 py-2"
+                  className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value="">Any room</option>
                   {rooms.map(r => (
@@ -153,22 +153,22 @@ const DirectBooking = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Check-in</label>
-                <input type="date" value={form.checkIn} onChange={e => update('checkIn', e.target.value)} className="w-full border rounded-lg px-3 py-2" required />
+                <input type="date" value={form.checkIn} onChange={e => update('checkIn', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" required />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Check-out</label>
-                <input type="date" value={form.checkOut} onChange={e => update('checkOut', e.target.value)} className="w-full border rounded-lg px-3 py-2" required />
+                <input type="date" value={form.checkOut} onChange={e => update('checkOut', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" required />
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Guests</label>
-                <input type="number" min={1} value={form.numberOfGuests} onChange={e => update('numberOfGuests', e.target.value)} className="w-full border rounded-lg px-3 py-2" />
+                <input type="number" min={1} value={form.numberOfGuests} onChange={e => update('numberOfGuests', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
-                <select value={form.paymentMethod} onChange={e => update('paymentMethod', e.target.value)} className="w-full border rounded-lg px-3 py-2">
+                <select value={form.paymentMethod} onChange={e => update('paymentMethod', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                   <option value="cash">Pay on Arrival</option>
                   <option value="mtn_mobile_money">MTN Mobile Money</option>
                 </select>
@@ -186,10 +186,10 @@ const DirectBooking = () => {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Guest Info</label>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <input placeholder="First name" value={form.guestInfo.firstName} onChange={e => update('guestInfo.firstName', e.target.value)} className="w-full border rounded-lg px-3 py-2" required />
-                <input placeholder="Last name" value={form.guestInfo.lastName} onChange={e => update('guestInfo.lastName', e.target.value)} className="w-full border rounded-lg px-3 py-2" required />
-                <input type="email" placeholder="Email" value={form.guestInfo.email} onChange={e => update('guestInfo.email', e.target.value)} className="w-full border rounded-lg px-3 py-2" />
-                <input type="tel" placeholder="Phone" value={form.guestInfo.phone} onChange={e => update('guestInfo.phone', e.target.value)} className="w-full border rounded-lg px-3 py-2" />
+                <input placeholder="First name" value={form.guestInfo.firstName} onChange={e => update('guestInfo.firstName', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" required />
+                <input placeholder="Last name" value={form.guestInfo.lastName} onChange={e => update('guestInfo.lastName', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" required />
+                <input type="email" placeholder="Email" value={form.guestInfo.email} onChange={e => update('guestInfo.email', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                <input type="tel" placeholder="Phone" value={form.guestInfo.phone} onChange={e => update('guestInfo.phone', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
               </div>
               <p className="text-xs text-gray-500 mt-1">A guest account will be linked or created automatically if necessary.</p>
             </div>
@@ -197,14 +197,14 @@ const DirectBooking = () => {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Contact Info (for booking records)</label>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <input type="email" placeholder="Contact email" value={form.contactInfo.email} onChange={e => update('contactInfo.email', e.target.value)} className="w-full border rounded-lg px-3 py-2" />
-                <input type="tel" placeholder="Contact phone" value={form.contactInfo.phone} onChange={e => update('contactInfo.phone', e.target.value)} className="w-full border rounded-lg px-3 py-2" />
+                <input type="email" placeholder="Contact email" value={form.contactInfo.email} onChange={e => update('contactInfo.email', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                <input type="tel" placeholder="Contact phone" value={form.contactInfo.phone} onChange={e => update('contactInfo.phone', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
               </div>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Special Requests</label>
-              <textarea value={form.specialRequests} onChange={e => update('specialRequests', e.target.value)} rows={3} className="w-full border rounded-lg px-3 py-2" placeholder="Any special notes..."></textarea>
+              <textarea value={form.specialRequests} onChange={e => update('specialRequests', e.target.value)} rows={3} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Any special notes..."></textarea>
             </div>
 
             <div className="flex items-center justify-between border-t pt-4">

@@ -32,7 +32,11 @@ export default function Messages() {
   const [showFilePicker, setShowFilePicker] = useState(false);
   const [showImagePicker, setShowImagePicker] = useState(false);
   const [replyTarget, setReplyTarget] = useState(null); // { id, senderName, text }
-  
+  const [showUserSearch, setShowUserSearch] = useState(false);
+  const [userSearchTerm, setUserSearchTerm] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+
   const bottomRef = useRef(null);
   const fileInputRef = useRef(null);
   const imageInputRef = useRef(null);
@@ -80,7 +84,7 @@ export default function Messages() {
         userAvatar: placeholderAvatar,
         lastMessage: t.lastMessage?.text || '',
         lastMessageTime: t.lastMessage?.createdAt || null,
-        unreadCount: 0,
+        unreadCount: t.unreadCount || 0,
         booking: t.context?.bookingId ? { id: t.context.bookingId, propertyName: 'Booking', status: '' } : null,
         context: t.context || {}
       }));
@@ -130,6 +134,21 @@ export default function Messages() {
         // Mark as read
         try { await fetch(`${API_URL}/api/messages/booking/${thread.context.bookingId}/read`, { method: 'PATCH', credentials: 'include' }); } catch (_) {}
       }
+      
+      // Mark all messages from this user as read
+      try {
+        await fetch(`${API_URL}/api/messages/mark-read`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ senderId: thread.userId })
+        });
+      } catch (_) {}
+      
+      // Update thread unread count locally
+      setThreads(prev => prev.map(t => 
+        t.id === threadId ? { ...t, unreadCount: 0 } : t
+      ));
     } catch (error) {
       toast.error('Failed to load messages');
     }
@@ -138,14 +157,15 @@ export default function Messages() {
   const handleNewMessage = (payload) => {
     // Handle both generic payload from /send and booking payload from /messages booking route
     const thread = activeThread;
-    if (!thread) return;
     const myId = String(user?._id || user?.id || '');
+    
     // Case 1: booking payload: { bookingId, message: {...} }
     if (payload && payload.message && payload.bookingId) {
       const m = payload.message;
       // Ignore own echoes
       if (String(m.sender) === myId) return;
-      if (thread.context?.bookingId && String(thread.context.bookingId) === String(payload.bookingId)) {
+      
+      if (thread && thread.context?.bookingId && String(thread.context.bookingId) === String(payload.bookingId)) {
         // Resolve reply reference from existing messages if available
         const ref = payload.replyTo ? messages.find(x => String(x.id) === String(payload.replyTo)) : null;
         // Dedupe by server id if exists
@@ -161,34 +181,54 @@ export default function Messages() {
           status: 'delivered',
           reply: ref ? { id: ref.id, senderName: ref.senderName, text: ref.content } : null
         }]);
+      } else {
+        // Update unread count for threads not currently active
+        setThreads(prev => prev.map(t => 
+          t.context?.bookingId && String(t.context.bookingId) === String(payload.bookingId) && String(m.sender) !== myId
+            ? { ...t, unreadCount: (t.unreadCount || 0) + 1, lastMessage: m.message, lastMessageTime: m.createdAt }
+            : t
+        ));
       }
       return;
     }
+    
     // Case 2: flattened payload from /send
     if (payload && payload.from && payload.to) {
-      const peerId = String(thread.userId);
-      const isMine = String(payload.from) === myId;
-      const isRelevant = String(payload.from) === peerId || String(payload.to) === peerId;
-      if (!isRelevant) return;
-      // If this flattened payload is also scoped to the same booking as the active thread,
-      // skip it because the booking-room handler above already handled it.
-      if (thread.context?.bookingId && payload.bookingId && String(payload.bookingId) === String(thread.context.bookingId)) {
-        return;
+      const senderId = String(payload.from);
+      const isMine = senderId === myId;
+      const isForMe = String(payload.to) === myId;
+      
+      if (!isMine && !isForMe) return; // Not relevant to current user
+      
+      if (thread && (String(thread.userId) === senderId || String(thread.userId) === String(payload.to))) {
+        // If this flattened payload is also scoped to the same booking as the active thread,
+        // skip it because the booking-room handler above already handled it.
+        if (thread.context?.bookingId && payload.bookingId && String(payload.bookingId) === String(thread.context.bookingId)) {
+          return;
+        }
+        // Ignore own echoes
+        if (isMine) return;
+        
+        const ref = payload.replyTo ? messages.find(x => String(x.id) === String(payload.replyTo)) : null;
+        setMessages(prev => [...prev, {
+          id: String(Math.random()),
+          senderId: senderId,
+          senderName: isMine ? (user?.name || 'You') : thread.userName,
+          content: payload.text || '',
+          attachments: payload.attachments || [],
+          timestamp: payload.createdAt,
+          type: (payload.attachments && payload.attachments.length) ? 'file' : 'text',
+          status: 'delivered',
+          reply: ref ? { id: ref.id, senderName: ref.senderName, text: ref.content } : null
+        }]);
+      } else if (!isMine && isForMe) {
+        // Update unread count for threads not currently active
+        setThreads(prev => prev.map(t => 
+          String(t.userId) === senderId
+            ? { ...t, unreadCount: (t.unreadCount || 0) + 1, lastMessage: payload.text || '', lastMessageTime: payload.createdAt }
+            : t
+        ));
       }
-      // Ignore own echoes
-      if (isMine) return;
-      const ref = payload.replyTo ? messages.find(x => String(x.id) === String(payload.replyTo)) : null;
-      setMessages(prev => [...prev, {
-        id: String(Math.random()),
-        senderId: String(payload.from),
-        senderName: isMine ? (user?.name || 'You') : thread.userName,
-        content: payload.text || '',
-        attachments: payload.attachments || [],
-        timestamp: payload.createdAt,
-        type: (payload.attachments && payload.attachments.length) ? 'file' : 'text',
-        status: 'delivered',
-        reply: ref ? { id: ref.id, senderName: ref.senderName, text: ref.content } : null
-      }]);
     }
   };
 
@@ -356,6 +396,86 @@ export default function Messages() {
     return date.toLocaleDateString();
   };
 
+  // User search functionality
+  const searchUsers = async (searchTerm) => {
+    if (!searchTerm || searchTerm.trim().length < 2) {
+      setSearchResults([]);
+      return;
+    }
+
+    setSearchLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/user/search?q=${encodeURIComponent(searchTerm)}`, {
+        credentials: 'include'
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to search users');
+      setSearchResults(data.users || []);
+    } catch (error) {
+      toast.error('Failed to search users');
+      setSearchResults([]);
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  const startConversationWithUser = async (selectedUser) => {
+    try {
+      // Check if conversation already exists
+      const existingThread = threads.find(t => String(t.userId) === String(selectedUser.id));
+      
+      if (existingThread) {
+        // Switch to existing conversation
+        setActiveThread(existingThread);
+        setShowUserSearch(false);
+        setUserSearchTerm('');
+        setSearchResults([]);
+        toast.success(`Switched to conversation with ${selectedUser.name}`);
+        return;
+      }
+
+      // Create new thread locally
+      const newThread = {
+        id: selectedUser.id,
+        userId: selectedUser.id,
+        userName: selectedUser.name,
+        userAvatar: selectedUser.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(selectedUser.name)}&background=0D8ABC&color=fff&size=64`,
+        lastMessage: '',
+        lastMessageTime: null,
+        unreadCount: 0,
+        booking: null,
+        context: {}
+      };
+
+      // Add to threads and set as active
+      setThreads(prev => [newThread, ...prev]);
+      setActiveThread(newThread);
+      setMessages([]);
+      
+      // Close search modal
+      setShowUserSearch(false);
+      setUserSearchTerm('');
+      setSearchResults([]);
+      
+      toast.success(`Started conversation with ${selectedUser.name}`);
+    } catch (error) {
+      toast.error('Failed to start conversation');
+    }
+  };
+
+  // Debounced user search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (userSearchTerm) {
+        searchUsers(userSearchTerm);
+      } else {
+        setSearchResults([]);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [userSearchTerm]);
+
   const renderMessage = (message) => {
     const myId = String(user?._id || user?.id || '');
     const isOwn = String(message.senderId) === myId;
@@ -502,6 +622,13 @@ export default function Messages() {
                 className="modern-input pl-10 w-full"
               />
             </div>
+            <button
+              onClick={() => setShowUserSearch(true)}
+              className="mt-3 w-full flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
+            >
+              <FaUser />
+              <span>New Conversation</span>
+            </button>
           </div>
           
           <div className="space-y-1 overflow-y-auto max-h-[calc(100vh-200px)]">
@@ -663,6 +790,80 @@ export default function Messages() {
           )}
         </div>
       </div>
+
+      {/* User Search Modal */}
+      {showUserSearch && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 max-h-[80vh] overflow-hidden">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-900">Start New Conversation</h2>
+              <button
+                onClick={() => {
+                  setShowUserSearch(false);
+                  setUserSearchTerm('');
+                  setSearchResults([]);
+                }}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <FaTimes />
+              </button>
+            </div>
+            
+            <div className="mb-4">
+              <div className="relative">
+                <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search users by name or email..."
+                  value={userSearchTerm}
+                  onChange={(e) => setUserSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  autoFocus
+                />
+              </div>
+            </div>
+
+            <div className="max-h-64 overflow-y-auto">
+              {searchLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                </div>
+              ) : searchResults.length > 0 ? (
+                <div className="space-y-2">
+                  {searchResults.map((user) => (
+                    <div
+                      key={user.id}
+                      onClick={() => startConversationWithUser(user)}
+                      className="flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors"
+                    >
+                      <img
+                        src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=0D8ABC&color=fff&size=64`}
+                        alt={user.name}
+                        className="w-10 h-10 rounded-full object-cover"
+                      />
+                      <div className="flex-1">
+                        <div className="font-medium text-gray-900">{user.name}</div>
+                        <div className="text-sm text-gray-500">{user.email}</div>
+                        <div className="text-xs text-blue-600 capitalize">{user.userType}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : userSearchTerm.length >= 2 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <FaUser className="text-4xl mx-auto mb-2 text-gray-300" />
+                  <p>No users found matching "{userSearchTerm}"</p>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <FaSearch className="text-4xl mx-auto mb-2 text-gray-300" />
+                  <p>Type at least 2 characters to search for users</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Hidden file inputs */}
       <input

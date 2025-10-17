@@ -21,11 +21,37 @@ const contentRouter = require('./routes/content');
 const notificationsRouter = require('./routes/notifications');
 const carsRouter = require('./routes/cars');
 const carBookingsRouter = require('./routes/carBookings');
+const adminUserManagementRouter = require('./routes/admin-user-management');
+const reportsRouter = require('./routes/reports');
+const workersRouter = require('./routes/workers');
 const User = require('./tables/user');
 
 const app = express();
 
-const PORT = process.env.PORT || 5000;
+// Function to find an available port
+const findAvailablePort = (startPort) => {
+  return new Promise((resolve, reject) => {
+    const server = require('net').createServer();
+    server.listen(startPort, (err) => {
+      if (err) {
+        server.close();
+        findAvailablePort(startPort + 1).then(resolve).catch(reject);
+      } else {
+        const port = server.address().port;
+        server.close(() => resolve(port));
+      }
+    });
+    server.on('error', (err) => {
+      if (err.code === 'EADDRINUSE') {
+        findAvailablePort(startPort + 1).then(resolve).catch(reject);
+      } else {
+        reject(err);
+      }
+    });
+  });
+};
+
+const PORT = process.env.PORT || 5001;
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/akwandadb';
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
 
@@ -79,6 +105,9 @@ app.use('/api/content', contentRouter);
 app.use('/api/cars', carsRouter);
 app.use('/api/car-bookings', carBookingsRouter);
 app.use('/api/notifications', notificationsRouter);
+app.use('/api/admin/user-management', adminUserManagementRouter);
+app.use('/api/reports', reportsRouter);
+app.use('/api/workers', workersRouter);
 
 // Create HTTP server and bind Socket.IO
 const server = http.createServer(app);
@@ -175,7 +204,17 @@ async function start() {
 		await mongoose.connect(MONGO_URI);
 		console.log('Connected to MongoDB');
 		await seedAdminIfNeeded();
-		server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+		
+		// Find an available port starting from the preferred port
+		const availablePort = await findAvailablePort(PORT);
+		
+		server.listen(availablePort, () => {
+			console.log(`Server running on port ${availablePort}`);
+			if (availablePort !== PORT) {
+				console.log(`Note: Using port ${availablePort} instead of ${PORT} due to port conflict`);
+				console.log(`Update your frontend .env file: VITE_API_URL=http://localhost:${availablePort}`);
+			}
+		});
 	} catch (err) {
 		console.error('Failed to start server', err);
 		process.exit(1);

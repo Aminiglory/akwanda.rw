@@ -359,4 +359,37 @@ router.get('/unread-count', requireAuth, async (req, res) => {
     }
 });
 
+// Mark messages as read from a specific sender
+router.patch('/mark-read', requireAuth, async (req, res) => {
+    try {
+        const { senderId } = req.body;
+        if (!senderId) {
+            return res.status(400).json({ message: 'senderId is required' });
+        }
+
+        // Mark all unread messages from this sender to current user as read
+        const result = await Message.updateMany(
+            {
+                sender: senderId,
+                recipient: req.user.id,
+                isRead: false
+            },
+            {
+                $set: {
+                    isRead: true,
+                    readAt: new Date()
+                }
+            }
+        );
+
+        res.json({ 
+            message: 'Messages marked as read',
+            modifiedCount: result.modifiedCount
+        });
+    } catch (error) {
+        console.error('Mark messages read error:', error);
+        res.status(500).json({ message: 'Failed to mark messages as read', error: error.message });
+    }
+});
+
 module.exports = router;

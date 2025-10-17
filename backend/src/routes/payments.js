@@ -57,9 +57,9 @@ router.post('/mtn-mobile-money', requireAuth, async (req, res) => {
             booking.paymentMethod = 'mtn_mobile_money';
             booking.paymentStatus = 'paid';
             booking.transactionId = transactionId;
-            // Do NOT auto-confirm. Keep pending for owner confirmation.
+            // Set to awaiting confirmation after payment is completed
             if (booking.status !== 'cancelled' && booking.status !== 'ended') {
-                booking.status = 'pending';
+                booking.status = 'awaiting';
             }
             await booking.save();
 

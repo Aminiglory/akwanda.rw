@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { FaPlus, FaTrash, FaUpload, FaBed, FaBath, FaMapMarkerAlt, FaDollarSign, FaStar, FaSave, FaTimes } from 'react-icons/fa';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const EnhancedUploadProperty = () => {
   const navigate = useNavigate();
+  const { refreshUser } = useAuth();
   const [searchParams] = useSearchParams();
   const editId = searchParams.get('edit');
   const isEditing = !!editId;
@@ -230,6 +232,12 @@ const EnhancedUploadProperty = () => {
       if (!res.ok) throw new Error(data.message || 'Failed to save property');
 
       toast.success(isEditing ? 'Property updated successfully' : 'Property created successfully');
+      
+      // Refresh user context to update role if needed (guest -> host promotion)
+      if (!isEditing) {
+        await refreshUser();
+      }
+      
       navigate('/dashboard');
     } catch (error) {
       toast.error(error.message);

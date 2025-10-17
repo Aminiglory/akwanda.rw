@@ -44,7 +44,7 @@ function requireAuth(req, res, next) {
 
 router.get('/', async (req, res) => {
     try {
-        const { q, city, minPrice, maxPrice, bedrooms, amenities, startDate, endDate } = req.query;
+        const { q, city, minPrice, maxPrice, bedrooms, amenities, startDate, endDate, category } = req.query;
         const base = { isActive: true };
         if (q) {
             const rx = new RegExp(String(q).trim(), 'i');
@@ -63,9 +63,54 @@ router.get('/', async (req, res) => {
             const arr = Array.isArray(amenities) ? amenities : String(amenities).split(',').map(s => s.trim()).filter(Boolean);
             if (arr.length) base.amenities = { $all: arr };
         }
+        if (category) {
+            // Support multiple categories separated by comma
+            const categories = Array.isArray(category) ? category : String(category).split(',').map(s => s.trim()).filter(Boolean);
+            if (categories.length === 1) {
+                base.category = categories[0];
+            } else if (categories.length > 1) {
+                base.category = { $in: categories };
+            }
+        }
 
         // Load active properties with host
         let properties = await Property.find(base).populate('host', 'firstName lastName isBlocked blockedUntil');
+        
+        // Check commission payment status for visibility logic
+        const Booking = require('../tables/booking');
+        const hostIds = properties.map(p => p.host?._id).filter(Boolean);
+        const unpaidCommissions = await Booking.aggregate([
+            {
+                $match: {
+                    paymentStatus: 'paid',
+                    commissionPaid: false,
+                    status: { $in: ['confirmed', 'ended'] }
+                }
+            },
+            {
+                $lookup: {
+                    from: 'properties',
+                    localField: 'property',
+                    foreignField: '_id',
+                    as: 'propertyInfo'
+                }
+            },
+            {
+                $unwind: '$propertyInfo'
+            },
+            {
+                $group: {
+                    _id: '$propertyInfo.host',
+                    unpaidAmount: { $sum: '$commissionAmount' },
+                    count: { $sum: 1 }
+                }
+            }
+        ]);
+        
+        const unpaidCommissionMap = new Map();
+        unpaidCommissions.forEach(uc => {
+            unpaidCommissionMap.set(String(uc._id), uc);
+        });
         const now = new Date();
         const visible = [];
         for (const p of properties) {
@@ -85,6 +130,25 @@ router.get('/', async (req, res) => {
                     continue;
                 }
             } else {
+                // Check commission payment status for visibility
+                const hostId = String(host._id);
+                const unpaidInfo = unpaidCommissionMap.get(hostId);
+                
+                if (unpaidInfo && unpaidInfo.unpaidAmount > 0) {
+                    // Reduce visibility for properties with unpaid commissions
+                    // Only show if property has premium/featured visibility level
+                    if (p.visibilityLevel === 'standard') {
+                        continue; // Hide standard properties if commissions unpaid
+                    }
+                    // Premium and featured properties remain visible but with reduced priority
+                    
+                    // Add commission info to property for frontend display
+                    p._doc.unpaidCommission = {
+                        amount: unpaidInfo.unpaidAmount,
+                        count: unpaidInfo.count
+                    };
+                }
+                
                 visible.push(p);
             }
         }
@@ -147,10 +211,190 @@ router.get('/mine', requireAuth, async (req, res) => {
 router.get('/my-properties', requireAuth, async (req, res) => {
     try {
         const properties = await Property.find({ host: req.user.id }).sort({ createdAt: -1 });
-        res.json({ properties });
+        
+        // Get commission status for this property owner
+        const Booking = require('../tables/booking');
+        const unpaidCommissions = await Booking.aggregate([
+            {
+                $match: {
+                    paymentStatus: 'paid',
+                    commissionPaid: false,
+                    status: { $in: ['confirmed', 'ended'] }
+                }
+            },
+            {
+                $lookup: {
+                    from: 'properties',
+                    localField: 'property',
+                    foreignField: '_id',
+                    as: 'propertyInfo'
+                }
+            },
+            {
+                $unwind: '$propertyInfo'
+            },
+            {
+                $match: {
+                    'propertyInfo.host': require('mongoose').Types.ObjectId(req.user.id)
+                }
+            },
+            {
+                $group: {
+                    _id: '$property',
+                    unpaidAmount: { $sum: '$commissionAmount' },
+                    count: { $sum: 1 },
+                    bookings: { $push: { _id: '$_id', amount: '$commissionAmount', createdAt: '$createdAt' } }
+                }
+            }
+        ]);
+        
+        // Add commission info to each property
+        const propertiesWithCommission = properties.map(p => {
+            const unpaidInfo = unpaidCommissions.find(uc => String(uc._id) === String(p._id));
+            return {
+                ...p.toObject(),
+                unpaidCommission: unpaidInfo ? {
+                    amount: unpaidInfo.unpaidAmount,
+                    count: unpaidInfo.count,
+                    bookings: unpaidInfo.bookings
+                } : null
+            };
+        });
+        
+        const totalUnpaidCommission = unpaidCommissions.reduce((sum, uc) => sum + uc.unpaidAmount, 0);
+        
+        res.json({ 
+            properties: propertiesWithCommission,
+            commissionSummary: {
+                totalUnpaid: totalUnpaidCommission,
+                propertiesWithUnpaid: unpaidCommissions.length
+            }
+        });
     } catch (error) {
         console.error('Get my properties error:', error);
         res.status(500).json({ message: 'Failed to fetch properties', error: error.message });
+    }
+});
+
+// Get commission summary for property owner
+router.get('/commission-summary', requireAuth, async (req, res) => {
+    try {
+        const Booking = require('../tables/booking');
+        
+        // Get all unpaid commissions for this property owner
+        const unpaidCommissions = await Booking.find({
+            paymentStatus: 'paid',
+            commissionPaid: false,
+            status: { $in: ['confirmed', 'ended'] }
+        })
+        .populate({
+            path: 'property',
+            match: { host: req.user.id },
+            select: 'title commissionRate'
+        })
+        .populate('guest', 'firstName lastName')
+        .select('confirmationCode commissionAmount totalAmount createdAt property guest')
+        .sort({ createdAt: -1 });
+
+        // Filter out bookings where property is null (not owned by this user)
+        const ownerCommissions = unpaidCommissions.filter(booking => booking.property);
+
+        const totalUnpaid = ownerCommissions.reduce((sum, booking) => sum + booking.commissionAmount, 0);
+        
+        // Group by property
+        const byProperty = {};
+        ownerCommissions.forEach(booking => {
+            const propId = String(booking.property._id);
+            if (!byProperty[propId]) {
+                byProperty[propId] = {
+                    property: booking.property,
+                    bookings: [],
+                    totalAmount: 0
+                };
+            }
+            byProperty[propId].bookings.push(booking);
+            byProperty[propId].totalAmount += booking.commissionAmount;
+        });
+
+        res.json({
+            totalUnpaidCommission: totalUnpaid,
+            unpaidBookingsCount: ownerCommissions.length,
+            commissionsByProperty: Object.values(byProperty),
+            allUnpaidBookings: ownerCommissions
+        });
+    } catch (error) {
+        console.error('Commission summary error:', error);
+        res.status(500).json({ message: 'Failed to fetch commission summary', error: error.message });
+    }
+});
+
+// Send commission payment reminders (can be called by admin or scheduled job)
+router.post('/send-commission-reminders', requireAuth, async (req, res) => {
+    try {
+        // Only admin can trigger commission reminders
+        if (req.user.userType !== 'admin') {
+            return res.status(403).json({ message: 'Admin access required' });
+        }
+
+        const Booking = require('../tables/booking');
+        
+        // Find all property owners with unpaid commissions older than 7 days
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+        const overdueCommissions = await Booking.aggregate([
+            {
+                $match: {
+                    paymentStatus: 'paid',
+                    commissionPaid: false,
+                    status: { $in: ['confirmed', 'ended'] },
+                    createdAt: { $lt: sevenDaysAgo }
+                }
+            },
+            {
+                $lookup: {
+                    from: 'properties',
+                    localField: 'property',
+                    foreignField: '_id',
+                    as: 'propertyInfo'
+                }
+            },
+            {
+                $unwind: '$propertyInfo'
+            },
+            {
+                $group: {
+                    _id: '$propertyInfo.host',
+                    totalOverdue: { $sum: '$commissionAmount' },
+                    bookingCount: { $sum: 1 },
+                    oldestBooking: { $min: '$createdAt' }
+                }
+            }
+        ]);
+
+        let remindersSent = 0;
+        
+        for (const overdue of overdueCommissions) {
+            const daysSinceOldest = Math.floor((new Date() - overdue.oldestBooking) / (1000 * 60 * 60 * 24));
+            
+            await Notification.create({
+                type: 'commission_overdue',
+                title: 'Overdue Commission Payment Reminder',
+                message: `You have RWF ${overdue.totalOverdue.toLocaleString()} in overdue commission payments from ${overdue.bookingCount} bookings. Oldest payment is ${daysSinceOldest} days overdue. Please settle to maintain property visibility.`,
+                recipientUser: overdue._id
+            });
+            
+            remindersSent++;
+        }
+
+        res.json({ 
+            message: `Sent ${remindersSent} commission payment reminders`,
+            remindersSent,
+            overdueOwners: overdueCommissions.length
+        });
+    } catch (error) {
+        console.error('Send commission reminders error:', error);
+        res.status(500).json({ message: 'Failed to send reminders', error: error.message });
     }
 });
 
@@ -347,13 +591,19 @@ router.post('/', requireAuth, upload.array('images', 10), async (req, res) => {
     // Deduplicate & normalize
     mergedImages = Array.from(new Set(mergedImages.map(u => String(u).replace(/\\+/g, '/'))));
     const payload = { ...req.body, images: mergedImages, host: req.user.id };
-    // Visibility-based commission: 'top' -> 30%
-    if (payload.visibilityLevel && String(payload.visibilityLevel).toLowerCase() === 'top') {
-        payload.commissionRate = 30;
-    } else if (payload.commissionRate != null) {
-        // Clamp commissionRate to [8,12] if provided
+    // Ensure commissionRate stays within [8,12] regardless of visibility level
+    if (payload.commissionRate != null) {
         const cr = Number(payload.commissionRate);
         payload.commissionRate = Math.min(12, Math.max(8, isNaN(cr) ? 10 : cr));
+    } else {
+        // Set default commission rate based on visibility level within allowed range
+        if (payload.visibilityLevel === 'featured') {
+            payload.commissionRate = 12; // Maximum allowed rate for featured properties
+        } else if (payload.visibilityLevel === 'premium') {
+            payload.commissionRate = 10; // Medium rate for premium properties
+        } else {
+            payload.commissionRate = 8; // Minimum rate for standard properties
+        }
     }
     // Coerce roomRules to array if provided
     if (payload.roomRules && !Array.isArray(payload.roomRules)) {
@@ -382,11 +632,18 @@ router.put('/:id', requireAuth, upload.array('images', 10), async (req, res) => 
     ['pricePerNight','bedrooms','bathrooms','discountPercent','commissionRate'].forEach(k => {
         if (updates[k] != null) updates[k] = Number(updates[k]);
     });
-    // Visibility-based commission: 'top' -> 30%; otherwise clamp [8,12]
-    if (updates.visibilityLevel && String(updates.visibilityLevel).toLowerCase() === 'top') {
-        updates.commissionRate = 30;
-    } else if (updates.commissionRate != null) {
+    // Ensure commissionRate stays within [8,12] regardless of visibility level
+    if (updates.commissionRate != null) {
         updates.commissionRate = Math.min(12, Math.max(8, Number(updates.commissionRate)));
+    } else if (updates.visibilityLevel) {
+        // Set commission rate based on visibility level within allowed range
+        if (updates.visibilityLevel === 'featured') {
+            updates.commissionRate = 12; // Maximum allowed rate for featured properties
+        } else if (updates.visibilityLevel === 'premium') {
+            updates.commissionRate = 10; // Medium rate for premium properties
+        } else {
+            updates.commissionRate = 8; // Minimum rate for standard properties
+        }
     }
     // Amenities (multer form arrays come as string or array)
     if (updates.amenities && !Array.isArray(updates.amenities)) {

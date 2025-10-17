@@ -13,6 +13,7 @@ import {
 } from "react-icons/fa";
 import toast from "react-hot-toast";
 import { useAuth } from "../contexts/AuthContext";
+import { safeApiGet, apiGet } from "../utils/apiUtils";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -21,14 +22,14 @@ const ApartmentsListing = () => {
   const [filters, setFilters] = useState({
     location: "",
     priceMin: 0,
-    priceMax: 500000,
+    priceMax: 5000000,
     bedrooms: "",
     amenities: [],
     sortBy: "price-asc",
     checkIn: "",
     checkOut: "",
     guests: 1,
-    propertyType: "",
+    category: "",
     rating: "",
     availability: "",
     features: [],
@@ -38,7 +39,7 @@ const ApartmentsListing = () => {
   const [apartments, setApartments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [fetchTimer, setFetchTimer] = useState(null);
-  const [budgetBounds, setBudgetBounds] = useState({ min: 0, max: 1000000 });
+  const [budgetBounds, setBudgetBounds] = useState({ min: 0, max: 5000000 });
 
   const makeAbsolute = (u) => {
     if (!u) return u;
@@ -65,13 +66,19 @@ const ApartmentsListing = () => {
       if (filters.priceMax != null) params.set('maxPrice', String(filters.priceMax));
       if (filters.bedrooms) params.set('bedrooms', filters.bedrooms);
       if (filters.amenities.length) params.set('amenities', filters.amenities.join(','));
+      if (filters.category) params.set('category', filters.category);
       if (filters.checkIn && filters.checkOut) {
         params.set('startDate', filters.checkIn);
         params.set('endDate', filters.checkOut);
       }
-      const res = await fetch(`${API_URL}/api/properties?${params.toString()}`, { credentials: 'include', signal });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed to load properties');
+      
+      // Use enhanced API utilities with retry logic and error handling
+      const data = await safeApiGet(`/api/properties?${params.toString()}`, {
+        fallback: { properties: [] },
+        signal,
+        timeout: 15000
+      });
+      
       const list = (data.properties || []);
       const mapped = list.map((p) => {
         // choose first valid image (skip videos or invalid)
@@ -107,17 +114,22 @@ const ApartmentsListing = () => {
         if (prices.length) {
           const min = Math.max(0, Math.min(...prices));
           const max = Math.max(...prices);
-          setBudgetBounds({ min: 0, max: Math.max(max, 100000) });
+          setBudgetBounds({ min: 0, max: Math.max(max, 5000000) });
           // Keep selected range within new bounds but not force to 0 if user selected higher lower-bound
           setFilters(prev => ({
             ...prev,
-            priceMin: Math.max(Math.min(prev.priceMin, Math.max(max, 100000)), 0),
-            priceMax: Math.min(Math.max(prev.priceMax, prev.priceMin + 5000), Math.max(max, 100000))
+            priceMin: Math.max(Math.min(prev.priceMin, Math.max(max, 5000000)), 0),
+            priceMax: Math.min(Math.max(prev.priceMax, prev.priceMin + 5000), Math.max(max, 5000000))
           }));
         }
       }
     } catch (e) {
-      if (e.name !== 'AbortError') toast.error(e.message);
+      if (e.name !== 'AbortError') {
+        console.error('Failed to fetch properties:', e);
+        toast.error('Failed to load properties. Please try again.');
+        // Set empty array as fallback
+        setApartments([]);
+      }
     } finally {
       setLoading(false);
     }
@@ -133,7 +145,7 @@ const ApartmentsListing = () => {
       controller.abort();
       clearTimeout(t);
     };
-  }, [filters.location, filters.priceMin, filters.priceMax, filters.bedrooms, filters.amenities.join(','), filters.checkIn, filters.checkOut]);
+  }, [filters.location, filters.priceMin, filters.priceMax, filters.bedrooms, filters.amenities.join(','), filters.category, filters.checkIn, filters.checkOut]);
 
   const handleFilterChange = (field, value) => {
     setFilters((prev) => ({
@@ -364,6 +376,28 @@ const ApartmentsListing = () => {
                   <option value="2">2 Bedrooms</option>
                   <option value="3">3 Bedrooms</option>
                   <option value="4+">4+ Bedrooms</option>
+                </select>
+              </div>
+
+              {/* Property Category */}
+              <div className="mb-6">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Property Type
+                </label>
+                <select
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  value={filters.category}
+                  onChange={(e) =>
+                    handleFilterChange("category", e.target.value)
+                  }
+                >
+                  <option value="">All Types</option>
+                  <option value="apartment">Apartment</option>
+                  <option value="hotel">Hotel</option>
+                  <option value="villa">Villa</option>
+                  <option value="hostel">Hostel</option>
+                  <option value="resort">Resort</option>
+                  <option value="guesthouse">Guesthouse</option>
                 </select>
               </div>
 

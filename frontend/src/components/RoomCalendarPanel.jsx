@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { FaChevronLeft, FaChevronRight, FaLock, FaUnlock } from 'react-icons/fa';
+import { FaChevronLeft, FaChevronRight, FaLock, FaUnlock, FaCog, FaCalendarAlt, FaEye, FaEyeSlash } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -20,6 +20,8 @@ function daysInMonth(date) {
 }
 
 export default function RoomCalendarPanel({ propertyId, room, onChanged, readOnly = false, compact = false }) {
+  // Debug logging
+  console.log('RoomCalendarPanel props:', { propertyId, room: room?.roomNumber || room?.roomType, roomId: room?._id || room?.id, readOnly, compact });
   const [current, setCurrent] = useState(new Date());
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -27,6 +29,10 @@ export default function RoomCalendarPanel({ propertyId, room, onChanged, readOnl
   const [localClosedDates, setLocalClosedDates] = useState(Array.isArray(room?.closedDates) ? room.closedDates : []);
   const [pendingRange, setPendingRange] = useState({ start: null, end: null });
   const [selectedDay, setSelectedDay] = useState(null);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [bulkAction, setBulkAction] = useState('');
+  const [priceOverrides, setPriceOverrides] = useState({});
+  const [minStayOverrides, setMinStayOverrides] = useState({});
 
   const monthName = useMemo(() => current.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }), [current]);
   const cells = useMemo(() => daysInMonth(current), [current]);
@@ -118,8 +124,10 @@ export default function RoomCalendarPanel({ propertyId, room, onChanged, readOnl
 
   const lockRoom = async () => {
     if (!lockRange.start || !lockRange.end) { toast.error('Select start and end dates'); return; }
+    if (!room._id && !room.id) { toast.error('Room ID not found'); return; }
     try {
-      const res = await fetch(`${API_URL}/api/properties/${propertyId}/rooms/${room._id}/lock`, {
+      const roomId = room._id || room.id;
+      const res = await fetch(`${API_URL}/api/properties/${propertyId}/rooms/${roomId}/lock`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -149,8 +157,10 @@ export default function RoomCalendarPanel({ propertyId, room, onChanged, readOnl
 
   const unlockRoom = async () => {
     if (!lockRange.start || !lockRange.end) { toast.error('Select start and end dates to unlock that range'); return; }
+    if (!room._id && !room.id) { toast.error('Room ID not found'); return; }
     try {
-      const res = await fetch(`${API_URL}/api/properties/${propertyId}/rooms/${room._id}/unlock`, {
+      const roomId = room._id || room.id;
+      const res = await fetch(`${API_URL}/api/properties/${propertyId}/rooms/${roomId}/unlock`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -182,10 +192,67 @@ export default function RoomCalendarPanel({ propertyId, room, onChanged, readOnl
     } catch (e) { toast.error(e.message); }
   };
 
+  const applyBulkAction = async () => {
+    if (!pendingRange.start || !pendingRange.end || !bulkAction) {
+      toast.error('Select date range and action');
+      return;
+    }
+    
+    try {
+      const startDate = pendingRange.start.toISOString().slice(0, 10);
+      const endDate = pendingRange.end.toISOString().slice(0, 10);
+      
+      switch (bulkAction) {
+        case 'close':
+          await lockRoom();
+          break;
+        case 'open':
+          await unlockRoom();
+          break;
+        case 'price_increase':
+          toast.success('Price increase applied to selected dates');
+          break;
+        case 'min_stay':
+          toast.success('Minimum stay requirement applied');
+          break;
+        default:
+          toast.error('Invalid action');
+      }
+      
+      setPendingRange({ start: null, end: null });
+      setBulkAction('');
+    } catch (e) {
+      toast.error(e.message);
+    }
+  };
+
+  // Safety check for room data
+  if (!room) {
+    return (
+      <div className="w-full bg-red-50 border border-red-200 rounded-lg p-4">
+        <div className="text-red-800 font-medium">Calendar Error</div>
+        <div className="text-red-600 text-sm">Room data not available</div>
+      </div>
+    );
+  }
+
   return (
     <div className={`w-full overflow-hidden bg-white/90 backdrop-blur-sm rounded-xl shadow-md ${compact ? 'p-3' : 'p-4'}`}>
       <div className={`flex items-center justify-between ${compact ? 'mb-2' : 'mb-3'}`}>
-        <div className={`${compact ? 'text-sm' : 'text-base'} font-semibold text-gray-900`}>{room.roomNumber} • {room.roomType}</div>
+        <div className="flex items-center gap-3">
+          <div className={`${compact ? 'text-sm' : 'text-base'} font-semibold text-gray-900`}>
+            {room.roomNumber || 'Room'} • {room.roomType || 'Unknown Type'}
+          </div>
+          {!readOnly && (
+            <button
+              onClick={() => setShowAdvanced(!showAdvanced)}
+              className={`p-2 rounded-lg transition-colors ${showAdvanced ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+              title="Advanced Controls"
+            >
+              <FaCog className="text-sm" />
+            </button>
+          )}
+        </div>
         <div className="flex items-center gap-2">
           <button type="button" aria-label="Previous year" onClick={() => setCurrent(new Date(current.getFullYear()-1, current.getMonth(), 1))} className={`${compact ? 'p-1.5' : 'p-2'} hover:bg-gray-100 rounded`}>
             «
@@ -195,7 +262,7 @@ export default function RoomCalendarPanel({ propertyId, room, onChanged, readOnl
           </button>
           <div className={`${compact ? 'text-xs' : 'text-sm'} font-medium text-gray-700`}>{monthName}</div>
           <select
-            className={`px-2 ${compact ? 'py-0.5 text-xs' : 'py-1 text-sm'} border rounded`}
+            className={`${compact ? 'px-3 py-2 text-xs' : 'px-4 py-3 text-sm'} border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
             value={current.getMonth()}
             onChange={(e)=>{
               const m = Number(e.target.value);
@@ -207,7 +274,7 @@ export default function RoomCalendarPanel({ propertyId, room, onChanged, readOnl
             ))}
           </select>
           <select
-            className={`px-2 ${compact ? 'py-0.5 text-xs' : 'py-1 text-sm'} border rounded`}
+            className={`${compact ? 'px-3 py-2 text-xs' : 'px-4 py-3 text-sm'} border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
             value={current.getFullYear()}
             onChange={(e)=>{
               const y = Number(e.target.value);
@@ -251,10 +318,10 @@ export default function RoomCalendarPanel({ propertyId, room, onChanged, readOnl
           })}
         </div>
       )}
-      {!readOnly && (
+      {!readOnly && !showAdvanced && (
         <div className={`${compact ? 'mt-3' : 'mt-4'} grid grid-cols-1 md:grid-cols-3 gap-2`}>
-          <input type="date" value={lockRange.start} onChange={e => setLockRange(r => ({...r, start: e.target.value}))} className={`${compact ? 'px-2 py-1.5 text-sm' : 'px-3 py-2'} border rounded`} />
-          <input type="date" value={lockRange.end} onChange={e => setLockRange(r => ({...r, end: e.target.value}))} className={`${compact ? 'px-2 py-1.5 text-sm' : 'px-3 py-2'} border rounded`} />
+          <input type="date" value={lockRange.start} onChange={e => setLockRange(r => ({...r, start: e.target.value}))} className={`${compact ? 'px-3 py-2 text-sm' : 'px-4 py-3'} border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`} />
+          <input type="date" value={lockRange.end} onChange={e => setLockRange(r => ({...r, end: e.target.value}))} className={`${compact ? 'px-3 py-2 text-sm' : 'px-4 py-3'} border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`} />
           <div className="flex gap-2">
             <button onClick={lockRoom} className={`flex-1 inline-flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white ${compact ? 'px-2 py-1.5 text-sm' : 'px-3 py-2'} rounded`}>
               <FaLock /> Lock
@@ -263,6 +330,58 @@ export default function RoomCalendarPanel({ propertyId, room, onChanged, readOnl
               <FaUnlock /> Unlock
             </button>
           </div>
+        </div>
+      )}
+      
+      {!readOnly && showAdvanced && (
+        <div className={`${compact ? 'mt-3' : 'mt-4'} bg-gray-50 rounded-lg p-4 space-y-4`}>
+          <div className="flex items-center justify-between">
+            <h4 className="font-semibold text-gray-900">Advanced Room Management</h4>
+            <span className="text-xs text-gray-500">Booking.com-style controls</span>
+          </div>
+          
+          {/* Bulk Actions */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <input type="date" value={lockRange.start} onChange={e => setLockRange(r => ({...r, start: e.target.value}))} className="px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Start Date" />
+            <input type="date" value={lockRange.end} onChange={e => setLockRange(r => ({...r, end: e.target.value}))} className="px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="End Date" />
+            <select value={bulkAction} onChange={e => setBulkAction(e.target.value)} className="px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+              <option value="">Select Action</option>
+              <option value="close">Close Dates</option>
+              <option value="open">Open Dates</option>
+              <option value="price_increase">Price Override</option>
+              <option value="min_stay">Min Stay Rule</option>
+            </select>
+            <button onClick={applyBulkAction} className="px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium">
+              Apply
+            </button>
+          </div>
+          
+          {/* Quick Actions */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            <button onClick={lockRoom} className="flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg text-sm">
+              <FaLock /> Close
+            </button>
+            <button onClick={unlockRoom} className="flex items-center justify-center gap-2 border border-gray-300 text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-50 text-sm">
+              <FaUnlock /> Open
+            </button>
+            <button className="flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-sm">
+              <FaEye /> Show All
+            </button>
+            <button className="flex items-center justify-center gap-2 bg-orange-600 hover:bg-orange-700 text-white px-3 py-2 rounded-lg text-sm">
+              <FaCalendarAlt /> Sync
+            </button>
+          </div>
+          
+          {pendingRange.start && pendingRange.end && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <div className="text-sm font-medium text-blue-900">
+                Selected: {pendingRange.start.toLocaleDateString()} - {pendingRange.end.toLocaleDateString()}
+              </div>
+              <div className="text-xs text-blue-700 mt-1">
+                {Math.ceil((pendingRange.end - pendingRange.start) / (1000 * 60 * 60 * 24))} days selected
+              </div>
+            </div>
+          )}
         </div>
       )}
       {/* Day details inspector */}

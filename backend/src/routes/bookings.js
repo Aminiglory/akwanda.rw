@@ -44,21 +44,43 @@ function normalizeYMDToLocal(dateLike) {
 router.post('/:id/confirm', requireAuth, async (req, res) => {
 	const booking = await Booking.findById(req.params.id).populate('property').populate('guest');
 	if (!booking) return res.status(404).json({ message: 'Booking not found' });
-	// Only property owner can confirm
-	if (!booking.property || String(booking.property.host) !== String(req.user.id)) {
-		return res.status(403).json({ message: 'Only property owner can confirm booking.' });
+	// Only property owner or admin can confirm
+	const isPropertyOwner = booking.property && String(booking.property.host) === String(req.user.id);
+	const isAdmin = req.user.userType === 'admin';
+	if (!isPropertyOwner && !isAdmin) {
+		return res.status(403).json({ message: 'Only property owner or admin can confirm booking.' });
 	}
+	
+	// Ensure booking is in a confirmable state (pending or awaiting)
+	if (!['pending', 'awaiting'].includes(booking.status)) {
+		return res.status(400).json({ message: 'Booking cannot be confirmed in its current state.' });
+	}
+	
 	booking.status = 'confirmed';
 	await booking.save();
 	// Notify guest
+	const confirmedBy = isAdmin ? 'admin' : 'owner';
 	await Notification.create({
 		type: 'booking_confirmed',
 		title: 'Your booking is confirmed!',
-		message: `Your booking for ${booking.property.title} has been confirmed by the owner.`,
+		message: `Your booking for ${booking.property.title} has been confirmed by the ${confirmedBy}.`,
 		booking: booking._id,
 		property: booking.property._id,
 		recipientUser: booking.guest._id
 	});
+
+	// Notify property owner about commission obligation
+	if (booking.commissionAmount > 0) {
+		await Notification.create({
+			type: 'commission_due',
+			title: 'Commission Payment Due',
+			message: `Commission of RWF ${booking.commissionAmount.toLocaleString()} is due for confirmed booking ${booking.confirmationCode}. Rate: ${booking.property.commissionRate || 10}%`,
+			booking: booking._id,
+			property: booking.property._id,
+			recipientUser: booking.property.host
+		});
+	}
+
 	res.json({ booking });
 });
 
@@ -240,8 +262,12 @@ router.post('/', requireAuth, async (req, res) => {
 		const taxRate = 3;
 		const taxAmount = Math.round((amountBeforeTax * taxRate) / (100 + taxRate));
 		const totalAmount = amountBeforeTax; // remains gross
-		const commissionDoc = await Commission.findOne({ active: true }).sort({ createdAt: -1 });
-		const rate = commissionDoc ? commissionDoc.ratePercent : 10;
+		// Use property-specific commission rate, fallback to global rate if not set
+		let rate = property.commissionRate;
+		if (!rate || rate < 8 || rate > 12) {
+			const commissionDoc = await Commission.findOne({ active: true }).sort({ createdAt: -1 });
+			rate = commissionDoc ? Math.min(12, Math.max(8, commissionDoc.ratePercent)) : 10;
+		}
 		const commissionAmount = Math.round((amountBeforeTax * rate) / 100);
 
 		let guestId = req.user.id;
@@ -805,7 +831,7 @@ router.get('/:id', requireAuth, async (req, res) => {
 router.patch('/:id/status', requireAuth, async (req, res) => {
     try {
         const { status } = req.body;
-        const validStatuses = ['pending', 'confirmed', 'cancelled', 'ended'];
+        const validStatuses = ['pending', 'awaiting', 'confirmed', 'cancelled', 'ended'];
         
         if (!validStatuses.includes(status)) {
             return res.status(400).json({ message: 'Invalid status' });

@@ -126,6 +126,8 @@ const AdminDashboard = () => {
         return 'bg-green-100 text-green-800';
       case 'pending':
         return 'bg-yellow-100 text-yellow-800';
+      case 'awaiting':
+        return 'bg-orange-100 text-orange-800';
       case 'cancelled':
         return 'bg-red-100 text-red-800';
       case 'ended':
@@ -133,6 +135,38 @@ const AdminDashboard = () => {
         return 'bg-blue-100 text-blue-800';
       default:
         return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const confirmBooking = async (bookingId) => {
+    try {
+      const response = await fetch(`${API_URL}/api/bookings/${bookingId}/confirm`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to confirm booking');
+      }
+
+      const data = await response.json();
+      toast.success('Booking confirmed successfully!');
+      
+      // Update the booking in the local state
+      setBookings(prevBookings => 
+        prevBookings.map(booking => 
+          booking._id === bookingId 
+            ? { ...booking, status: 'confirmed' }
+            : booking
+        )
+      );
+    } catch (error) {
+      console.error('Error confirming booking:', error);
+      toast.error(error.message || 'Failed to confirm booking');
     }
   };
 
@@ -459,8 +493,11 @@ const AdminDashboard = () => {
                             <button className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
                               View Details
                             </button>
-                            {booking.status === 'pending' && (
-                              <button className="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm">
+                            {(booking.status === 'pending' || booking.status === 'awaiting') && (
+                              <button 
+                                onClick={() => confirmBooking(booking._id)}
+                                className="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+                              >
                                 Confirm
                               </button>
                             )}

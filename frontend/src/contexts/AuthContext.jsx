@@ -117,6 +117,21 @@ export const AuthProvider = ({ children }) => {
     return data.user;
   };
 
+  const refreshUser = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/auth/me`, { credentials: 'include' });
+      const data = await res.json();
+      if (res.ok && data.user) {
+        setUser(data.user);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        return data.user;
+      }
+    } catch (error) {
+      console.error('Failed to refresh user:', error);
+    }
+    return null;
+  };
+
   const value = {
     user,
     isLoading,
@@ -125,6 +140,7 @@ export const AuthProvider = ({ children }) => {
     logout,
     updateAvatar,
     updateProfile,
+    refreshUser,
     isAuthenticated: !!user
   };
 

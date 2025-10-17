@@ -602,15 +602,15 @@ const EnhancedPropertyOwnerDashboard = () => {
                         {addRoomOpen[property._id] && (
                           <div className="mb-4 p-4 bg-gray-50 rounded-lg border">
                             <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
-                              <input placeholder="Room Number" className="px-3 py-2 border rounded" value={(addRoomData[property._id]?.roomNumber)||''} onChange={e=>setAddRoomData(p=>({ ...p, [property._id]: { ...(p[property._id]||{}), roomNumber:e.target.value } }))} />
-                              <select className="px-3 py-2 border rounded" value={(addRoomData[property._id]?.roomType)||''} onChange={e=>setAddRoomData(p=>({ ...p, [property._id]: { ...(p[property._id]||{}), roomType:e.target.value } }))}>
+                              <input placeholder="Room Number" className="px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" value={(addRoomData[property._id]?.roomNumber)||''} onChange={e=>setAddRoomData(p=>({ ...p, [property._id]: { ...(p[property._id]||{}), roomNumber:e.target.value } }))} />
+                              <select className="px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" value={(addRoomData[property._id]?.roomType)||''} onChange={e=>setAddRoomData(p=>({ ...p, [property._id]: { ...(p[property._id]||{}), roomType:e.target.value } }))}>
                                 <option value="">Room Type</option>
                                 {['single','double','suite','family','deluxe'].map(t=> (<option key={t} value={t}>{t}</option>))}
                               </select>
-                              <input type="number" placeholder="Price/night" className="px-3 py-2 border rounded" value={(addRoomData[property._id]?.pricePerNight)||''} onChange={e=>setAddRoomData(p=>({ ...p, [property._id]: { ...(p[property._id]||{}), pricePerNight:e.target.value } }))} />
-                              <input type="number" placeholder="Capacity" className="px-3 py-2 border rounded" value={(addRoomData[property._id]?.capacity)||''} onChange={e=>setAddRoomData(p=>({ ...p, [property._id]: { ...(p[property._id]||{}), capacity:e.target.value } }))} />
-                              <input placeholder="Amenities (comma separated)" className="px-3 py-2 border rounded md:col-span-2" value={(addRoomData[property._id]?.amenities)||''} onChange={e=>setAddRoomData(p=>({ ...p, [property._id]: { ...(p[property._id]||{}), amenities:e.target.value } }))} />
-                              <input placeholder="Image URLs (comma separated)" className="px-3 py-2 border rounded md:col-span-3" value={(addRoomData[property._id]?.images)||''} onChange={e=>setAddRoomData(p=>({ ...p, [property._id]: { ...(p[property._id]||{}), images:e.target.value } }))} />
+                              <input type="number" placeholder="Price/night" className="px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" value={(addRoomData[property._id]?.pricePerNight)||''} onChange={e=>setAddRoomData(p=>({ ...p, [property._id]: { ...(p[property._id]||{}), pricePerNight:e.target.value } }))} />
+                              <input type="number" placeholder="Capacity" className="px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" value={(addRoomData[property._id]?.capacity)||''} onChange={e=>setAddRoomData(p=>({ ...p, [property._id]: { ...(p[property._id]||{}), capacity:e.target.value } }))} />
+                              <input placeholder="Amenities (comma separated)" className="px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent md:col-span-2" value={(addRoomData[property._id]?.amenities)||''} onChange={e=>setAddRoomData(p=>({ ...p, [property._id]: { ...(p[property._id]||{}), amenities:e.target.value } }))} />
+                              <input placeholder="Image URLs (comma separated)" className="px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent md:col-span-3" value={(addRoomData[property._id]?.images)||''} onChange={e=>setAddRoomData(p=>({ ...p, [property._id]: { ...(p[property._id]||{}), images:e.target.value } }))} />
                               <div className="md:col-span-3 flex gap-2">
                                 <button onClick={()=>handleAddRoom(property._id)} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Save Room</button>
                                 <button onClick={()=>setAddRoomOpen(prev=>({...prev,[property._id]:false}))} className="flex-1 border px-4 py-2 rounded">Cancel</button>
@@ -633,14 +633,14 @@ const EnhancedPropertyOwnerDashboard = () => {
                                 {editingRoom && editingRoom.propertyId===property._id && editingRoom.roomId===(room._id) && (
                                   <div className="p-3 bg-gray-50 border rounded">
                                     <div className="grid grid-cols-1 md:grid-cols-6 gap-2">
-                                      <input className="px-3 py-2 border rounded" value={editRoomData.roomNumber||''} onChange={e=>setEditRoomData(d=>({...d, roomNumber:e.target.value}))} />
-                                      <select className="px-3 py-2 border rounded" value={editRoomData.roomType||''} onChange={e=>setEditRoomData(d=>({...d, roomType:e.target.value}))}>
+                                      <input className="px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" value={editRoomData.roomNumber||''} onChange={e=>setEditRoomData(d=>({...d, roomNumber:e.target.value}))} />
+                                      <select className="px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" value={editRoomData.roomType||''} onChange={e=>setEditRoomData(d=>({...d, roomType:e.target.value}))}>
                                         {['single','double','suite','family','deluxe'].map(t=> (<option key={t} value={t}>{t}</option>))}
                                       </select>
-                                      <input type="number" className="px-3 py-2 border rounded" value={editRoomData.pricePerNight||''} onChange={e=>setEditRoomData(d=>({...d, pricePerNight:e.target.value}))} />
-                                      <input type="number" className="px-3 py-2 border rounded" value={editRoomData.capacity||''} onChange={e=>setEditRoomData(d=>({...d, capacity:e.target.value}))} />
-                                      <input className="px-3 py-2 border rounded md:col-span-2" placeholder="Amenities" value={editRoomData.amenities||''} onChange={e=>setEditRoomData(d=>({...d, amenities:e.target.value}))} />
-                                      <input className="px-3 py-2 border rounded md:col-span-3" placeholder="Image URLs" value={editRoomData.images||''} onChange={e=>setEditRoomData(d=>({...d, images:e.target.value}))} />
+                                      <input type="number" className="px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" value={editRoomData.pricePerNight||''} onChange={e=>setEditRoomData(d=>({...d, pricePerNight:e.target.value}))} />
+                                      <input type="number" className="px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" value={editRoomData.capacity||''} onChange={e=>setEditRoomData(d=>({...d, capacity:e.target.value}))} />
+                                      <input className="px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent md:col-span-2" placeholder="Amenities" value={editRoomData.amenities||''} onChange={e=>setEditRoomData(d=>({...d, amenities:e.target.value}))} />
+                                      <input className="px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent md:col-span-3" placeholder="Image URLs" value={editRoomData.images||''} onChange={e=>setEditRoomData(d=>({...d, images:e.target.value}))} />
                                       <div className="md:col-span-3 flex gap-2">
                                         <button onClick={handleSaveEditRoom} className="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">Save</button>
                                         <button onClick={()=>{setEditingRoom(null); setEditRoomData({});}} className="flex-1 border px-4 py-2 rounded">Cancel</button>

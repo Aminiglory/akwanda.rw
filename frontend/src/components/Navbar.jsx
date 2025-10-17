@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import { useSocket } from "../contexts/SocketContext";
+import { safeApiGet, apiGet, apiPatch } from "../utils/apiUtils";
 import {
   FaHome,
   FaCar,
@@ -50,6 +52,7 @@ const Navbar = () => {
   const [notifications, setNotifications] = useState([]);
   const [unreadNotifCount, setUnreadNotifCount] = useState(0);
   const [unreadMsgCount, setUnreadMsgCount] = useState(0);
+  const [userStats, setUserStats] = useState({ properties: 0, bookings: 0, rating: 0 });
   const { socket } = useSocket();
 
   // Main navigation items like Booking.com
@@ -213,44 +216,61 @@ const Navbar = () => {
     if (!isAuthenticated) return;
     let timer;
     const loadUnread = async () => {
-      try {
-        const res = await fetch(`${API_URL}/api/notifications/unread-count`, { credentials: 'include' });
-        const data = await res.json();
-        if (res.ok) setUnreadNotifCount(Number(data.count || 0));
-      } catch (_) {}
+      const data = await safeApiGet('/api/notifications/unread-count', { count: 0 });
+      setUnreadNotifCount(Number(data.count || 0));
     };
-    const loadList = async () => {
-      try {
-        const res = await fetch(`${API_URL}/api/notifications/list`, { credentials: 'include' });
-        const data = await res.json();
-        if (res.ok) {
-          const list = (data.notifications || []).map(n => ({
-            id: n._id,
-            type: n.type,
-            title: n.title || n.message,
-            message: n.message || n.title,
-            isRead: !!n.isRead,
-            booking: n.booking,
-            property: n.property,
-            createdAt: n.createdAt
-          }));
-          setNotifications(list);
-          setUnreadNotifCount(list.filter(x => !x.isRead).length);
+
+    const loadUnreadMessages = async () => {
+      const data = await safeApiGet('/api/messages/unread-count', { count: 0 });
+      setUnreadMsgCount(Number(data.count || 0));
+    };
+    const loadUserStats = async () => {
+      if (user?.userType === 'host') {
+        // Try stats endpoint first, fallback to dashboard
+        let data = await safeApiGet('/api/reports/stats', null);
+        if (!data) {
+          data = await safeApiGet('/api/reports/dashboard', { properties: 0, bookings: 0, rating: 0 });
         }
-      } catch (_) {}
+        
+        setUserStats({
+          properties: data.totalProperties || 0,
+          bookings: data.totalBookings || 0,
+          rating: data.averageRating || 0
+        });
+      }
     };
+
+    const loadList = async () => {
+      const data = await safeApiGet('/api/notifications/list', { notifications: [] });
+      const list = (data.notifications || []).map(n => ({
+        id: n._id,
+        type: n.type,
+        title: n.title,
+        message: n.message,
+        isRead: n.isRead,
+        createdAt: n.createdAt
+      }));
+      setNotifList(list);
+    };
+
     loadUnread();
+    loadUnreadMessages();
+    loadUserStats();
     loadList();
-    timer = setInterval(loadUnread, 30000);
+    timer = setInterval(() => {
+      loadUnread();
+      loadUnreadMessages();
+      loadUserStats();
+    }, 30000);
     return () => { if (timer) clearInterval(timer); };
-  }, [isAuthenticated]);
+  }, [isAuthenticated, user?.userType]);
 
   const markNotificationRead = async (id) => {
-    try {
-      await fetch(`${API_URL}/api/notifications/${id}/read`, { method: 'PATCH', credentials: 'include' });
+    const success = await apiPatch(`/api/notifications/${id}/read`);
+    if (success) {
       setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
       setUnreadNotifCount(prev => Math.max(0, prev - 1));
-    } catch (_) {}
+    }
   };
 
   const getNotificationLink = (n) => {
@@ -313,7 +333,7 @@ const Navbar = () => {
                     Dashboard
                   </Link>
                   <Link
-                    to="/upload-property"
+                    to="/upload"
                     className="hidden sm:inline hover:text-blue-200 font-medium"
                   >
                     List your property
@@ -379,7 +399,7 @@ const Navbar = () => {
             <div className="flex items-center space-x-8">
               <Link
                 to="/"
-                className="text-2xl font-bold text-blue-800 hover:text-blue-600"
+                className="text-xl font-bold text-blue-800 hover:text-blue-600"
               >
                 AKWANDA.rw
               </Link>
@@ -396,15 +416,15 @@ const Navbar = () => {
                       <div key={index} className="relative group">
                         <button
                           onClick={() => toggleDropdown(item.label)}
-                          className={`flex items-center space-x-2 px-4 py-3 rounded-lg transition-all duration-300 font-medium ${
+                          className={`flex items-center space-x-1 px-3 py-2 rounded-lg transition-all duration-300 font-medium text-sm ${
                             isActive
                               ? "bg-blue-600 text-white shadow-md"
                               : "text-gray-700 hover:text-blue-600 hover:bg-gray-50"
                           }`}
                         >
-                          <Icon className="text-lg" />
+                          <Icon className="text-sm" />
                           <span>{item.label}</span>
-                          <FaCaretDown className={`text-sm transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                          <FaCaretDown className={`text-xs transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
                         </button>
 
                         {/* Dropdown Menu - Booking.com Style */}
@@ -438,21 +458,20 @@ const Navbar = () => {
             </div>
 
             {/* Right Side - Booking.com Style */}
-            <div className="flex items-center space-x-4">
-              {/* Owner Management Dropdown - Booking.com Style */}
+            <div className="flex items-center space-x-2">
+              {/* Analytics Dropdown - Booking.com Style */}
               {isAuthenticated && user?.userType === 'host' && (
                 <div className="hidden lg:block relative">
                   <button
                     onClick={() => toggleDropdown('owner')}
-                    className={`flex items-center space-x-2 px-4 py-3 rounded-lg transition-all duration-300 font-medium ${
+                    className={`flex items-center px-3 py-2 rounded-lg transition-all duration-300 ${
                       activeDropdown === 'owner'
                         ? "bg-blue-600 text-white shadow-md"
                         : "text-gray-700 hover:text-blue-600 hover:bg-gray-50"
                     }`}
+                    title="Analytics & Management"
                   >
-                    <FaUser className="text-lg" />
-                    <span>Owner</span>
-                    <FaCaretDown className={`text-sm transition-transform ${activeDropdown === 'owner' ? 'rotate-180' : ''}`} />
+                    <FaChartLine className="text-lg" />
                   </button>
 
                   {/* Owner Management Dropdown - Booking.com Style */}
@@ -494,13 +513,12 @@ const Navbar = () => {
               {isAuthenticated && (
                 <Link
                   to="/messages"
-                  className="hidden lg:flex items-center space-x-2 px-4 py-3 modern-card text-gray-700 hover:text-blue-600 relative"
+                  className="hidden lg:flex items-center px-3 py-2 rounded-lg text-gray-700 hover:text-blue-600 hover:bg-gray-50 relative transition-colors"
                   title="Messages"
                 >
                   <FaEnvelope className="text-lg" />
-                  <span className="font-medium">Messages</span>
                   {unreadMsgCount > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center">
+                    <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs rounded-full px-2 py-1 min-w-[18px] text-center">
                       {unreadMsgCount}
                     </span>
                   )}
@@ -510,7 +528,7 @@ const Navbar = () => {
               {/* Notifications (admin and host) */}
               {(user?.userType === "admin" || user?.userType === 'host') && (
                 <div className="hidden lg:block relative group">
-                  <button className="relative p-3 text-gray-700 hover:text-blue-600 hover:bg-gray-100 rounded-lg">
+                  <button className="relative px-3 py-2 text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-lg transition-colors">
                     <FaBell className="text-lg" />
                     {unreadNotifCount > 0 && (
                       <span className="absolute -top-1 -right-1 bg-green-600 text-white text-xs rounded-full px-2 py-1 min-w-[18px] text-center">
@@ -556,59 +574,137 @@ const Navbar = () => {
                 <div className="relative">
                   <button
                     onClick={toggleProfile}
-                    className="flex items-center space-x-2 px-4 py-3 modern-card text-gray-700 hover:text-blue-600"
+                    className="flex items-center space-x-2 px-3 py-2 rounded-lg text-gray-700 hover:text-blue-600 hover:bg-gray-50 transition-colors"
                   >
                     <FaUserCircle className="text-lg" />
-                    <span className="hidden sm:inline font-medium">
-                      {user?.name || user?.email}
+                    <span className="hidden sm:inline font-medium text-sm">
+                      {user?.firstName || user?.name || user?.email}
                     </span>
                     {isProfileOpen ? (
-                      <FaChevronUp className="text-sm" />
+                      <FaChevronUp className="text-xs" />
                     ) : (
-                      <FaChevronDown className="text-sm" />
+                      <FaChevronDown className="text-xs" />
                     )}
                   </button>
 
                   {isProfileOpen && (
-                    <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl dropdown-shadow border border-gray-200 py-2 z-50">
-                      <Link
-                        to="/profile"
-                        className="flex items-center space-x-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50"
-                        onClick={() => setIsProfileOpen(false)}
-                      >
-                        <FaUser className="text-sm" />
-                        <span>Profile</span>
-                      </Link>
-                      <Link
-                        to="/settings"
-                        className="flex items-center space-x-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50"
-                        onClick={() => setIsProfileOpen(false)}
-                      >
-                        <FaCog className="text-sm" />
-                        <span>Settings</span>
-                      </Link>
+                    <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl dropdown-shadow border border-gray-200 py-3 z-50">
+                      {/* Profile Header */}
+                      <div className="px-4 pb-3 border-b border-gray-100">
+                        <div className="flex items-center space-x-3">
+                          {user?.avatar ? (
+                            <img
+                              src={user.avatar}
+                              alt="Profile"
+                              className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
+                            />
+                          ) : (
+                            <div className="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center border-2 border-gray-200">
+                              <span className="text-white font-bold text-lg">
+                                {((user?.firstName || '').charAt(0) + (user?.lastName || '').charAt(0)) || user?.email?.charAt(0) || 'U'}
+                              </span>
+                            </div>
+                          )}
+                          <div className="flex-1">
+                            <div className="font-semibold text-gray-900">
+                              {user?.firstName} {user?.lastName}
+                            </div>
+                            <div className="text-sm text-gray-500">{user?.email}</div>
+                            <div className="text-xs text-blue-600 font-medium">
+                              {user?.userType === 'host' ? 'Property Owner' : 'Guest'}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Quick Stats for Hosts */}
+                      {user?.userType === 'host' && (
+                        <div className="px-4 py-2 border-b border-gray-100">
+                          <div className="grid grid-cols-3 gap-2 text-center">
+                            <div>
+                              <div className="text-sm font-bold text-blue-600">{userStats.properties}</div>
+                              <div className="text-xs text-gray-500">Properties</div>
+                            </div>
+                            <div>
+                              <div className="text-sm font-bold text-green-600">{userStats.bookings}</div>
+                              <div className="text-xs text-gray-500">Bookings</div>
+                            </div>
+                            <div>
+                              <div className="text-sm font-bold text-orange-600">{userStats.rating}</div>
+                              <div className="text-xs text-gray-500">Rating</div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Menu Items */}
+                      <div className="py-1">
+                        <Link
+                          to="/profile"
+                          className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors"
+                          onClick={() => setIsProfileOpen(false)}
+                        >
+                          <FaUser className="text-blue-600" />
+                          <span className="font-medium">My Profile</span>
+                        </Link>
+                        
+                        {user?.userType === 'host' && (
+                          <Link
+                            to="/my-bookings"
+                            className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors"
+                            onClick={() => setIsProfileOpen(false)}
+                          >
+                            <FaChartLine className="text-green-600" />
+                            <span className="font-medium">Dashboard</span>
+                          </Link>
+                        )}
+
+                        <Link
+                          to="/settings"
+                          className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                          onClick={() => setIsProfileOpen(false)}
+                        >
+                          <FaCog className="text-gray-600" />
+                          <span className="font-medium">Settings</span>
+                        </Link>
+
+                        {user?.userType === 'host' && (
+                          <Link
+                            to="/support"
+                            className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-700 transition-colors"
+                            onClick={() => setIsProfileOpen(false)}
+                          >
+                            <FaQuestionCircle className="text-purple-600" />
+                            <span className="font-medium">Help</span>
+                          </Link>
+                        )}
+                      </div>
+
                       <hr className="my-2" />
-                      <button
-                        onClick={handleLogout}
-                        className="flex items-center space-x-3 w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50"
-                      >
-                        <FaSignOutAlt className="text-sm" />
-                        <span>Logout</span>
-                      </button>
+                      
+                      <div className="px-4 py-1">
+                        <button
+                          onClick={handleLogout}
+                          className="flex items-center space-x-3 w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        >
+                          <FaSignOutAlt className="text-red-600" />
+                          <span className="font-medium">Sign Out</span>
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
               ) : (
-                <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-2">
                   <Link
                     to="/login"
-                    className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-blue-600"
+                    className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600"
                   >
                     Login
                   </Link>
                   <Link
                     to="/register"
-                    className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                    className="px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
                   >
                     Sign Up
                   </Link>
