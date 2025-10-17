@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { FaCalendarAlt, FaMoneyBill, FaMapMarkerAlt, FaStar, FaExternalLinkAlt } from 'react-icons/fa';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { safeApiGet, apiPost } from '../utils/apiUtils';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
