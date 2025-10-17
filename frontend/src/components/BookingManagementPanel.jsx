@@ -115,22 +115,16 @@ const BookingManagementPanel = ({ booking, onClose, onUpdate }) => {
     }
 
     try {
-      const res = await fetch(`${API_URL}/api/bookings/${booking._id}/status`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ status: newStatus })
+      const data = await apiPatch(`/api/bookings/${booking._id}/status`, {
+        status: newStatus
       });
-
-      const data = await res.json();
-
-      if (!res.ok) throw new Error(data.message || 'Failed to update status');
 
       toast.success(`Booking ${newStatus} successfully`);
       if (onUpdate) onUpdate();
       if (onClose) onClose();
     } catch (error) {
-      toast.error(error.message);
+      console.error(`Failed to ${newStatus} booking:`, error);
+      toast.error(error.message || `Failed to ${newStatus} booking`);
     }
   };
 
