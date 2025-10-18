@@ -11,11 +11,18 @@ const BookingCalendar = ({ propertyId, onBookingSelect, initialDate }) => {
   const [selectedDate, setSelectedDate] = useState(null);
   const [viewMode, setViewMode] = useState('month'); // month, week, day
   const [loading, setLoading] = useState(false);
+  // owner-specific controls
+  const [rooms, setRooms] = useState([]);
+  const [showAllRooms, setShowAllRooms] = useState(true);
+  const [selectedRoomId, setSelectedRoomId] = useState('');
+  const [pendingRange, setPendingRange] = useState({ start: null, end: null });
+  const [lockRange, setLockRange] = useState({ start: '', end: '' });
+  const [closedRanges, setClosedRanges] = useState([]);
 
   useEffect(() => {
     if (!propertyId) return;
     fetchBookings();
-  }, [currentDate, propertyId]);
+  }, [currentDate, propertyId, selectedRoomId, showAllRooms]);
 
   // React to initialDate changes (e.g., navigate from navbar: next month)
   useEffect(() => {
@@ -35,7 +42,11 @@ const BookingCalendar = ({ propertyId, onBookingSelect, initialDate }) => {
       });
       const data = await res.json();
       if (res.ok) {
-        setBookings(data.bookings || []);
+        let list = data.bookings || [];
+        if (!showAllRooms && selectedRoomId) {
+          list = list.filter(b => String(b.room || '') === String(selectedRoomId));
+        }
+        setBookings(list);
       }
     } catch (error) {
       toast.error('Failed to load bookings');
@@ -43,6 +54,46 @@ const BookingCalendar = ({ propertyId, onBookingSelect, initialDate }) => {
       setLoading(false);
     }
   };
+
+  // Load rooms for the selected property for filtering/locking
+  useEffect(() => {
+    if (!propertyId) { setRooms([]); setSelectedRoomId(''); return; }
+    (async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/properties/${propertyId}`, { credentials: 'include' });
+        const data = await res.json();
+        if (res.ok) {
+          const list = Array.isArray(data.property?.rooms) ? data.property.rooms : [];
+          setRooms(list);
+          if (!showAllRooms && list.length) setSelectedRoomId(prev => prev || (list[0]._id || list[0].id || ''));
+        }
+      } catch (_) {}
+    })();
+  }, [propertyId]);
+
+  // Fetch closed ranges (locked days) helper
+  const fetchClosedRanges = async () => {
+    if (!propertyId) { setClosedRanges([]); return; }
+    try {
+      const res = await fetch(`${API_URL}/api/properties/${propertyId}`, { credentials: 'include' });
+      const data = await res.json();
+      if (!res.ok) { setClosedRanges([]); return; }
+      const list = Array.isArray(data.property?.rooms) ? data.property.rooms : [];
+      let ranges = [];
+      if (showAllRooms) {
+        ranges = list.flatMap(r => Array.isArray(r.closedDates) ? r.closedDates : []);
+      } else if (selectedRoomId) {
+        const r = list.find(rr => String(rr._id || rr.id) === String(selectedRoomId));
+        ranges = Array.isArray(r?.closedDates) ? r.closedDates : [];
+      }
+      setClosedRanges(ranges.filter(cd => cd && cd.startDate && cd.endDate));
+    } catch (_) {
+      setClosedRanges([]);
+    }
+  };
+
+  // Refresh closed ranges when filters change
+  useEffect(() => { fetchClosedRanges(); }, [propertyId, showAllRooms, selectedRoomId]);
 
   const getDaysInMonth = (date) => {
     const year = date.getFullYear();
@@ -75,6 +126,81 @@ const BookingCalendar = ({ propertyId, onBookingSelect, initialDate }) => {
       // Treat checkout day as available (end-exclusive)
       return date >= checkIn && date < checkOut;
     });
+  };
+
+  const isDateClosed = (date) => {
+    if (!date) return false;
+    return closedRanges.some(cd => {
+      try {
+        const cs = new Date(cd.startDate);
+        const ce = new Date(cd.endDate);
+        const d0 = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        return d0 >= new Date(cs.getFullYear(), cs.getMonth(), cs.getDate()) && d0 < new Date(ce.getFullYear(), ce.getMonth(), ce.getDate());
+      } catch (_) { return false; }
+    });
+  };
+
+  // Range selection on month view cells
+  const onMonthCellClick = (date) => {
+    if (!date) return;
+    setSelectedDate(date);
+    // range select for owners
+    if (showAllRooms) return; // require a room when modifying
+    if (!pendingRange.start) {
+      setPendingRange({ start: date, end: null });
+      setLockRange(r => ({ ...r, start: date.toISOString().slice(0,10), end: r.end }));
+      return;
+    }
+    if (!pendingRange.end) {
+      if (date < pendingRange.start) {
+        setPendingRange({ start: date, end: pendingRange.start });
+        setLockRange({ start: date.toISOString().slice(0,10), end: pendingRange.start.toISOString().slice(0,10) });
+      } else {
+        setPendingRange({ start: pendingRange.start, end: date });
+        setLockRange(r => ({ ...r, end: date.toISOString().slice(0,10) }));
+      }
+      return;
+    }
+    // third click resets
+    setPendingRange({ start: date, end: null });
+    setLockRange({ start: date.toISOString().slice(0,10), end: '' });
+  };
+
+  const lockRoom = async () => {
+    if (showAllRooms) { toast.error('Select a room to lock dates'); return; }
+    if (!selectedRoomId) { toast.error('No room selected'); return; }
+    if (!lockRange.start || !lockRange.end) { toast.error('Select start and end dates'); return; }
+    try {
+      const res = await fetch(`${API_URL}/api/properties/${propertyId}/rooms/${selectedRoomId}/lock`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+        body: JSON.stringify({ startDate: lockRange.start, endDate: lockRange.end, reason: 'Locked by owner' })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to lock');
+      toast.success('Dates locked');
+      setPendingRange({ start: null, end: null });
+      setLockRange({ start: '', end: '' });
+      fetchBookings();
+      fetchClosedRanges();
+    } catch (e) { toast.error(e.message); }
+  };
+
+  const unlockRoom = async () => {
+    if (showAllRooms) { toast.error('Select a room to unlock dates'); return; }
+    if (!selectedRoomId) { toast.error('No room selected'); return; }
+    if (!lockRange.start || !lockRange.end) { toast.error('Select start and end dates'); return; }
+    try {
+      const res = await fetch(`${API_URL}/api/properties/${propertyId}/rooms/${selectedRoomId}/unlock`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+        body: JSON.stringify({ startDate: lockRange.start, endDate: lockRange.end })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to unlock');
+      toast.success('Dates unlocked');
+      setPendingRange({ start: null, end: null });
+      setLockRange({ start: '', end: '' });
+      fetchBookings();
+    } catch (e) { toast.error(e.message); }
   };
 
   const getStatusColor = (status) => {
@@ -155,7 +281,7 @@ const BookingCalendar = ({ propertyId, onBookingSelect, initialDate }) => {
                 setCurrentDate(prev=> new Date(y, prev.getMonth(), 1));
               }}
             >
-              {Array.from({length: 11}, (_,k)=> currentDate.getFullYear()-5 + k).map(y=>(
+              {Array.from({length: 201}, (_,k)=> currentDate.getFullYear()-100 + k).map(y=>(
                 <option key={y} value={y}>{y}</option>
               ))}
             </select>
@@ -185,7 +311,7 @@ const BookingCalendar = ({ propertyId, onBookingSelect, initialDate }) => {
         {/* Days of Week Header */}
         <div className="grid grid-cols-7 gap-2 mb-4">
           {['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map(day => (
-            <div key={day} className="p-4 text-center font-bold text-gray-700 neu-card-inset uppercase tracking-wide">
+            <div key={day} className="p-4 text-center font-bold text-gray-700 bg-gray-50 rounded border uppercase tracking-wide">
               {day}
             </div>
           ))}
@@ -197,18 +323,13 @@ const BookingCalendar = ({ propertyId, onBookingSelect, initialDate }) => {
             const dayBookings = getBookingsForDate(date);
             const isToday = date && date.toDateString() === new Date().toDateString();
             const isSelected = date && selectedDate && date.toDateString() === selectedDate.toDateString();
+            const closed = date && isDateClosed(date);
             
             return (
               <div
                 key={index}
-                className={`min-h-[140px] p-3 neu-card-inset cursor-pointer transition-all duration-300 hover:scale-105 ${
-                  date ? 'hover:neu-card' : 'bg-gray-100'
-                } ${
-                  isToday ? 'neu-card bg-blue-50' : ''
-                } ${
-                  isSelected ? 'neu-card bg-blue-100' : ''
-                }`}
-                onClick={() => date && setSelectedDate(date)}
+                className={`min-h-[140px] p-3 rounded border ${date ? 'bg-white hover:bg-gray-50' : 'bg-gray-100'} transition-colors ${isToday ? 'ring-1 ring-blue-300' : ''} ${isSelected ? 'bg-blue-50 border-blue-200' : 'border-gray-200'} ${closed ? 'cal-cell--closed' : ''}`}
+                onClick={() => date && onMonthCellClick(date)}
               >
                 {date && (
                   <>
@@ -221,7 +342,7 @@ const BookingCalendar = ({ propertyId, onBookingSelect, initialDate }) => {
                       {dayBookings.slice(0, 2).map(booking => (
                         <div
                           key={booking._id}
-                          className={`text-xs p-2 neu-card-inset cursor-pointer hover:neu-card transition-all duration-300 ${getStatusColor(booking.status)}`}
+                          className={`text-xs p-2 rounded border cursor-pointer transition-colors ${getStatusColor(booking.status)}`}
                           onClick={(e) => {
                             e.stopPropagation();
                             onBookingSelect && onBookingSelect(booking);
@@ -400,35 +521,59 @@ const BookingCalendar = ({ propertyId, onBookingSelect, initialDate }) => {
   };
 
   return (
-    <div className="neu-card p-8 animate-fade-in-up">
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 tracking-tight uppercase">BOOKING CALENDAR</h1>
+    <div className="bg-white rounded-xl border border-gray-200 p-6 animate-fade-in-up">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h1 className="text-xl font-bold text-gray-900">Booking Calendar</h1>
+          <p className="text-xs text-gray-500">View, filter, and manage your bookings</p>
+        </div>
         <div className="flex items-center space-x-3">
           <button
             onClick={() => setViewMode('month')}
-            className={`px-6 py-3 rounded-xl transition-all duration-300 font-semibold tracking-wide ${
-              viewMode === 'month' ? 'btn-primary text-white' : 'neu-btn text-gray-700 hover:text-blue-600'
-            }`}
+            className={`px-3 py-1.5 rounded border text-sm ${viewMode === 'month' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 hover:bg-gray-50 border-gray-300'}`}
           >
             MONTH
           </button>
           <button
             onClick={() => setViewMode('week')}
-            className={`px-6 py-3 rounded-xl transition-all duration-300 font-semibold tracking-wide ${
-              viewMode === 'week' ? 'btn-primary text-white' : 'neu-btn text-gray-700 hover:text-blue-600'
-            }`}
+            className={`px-3 py-1.5 rounded border text-sm ${viewMode === 'week' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 hover:bg-gray-50 border-gray-300'}`}
           >
             WEEK
           </button>
           <button
             onClick={() => setViewMode('day')}
-            className={`px-6 py-3 rounded-xl transition-all duration-300 font-semibold tracking-wide ${
-              viewMode === 'day' ? 'btn-primary text-white' : 'neu-btn text-gray-700 hover:text-blue-600'
-            }`}
+            className={`px-3 py-1.5 rounded border text-sm ${viewMode === 'day' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 hover:bg-gray-50 border-gray-300'}`}
           >
             DAY
           </button>
         </div>
+      </div>
+
+      {/* Owner controls */}
+      <div className="flex flex-wrap items-center gap-2 mb-4">
+        <label className="inline-flex items-center gap-2 text-sm">
+          <input type="checkbox" className="rounded" checked={showAllRooms} onChange={(e)=> setShowAllRooms(e.target.checked)} />
+          <span>Show all rooms</span>
+        </label>
+        <select
+          disabled={showAllRooms}
+          value={selectedRoomId}
+          onChange={(e)=> setSelectedRoomId(e.target.value)}
+          className="px-3 py-2 text-sm border rounded disabled:opacity-50"
+        >
+          <option value="">Select room</option>
+          {rooms.map(r => (
+            <option key={r._id || r.id} value={r._id || r.id}>{r.roomNumber || r.name || r.roomType || 'Room'}</option>
+          ))}
+        </select>
+        {!showAllRooms && (
+          <div className="flex items-center gap-2">
+            <input type="date" value={lockRange.start} onChange={e=> setLockRange(s=>({...s, start: e.target.value}))} className="px-3 py-2 text-sm border rounded" />
+            <input type="date" value={lockRange.end} onChange={e=> setLockRange(s=>({...s, end: e.target.value}))} className="px-3 py-2 text-sm border rounded" />
+            <button onClick={lockRoom} className="px-3 py-2 text-sm bg-red-600 text-white rounded hover:bg-red-700">Lock</button>
+            <button onClick={unlockRoom} className="px-3 py-2 text-sm border rounded hover:bg-gray-50">Unlock</button>
+          </div>
+        )}
       </div>
 
       {loading ? (
