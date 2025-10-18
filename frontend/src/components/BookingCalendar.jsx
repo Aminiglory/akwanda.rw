@@ -13,16 +13,18 @@ const BookingCalendar = ({ propertyId, onBookingSelect, initialDate }) => {
   const [loading, setLoading] = useState(false);
   // owner-specific controls
   const [rooms, setRooms] = useState([]);
+  const [properties, setProperties] = useState([]);
   const [showAllRooms, setShowAllRooms] = useState(true);
   const [selectedRoomId, setSelectedRoomId] = useState('');
   const [pendingRange, setPendingRange] = useState({ start: null, end: null });
   const [lockRange, setLockRange] = useState({ start: '', end: '' });
   const [closedRanges, setClosedRanges] = useState([]);
+  const [propertyOverride, setPropertyOverride] = useState(propertyId || '');
 
   useEffect(() => {
-    if (!propertyId) return;
+    if (!propertyOverride) return;
     fetchBookings();
-  }, [currentDate, propertyId, selectedRoomId, showAllRooms]);
+  }, [currentDate, propertyOverride, selectedRoomId, showAllRooms]);
 
   // React to initialDate changes (e.g., navigate from navbar: next month)
   useEffect(() => {
@@ -37,7 +39,7 @@ const BookingCalendar = ({ propertyId, onBookingSelect, initialDate }) => {
   const fetchBookings = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`${API_URL}/api/bookings?propertyId=${propertyId}&month=${currentDate.getMonth() + 1}&year=${currentDate.getFullYear()}`, {
+      const res = await fetch(`${API_URL}/api/bookings?propertyId=${propertyOverride}&month=${currentDate.getMonth() + 1}&year=${currentDate.getFullYear()}`, {
         credentials: 'include'
       });
       const data = await res.json();
@@ -55,12 +57,29 @@ const BookingCalendar = ({ propertyId, onBookingSelect, initialDate }) => {
     }
   };
 
-  // Load rooms for the selected property for filtering/locking
+  // Load owner's properties for selector
   useEffect(() => {
-    if (!propertyId) { setRooms([]); setSelectedRoomId(''); return; }
     (async () => {
       try {
-        const res = await fetch(`${API_URL}/api/properties/${propertyId}`, { credentials: 'include' });
+        const res = await fetch(`${API_URL}/api/properties/my-properties`, { credentials: 'include' });
+        const data = await res.json();
+        if (res.ok) {
+          const list = Array.isArray(data.properties) ? data.properties : [];
+          setProperties(list);
+          // Initialize propertyOverride if empty
+          if (!propertyOverride && list.length) setPropertyOverride(list[0]._id);
+        }
+      } catch (_) {}
+    })();
+  }, []);
+
+  // Load rooms for the selected property for filtering/locking
+  useEffect(() => {
+    const pid = propertyOverride;
+    if (!pid) { setRooms([]); setSelectedRoomId(''); return; }
+    (async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/properties/${pid}`, { credentials: 'include' });
         const data = await res.json();
         if (res.ok) {
           const list = Array.isArray(data.property?.rooms) ? data.property.rooms : [];
@@ -69,20 +88,22 @@ const BookingCalendar = ({ propertyId, onBookingSelect, initialDate }) => {
         }
       } catch (_) {}
     })();
-  }, [propertyId]);
+  }, [propertyOverride]);
 
   // Fetch closed ranges (locked days) helper
   const fetchClosedRanges = async () => {
-    if (!propertyId) { setClosedRanges([]); return; }
+    const pid = propertyOverride;
+    if (!pid) { setClosedRanges([]); return; }
+    // If showing all rooms, suppress closed highlighting to prevent showing red
+    // before the owner has selected a specific room to manage.
+    if (showAllRooms) { setClosedRanges([]); return; }
     try {
-      const res = await fetch(`${API_URL}/api/properties/${propertyId}`, { credentials: 'include' });
+      const res = await fetch(`${API_URL}/api/properties/${pid}`, { credentials: 'include' });
       const data = await res.json();
       if (!res.ok) { setClosedRanges([]); return; }
       const list = Array.isArray(data.property?.rooms) ? data.property.rooms : [];
       let ranges = [];
-      if (showAllRooms) {
-        ranges = list.flatMap(r => Array.isArray(r.closedDates) ? r.closedDates : []);
-      } else if (selectedRoomId) {
+      if (selectedRoomId) {
         const r = list.find(rr => String(rr._id || rr.id) === String(selectedRoomId));
         ranges = Array.isArray(r?.closedDates) ? r.closedDates : [];
       }
@@ -93,7 +114,20 @@ const BookingCalendar = ({ propertyId, onBookingSelect, initialDate }) => {
   };
 
   // Refresh closed ranges when filters change
-  useEffect(() => { fetchClosedRanges(); }, [propertyId, showAllRooms, selectedRoomId]);
+  useEffect(() => { fetchClosedRanges(); }, [propertyOverride, showAllRooms, selectedRoomId]);
+
+  // Listen for global calendar updates (e.g., from RoomCalendarPanel)
+  useEffect(() => {
+    const handler = (e) => {
+      if (!e?.detail?.propertyId) { fetchBookings(); fetchClosedRanges(); return; }
+      if (String(e.detail.propertyId) === String(propertyOverride)) {
+        fetchBookings();
+        fetchClosedRanges();
+      }
+    };
+    window.addEventListener('calendar:updated', handler);
+    return () => window.removeEventListener('calendar:updated', handler);
+  }, [propertyOverride]);
 
   const getDaysInMonth = (date) => {
     const year = date.getFullYear();
@@ -261,6 +295,20 @@ const BookingCalendar = ({ propertyId, onBookingSelect, initialDate }) => {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <h2 className="text-2xl font-bold text-gray-900">{monthName}</h2>
+            {/* Property selector for users with multiple properties */}
+            <select
+              className="px-2 py-1 rounded bg-white border border-gray-200 text-sm"
+              value={propertyOverride}
+              onChange={(e)=> setPropertyOverride(e.target.value)}
+              title="Select property"
+            >
+              {properties.length === 0 && (
+                <option value="">Select property</option>
+              )}
+              {properties.map(p => (
+                <option key={p._id} value={p._id}>{p.title || p.name || 'Property'}</option>
+              ))}
+            </select>
             <select
               className="px-2 py-1 border rounded"
               value={currentDate.getMonth()}
@@ -281,9 +329,12 @@ const BookingCalendar = ({ propertyId, onBookingSelect, initialDate }) => {
                 setCurrentDate(prev=> new Date(y, prev.getMonth(), 1));
               }}
             >
-              {Array.from({length: 201}, (_,k)=> currentDate.getFullYear()-100 + k).map(y=>(
-                <option key={y} value={y}>{y}</option>
-              ))}
+              {(() => {
+                const base = new Date().getFullYear();
+                return Array.from({length: 101}, (_,k)=> base + k).map(y => (
+                  <option key={y} value={y}>{y}</option>
+                ));
+              })()}
             </select>
           </div>
           <div className="flex items-center space-x-2">
@@ -309,55 +360,60 @@ const BookingCalendar = ({ propertyId, onBookingSelect, initialDate }) => {
         </div>
 
         {/* Days of Week Header */}
-        <div className="grid grid-cols-7 gap-2 mb-4">
+        <div className="grid grid-cols-7 gap-1 mb-3">
           {['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map(day => (
-            <div key={day} className="p-4 text-center font-bold text-gray-700 bg-gray-50 rounded border uppercase tracking-wide">
+            <div key={day} className="p-2 text-center font-semibold text-gray-600 text-xs bg-gray-50 rounded uppercase tracking-wide">
               {day}
             </div>
           ))}
         </div>
 
         {/* Calendar Grid */}
-        <div className="grid grid-cols-7 gap-2">
+        <div className="grid grid-cols-7 gap-1">
           {days.map((date, index) => {
             const dayBookings = getBookingsForDate(date);
             const isToday = date && date.toDateString() === new Date().toDateString();
             const isSelected = date && selectedDate && date.toDateString() === selectedDate.toDateString();
             const closed = date && isDateClosed(date);
+            const selectedRoom = !showAllRooms && rooms.find(r => String(r._id || r.id) === String(selectedRoomId));
             
             return (
               <div
                 key={index}
-                className={`min-h-[140px] p-3 rounded border ${date ? 'bg-white hover:bg-gray-50' : 'bg-gray-100'} transition-colors ${isToday ? 'ring-1 ring-blue-300' : ''} ${isSelected ? 'bg-blue-50 border-blue-200' : 'border-gray-200'} ${closed ? 'cal-cell--closed' : ''}`}
+                className={`relative min-h-[90px] p-2 rounded-lg ${date ? 'bg-white hover:bg-gray-50' : 'bg-gray-100'} transition-all ${isSelected ? 'bg-blue-50 shadow-sm' : ''} ${closed ? 'cal-cell--closed' : ''} ${isToday ? 'cal-cell--today' : ''}`}
                 onClick={() => date && onMonthCellClick(date)}
               >
                 {date && (
                   <>
-                    <div className={`text-lg font-bold mb-2 transition-colors ${
+                    <div className={`text-sm font-semibold mb-1 transition-colors ${
                       isToday ? 'text-blue-600' : 'text-gray-900'
                     }`}>
                       {date.getDate()}
                     </div>
-                    <div className="space-y-2">
-                      {dayBookings.slice(0, 2).map(booking => (
+                    <div className="space-y-1">
+                      {dayBookings.slice(0, 1).map(booking => (
                         <div
                           key={booking._id}
-                          className={`text-xs p-2 rounded border cursor-pointer transition-colors ${getStatusColor(booking.status)}`}
+                          className={`text-[11px] p-1.5 rounded-md cursor-pointer transition-colors ${getStatusColor(booking.status).replace('border-', 'shadow-none ')}`}
                           onClick={(e) => {
                             e.stopPropagation();
                             onBookingSelect && onBookingSelect(booking);
                           }}
                         >
-                          <div className="font-semibold truncate uppercase tracking-wide">{booking.guest?.firstName} {booking.guest?.lastName}</div>
-                          <div className="text-xs opacity-75 font-medium">RWF {booking.totalAmount?.toLocaleString()}</div>
+                          <div className="font-medium truncate">{booking.guest?.firstName} {booking.guest?.lastName}</div>
+                          <div className="text-[10px] opacity-75">RWF {booking.totalAmount?.toLocaleString()}</div>
                         </div>
                       ))}
-                      {dayBookings.length > 2 && (
-                        <div className="text-xs text-gray-500 text-center font-semibold">
-                          +{dayBookings.length - 2} MORE
-                        </div>
+                      {dayBookings.length > 1 && (
+                        <div className="text-[10px] text-gray-600 text-center font-medium">+{dayBookings.length - 1} more</div>
                       )}
                     </div>
+                    {/* Closed ribbon indicator */}
+                    {closed && (
+                      <div className="absolute top-1 right-1 text-[10px] px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-700">
+                        {selectedRoom ? `Locked • ${selectedRoom.roomNumber || selectedRoom.name || 'Room'}` : 'Locked'}
+                      </div>
+                    )}
                   </>
                 )}
               </div>

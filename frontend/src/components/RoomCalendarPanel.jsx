@@ -154,6 +154,8 @@ export default function RoomCalendarPanel({ propertyId, room, onChanged, readOnl
       setLocalClosedDates(prev => ([...(prev || []), { startDate: lockRange.start, endDate: lockRange.end, reason: 'Locked by owner' }]));
       onChanged && onChanged();
       fetchMonthBookings();
+      // Notify other calendars
+      try { window.dispatchEvent(new CustomEvent('calendar:updated', { detail: { propertyId, roomId } })); } catch (_) {}
     } catch (e) { toast.error(e.message); }
   };
 
@@ -191,6 +193,8 @@ export default function RoomCalendarPanel({ propertyId, room, onChanged, readOnl
       }));
       onChanged && onChanged();
       fetchMonthBookings();
+      // Notify other calendars
+      try { window.dispatchEvent(new CustomEvent('calendar:updated', { detail: { propertyId, roomId } })); } catch (_) {}
     } catch (e) { toast.error(e.message); }
   };
 
@@ -298,9 +302,12 @@ export default function RoomCalendarPanel({ propertyId, room, onChanged, readOnl
               setCurrent(new Date(y, current.getMonth(), 1));
             }}
           >
-            {Array.from({length: 201}, (_,k)=> current.getFullYear()-100 + k).map(y=>(
-              <option key={y} value={y}>{y}</option>
-            ))}
+            {(() => {
+              const base = new Date().getFullYear();
+              return Array.from({length: 101}, (_,k)=> base + k).map(y => (
+                <option key={y} value={y}>{y}</option>
+              ));
+            })()}
           </select>
           <button type="button" aria-label="Next month" onClick={() => setCurrent(new Date(current.getFullYear(), current.getMonth()+1, 1))} className={`${compact ? 'p-1.5' : 'p-2'} hover:bg-gray-100 rounded`}>
             <FaChevronRight />

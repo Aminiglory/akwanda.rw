@@ -54,6 +54,14 @@ const Navbar = () => {
   const [userStats, setUserStats] = useState({ properties: 0, bookings: 0, rating: 0 });
   const { socket } = useSocket();
 
+  const makeAbsolute = (u) => {
+    if (!u) return u;
+    let s = String(u).replace(/\\+/g, '/');
+    if (s.startsWith('http')) return s;
+    if (!s.startsWith('/')) s = `/${s}`;
+    return `${API_URL}${s}`;
+  };
+
   // Main navigation items like Booking.com
   const mainNavItems = [
     {
@@ -312,6 +320,8 @@ const Navbar = () => {
       return acc;
     }, {});
   };
+
+  const avatarUrl = user?.avatar ? makeAbsolute(user.avatar) : null;
 
   return (
     <>

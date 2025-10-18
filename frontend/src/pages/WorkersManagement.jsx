@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
-import { FaPlus, FaSearch, FaUser, FaUsers, FaShieldAlt, FaTrash, FaEdit, FaImage, FaIdCard } from 'react-icons/fa';
+import { FaPlus, FaSearch, FaUser, FaUsers, FaShieldAlt, FaTrash, FaEdit, FaImage, FaIdCard, FaKey } from 'react-icons/fa';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -57,6 +57,12 @@ export default function WorkersManagement() {
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
+  const [viewMode, setViewMode] = useState('cards'); // 'cards' | 'table'
+  const [editing, setEditing] = useState(null); // worker object
+  const [accountFor, setAccountFor] = useState(null); // worker object for account creation
+  const [privFor, setPrivFor] = useState(null); // worker object for full privileges modal
+  const [resetFor, setResetFor] = useState(null); // worker object for reset password
+  const [properties, setProperties] = useState([]);
 
   const [form, setForm] = useState({
     firstName: '',
@@ -147,6 +153,31 @@ export default function WorkersManagement() {
     } catch (e) { toast.error(e.message); }
   };
 
+  const onUpdateWorker = async (workerId, payload) => {
+    try {
+      const res = await fetch(`${API_URL}/api/workers/${workerId}`, {
+        method: 'PUT', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to update worker');
+      setWorkers(prev => prev.map(w => w._id === workerId ? { ...w, ...data.worker } : w));
+      toast.success('Worker updated');
+      setEditing(null);
+    } catch (e) { toast.error(e.message); }
+  };
+
+  const onCreateAccount = async (workerId, creds) => {
+    try {
+      const res = await fetch(`${API_URL}/api/workers/${workerId}/account`, {
+        method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(creds)
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to create account');
+      toast.success('Worker account created');
+      setAccountFor(null);
+    } catch (e) { toast.error(e.message); }
+  };
+
   const filtered = useMemo(() => {
     const t = (query.search || '').toLowerCase();
     if (!t) return workers;
@@ -158,13 +189,30 @@ export default function WorkersManagement() {
     ));
   }, [workers, query.search]);
 
+  // fetch owner properties for assignment
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/properties/my-properties`, { credentials: 'include' });
+        const data = await res.json();
+        if (res.ok) setProperties(Array.isArray(data.properties) ? data.properties : []);
+      } catch (_) {}
+    })();
+  }, []);
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2"><FaUsers /> Workers</h1>
-        <button onClick={() => setShowForm(s => !s)} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2">
-          <FaPlus /> Add Worker
-        </button>
+        <div className="flex items-center gap-2">
+          <div className="bg-gray-100 rounded-lg p-1">
+            <button onClick={() => setViewMode('cards')} className={`px-3 py-1 rounded ${viewMode==='cards' ? 'bg-white shadow text-gray-900' : 'text-gray-600'}`}>Cards</button>
+            <button onClick={() => setViewMode('table')} className={`px-3 py-1 rounded ${viewMode==='table' ? 'bg-white shadow text-gray-900' : 'text-gray-600'}`}>Table</button>
+          </div>
+          <button onClick={() => setShowForm(s => !s)} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2">
+            <FaPlus /> Add Worker
+          </button>
+        </div>
       </div>
 
       {showForm && (
@@ -285,9 +333,10 @@ export default function WorkersManagement() {
           </select>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {viewMode === 'cards' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-stretch">
           {filtered.map((w) => (
-            <div key={w._id} className="border rounded-xl p-4 hover:shadow">
+            <div key={w._id} className="border rounded-xl p-4 hover:shadow flex flex-col h-full overflow-hidden">
               <div className="flex items-center gap-3">
                 <div className="w-14 h-14 rounded-full bg-gray-100 overflow-hidden flex items-center justify-center">
                   {w.avatar ? (
@@ -296,10 +345,10 @@ export default function WorkersManagement() {
                     <FaUser className="text-gray-400 text-2xl" />
                   )}
                 </div>
-                <div className="flex-1">
-                  <div className="font-semibold text-gray-900">{w.firstName} {w.lastName}</div>
-                  <div className="text-sm text-gray-600">{w.position} • {w.department}</div>
-                  <div className="text-xs text-gray-500">{w.email}</div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold text-gray-900 truncate leading-tight" title={`${w.firstName || ''} ${w.lastName || ''}`}>{w.firstName} {w.lastName}</div>
+                  <div className="text-sm text-gray-600 truncate leading-tight" title={`${w.position || ''} • ${w.department || ''}`}>{w.position} • {w.department}</div>
+                  <div className="text-xs text-gray-500 truncate break-all leading-tight" title={w.email || ''}>{w.email}</div>
                 </div>
                 <label className="px-3 py-1 bg-blue-50 text-blue-700 rounded cursor-pointer text-xs flex items-center gap-1">
                   <FaImage /> Avatar
@@ -307,29 +356,363 @@ export default function WorkersManagement() {
                 </label>
               </div>
 
-              <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                {Object.keys(defaultPrivileges).slice(0, 6).map((k) => (
-                  <div key={k} className="flex items-center gap-2">
-                    <input type="checkbox" checked={!!w.privileges?.[k]} onChange={(e) => onUpdatePrivileges(w._id, { [k]: e.target.checked })} />
-                    <span>{k}</span>
-                  </div>
-                ))}
+              <div className="mt-3 text-xs flex-1 overflow-hidden">
+                {(() => {
+                  const keys = Object.keys(defaultPrivileges);
+                  const shown = keys.slice(0, 4);
+                  const extra = keys.length - shown.length;
+                  return (
+                    <div className="flex flex-wrap gap-2">
+                      {shown.map((k) => (
+                        <label key={k} className="inline-flex items-center gap-1 px-2 py-1 border rounded">
+                          <input type="checkbox" checked={!!w.privileges?.[k]} onChange={(e) => onUpdatePrivileges(w._id, { [k]: e.target.checked })} />
+                          <span className="whitespace-nowrap">{k}</span>
+                        </label>
+                      ))}
+                      {extra > 0 && (
+                        <span className="px-2 py-1 text-gray-500">+{extra} more</span>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
 
-              <div className="mt-3 flex items-center justify-between">
+              <div className="mt-auto flex items-center justify-between">
                 <span className={`px-2 py-1 rounded-full text-xs ${w.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>{w.status}</span>
-                <div className="flex items-center gap-2 text-sm">
-                  <button className="px-2 py-1 border rounded flex items-center gap-1"><FaEdit /> Edit</button>
-                  {/* For safety, we keep delete as terminate via backend route */}
+                <div className="flex items-center gap-2 text-xs sm:text-sm flex-wrap justify-end overflow-hidden">
+                  <button onClick={()=> setEditing(w)} className="px-2 py-1 border rounded flex items-center gap-1"><FaEdit /> Edit</button>
+                  <button onClick={()=> setAccountFor(w)} className="px-2 py-1 border rounded flex items-center gap-1"><FaIdCard /> Account</button>
+                  <button onClick={()=> setPrivFor(w)} className="px-2 py-1 border rounded flex items-center gap-1"><FaShieldAlt /> Privileges</button>
+                  <button onClick={()=> setResetFor(w)} className="px-2 py-1 border rounded flex items-center gap-1"><FaKey /> Reset</button>
                 </div>
               </div>
             </div>
           ))}
         </div>
+        )}
 
+        {viewMode === 'table' && (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Worker</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filtered.map(w => (
+                  <tr key={w._id} className="hover:bg-gray-50">
+                    <td className="px-4 py-2">
+                      <div className="font-medium text-gray-900">{w.firstName} {w.lastName}</div>
+                      <div className="text-xs text-gray-500">{w.employeeId || ''}</div>
+                    </td>
+                    <td className="px-4 py-2 text-sm text-gray-600">
+                      <div>{w.email}</div>
+                      <div>{w.phone}</div>
+                    </td>
+                    <td className="px-4 py-2 text-sm text-gray-600">{w.position} • {w.department}</td>
+                    <td className="px-4 py-2 text-sm">
+                      <span className={`px-2 py-1 rounded-full text-xs ${w.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>{w.status}</span>
+                    </td>
+                    <td className="px-4 py-2 text-sm">
+                      <div className="flex items-center gap-2">
+                        <button onClick={()=> setEditing(w)} className="px-2 py-1 border rounded flex items-center gap-1"><FaEdit /> Edit</button>
+                        <button onClick={()=> setAccountFor(w)} className="px-2 py-1 border rounded flex items-center gap-1"><FaIdCard /> Create Account</button>
+                        <button onClick={()=> setPrivFor(w)} className="px-2 py-1 border rounded flex items-center gap-1"><FaShieldAlt /> Privileges</button>
+                        <button onClick={()=> setResetFor(w)} className="px-2 py-1 border rounded flex items-center gap-1"><FaKey /> Reset Password</button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        </div>
+        {/* Pagination Controls */}
+        <div className="flex items-center justify-between mt-4">
+          <div className="text-sm text-gray-600">Page {meta.currentPage} of {meta.totalPages || 1}</div>
+          <div className="flex items-center gap-2">
+            <button
+              className="px-3 py-1 border rounded disabled:opacity-50"
+              disabled={meta.currentPage <= 1}
+              onClick={() => setQuery(q => ({ ...q, page: Math.max(1, (q.page || 1) - 1) }))}
+            >Prev</button>
+            <button
+              className="px-3 py-1 border rounded disabled:opacity-50"
+              disabled={meta.totalPages && meta.currentPage >= meta.totalPages}
+              onClick={() => setQuery(q => ({ ...q, page: (q.page || 1) + 1 }))}
+            >Next</button>
+            <select
+              className="ml-2 border rounded px-2 py-1"
+              value={query.limit}
+              onChange={e => setQuery(q => ({ ...q, limit: Number(e.target.value), page: 1 }))}
+            >
+              {[10, 20, 50, 100].map(n => <option key={n} value={n}>{n}/page</option>)}
+            </select>
+          </div>
+        </div>
+        {editing && (
+          <EditWorkerModal
+            worker={editing}
+            properties={properties}
+            onClose={() => setEditing(null)}
+            onSubmit={(payload) => onUpdateWorker(editing._id, payload)}
+          />
+        )}
+        {accountFor && (
+          <CreateAccountModal
+            worker={accountFor}
+            onClose={() => setAccountFor(null)}
+            onSubmit={(creds) => onCreateAccount(accountFor._id, creds)}
+          />
+        )}
+        {privFor && (
+          <PrivilegesModal
+            worker={privFor}
+            defaultPrivileges={defaultPrivileges}
+            onClose={() => setPrivFor(null)}
+            onSubmit={(all) => onUpdatePrivileges(privFor._id, all)}
+          />
+        )}
+        {resetFor && (
+          <ResetPasswordModal
+            worker={resetFor}
+            onClose={() => setResetFor(null)}
+          />
+        )}
         {filtered.length === 0 && !loading && (
           <div className="text-center text-gray-500 py-8">No workers found</div>
         )}
+      </div>
+  );
+}
+
+// Inline modal: Edit worker basic info and role/department
+function EditWorkerModal({ worker, onClose, onSubmit, properties = [] }) {
+  const [form, setForm] = useState({
+    firstName: worker.firstName || '',
+    lastName: worker.lastName || '',
+    phone: worker.phone || '',
+    position: worker.position || '',
+    department: worker.department || 'General',
+    status: worker.status || 'active',
+    assignedProperties: Array.isArray(worker.assignedProperties) ? worker.assignedProperties : [],
+  });
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl w-full max-w-lg">
+        <div className="p-4 border-b flex items-center justify-between">
+          <div className="font-semibold">Edit Worker</div>
+          <button className="px-2 py-1" onClick={onClose}>Close</button>
+        </div>
+        <div className="p-4 space-y-3">
+          <div>
+            <label className="block text-sm text-gray-600 mb-1">First Name</label>
+            <input className="w-full border rounded px-3 py-2" value={form.firstName} onChange={e=> setForm(f=>({...f, firstName: e.target.value}))} />
+          </div>
+          <div>
+            <label className="block text-sm text-gray-600 mb-1">Last Name</label>
+            <input className="w-full border rounded px-3 py-2" value={form.lastName} onChange={e=> setForm(f=>({...f, lastName: e.target.value}))} />
+          </div>
+          <div>
+            <label className="block text-sm text-gray-600 mb-1">Phone</label>
+            <input className="w-full border rounded px-3 py-2" value={form.phone} onChange={e=> setForm(f=>({...f, phone: e.target.value}))} />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">Position</label>
+              <input className="w-full border rounded px-3 py-2" value={form.position} onChange={e=> setForm(f=>({...f, position: e.target.value}))} />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">Department</label>
+              <input className="w-full border rounded px-3 py-2" value={form.department} onChange={e=> setForm(f=>({...f, department: e.target.value}))} />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm text-gray-600 mb-1">Status</label>
+            <select className="w-full border rounded px-3 py-2" value={form.status} onChange={e=> setForm(f=>({...f, status: e.target.value}))}>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+              <option value="suspended">Suspended</option>
+              <option value="terminated">Terminated</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm text-gray-600 mb-1">Assigned Properties</label>
+            <div className="border rounded p-2 max-h-40 overflow-auto">
+              {properties.map(p => {
+                const id = p._id || p.id;
+                const checked = form.assignedProperties?.some(ap => String(ap) === String(id));
+                return (
+                  <label key={id} className="flex items-center gap-2 text-sm py-1">
+                    <input type="checkbox" checked={checked} onChange={e => {
+                      setForm(f => {
+                        const cur = new Set((f.assignedProperties || []).map(String));
+                        if (e.target.checked) cur.add(String(id)); else cur.delete(String(id));
+                        return { ...f, assignedProperties: Array.from(cur) };
+                      });
+                    }} />
+                    <span>{p.title || p.name || 'Property'}</span>
+                  </label>
+                );
+              })}
+              {properties.length === 0 && (
+                <div className="text-xs text-gray-500">No properties found.</div>
+              )}
+            </div>
+          </div>
+        </div>
+        <div className="p-4 border-t flex items-center justify-end gap-2">
+          <button className="px-4 py-2 border rounded" onClick={onClose}>Cancel</button>
+          <button className="px-4 py-2 bg-blue-600 text-white rounded" onClick={()=> onSubmit(form)}>Save</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Inline modal: Owner creates worker login credentials (non-editable by worker)
+function CreateAccountModal({ worker, onClose, onSubmit }) {
+  const [creds, setCreds] = useState({
+    username: `${(worker.firstName || 'user').toLowerCase()}.${(worker.lastName || 'staff').toLowerCase()}`,
+    email: worker.email || '',
+    password: Math.random().toString(36).slice(2, 10) + 'A!1',
+  });
+  const [showPwd, setShowPwd] = useState(false);
+  const [err, setErr] = useState('');
+
+  const validate = () => {
+    const u = (creds.username || '').trim();
+    const e = (creds.email || '').trim();
+    const p = (creds.password || '');
+    if (u.length < 3) return 'Username must be at least 3 characters.';
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)) return 'Enter a valid email address.';
+    if (p.length < 8) return 'Password must be at least 8 characters.';
+    return '';
+  };
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl w-full max-w-lg">
+        <div className="p-4 border-b flex items-center justify-between">
+          <div className="font-semibold">Create Worker Account</div>
+          <button className="px-2 py-1" onClick={onClose}>Close</button>
+        </div>
+        <div className="p-4 space-y-3">
+          <div className="text-sm text-gray-600">Provide credentials the worker will use to log in. They cannot change these credentials.</div>
+          {err && (
+            <div className="text-sm text-rose-600 bg-rose-50 border border-rose-200 rounded px-3 py-2">{err}</div>
+          )}
+          <div>
+            <label className="block text-sm text-gray-600 mb-1">Username</label>
+            <input className="w-full border rounded px-3 py-2" value={creds.username} onChange={e=> setCreds(c=>({...c, username: e.target.value}))} />
+          </div>
+          <div>
+            <label className="block text-sm text-gray-600 mb-1">Email</label>
+            <input type="email" className="w-full border rounded px-3 py-2" value={creds.email} onChange={e=> setCreds(c=>({...c, email: e.target.value}))} />
+          </div>
+          <div>
+            <label className="block text-sm text-gray-600 mb-1">Password</label>
+            <div className="flex items-center gap-2">
+              <input type={showPwd ? 'text' : 'password'} className="flex-1 border rounded px-3 py-2" value={creds.password} onChange={e=> setCreds(c=>({...c, password: e.target.value}))} />
+              <button type="button" className="px-3 py-2 border rounded" onClick={()=> setShowPwd(s=>!s)}>{showPwd ? 'Hide' : 'Show'}</button>
+            </div>
+            <div className="text-[11px] text-gray-500 mt-1">Min 8 characters. Use a strong password.</div>
+          </div>
+          <div className="text-xs text-gray-500">Share these credentials securely with the worker.</div>
+        </div>
+        <div className="p-4 border-t flex items-center justify-end gap-2">
+          <button className="px-4 py-2 border rounded" onClick={onClose}>Cancel</button>
+          <button className="px-4 py-2 bg-green-600 text-white rounded" onClick={()=> { const m = validate(); if (m) { setErr(m); return; } setErr(''); onSubmit(creds); }}>Create Account</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Full privileges modal (bulk edit all privileges)
+function PrivilegesModal({ worker, defaultPrivileges, onClose, onSubmit }) {
+  const [priv, setPriv] = useState({ ...defaultPrivileges, ...(worker.privileges || {}) });
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl w-full max-w-2xl">
+        <div className="p-4 border-b flex items-center justify-between">
+          <div className="font-semibold">Edit Privileges • {worker.firstName} {worker.lastName}</div>
+          <button className="px-2 py-1" onClick={onClose}>Close</button>
+        </div>
+        <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+          {Object.keys(defaultPrivileges).map((key) => (
+            <label key={key} className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={!!priv[key]} onChange={e => setPriv(p => ({ ...p, [key]: e.target.checked }))} />
+              <span>{key}</span>
+            </label>
+          ))}
+        </div>
+        <div className="p-4 border-t flex items-center justify-end gap-2">
+          <button className="px-4 py-2 border rounded" onClick={onClose}>Cancel</button>
+          <button className="px-4 py-2 bg-blue-600 text-white rounded" onClick={()=> onSubmit(priv)}>Save</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Reset password modal
+function ResetPasswordModal({ worker, onClose }) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null); // { newPassword }
+  const [err, setErr] = useState('');
+
+  const onReset = async () => {
+    try {
+      setLoading(true);
+      setErr('');
+      const res = await fetch(`${API_URL}/api/workers/${worker._id}/reset-password`, { method: 'POST', credentials: 'include' });
+      let data = {};
+      try { data = await res.json(); } catch (_) { data = {}; }
+      if (!res.ok) throw new Error(data.message || 'Failed to reset password');
+      setResult({ newPassword: data.newPassword || data.password || '' });
+      toast.success('Password reset');
+    } catch (e) {
+      const msg = e?.message || 'Failed to reset password. Please try again.';
+      setErr(msg);
+      toast.error(msg);
+    } finally { setLoading(false); }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl w-full max-w-lg">
+        <div className="p-4 border-b flex items-center justify-between">
+          <div className="font-semibold">Reset Password • {worker.firstName} {worker.lastName}</div>
+          <button className="px-2 py-1" onClick={onClose}>Close</button>
+        </div>
+        <div className="p-4 space-y-3">
+          {err && (
+            <div className="text-sm text-rose-600 bg-rose-50 border border-rose-200 rounded px-3 py-2">{err}</div>
+          )}
+          {!result ? (
+            <div className="text-sm text-gray-700">This will generate a new password for the worker. Share it securely. They cannot change credentials.</div>
+          ) : (
+            <div>
+              <div className="text-sm text-gray-700 mb-1">New password:</div>
+              <div className="flex items-center gap-2">
+                <input className="flex-1 border rounded px-3 py-2" readOnly value={result.newPassword} />
+                <button className="px-3 py-2 border rounded" onClick={() => { try { navigator.clipboard && navigator.clipboard.writeText(result.newPassword); toast.success('Copied'); } catch (_) { /* no-op */ } }}>Copy</button>
+              </div>
+            </div>
+          )}
+        </div>
+        <div className="p-4 border-t flex items-center justify-end gap-2">
+          {!result && (
+            <button disabled={loading} className="px-4 py-2 bg-red-600 text-white rounded disabled:opacity-50" onClick={onReset}>{loading ? 'Resetting...' : 'Reset Password'}</button>
+          )}
+          <button className="px-4 py-2 border rounded" onClick={onClose}>{result ? 'Done' : 'Cancel'}</button>
+        </div>
       </div>
     </div>
   );
