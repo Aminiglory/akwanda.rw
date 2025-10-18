@@ -16,6 +16,13 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const makeAbsolute = (u) => {
+    if (!u) return u;
+    const s = String(u).replace(/\\+/g, '/');
+    if (s.startsWith('http')) return s;
+    return `${API_URL}${s.startsWith('/') ? s : '/' + s}`;
+  };
+
   useEffect(() => {
     // Try restore from localStorage immediately for fast paint
     const savedUser = localStorage.getItem('user');
@@ -26,8 +33,9 @@ export const AuthProvider = ({ children }) => {
         const res = await fetch(`${API_URL}/api/auth/me`, { credentials: 'include' });
         const data = await res.json();
         if (res.ok && data.user) {
-          setUser(data.user);
-          localStorage.setItem('user', JSON.stringify(data.user));
+          const normalized = { ...data.user, avatar: makeAbsolute(data.user.avatar) };
+          setUser(normalized);
+          localStorage.setItem('user', JSON.stringify(normalized));
         } else if (!res.ok) {
           setUser(null);
           localStorage.removeItem('user');
@@ -51,8 +59,9 @@ export const AuthProvider = ({ children }) => {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Login failed');
-      setUser(data.user);
-      localStorage.setItem('user', JSON.stringify(data.user));
+      const normalized = { ...data.user, avatar: makeAbsolute(data.user.avatar) };
+      setUser(normalized);
+      localStorage.setItem('user', JSON.stringify(normalized));
       return { success: true, user: data.user };
     } catch (error) {
       return { success: false, error: error.message };
@@ -97,7 +106,7 @@ export const AuthProvider = ({ children }) => {
     const res = await fetch(endpoint, { method: 'POST', credentials: 'include', body });
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || 'Failed to update avatar');
-    const updated = { ...(user || {}), avatar: data.user?.avatar };
+    const updated = { ...(user || {}), avatar: makeAbsolute(data.user?.avatar) };
     setUser(updated);
     localStorage.setItem('user', JSON.stringify(updated));
     return updated;
@@ -112,9 +121,10 @@ export const AuthProvider = ({ children }) => {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || 'Failed to update profile');
-    setUser(data.user);
-    localStorage.setItem('user', JSON.stringify(data.user));
-    return data.user;
+    const normalized = { ...data.user, avatar: makeAbsolute(data.user.avatar) };
+    setUser(normalized);
+    localStorage.setItem('user', JSON.stringify(normalized));
+    return normalized;
   };
 
   const refreshUser = async () => {
@@ -122,9 +132,10 @@ export const AuthProvider = ({ children }) => {
       const res = await fetch(`${API_URL}/api/auth/me`, { credentials: 'include' });
       const data = await res.json();
       if (res.ok && data.user) {
-        setUser(data.user);
-        localStorage.setItem('user', JSON.stringify(data.user));
-        return data.user;
+        const normalized = { ...data.user, avatar: makeAbsolute(data.user.avatar) };
+        setUser(normalized);
+        localStorage.setItem('user', JSON.stringify(normalized));
+        return normalized;
       }
     } catch (error) {
       console.error('Failed to refresh user:', error);

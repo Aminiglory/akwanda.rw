@@ -2,6 +2,7 @@ const { Router } = require('express');
 const jwt = require('jsonwebtoken');
 const Booking = require('../tables/booking');
 const Property = require('../tables/property');
+const Worker = require('../tables/worker');
 const Commission = require('../tables/commission');
 const Notification = require('../tables/notification');
 const User = require('../tables/user');
@@ -12,76 +13,94 @@ const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
 
 // Auth middleware
 function requireAuth(req, res, next) {
-	const token = req.cookies.akw_token || (req.headers.authorization || '').replace('Bearer ', '');
-	if (!token) return res.status(401).json({ message: 'Unauthorized' });
-	try {
-		req.user = jwt.verify(token, JWT_SECRET);
-		return next();
-	} catch (e) {
-		return res.status(401).json({ message: 'Invalid token' });
-	}
+  const token = req.cookies?.akw_token || (req.headers.authorization || '').replace('Bearer ', '');
+  if (!token) return res.status(401).json({ message: 'Unauthorized' });
+  try {
+    req.user = jwt.verify(token, JWT_SECRET);
+    return next();
+  } catch (e) {
+    return res.status(401).json({ message: 'Invalid token' });
+  }
+}
 
+// If caller is a worker, ensure they have the required privilege; hosts and admins bypass
+function requireWorkerPrivilege(privKey) {
+  return async function(req, res, next) {
+    try {
+      if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
+      if (req.user.userType === 'admin' || req.user.userType === 'host') return next();
+      if (req.user.userType !== 'worker') return res.status(403).json({ message: 'Not allowed' });
+      const worker = await Worker.findOne({ userAccount: req.user.id, isActive: true });
+      if (!worker) return res.status(403).json({ message: 'Worker profile not found' });
+      if (!worker.privileges || worker.privileges[privKey] !== true) {
+        return res.status(403).json({ message: 'Insufficient privileges' });
+      }
+      return next();
+    } catch (e) {
+      return res.status(500).json({ message: 'Privilege check failed' });
+    }
+  };
 }
 
 // Normalize a YYYY-MM-DD (or ISO) to a local date at 12:00 to avoid TZ edge cases
 function normalizeYMDToLocal(dateLike) {
-    if (!dateLike) return new Date(NaN);
-    const s = String(dateLike);
-    // If it's a pure date (YYYY-MM-DD), parse components to local date
-    const m = s.match(/^\d{4}-\d{2}-\d{2}$/);
-    if (m) {
-        const [y, mm, dd] = s.split('-').map(Number);
-        const d = new Date(y, mm - 1, dd, 12, 0, 0, 0);
-        return d;
-    }
-    // Fallback: rely on Date parsing, then shift to midday local to remove DST/TZ midnight flips
-    const d = new Date(s);
-    if (!isNaN(d.getTime())) d.setHours(12, 0, 0, 0);
+  if (!dateLike) return new Date(NaN);
+  const s = String(dateLike);
+  // If it's a pure date (YYYY-MM-DD), parse components to local date
+  const m = s.match(/^\d{4}-\d{2}-\d{2}$/);
+  if (m) {
+    const [y, mm, dd] = s.split('-').map(Number);
+    const d = new Date(y, mm - 1, dd, 12, 0, 0, 0);
     return d;
+  }
+  // Fallback: rely on Date parsing, then shift to midday local to remove DST/TZ midnight flips
+  const d = new Date(s);
+  if (!isNaN(d.getTime())) d.setHours(12, 0, 0, 0);
+  return d;
 }
 
 // Host confirms a booking, notifies guest
-router.post('/:id/confirm', requireAuth, async (req, res) => {
-	const booking = await Booking.findById(req.params.id).populate('property').populate('guest');
-	if (!booking) return res.status(404).json({ message: 'Booking not found' });
-	// Only property owner or admin can confirm
-	const isPropertyOwner = booking.property && String(booking.property.host) === String(req.user.id);
-	const isAdmin = req.user.userType === 'admin';
-	if (!isPropertyOwner && !isAdmin) {
-		return res.status(403).json({ message: 'Only property owner or admin can confirm booking.' });
-	}
-	
-	// Ensure booking is in a confirmable state (pending or awaiting)
-	if (!['pending', 'awaiting'].includes(booking.status)) {
-		return res.status(400).json({ message: 'Booking cannot be confirmed in its current state.' });
-	}
-	
-	booking.status = 'confirmed';
-	await booking.save();
-	// Notify guest
-	const confirmedBy = isAdmin ? 'admin' : 'owner';
-	await Notification.create({
-		type: 'booking_confirmed',
-		title: 'Your booking is confirmed!',
-		message: `Your booking for ${booking.property.title} has been confirmed by the ${confirmedBy}.`,
-		booking: booking._id,
-		property: booking.property._id,
-		recipientUser: booking.guest._id
-	});
-
-	// Notify property owner about commission obligation
-	if (booking.commissionAmount > 0) {
-		await Notification.create({
-			type: 'commission_due',
-			title: 'Commission Payment Due',
-			message: `Commission of RWF ${booking.commissionAmount.toLocaleString()} is due for confirmed booking ${booking.confirmationCode}. Rate: ${booking.property.commissionRate || 10}%`,
-			booking: booking._id,
-			property: booking.property._id,
-			recipientUser: booking.property.host
-		});
-	}
-
-	res.json({ booking });
+router.post('/:id/confirm', requireAuth, requireWorkerPrivilege('canConfirmBookings'), async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id).populate('property').populate('guest');
+    if (!booking) return res.status(404).json({ message: 'Booking not found' });
+    // Only property owner or admin can confirm
+    const isPropertyOwner = booking.property && String(booking.property.host) === String(req.user.id);
+    const isAdmin = req.user.userType === 'admin';
+    if (!isPropertyOwner && !isAdmin) {
+      return res.status(403).json({ message: 'Only property owner or admin can confirm booking.' });
+    }
+    // Ensure booking is in a confirmable state (pending or awaiting)
+    if (!['pending', 'awaiting'].includes(booking.status)) {
+      return res.status(400).json({ message: 'Booking cannot be confirmed in its current state.' });
+    }
+    booking.status = 'confirmed';
+    await booking.save();
+    // Notify guest
+    const confirmedBy = isAdmin ? 'admin' : 'owner';
+    await Notification.create({
+      type: 'booking_confirmed',
+      title: 'Your booking is confirmed!',
+      message: `Your booking for ${booking.property.title} has been confirmed by the ${confirmedBy}.`,
+      booking: booking._id,
+      property: booking.property._id,
+      recipientUser: booking.guest._id
+    });
+    // Notify property owner about commission obligation
+    if (booking.commissionAmount > 0) {
+      await Notification.create({
+        type: 'commission_due',
+        title: 'Commission Payment Due',
+        message: `Commission of RWF ${booking.commissionAmount.toLocaleString()} is due for confirmed booking ${booking.confirmationCode}. Rate: ${booking.property.commissionRate || 10}%`,
+        booking: booking._id,
+        property: booking.property._id,
+        recipientUser: booking.property.host
+      });
+    }
+    res.json({ booking });
+  } catch (e) {
+    return res.status(500).json({ message: 'Confirmation failed' });
+  }
 });
 
 router.post('/', requireAuth, async (req, res) => {
@@ -677,7 +696,7 @@ router.post('/:id/commission/confirm', requireAuth, async (req, res) => {
 });
 
 // Cancel a booking (guest who made it, property owner, or admin). Not allowed after end date or if already cancelled.
-router.post('/:id/cancel', requireAuth, async (req, res) => {
+router.post('/:id/cancel', requireAuth, requireWorkerPrivilege('canCancelBookings'), async (req, res) => {
     try {
         const b = await Booking.findById(req.params.id).populate('property').populate('guest');
         if (!b) return res.status(404).json({ message: 'Booking not found' });

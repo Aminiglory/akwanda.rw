@@ -4,10 +4,12 @@ const User = require('../tables/user');
 const Property = require('../tables/property');
 const Booking = require('../tables/booking');
 const Notification = require('../tables/notification');
+const Commission = require('../tables/commission');
 const jwt = require('jsonwebtoken');
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
+const bcrypt = require('bcryptjs');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
 
@@ -24,25 +26,197 @@ function requireAdmin(req, res, next) {
     }
 }
 
+// Admin overview metrics
 router.get('/overview', requireAdmin, async (req, res) => {
-	const totalBookings = await Booking.countDocuments();
-	const pendingCommissions = await Booking.countDocuments({ commissionPaid: false, status: 'commission_due' });
-	const confirmed = await Booking.countDocuments({ status: 'confirmed' });
-	res.json({ metrics: { totalBookings, pendingCommissions, confirmed } });
+    const totalBookings = await Booking.countDocuments();
+    const pendingCommissions = await Booking.countDocuments({ commissionPaid: false, status: 'commission_due' });
+    const confirmed = await Booking.countDocuments({ status: 'confirmed' });
+    res.json({ metrics: { totalBookings, pendingCommissions, confirmed } });
 });
 
-router.post('/commission', requireAdmin, async (req, res) => {
-	const { ratePercent } = req.body;
-	if (!ratePercent || ratePercent <= 0 || ratePercent >= 100) {
-		return res.status(400).json({ message: 'Invalid rate' });
-	}
-	const created = await Commission.create({ ratePercent, setBy: req.user.id });
-	res.status(201).json({ commission: created });
+// Trigger seeding via API: ensures admin account based on env vars
+// POST /api/admin/seed
+router.post('/seed', requireAdmin, async (req, res) => {
+    try {
+        const adminEmail = process.env.ADMIN_EMAIL;
+        let adminPasswordHash = process.env.ADMIN_PASSWORD_HASH; // preferred if provided
+        const adminPasswordPlain = process.env.ADMIN_PASSWORD; // fallback plain password
+        if (!adminEmail || (!adminPasswordHash && !adminPasswordPlain)) {
+            return res.status(400).json({ message: 'Missing ADMIN_EMAIL and/or ADMIN_PASSWORD(_HASH) in environment' });
+        }
+
+        const emailLower = String(adminEmail).toLowerCase();
+        let user = await User.findOne({ email: emailLower });
+        if (user) {
+            const force = process.env.ADMIN_FORCE_RESET === '1' || req.body?.forceReset === true;
+            if (force && adminPasswordPlain) {
+                const newHash = await bcrypt.hash(adminPasswordPlain, 10);
+                user.passwordHash = newHash;
+                user.userType = 'admin';
+                await user.save();
+                return res.json({ seeded: false, reset: true, message: 'Admin password reset', user: { id: user._id, email: user.email } });
+            }
+            return res.json({ seeded: false, message: 'Admin already exists', user: { id: user._id, email: user.email } });
+        }
+
+        if (!adminPasswordHash && adminPasswordPlain) {
+            adminPasswordHash = await bcrypt.hash(adminPasswordPlain, 10);
+        }
+
+        user = await User.create({
+            firstName: process.env.ADMIN_FIRST_NAME || 'Admin',
+            lastName: process.env.ADMIN_LAST_NAME || 'Admin',
+            email: emailLower,
+            phone: process.env.ADMIN_PHONE || '0000000000',
+            passwordHash: adminPasswordHash,
+            userType: 'admin'
+        });
+
+        return res.status(201).json({ seeded: true, message: 'Seeded admin account', user: { id: user._id, email: user.email } });
+    } catch (e) {
+        console.error('Admin seed error:', e);
+        return res.status(500).json({ message: 'Failed to run seed', error: e?.message || String(e) });
+    }
 });
 
 router.get('/commission', requireAdmin, async (req, res) => {
 	const current = await Commission.findOne({ active: true }).sort({ createdAt: -1 });
 	res.json({ commission: current });
+});
+
+// Set commission rate
+router.post('/commission', requireAdmin, async (req, res) => {
+    try {
+        const { ratePercent } = req.body || {};
+        const rate = Number(ratePercent);
+        if (!rate || rate <= 0 || rate >= 100) {
+            return res.status(400).json({ message: 'Invalid rate' });
+        }
+        const created = await Commission.create({ ratePercent: rate, setBy: req.user.id });
+        return res.status(201).json({ commission: created });
+    } catch (e) {
+        return res.status(500).json({ message: 'Failed to set commission', error: e?.message || String(e) });
+    }
+});
+
+// Seed demo properties for the current admin user (admin-only)
+router.post('/seed-demo-properties', requireAdmin, async (req, res) => {
+  try {
+    const Property = require('../tables/property');
+    const User = require('../tables/user');
+    const userId = req.user.id;
+
+    // Ensure user is host or admin; promote to host if needed
+    const acct = await User.findById(userId);
+    if (acct && acct.userType !== 'host' && acct.userType !== 'admin') {
+      acct.userType = 'host';
+      await acct.save();
+    }
+
+    const samples = [
+      {
+        title: 'Cityview Apartment Downtown',
+        description: 'Modern apartment with skyline views, close to cafes and co-working.',
+        address: '123 Main St',
+        city: 'Kigali',
+        country: 'Rwanda',
+        pricePerNight: 60000,
+        bedrooms: 2,
+        bathrooms: 1,
+        amenities: ['wifi','parking','kitchen','air_conditioning'],
+        images: [
+          'https://images.unsplash.com/photo-1505692794403-34d4982a83d7?w=1200',
+          'https://images.unsplash.com/photo-1501183638710-841dd1904471?w=1200'
+        ],
+        category: 'apartment',
+        visibilityLevel: 'standard',
+        rooms: [
+          { roomNumber: 'A1', roomType: 'double', pricePerNight: 60000, capacity: 3, amenities: ['wifi','desk'], images: ['https://images.unsplash.com/photo-1560066984-138dadb4c035?w=1200'] },
+          { roomNumber: 'A2', roomType: 'single', pricePerNight: 50000, capacity: 2, amenities: ['wifi'], images: ['https://images.unsplash.com/photo-1554995207-c18c203602cb?w=1200'] }
+        ]
+      },
+      {
+        title: 'Lakefront Villa Retreat',
+        description: 'Spacious villa with lake views and private garden.',
+        address: '45 Lakeside Rd',
+        city: 'Gisenyi',
+        country: 'Rwanda',
+        pricePerNight: 150000,
+        bedrooms: 4,
+        bathrooms: 3,
+        amenities: ['wifi','pool','parking','kitchen','laundry'],
+        images: [
+          'https://images.unsplash.com/photo-1507089947368-19c1da9775ae?w=1200',
+          'https://images.unsplash.com/photo-1600585154526-990dced4db0d?w=1200'
+        ],
+        category: 'villa',
+        visibilityLevel: 'featured',
+        promotions: [ { type: 'member_rate', title: 'Member deal', discountPercent: 10, active: true } ],
+        rooms: [
+          { roomNumber: 'V1', roomType: 'suite', pricePerNight: 180000, capacity: 4, amenities: ['wifi','balcony'], images: ['https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=1200'] },
+          { roomNumber: 'V2', roomType: 'double', pricePerNight: 140000, capacity: 3, amenities: ['wifi'], images: ['https://images.unsplash.com/photo-1560066984-5b560f4cfb21?w=1200'] }
+        ]
+      },
+      {
+        title: 'Airport Business Hotel',
+        description: 'Convenient hotel near airport with shuttle and conference room.',
+        address: '1 Terminal Ave',
+        city: 'Kigali',
+        country: 'Rwanda',
+        pricePerNight: 80000,
+        bedrooms: 20,
+        bathrooms: 20,
+        amenities: ['wifi','parking','breakfast'],
+        images: [
+          'https://images.unsplash.com/photo-1551776235-dde6d4829808?w=1200',
+          'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=1200'
+        ],
+        category: 'hotel',
+        visibilityLevel: 'premium',
+        rooms: [
+          { roomNumber: 'H101', roomType: 'single', pricePerNight: 70000, capacity: 1, images: ['https://images.unsplash.com/photo-1584132967334-10e028bd69f7?w=1200'] },
+          { roomNumber: 'H102', roomType: 'double', pricePerNight: 90000, capacity: 2, images: ['https://images.unsplash.com/photo-1560066984-138dadb4c035?w=1200'] }
+        ]
+      },
+      {
+        title: 'Backpackers Hostel Hub',
+        description: 'Budget-friendly hostel with shared spaces and social vibes.',
+        address: '99 Youth St',
+        city: 'Huye',
+        country: 'Rwanda',
+        pricePerNight: 15000,
+        bedrooms: 6,
+        bathrooms: 4,
+        amenities: ['wifi','kitchen'],
+        images: [ 'https://images.unsplash.com/photo-1484154218962-a197022b5858?w=1200' ],
+        category: 'hostel',
+        visibilityLevel: 'standard',
+        rooms: [
+          { roomNumber: 'B1', roomType: 'single', pricePerNight: 15000, capacity: 1, images: ['https://images.unsplash.com/photo-1598928506311-1c9a8f1a5b1a?w=1200'] },
+          { roomNumber: 'B2', roomType: 'family', pricePerNight: 30000, capacity: 4, images: ['https://images.unsplash.com/photo-1600607687920-4ce9a5c6a253?w=1200'] }
+        ]
+      }
+    ];
+
+    const existing = await Property.find({ host: userId }).select('title');
+    const existingTitles = new Set(existing.map(p => p.title));
+    const toCreate = samples.filter(s => !existingTitles.has(s.title)).map(s => ({ ...s, host: userId }));
+
+    let created = [];
+    if (toCreate.length) {
+      created = await Property.insertMany(toCreate, { ordered: false });
+    }
+
+    return res.json({
+      message: 'Seed complete',
+      created: created.length,
+      skipped: samples.length - toCreate.length,
+      totalForUser: existing.length + created.length
+    });
+  } catch (e) {
+    console.error('Admin seed-demo-properties error:', e);
+    return res.status(500).json({ message: 'Failed to seed demo properties', error: e?.message || String(e) });
+  }
 });
 
 // Monthly stats for the last 6 months: bookings created, confirmed, cancelled

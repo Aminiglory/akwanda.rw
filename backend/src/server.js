@@ -25,6 +25,8 @@ const adminUserManagementRouter = require('./routes/admin-user-management');
 const reportsRouter = require('./routes/reports');
 const workersRouter = require('./routes/workers');
 const User = require('./tables/user');
+const Worker = require('./tables/worker');
+const Notification = require('./tables/notification');
 
 const app = express();
 
@@ -51,7 +53,7 @@ const findAvailablePort = (startPort) => {
   });
 };
 
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/akwandadb';
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
 
@@ -64,6 +66,50 @@ app.get('/health', (req, res) => {
 	res.json({ status: 'ok' }); 
 });
 
+// Payroll reminder scheduler: runs hourly, notifies owners if worker nextPayDate is due
+function addMonths(date, m) { const d = new Date(date); d.setMonth(d.getMonth() + m); return d; }
+function addDays(date, d) { const n = new Date(date); n.setDate(n.getDate() + d); return n; }
+function nextByFreq(from, freq) {
+  switch (freq) {
+    case 'weekly': return addDays(from, 7);
+    case 'biweekly': return addDays(from, 14);
+    case 'quarterly': return addMonths(from, 3);
+    case 'monthly':
+    default: return addMonths(from, 1);
+  }
+}
+
+async function runPayrollReminderCycle(io) {
+  try {
+    const now = new Date();
+    const dueWorkers = await Worker.find({ 'salary.nextPayDate': { $lte: now }, status: { $in: ['active','inactive'] } });
+    for (const w of dueWorkers) {
+      try {
+        await Notification.create({
+          type: 'payroll_due',
+          title: 'Payroll Due Reminder',
+          message: `Salary payment is due for ${w.firstName} ${w.lastName} (${w.position}).`,
+          recipientUser: w.employerId,
+          worker: w._id
+        });
+        io.to(`user:${w.employerId}`).emit('notification', {
+          type: 'payroll_due',
+          title: 'Payroll Due Reminder',
+          message: `Salary payment is due for ${w.firstName} ${w.lastName} (${w.position}).`,
+          workerId: String(w._id)
+        });
+        // advance next pay date
+        const from = w.salary?.nextPayDate || now;
+        w.salary.nextPayDate = nextByFreq(from, w.salary?.paymentFrequency || 'monthly');
+        await w.save();
+      } catch (_) {}
+    }
+  } catch (e) {
+    console.warn('Payroll reminder cycle failed:', e?.message || e);
+  }
+}
+
+// Start scheduler after DB connection
 // Test endpoint for debugging
 app.get('/api/test', (req, res) => {
 	res.json({ 
@@ -204,16 +250,13 @@ async function start() {
 		await mongoose.connect(MONGO_URI);
 		console.log('Connected to MongoDB');
 		await seedAdminIfNeeded();
-		
-		// Find an available port starting from the preferred port
-		const availablePort = await findAvailablePort(PORT);
-		
-		server.listen(availablePort, () => {
-			console.log(`Server running on port ${availablePort}`);
-			if (availablePort !== PORT) {
-				console.log(`Note: Using port ${availablePort} instead of ${PORT} due to port conflict`);
-				console.log(`Update your frontend .env file: VITE_API_URL=http://localhost:${availablePort}`);
-			}
+
+		// Start payroll reminder scheduler (hourly) and run once at startup
+		runPayrollReminderCycle(io).catch(() => {});
+		setInterval(() => runPayrollReminderCycle(io), 60 * 60 * 1000);
+
+		server.listen(PORT, () => {
+			console.log(`Server running on port ${PORT}`);
 		});
 	} catch (err) {
 		console.error('Failed to start server', err);

@@ -61,10 +61,10 @@ const AdminDashboard = () => {
         }
       };
 
-      // Fetch all data with fallbacks
-      const [metricsData, propertiesData, bookingsData, usersData] = await Promise.all([
-        fetchWithFallback(`${API_URL}/api/admin/metrics`, { 
-          totalProperties: 0, 
+    // Fetch all data with fallbacks
+    const [metricsData, propertiesData, bookingsData, usersData] = await Promise.all([
+      fetchWithFallback(`${API_URL}/api/admin/metrics`, { 
+        totalProperties: 0, 
           totalBookings: 0, 
           totalRevenue: 0, 
           totalUsers: 0 
@@ -106,16 +106,37 @@ const AdminDashboard = () => {
         totalRevenue: 0,
         totalUsers: 0,
         totalAttractions: 0,
-        totalTaxis: 0,
         totalCarRentals: 0,
         pendingCommissions: 0
       });
       setProperties([]);
       setBookings([]);
-      setUsers([]);
-      setAttractions([]);
-      setTaxis([]);
-      setCarRentals([]);
+    }
+  };
+
+  // Seed a few demo properties for quick testing
+  const seedDemoProperties = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/admin/seed-demo-properties`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const text = await res.text();
+      let data = {};
+      try { data = text ? JSON.parse(text) : {}; } catch (_) { /* non-JSON */ }
+      if (!res.ok) {
+        const msg = data?.message || `Failed to seed properties (status ${res.status})`;
+        console.error('Seed demo error:', { status: res.status, body: text });
+        throw new Error(msg);
+      }
+      const created = data?.created ?? 0;
+      const skipped = data?.skipped ?? 0;
+      toast.success(`Seed complete. Created ${created}, skipped ${skipped}.`);
+      await fetchDashboardData();
+      setActiveTab('properties');
+    } catch (e) {
+      toast.error(e?.message || 'Seeding failed');
     }
   };
 
@@ -191,6 +212,13 @@ const AdminDashboard = () => {
               <p className="text-gray-600 mt-1">Manage your AKWANDA platform</p>
             </div>
             <div className="flex items-center space-x-4">
+              <button
+                onClick={seedDemoProperties}
+                className="bg-gray-800 hover:bg-gray-900 text-white px-6 py-2 rounded-xl font-semibold transition-colors duration-300"
+                title="Quickly create a few demo properties for testing"
+              >
+                Seed Demo Properties
+              </button>
               <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-xl font-semibold transition-colors duration-300 flex items-center gap-2">
                 <FaPlus />
                 Add New Service

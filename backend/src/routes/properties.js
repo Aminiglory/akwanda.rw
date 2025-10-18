@@ -1,9 +1,11 @@
 const { Router } = require('express');
 const Property = require('../tables/property');
+const Worker = require('../tables/worker');
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
 const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
 
 const router = Router();
 const Notification = require('../tables/notification');
@@ -17,6 +19,291 @@ function clampCommission(doc) {
         const cr = Number(doc.commissionRate);
         doc.commissionRate = Math.min(12, Math.max(8, isNaN(cr) ? 10 : cr));
     }
+}
+
+// If caller is a worker, ensure they have the required privilege; hosts and admins bypass
+function requireWorkerPrivilege(privKey) {
+    return async function(req, res, next) {
+        try {
+            if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
+
+// Seed demo properties for current user (host or admin)
+// POST /api/properties/seed-demo
+router.post('/seed-demo', requireAuth, async (req, res) => {
+  try {
+    // Auto-promote to host if not already
+    if (req.user.userType !== 'host' && req.user.userType !== 'admin') {
+      const acct = await User.findById(req.user.id);
+      if (acct) {
+        acct.userType = 'host';
+        await acct.save();
+        req.user.userType = 'host';
+      }
+    }
+
+    const samples = [
+      {
+        title: 'Cityview Apartment Downtown',
+        description: 'Modern apartment with skyline views, close to cafes and co-working.',
+        address: '123 Main St',
+        city: 'Kigali',
+        country: 'Rwanda',
+        pricePerNight: 60000,
+        bedrooms: 2,
+        bathrooms: 1,
+        amenities: ['wifi','parking','kitchen','air_conditioning'],
+        images: [
+          'https://images.unsplash.com/photo-1505692794403-34d4982a83d7?w=1200',
+          'https://images.unsplash.com/photo-1501183638710-841dd1904471?w=1200'
+        ],
+        category: 'apartment',
+        visibilityLevel: 'standard',
+        rooms: [
+          { roomNumber: 'A1', roomType: 'double', pricePerNight: 60000, capacity: 3, amenities: ['wifi','desk'], images: ['https://images.unsplash.com/photo-1560066984-138dadb4c035?w=1200'] },
+          { roomNumber: 'A2', roomType: 'single', pricePerNight: 50000, capacity: 2, amenities: ['wifi'], images: ['https://images.unsplash.com/photo-1554995207-c18c203602cb?w=1200'] }
+        ]
+      },
+      {
+        title: 'Lakefront Villa Retreat',
+        description: 'Spacious villa with lake views and private garden.',
+        address: '45 Lakeside Rd',
+        city: 'Gisenyi',
+        country: 'Rwanda',
+        pricePerNight: 150000,
+        bedrooms: 4,
+        bathrooms: 3,
+        amenities: ['wifi','pool','parking','kitchen','laundry'],
+        images: [
+          'https://images.unsplash.com/photo-1507089947368-19c1da9775ae?w=1200',
+          'https://images.unsplash.com/photo-1600585154526-990dced4db0d?w=1200'
+        ],
+        category: 'villa',
+        visibilityLevel: 'featured',
+        promotions: [ { type: 'member_rate', title: 'Member deal', discountPercent: 10, active: true } ],
+        rooms: [
+          { roomNumber: 'V1', roomType: 'suite', pricePerNight: 180000, capacity: 4, amenities: ['wifi','balcony'], images: ['https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=1200'] },
+          { roomNumber: 'V2', roomType: 'double', pricePerNight: 140000, capacity: 3, amenities: ['wifi'], images: ['https://images.unsplash.com/photo-1560066984-5b560f4cfb21?w=1200'] }
+        ]
+      },
+      {
+        title: 'Airport Business Hotel',
+        description: 'Convenient hotel near airport with shuttle and conference room.',
+        address: '1 Terminal Ave',
+        city: 'Kigali',
+        country: 'Rwanda',
+        pricePerNight: 80000,
+        bedrooms: 20,
+        bathrooms: 20,
+        amenities: ['wifi','parking','breakfast'],
+        images: [
+          'https://images.unsplash.com/photo-1551776235-dde6d4829808?w=1200',
+          'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=1200'
+        ],
+        category: 'hotel',
+        visibilityLevel: 'premium',
+        rooms: [
+          { roomNumber: 'H101', roomType: 'single', pricePerNight: 70000, capacity: 1, images: ['https://images.unsplash.com/photo-1584132967334-10e028bd69f7?w=1200'] },
+          { roomNumber: 'H102', roomType: 'double', pricePerNight: 90000, capacity: 2, images: ['https://images.unsplash.com/photo-1560066984-138dadb4c035?w=1200'] }
+        ]
+      },
+      {
+        title: 'Backpackers Hostel Hub',
+        description: 'Budget-friendly hostel with shared spaces and social vibes.',
+        address: '99 Youth St',
+        city: 'Huye',
+        country: 'Rwanda',
+        pricePerNight: 15000,
+        bedrooms: 6,
+        bathrooms: 4,
+        amenities: ['wifi','kitchen'],
+        images: [ 'https://images.unsplash.com/photo-1484154218962-a197022b5858?w=1200' ],
+        category: 'hostel',
+        visibilityLevel: 'standard',
+        rooms: [
+          { roomNumber: 'B1', roomType: 'single', pricePerNight: 15000, capacity: 1, images: ['https://images.unsplash.com/photo-1598928506311-1c9a8f1a5b1a?w=1200'] },
+          { roomNumber: 'B2', roomType: 'family', pricePerNight: 30000, capacity: 4, images: ['https://images.unsplash.com/photo-1600607687920-4ce9a5c6a253?w=1200'] }
+        ]
+      }
+    ];
+
+    // Avoid duplicates by title for this host
+    const existing = await Property.find({ host: req.user.id }).select('title');
+    const existingTitles = new Set(existing.map(p => p.title));
+
+    const toCreate = samples.filter(s => !existingTitles.has(s.title)).map(s => ({ ...s, host: req.user.id }));
+
+    let created = [];
+    if (toCreate.length) {
+      created = await Property.insertMany(toCreate, { ordered: false });
+    }
+
+    return res.json({
+      message: 'Seed complete',
+      created: created.length,
+      skipped: samples.length - toCreate.length,
+      totalForUser: existing.length + created.length
+    });
+  } catch (error) {
+    console.error('Seed demo error:', error);
+    return res.status(500).json({ message: 'Failed to seed demo properties', error: error.message });
+  }
+});
+
+// Seed demo properties for current user (host or admin)
+// POST /api/properties/seed-demo
+router.post('/seed-demo', requireAuth, async (req, res) => {
+    try {
+        // Auto-promote to host if not already
+        if (req.user.userType !== 'host' && req.user.userType !== 'admin') {
+            const acct = await User.findById(req.user.id);
+            if (acct) {
+                acct.userType = 'host';
+                await acct.save();
+                req.user.userType = 'host';
+            }
+        }
+
+        const samples = [
+            {
+                title: 'Cityview Apartment Downtown',
+                description: 'Modern apartment with skyline views, close to cafes and co-working.',
+                address: '123 Main St',
+                city: 'Kigali',
+                country: 'Rwanda',
+                pricePerNight: 60000,
+                bedrooms: 2,
+                bathrooms: 1,
+                amenities: ['wifi','parking','kitchen','air_conditioning'],
+                images: [
+                    'https://images.unsplash.com/photo-1505692794403-34d4982a83d7?w=1200',
+                    'https://images.unsplash.com/photo-1501183638710-841dd1904471?w=1200'
+                ],
+                category: 'apartment',
+                visibilityLevel: 'standard',
+                rooms: [
+                    {
+                        roomNumber: 'A1', roomType: 'double', pricePerNight: 60000, capacity: 3,
+                        amenities: ['wifi','desk'],
+                        images: ['https://images.unsplash.com/photo-1560066984-138dadb4c035?w=1200']
+                    },
+                    {
+                        roomNumber: 'A2', roomType: 'single', pricePerNight: 50000, capacity: 2,
+                        amenities: ['wifi'],
+                        images: ['https://images.unsplash.com/photo-1554995207-c18c203602cb?w=1200']
+                    }
+                ]
+            },
+            {
+                title: 'Lakefront Villa Retreat',
+                description: 'Spacious villa with lake views and private garden.',
+                address: '45 Lakeside Rd',
+                city: 'Gisenyi',
+                country: 'Rwanda',
+                pricePerNight: 150000,
+                bedrooms: 4,
+                bathrooms: 3,
+                amenities: ['wifi','pool','parking','kitchen','laundry'],
+                images: [
+                    'https://images.unsplash.com/photo-1507089947368-19c1da9775ae?w=1200',
+                    'https://images.unsplash.com/photo-1600585154526-990dced4db0d?w=1200'
+                ],
+                category: 'villa',
+                visibilityLevel: 'featured',
+                promotions: [ { type: 'member_rate', title: 'Member deal', discountPercent: 10, active: true } ],
+                rooms: [
+                    {
+                        roomNumber: 'V1', roomType: 'suite', pricePerNight: 180000, capacity: 4,
+                        amenities: ['wifi','balcony'],
+                        images: ['https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=1200']
+                    },
+                    {
+                        roomNumber: 'V2', roomType: 'double', pricePerNight: 140000, capacity: 3,
+                        amenities: ['wifi'],
+                        images: ['https://images.unsplash.com/photo-1560066984-5b560f4cfb21?w=1200']
+                    }
+                ]
+            },
+            {
+                title: 'Airport Business Hotel',
+                description: 'Convenient hotel near airport with shuttle and conference room.',
+                address: '1 Terminal Ave',
+                city: 'Kigali',
+                country: 'Rwanda',
+                pricePerNight: 80000,
+                bedrooms: 20,
+                bathrooms: 20,
+                amenities: ['wifi','parking','breakfast'],
+                images: [
+                    'https://images.unsplash.com/photo-1551776235-dde6d4829808?w=1200',
+                    'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=1200'
+                ],
+                category: 'hotel',
+                visibilityLevel: 'premium',
+                rooms: [
+                    { roomNumber: 'H101', roomType: 'single', pricePerNight: 70000, capacity: 1, images: ['https://images.unsplash.com/photo-1584132967334-10e028bd69f7?w=1200'] },
+                    { roomNumber: 'H102', roomType: 'double', pricePerNight: 90000, capacity: 2, images: ['https://images.unsplash.com/photo-1560066984-138dadb4c035?w=1200'] }
+                ]
+            },
+            {
+                title: 'Backpackers Hostel Hub',
+                description: 'Budget-friendly hostel with shared spaces and social vibes.',
+                address: '99 Youth St',
+                city: 'Huye',
+                country: 'Rwanda',
+                pricePerNight: 15000,
+                bedrooms: 6,
+                bathrooms: 4,
+                amenities: ['wifi','kitchen'],
+                images: [
+                    'https://images.unsplash.com/photo-1484154218962-a197022b5858?w=1200'
+                ],
+                category: 'hostel',
+                visibilityLevel: 'standard',
+                rooms: [
+                    { roomNumber: 'B1', roomType: 'single', pricePerNight: 15000, capacity: 1, images: ['https://images.unsplash.com/photo-1598928506311-1c9a8f1a5b1a?w=1200'] },
+                    { roomNumber: 'B2', roomType: 'family', pricePerNight: 30000, capacity: 4, images: ['https://images.unsplash.com/photo-1600607687920-4ce9a5c6a253?w=1200'] }
+                ]
+            }
+        ];
+
+        // Avoid duplicates by title for this host
+        const existing = await Property.find({ host: req.user.id }).select('title');
+        const existingTitles = new Set(existing.map(p => p.title));
+
+        const toCreate = samples
+            .filter(s => !existingTitles.has(s.title))
+            .map(s => ({ ...s, host: req.user.id }));
+
+        let created = [];
+        if (toCreate.length) {
+            // Normalize images to ensure http links are preserved as-is
+            created = await Property.insertMany(toCreate, { ordered: false });
+        }
+
+        return res.json({
+            message: 'Seed complete',
+            created: created.length,
+            skipped: samples.length - toCreate.length,
+            totalForUser: existing.length + created.length
+        });
+    } catch (error) {
+        console.error('Seed demo error:', error);
+        return res.status(500).json({ message: 'Failed to seed demo properties', error: error.message });
+    }
+});
+            if (req.user.userType === 'admin' || req.user.userType === 'host') return next();
+            if (req.user.userType !== 'worker') return res.status(403).json({ message: 'Not allowed' });
+            // Find worker by linked user account
+            const worker = await Worker.findOne({ userAccount: req.user.id, isActive: true });
+            if (!worker) return res.status(403).json({ message: 'Worker profile not found' });
+            if (!worker.privileges || worker.privileges[privKey] !== true) {
+                return res.status(403).json({ message: 'Insufficient privileges' });
+            }
+            return next();
+        } catch (e) {
+            return res.status(500).json({ message: 'Privilege check failed' });
+        }
+    };
 }
 
 // One-time startup sanitization for legacy documents having invalid commissionRate
@@ -195,7 +482,28 @@ router.get('/', async (req, res) => {
             properties = visible;
         }
 
-        res.json({ properties });
+        // Normalize image paths to web-friendly URLs to avoid broken/black cards on frontend
+        const norm = (u) => {
+            if (!u) return u;
+            let s = String(u).trim();
+            // Preserve absolute URLs and data URIs
+            if (/^(https?:)?\/\//i.test(s) || /^data:/i.test(s)) return s;
+            s = s.replace(/\\+/g, '/');
+            if (!s.startsWith('/')) s = `/${s}`;
+            return s;
+        };
+        const out = (properties || []).map(p => {
+            const o = p.toObject ? p.toObject({ virtuals: true }) : p;
+            if (Array.isArray(o.images)) o.images = o.images.map(norm);
+            if (Array.isArray(o.rooms)) {
+                o.rooms = o.rooms.map(r => ({
+                    ...r,
+                    images: Array.isArray(r.images) ? r.images.map(norm) : []
+                }));
+            }
+            return o;
+        });
+        res.json({ properties: out });
     } catch (error) {
         console.error('Property listing error:', error);
         res.status(500).json({ message: 'Failed to fetch properties', error: error.message });
@@ -235,7 +543,7 @@ router.get('/my-properties', requireAuth, async (req, res) => {
             },
             {
                 $match: {
-                    'propertyInfo.host': require('mongoose').Types.ObjectId(req.user.id)
+                    'propertyInfo.host': new mongoose.Types.ObjectId(req.user.id)
                 }
             },
             {
@@ -422,7 +730,9 @@ router.get('/:id', async (req, res) => {
     // Normalize image paths for property and rooms so frontend gets clean URLs
     const norm = (u) => {
         if (!u) return u;
-        let s = String(u).replace(/\\+/g, '/');
+        let s = String(u).trim();
+        if (/^(https?:)?\/\//i.test(s) || /^data:/i.test(s)) return s;
+        s = s.replace(/\\+/g, '/');
         if (!s.startsWith('/')) s = `/${s}`;
         return s;
     };
@@ -529,6 +839,82 @@ router.get('/:id/calendar', requireAuth, async (req, res) => {
     }
 });
 
+// Room lock/unlock like booking.com controls used by RoomCalendarPanel.jsx
+// POST /api/properties/:id/rooms/:roomId/lock { startDate: 'YYYY-MM-DD', endDate: 'YYYY-MM-DD', reason?: string }
+router.post('/:id/rooms/:roomId/lock', requireAuth, async (req, res) => {
+    try {
+        const property = await Property.findById(req.params.id).select('rooms host');
+        if (!property) return res.status(404).json({ message: 'Property not found' });
+        if (String(property.host) !== String(req.user.id) && req.user.userType !== 'admin') {
+            return res.status(403).json({ message: 'Not allowed' });
+        }
+        const room = (property.rooms || []).id(req.params.roomId);
+        if (!room) return res.status(404).json({ message: 'Room not found' });
+
+        const { startDate, endDate, reason } = req.body || {};
+        const s = new Date(startDate);
+        const e = new Date(endDate);
+        if (isNaN(s.getTime()) || isNaN(e.getTime()) || e <= s) {
+            return res.status(400).json({ message: 'Invalid start/end dates' });
+        }
+
+        // Prevent duplicate/overlapping closed ranges; merge simple overlaps
+        room.closedDates = Array.isArray(room.closedDates) ? room.closedDates : [];
+        const merged = [];
+        let added = { startDate: s, endDate: e, reason: reason || 'Locked' };
+        for (const cd of room.closedDates) {
+            const cs = new Date(cd.startDate); const ce = new Date(cd.endDate);
+            if (!(ce <= added.startDate || cs >= added.endDate)) {
+                // Overlap -> merge
+                added.startDate = new Date(Math.min(added.startDate, cs));
+                added.endDate = new Date(Math.max(added.endDate, ce));
+                added.reason = added.reason || cd.reason;
+            } else {
+                merged.push(cd);
+            }
+        }
+        merged.push({ startDate: added.startDate, endDate: added.endDate, reason: added.reason });
+        room.closedDates = merged;
+        await property.save();
+        return res.json({ success: true, room: { _id: room._id, closedDates: room.closedDates } });
+    } catch (error) {
+        console.error('Room lock error:', error);
+        return res.status(500).json({ message: 'Failed to lock room' });
+    }
+});
+
+// POST /api/properties/:id/rooms/:roomId/unlock { startDate: 'YYYY-MM-DD', endDate: 'YYYY-MM-DD' }
+router.post('/:id/rooms/:roomId/unlock', requireAuth, async (req, res) => {
+    try {
+        const property = await Property.findById(req.params.id).select('rooms host');
+        if (!property) return res.status(404).json({ message: 'Property not found' });
+        if (String(property.host) !== String(req.user.id) && req.user.userType !== 'admin') {
+            return res.status(403).json({ message: 'Not allowed' });
+        }
+        const room = (property.rooms || []).id(req.params.roomId);
+        if (!room) return res.status(404).json({ message: 'Room not found' });
+
+        const { startDate, endDate } = req.body || {};
+        const s = new Date(startDate);
+        const e = new Date(endDate);
+        if (isNaN(s.getTime()) || isNaN(e.getTime()) || e <= s) {
+            return res.status(400).json({ message: 'Invalid start/end dates' });
+        }
+
+        room.closedDates = (Array.isArray(room.closedDates) ? room.closedDates : []).filter(cd => {
+            if (!cd?.startDate || !cd?.endDate) return false;
+            const cs = new Date(cd.startDate).toISOString().slice(0,10);
+            const ce = new Date(cd.endDate).toISOString().slice(0,10);
+            return !(cs === new Date(s).toISOString().slice(0,10) && ce === new Date(e).toISOString().slice(0,10));
+        });
+        await property.save();
+        return res.json({ success: true, room: { _id: room._id, closedDates: room.closedDates } });
+    } catch (error) {
+        console.error('Room unlock error:', error);
+        return res.status(500).json({ message: 'Failed to unlock room' });
+    }
+});
+
 const uploadDir = path.join(process.cwd(), 'uploads');
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 const storage = multer.diskStorage({
@@ -582,14 +968,16 @@ router.post('/', requireAuth, upload.array('images', 10), async (req, res) => {
         }
     }
 	const imagePaths = (req.files || []).map(f => `/uploads/${path.basename(f.path)}`);
-    // Merge any imageUrls from body (e.g., prior upload call)
+    // Merge any images provided in JSON body (images, imageUrls) with uploaded file paths
     let mergedImages = [...imagePaths];
-    if (req.body.imageUrls) {
-        const urls = Array.isArray(req.body.imageUrls) ? req.body.imageUrls : [req.body.imageUrls];
-        mergedImages.push(...urls.map(u => String(u).replace(/\\+/g, '/')));
-    }
+    const bodyImages = req.body.images ? (Array.isArray(req.body.images) ? req.body.images : [req.body.images]) : [];
+    const bodyImageUrls = req.body.imageUrls ? (Array.isArray(req.body.imageUrls) ? req.body.imageUrls : [req.body.imageUrls]) : [];
+    mergedImages.push(
+        ...bodyImages.map(u => String(u).replace(/\\+/g, '/')),
+        ...bodyImageUrls.map(u => String(u).replace(/\\+/g, '/'))
+    );
     // Deduplicate & normalize
-    mergedImages = Array.from(new Set(mergedImages.map(u => String(u).replace(/\\+/g, '/'))));
+    mergedImages = Array.from(new Set(mergedImages.filter(Boolean).map(u => String(u).replace(/\\+/g, '/'))));
     const payload = { ...req.body, images: mergedImages, host: req.user.id };
     // Ensure commissionRate stays within [8,12] regardless of visibility level
     if (payload.commissionRate != null) {
@@ -621,7 +1009,7 @@ router.post('/', requireAuth, upload.array('images', 10), async (req, res) => {
 });
 
 // Update a property (owner or admin)
-router.put('/:id', requireAuth, upload.array('images', 10), async (req, res) => {
+router.put('/:id', requireAuth, requireWorkerPrivilege('canEditProperties'), upload.array('images', 10), async (req, res) => {
     const property = await Property.findById(req.params.id);
     if (!property) return res.status(404).json({ message: 'Property not found' });
     if (String(property.host) !== req.user.id && req.user.userType !== 'admin') {
@@ -666,6 +1054,14 @@ router.put('/:id', requireAuth, upload.array('images', 10), async (req, res) => 
             ? [...updates.images, ...normalized]
             : normalized;
     }
+    // Merge body images if provided as JSON array (frontend sends `images`)
+    if (req.body.images) {
+        const arr = Array.isArray(req.body.images) ? req.body.images : [req.body.images];
+        const normalized = arr.map(u => String(u).replace(/\\+/g, '/'));
+        updates.images = (updates.images && updates.images.length)
+            ? [...updates.images, ...normalized]
+            : normalized;
+    }
     // Allow clearing images explicitly
     if (String(req.body.clearImages).toLowerCase() === 'true') {
         updates.images = [];
@@ -678,6 +1074,43 @@ router.put('/:id', requireAuth, upload.array('images', 10), async (req, res) => 
     clampCommission(property);
     await property.save();
     res.json({ property });
+});
+
+// Admin-only: normalize stored image URLs for all properties and rooms
+router.post('/admin/normalize-images', requireAuth, async (req, res) => {
+    try {
+        if (req.user.userType !== 'admin') return res.status(403).json({ message: 'Admin only' });
+        const norm = (u) => {
+            if (!u) return u;
+            let s = String(u).trim();
+            if (/^(https?:)?\/\//i.test(s) || /^data:/i.test(s)) return s;
+            s = s.replace(/\\+/g, '/');
+            if (!s.startsWith('/')) s = `/${s}`;
+            return s;
+        };
+        const props = await Property.find({}).select('_id images rooms');
+        let changed = 0;
+        for (const p of props) {
+            let did = false;
+            if (Array.isArray(p.images)) {
+                const n = p.images.map(norm);
+                if (JSON.stringify(n) !== JSON.stringify(p.images)) { p.images = Array.from(new Set(n)); did = true; }
+            }
+            if (Array.isArray(p.rooms)) {
+                for (const r of p.rooms) {
+                    if (Array.isArray(r.images)) {
+                        const n = r.images.map(norm);
+                        if (JSON.stringify(n) !== JSON.stringify(r.images)) { r.images = Array.from(new Set(n)); did = true; }
+                    }
+                }
+            }
+            if (did) { await p.save(); changed++; }
+        }
+        res.json({ message: 'Normalization complete', updatedDocuments: changed, scanned: props.length });
+    } catch (e) {
+        console.error('Normalize images admin task failed:', e);
+        res.status(500).json({ message: 'Failed to normalize images', error: e.message });
+    }
 });
 
 // [Removed duplicate delete route here] Use the later host-only delete route below instead.
@@ -785,7 +1218,7 @@ router.post('/:id/rooms/:roomId/lock', requireAuth, async (req, res) => {
 });
 
 // Create a new room under a property (owner or admin)
-router.post('/:id/rooms', requireAuth, async (req, res) => {
+router.post('/:id/rooms', requireAuth, upload.array('images', 10), async (req, res) => {
     try {
         const property = await Property.findById(req.params.id);
         if (!property) return res.status(404).json({ message: 'Property not found' });
@@ -811,6 +1244,11 @@ router.post('/:id/rooms', requireAuth, async (req, res) => {
             return res.status(400).json({ message: 'Missing required room fields' });
         }
 
+        // Merge uploaded files + body images into final images array
+        const uploaded = (req.files || []).map(f => `/uploads/${path.basename(f.path)}`);
+        const bodyImages = Array.isArray(images) ? images : [images].filter(Boolean);
+        const mergedImages = Array.from(new Set([...uploaded, ...bodyImages].map(u => String(u).replace(/\\+/g, '/')).filter(Boolean)));
+
         property.rooms = property.rooms || [];
         property.rooms.push({
             roomNumber,
@@ -818,7 +1256,7 @@ router.post('/:id/rooms', requireAuth, async (req, res) => {
             pricePerNight: Number(pricePerNight),
             capacity: Number(capacity),
             amenities: Array.isArray(amenities) ? amenities : String(amenities).split(',').map(s => s.trim()).filter(Boolean),
-            images: Array.isArray(images) ? images : [images].filter(Boolean),
+            images: mergedImages,
             maxAdults: maxAdults != null ? Number(maxAdults) : undefined,
             maxChildren: maxChildren != null ? Number(maxChildren) : undefined,
             maxInfants: maxInfants != null ? Number(maxInfants) : undefined,
@@ -833,6 +1271,29 @@ router.post('/:id/rooms', requireAuth, async (req, res) => {
     } catch (e) {
         console.error('Create room error:', e);
         res.status(500).json({ message: 'Failed to create room', error: e.message });
+    }
+});
+
+// Upload images to an existing room and append to its images array
+router.post('/:id/rooms/:roomId/images', requireAuth, upload.array('images', 10), async (req, res) => {
+    try {
+        const property = await Property.findById(req.params.id);
+        if (!property) return res.status(404).json({ message: 'Property not found' });
+        if (String(property.host) !== req.user.id && req.user.userType !== 'admin') {
+            return res.status(403).json({ message: 'Not allowed' });
+        }
+        const room = (property.rooms || []).id(req.params.roomId);
+        if (!room) return res.status(404).json({ message: 'Room not found' });
+
+        const uploaded = (req.files || []).map(f => `/uploads/${path.basename(f.path)}`);
+        const bodyUrls = req.body.imageUrls ? (Array.isArray(req.body.imageUrls) ? req.body.imageUrls : [req.body.imageUrls]) : [];
+        const all = Array.from(new Set([...(room.images || []), ...uploaded, ...bodyUrls].map(u => String(u).replace(/\\+/g, '/')).filter(Boolean)));
+        room.images = all;
+        await property.save();
+        res.json({ success: true, images: room.images });
+    } catch (e) {
+        console.error('Room images upload error:', e);
+        res.status(500).json({ message: 'Failed to upload room images', error: e.message });
     }
 });
 

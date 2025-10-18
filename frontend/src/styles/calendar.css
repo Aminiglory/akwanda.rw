@@ -1,0 +1,17 @@
+:root{
+  --cal-booked-bg: #fde68a; /* amber-300 */
+  --cal-booked-border: #f59e0b; /* amber-500 */
+  --cal-closed-bg: #fb7185; /* rose-400 */
+  --cal-closed-border: #f43f5e; /* rose-500 */
+  --cal-today-bg: #d1fae5; /* emerald-100 */
+}
+
+.cal-legend{ display:flex; gap:.75rem; color:#6b7280; font-size:.75rem; align-items:center; }
+.cal-legend .dot{ width:.75rem; height:.75rem; border-radius:.2rem; display:inline-block; margin-right:.25rem; }
+.cal-legend .booked{ background: var(--cal-booked-bg); }
+.cal-legend .closed{ background: var(--cal-closed-bg); }
+.cal-legend .today{ background: var(--cal-today-bg); }
+
+.cal-cell--booked{ background: var(--cal-booked-bg) !important; border-color: var(--cal-booked-border) !important; }
+.cal-cell--closed{ background: #ffe4e6 !important; border-color: var(--cal-closed-border) !important; }
+.cal-cell--today{ background: var(--cal-today-bg) !important; }

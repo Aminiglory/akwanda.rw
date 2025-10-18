@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import RoomCalendarPanel from '../components/RoomCalendarPanel';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+
 import toast from 'react-hot-toast';
 import {
   FaBed,
@@ -29,34 +30,21 @@ import {
   FaDoorOpen,
   FaCheck,
   FaChevronLeft,
-  FaChevronRight,
-  // FaEye,
-  // FaPlay,
-  // FaPause,
-  // FaVolumeUp,
-  // FaVolumeMute
+  FaChevronRight
 } from 'react-icons/fa';
 
 const ApartmentDetails = () => {
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  const { id } = useParams();
+  const { isAuthenticated, user } = useAuth();
+  const navigate = useNavigate();
   const [selectedImage, setSelectedImage] = useState(0);
   const [isFavorited, setIsFavorited] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState(null);
-  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
-  const [bookingData, setBookingData] = useState({
-    checkIn: '',
-    checkOut: '',
-    guests: 1
-  });
-
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-  const { id } = useParams();
   const [apartment, setApartment] = useState(null);
-  const { isAuthenticated } = useAuth();
-  const navigate = useNavigate();
 
   const makeAbsolute = (u) => {
     if (!u) return u;
-    // Replace Windows-style backslashes and ensure leading slash for uploads
     let s = String(u).replace(/\\/g, '/');
     if (!s.startsWith('http')) {
       if (!s.startsWith('/')) s = `/${s}`;
@@ -65,12 +53,7 @@ const ApartmentDetails = () => {
     return s;
   };
 
-  const isValidImageUrl = (url) => {
-    if (!url) return false;
-    const imageExtensions = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i;
-    return imageExtensions.test(url) || url.startsWith('http');
-  };
-
+  // Load property details
   useEffect(() => {
     (async () => {
       try {
@@ -78,60 +61,55 @@ const ApartmentDetails = () => {
         const data = await res.json();
         if (!res.ok) throw new Error(data.message || 'Failed to load property');
 
-        console.log('Fetched property data:', data); // Debugging log
-
-        const p = data.property;
-        
-        // Enhanced amenities mapping
+        const p = data.property || data;
         const amenityIcons = {
+          'wifi': FaWifi,
           'WiFi': FaWifi,
+          'parking': FaCar,
           'Parking': FaCar,
+          'kitchen': FaUtensils,
           'Kitchen': FaUtensils,
+          'pool': FaSwimmingPool,
           'Pool': FaSwimmingPool,
+          'tv': FaTv,
           'TV': FaTv,
-          'Air Conditioning': FaBook,
-          'Security': FaShieldAlt,
-          'Coffee Machine': FaCoffee,
-          'Elevator': FaBus,
-          'Keyless Entry': FaKey,
-          'Balcony': FaHome,
-          'Garden': FaHome
+          'air_conditioning': FaBook,
+          'security': FaShieldAlt,
+          'coffee': FaCoffee,
+          'balcony': FaHome
         };
 
-        const processedAmenities = (p.amenities || []).map(amenity => ({
-          icon: amenityIcons[amenity] || FaHome,
-          name: amenity
-        }));
+        const processedAmenities = Array.isArray(p.amenities) ? p.amenities.map((a) => ({
+          icon: amenityIcons[a] || FaHome,
+          name: a
+        })) : [];
 
         setApartment({
           id: p._id,
           title: p.title,
           location: `${p.address}, ${p.city}`,
-          price: (p.pricePerNight || p.price || 0) * 30, // Convert to monthly price
-          pricePerNight: p.pricePerNight || p.price || 0, // Keep original for reference
-          rating: p.ratings?.length ? p.ratings.reduce((sum, r) => sum + r.rating, 0) / p.ratings.length : 0,
+          price: (p.pricePerNight || p.price || 0) * 30,
+          pricePerNight: p.pricePerNight || p.price || 0,
+          rating: p.ratings?.length ? (p.ratings.reduce((s, r) => s + r.rating, 0) / p.ratings.length) : 0,
           reviews: p.ratings?.length || 0,
           type: p.category || 'Apartment',
           size: p.size || '—',
           bedrooms: p.bedrooms ?? 0,
           bathrooms: p.bathrooms ?? 0,
-          images:
-            p.images && p.images.length
-              ? p.images.map((i) => makeAbsolute(i))
-              : [
-                  'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&h=600&fit=crop'
-                ],
-          rooms: (p.rooms || []).map(room => {
+          images: Array.isArray(p.images) && p.images.length ? p.images.map(makeAbsolute) : [
+            'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&h=600&fit=crop'
+          ],
+          rooms: Array.isArray(p.rooms) ? p.rooms.map((room) => {
             const roomPricePerNight = room.pricePerNight || room.price || 0;
             return {
               ...room,
               pricePerNight: roomPricePerNight,
-              pricePerMonth: roomPricePerNight * 30, // Add monthly price
-              images: room.images ? room.images.map(img => makeAbsolute(img)) : []
+              pricePerMonth: room.pricePerMonth || roomPricePerNight * 30,
+              images: Array.isArray(room.images) ? room.images.map(makeAbsolute) : []
             };
-          }),
+          }) : [],
           amenities: processedAmenities,
-          description: p.description || 'Beautiful apartment with great amenities.',
+          description: p.description || '',
           host: {
             name: p.host ? `${p.host.firstName} ${p.host.lastName}` : '—',
             avatar: null,
@@ -139,14 +117,14 @@ const ApartmentDetails = () => {
             responseTime: 'Within an hour',
             joinDate: '2020',
             email: p.host?.email,
-            phone: p.host?.phone
+            phone: p.host?.phone,
+            id: p.host?._id || p.host?.id
           },
-          nearby: [],
           features: {
             checkIn: '3:00 PM',
             checkOut: '11:00 AM',
             cancellation: 'Free cancellation up to 24 hours before check-in',
-            houseRules: Array.isArray(p.houseRules) && p.houseRules.length > 0 ? p.houseRules : null
+            houseRules: Array.isArray(p.houseRules) && p.houseRules.length ? p.houseRules : []
           }
         });
       } catch (e) {
@@ -161,35 +139,6 @@ const ApartmentDetails = () => {
       setSelectedRoom(0);
     }
   }, [apartment, selectedRoom]);
-
-  const handleBooking = async (e) => {
-    e.preventDefault();
-    try {
-      const res = await fetch(`${API_URL}/api/bookings`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          propertyId: id,
-          checkIn: bookingData.checkIn,
-          checkOut: bookingData.checkOut,
-          guests: bookingData.guests
-        })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed to book');
-      toast.success('Booking created');
-    } catch (err) {
-      toast.error(err.message);
-    }
-  };
-
-  const handleInputChange = (field, value) => {
-    setBookingData((prev) => ({
-      ...prev,
-      [field]: value
-    }));
-  };
 
   const renderStars = (rating) => {
     return Array.from({ length: 5 }, (_, i) => {
@@ -216,24 +165,24 @@ const ApartmentDetails = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white">
+      <div className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-8">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold mb-2">{apartment.title}</h1>
               <div className="flex items-center">
-                <FaMapMarkerAlt className="text-blue-200 mr-2" />
-                <span className="text-blue-100">{apartment.location}</span>
+                <FaMapMarkerAlt className="text-blue-500 mr-2" />
+                <span className="text-gray-600">{apartment.location}</span>
               </div>
               <div className="flex items-center mt-3">
                 {renderStars(apartment.rating)}
-                <span className="ml-2 text-blue-100">
+                <span className="ml-2 text-gray-600">
                   {apartment.rating.toFixed(1)} ({apartment.reviews} reviews)
                 </span>
               </div>
             </div>
             <div className="flex items-center space-x-4">
-              <button className="p-3 bg-white/20 text-white rounded-full hover:bg-white/30 transition-colors">
+              <button className="p-3 bg-gray-100 text-gray-600 rounded-full hover:bg-gray-200 transition-colors">
                 <FaShare className="text-xl" />
               </button>
             </div>
@@ -241,7 +190,6 @@ const ApartmentDetails = () => {
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Apartment Info */}
@@ -408,7 +356,7 @@ const ApartmentDetails = () => {
                   {apartment.rooms.map((room, index) => (
                     <div 
                       key={index}
-                      className={`group border-2 rounded-xl p-3 cursor-pointer transition-all duration-300 transform hover:scale-[1.01] hover:shadow-lg ${
+                      className={`group border-2 rounded-xl p-3 cursor-pointer transition-all duration-300 transform hover:scale-[1.01] hover:shadow-lg relative ${
                         selectedRoom === index 
                           ? 'border-blue-500 bg-gradient-to-br from-blue-50 to-blue-100 shadow-lg scale-105' 
                           : 'border-gray-200 hover:border-blue-300 bg-white'
@@ -435,13 +383,13 @@ const ApartmentDetails = () => {
                           </p>
                         </div>
                         <div className="text-right">
-                                <div className="text-xl font-bold text-blue-600 group-hover:text-blue-700 transition-colors duration-300">
-                                  RWF {(() => {
-                                    const roomPricePerNight = room.pricePerNight || room.price || 0;
-                                    const monthlyPrice = room.pricePerMonth || (roomPricePerNight * 30);
-                                    return monthlyPrice.toLocaleString();
-                                  })()}
-                                </div>
+                          <div className="text-xl font-bold text-blue-600 group-hover:text-blue-700 transition-colors duration-300">
+                            RWF {(() => {
+                              const roomPricePerNight = room.pricePerNight || room.price || 0;
+                              const monthlyPrice = room.pricePerMonth || (roomPricePerNight * 30);
+                              return monthlyPrice.toLocaleString();
+                            })()}
+                          </div>
                           <div className="text-sm text-gray-500">per month</div>
                           <div className="text-xs text-gray-400">
                             RWF {(room.pricePerNight || room.price || 0).toLocaleString()}/night
@@ -465,32 +413,26 @@ const ApartmentDetails = () => {
                       </div>
 
                       {/* Room Images with Enhanced Gallery */}
-                      {room.images && room.images.length > 0 && room.images.some(img => isValidImageUrl(img)) ? (
+                      {Array.isArray(room.images) && room.images.length > 0 ? (
                         <div className="grid grid-cols-2 gap-2 mb-4" data-interactive="true" onClick={(e) => e.stopPropagation()}>
-                          {room.images
-                            .filter(img => isValidImageUrl(img))
-                            .slice(0, 4)
-                            .map((image, imgIndex) => (
-                              <div key={imgIndex} className="relative group/image overflow-hidden rounded-lg">
+                          {room.images.slice(0, 4).map((image, imgIndex) => {
+                            const src = makeAbsolute(image);
+                            return (
+                              <button key={imgIndex} type="button" className="overflow-hidden rounded-lg focus:outline-none"
+                                onClick={(e) => e.stopPropagation()}
+                              >
                                 <img
                                   loading="lazy"
-                                  src={image}
+                                  src={src}
                                   alt={`${room.roomNumber} - Image ${imgIndex + 1}`}
-                                  className="w-full h-16 object-cover transition-transform duration-300 group-hover/image:scale-105"
+                                  className="w-full h-20 object-cover"
                                   onError={(e) => {
-                                    e.target.style.display = 'none';
-                                    e.target.nextSibling.style.display = 'flex';
+                                    e.currentTarget.src = 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=200&h=150&fit=crop';
                                   }}
                                 />
-                                <div 
-                                  className="absolute inset-0 bg-gray-200 flex items-center justify-center"
-                                  style={{ display: 'none' }}
-                                >
-                                  <FaBed className="text-gray-400" />
-                                </div>
-                                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover/image:bg-opacity-20 transition-all duration-300"></div>
-                              </div>
-                            ))}
+                              </button>
+                            );
+                          })}
                         </div>
                       ) : (
                         <div className="mb-4 p-4 bg-gray-100 rounded-lg text-center text-gray-500">
@@ -706,112 +648,64 @@ const ApartmentDetails = () => {
             <div className="bg-white rounded-2xl shadow-lg p-6 sticky top-8">
               <div className="text-center mb-6">
                 <div className="text-3xl font-bold text-blue-600 mb-1">
-                  RWF {apartment.price.toLocaleString()}
+                  RWF {apartment.price?.toLocaleString() || '0'}
                 </div>
                 <span className="text-gray-600">per month</span>
               </div>
-
-              <form onSubmit={handleBooking} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Check-in Date
-                  </label>
-                  <div className="relative">
-                    <FaCalendarAlt className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-600" />
-                    <input
-                      type="date"
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
-                      value={bookingData.checkIn}
-                      onChange={(e) =>
-                        handleInputChange('checkIn', e.target.value)
-                      }
-                    />
+              {/* Owner commission alert */}
+              {(() => {
+                const isOwner = Boolean(user && apartment?.host?.id && ((user._id || user.id) === apartment.host.id));
+                if (!isOwner) return null;
+                const commissionRate = 0.1; // 10%
+                const commission = Math.round(apartment.price * commissionRate);
+                return (
+                  <div className="mb-4 p-3 rounded-lg bg-yellow-50 border border-yellow-200 text-yellow-800 flex items-start gap-2">
+                    <FaShieldAlt className="mt-0.5" />
+                    <div>
+                      <div className="font-semibold">Commission Notice</div>
+                      <div className="text-sm">Your estimated commission due for this month is <span className="font-medium">RWF {commission.toLocaleString()}</span> ({commissionRate * 100}%). Please ensure timely payment.</div>
+                    </div>
                   </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Check-out Date
-                  </label>
-                  <div className="relative">
-                    <FaCalendarAlt className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-600" />
-                    <input
-                      type="date"
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
-                      value={bookingData.checkOut}
-                      onChange={(e) =>
-                        handleInputChange('checkOut', e.target.value)
-                      }
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Guests
-                  </label>
-                  <div className="relative">
-                    <FaUser className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-600" />
-                    <select
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 appearance-none bg-white"
-                      value={bookingData.guests}
-                      onChange={(e) =>
-                        handleInputChange('guests', e.target.value)
-                      }
-                    >
-                      <option value="1">1 Guest</option>
-                      <option value="2">2 Guests</option>
-                      <option value="3">3 Guests</option>
-                      <option value="4">4 Guests</option>
-                    </select>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  disabled={!isAuthenticated}
-                  onClick={(e) => {
-                    if (!isAuthenticated) {
-                      e.preventDefault();
-                      navigate('/login');
-                    } else {
-                      // Navigate to the comprehensive booking process
-                      navigate(`/booking/${id}`);
-                    }
-                  }}
-                  className={`w-full ${
-                    isAuthenticated
-                      ? 'bg-blue-600 hover:bg-blue-700'
-                      : 'bg-gray-300'
-                  } text-white py-4 rounded-xl font-semibold transition-all duration-300 ${
-                    isAuthenticated
-                      ? 'hover:scale-105 shadow-lg hover:shadow-xl'
-                      : ''
-                  }`}
-                >
-                  {isAuthenticated ? 'Start Booking Process' : 'Login to Book'}
-                </button>
-
-                <div className="text-center">
-                  <p className="text-sm text-gray-500">
-                    You won't be charged yet
-                  </p>
-                </div>
-              </form>
-
-              <div className="mt-6 pt-6 border-t">
-                <div className="flex items-center justify-between text-sm">
+                );
+              })()}
+              <button
+                type="button"
+                disabled={!isAuthenticated}
+                onClick={(e) => {
+                  if (!isAuthenticated) {
+                    e.preventDefault();
+                    navigate('/login');
+                  } else {
+                    navigate(`/booking/${id}`);
+                  }
+                }}
+                className={`w-full ${
+                  isAuthenticated
+                    ? 'bg-blue-600 hover:bg-blue-700'
+                    : 'bg-gray-300'
+                } text-white py-4 rounded-xl font-semibold transition-all duration-300 ${
+                  isAuthenticated
+                    ? 'hover:scale-105 shadow-lg hover:shadow-xl'
+                    : ''
+                }`}
+              >
+                {isAuthenticated ? 'Start Booking Process' : 'Login to Book'}
+              </button>
+              <div className="mt-6 pt-6 border-t space-y-2 text-sm">
+                <div className="flex items-center justify-between">
                   <span className="text-gray-600">Monthly rent</span>
-                  <span className="font-medium">
-                    RWF {apartment.price.toLocaleString()}
-                  </span>
+                  <span className="font-medium">RWF {apartment.price?.toLocaleString() || '0'}</span>
                 </div>
-                <div className="flex items-center justify-between text-sm mt-2">
-                  <span className="text-gray-600">Commission (approx.)</span>
-                  <span className="font-medium">
-                    RWF {(apartment.price * 0.1).toLocaleString()}
-                  </span>
-                </div>
+                {(() => {
+                  const commissionRate = 0.1;
+                  const commission = Math.round(apartment.price * commissionRate);
+                  return (
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-600">Commission (10%)</span>
+                      <span className="font-medium">RWF {commission.toLocaleString()}</span>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           </div>

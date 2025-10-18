@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import '../styles/calendar.css';
 import { FaChevronLeft, FaChevronRight, FaLock, FaUnlock, FaCog, FaCalendarAlt, FaEye, FaEyeSlash } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
@@ -33,6 +34,7 @@ export default function RoomCalendarPanel({ propertyId, room, onChanged, readOnl
   const [bulkAction, setBulkAction] = useState('');
   const [priceOverrides, setPriceOverrides] = useState({});
   const [minStayOverrides, setMinStayOverrides] = useState({});
+  const [showAllRooms, setShowAllRooms] = useState(false);
 
   const monthName = useMemo(() => current.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }), [current]);
   const cells = useMemo(() => daysInMonth(current), [current]);
@@ -45,14 +47,14 @@ export default function RoomCalendarPanel({ propertyId, room, onChanged, readOnl
       if (!res.ok) throw new Error(data.message || 'Failed to load bookings');
       const roomId = room?._id || room?.id;
       const filtered = (data.bookings || []).filter(b => {
-        if (!roomId) return true;
+        if (!roomId || showAllRooms) return true;
         return String(b.room || '') === String(roomId);
       });
       setBookings(filtered);
     } catch (e) { toast.error(e.message); } finally { setLoading(false); }
   };
 
-  useEffect(() => { fetchMonthBookings(); }, [propertyId, room?._id, current]);
+  useEffect(() => { fetchMonthBookings(); }, [propertyId, room?._id, current, showAllRooms]);
 
   // Keep local closed dates in sync when room changes
   useEffect(() => {
@@ -237,20 +239,35 @@ export default function RoomCalendarPanel({ propertyId, room, onChanged, readOnl
   }
 
   return (
-    <div className={`w-full overflow-hidden bg-white/90 backdrop-blur-sm rounded-xl shadow-md ${compact ? 'p-3' : 'p-4'}`}>
+    <div className={`w-full overflow-hidden bg-white rounded-xl border border-gray-200 shadow-sm ${compact ? 'p-3' : 'p-4'}`}>
+      {!readOnly && (
+        <div className={`${compact ? 'mb-2' : 'mb-3'}`}>
+          <div className="text-sm font-semibold text-gray-900">Booking Calendar</div>
+          <div className="text-xs text-gray-500">Lock/unlock dates, view bookings, and manage availability</div>
+        </div>
+      )}
       <div className={`flex items-center justify-between ${compact ? 'mb-2' : 'mb-3'}`}>
         <div className="flex items-center gap-3">
           <div className={`${compact ? 'text-sm' : 'text-base'} font-semibold text-gray-900`}>
-            {room.roomNumber || 'Room'} • {room.roomType || 'Unknown Type'}
+            {room.roomNumber || 'Room'} • {room.roomType || 'Unknown Type'}{!readOnly && showAllRooms ? ' • All rooms' : ''}
           </div>
           {!readOnly && (
-            <button
-              onClick={() => setShowAdvanced(!showAdvanced)}
-              className={`p-2 rounded-lg transition-colors ${showAdvanced ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-              title="Advanced Controls"
-            >
-              <FaCog className="text-sm" />
-            </button>
+            <>
+              <button
+                onClick={() => setShowAdvanced(!showAdvanced)}
+                className={`p-2 rounded-lg transition-colors ${showAdvanced ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                title="Advanced Controls"
+              >
+                <FaCog className="text-sm" />
+              </button>
+              <button
+                onClick={() => setShowAllRooms(v => !v)}
+                className={`p-2 rounded-lg transition-colors ${showAllRooms ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                title={showAllRooms ? 'Showing bookings for all rooms' : 'Show bookings for all rooms'}
+              >
+                {showAllRooms ? <FaEye className="text-sm" /> : <FaEyeSlash className="text-sm" />}
+              </button>
+            </>
           )}
         </div>
         <div className="flex items-center gap-2">
@@ -281,7 +298,7 @@ export default function RoomCalendarPanel({ propertyId, room, onChanged, readOnl
               setCurrent(new Date(y, current.getMonth(), 1));
             }}
           >
-            {Array.from({length: 11}, (_,k)=> current.getFullYear()-5 + k).map(y=>(
+            {Array.from({length: 201}, (_,k)=> current.getFullYear()-100 + k).map(y=>(
               <option key={y} value={y}>{y}</option>
             ))}
           </select>
@@ -305,13 +322,13 @@ export default function RoomCalendarPanel({ propertyId, room, onChanged, readOnl
             const cls = {
               empty: 'bg-transparent',
               free: 'bg-gray-50 hover:bg-gray-100',
-              booked: 'bg-amber-100',
-              closed: 'bg-rose-100',
-              today: 'bg-emerald-50',
+              booked: 'cal-cell--booked',
+              closed: 'cal-cell--closed',
+              today: 'cal-cell--today',
               selected: 'bg-yellow-100'
             }[status] || 'bg-gray-50';
             return (
-              <button type="button" onClick={() => onCellClick(d)} key={idx} className={`${compact ? 'min-h-[48px] p-1.5' : 'min-h-[80px] p-2'} rounded ${cls} text-left w-full`}>
+              <button type="button" onClick={() => onCellClick(d)} key={idx} className={`${compact ? 'min-h-[48px] p-1.5' : 'min-h-[80px] p-2'} rounded ${cls} text-left w-full border transition-colors ${status==='booked' ? 'border-amber-300' : status==='closed' ? 'border-rose-300' : 'border-transparent hover:border-gray-300'}`}>
                 {d && <div className={`${compact ? 'text-[11px]' : 'text-xs'} font-semibold text-gray-800`}>{d.getDate()}</div>}
               </button>
             );
@@ -406,10 +423,36 @@ export default function RoomCalendarPanel({ propertyId, room, onChanged, readOnl
                   {dayBookings.length > 0 ? (
                     <div>
                       <div className="text-gray-600 mb-1">Bookings:</div>
-                      <ul className="list-disc pl-5 space-y-0.5">
+                      <ul className="space-y-1">
                         {dayBookings.map((b, i) => (
-                          <li key={b._id || i} className="text-gray-800">
-                            {new Date(b.checkIn).toLocaleDateString()} → {new Date(b.checkOut).toLocaleDateString()} {b.guest?.firstName ? `• ${b.guest.firstName}` : ''}
+                          <li key={b._id || i} className="flex items-center justify-between bg-white rounded-md border p-2">
+                            <div className="text-gray-800 text-xs">
+                              <div className="font-medium">
+                                {b.guest?.firstName || 'Guest'} {b.guest?.lastName || ''}
+                              </div>
+                              <div className="opacity-70">
+                                {new Date(b.checkIn).toLocaleDateString()} → {new Date(b.checkOut).toLocaleDateString()}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              {/* Quick Links like booking.com */}
+                              <a
+                                href={`/booking-confirmation/${b._id}`}
+                                className="px-2 py-1 rounded text-white bg-blue-600 hover:bg-blue-700 text-[11px]"
+                                title="View booking"
+                              >View</a>
+                              <a
+                                href={`/messages?booking=${b._id}`}
+                                className="px-2 py-1 rounded text-white bg-emerald-600 hover:bg-emerald-700 text-[11px]"
+                                title="Open messages"
+                              >Chat</a>
+                              <a
+                                href={`${API_URL}/api/bookings/${b._id}/receipt.csv`}
+                                target="_blank" rel="noopener noreferrer"
+                                className="px-2 py-1 rounded text-white bg-purple-600 hover:bg-purple-700 text-[11px]"
+                                title="Download receipt"
+                              >Receipt</a>
+                            </div>
                           </li>
                         ))}
                       </ul>
@@ -422,7 +465,9 @@ export default function RoomCalendarPanel({ propertyId, room, onChanged, readOnl
                       <div className="text-gray-600">Closed:</div>
                       <ul className="list-disc pl-5">
                         {dayClosed.map((cd, i) => (
-                          <li key={i}>{new Date(cd.startDate).toLocaleDateString()} → {new Date(cd.endDate).toLocaleDateString()} {cd.reason ? `• ${cd.reason}` : ''}</li>
+                          <li key={i} className="text-rose-700">
+                            {new Date(cd.startDate).toLocaleDateString()} → {new Date(cd.endDate).toLocaleDateString()} {cd.reason ? `• ${cd.reason}` : ''}
+                          </li>
                         ))}
                       </ul>
                     </div>
@@ -433,10 +478,10 @@ export default function RoomCalendarPanel({ propertyId, room, onChanged, readOnl
           </div>
         </div>
       )}
-      <div className={`${compact ? 'mt-2 text-[11px]' : 'mt-3 text-xs'} text-gray-500 flex gap-3`}>
-        <div><span className="inline-block w-3 h-3 bg-amber-200 mr-1 align-middle rounded-sm"></span>Booked</div>
-        <div><span className="inline-block w-3 h-3 bg-rose-200 mr-1 align-middle rounded-sm"></span>Closed</div>
-        <div><span className="inline-block w-3 h-3 bg-emerald-100 mr-1 align-middle rounded-sm"></span>Today</div>
+      <div className={`${compact ? 'mt-2' : 'mt-3'} cal-legend`}>
+        <span><span className="dot booked"></span>Booked</span>
+        <span><span className="dot closed"></span>Closed</span>
+        <span><span className="dot today"></span>Today</span>
       </div>
     </div>
   );

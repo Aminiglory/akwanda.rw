@@ -7,7 +7,7 @@ const mongoose = require('mongoose');
       email: { type: String, required: true, unique: true, lowercase: true },
       phone: { type: String, required: true },
       passwordHash: { type: String, required: true },
-      userType: { type: String, enum: ['guest', 'host', 'admin'], default: 'guest' },
+      userType: { type: String, enum: ['guest', 'host', 'admin', 'worker'], default: 'guest' },
       avatar: { type: String },
       bio: { type: String, maxlength: 1000 },
       // Admin control fields

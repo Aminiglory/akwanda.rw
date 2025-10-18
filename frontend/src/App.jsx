@@ -38,6 +38,7 @@ import PropertyOwnerBookings from './pages/PropertyOwnerBookings'
 // Removed EnhancedPropertyOwnerDashboard (deprecated)
 import Messages from './pages/Messages'
 import OwnerPromotions from './pages/OwnerPromotions'
+import WorkersManagement from './pages/WorkersManagement'
 import OwnerReviews from './pages/OwnerReviews'
 import Homes from './pages/Homes'
 import Experiences from './pages/Experiences'
@@ -49,6 +50,7 @@ import Notifications from './pages/Notifications'
 import TestUpload from './pages/TestUpload'
 import QuickLogin from './pages/QuickLogin'
 import AdminUserManagement from './pages/AdminUserManagement'
+import EditProperty from './pages/EditProperty'
 
 function App() {
   const [isLoading, setIsLoading] = useState(true)
@@ -95,6 +97,7 @@ function App() {
             <Route path="/cars/:id" element={<CarDetail />} />
             <Route path="/taxis" element={<AirportTaxis />} />
             <Route path="/apartment/:id" element={<ApartmentDetails />} />
+            <Route path="/edit-property/:id" element={<ProtectedRoute><EditProperty /></ProtectedRoute>} />
             <Route path="/booking/:id" element={<BookingProcess />} />
             <Route path="/booking-confirmation/:id" element={<BookingConfirmation />} />
             <Route path="/login" element={<Login />} />
@@ -123,6 +126,7 @@ function App() {
             <Route path="/owner/promotions" element={<ProtectedRoute><div className="dashboard"><OwnerPromotions /></div></ProtectedRoute>} />
             <Route path="/owner/reviews" element={<ProtectedRoute><div className="dashboard"><OwnerReviews /></div></ProtectedRoute>} />
             <Route path="/owner/direct-booking" element={<ProtectedRoute><DirectBooking /></ProtectedRoute>} />
+            <Route path="/owner/workers" element={<ProtectedRoute><div className="dashboard"><WorkersManagement /></div></ProtectedRoute>} />
             <Route path="/invoice/:id" element={<ProtectedRoute><Invoice /></ProtectedRoute>} />
             <Route path="/receipt/:id" element={<ProtectedRoute><Receipt /></ProtectedRoute>} />
             <Route path="/test-upload" element={<TestUpload />} />

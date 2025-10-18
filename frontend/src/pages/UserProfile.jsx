@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { Link, useNavigate } from 'react-router-dom';
 import { FaUser, FaChartLine, FaCalendarAlt, FaDollarSign, FaDownload, FaEdit, FaTrash, FaEye, FaCog, FaHome, FaStar, FaMapMarkerAlt, FaCamera, FaFileAlt, FaPrint, FaEnvelope, FaPhone, FaBed, FaUsers, FaWifi, FaCar, FaSwimmingPool, FaUtensils, FaShieldAlt } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { safeApiGet, apiGet, apiPost, apiPut, apiDelete, apiDownload } from '../utils/apiUtils';
@@ -7,32 +8,72 @@ import { safeApiGet, apiGet, apiPost, apiPut, apiDelete, apiDownload } from '../
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const UserProfile = () => {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
   const [properties, setProperties] = useState([]);
   const [reports, setReports] = useState({});
   const [loading, setLoading] = useState(false);
+  const [propertiesLoading, setPropertiesLoading] = useState(false);
+  const [propView, setPropView] = useState('cards'); // 'cards' | 'table'
+  const makeAbsolute = (u) => {
+    if (!u) return u;
+    let s = String(u).replace(/\\+/g, '/');
+    if (s.startsWith('http')) return s;
+    if (!s.startsWith('/')) s = `/${s}`;
+    return `${API_URL}${s}`;
+  };
+
   const [profileData, setProfileData] = useState({
     firstName: user?.firstName || '',
     lastName: user?.lastName || '',
     email: user?.email || '',
     phone: user?.phone || '',
     bio: user?.bio || '',
-    avatar: user?.avatar || ''
+    avatar: makeAbsolute(user?.avatar) || ''
   });
+  const [avatarPreviewUrl, setAvatarPreviewUrl] = useState(null);
+  const [avatarFile, setAvatarFile] = useState(null);
 
   useEffect(() => {
     fetchProperties();
     fetchReports();
+    // keep avatar in sync if auth user changes
+    setProfileData((prev) => ({ ...prev, avatar: makeAbsolute(user?.avatar) || prev.avatar }));
   }, []);
+
+  // Refetch when switching to My Properties tab to ensure fresh data
+  useEffect(() => {
+    if (activeTab === 'properties') {
+      fetchProperties();
+    }
+  }, [activeTab]);
 
   const fetchProperties = async () => {
     try {
+      setPropertiesLoading(true);
+      // Prefer apiGet helper if it handles credentials and errors
+      try {
+        const data = await apiGet('/api/properties/my-properties');
+        setProperties(Array.isArray(data?.properties) ? data.properties : []);
+        return;
+      } catch (_) {
+        // Fallback to raw fetch with explicit error handling
+      }
       const res = await fetch(`${API_URL}/api/properties/my-properties`, { credentials: 'include' });
-      const data = await res.json();
-      if (res.ok) setProperties(data.properties || []);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const msg = data?.message || `Failed to fetch properties (${res.status})`;
+        toast.error(msg);
+        setProperties([]);
+        return;
+      }
+      setProperties(Array.isArray(data?.properties) ? data.properties : []);
     } catch (e) {
       toast.error('Failed to fetch properties');
+      setProperties([]);
+    } finally {
+      setPropertiesLoading(false);
     }
   };
 
@@ -105,6 +146,10 @@ const UserProfile = () => {
         body: JSON.stringify(profileData)
       });
       if (res.ok) {
+        const data = await res.json();
+        if (data?.user?.avatar) {
+          setProfileData((p) => ({ ...p, avatar: makeAbsolute(data.user.avatar) }));
+        }
         toast.success('Profile updated successfully');
       }
     } catch (e) {
@@ -112,9 +157,10 @@ const UserProfile = () => {
     }
   };
 
-  const uploadAvatar = async (file) => {
+  const uploadAvatar = async () => {
+    if (!avatarFile) return;
     const formData = new FormData();
-    formData.append('avatar', file);
+    formData.append('avatar', avatarFile);
 
     try {
       const res = await fetch(`${API_URL}/api/user/upload-avatar`, {
@@ -125,7 +171,11 @@ const UserProfile = () => {
       
       if (res.ok) {
         const data = await res.json();
-        setProfileData(prev => ({ ...prev, avatar: data.avatarUrl }));
+        setProfileData(prev => ({ ...prev, avatar: makeAbsolute(data.avatarUrl) }));
+        if (avatarPreviewUrl) { URL.revokeObjectURL(avatarPreviewUrl); setAvatarPreviewUrl(null); }
+        setAvatarFile(null);
+        // refresh global user so avatar reflects across Navbar and app
+        try { await refreshUser(); } catch (_) {}
         toast.success('Avatar updated successfully');
       } else {
         toast.error('Failed to upload avatar');
@@ -167,7 +217,7 @@ const UserProfile = () => {
             <div className="flex items-center space-x-4">
               <div className="relative">
                 <img
-                  src={profileData.avatar || '/default-avatar.png'}
+                  src={avatarPreviewUrl || profileData.avatar || '/default-avatar.png'}
                   alt="Profile"
                   className="w-16 h-16 rounded-full object-cover border-4 border-white shadow-lg"
                 />
@@ -176,7 +226,14 @@ const UserProfile = () => {
                   <input
                     type="file"
                     accept="image/*"
-                    onChange={(e) => e.target.files[0] && uploadAvatar(e.target.files[0])}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        if (avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl);
+                        setAvatarPreviewUrl(URL.createObjectURL(file));
+                        setAvatarFile(file);
+                      }
+                    }}
                     className="hidden"
                   />
                 </label>
@@ -206,6 +263,28 @@ const UserProfile = () => {
                 <FaEdit className="text-sm" />
                 <span>Edit Profile</span>
               </button>
+              {avatarFile && (
+                <>
+                  <button
+                    onClick={uploadAvatar}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                  >Save Avatar</button>
+                  <button
+                    onClick={() => { if (avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl); setAvatarPreviewUrl(null); setAvatarFile(null); }}
+                    className="px-4 py-2 border rounded-lg"
+                  >Cancel</button>
+                </>
+              )}
+              {user?.userType === 'host' && (
+                <Link
+                  to="/owner/workers"
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center space-x-2"
+                  title="Create and manage your workers"
+                >
+                  <FaUsers className="text-sm" />
+                  <span>Manage Workers</span>
+                </Link>
+              )}
             </div>
           </div>
         </div>
@@ -330,72 +409,121 @@ const UserProfile = () => {
           <div>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-gray-900">My Properties</h2>
-              <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center space-x-2">
+              <div className="flex items-center gap-2">
+                <div className="hidden md:flex items-center border rounded-lg overflow-hidden">
+                  <button onClick={()=>setPropView('cards')} className={`px-3 py-2 text-sm ${propView==='cards'?'bg-gray-100 font-medium':'bg-white'}`}>Cards</button>
+                  <button onClick={()=>setPropView('table')} className={`px-3 py-2 text-sm ${propView==='table'?'bg-gray-100 font-medium':'bg-white'}`}>Table</button>
+                </div>
+                <button onClick={()=>navigate('/upload')} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center space-x-2">
                 <FaHome className="text-sm" />
                 <span>Add Property</span>
-              </button>
+                </button>
+              </div>
             </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {properties.map((property) => (
-                <div key={property._id} className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-lg transition-shadow">
-                  <div className="relative">
-                    <img
-                      src={property.images?.[0] || '/placeholder-property.jpg'}
-                      alt={property.title}
-                      className="w-full h-48 object-cover"
-                    />
-                    <div className="absolute top-3 right-3">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        property.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                      }`}>
-                        {property.isActive ? 'Active' : 'Inactive'}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="p-4">
-                    <h3 className="font-semibold text-gray-900 mb-2">{property.title}</h3>
-                    <p className="text-sm text-gray-600 mb-2 flex items-center">
-                      <FaMapMarkerAlt className="mr-1" />
-                      {property.city}, {property.country}
-                    </p>
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="text-lg font-bold text-blue-600">
-                        RWF {property.pricePerNight?.toLocaleString()}/night
-                      </span>
-                      <div className="flex items-center space-x-1">
-                        <FaStar className="text-yellow-400 text-sm" />
-                        <span className="text-sm text-gray-600">{property.rating || 'New'}</span>
+
+            {propView === 'cards' ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {properties.map((property) => (
+                  <div key={property._id} className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-lg transition-shadow">
+                    <div className="relative">
+                      <img
+                        src={makeAbsolute(property.images?.[0]) || 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=600&h=400&fit=crop'}
+                        alt={property.title}
+                        className="w-full h-48 object-cover"
+                      />
+                      <div className="absolute top-3 right-3">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${property.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                          {property.isActive ? 'Active' : 'Inactive'}
+                        </span>
                       </div>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2 text-sm text-gray-600">
-                        <FaBed className="text-xs" />
-                        <span>{property.bedrooms} beds</span>
-                        <FaUsers className="text-xs ml-2" />
-                        <span>{property.maxGuests} guests</span>
+                    <div className="p-4">
+                      <h3 className="font-semibold text-gray-900 mb-2">{property.title}</h3>
+                      <p className="text-sm text-gray-600 mb-2 flex items-center">
+                        <FaMapMarkerAlt className="mr-1" />
+                        {property.city}, {property.country}
+                      </p>
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-lg font-bold text-blue-600">
+                          RWF {property.pricePerNight?.toLocaleString()}/night
+                        </span>
+                        <div className="flex items-center space-x-1">
+                          <FaStar className="text-yellow-400 text-sm" />
+                          <span className="text-sm text-gray-600">{property.rating || 'New'}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2 text-sm text-gray-600">
+                          <FaBed className="text-xs" />
+                          <span>{property.bedrooms} beds</span>
+                          <FaUsers className="text-xs ml-2" />
+                          <span>{property.maxGuests} guests</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2 mt-4">
+                        <button onClick={()=>navigate(`/apartment/${property._id}`)} className="flex-1 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm flex items-center justify-center space-x-1">
+                          <FaEye className="text-xs" />
+                          <span>View</span>
+                        </button>
+                        <button onClick={()=>navigate(`/edit-property/${property._id}`)} className="flex-1 px-3 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm flex items-center justify-center space-x-1">
+                          <FaEdit className="text-xs" />
+                          <span>Edit</span>
+                        </button>
+                        <button
+                          onClick={() => deleteProperty(property._id)}
+                          className="px-3 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 text-sm"
+                        >
+                          <FaTrash className="text-xs" />
+                        </button>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-2 mt-4">
-                      <button className="flex-1 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm flex items-center justify-center space-x-1">
-                        <FaEye className="text-xs" />
-                        <span>View</span>
-                      </button>
-                      <button className="flex-1 px-3 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm flex items-center justify-center space-x-1">
-                        <FaEdit className="text-xs" />
-                        <span>Edit</span>
-                      </button>
-                      <button
-                        onClick={() => deleteProperty(property._id)}
-                        className="px-3 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 text-sm"
-                      >
-                        <FaTrash className="text-xs" />
-                      </button>
-                    </div>
                   </div>
+                ))}
+              </div>
+            ) : (
+              <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Property</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price/night</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {properties.map((p)=> (
+                        <tr key={p._id} className="hover:bg-gray-50">
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-3">
+                              <img src={makeAbsolute(p.images?.[0]) || 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=120&h=80&fit=crop'} alt="thumb" className="w-16 h-12 object-cover rounded" />
+                              <div>
+                                <div className="text-sm font-medium text-gray-900">{p.title}</div>
+                                <div className="text-xs text-gray-500">{p.rooms?.length || 0} rooms</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-700">{p.city}, {p.country}</td>
+                          <td className="px-4 py-3 text-sm text-blue-600 font-semibold">RWF {p.pricePerNight?.toLocaleString()}</td>
+                          <td className="px-4 py-3 text-sm">
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${p.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{p.isActive ? 'Active' : 'Inactive'}</span>
+                          </td>
+                          <td className="px-4 py-3 text-right text-sm">
+                            <div className="flex justify-end gap-2">
+                              <button onClick={()=>navigate(`/apartment/${p._id}`)} className="px-3 py-1 bg-blue-600 text-white rounded">View</button>
+                              <button onClick={()=>navigate(`/edit-property/${p._id}`)} className="px-3 py-1 border rounded">Edit</button>
+                              <button onClick={()=>deleteProperty(p._id)} className="px-3 py-1 border border-red-300 text-red-600 rounded">Delete</button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-              ))}
-            </div>
+              </div>
+            )}
           </div>
         )}
 

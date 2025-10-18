@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
 const Property = require('../tables/property');
+const Worker = require('../tables/worker');
 const Booking = require('../tables/booking');
 const User = require('../tables/user');
 const PDFDocument = require('pdfkit');
@@ -20,6 +21,25 @@ function requireAuth(req, res, next) {
   } catch (e) {
     return res.status(401).json({ message: 'Invalid token' });
   }
+}
+
+// If caller is a worker, ensure they have the required privilege; hosts and admins bypass
+function requireWorkerPrivilege(privKey) {
+  return async function(req, res, next) {
+    try {
+      if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
+      if (req.user.userType === 'admin' || req.user.userType === 'host') return next();
+      if (req.user.userType !== 'worker') return res.status(403).json({ message: 'Not allowed' });
+      const worker = await Worker.findOne({ userAccount: req.user.id, isActive: true });
+      if (!worker) return res.status(403).json({ message: 'Worker profile not found' });
+      if (!worker.privileges || worker.privileges[privKey] !== true) {
+        return res.status(403).json({ message: 'Insufficient privileges' });
+      }
+      return next();
+    } catch (e) {
+      return res.status(500).json({ message: 'Privilege check failed' });
+    }
+  };
 }
 
 // Debug endpoint to check database content
@@ -124,7 +144,7 @@ router.get('/stats', requireAuth, async (req, res) => {
 });
 
 // Get dashboard summary for reports
-router.get('/dashboard', requireAuth, async (req, res) => {
+router.get('/dashboard', requireAuth, requireWorkerPrivilege('canViewReports'), async (req, res) => {
   try {
     const userId = req.user.id;
     console.log('Dashboard request for user:', userId);
@@ -187,7 +207,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
 });
 
 // Generate reports
-router.get('/generate', requireAuth, async (req, res) => {
+router.get('/generate', requireAuth, requireWorkerPrivilege('canViewReports'), async (req, res) => {
   try {
     const { type, period } = req.query;
     const userId = req.user.id;
@@ -395,7 +415,7 @@ function generateTaxReport(bookings, properties, year) {
 }
 
 // Generate PDF report
-router.get('/generate-pdf', requireAuth, async (req, res) => {
+router.get('/generate-pdf', requireAuth, requireWorkerPrivilege('canViewReports'), async (req, res) => {
   try {
     const { type = 'summary', period = 'monthly' } = req.query;
     const userId = req.user.id;
@@ -466,7 +486,7 @@ router.get('/generate-pdf', requireAuth, async (req, res) => {
 });
 
 // Generate CSV report
-router.get('/generate-csv', requireAuth, async (req, res) => {
+router.get('/generate-csv', requireAuth, requireWorkerPrivilege('canViewReports'), async (req, res) => {
   try {
     const { type = 'bookings', period = 'monthly' } = req.query;
     const userId = req.user.id;

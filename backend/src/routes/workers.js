@@ -25,12 +25,25 @@ function requireAuth(req, res, next) {
   }
 }
 
-// Middleware to check if user is property owner
-function requirePropertyOwner(req, res, next) {
-  if (req.user.userType !== 'host') {
+// Middleware to check if user is property owner (auto-promote guests like property upload, and allow admin)
+async function requirePropertyOwner(req, res, next) {
+  try {
+    if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
+    if (req.user.userType === 'admin') return next();
+    if (req.user.userType === 'host') return next();
+    // Auto-promote guest to host on first manage-workers action for convenience
+    const User = require('../tables/user');
+    const acct = await User.findById(req.user.id);
+    if (acct) {
+      acct.userType = 'host';
+      await acct.save();
+      req.user.userType = 'host';
+      return next();
+    }
     return res.status(403).json({ message: 'Only property owners can manage workers' });
+  } catch (e) {
+    return res.status(500).json({ message: 'Failed to validate owner' });
   }
-  next();
 }
 
 // File upload setup
@@ -138,12 +151,29 @@ router.get('/:id', requireAuth, requirePropertyOwner, async (req, res) => {
 });
 
 // Create new worker
-router.post('/', requireAuth, requirePropertyOwner, async (req, res) => {
+// Helper to safely parse JSON strings from multipart form fields
+function safeParseJSON(v, fallback) {
+  if (v == null) return fallback;
+  if (typeof v !== 'string') return v;
+  try { return JSON.parse(v); } catch (_) { return fallback; }
+}
+
+// Create new worker (supports multipart with optional avatar)
+router.post('/', requireAuth, requirePropertyOwner, upload.single('avatar'), async (req, res) => {
   try {
-    const {
-      firstName, lastName, email, phone, nationalId, position, department,
-      salary, privileges, assignedProperties, address, emergencyContact
-    } = req.body;
+    // Parse body fields (multipart sends strings)
+    const firstName = req.body.firstName;
+    const lastName = req.body.lastName;
+    const email = req.body.email;
+    const phone = req.body.phone;
+    const nationalId = req.body.nationalId;
+    const position = req.body.position;
+    const department = req.body.department;
+    const salary = safeParseJSON(req.body.salary, req.body.salary || {});
+    const privileges = safeParseJSON(req.body.privileges, req.body.privileges || {});
+    const assignedProperties = safeParseJSON(req.body.assignedProperties, req.body.assignedProperties || []);
+    const address = safeParseJSON(req.body.address, req.body.address || {});
+    const emergencyContact = safeParseJSON(req.body.emergencyContact, req.body.emergencyContact || {});
     
     // Check if email already exists
     const existingWorker = await Worker.findOne({ email: email.toLowerCase() });
@@ -157,9 +187,26 @@ router.post('/', requireAuth, requirePropertyOwner, async (req, res) => {
       return res.status(400).json({ message: 'National ID already registered' });
     }
     
+    // Check if a user account exists for this email
+    const existingUser = await User.findOne({ email: email.toLowerCase() });
+
     // Generate employee ID
     const employeeId = await Worker.generateEmployeeId(req.user.id);
     
+    // Compute next pay date if not provided
+    function computeNextPayDate(freq) {
+      const now = new Date();
+      const d = new Date(now);
+      switch ((freq || 'monthly')) {
+        case 'weekly': d.setDate(d.getDate() + 7); break;
+        case 'biweekly': d.setDate(d.getDate() + 14); break;
+        case 'monthly': d.setMonth(d.getMonth() + 1); break;
+        case 'quarterly': d.setMonth(d.getMonth() + 3); break;
+        default: d.setMonth(d.getMonth() + 1);
+      }
+      return d;
+    }
+
     // Create worker
     const worker = new Worker({
       firstName,
@@ -172,9 +219,10 @@ router.post('/', requireAuth, requirePropertyOwner, async (req, res) => {
       position,
       department: department || 'General',
       salary: {
-        amount: salary?.amount || 0,
+        amount: Number(salary?.amount ?? 0),
         currency: salary?.currency || 'RWF',
-        paymentFrequency: salary?.paymentFrequency || 'monthly'
+        paymentFrequency: salary?.paymentFrequency || 'monthly',
+        nextPayDate: salary?.nextPayDate ? new Date(salary.nextPayDate) : computeNextPayDate(salary?.paymentFrequency)
       },
       privileges: privileges || {},
       assignedProperties: assignedProperties || [],
@@ -182,7 +230,43 @@ router.post('/', requireAuth, requirePropertyOwner, async (req, res) => {
       emergencyContact,
       createdBy: req.user.id
     });
-    
+
+    // If avatar was uploaded, set it; else generate a simple initials SVG avatar
+    if (req.file) {
+      worker.avatar = `/uploads/${path.basename(req.file.path)}`;
+    } else {
+      try {
+        const initials = `${(firstName||'').charAt(0)}${(lastName||'').charAt(0)}`.toUpperCase() || (email||'U').charAt(0).toUpperCase();
+        const bg = '#2563eb';
+        const svg = `<?xml version="1.0" encoding="UTF-8"?><svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"><rect width="100%" height="100%" fill="${bg}"/><text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="120" fill="#ffffff">${initials}</text></svg>`;
+        const filename = `worker-${Date.now()}-${Math.round(Math.random()*1e6)}.svg`;
+        const filePath = path.join(uploadDir, filename);
+        fs.writeFileSync(filePath, svg, 'utf8');
+        worker.avatar = `/uploads/${filename}`;
+      } catch (e) {
+        // Fallback: leave empty, frontend shows initials placeholder
+      }
+    }
+
+    // If no user exists, create a login account for the worker with a temporary password
+    let initialPassword = null;
+    if (!existingUser) {
+      initialPassword = Math.random().toString(36).slice(-10);
+      const hash = await bcrypt.hash(initialPassword, 10);
+      const userAccount = await User.create({
+        firstName,
+        lastName,
+        email: email.toLowerCase(),
+        phone,
+        passwordHash: hash,
+        userType: 'worker'
+      });
+      worker.userAccount = userAccount._id;
+    } else {
+      // Link to existing account if appropriate
+      worker.userAccount = existingUser._id;
+    }
+
     await worker.save();
     
     // Log action
@@ -199,7 +283,8 @@ router.post('/', requireAuth, requirePropertyOwner, async (req, res) => {
     
     res.status(201).json({ 
       message: 'Worker created successfully', 
-      worker: await worker.populate('assignedProperties', 'title city')
+      worker: await worker.populate('assignedProperties', 'title city'),
+      initialPassword: initialPassword || undefined
     });
   } catch (error) {
     console.error('Create worker error:', error);

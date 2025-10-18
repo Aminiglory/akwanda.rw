@@ -38,7 +38,6 @@ import {
   FaUmbrellaBeach,
   FaChevronRight,
 } from "react-icons/fa";
-import { useSocket } from "../contexts/SocketContext";
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -191,6 +190,7 @@ const Navbar = () => {
         { label: "Account settings", href: "/settings" },
         { label: "Payment settings", href: "/settings?tab=payment" },
         { label: "Notification settings", href: "/settings?tab=notifications" },
+        { label: "Workers", href: "/owner/workers" },
       ]
     }
   ];
@@ -250,13 +250,9 @@ const Navbar = () => {
         isRead: n.isRead,
         createdAt: n.createdAt
       }));
-      setNotifList(list);
+      setNotifications(list);
     };
 
-    loadUnread();
-    loadUnreadMessages();
-    loadUserStats();
-    loadList();
     timer = setInterval(() => {
       loadUnread();
       loadUnreadMessages();

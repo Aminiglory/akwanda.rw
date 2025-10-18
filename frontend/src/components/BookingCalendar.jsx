@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import '../styles/calendar.css';
 import { FaCalendarAlt, FaChevronLeft, FaChevronRight, FaPlus, FaEdit, FaTrash, FaEye, FaClock, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
@@ -439,6 +440,12 @@ const BookingCalendar = ({ propertyId, onBookingSelect, initialDate }) => {
           {viewMode === 'month' && renderMonthView()}
           {viewMode === 'week' && renderWeekView()}
           {viewMode === 'day' && renderDayView()}
+          {/* Legend for consistent calendar state colors */}
+          <div className="mt-4 cal-legend">
+            <span><span className="dot booked"></span>Booked</span>
+            <span><span className="dot closed"></span>Closed</span>
+            <span><span className="dot today"></span>Today</span>
+          </div>
         </>
       )}
 

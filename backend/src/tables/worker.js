@@ -16,51 +16,47 @@ const workerSchema = new mongoose.Schema({
   hireDate: { type: Date, default: Date.now },
   status: { 
     type: String, 
-    enum: ['active', 'inactive', 'suspended', 'terminated'], 
     default: 'active' 
   },
   
   // Salary Information
   salary: {
-    amount: { type: Number, required: true, min: 0 },
+    amount: { type: Number, default: 0 },
     currency: { type: String, default: 'RWF' },
-    paymentFrequency: { 
-      type: String, 
-      enum: ['weekly', 'biweekly', 'monthly', 'quarterly'], 
-      default: 'monthly' 
-    },
-    lastPaid: { type: Date },
-    nextPaymentDue: { type: Date }
+    paymentFrequency: { type: String, enum: ['weekly','biweekly','monthly','quarterly'], default: 'monthly' },
+    nextPayDate: { type: Date }
   },
-  
-  // Privileges and Capabilities
+  lastPaid: { type: Date },
+  nextPaymentDue: { type: Date },
+
+  // Privileges
   privileges: {
     // Property Management
     canViewProperties: { type: Boolean, default: true },
     canEditProperties: { type: Boolean, default: false },
     canDeleteProperties: { type: Boolean, default: false },
     canCreateProperties: { type: Boolean, default: false },
-    
+
     // Booking Management
     canViewBookings: { type: Boolean, default: true },
     canConfirmBookings: { type: Boolean, default: false },
     canCancelBookings: { type: Boolean, default: false },
     canModifyBookings: { type: Boolean, default: false },
-    
+
     // Financial Access
     canViewRevenue: { type: Boolean, default: false },
     canViewReports: { type: Boolean, default: false },
     canProcessPayments: { type: Boolean, default: false },
-    
+
     // Guest Communication
     canMessageGuests: { type: Boolean, default: true },
     canViewGuestInfo: { type: Boolean, default: true },
-    
+
     // Maintenance & Operations
     canScheduleMaintenance: { type: Boolean, default: false },
     canUpdatePropertyStatus: { type: Boolean, default: false },
     canManageInventory: { type: Boolean, default: false },
-    
+
     // Administrative
     canViewAnalytics: { type: Boolean, default: false },
     canManageOtherWorkers: { type: Boolean, default: false }
@@ -108,6 +104,8 @@ const workerSchema = new mongoose.Schema({
   loginAttempts: { type: Number, default: 0 },
   accountLocked: { type: Boolean, default: false },
   lockUntil: { type: Date },
+  // Linked user account (optional)
+  userAccount: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   
   // Audit Trail
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },

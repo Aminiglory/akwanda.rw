@@ -87,11 +87,13 @@ const ApartmentsListing = () => {
           const firstImg = p.images.find(isImageUrl) || p.images.find(Boolean);
           img = firstImg ? makeAbsolute(firstImg) : undefined;
         }
+        const pricePerNight = p.pricePerNight || p.price || 0;
         return ({
         id: p._id,
         title: p.title,
         location: `${p.address}, ${p.city}`,
-        price: p.pricePerNight,
+        price: pricePerNight,
+        pricePerMonth: pricePerNight * 30,
         category: p.category || 'apartment',
         rating: p.ratings?.length ? (p.ratings.reduce((s, r) => s + r.rating, 0) / p.ratings.length).toFixed(1) : 0,
         reviews: p.ratings?.length || 0,
@@ -468,10 +470,10 @@ const ApartmentsListing = () => {
               </div>
             </div>
 
-            {/* Apartments Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-              {loading ? (
-                Array.from({ length: 6 }).map((_, index) => (
+            {/* Apartments grouped by category */}
+            {loading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {Array.from({ length: 6 }).map((_, index) => (
                   <div key={index} className="modern-card-elevated overflow-hidden">
                     <div className="h-48 bg-gray-200 animate-pulse" />
                     <div className="p-6 space-y-3">
@@ -481,112 +483,130 @@ const ApartmentsListing = () => {
                       <div className="h-8 bg-gray-200 rounded w-full animate-pulse" />
                     </div>
                   </div>
-                ))
-              ) : (
-              apartments.map((apartment, index) => (
-                <div
-                  key={apartment.id}
-                  className="modern-card-elevated overflow-hidden hover:scale-105 transition-all duration-300"
-                  style={{ animationDelay: `${index * 0.1}s` }}
-                >
-                  {/* Image */}
-                  <div className="relative h-48 overflow-hidden">
-                    <img
-                      loading="lazy"
-                      src={apartment.image}
-                      alt={apartment.title}
-                      className="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
-                      onError={(e) => {
-                        e.target.src = 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=500&h=300&fit=crop';
-                      }}
-                    />
-                    {!apartment.isAvailable && (
-                      <div className="absolute top-4 right-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
-                        Unavailable
+                ))}
+              </div>
+            ) : (
+              Object.entries(
+                apartments.reduce((acc, a) => {
+                  const key = (a.category || 'Other').toString();
+                  if (!acc[key]) acc[key] = [];
+                  acc[key].push(a);
+                  return acc;
+                }, {})
+              ).filter(([_, list]) => list.length > 0)
+               .sort(([a], [b]) => a.localeCompare(b))
+               .map(([category, list]) => (
+                <div key={category} className="mb-10">
+                  <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                    {category.charAt(0).toUpperCase() + category.slice(1)}
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                    {list.map((apartment, index) => (
+                      <div
+                        key={apartment.id}
+                        className="modern-card-elevated overflow-hidden hover:scale-105 transition-all duration-300"
+                        style={{ animationDelay: `${index * 0.1}s` }}
+                      >
+                        {/* Image */}
+                        <div className="relative h-48 overflow-hidden">
+                          <img
+                            loading="lazy"
+                            src={apartment.image}
+                            alt={apartment.title}
+                            className="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
+                            onError={(e) => {
+                              e.target.src = 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=500&h=300&fit=crop';
+                            }}
+                          />
+                          {!apartment.isAvailable && (
+                            <div className="absolute top-4 right-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                              Unavailable
+                            </div>
+                          )}
+                          <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1 text-sm font-semibold text-gray-800">
+                            RWF {apartment.pricePerMonth?.toLocaleString()}/month
+                          </div>
+                          <div className="absolute bottom-4 left-4 bg-gray-800/80 text-white px-2 py-0.5 rounded text-xs font-medium">
+                            {apartment.category.charAt(0).toUpperCase() + apartment.category.slice(1)}
+                          </div>
+                        </div>
+
+                        {/* Content */}
+                        <div className="p-6">
+                          <h3 className="text-xl font-bold text-gray-800 mb-2 line-clamp-2">
+                            {apartment.title}
+                          </h3>
+
+                          <div className="flex items-center text-gray-600 mb-3">
+                            <FaMapMarkerAlt className="text-blue-600 mr-2" />
+                            <span className="text-sm">{apartment.location}</span>
+                          </div>
+
+                          {/* Rating */}
+                          <div className="flex items-center mb-3">
+                            <div className="flex items-center mr-2">
+                              {renderStars(apartment.rating)}
+                            </div>
+                            <span className="text-sm text-gray-600">
+                              {apartment.rating} ({apartment.reviews} reviews)
+                            </span>
+                          </div>
+
+                          {/* Bedrooms & Bathrooms */}
+                          <div className="flex items-center gap-4 mb-4 text-sm text-gray-600">
+                            <div className="flex items-center">
+                              <FaBed className="mr-1" />
+                              {apartment.bedrooms} BR
+                            </div>
+                            <div className="flex items-center">
+                              <FaBath className="mr-1" />
+                              {apartment.bathrooms} Bath
+                            </div>
+                            <span>{apartment.size}</span>
+                          </div>
+
+                          {/* Amenities */}
+                          <div className="flex flex-wrap gap-2 mb-4">
+                            {apartment.amenities.slice(0, 3).map((amenity, idx) => (
+                              <span
+                                key={idx}
+                                className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full"
+                              >
+                                {amenity}
+                              </span>
+                            ))}
+                            {apartment.amenities.length > 3 && (
+                              <span className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-full">
+                                +{apartment.amenities.length - 3} more
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Host */}
+                          <div className="flex items-center justify-between mb-4">
+                            <span className="text-sm text-gray-600">
+                              Hosted by {apartment.host}
+                            </span>
+                          </div>
+
+                          {/* View Details */}
+                          <Link
+                            to={`/apartment/${apartment.id}`}
+                            className={`w-full py-3 rounded-xl font-semibold transition-all duration-300 block text-center ${
+                              apartment.isAvailable
+                                ? "bg-blue-600 hover:bg-blue-700 text-white hover:scale-105"
+                                : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                            }`}
+                          >
+                            {apartment.isAvailable ? "View Details" : "Unavailable"}
+                          </Link>
+                        </div>
                       </div>
-                    )}
-                    <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1 text-sm font-semibold text-gray-800">
-                      RWF {apartment.price.toLocaleString()}/month
-                    </div>
-                    <div className="absolute bottom-4 left-4 bg-gray-800/80 text-white px-2 py-0.5 rounded text-xs font-medium">
-                      {apartment.category.charAt(0).toUpperCase() + apartment.category.slice(1)}
-                    </div>
-                  </div>
-
-                  {/* Content */}
-                  <div className="p-6">
-                    <h3 className="text-xl font-bold text-gray-800 mb-2 line-clamp-2">
-                      {apartment.title}
-                    </h3>
-
-                    <div className="flex items-center text-gray-600 mb-3">
-                      <FaMapMarkerAlt className="text-blue-600 mr-2" />
-                      <span className="text-sm">{apartment.location}</span>
-                    </div>
-
-                    {/* Rating */}
-                    <div className="flex items-center mb-3">
-                      <div className="flex items-center mr-2">
-                        {renderStars(apartment.rating)}
-                      </div>
-                      <span className="text-sm text-gray-600">
-                        {apartment.rating} ({apartment.reviews} reviews)
-                      </span>
-                    </div>
-
-                    {/* Bedrooms & Bathrooms */}
-                    <div className="flex items-center gap-4 mb-4 text-sm text-gray-600">
-                      <div className="flex items-center">
-                        <FaBed className="mr-1" />
-                        {apartment.bedrooms} BR
-                      </div>
-                      <div className="flex items-center">
-                        <FaBath className="mr-1" />
-                        {apartment.bathrooms} Bath
-                      </div>
-                      <span>{apartment.size}</span>
-                    </div>
-
-                    {/* Amenities */}
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      {apartment.amenities.slice(0, 3).map((amenity, idx) => (
-                        <span
-                          key={idx}
-                          className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full"
-                        >
-                          {amenity}
-                        </span>
-                      ))}
-                      {apartment.amenities.length > 3 && (
-                        <span className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-full">
-                          +{apartment.amenities.length - 3} more
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Host */}
-                    <div className="flex items-center justify-between mb-4">
-                      <span className="text-sm text-gray-600">
-                        Hosted by {apartment.host}
-                      </span>
-                    </div>
-
-                    {/* View Details */}
-                    <Link
-                      to={`/apartment/${apartment.id}`}
-                      className={`w-full py-3 rounded-xl font-semibold transition-all duration-300 block text-center ${
-                        apartment.isAvailable
-                          ? "bg-blue-600 hover:bg-blue-700 text-white hover:scale-105"
-                          : "bg-gray-300 text-gray-500 cursor-not-allowed"
-                      }`}
-                    >
-                      {apartment.isAvailable ? "View Details" : "Unavailable"}
-                    </Link>
+                    ))}
                   </div>
                 </div>
-              ))
-              )}
-            </div>
+               ))
+            )}
 
             {/* Load More */}
             <div className="text-center mt-12">
