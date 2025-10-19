@@ -37,6 +37,40 @@ export default function Messages() {
   const [searchResults, setSearchResults] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const MAX_MESSAGE_LEN = 2000;
+  const [onlineUsers, setOnlineUsers] = useState(new Set());
+
+  const extractSenderId = (val) => {
+    if (!val) return '';
+    if (typeof val === 'object') return String(val._id || val.id || '');
+    return String(val);
+  };
+
+  const extractMessageId = (val) => {
+    if (!val) return '';
+    if (typeof val === 'object') return String(val._id || val.id || val.messageId || val.msgId || '');
+    return String(val);
+  };
+
+  const isServerId = (id) => /^[a-fA-F0-9]{24}$/.test(String(id || ''));
+
+  const extractTypingUserId = (data) => {
+    return String(
+      data?.userId ||
+      data?.from ||
+      data?.sender ||
+      data?.senderId ||
+      ''
+    );
+  };
+
+  const extractTypingBookingId = (data) => {
+    return String(
+      data?.bookingId ||
+      data?.roomId ||
+      data?.booking ||
+      ''
+    );
+  };
 
   const bottomRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -60,17 +94,119 @@ export default function Messages() {
     if (!socket) return;
     socket.on('message:new', handleNewMessage);
     socket.on('typing', handleTyping);
+    socket.on('userTyping', handleTyping);
+    socket.on('typing_status', handleTyping);
+    socket.on('typing:start', (d) => handleTyping({ ...d, typing: true }));
+    socket.on('typing:stop', (d) => handleTyping({ ...d, typing: false }));
     socket.on('message:read', handleMessageRead);
+
+    // Socket lifecycle hooks to keep presence accurate
+    const onConnect = () => {
+      try {
+        const uid = String(user?._id || user?.id || '');
+        if (uid) {
+          socket.emit('presence:here', { userId: uid });
+        }
+        socket.emit('presence:query');
+      } catch (_) {}
+    };
+    const onDisconnect = () => {
+      // Avoid stale green dots when transport drops
+      setOnlineUsers(new Set());
+    };
+    socket.on('connect', onConnect);
+    socket.on('disconnect', onDisconnect);
+
+    // Presence listeners (compat across event names)
+    const handleOnline = (d) => {
+      const uid = String(d?.userId || d?.id || d?.user || d);
+      if (!uid) return;
+      setOnlineUsers(prev => {
+        const next = new Set(prev);
+        next.add(uid);
+        return next;
+      });
+    };
+    const handleOffline = (d) => {
+      const uid = String(d?.userId || d?.id || d?.user || d);
+      if (!uid) return;
+      setOnlineUsers(prev => {
+        const next = new Set(prev);
+        next.delete(uid);
+        return next;
+      });
+    };
+    const handlePresenceList = (list) => {
+      const arr = Array.isArray(list?.users) ? list.users : Array.isArray(list) ? list : [];
+      const set = new Set(arr.map(u => String(u?.userId || u?.id || u)));
+      setOnlineUsers(set);
+    };
+
+    socket.on('user:online', handleOnline);
+    socket.on('user:offline', handleOffline);
+    socket.on('presence', handlePresenceList);
+    socket.on('presence:list', handlePresenceList);
+
+    // Announce presence and request current list (best-effort)
+    try {
+      const uid = String(user?._id || user?.id || '');
+      if (uid) {
+        socket.emit('presence:here', { userId: uid });
+        socket.emit('presence:query');
+      }
+    } catch (_) {}
+
     return () => {
       socket.off('message:new', handleNewMessage);
       socket.off('typing', handleTyping);
+      socket.off('userTyping', handleTyping);
+      socket.off('typing_status', handleTyping);
+      socket.off('typing:start');
+      socket.off('typing:stop');
       socket.off('message:read', handleMessageRead);
+      socket.off('connect', onConnect);
+      socket.off('disconnect', onDisconnect);
+      socket.off('user:online', handleOnline);
+      socket.off('user:offline', handleOffline);
+      socket.off('presence', handlePresenceList);
+      socket.off('presence:list', handlePresenceList);
     };
-  }, [socket, activeThread]);
+  }, [socket, activeThread, user]);
+
+  // Re-announce presence if the authenticated user changes
+  useEffect(() => {
+    if (!socket) return;
+    const uid = String(user?._id || user?.id || '');
+    if (uid) {
+      try {
+        socket.emit('presence:here', { userId: uid });
+      } catch (_) {}
+    }
+  }, [socket, user]);
+
+  // Best-effort: on tab close, notify away
+  useEffect(() => {
+    const handler = () => {
+      try {
+        const uid = String(user?._id || user?.id || '');
+        if (socket && uid) socket.emit('presence:away', { userId: uid });
+      } catch (_) {}
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [socket, user]);
 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  useEffect(() => {
+    if (otherTyping) {
+      scrollToBottom();
+      const t = setTimeout(() => setOtherTyping(false), 4000);
+      return () => clearTimeout(t);
+    }
+  }, [otherTyping]);
 
   const loadThreads = async () => {
     setLoading(true);
@@ -117,9 +253,9 @@ export default function Messages() {
           text: m.replyTo.message
         } : null;
         return {
-        id: String(m._id || m.id || Math.random()),
-        senderId: String(m.sender || m.senderId),
-        senderName: m.senderName || (String(m.sender) === String(user?._id) ? (user?.name || 'You') : thread.userName),
+        id: extractMessageId(m) || String(Math.random()),
+        senderId: extractSenderId(m.sender || m.senderId),
+        senderName: m.senderName || (extractSenderId(m.sender) === String(user?._id || user?.id || '') ? (user?.name || 'You') : thread.userName),
         content: m.message || m.text || '',
         attachments: m.attachments || [],
         timestamp: m.createdAt,
@@ -164,7 +300,7 @@ export default function Messages() {
     if (payload && payload.message && payload.bookingId) {
       const m = payload.message;
       // Ignore own echoes
-      if (String(m.sender) === myId) return;
+      if (extractSenderId(m.sender) === myId) return;
       
       if (thread && thread.context?.bookingId && String(thread.context.bookingId) === String(payload.bookingId)) {
         // Resolve reply reference from existing messages if available
@@ -172,9 +308,9 @@ export default function Messages() {
         // Dedupe by server id if exists
         if (m._id && messages.some(x => String(x.id) === String(m._id))) return;
         setMessages(prev => [...prev, {
-          id: String(m._id || Math.random()),
-          senderId: String(m.sender),
-          senderName: String(m.sender) === String(user?._id) ? (user?.name || 'You') : thread.userName,
+          id: extractMessageId(m) || String(Math.random()),
+          senderId: extractSenderId(m.sender),
+          senderName: extractSenderId(m.sender) === String(user?._id || user?.id || '') ? (user?.name || 'You') : thread.userName,
           content: m.message,
           attachments: m.attachments || [],
           timestamp: m.createdAt,
@@ -211,8 +347,9 @@ export default function Messages() {
         if (isMine) return;
         
         const ref = payload.replyTo ? messages.find(x => String(x.id) === String(payload.replyTo)) : null;
+        const mid = extractMessageId(payload) || String(Math.random());
         setMessages(prev => [...prev, {
-          id: String(Math.random()),
+          id: mid,
           senderId: senderId,
           senderName: isMine ? (user?.name || 'You') : thread.userName,
           content: payload.text || '',
@@ -236,9 +373,27 @@ export default function Messages() {
   const handleTyping = (data) => {
     const thread = activeThread;
     if (!thread) return;
-    // Server emits { bookingId, userId, typing }
-    if (thread.context?.bookingId && String(data.bookingId) === String(thread.context.bookingId) && String(data.userId) !== String(user?._id)) {
-      setOtherTyping(!!data.typing);
+    const myId = String(user?._id || user?.id || '');
+    const typingUserId = extractTypingUserId(data);
+    const bookingIdInData = extractTypingBookingId(data);
+    const recipientId = String(data?.to || data?.recipientId || '');
+    const isFromOther = typingUserId && typingUserId !== myId;
+
+    // Booking-scoped typing: match across possible keys
+    if (thread.context?.bookingId) {
+      if (String(bookingIdInData) === String(thread.context.bookingId)) {
+        if (isFromOther || !extractTypingUserId(data)) {
+          setOtherTyping(!!data.typing);
+        }
+      }
+      return;
+    }
+    // Direct typing: prefer targeted events, but also handle broadcast events with only sender info
+    if (!bookingIdInData) {
+      if ((recipientId === myId && String(thread.userId) === typingUserId) ||
+          (!recipientId && typingUserId && String(thread.userId) === typingUserId && typingUserId !== myId)) {
+        setOtherTyping(!!data.typing);
+      }
     }
   };
 
@@ -289,9 +444,11 @@ export default function Messages() {
         to: activeThread.userId,
         text: newMessage,
         bookingId: activeThread?.context?.bookingId,
-        attachments: uploaded,
-        replyTo: replyTarget?.id
+        attachments: uploaded
       };
+      if (replyTarget?.id && isServerId(replyTarget.id)) {
+        payload.replyTo = replyTarget.id;
+      }
       const res = await fetch(`${API_URL}/api/messages/send`, {
         method: 'POST',
         credentials: 'include',
@@ -303,7 +460,7 @@ export default function Messages() {
       // Replace optimistic with server message
       setMessages(prev => prev.map(m => m.id === tempId ? {
         id: String(data.message._id),
-        senderId: String(data.message.sender),
+        senderId: extractSenderId(data.message.sender),
         senderName: user?.name || 'You',
         content: data.message.message,
         attachments: data.message.attachments || [],
@@ -357,8 +514,15 @@ export default function Messages() {
   const handleTypingStart = () => {
     if (!isTyping) {
       setIsTyping(true);
-      if (socket && activeThread?.context?.bookingId) {
-        socket.emit('typing', { bookingId: activeThread.context.bookingId, typing: true });
+      if (socket) {
+        const uid = String(user?._id || user?.id || '');
+        if (activeThread?.context?.bookingId) {
+          const bid = String(activeThread.context.bookingId);
+          socket.emit('typing', { bookingId: bid, roomId: bid, typing: true, userId: uid, from: uid });
+        } else if (activeThread?.userId) {
+          const rid = String(activeThread.userId);
+          socket.emit('typing', { to: rid, recipientId: rid, typing: true, userId: uid, from: uid });
+        }
       }
     }
 
@@ -373,8 +537,15 @@ export default function Messages() {
 
   const handleTypingStop = () => {
     setIsTyping(false);
-    if (socket && activeThread?.context?.bookingId) {
-      socket.emit('typing', { bookingId: activeThread.context.bookingId, typing: false });
+    if (socket) {
+      const uid = String(user?._id || user?.id || '');
+      if (activeThread?.context?.bookingId) {
+        const bid = String(activeThread.context.bookingId);
+        socket.emit('typing', { bookingId: bid, roomId: bid, typing: false, userId: uid, from: uid });
+      } else if (activeThread?.userId) {
+        const rid = String(activeThread.userId);
+        socket.emit('typing', { to: rid, recipientId: rid, typing: false, userId: uid, from: uid });
+      }
     }
   };
 
@@ -483,7 +654,7 @@ export default function Messages() {
     
     return (
       <div key={message.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'} mb-4`}>
-        <div className={`max-w-xs lg:max-w-md ${isOwn ? 'order-2' : 'order-1'}`}>
+        <div className={`max-w-[85%] sm:max-w-[75%] lg:max-w-[60%] ${isOwn ? 'order-2' : 'order-1'}`}>
           {!isOwn && (
             <div className="flex items-center mb-1">
               <img
@@ -513,7 +684,7 @@ export default function Messages() {
                       <img
                         src={attachment.url}
                         alt={attachment.name}
-                        className="w-32 h-32 object-cover rounded-lg"
+                        className="max-w-full h-auto rounded-lg"
                       />
                     ) : (
                       <div className="flex items-center space-x-2 p-2 bg-gray-100 rounded-lg">
@@ -523,10 +694,10 @@ export default function Messages() {
                     )}
                   </div>
                 ))}
-                {message.content && <p className="mt-2">{message.content}</p>}
+                {message.content && <p className="mt-2 break-words">{message.content}</p>}
               </div>
             ) : (
-              <p>{message.content}</p>
+              <p className="break-words">{message.content}</p>
             )}
           </div>
           
@@ -542,7 +713,9 @@ export default function Messages() {
           </div>
           <div className={`mt-1 ${isOwn ? 'text-right' : 'text-left'}`}>
             <button
-              className="text-xs text-gray-500 hover:text-blue-600 inline-flex items-center gap-1"
+              className="text-xs text-gray-500 hover:text-blue-600 inline-flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={!isServerId(message.id)}
+              title={!isServerId(message.id) ? 'Reply unavailable for unsynced message' : 'Reply'}
               onClick={() => setReplyTarget({ id: message.id, senderName: message.senderName, text: message.content })}
             >
               <FaReply /> Reply
@@ -570,6 +743,7 @@ export default function Messages() {
               alt={thread.userName}
               className="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover"
             />
+            <span className={`absolute bottom-0 right-0 block w-3 h-3 rounded-full border-2 border-white ${onlineUsers.has(String(thread.userId)) ? 'bg-green-500' : 'bg-gray-300'}`}></span>
             {thread.unreadCount > 0 && (
               <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
                 {thread.unreadCount}
@@ -660,6 +834,7 @@ export default function Messages() {
                       alt={activeThread.userName}
                       className="w-10 h-10 rounded-full object-cover"
                     />
+                    <span className={`block w-3 h-3 rounded-full ${onlineUsers.has(String(activeThread.userId)) ? 'bg-green-500' : 'bg-gray-300'}`}></span>
                     <div>
                       <h3 className="font-semibold text-gray-900">{activeThread.userName}</h3>
                       {activeThread.booking && (
@@ -687,11 +862,7 @@ export default function Messages() {
                 {otherTyping && (
                   <div className="flex justify-start mb-4">
                     <div className="bg-white border border-gray-200 rounded-2xl px-4 py-2">
-                      <div className="flex space-x-1">
-                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                      </div>
+                      <span className="text-sm text-gray-600 italic">typing...</span>
                     </div>
                   </div>
                 )}

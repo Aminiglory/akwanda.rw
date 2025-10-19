@@ -59,7 +59,7 @@ const SearchSection = () => {
                 {activeTab==='cars' ? 'Pickup Location' : 'Location'}
               </label>
               <div className="relative">
-                <FaMapMarkerAlt className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-600" />
+                <FaMapMarkerAlt className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-blue-600" />
                 <input
                   type="text"
                   placeholder={activeTab==='cars' ? 'Where to pick up?' : 'Where are you going?'}
@@ -76,7 +76,7 @@ const SearchSection = () => {
                 {activeTab==='cars' ? 'Pickup Date' : 'Check-in'}
               </label>
               <div className="relative">
-                <FaCalendarAlt className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-600" />
+                <FaCalendarAlt className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-blue-600" />
                 <input
                   type="date"
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
@@ -92,7 +92,7 @@ const SearchSection = () => {
                 {activeTab==='cars' ? 'Return Date' : 'Check-out'}
               </label>
               <div className="relative">
-                <FaCalendarAlt className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-600" />
+                <FaCalendarAlt className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-blue-600" />
                 <input
                   type="date"
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
@@ -109,7 +109,7 @@ const SearchSection = () => {
                   Guests
                 </label>
                 <div className="relative">
-                  <FaUser className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-600" />
+                  <FaUser className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-blue-600" />
                   <select
                     className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 appearance-none bg-white"
                     value={searchData.guests}
