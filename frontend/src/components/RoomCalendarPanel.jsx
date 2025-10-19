@@ -21,6 +21,7 @@ function daysInMonth(date) {
 }
 
 export default function RoomCalendarPanel({ propertyId, room, onChanged, readOnly = false, compact = false }) {
+
   // Debug logging
   console.log('RoomCalendarPanel props:', { propertyId, room: room?.roomNumber || room?.roomType, roomId: room?._id || room?.id, readOnly, compact });
   const [current, setCurrent] = useState(new Date());
@@ -56,10 +57,52 @@ export default function RoomCalendarPanel({ propertyId, room, onChanged, readOnl
 
   useEffect(() => { fetchMonthBookings(); }, [propertyId, room?._id, current, showAllRooms]);
 
+  const fetchRoomClosedDates = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/properties/${propertyId}`, { credentials: 'include' });
+      const data = await res.json();
+      if (!res.ok) return;
+      const list = Array.isArray(data.property?.rooms) ? data.property.rooms : [];
+      const rid = room?._id || room?.id;
+      const r = list.find(rr => String(rr._id || rr.id) === String(rid));
+      setLocalClosedDates(Array.isArray(r?.closedDates) ? r.closedDates : []);
+    } catch (_) {}
+  };
+
   // Keep local closed dates in sync when room changes
   useEffect(() => {
     setLocalClosedDates(Array.isArray(room?.closedDates) ? room.closedDates : []);
   }, [room?._id, JSON.stringify(room?.closedDates || [])]);
+
+  useEffect(() => {
+    if (readOnly) {
+      fetchRoomClosedDates();
+    }
+  }, [readOnly, propertyId, room?._id]);
+
+  // Periodically refresh closed dates in read-only mode (user view)
+  useEffect(() => {
+    if (!readOnly) return;
+    const t = setInterval(() => {
+      fetchRoomClosedDates();
+    }, 30000);
+    return () => clearInterval(t);
+  }, [readOnly, propertyId, room?._id]);
+
+  useEffect(() => {
+    const handler = (e) => {
+      try {
+        const pid = e?.detail?.propertyId;
+        const rid = e?.detail?.roomId;
+        const myRid = room?._id || room?.id;
+        if (String(pid) === String(propertyId) && (!rid || String(rid) === String(myRid))) {
+          fetchRoomClosedDates();
+        }
+      } catch (_) {}
+    };
+    window.addEventListener('calendar:updated', handler);
+    return () => window.removeEventListener('calendar:updated', handler);
+  }, [propertyId, room?._id]);
 
   // Light periodic refresh for near real-time updates
   useEffect(() => {

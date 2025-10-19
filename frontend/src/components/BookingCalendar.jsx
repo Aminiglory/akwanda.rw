@@ -98,7 +98,8 @@ const BookingCalendar = ({ propertyId, onBookingSelect, initialDate }) => {
     // before the owner has selected a specific room to manage.
     if (showAllRooms) { setClosedRanges([]); return; }
     try {
-      const res = await fetch(`${API_URL}/api/properties/${pid}`, { credentials: 'include' });
+      const noCacheUrl = `${API_URL}/api/properties/${pid}?_=${Date.now()}`;
+      const res = await fetch(noCacheUrl, { credentials: 'include', cache: 'no-store', headers: { 'Cache-Control': 'no-cache' } });
       const data = await res.json();
       if (!res.ok) { setClosedRanges([]); return; }
       const list = Array.isArray(data.property?.rooms) ? data.property.rooms : [];
@@ -115,6 +116,15 @@ const BookingCalendar = ({ propertyId, onBookingSelect, initialDate }) => {
 
   // Refresh closed ranges when filters change
   useEffect(() => { fetchClosedRanges(); }, [propertyOverride, showAllRooms, selectedRoomId]);
+
+  // Periodically refresh bookings and closed ranges to catch owner-side changes (e.g., unlocks)
+  useEffect(() => {
+    const t = setInterval(() => {
+      fetchBookings();
+      fetchClosedRanges();
+    }, 30000);
+    return () => clearInterval(t);
+  }, [propertyOverride, currentDate, selectedRoomId, showAllRooms]);
 
   // Listen for global calendar updates (e.g., from RoomCalendarPanel)
   useEffect(() => {
@@ -216,6 +226,9 @@ const BookingCalendar = ({ propertyId, onBookingSelect, initialDate }) => {
       setLockRange({ start: '', end: '' });
       fetchBookings();
       fetchClosedRanges();
+      try {
+        window.dispatchEvent(new CustomEvent('calendar:updated', { detail: { propertyId: propertyOverride, roomId: selectedRoomId } }));
+      } catch (_) {}
     } catch (e) { toast.error(e.message); }
   };
 
@@ -234,6 +247,9 @@ const BookingCalendar = ({ propertyId, onBookingSelect, initialDate }) => {
       setPendingRange({ start: null, end: null });
       setLockRange({ start: '', end: '' });
       fetchBookings();
+      try {
+        window.dispatchEvent(new CustomEvent('calendar:updated', { detail: { propertyId: propertyOverride, roomId: selectedRoomId } }));
+      } catch (_) {}
     } catch (e) { toast.error(e.message); }
   };
 
