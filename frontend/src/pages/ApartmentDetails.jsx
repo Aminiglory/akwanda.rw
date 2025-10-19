@@ -30,7 +30,9 @@ import {
   FaDoorOpen,
   FaCheck,
   FaChevronLeft,
-  FaChevronRight
+  FaChevronRight,
+  FaTimes,
+  FaImages
 } from 'react-icons/fa';
 
 const ApartmentDetails = () => {
@@ -42,6 +44,10 @@ const ApartmentDetails = () => {
   const [isFavorited, setIsFavorited] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [apartment, setApartment] = useState(null);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [calendarRoom, setCalendarRoom] = useState(null);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [detailsRoom, setDetailsRoom] = useState(null);
 
   const makeAbsolute = (u) => {
     if (!u) return u;
@@ -51,6 +57,67 @@ const ApartmentDetails = () => {
       return `${API_URL}${s}`;
     }
     return s;
+  };
+
+  // Favorite persistence helpers
+  useEffect(() => {
+    try {
+      const uid = (user && (user._id || user.id)) ? String(user._id || user.id) : 'guest';
+      const raw = localStorage.getItem(`favorites:${uid}`);
+      const list = raw ? JSON.parse(raw) : [];
+      setIsFavorited(Array.isArray(list) ? list.includes(String(id)) : false);
+    } catch { /* ignore */ }
+  }, [id, user]);
+
+  const toggleFavorite = () => {
+    try {
+      const uid = (user && (user._id || user.id)) ? String(user._id || user.id) : 'guest';
+      const key = `favorites:${uid}`;
+      const raw = localStorage.getItem(key);
+      const list = raw ? JSON.parse(raw) : [];
+      const sId = String(id);
+      let next;
+      if (Array.isArray(list) && list.includes(sId)) {
+        next = list.filter(x => String(x) !== sId);
+        setIsFavorited(false);
+        toast.success('Removed from Favorites');
+      } else {
+        next = Array.isArray(list) ? [...list, sId] : [sId];
+        setIsFavorited(true);
+        toast.success('Saved to Favorites');
+      }
+      localStorage.setItem(key, JSON.stringify(Array.from(new Set(next))));
+    } catch (e) {
+      toast.error('Could not update favorites');
+    }
+  };
+
+  const handleShare = async () => {
+    try {
+      const shareData = {
+        title: apartment?.title || 'Property',
+        text: `Check out this ${apartment?.type || 'property'} on Akwanda`,
+        url: window.location.href
+      };
+      if (navigator.share) {
+        await navigator.share(shareData);
+        toast.success('Shared');
+      } else if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareData.url);
+        toast.success('Link copied to clipboard');
+      } else {
+        // Fallback: select-copy
+        const input = document.createElement('input');
+        input.value = shareData.url;
+        document.body.appendChild(input);
+        input.select();
+        document.execCommand('copy');
+        document.body.removeChild(input);
+        toast.success('Link copied');
+      }
+    } catch (e) {
+      toast.error('Unable to share');
+    }
   };
 
   // Load property details
@@ -165,43 +232,73 @@ const ApartmentDetails = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold mb-2">{apartment.title}</h1>
-              <div className="flex items-center">
-                <FaMapMarkerAlt className="text-blue-500 mr-2" />
-                <span className="text-gray-600">{apartment.location}</span>
+      <div className="bg-transparent">
+        <div className="max-w-7xl mx-auto px-4 pt-3">
+          <div className="rounded-2xl bg-white/90 backdrop-blur-sm shadow-md ring-1 ring-black/5 p-4 md:p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-3 transition-shadow">
+            <div className="min-w-0">
+              {/* Breadcrumbs */}
+              <div className="mb-1 text-xs md:text-sm text-gray-500 flex items-center gap-2">
+                <span className="hover:text-gray-700 cursor-pointer">Apartments</span>
+                <span>›</span>
+                <span className="hover:text-gray-700 cursor-pointer">{(apartment.location || '').split(',').slice(-1)[0]?.trim() || 'Location'}</span>
               </div>
-              <div className="flex items-center mt-3">
-                {renderStars(apartment.rating)}
-                <span className="ml-2 text-gray-600">
-                  {apartment.rating.toFixed(1)} ({apartment.reviews} reviews)
+              <h1 className="text-2xl md:text-3xl leading-tight font-bold text-gray-900 tracking-tight truncate capitalize">{apartment.title}</h1>
+              <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 text-sm">
+                  <FaMapMarkerAlt className="text-blue-600" />
+                  <span className="truncate max-w-[60vw] md:max-w-none">{apartment.location}</span>
+                </span>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-100 text-gray-700 text-sm">
+                  <span className="flex items-center gap-0.5">
+                    {renderStars(apartment.rating)}
+                  </span>
+                  <span className="font-medium">
+                    {apartment.rating.toFixed(1)}
+                  </span>
+                  <span className="opacity-70">· {apartment.reviews} Reviews</span>
+                </span>
+                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-xs font-medium">
+                  Verified Listing
                 </span>
               </div>
             </div>
-            <div className="flex items-center space-x-4">
-              <button className="p-3 bg-gray-100 text-gray-600 rounded-full hover:bg-gray-200 transition-colors">
-                <FaShare className="text-xl" />
+            <div className="flex items-center gap-2">
+              <button onClick={handleShare} className="p-3 rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors" title="Share" aria-label="Share">
+                <FaShare className="text-lg" />
+              </button>
+              <button
+                onClick={toggleFavorite}
+                className={`p-3 rounded-full transition-colors ${isFavorited ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                title={isFavorited ? 'Remove from favorites' : 'Save to favorites'}
+                aria-label={isFavorited ? 'Unfavorite' : 'Favorite'}
+              >
+                <FaHeart className="text-lg" />
               </button>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto px-4 pt-6 pb-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Apartment Info */}
           <div className="lg:col-span-2 space-y-8">
             {/* Enhanced Image Gallery */}
-            <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+            <div className="bg-white rounded-2xl shadow-lg hover:shadow-xl overflow-hidden transition-shadow animate-fade-in-up">
+              {/* Gallery Header */}
+              <div className="flex items-center justify-between px-4 py-3 bg-gray-50/70">
+                <div className="flex items-center gap-2 text-gray-900 font-semibold">
+                  <FaImages className="text-blue-600" />
+                  <span>Property Gallery</span>
+                </div>
+                <span className="text-xs text-gray-600">{Array.isArray(apartment.images) ? apartment.images.length : 0} Images</span>
+              </div>
               <div className="relative group">
                 <img
                   loading="lazy"
                   src={apartment.images[selectedImage]}
                   alt={apartment.title}
-                  className="w-full h-96 object-cover transition-all duration-500 group-hover:scale-105"
+                  className="w-full h-96 object-cover transition-transform duration-500 ease-out group-hover:scale-105"
                   onError={(e) => {
                     e.target.src = 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&h=600&fit=crop';
                   }}
@@ -232,7 +329,7 @@ const ApartmentDetails = () => {
                 
                 {/* Favorite Button Overlay */}
                 <button
-                  onClick={() => setIsFavorited(!isFavorited)}
+                  onClick={toggleFavorite}
                   className={`absolute top-4 right-4 p-3 rounded-full transition-all duration-300 ${
                     isFavorited
                       ? 'bg-red-500 text-white shadow-lg'
@@ -277,64 +374,60 @@ const ApartmentDetails = () => {
             </div>
 
             {/* Property Overview */}
-            <div className="bg-white rounded-2xl shadow-lg p-6">
-              <div className="flex items-start justify-between mb-6">
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-800 mb-2">
-                    {apartment.type}
-                  </h2>
-                  <div className="flex items-center space-x-6 text-gray-600">
-                    <div className="flex items-center">
-                      <FaBed className="mr-2" />
-                      <span>{apartment.bedrooms} Bedrooms</span>
+            <div className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-shadow p-5 md:p-6">
+              <div className="flex items-start justify-between mb-4">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 mb-1 text-gray-900 font-semibold">
+                    <FaHome className="text-blue-600" />
+                    <h2 className="text-xl md:text-2xl font-bold truncate">{apartment.type}</h2>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3 text-gray-600 text-sm">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gray-100">
+                      <FaBed />
+                      <span className="whitespace-nowrap">{apartment.bedrooms} Bedrooms</span>
                     </div>
-                    <div className="flex items-center">
-                      <FaBath className="mr-2" />
-                      <span>{apartment.bathrooms} Bathrooms</span>
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gray-100">
+                      <FaBath />
+                      <span className="whitespace-nowrap">{apartment.bathrooms} Bathrooms</span>
                     </div>
-                    <div className="flex items-center">
-                      <span>{apartment.size}</span>
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gray-100">
+                      <span className="whitespace-nowrap">{apartment.size}</span>
                     </div>
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="flex items-center mb-1">
+                <div className="text-right shrink-0">
+                  <div className="flex items-center justify-end gap-2 mb-1">
                     {renderStars(apartment.rating)}
-                    <span className="ml-2 text-gray-600">
-                      {apartment.rating.toFixed(1)}
-                    </span>
+                    <span className="text-gray-700 font-medium">{apartment.rating.toFixed(1)}</span>
                   </div>
-                  <p className="text-sm text-gray-500">
-                    ({apartment.reviews} reviews)
-                  </p>
+                  <p className="text-xs text-gray-500">{apartment.reviews} Reviews</p>
                 </div>
               </div>
 
-              <div className="border-t pt-6">
-                <h3 className="text-lg font-semibold text-gray-800 mb-3">
-                  About this {apartment.type.toLowerCase()}
+              <div className="pt-4 border-t border-gray-100">
+                <h3 className="text-base md:text-lg font-semibold text-gray-800 mb-2">
+                  About This {apartment.type}
                 </h3>
-                <p className="text-gray-700 leading-relaxed mb-4">
+                <p className="text-gray-700 leading-relaxed mb-4 break-words">
                   {apartment.description}
                 </p>
-                
                 {/* Property Features */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                  <div className="flex items-center space-x-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
+                  <div className="flex items-center gap-3 bg-gray-50 rounded-xl p-3">
                     <FaDoorOpen className="text-blue-600" />
-                    <span className="text-gray-700">Check-in: {apartment.features?.checkIn}</span>
+                    <span className="text-gray-700">Check-In: {apartment.features?.checkIn}</span>
                   </div>
-                  <div className="flex items-center space-x-3">
+                  <div className="flex items-center gap-3 bg-gray-50 rounded-xl p-3">
                     <FaKey className="text-blue-600" />
-                    <span className="text-gray-700">Check-out: {apartment.features?.checkOut}</span>
+                    <span className="text-gray-700">Check-Out: {apartment.features?.checkOut}</span>
                   </div>
-                  <div className="flex items-center space-x-3">
+                  <div className="flex items-center gap-3 bg-gray-50 rounded-xl p-3">
                     <FaShieldAlt className="text-blue-600" />
                     <span className="text-gray-700">{apartment.features?.cancellation}</span>
                   </div>
-                  <div className="flex items-center space-x-3">
+                  <div className="flex items-center gap-3 bg-gray-50 rounded-xl p-3">
                     <FaHome className="text-blue-600" />
-                    <span className="text-gray-700">Entire place</span>
+                    <span className="text-gray-700">Entire Place</span>
                   </div>
                 </div>
               </div>
@@ -349,17 +442,17 @@ const ApartmentDetails = () => {
                   </h3>
                   <div className="flex items-center space-x-2 text-sm text-gray-600">
                     <FaBed className="text-blue-600" />
-                    <span>{apartment.rooms.length} rooms available</span>
+                    <span>{apartment.rooms.length} Rooms Available</span>
                   </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {apartment.rooms.map((room, index) => (
                     <div 
                       key={index}
-                      className={`group border-2 rounded-xl p-3 cursor-pointer transition-all duration-300 transform hover:scale-[1.01] hover:shadow-lg relative ${
+                      className={`group rounded-2xl p-4 cursor-pointer bg-white shadow-sm transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 relative ${
                         selectedRoom === index 
-                          ? 'border-blue-500 bg-gradient-to-br from-blue-50 to-blue-100 shadow-lg scale-105' 
-                          : 'border-gray-200 hover:border-blue-300 bg-white'
+                          ? 'ring-2 ring-blue-200 bg-blue-50' 
+                          : ''
                       }`}
                       onClick={(e) => {
                         if (e.target.closest('[data-interactive="true"]')) return;
@@ -396,6 +489,33 @@ const ApartmentDetails = () => {
                           </div>
                         </div>
                       </button>
+                      {/* Quick actions: open modals (calendar/details) */}
+                      <div
+                        className="flex items-center gap-2 mb-3"
+                        data-interactive="true"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <button
+                          type="button"
+                          aria-label="View availability"
+                          className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors text-xs md:text-sm"
+                          onClick={() => { setCalendarRoom(room); setIsCalendarOpen(true); }}
+                          title="View availability"
+                        >
+                          <FaCalendarAlt />
+                          <span className="hidden md:inline">Availability</span>
+                        </button>
+                        <button
+                          type="button"
+                          aria-label="View details"
+                          className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors text-xs md:text-sm"
+                          onClick={() => { setDetailsRoom(room); setIsDetailsOpen(true); }}
+                          title="View details"
+                        >
+                          <FaHome />
+                          <span className="hidden md:inline">Details</span>
+                        </button>
+                      </div>
                       
                       {/* Room Info with Icons */}
                       <div className="flex items-center space-x-3 text-xs text-gray-600 mb-3" data-interactive="true" onClick={(e) => e.stopPropagation()}>
@@ -425,7 +545,7 @@ const ApartmentDetails = () => {
                                   loading="lazy"
                                   src={src}
                                   alt={`${room.roomNumber} - Image ${imgIndex + 1}`}
-                                  className="w-full h-20 object-cover"
+                                  className="w-full aspect-square object-cover"
                                   onError={(e) => {
                                     e.currentTarget.src = 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=200&h=150&fit=crop';
                                   }}
@@ -447,81 +567,20 @@ const ApartmentDetails = () => {
                           {room.amenities.slice(0, 3).map((amenity, amenityIndex) => (
                             <span 
                               key={amenityIndex}
-                              className="px-3 py-1 bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 text-xs rounded-full font-medium hover:from-blue-200 hover:to-blue-300 transition-all duration-300"
+                              className="px-3 py-1 bg-blue-50 text-blue-700 border border-blue-100 text-xs rounded-full font-medium hover:bg-blue-100 transition-colors"
                             >
                               {amenity}
                             </span>
                           ))}
                           {room.amenities.length > 3 && (
-                            <span className="px-3 py-1 bg-gradient-to-r from-purple-100 to-purple-200 text-purple-800 text-xs rounded-full font-medium hover:from-purple-200 hover:to-purple-300 transition-all duration-300">
+                            <span className="px-3 py-1 bg-purple-50 text-purple-700 border border-purple-100 text-xs rounded-full font-medium hover:bg-purple-100 transition-colors">
                               +{room.amenities.length - 3} more
                             </span>
                           )}
                         </div>
                       )}
 
-                      {/* Expandable Details with Smooth Animation */}
-                      <div id={`room-panel-${index}`} className={`overflow-hidden transition-all duration-500 ${
-                        selectedRoom === index ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0'
-                      }`}>
-                        <div className="mt-3 pt-3 border-t border-gray-200 overflow-y-auto max-h-[380px] pr-1" data-interactive="true" onClick={(e) => e.stopPropagation()}>
-                          <h5 className="font-semibold text-gray-800 mb-3 flex items-center">
-                            <FaBed className="mr-2 text-blue-600" />
-                            Room Details
-                          </h5>
-                          <div className="space-y-3 text-sm">
-                            <div className="flex justify-between items-center bg-gray-50 p-2 rounded-lg">
-                              <span className="text-gray-600">Room Type:</span>
-                              <span className="capitalize font-medium text-gray-800">{room.roomType}</span>
-                            </div>
-                            <div className="flex justify-between items-center bg-gray-50 p-2 rounded-lg">
-                              <span className="text-gray-600">Capacity:</span>
-                              <span className="font-medium text-gray-800">{room.capacity} guests</span>
-                            </div>
-                            <div className="flex justify-between items-center bg-blue-50 p-2 rounded-lg">
-                              <span className="text-gray-600">Price per month:</span>
-                              <span className="font-bold text-blue-600 text-lg">RWF {room.pricePerMonth?.toLocaleString() || (room.pricePerNight * 30)?.toLocaleString() || '0'}</span>
-                            </div>
-                            <div className="flex justify-between items-center bg-gray-50 p-2 rounded-lg">
-                              <span className="text-gray-600">Price per night:</span>
-                              <span className="font-medium text-gray-800">RWF {room.pricePerNight?.toLocaleString()}</span>
-                            </div>
-                          </div>
-                          
-                          {room.amenities && room.amenities.length > 0 && (
-                            <div className="mt-4">
-                              <h6 className="font-semibold text-gray-800 mb-3 flex items-center">
-                                <FaStar className="mr-2 text-yellow-500" />
-                                All Room Amenities
-                              </h6>
-                              <div className="flex flex-wrap gap-2">
-                                {room.amenities.map((amenity, amenityIndex) => (
-                                  <span 
-                                    key={amenityIndex}
-                                    className="px-3 py-1 bg-gradient-to-r from-green-100 to-green-200 text-green-800 text-xs rounded-full font-medium hover:from-green-200 hover:to-green-300 transition-all duration-300"
-                                  >
-                                    {amenity}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Guest Read-only Availability Calendar */}
-                          <div className="mt-6">
-                            <h6 className="font-semibold text-gray-800 mb-2 flex items-center">
-                              <FaCalendarAlt className="mr-2 text-blue-600" />
-                              Availability Calendar
-                            </h6>
-                            <RoomCalendarPanel
-                              propertyId={apartment.id}
-                              room={room}
-                              readOnly={true}
-                              compact={true}
-                            />
-                          </div>
-                        </div>
-                      </div>
+                      {/* Removed in-card expanded details; details and availability open in modals */}
 
                       {/* Selection Indicator */}
                       {selectedRoom === index && (
@@ -536,20 +595,21 @@ const ApartmentDetails = () => {
             )}
 
             {/* Amenities */}
-            <div className="bg-white rounded-2xl shadow-lg p-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                What this place offers
-              </h3>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-shadow p-5 md:p-6">
+              <div className="flex items-center gap-2 text-gray-900 font-semibold mb-3">
+                <FaShieldAlt className="text-blue-600" />
+                <h3 className="text-lg">What This Place Offers</h3>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {apartment.amenities.map((amenity, index) => {
                   const IconComponent = amenity.icon;
                   return (
                     <div
                       key={index}
-                      className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50 transition-colors"
+                      className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors min-w-0"
                     >
-                      <IconComponent className="text-blue-600 text-xl" />
-                      <span className="text-gray-700">{amenity.name}</span>
+                      <IconComponent className="text-blue-600 text-xl shrink-0" />
+                      <span className="text-gray-700 truncate">{amenity.name}</span>
                     </div>
                   );
                 })}
@@ -558,15 +618,16 @@ const ApartmentDetails = () => {
 
             {/* House Rules */}
             {Array.isArray(apartment.features?.houseRules) && apartment.features.houseRules.length > 0 && (
-              <div className="bg-white rounded-2xl shadow-lg p-6">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                  House Rules
-                </h3>
-                <div className="space-y-3">
+              <div className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-shadow p-5 md:p-6">
+                <div className="flex items-center gap-2 text-gray-900 font-semibold mb-3">
+                  <FaBook className="text-blue-600" />
+                  <h3 className="text-lg">House Rules</h3>
+                </div>
+                <div className="space-y-2">
                   {apartment.features.houseRules.map((rule, index) => (
-                    <div key={index} className="flex items-start space-x-3">
-                      <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 flex-shrink-0"></div>
-                      <span className="text-gray-700">{rule}</span>
+                    <div key={index} className="flex items-start gap-3">
+                      <div className="mt-2 w-2 h-2 bg-blue-600 rounded-full shrink-0"></div>
+                      <span className="text-gray-700 break-words">{rule}</span>
                     </div>
                   ))}
                 </div>
@@ -576,7 +637,7 @@ const ApartmentDetails = () => {
             {/* Host */}
             <div className="bg-white rounded-2xl shadow-lg p-6">
               <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                Meet your host
+                Meet Your Host
               </h3>
               <div className="flex items-start space-x-4">
                 {apartment.host.avatar ? (
@@ -711,8 +772,110 @@ const ApartmentDetails = () => {
           </div>
         </div>
       </div>
+
+      {/* Availability Modal */}
+      {isCalendarOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px]" onClick={() => setIsCalendarOpen(false)} />
+          <div className="relative w-full max-w-3xl bg-white/95 rounded-2xl shadow-2xl overflow-hidden animate-fade-in-up">
+            {/* Mobile-friendly floating close button */}
+            <button
+              type="button"
+              className="absolute top-3 right-3 p-2 rounded-full bg-white/90 text-gray-700 hover:bg-white shadow-md ring-1 ring-black/5 md:hidden"
+              onClick={() => setIsCalendarOpen(false)}
+              aria-label="Close modal"
+            >
+              <FaTimes />
+            </button>
+            <div className="flex items-center justify-between px-5 py-4 bg-gray-50/70">
+              <div className="flex items-center gap-2 text-gray-900 font-semibold">
+                <FaCalendarAlt className="text-blue-600" />
+                <span>Room Availability</span>
+              </div>
+              <button
+                type="button"
+                className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                onClick={() => setIsCalendarOpen(false)}
+                aria-label="Close"
+              >
+                <FaTimes />
+              </button>
+            </div>
+            <div className="p-5">
+              {calendarRoom && (
+                <RoomCalendarPanel
+                  propertyId={apartment.id}
+                  room={calendarRoom}
+                  readOnly={true}
+                  compact={false}
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Room Details Modal */}
+      {isDetailsOpen && detailsRoom && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px]" onClick={() => setIsDetailsOpen(false)} />
+          <div className="relative w-full max-w-3xl bg-white/95 rounded-2xl shadow-2xl overflow-hidden animate-fade-in-up">
+            <div className="flex items-center justify-between px-5 py-4 bg-gray-50/70">
+              <div className="flex items-center gap-2 text-gray-900 font-semibold">
+                <FaHome className="text-blue-600" />
+                <span>Room Details • {detailsRoom.roomNumber}</span>
+              </div>
+              <button
+                type="button"
+                className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                onClick={() => setIsDetailsOpen(false)}
+                aria-label="Close"
+              >
+                <FaTimes />
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {(detailsRoom.images || []).slice(0,6).map((img, i) => (
+                  <img key={i} src={makeAbsolute(img)} alt={`Room ${i+1}`} className="w-full h-28 md:h-40 object-cover rounded-xl shadow-sm" />
+                ))}
+              </div>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="bg-gray-50 rounded-xl p-3 flex items-center justify-between shadow-sm">
+                  <span className="text-gray-600">Type</span>
+                  <span className="font-medium capitalize text-gray-800">{detailsRoom.roomType}</span>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-3 flex items-center justify-between shadow-sm">
+                  <span className="text-gray-600">Capacity</span>
+                  <span className="font-medium text-gray-800">{detailsRoom.capacity} guests</span>
+                </div>
+                <div className="bg-blue-50 rounded-xl p-3 flex items-center justify-between shadow-sm">
+                  <span className="text-gray-600">Price / month</span>
+                  <span className="font-bold text-blue-700">RWF {(detailsRoom.pricePerMonth || (detailsRoom.pricePerNight||0)*30).toLocaleString()}</span>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-3 flex items-center justify-between shadow-sm">
+                  <span className="text-gray-600">Price / night</span>
+                  <span className="font-medium text-gray-800">RWF {(detailsRoom.pricePerNight||0).toLocaleString()}</span>
+                </div>
+              </div>
+              {Array.isArray(detailsRoom.amenities) && detailsRoom.amenities.length > 0 && (
+                <div>
+                  <div className="text-sm font-semibold text-gray-800 mb-2">Amenities</div>
+                  <div className="flex flex-wrap gap-2">
+                    {detailsRoom.amenities.map((a, i) => (
+                      <span key={i} className="px-3 py-1 bg-gray-50 text-gray-700 text-xs rounded-full font-medium shadow-sm">{a}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+
+// Modal Portal is not used; simple in-page modal overlay
 
 export default ApartmentDetails;

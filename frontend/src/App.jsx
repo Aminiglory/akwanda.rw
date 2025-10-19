@@ -133,9 +133,10 @@ function App() {
             <Route path="/quick-login" element={<QuickLogin />} />
             </Routes>
             
-            {/* Footer - Hidden on messages page */}
+            {/* Footer - Hidden on messages and profile pages */}
             <Routes>
               <Route path="/messages" element={null} />
+              <Route path="/profile" element={null} />
               <Route path="*" element={<Footer />} />
             </Routes>
             </div>

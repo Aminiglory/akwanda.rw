@@ -7,7 +7,7 @@ import {
   FaPaperPlane, FaImage, FaFile, FaSmile, FaPhone, FaVideo,
   FaEllipsisV, FaSearch, FaFilter, FaDownload, FaTrash,
   FaCheck, FaCheckDouble, FaClock, FaUser, FaCalendarAlt,
-  FaMapMarkerAlt, FaBed, FaMoneyBillWave, FaStar, FaComments, FaTimes, FaReply
+  FaMapMarkerAlt, FaBed, FaMoneyBillWave, FaStar, FaComments, FaTimes, FaReply, FaLink
 } from 'react-icons/fa';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -36,6 +36,7 @@ export default function Messages() {
   const [userSearchTerm, setUserSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
+  const MAX_MESSAGE_LEN = 2000;
 
   const bottomRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -552,74 +553,77 @@ export default function Messages() {
     );
   };
 
-  const renderThread = (thread) => (
-    <div
-      key={thread.id}
-      onClick={() => setActiveThread(thread)}
-      className={`p-4 border-b border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors ${
-        activeThread?.id === thread.id ? 'bg-blue-50 border-blue-200' : ''
-      }`}
-    >
-      <div className="flex items-center space-x-3">
-        <div className="relative">
-          <img
-            src={thread.userAvatar}
-            alt={thread.userName}
-            className="w-12 h-12 rounded-full object-cover"
-          />
-          {thread.unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-              {thread.unreadCount}
-            </span>
-          )}
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-gray-900 truncate">
-              {thread.userName}
-            </h3>
-            <span className="text-xs text-gray-500">
-              {formatTime(thread.lastMessageTime)}
-            </span>
-          </div>
-          <p className="text-sm text-gray-600 truncate">
-            {thread.lastMessage}
-          </p>
-          {thread.booking && (
-            <div className="flex items-center space-x-2 mt-1">
-              <span className="text-xs text-blue-600 font-medium">
-                {thread.booking.propertyName}
+  const renderThread = (thread) => {
+    const preview = String(thread.lastMessage || '').slice(0, 60);
+    return (
+      <div
+        key={thread.id}
+        onClick={() => setActiveThread(thread)}
+        className={`p-3 md:p-4 border-b border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors ${
+          activeThread?.id === thread.id ? 'bg-blue-50 border-blue-200' : ''
+        }`}
+      >
+        <div className="flex items-center space-x-3">
+          <div className="relative">
+            <img
+              src={thread.userAvatar}
+              alt={thread.userName}
+              className="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover"
+            />
+            {thread.unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                {thread.unreadCount}
               </span>
-              <span className={`text-xs px-2 py-1 rounded-full ${
-                thread.booking.status === 'paid' ? 'bg-green-100 text-green-800' :
-                thread.booking.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                'bg-red-100 text-red-800'
-              }`}>
-                {thread.booking.status}
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-medium text-gray-900 truncate">
+                {thread.userName}
+              </h3>
+              <span className="text-xs text-gray-500">
+                {formatTime(thread.lastMessageTime)}
               </span>
             </div>
-          )}
+            <p className="text-sm text-gray-600 truncate">
+              {preview}{thread.lastMessage && thread.lastMessage.length > 60 ? '…' : ''}
+            </p>
+            {thread.booking && (
+              <div className="flex items-center space-x-2 mt-1">
+                <span className="text-xs text-blue-600 font-medium">
+                  {thread.booking.propertyName}
+                </span>
+                <span className={`text-xs px-2 py-1 rounded-full ${
+                  thread.booking.status === 'paid' ? 'bg-green-100 text-green-800' :
+                  thread.booking.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                  'bg-red-100 text-red-800'
+                }`}>
+                  {thread.booking.status}
+                </span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-4 gap-6 h-[calc(100vh-120px)]">
+      <div className="max-w-7xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Threads Sidebar */}
-        <div className="lg:col-span-1 modern-card-elevated p-6">
+        <div className="lg:col-span-1 modern-card-elevated p-6 flex flex-col h-[60vh] md:h-[70vh] lg:h-[78vh]">
           <div className="mb-4">
             <h2 className="text-xl font-bold text-gray-900 mb-1">AKWANDA Chat</h2>
             <p className="text-sm text-gray-500 mb-3 animate-pulse">Fast, simple and reliable messaging</p>
             <div className="relative">
-              <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <FaSearch className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
                 placeholder="Search conversations..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="modern-input pl-10 w-full"
+                className="modern-input w-full h-10 pl-10 pr-3"
               />
             </div>
             <button
@@ -631,7 +635,7 @@ export default function Messages() {
             </button>
           </div>
           
-          <div className="space-y-1 overflow-y-auto max-h-[calc(100vh-200px)]">
+          <div className="space-y-1 overflow-y-auto flex-1">
             {threads
               .filter(thread => {
                 const name = (thread.userName || '').toLowerCase();
@@ -644,7 +648,7 @@ export default function Messages() {
         </div>
 
         {/* Chat Area */}
-        <div className="lg:col-span-3 modern-card-elevated flex flex-col">
+        <div className="lg:col-span-3 modern-card-elevated flex flex-col h-[60vh] md:h-[70vh] lg:h-[78vh]">
           {activeThread ? (
             <>
               {/* Chat Header */}
@@ -664,10 +668,10 @@ export default function Messages() {
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <button className="p-2 text-gray-600 hover:text-blue-600 hover:bg-gray-100 rounded-lg">
+                    <button className="p-2 text-gray-600 hover:text-blue-600 hover:bg-gray-100 rounded-lg" title="Voice call (coming soon)">
                       <FaPhone />
                     </button>
-                    <button className="p-2 text-gray-600 hover:text-blue-600 hover:bg-gray-100 rounded-lg">
+                    <button className="p-2 text-gray-600 hover:text-blue-600 hover:bg-gray-100 rounded-lg" title="Video call (coming soon)">
                       <FaVideo />
                     </button>
                     <button className="p-2 text-gray-600 hover:text-blue-600 hover:bg-gray-100 rounded-lg">
@@ -737,7 +741,7 @@ export default function Messages() {
               )}
 
               {/* Message Input */}
-              <div className="p-4 border-t border-gray-200">
+              <div className="p-4 border-t border-gray-200 relative">
                 <div className="flex items-center space-x-2">
                   <button
                     onClick={() => imageInputRef.current?.click()}
@@ -751,12 +755,27 @@ export default function Messages() {
                   >
                     <FaFile />
                   </button>
+                  <button
+                    onClick={() => setShowEmojiPicker(v => !v)}
+                    className="p-2 text-gray-600 hover:text-blue-600 hover:bg-gray-100 rounded-lg"
+                    title="Emoji"
+                  >
+                    <FaSmile />
+                  </button>
+                  <button
+                    onClick={() => setNewMessage(prev => prev + (prev && !prev.endsWith(' ') ? ' 🔗' : '🔗'))}
+                    className="hidden md:inline p-2 text-gray-600 hover:text-blue-600 hover:bg-gray-100 rounded-lg"
+                    title="Quick action"
+                  >
+                    <FaLink />
+                  </button>
                   <div className="flex-1">
                     <input
                       type="text"
                       value={newMessage}
                       onChange={(e) => {
-                        setNewMessage(e.target.value);
+                        const val = e.target.value.slice(0, MAX_MESSAGE_LEN);
+                        setNewMessage(val);
                         handleTypingStart();
                       }}
                       onKeyPress={(e) => {
@@ -771,11 +790,23 @@ export default function Messages() {
                   </div>
                   <button
                     onClick={sendMessage}
-                    disabled={!newMessage.trim() && attachments.length === 0}
+                    disabled={(!newMessage.trim() && attachments.length === 0) || newMessage.length > MAX_MESSAGE_LEN}
                     className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <FaPaperPlane />
                   </button>
+                </div>
+                {/* Emoji Picker Popover */}
+                {showEmojiPicker && (
+                  <div className="absolute bottom-16 left-4 bg-white border border-gray-200 rounded-xl p-2 shadow-lg grid grid-cols-8 gap-1 z-10">
+                    {['😀','😁','😂','🤣','😊','😍','😘','🤩','👍','🙏','🔥','🎉','🏡','🛏️','🛁','📅','📍','💬','✨','💯','📎','📷'].map((em)=> (
+                      <button key={em} className="p-1 hover:bg-gray-100 rounded" onClick={() => setNewMessage(s => (s || '') + em)}>{em}</button>
+                    ))}
+                  </div>
+                )}
+                {/* Length Counter */}
+                <div className={`mt-1 text-right text-xs ${newMessage.length > MAX_MESSAGE_LEN - 200 ? 'text-orange-500' : 'text-gray-400'} ${newMessage.length >= MAX_MESSAGE_LEN ? 'text-red-500' : ''}`}>
+                  {newMessage.length}/{MAX_MESSAGE_LEN}
                 </div>
               </div>
             </>

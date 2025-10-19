@@ -250,7 +250,7 @@ export default function RoomCalendarPanel({ propertyId, room, onChanged, readOnl
           <div className="text-xs text-gray-500">Lock/unlock dates, view bookings, and manage availability</div>
         </div>
       )}
-      <div className={`flex items-center justify-between ${compact ? 'mb-2' : 'mb-3'}`}>
+      <div className={`flex flex-col gap-2 md:flex-row md:items-center md:justify-between ${compact ? 'mb-2' : 'mb-3'}`}>
         <div className="flex items-center gap-3">
           <div className={`${compact ? 'text-sm' : 'text-base'} font-semibold text-gray-900`}>
             {room.roomNumber || 'Room'} • {room.roomType || 'Unknown Type'}{!readOnly && showAllRooms ? ' • All rooms' : ''}
@@ -274,47 +274,55 @@ export default function RoomCalendarPanel({ propertyId, room, onChanged, readOnl
             </>
           )}
         </div>
-        <div className="flex items-center gap-2">
-          <button type="button" aria-label="Previous year" onClick={() => setCurrent(new Date(current.getFullYear()-1, current.getMonth(), 1))} className={`${compact ? 'p-1.5' : 'p-2'} hover:bg-gray-100 rounded`}>
-            «
-          </button>
-          <button onClick={() => setCurrent(new Date(current.getFullYear(), current.getMonth()-1, 1))} className={`${compact ? 'p-1.5' : 'p-2'} hover:bg-gray-100 rounded`}>
-            <FaChevronLeft />
-          </button>
-          <div className={`${compact ? 'text-xs' : 'text-sm'} font-medium text-gray-700`}>{monthName}</div>
-          <select
-            className={`${compact ? 'px-3 py-2 text-xs' : 'px-4 py-3 text-sm'} border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
-            value={current.getMonth()}
-            onChange={(e)=>{
-              const m = Number(e.target.value);
-              setCurrent(new Date(current.getFullYear(), m, 1));
-            }}
-          >
-            {["January","February","March","April","May","June","July","August","September","October","November","December"].map((m,i)=>(
-              <option key={m} value={i}>{m}</option>
-            ))}
-          </select>
-          <select
-            className={`${compact ? 'px-3 py-2 text-xs' : 'px-4 py-3 text-sm'} border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
-            value={current.getFullYear()}
-            onChange={(e)=>{
-              const y = Number(e.target.value);
-              setCurrent(new Date(y, current.getMonth(), 1));
-            }}
-          >
-            {(() => {
-              const base = new Date().getFullYear();
-              return Array.from({length: 101}, (_,k)=> base + k).map(y => (
-                <option key={y} value={y}>{y}</option>
-              ));
-            })()}
-          </select>
-          <button type="button" aria-label="Next month" onClick={() => setCurrent(new Date(current.getFullYear(), current.getMonth()+1, 1))} className={`${compact ? 'p-1.5' : 'p-2'} hover:bg-gray-100 rounded`}>
-            <FaChevronRight />
-          </button>
-          <button type="button" aria-label="Next year" onClick={() => setCurrent(new Date(current.getFullYear()+1, current.getMonth(), 1))} className={`${compact ? 'p-1.5' : 'p-2'} hover:bg-gray-100 rounded`}>
-            »
-          </button>
+        <div className="flex flex-col items-stretch gap-1">
+          {/* Top row: nav chevrons + month name */}
+          <div className="flex items-center gap-2">
+            <button type="button" aria-label="Previous year" onClick={() => setCurrent(new Date(current.getFullYear()-1, current.getMonth(), 1))} className={`${compact ? 'p-1.5' : 'p-2'} hover:bg-gray-100 rounded`}>
+              «
+            </button>
+            <button onClick={() => setCurrent(new Date(current.getFullYear(), current.getMonth()-1, 1))} className={`${compact ? 'p-1.5' : 'p-2'} hover:bg-gray-100 rounded`}>
+              <FaChevronLeft />
+            </button>
+            <div className={`text-xs md:text-sm font-medium text-gray-700`}>{monthName}</div>
+            <button type="button" aria-label="Next month" onClick={() => setCurrent(new Date(current.getFullYear(), current.getMonth()+1, 1))} className={`${compact ? 'p-1.5' : 'p-2'} hover:bg-gray-100 rounded`}>
+              <FaChevronRight />
+            </button>
+            <button type="button" aria-label="Next year" onClick={() => setCurrent(new Date(current.getFullYear()+1, current.getMonth(), 1))} className={`${compact ? 'p-1.5' : 'p-2'} hover:bg-gray-100 rounded`}>
+              »
+            </button>
+          </div>
+          {/* Second row: selects aligned like BookingCalendar */}
+          <div className="flex items-center gap-1.5 md:gap-2 flex-nowrap overflow-x-auto">
+            <select
+              className={`px-2 py-1 md:px-4 md:py-3 text-[11px] md:text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+              value={current.getMonth()}
+              onChange={(e)=>{
+                const m = Number(e.target.value);
+                setCurrent(new Date(current.getFullYear(), m, 1));
+              }}
+              title="Select month"
+            >
+              {["January","February","March","April","May","June","July","August","September","October","November","December"].map((m,i)=>(
+                <option key={m} value={i}>{m}</option>
+              ))}
+            </select>
+            <select
+              className={`px-2 py-1 md:px-4 md:py-3 text-[11px] md:text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+              value={current.getFullYear()}
+              onChange={(e)=>{
+                const y = Number(e.target.value);
+                setCurrent(new Date(y, current.getMonth(), 1));
+              }}
+              title="Select year"
+            >
+              {(() => {
+                const base = new Date().getFullYear();
+                return Array.from({length: 101}, (_,k)=> base + k).map(y => (
+                  <option key={y} value={y}>{y}</option>
+                ));
+              })()}
+            </select>
+          </div>
         </div>
       </div>
       <div className={`grid grid-cols-7 gap-1 ${compact ? 'mb-1' : 'mb-2'} text-[11px] md:text-xs text-gray-600`}>
@@ -335,8 +343,8 @@ export default function RoomCalendarPanel({ propertyId, room, onChanged, readOnl
               selected: 'bg-yellow-100'
             }[status] || 'bg-gray-50';
             return (
-              <button type="button" onClick={() => onCellClick(d)} key={idx} className={`${compact ? 'min-h-[48px] p-1.5' : 'min-h-[80px] p-2'} rounded ${cls} text-left w-full border transition-colors ${status==='booked' ? 'border-amber-300' : status==='closed' ? 'border-rose-300' : 'border-transparent hover:border-gray-300'}`}>
-                {d && <div className={`${compact ? 'text-[11px]' : 'text-xs'} font-semibold text-gray-800`}>{d.getDate()}</div>}
+              <button type="button" onClick={() => onCellClick(d)} key={idx} className={`aspect-square ${compact ? 'p-1.5' : 'p-2'} rounded ${cls} text-left w-full border transition-colors ${status==='booked' ? 'border-amber-300' : status==='closed' ? 'border-rose-300' : 'border-transparent hover:border-gray-300'}`}>
+                {d && <div className={`text-[11px] md:text-xs font-semibold text-gray-800`}>{d.getDate()}</div>}
               </button>
             );
           })}
@@ -441,22 +449,22 @@ export default function RoomCalendarPanel({ propertyId, room, onChanged, readOnl
                                 {new Date(b.checkIn).toLocaleDateString()} → {new Date(b.checkOut).toLocaleDateString()}
                               </div>
                             </div>
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-1 md:flex-wrap md:justify-center">
                               {/* Quick Links like booking.com */}
                               <a
                                 href={`/booking-confirmation/${b._id}`}
-                                className="px-2 py-1 rounded text-white bg-blue-600 hover:bg-blue-700 text-[11px]"
+                                className="px-1.5 py-1 rounded text-white bg-blue-600 hover:bg-blue-700 text-[10px] md:text-[11px] md:w-1/3 md:mb-2"
                                 title="View booking"
                               >View</a>
                               <a
                                 href={`/messages?booking=${b._id}`}
-                                className="px-2 py-1 rounded text-white bg-emerald-600 hover:bg-emerald-700 text-[11px]"
+                                className="px-1.5 py-1 rounded text-white bg-emerald-600 hover:bg-emerald-700 text-[10px] md:text-[11px] md:w-1/3 md:mb-2"
                                 title="Open messages"
                               >Chat</a>
                               <a
                                 href={`${API_URL}/api/bookings/${b._id}/receipt.csv`}
                                 target="_blank" rel="noopener noreferrer"
-                                className="px-2 py-1 rounded text-white bg-purple-600 hover:bg-purple-700 text-[11px]"
+                                className="px-1.5 py-1 rounded text-white bg-purple-600 hover:bg-purple-700 text-[10px] md:text-[11px] md:w-1/3 md:mb-2"
                                 title="Download receipt"
                               >Receipt</a>
                             </div>

@@ -261,13 +261,40 @@ const Navbar = () => {
       setNotifications(list);
     };
 
+    // Initial fetch so UI shows live data immediately
+    loadUnread();
+    loadUnreadMessages();
+    loadUserStats();
+    loadList();
+
     timer = setInterval(() => {
       loadUnread();
       loadUnreadMessages();
       loadUserStats();
+      loadList();
     }, 30000);
     return () => { if (timer) clearInterval(timer); };
   }, [isAuthenticated, user?.userType]);
+
+  // Refresh counts/stats when opening the profile dropdown to ensure fresh DB values
+  useEffect(() => {
+    if (!isAuthenticated || !isProfileOpen) return;
+    (async () => {
+      const unreadNotif = await safeApiGet('/api/notifications/unread-count', { count: 0 });
+      setUnreadNotifCount(Number(unreadNotif.count || 0));
+      const unreadMsgs = await safeApiGet('/api/messages/unread-count', { count: 0 });
+      setUnreadMsgCount(Number(unreadMsgs.count || 0));
+      if (user?.userType === 'host') {
+        let data = await safeApiGet('/api/reports/stats', null);
+        if (!data) data = await safeApiGet('/api/reports/dashboard', { properties: 0, bookings: 0, rating: 0 });
+        setUserStats({
+          properties: data.totalProperties || 0,
+          bookings: data.totalBookings || 0,
+          rating: data.averageRating || 0
+        });
+      }
+    })();
+  }, [isAuthenticated, isProfileOpen, user?.userType]);
 
   const markNotificationRead = async (id) => {
     const success = await apiPatch(`/api/notifications/${id}/read`);

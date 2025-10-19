@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaUser, FaChartLine, FaCalendarAlt, FaDollarSign, FaDownload, FaEdit, FaTrash, FaEye, FaCog, FaHome, FaStar, FaMapMarkerAlt, FaCamera, FaFileAlt, FaPrint, FaEnvelope, FaPhone, FaBed, FaUsers, FaWifi, FaCar, FaSwimmingPool, FaUtensils, FaShieldAlt } from 'react-icons/fa';
+import { FaUser, FaChartLine, FaCalendarAlt, FaDollarSign, FaDownload, FaEdit, FaTrash, FaEye, FaCog, FaHome, FaStar, FaMapMarkerAlt, FaCamera, FaFileAlt, FaPrint, FaEnvelope, FaPhone, FaBed, FaUsers, FaWifi, FaCar, FaSwimmingPool, FaUtensils, FaShieldAlt, FaClock } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { safeApiGet, apiGet, apiPost, apiPut, apiDelete, apiDownload } from '../utils/apiUtils';
 
@@ -46,6 +46,9 @@ const UserProfile = () => {
   useEffect(() => {
     if (activeTab === 'properties') {
       fetchProperties();
+    }
+    if (activeTab === 'reports') {
+      fetchReports();
     }
   }, [activeTab]);
 
@@ -219,7 +222,7 @@ const UserProfile = () => {
                 <img
                   src={avatarPreviewUrl || profileData.avatar || '/default-avatar.png'}
                   alt="Profile"
-                  className="w-16 h-16 rounded-full object-cover border-4 border-white shadow-lg"
+                  className="w-12 h-12 md:w-16 md:h-16 rounded-full object-cover border-4 border-white shadow-lg"
                 />
                 <label className="absolute bottom-0 right-0 bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700 cursor-pointer">
                   <FaCamera className="text-xs" />
@@ -239,50 +242,50 @@ const UserProfile = () => {
                 </label>
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">
+                <h1 className="text-xl md:text-2xl font-bold text-gray-900">
                   {profileData.firstName} {profileData.lastName}
                 </h1>
-                <p className="text-gray-600">{user?.userType === 'host' ? 'Property Owner' : 'Guest'}</p>
-                <div className="flex items-center space-x-4 mt-2">
-                  <span className="text-sm text-gray-500 flex items-center">
+                <p className="text-sm md:text-base text-gray-600">{user?.userType === 'host' ? 'Property Owner' : 'Guest'}</p>
+                <div className="flex items-center flex-wrap gap-2 md:space-x-4 mt-2">
+                  <span className="text-xs md:text-sm text-gray-500 flex items-center">
                     <FaEnvelope className="mr-1" /> {profileData.email}
                   </span>
                   {profileData.phone && (
-                    <span className="text-sm text-gray-500 flex items-center">
+                    <span className="text-xs md:text-sm text-gray-500 flex items-center">
                       <FaPhone className="mr-1" /> {profileData.phone}
                     </span>
                   )}
                 </div>
               </div>
             </div>
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center gap-2 md:space-x-3 flex-wrap justify-end">
               <button
                 onClick={updateProfile}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center space-x-2"
+                className="px-3 py-1.5 md:px-4 md:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center space-x-2 text-sm"
               >
                 <FaEdit className="text-sm" />
-                <span>Edit Profile</span>
+                <span className="hidden sm:inline">Edit Profile</span>
               </button>
               {avatarFile && (
                 <>
                   <button
                     onClick={uploadAvatar}
-                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                    className="px-3 py-1.5 md:px-4 md:py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
                   >Save Avatar</button>
                   <button
                     onClick={() => { if (avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl); setAvatarPreviewUrl(null); setAvatarFile(null); }}
-                    className="px-4 py-2 border rounded-lg"
+                    className="px-3 py-1.5 md:px-4 md:py-2 border rounded-lg text-sm"
                   >Cancel</button>
                 </>
               )}
               {user?.userType === 'host' && (
                 <Link
                   to="/owner/workers"
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center space-x-2"
+                  className="px-3 py-1.5 md:px-4 md:py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center space-x-2 text-sm"
                   title="Create and manage your workers"
                 >
                   <FaUsers className="text-sm" />
-                  <span>Manage Workers</span>
+                  <span className="hidden sm:inline">Manage Workers</span>
                 </Link>
               )}
             </div>
@@ -293,21 +296,21 @@ const UserProfile = () => {
       {/* Navigation Tabs */}
       <div className="bg-white border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <nav className="flex space-x-8">
+          <nav className="flex space-x-4 md:space-x-8 overflow-x-auto">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm ${
+                  className={`flex items-center space-x-2 py-2 md:py-4 px-1 border-b-2 font-medium text-xs md:text-sm ${
                     activeTab === tab.id
                       ? 'border-blue-500 text-blue-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                   }`}
                 >
-                  <Icon className="text-lg" />
-                  <span>{tab.label}</span>
+                  <Icon className="text-base md:text-lg" />
+                  <span className="whitespace-nowrap">{tab.label}</span>
                 </button>
               );
             })}
@@ -535,125 +538,188 @@ const UserProfile = () => {
             
             {/* Report Generation */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-              <div className="bg-white rounded-lg shadow-sm p-4">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Daily Reports</h3>
+              {/* Daily Reports Card */}
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow p-5">
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">Daily Reports</h3>
                 <p className="text-sm text-gray-600 mb-4">Generate detailed daily performance reports</p>
-                <div className="space-y-2">
-                  <div className="grid grid-cols-3 gap-1">
-                    <button
-                      onClick={() => generateReport('revenue', 'daily', 'pdf')}
-                      disabled={loading}
-                      className="px-2 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 disabled:opacity-50"
-                    >
-                      PDF
-                    </button>
-                    <button
-                      onClick={() => generateReport('revenue', 'daily', 'csv')}
-                      disabled={loading}
-                      className="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 disabled:opacity-50"
-                    >
-                      CSV
-                    </button>
-                    <button
-                      onClick={() => generateReport('revenue', 'daily', 'json')}
-                      disabled={loading}
-                      className="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 disabled:opacity-50"
-                    >
-                      JSON
-                    </button>
+                <div className="space-y-3">
+                  {/* Revenue Row */}
+                  <div>
+                    <div className="text-xs font-semibold text-gray-500 mb-2">Revenue</div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => generateReport('revenue', 'daily', 'pdf')}
+                        disabled={loading}
+                        className="px-3 py-2 bg-red-600 text-white text-xs rounded-lg hover:bg-red-700 disabled:opacity-50"
+                        title="Download Revenue (PDF)"
+                      >
+                        PDF
+                      </button>
+                      <button
+                        onClick={() => generateReport('revenue', 'daily', 'csv')}
+                        disabled={loading}
+                        className="px-3 py-2 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700 disabled:opacity-50"
+                        title="Download Revenue (CSV)"
+                      >
+                        CSV
+                      </button>
+                    </div>
                   </div>
-                  <div className="grid grid-cols-3 gap-1">
-                    <button
-                      onClick={() => generateReport('bookings', 'daily', 'pdf')}
-                      disabled={loading}
-                      className="px-2 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 disabled:opacity-50"
-                    >
-                      PDF
-                    </button>
-                    <button
-                      onClick={() => generateReport('bookings', 'daily', 'csv')}
-                      disabled={loading}
-                      className="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 disabled:opacity-50"
-                    >
-                      CSV
-                    </button>
-                    <button
-                      onClick={() => generateReport('bookings', 'daily', 'json')}
-                      disabled={loading}
-                      className="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 disabled:opacity-50"
-                    >
-                      JSON
-                    </button>
+                  {/* Bookings Row */}
+                  <div>
+                    <div className="text-xs font-semibold text-gray-500 mb-2">Bookings</div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => generateReport('bookings', 'daily', 'pdf')}
+                        disabled={loading}
+                        className="px-3 py-2 bg-red-600 text-white text-xs rounded-lg hover:bg-red-700 disabled:opacity-50"
+                        title="Download Bookings (PDF)"
+                      >
+                        PDF
+                      </button>
+                      <button
+                        onClick={() => generateReport('bookings', 'daily', 'csv')}
+                        disabled={loading}
+                        className="px-3 py-2 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700 disabled:opacity-50"
+                        title="Download Bookings (CSV)"
+                      >
+                        CSV
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-white rounded-lg shadow-sm p-4">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Monthly Reports</h3>
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow p-5">
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">Monthly Reports</h3>
                 <p className="text-sm text-gray-600 mb-4">Comprehensive monthly analytics and insights</p>
                 <div className="space-y-2">
-                  <button
-                    onClick={() => generateReport('revenue', 'monthly')}
-                    disabled={loading}
-                    className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center justify-center space-x-2"
-                  >
-                    <FaDownload className="text-sm" />
-                    <span>Revenue Report</span>
-                  </button>
-                  <button
-                    onClick={() => generateReport('performance', 'monthly')}
-                    disabled={loading}
-                    className="w-full px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50 flex items-center justify-center space-x-2"
-                  >
-                    <FaChartLine className="text-sm" />
-                    <span>Performance Report</span>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => generateReport('revenue', 'monthly', 'pdf')}
+                      disabled={loading}
+                      className="px-3 py-2 bg-purple-600 text-white text-xs rounded-lg hover:bg-purple-700 disabled:opacity-50 flex items-center gap-2"
+                      title="Download Monthly Revenue (PDF)"
+                    >
+                      <FaDownload className="text-xs" />
+                      <span>Revenue PDF</span>
+                    </button>
+                    <button
+                      onClick={() => generateReport('revenue', 'monthly', 'csv')}
+                      disabled={loading}
+                      className="px-3 py-2 bg-emerald-600 text-white text-xs rounded-lg hover:bg-emerald-700 disabled:opacity-50 flex items-center gap-2"
+                      title="Download Monthly Revenue (CSV)"
+                    >
+                      <FaDownload className="text-xs" />
+                      <span>Revenue CSV</span>
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => generateReport('performance', 'monthly', 'pdf')}
+                      disabled={loading}
+                      className="px-3 py-2 bg-indigo-600 text-white text-xs rounded-lg hover:bg-indigo-700 disabled:opacity-50 flex items-center gap-2"
+                      title="Download Monthly Performance (PDF)"
+                    >
+                      <FaChartLine className="text-xs" />
+                      <span>Performance PDF</span>
+                    </button>
+                    <button
+                      onClick={() => generateReport('performance', 'monthly', 'csv')}
+                      disabled={loading}
+                      className="px-3 py-2 bg-sky-600 text-white text-xs rounded-lg hover:bg-sky-700 disabled:opacity-50 flex items-center gap-2"
+                      title="Download Monthly Performance (CSV)"
+                    >
+                      <FaChartLine className="text-xs" />
+                      <span>Performance CSV</span>
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              <div className="bg-white rounded-lg shadow-sm p-4">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Annual Reports</h3>
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow p-5">
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">Annual Reports</h3>
                 <p className="text-sm text-gray-600 mb-4">Yearly summaries and tax-ready documents</p>
                 <div className="space-y-2">
-                  <button
-                    onClick={() => generateReport('annual', 'yearly')}
-                    disabled={loading}
-                    className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 flex items-center justify-center space-x-2"
-                  >
-                    <FaDownload className="text-sm" />
-                    <span>Annual Summary</span>
-                  </button>
-                  <button
-                    onClick={() => generateReport('tax', 'yearly')}
-                    disabled={loading}
-                    className="w-full px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50 flex items-center justify-center space-x-2"
-                  >
-                    <FaPrint className="text-sm" />
-                    <span>Tax Report</span>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => generateReport('annual', 'yearly', 'pdf')}
+                      disabled={loading}
+                      className="px-3 py-2 bg-fuchsia-600 text-white text-xs rounded-lg hover:bg-fuchsia-700 disabled:opacity-50 flex items-center gap-2"
+                      title="Download Annual Summary (PDF)"
+                    >
+                      <FaDownload className="text-xs" />
+                      <span>Annual PDF</span>
+                    </button>
+                    <button
+                      onClick={() => generateReport('annual', 'yearly', 'csv')}
+                      disabled={loading}
+                      className="px-3 py-2 bg-amber-600 text-white text-xs rounded-lg hover:bg-amber-700 disabled:opacity-50 flex items-center gap-2"
+                      title="Download Annual Summary (CSV)"
+                    >
+                      <FaDownload className="text-xs" />
+                      <span>Annual CSV</span>
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => generateReport('tax', 'yearly', 'pdf')}
+                      disabled={loading}
+                      className="px-3 py-2 bg-stone-700 text-white text-xs rounded-lg hover:bg-stone-800 disabled:opacity-50 flex items-center gap-2"
+                      title="Download Tax Report (PDF)"
+                    >
+                      <FaPrint className="text-xs" />
+                      <span>Tax PDF</span>
+                    </button>
+                    <button
+                      onClick={() => generateReport('tax', 'yearly', 'csv')}
+                      disabled={loading}
+                      className="px-3 py-2 bg-neutral-600 text-white text-xs rounded-lg hover:bg-neutral-700 disabled:opacity-50 flex items-center gap-2"
+                      title="Download Tax Report (CSV)"
+                    >
+                      <FaPrint className="text-xs" />
+                      <span>Tax CSV</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Quick Stats */}
-            <div className="bg-white rounded-xl shadow-sm p-6">
+            {/* Quick Analytics */}
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Analytics</h3>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-blue-600">{reports.thisMonth?.bookings || 0}</div>
-                  <div className="text-sm text-gray-600">This Month Bookings</div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Bookings */}
+                <div className="rounded-xl border border-gray-200 p-4 hover:shadow-sm transition-shadow">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-600">This Month Bookings</span>
+                    <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-700"><FaCalendarAlt /></span>
+                  </div>
+                  <div className="text-3xl font-bold text-blue-700">{reports.thisMonth?.bookings || 0}</div>
                 </div>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-green-600">RWF {(reports.thisMonth?.revenue || 0).toLocaleString()}</div>
-                  <div className="text-sm text-gray-600">This Month Revenue</div>
+                {/* Revenue */}
+                <div className="rounded-xl border border-gray-200 p-4 hover:shadow-sm transition-shadow">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-600">This Month Revenue</span>
+                    <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-green-100 text-green-700"><FaDollarSign /></span>
+                  </div>
+                  <div className="text-2xl md:text-3xl font-bold text-green-700">RWF {(reports.thisMonth?.revenue || 0).toLocaleString()}</div>
                 </div>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-orange-600">{reports.occupancyRate || 0}%</div>
-                  <div className="text-sm text-gray-600">Occupancy Rate</div>
+                {/* Occupancy */}
+                <div className="rounded-xl border border-gray-200 p-4 hover:shadow-sm transition-shadow">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-600">Occupancy Rate</span>
+                    <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-orange-100 text-orange-700"><FaStar /></span>
+                  </div>
+                  <div className="text-3xl font-bold text-orange-700">{reports.occupancyRate || 0}%</div>
                 </div>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-purple-600">{reports.averageStay || 0}</div>
-                  <div className="text-sm text-gray-600">Avg Stay (nights)</div>
+                {/* Avg stay */}
+                <div className="rounded-xl border border-gray-200 p-4 hover:shadow-sm transition-shadow">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-600">Avg Stay (nights)</span>
+                    <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-purple-100 text-purple-700"><FaClock /></span>
+                  </div>
+                  <div className="text-3xl font-bold text-purple-700">{reports.averageStay || 0}</div>
                 </div>
               </div>
             </div>

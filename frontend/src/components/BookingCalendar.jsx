@@ -290,79 +290,82 @@ const BookingCalendar = ({ propertyId, onBookingSelect, initialDate }) => {
     const monthName = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
     
     return (
-      <div className="space-y-4 animate-fade-in-up">
+      <div className="space-y-3 md:space-y-4 animate-fade-in-up">
         {/* Month Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <h2 className="text-2xl font-bold text-gray-900">{monthName}</h2>
-            {/* Property selector for users with multiple properties */}
-            <select
-              className="px-2 py-1 rounded bg-white border border-gray-200 text-sm"
-              value={propertyOverride}
-              onChange={(e)=> setPropertyOverride(e.target.value)}
-              title="Select property"
-            >
-              {properties.length === 0 && (
-                <option value="">Select property</option>
-              )}
-              {properties.map(p => (
-                <option key={p._id} value={p._id}>{p.title || p.name || 'Property'}</option>
-              ))}
-            </select>
-            <select
-              className="px-2 py-1 border rounded"
-              value={currentDate.getMonth()}
-              onChange={(e)=>{
-                const m = Number(e.target.value);
-                setCurrentDate(prev=> new Date(prev.getFullYear(), m, 1));
-              }}
-            >
-              {["January","February","March","April","May","June","July","August","September","October","November","December"].map((m,i)=>(
-                <option key={m} value={i}>{m}</option>
-              ))}
-            </select>
-            <select
-              className="px-2 py-1 border rounded"
-              value={currentDate.getFullYear()}
-              onChange={(e)=>{
-                const y = Number(e.target.value);
-                setCurrentDate(prev=> new Date(y, prev.getMonth(), 1));
-              }}
-            >
-              {(() => {
-                const base = new Date().getFullYear();
-                return Array.from({length: 101}, (_,k)=> base + k).map(y => (
-                  <option key={y} value={y}>{y}</option>
-                ));
-              })()}
-            </select>
+        <div className="space-y-2 md:space-y-0 md:flex md:items-center md:justify-between">
+          <div className="flex items-center justify-between">
+            <h2 className="text-base sm:text-lg md:text-2xl font-bold text-gray-900">{monthName}</h2>
+            {/* Month navigation buttons aligned beside the month name */}
+            <div className="flex items-center space-x-2 ml-3">
+              <button
+                onClick={() => navigateMonth(-1)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-sm"
+              >
+                <FaChevronLeft />
+              </button>
+              <button
+                onClick={() => setCurrentDate(new Date())}
+                className="px-3 py-1.5 md:px-4 md:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+              >
+                Today
+              </button>
+              <button
+                onClick={() => navigateMonth(1)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-sm"
+              >
+                <FaChevronRight />
+              </button>
+            </div>
           </div>
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={() => navigateMonth(-1)}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <FaChevronLeft />
-            </button>
-            <button
-              onClick={() => setCurrentDate(new Date())}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Today
-            </button>
-            <button
-              onClick={() => navigateMonth(1)}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <FaChevronRight />
-            </button>
+          {/* Property selector for users with multiple properties */}
+          <div className="flex items-center gap-1.5 md:gap-2 flex-nowrap overflow-x-auto">
+              <select
+                className="px-2 py-1 md:px-4 md:py-3 rounded-xl bg-white border border-gray-300 text-[11px] md:text-sm"
+                value={propertyOverride}
+                onChange={(e)=> setPropertyOverride(e.target.value)}
+                title="Select property"
+              >
+                {properties.length === 0 && (
+                  <option value="">Select property</option>
+                )}
+                {properties.map(p => (
+                  <option key={p._id} value={p._id}>{p.title || p.name || 'Property'}</option>
+                ))}
+              </select>
+              <select
+                className="px-2 py-1 md:px-4 md:py-3 border border-gray-300 rounded-xl text-[11px] md:text-sm"
+                value={currentDate.getMonth()}
+                onChange={(e)=>{
+                  const m = Number(e.target.value);
+                  setCurrentDate(prev=> new Date(prev.getFullYear(), m, 1));
+                }}
+              >
+                {["January","February","March","April","May","June","July","August","September","October","November","December"].map((m,i)=>(
+                  <option key={m} value={i}>{m}</option>
+                ))}
+              </select>
+              <select
+                className="px-2 py-1 md:px-4 md:py-3 border border-gray-300 rounded-xl text-[11px] md:text-sm"
+                value={currentDate.getFullYear()}
+                onChange={(e)=>{
+                  const y = Number(e.target.value);
+                  setCurrentDate(prev=> new Date(y, prev.getMonth(), 1));
+                }}
+              >
+                {(() => {
+                  const base = new Date().getFullYear();
+                  return Array.from({length: 101}, (_,k)=> base + k).map(y => (
+                    <option key={y} value={y}>{y}</option>
+                  ));
+                })()}
+              </select>
+            </div>
           </div>
-        </div>
 
         {/* Days of Week Header */}
-        <div className="grid grid-cols-7 gap-1 mb-3">
+        <div className="grid grid-cols-7 gap-1 mb-2 md:mb-3">
           {['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map(day => (
-            <div key={day} className="p-2 text-center font-semibold text-gray-600 text-xs bg-gray-50 rounded uppercase tracking-wide">
+            <div key={day} className="p-1.5 md:p-2 text-center font-semibold text-gray-600 text-[10px] md:text-xs bg-gray-50 rounded uppercase tracking-wide">
               {day}
             </div>
           ))}
@@ -380,37 +383,37 @@ const BookingCalendar = ({ propertyId, onBookingSelect, initialDate }) => {
             return (
               <div
                 key={index}
-                className={`relative min-h-[90px] p-2 rounded-lg ${date ? 'bg-white hover:bg-gray-50' : 'bg-gray-100'} transition-all ${isSelected ? 'bg-blue-50 shadow-sm' : ''} ${closed ? 'cal-cell--closed' : ''} ${isToday ? 'cal-cell--today' : ''}`}
+                className={`relative aspect-square md:min-h-[90px] p-1 md:p-2 rounded-lg flex flex-col ${date ? 'bg-white hover:bg-gray-50' : 'bg-gray-100'} transition-all ${isSelected ? 'bg-blue-50 shadow-sm' : ''} ${closed ? 'cal-cell--closed' : ''} ${isToday ? 'cal-cell--today' : ''}`}
                 onClick={() => date && onMonthCellClick(date)}
               >
                 {date && (
                   <>
-                    <div className={`text-sm font-semibold mb-1 transition-colors ${
+                    <div className={`text-xs md:text-sm font-semibold mb-1 transition-colors ${
                       isToday ? 'text-blue-600' : 'text-gray-900'
                     }`}>
                       {date.getDate()}
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-0.5 md:space-y-1 overflow-hidden">
                       {dayBookings.slice(0, 1).map(booking => (
                         <div
                           key={booking._id}
-                          className={`text-[11px] p-1.5 rounded-md cursor-pointer transition-colors ${getStatusColor(booking.status).replace('border-', 'shadow-none ')}`}
+                          className={`text-[10px] md:text-[11px] p-1 rounded-md cursor-pointer transition-colors ${getStatusColor(booking.status).replace('border-', 'shadow-none ')}`}
                           onClick={(e) => {
                             e.stopPropagation();
                             onBookingSelect && onBookingSelect(booking);
                           }}
                         >
                           <div className="font-medium truncate">{booking.guest?.firstName} {booking.guest?.lastName}</div>
-                          <div className="text-[10px] opacity-75">RWF {booking.totalAmount?.toLocaleString()}</div>
+                          <div className="text-[9px] md:text-[10px] opacity-75">RWF {booking.totalAmount?.toLocaleString()}</div>
                         </div>
                       ))}
                       {dayBookings.length > 1 && (
-                        <div className="text-[10px] text-gray-600 text-center font-medium">+{dayBookings.length - 1} more</div>
+                        <div className="text-[9px] md:text-[10px] text-gray-600 text-center font-medium">+{dayBookings.length - 1} more</div>
                       )}
                     </div>
                     {/* Closed ribbon indicator */}
                     {closed && (
-                      <div className="absolute top-1 right-1 text-[10px] px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-700">
+                      <div className="absolute top-1 right-1 text-[9px] md:text-[10px] px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-700">
                         {selectedRoom ? `Locked • ${selectedRoom.roomNumber || selectedRoom.name || 'Room'}` : 'Locked'}
                       </div>
                     )}
@@ -435,28 +438,28 @@ const BookingCalendar = ({ propertyId, onBookingSelect, initialDate }) => {
     });
 
     return (
-      <div className="space-y-4">
+      <div className="space-y-3 md:space-y-4">
         {/* Week Header */}
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-gray-900">
+          <h2 className="text-lg md:text-2xl font-bold text-gray-900">
             {weekDays[0].toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - {weekDays[6].toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
           </h2>
           <div className="flex items-center space-x-2">
             <button
               onClick={() => navigateWeek(-1)}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-sm"
             >
               <FaChevronLeft />
             </button>
             <button
               onClick={() => setCurrentDate(new Date())}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="px-3 py-1.5 md:px-4 md:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
             >
               This Week
             </button>
             <button
               onClick={() => navigateWeek(1)}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-sm"
             >
               <FaChevronRight />
             </button>
@@ -464,7 +467,7 @@ const BookingCalendar = ({ propertyId, onBookingSelect, initialDate }) => {
         </div>
 
         {/* Week Grid */}
-        <div className="grid grid-cols-7 gap-4">
+        <div className="grid grid-cols-7 gap-2 md:gap-4">
           {weekDays.map((date, index) => {
             const dayBookings = getBookingsForDate(date);
             const isToday = date.toDateString() === new Date().toDateString();
@@ -474,19 +477,19 @@ const BookingCalendar = ({ propertyId, onBookingSelect, initialDate }) => {
                 <div className={`text-center p-2 rounded-lg ${
                   isToday ? 'bg-blue-100 text-blue-600' : 'bg-gray-50 text-gray-700'
                 }`}>
-                  <div className="text-sm font-medium">{date.toLocaleDateString('en-US', { weekday: 'short' })}</div>
-                  <div className="text-lg font-bold">{date.getDate()}</div>
+                  <div className="text-xs md:text-sm font-medium">{date.toLocaleDateString('en-US', { weekday: 'short' })}</div>
+                  <div className="text-base md:text-lg font-bold">{date.getDate()}</div>
                 </div>
-                <div className="space-y-2 min-h-[200px]">
+                <div className="space-y-2 min-h-[160px] md:min-h-[200px]">
                   {dayBookings.map(booking => (
                     <div
                       key={booking._id}
                       className={`p-2 rounded border ${getStatusColor(booking.status)} cursor-pointer hover:shadow-sm transition-shadow`}
                       onClick={() => onBookingSelect && onBookingSelect(booking)}
                     >
-                      <div className="text-sm font-medium">{booking.guest?.firstName} {booking.guest?.lastName}</div>
-                      <div className="text-xs opacity-75">RWF {booking.totalAmount?.toLocaleString()}</div>
-                      <div className="text-xs opacity-75">{booking.status}</div>
+                      <div className="text-xs md:text-sm font-medium">{booking.guest?.firstName} {booking.guest?.lastName}</div>
+                      <div className="text-[10px] md:text-xs opacity-75">RWF {booking.totalAmount?.toLocaleString()}</div>
+                      <div className="text-[10px] md:text-xs opacity-75">{booking.status}</div>
                     </div>
                   ))}
                 </div>
@@ -503,26 +506,26 @@ const BookingCalendar = ({ propertyId, onBookingSelect, initialDate }) => {
     const isToday = currentDate.toDateString() === new Date().toDateString();
     
     return (
-      <div className="space-y-4">
+      <div className="space-y-3 md:space-y-4">
         {/* Day Header */}
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-gray-900">{formatDate(currentDate)}</h2>
+          <h2 className="text-lg md:text-2xl font-bold text-gray-900">{formatDate(currentDate)}</h2>
           <div className="flex items-center space-x-2">
             <button
               onClick={() => navigateDay(-1)}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-sm"
             >
               <FaChevronLeft />
             </button>
             <button
               onClick={() => setCurrentDate(new Date())}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="px-3 py-1.5 md:px-4 md:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
             >
               Today
             </button>
             <button
               onClick={() => navigateDay(1)}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-sm"
             >
               <FaChevronRight />
             </button>
@@ -533,7 +536,7 @@ const BookingCalendar = ({ propertyId, onBookingSelect, initialDate }) => {
         <div className="space-y-4">
           {dayBookings.length === 0 ? (
             <div className="text-center py-12 text-gray-500">
-              <FaCalendarAlt className="text-4xl mx-auto mb-4 text-gray-300" />
+              <FaCalendarAlt className="text-3xl md:text-4xl mx-auto mb-4 text-gray-300" />
               <p>No bookings for this day</p>
             </div>
           ) : (
@@ -545,25 +548,25 @@ const BookingCalendar = ({ propertyId, onBookingSelect, initialDate }) => {
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="font-semibold">{booking.guest?.firstName} {booking.guest?.lastName}</h3>
-                    <p className="text-sm opacity-75">{booking.guest?.email}</p>
-                    <p className="text-sm opacity-75">{booking.guest?.phone}</p>
+                    <h3 className="font-semibold text-sm md:text-base">{booking.guest?.firstName} {booking.guest?.lastName}</h3>
+                    <p className="text-xs md:text-sm opacity-75">{booking.guest?.email}</p>
+                    <p className="text-xs md:text-sm opacity-75">{booking.guest?.phone}</p>
                   </div>
                   <div className="text-right">
-                    <div className="font-bold">RWF {booking.totalAmount?.toLocaleString()}</div>
-                    <div className="text-sm opacity-75">{booking.status}</div>
+                    <div className="font-bold text-sm md:text-base">RWF {booking.totalAmount?.toLocaleString()}</div>
+                    <div className="text-xs md:text-sm opacity-75">{booking.status}</div>
                   </div>
                 </div>
                 <div className="mt-2 flex items-center justify-between text-sm">
                   <div className="flex items-center space-x-4">
-                    <span>Check-in: {new Date(booking.checkIn).toLocaleDateString()}</span>
-                    <span>Check-out: {new Date(booking.checkOut).toLocaleDateString()}</span>
+                    <span className="text-xs md:text-sm">Check-in: {new Date(booking.checkIn).toLocaleDateString()}</span>
+                    <span className="text-xs md:text-sm">Check-out: {new Date(booking.checkOut).toLocaleDateString()}</span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <button className="p-1 hover:bg-white hover:bg-opacity-50 rounded">
+                    <button className="p-1 hover:bg-white hover:bg-opacity-50 rounded text-sm">
                       <FaEye />
                     </button>
-                    <button className="p-1 hover:bg-white hover:bg-opacity-50 rounded">
+                    <button className="p-1 hover:bg-white hover:bg-opacity-50 rounded text-sm">
                       <FaEdit />
                     </button>
                   </div>
@@ -577,28 +580,28 @@ const BookingCalendar = ({ propertyId, onBookingSelect, initialDate }) => {
   };
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6 animate-fade-in-up">
-      <div className="flex items-center justify-between mb-4">
+    <div className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 animate-fade-in-up">
+      <div className="flex items-center justify-between mb-3 md:mb-4">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Booking Calendar</h1>
-          <p className="text-xs text-gray-500">View, filter, and manage your bookings</p>
+          <h1 className="text-lg md:text-xl font-bold text-gray-900">Booking Calendar</h1>
+          <p className="text-[11px] md:text-xs text-gray-500">View, filter, and manage your bookings</p>
         </div>
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-2 md:space-x-3">
           <button
             onClick={() => setViewMode('month')}
-            className={`px-3 py-1.5 rounded border text-sm ${viewMode === 'month' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 hover:bg-gray-50 border-gray-300'}`}
+            className={`px-2.5 py-1.5 md:px-3 md:py-1.5 rounded border text-xs md:text-sm ${viewMode === 'month' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 hover:bg-gray-50 border-gray-300'}`}
           >
             MONTH
           </button>
           <button
             onClick={() => setViewMode('week')}
-            className={`px-3 py-1.5 rounded border text-sm ${viewMode === 'week' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 hover:bg-gray-50 border-gray-300'}`}
+            className={`px-2.5 py-1.5 md:px-3 md:py-1.5 rounded border text-xs md:text-sm ${viewMode === 'week' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 hover:bg-gray-50 border-gray-300'}`}
           >
             WEEK
           </button>
           <button
             onClick={() => setViewMode('day')}
-            className={`px-3 py-1.5 rounded border text-sm ${viewMode === 'day' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 hover:bg-gray-50 border-gray-300'}`}
+            className={`px-2.5 py-1.5 md:px-3 md:py-1.5 rounded border text-xs md:text-sm ${viewMode === 'day' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 hover:bg-gray-50 border-gray-300'}`}
           >
             DAY
           </button>
@@ -607,7 +610,7 @@ const BookingCalendar = ({ propertyId, onBookingSelect, initialDate }) => {
 
       {/* Owner controls */}
       <div className="flex flex-wrap items-center gap-2 mb-4">
-        <label className="inline-flex items-center gap-2 text-sm">
+        <label className="inline-flex items-center gap-2 text-xs md:text-sm">
           <input type="checkbox" className="rounded" checked={showAllRooms} onChange={(e)=> setShowAllRooms(e.target.checked)} />
           <span>Show all rooms</span>
         </label>
@@ -615,7 +618,7 @@ const BookingCalendar = ({ propertyId, onBookingSelect, initialDate }) => {
           disabled={showAllRooms}
           value={selectedRoomId}
           onChange={(e)=> setSelectedRoomId(e.target.value)}
-          className="px-3 py-2 text-sm border rounded disabled:opacity-50"
+          className="w-full sm:w-auto px-3 py-2 md:px-4 md:py-3 text-xs md:text-sm border border-gray-300 rounded-xl disabled:opacity-50"
         >
           <option value="">Select room</option>
           {rooms.map(r => (
@@ -623,11 +626,11 @@ const BookingCalendar = ({ propertyId, onBookingSelect, initialDate }) => {
           ))}
         </select>
         {!showAllRooms && (
-          <div className="flex items-center gap-2">
-            <input type="date" value={lockRange.start} onChange={e=> setLockRange(s=>({...s, start: e.target.value}))} className="px-3 py-2 text-sm border rounded" />
-            <input type="date" value={lockRange.end} onChange={e=> setLockRange(s=>({...s, end: e.target.value}))} className="px-3 py-2 text-sm border rounded" />
-            <button onClick={lockRoom} className="px-3 py-2 text-sm bg-red-600 text-white rounded hover:bg-red-700">Lock</button>
-            <button onClick={unlockRoom} className="px-3 py-2 text-sm border rounded hover:bg-gray-50">Unlock</button>
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            <input type="date" value={lockRange.start} onChange={e=> setLockRange(s=>({...s, start: e.target.value}))} className="w-full sm:w-auto px-3 py-2 md:px-4 md:py-3 text-xs md:text-sm border border-gray-300 rounded-xl" />
+            <input type="date" value={lockRange.end} onChange={e=> setLockRange(s=>({...s, end: e.target.value}))} className="w-full sm:w-auto px-3 py-2 md:px-4 md:py-3 text-xs md:text-sm border border-gray-300 rounded-xl" />
+            <button onClick={lockRoom} className="w-full sm:w-auto px-2.5 py-1.5 md:px-3 md:py-2 text-xs md:text-sm bg-red-600 text-white rounded hover:bg-red-700">Lock</button>
+            <button onClick={unlockRoom} className="w-full sm:w-auto px-2.5 py-1.5 md:px-3 md:py-2 text-xs md:text-sm border rounded hover:bg-gray-50">Unlock</button>
           </div>
         )}
       </div>

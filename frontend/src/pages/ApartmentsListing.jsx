@@ -236,11 +236,11 @@ const ApartmentsListing = () => {
             {/* Search Bar */}
             <div className="flex items-center w-full lg:w-auto space-x-2">
               <div className="relative flex-1">
-                <FaMapMarkerAlt className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-600" />
+                <FaMapMarkerAlt className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-blue-600" />
                 <input
                   type="text"
                   placeholder="Search by location..."
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full h-10 pl-10 pr-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   value={filters.location}
                   onChange={(e) =>
                     handleFilterChange("location", e.target.value)
@@ -288,11 +288,11 @@ const ApartmentsListing = () => {
                   Location
                 </label>
                 <div className="relative">
-                  <FaMapMarkerAlt className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-600" />
+                  <FaMapMarkerAlt className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-blue-600" />
                   <input
                     type="text"
                     placeholder="Enter location"
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full h-10 pl-10 pr-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     value={filters.location}
                     onChange={(e) =>
                       handleFilterChange("location", e.target.value)
