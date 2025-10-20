@@ -54,16 +54,16 @@ const SearchSection = () => {
 
           <form onSubmit={handleSearch} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {/* Location */}
-            <div className="relative">
+            <div className="field">
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 {activeTab==='cars' ? 'Pickup Location' : 'Location'}
               </label>
-              <div className="relative">
-                <FaMapMarkerAlt className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-blue-600" />
+              <div className="field">
+                <FaMapMarkerAlt className="icon-left" />
                 <input
                   type="text"
                   placeholder={activeTab==='cars' ? 'Where to pick up?' : 'Where are you going?'}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
+                  className="w-full pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
                   value={activeTab==='cars' ? searchData.pickupLocation : searchData.location}
                   onChange={(e) => handleInputChange(activeTab==='cars' ? 'pickupLocation' : 'location', e.target.value)}
                 />
@@ -75,11 +75,11 @@ const SearchSection = () => {
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 {activeTab==='cars' ? 'Pickup Date' : 'Check-in'}
               </label>
-              <div className="relative">
-                <FaCalendarAlt className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-blue-600" />
+              <div className="field">
+                <FaCalendarAlt className="icon-left" />
                 <input
                   type="date"
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
+                  className="w-full pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
                   value={activeTab==='cars' ? searchData.pickupDate : searchData.checkIn}
                   onChange={(e) => handleInputChange(activeTab==='cars' ? 'pickupDate' : 'checkIn', e.target.value)}
                 />
@@ -91,11 +91,11 @@ const SearchSection = () => {
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 {activeTab==='cars' ? 'Return Date' : 'Check-out'}
               </label>
-              <div className="relative">
-                <FaCalendarAlt className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-blue-600" />
+              <div className="field">
+                <FaCalendarAlt className="icon-left" />
                 <input
                   type="date"
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
+                  className="w-full pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
                   value={activeTab==='cars' ? searchData.returnDate : searchData.checkOut}
                   onChange={(e) => handleInputChange(activeTab==='cars' ? 'returnDate' : 'checkOut', e.target.value)}
                 />
@@ -108,10 +108,10 @@ const SearchSection = () => {
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Guests
                 </label>
-                <div className="relative">
-                  <FaUser className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-blue-600" />
+                <div className="field">
+                  <FaUser className="icon-left" />
                   <select
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 appearance-none bg-white"
+                    className="w-full pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 appearance-none bg-white"
                     value={searchData.guests}
                     onChange={(e) => handleInputChange('guests', e.target.value)}
                   >
@@ -128,12 +128,12 @@ const SearchSection = () => {
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Return Location (optional)
                 </label>
-                <div className="relative">
-                  <FaMapMarkerAlt className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-600" />
+                <div className="field">
+                  <FaMapMarkerAlt className="icon-left" />
                   <input
                     type="text"
                     placeholder="Return to a different place?"
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
+                    className="w-full pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
                     value={searchData.returnLocation}
                     onChange={(e) => handleInputChange('returnLocation', e.target.value)}
                   />

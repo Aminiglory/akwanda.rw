@@ -302,6 +302,49 @@ textarea:focus {
   box-shadow: 0 0 0 3px rgba(181, 127, 80, 0.18);
 }
 
+/* Consistent placeholder styling across the app */
+input::placeholder,
+textarea::placeholder {
+  color: #6B7280; /* gray-500 */
+  opacity: 1; /* ensure consistent visibility across browsers */
+}
+
+/* Input with icon utilities (apply to wrapper around input + icon) */
+.field {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.field .icon-left {
+  position: absolute;
+  left: 0.75rem; /* 12px */
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-blue-600);
+  pointer-events: none;
+}
+
+.field .icon-right,
+.field .action-right {
+  position: absolute;
+  right: 0.75rem; /* 12px */
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.field input,
+.field select,
+.field textarea {
+  padding-left: 2.5rem !important; /* space for left icon */
+}
+
+.field.has-right input,
+.field.has-right select,
+.field.has-right textarea {
+  padding-right: 2.75rem !important; /* space for toggle/eye icon */
+}
+
 /* Neumorphism utilities (soft UI) */
 .neu-card {
   background: #FFF9F3;
