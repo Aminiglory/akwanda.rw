@@ -30,6 +30,9 @@ const Notification = require('./src/tables/notification');
 
 const app = express();
 
+// Ensure secure cookies and protocol detection work behind Render/Proxies
+app.set('trust proxy', 1);
+
 // Function to find an available port
 const findAvailablePort = (startPort) => {
   return new Promise((resolve, reject) => {

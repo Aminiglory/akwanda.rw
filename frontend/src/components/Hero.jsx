@@ -36,7 +36,7 @@ const Hero = () => {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch(`${API_URL}/api/admin/metrics`);
+        const res = await fetch(`${API_URL}/api/metrics/landing`);
         const data = await res.json();
         if (!res.ok) return;
         if (data.metrics) setMetrics(data.metrics);
