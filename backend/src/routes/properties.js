@@ -306,17 +306,15 @@ router.post('/seed-demo', requireAuth, async (req, res) => {
     };
 }
 
-// One-time startup sanitization for legacy documents having invalid commissionRate
-(async () => {
+// One-time sanitization for legacy documents having invalid commissionRate
+router.sanitizeCommissionRates = async () => {
     try {
-        // Clamp >12 to 12
         await Property.updateMany({ commissionRate: { $gt: 12 } }, { $set: { commissionRate: 12 } });
-        // Clamp <8 (and non-number) to default 10 where it exists
         await Property.updateMany({ commissionRate: { $lt: 8 } }, { $set: { commissionRate: 10 } });
     } catch (e) {
         console.warn('Commission sanitize skipped:', e?.message || e);
     }
-})();
+};
 
 function requireAuth(req, res, next) {
 	const token = req.cookies.akw_token || (req.headers.authorization || '').replace('Bearer ', '');

@@ -297,6 +297,15 @@ async function connectMongo(retryDelayMs = 5000) {
         console.log('Connected to MongoDB');
         await seedAdminIfNeeded();
 
+        // Run post-connect data maintenance tasks
+        if (typeof propertiesRouter?.sanitizeCommissionRates === 'function') {
+          try {
+            await propertiesRouter.sanitizeCommissionRates();
+          } catch (e) {
+            console.warn('Commission sanitize after connect failed:', e?.message || e);
+          }
+        }
+
         // Start payroll reminder scheduler (hourly) and run once at startup
         runPayrollReminderCycle(io).catch(() => {});
         setInterval(() => runPayrollReminderCycle(io), 60 * 60 * 1000);
