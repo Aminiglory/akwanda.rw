@@ -202,24 +202,24 @@ const AdminDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 overflow-x-hidden">
       {/* Header */}
       <div className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-              <p className="text-gray-600 mt-1">Manage your AKWANDA platform</p>
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 leading-tight">Admin Dashboard</h1>
+              <p className="text-sm md:text-base text-gray-600 mt-1">Manage your AKWANDA platform</p>
             </div>
             <div className="flex items-center space-x-4">
               <button
                 onClick={seedDemoProperties}
-                className="bg-gray-800 hover:bg-gray-900 text-white px-6 py-2 rounded-xl font-semibold transition-colors duration-300"
+                className="bg-gray-800 hover:bg-gray-900 text-white px-4 md:px-6 py-2 rounded-xl font-semibold text-sm md:text-base transition-colors duration-300"
                 title="Quickly create a few demo properties for testing"
               >
                 Seed Demo Properties
               </button>
-              <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-xl font-semibold transition-colors duration-300 flex items-center gap-2">
+              <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 md:px-6 py-2 rounded-xl font-semibold text-sm md:text-base transition-colors duration-300 flex items-center gap-2">
                 <FaPlus />
                 Add New Service
               </button>
@@ -230,15 +230,15 @@ const AdminDashboard = () => {
 
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
           <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow">
             <div className="flex items-center">
               <div className="p-3 bg-blue-100 rounded-xl">
                 <FaBed className="text-blue-600 text-xl" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Properties</p>
-                <p className="text-2xl font-bold text-gray-900">{metrics.totalProperties}</p>
+                <p className="text-xs md:text-sm font-medium text-gray-600">Total Properties</p>
+                <p className="text-xl md:text-2xl font-bold text-gray-900">{metrics.totalProperties}</p>
               </div>
             </div>
           </div>
@@ -249,8 +249,8 @@ const AdminDashboard = () => {
                 <FaCalendarAlt className="text-green-600 text-xl" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Bookings</p>
-                <p className="text-2xl font-bold text-gray-900">{metrics.totalBookings}</p>
+                <p className="text-xs md:text-sm font-medium text-gray-600">Total Bookings</p>
+                <p className="text-xl md:text-2xl font-bold text-gray-900">{metrics.totalBookings}</p>
               </div>
             </div>
           </div>
@@ -261,8 +261,8 @@ const AdminDashboard = () => {
                 <FaDollarSign className="text-yellow-600 text-xl" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Revenue</p>
-                <p className="text-2xl font-bold text-gray-900">RWF {metrics.totalRevenue?.toLocaleString()}</p>
+                <p className="text-xs md:text-sm font-medium text-gray-600">Total Revenue</p>
+                <p className="text-xl md:text-2xl font-bold text-gray-900">RWF {metrics.totalRevenue?.toLocaleString()}</p>
               </div>
             </div>
           </div>
@@ -283,7 +283,7 @@ const AdminDashboard = () => {
         {/* Navigation Tabs */}
         <div className="bg-white rounded-2xl shadow-lg mb-8">
           <div className="border-b border-gray-200">
-            <nav className="flex space-x-8 px-6">
+            <nav className="flex px-4 md:px-6 overflow-x-auto whitespace-nowrap no-scrollbar">
               {[
                 { id: 'overview', label: 'Overview', icon: FaChartLine },
                 { id: 'properties', label: 'Properties', icon: FaBed },
@@ -296,7 +296,7 @@ const AdminDashboard = () => {
                 <button
                   key={id}
                   onClick={() => setActiveTab(id)}
-                  className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-300 flex items-center gap-2 ${
+                  className={`py-4 px-3 md:px-1 border-b-2 font-medium text-sm transition-colors duration-300 inline-flex items-center gap-2 shrink-0 ${
                     activeTab === id
                       ? 'border-blue-500 text-blue-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -315,19 +315,19 @@ const AdminDashboard = () => {
               <div className="space-y-6">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <div className="bg-gray-50 rounded-xl p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Bookings</h3>
+                    <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-4">Recent Bookings</h3>
                     <div className="space-y-3">
                       {bookings.slice(0, 5).map((booking) => (
-                        <div key={booking._id} className="flex items-center justify-between p-3 bg-white rounded-lg">
-                          <div>
-                            <p className="font-medium text-gray-900">{booking.property?.title}</p>
-                            <p className="text-sm text-gray-600">{booking.guest?.firstName} {booking.guest?.lastName}</p>
+                        <div key={booking._id} className="flex items-center justify-between p-3 bg-white rounded-lg min-w-0">
+                          <div className="min-w-0">
+                            <p className="font-medium text-gray-900 truncate">{booking.property?.title}</p>
+                            <p className="text-xs md:text-sm text-gray-600 truncate">{booking.guest?.firstName} {booking.guest?.lastName}</p>
                           </div>
                           <div className="text-right">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(booking.status)}`}>
+                            <span className={`px-2 py-1 rounded-full text-[10px] md:text-xs font-medium ${getStatusColor(booking.status)}`}>
                               {booking.status}
                             </span>
-                            <p className="text-sm text-gray-600 mt-1">RWF {booking.totalAmount?.toLocaleString()}</p>
+                            <p className="text-xs md:text-sm text-gray-600 mt-1">RWF {booking.totalAmount?.toLocaleString()}</p>
                           </div>
                         </div>
                       ))}
@@ -335,19 +335,19 @@ const AdminDashboard = () => {
                   </div>
 
                   <div className="bg-gray-50 rounded-xl p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Top Properties</h3>
+                    <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-4">Top Properties</h3>
                     <div className="space-y-3">
                       {properties.slice(0, 5).map((property) => (
-                        <div key={property._id} className="flex items-center justify-between p-3 bg-white rounded-lg">
-                          <div>
-                            <p className="font-medium text-gray-900">{property.title}</p>
-                            <p className="text-sm text-gray-600">{property.city}</p>
+                        <div key={property._id} className="flex items-center justify-between p-3 bg-white rounded-lg min-w-0">
+                          <div className="min-w-0">
+                            <p className="font-medium text-gray-900 truncate">{property.title}</p>
+                            <p className="text-xs md:text-sm text-gray-600 truncate">{property.city}</p>
                           </div>
                           <div className="text-right">
                             <div className="flex items-center">
                               {renderStars(property.ratings?.length ? property.ratings.reduce((sum, r) => sum + r.rating, 0) / property.ratings.length : 0)}
                             </div>
-                            <p className="text-sm text-gray-600 mt-1">RWF {property.pricePerNight?.toLocaleString()}</p>
+                            <p className="text-xs md:text-sm text-gray-600 mt-1">RWF {property.pricePerNight?.toLocaleString()}</p>
                           </div>
                         </div>
                       ))}
