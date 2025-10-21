@@ -56,6 +56,7 @@ const findAvailablePort = (startPort) => {
 const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/akwandadb';
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
+let DB_READY = false;
 
 app.use(cors({ origin: CLIENT_URL, credentials: true }));
 app.use(express.json());
@@ -63,7 +64,7 @@ app.use(cookieParser());
 app.use('/uploads', require('express').static(require('path').join(process.cwd(), 'uploads')));
 
 app.get('/health', (req, res) => {
-	res.json({ status: 'ok' }); 
+	res.json({ status: 'ok', db: DB_READY ? 'connected' : 'connecting' }); 
 });
 
 // Payroll reminder scheduler: runs hourly, notifies owners if worker nextPayDate is due
@@ -245,25 +246,29 @@ async function seedAdminIfNeeded() {
 	console.log('Seeded admin account:', adminEmail.toLowerCase());
 }
 
-async function start() {
-	try {
-		await mongoose.connect(MONGO_URI);
-		console.log('Connected to MongoDB');
-		await seedAdminIfNeeded();
+// Start server immediately (non-blocking) so platform marks service healthy
+server.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+});
 
-		// Start payroll reminder scheduler (hourly) and run once at startup
-		runPayrollReminderCycle(io).catch(() => {});
-		setInterval(() => runPayrollReminderCycle(io), 60 * 60 * 1000);
+// Connect to Mongo asynchronously with retry to improve cold-start on platforms like Render
+async function connectMongo(retryDelayMs = 5000) {
+    try {
+        await mongoose.connect(MONGO_URI);
+        DB_READY = true;
+        console.log('Connected to MongoDB');
+        await seedAdminIfNeeded();
 
-		server.listen(PORT, () => {
-			console.log(`Server running on port ${PORT}`);
-		});
-	} catch (err) {
-		console.error('Failed to start server', err);
-		process.exit(1);
-	}
+        // Start payroll reminder scheduler (hourly) and run once at startup
+        runPayrollReminderCycle(io).catch(() => {});
+        setInterval(() => runPayrollReminderCycle(io), 60 * 60 * 1000);
+
+    } catch (err) {
+        DB_READY = false;
+        console.error('MongoDB connection failed:', err?.message || err);
+        setTimeout(() => connectMongo(retryDelayMs), Math.min(retryDelayMs, 30000));
+    }
 }
 
-start();
-
-
+// Kick off initial connection (do not await)
+connectMongo();
