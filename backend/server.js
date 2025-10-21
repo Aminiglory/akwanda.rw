@@ -59,9 +59,28 @@ const findAvailablePort = (startPort) => {
 const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/akwandadb';
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
+const CORS_ORIGINS = (process.env.CORS_ORIGINS || CLIENT_URL).split(',').map(s => s.trim()).filter(Boolean);
 let DB_READY = false;
 
-app.use(cors({ origin: CLIENT_URL, credentials: true }));
+// CORS: allow configured origins, localhost, and Vercel preview subdomains
+app.use(cors({
+  origin: (origin, cb) => {
+    if (!origin) return cb(null, true); // allow same-origin/non-browser
+    try {
+      const o = new URL(origin);
+      const allowed =
+        CORS_ORIGINS.includes(origin) ||
+        CORS_ORIGINS.includes(`${o.protocol}//${o.host}`) ||
+        o.hostname === 'localhost' ||
+        /\.vercel\.app$/.test(o.hostname);
+      return cb(null, !!allowed);
+    } catch (_) {
+      return cb(null, false);
+    }
+  },
+  credentials: true,
+}));
+app.options('*', cors());
 app.use(express.json());
 app.use(cookieParser());
 app.use('/uploads', require('express').static(require('path').join(process.cwd(), 'uploads')));
@@ -162,7 +181,23 @@ app.use('/api/workers', workersRouter);
 // Create HTTP server and bind Socket.IO
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: { origin: CLIENT_URL, credentials: true }
+  cors: {
+    origin: (origin, cb) => {
+      if (!origin) return cb(null, true);
+      try {
+        const o = new URL(origin);
+        const allowed =
+          CORS_ORIGINS.includes(origin) ||
+          CORS_ORIGINS.includes(`${o.protocol}//${o.host}`) ||
+          o.hostname === 'localhost' ||
+          /\.vercel\.app$/.test(o.hostname);
+        return cb(null, !!allowed);
+      } catch (_) {
+        return cb(null, false);
+      }
+    },
+    credentials: true,
+  }
 });
 
 // Expose io to routes (e.g., messages.js)

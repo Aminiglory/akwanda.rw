@@ -42,7 +42,7 @@ router.post('/register', async (req, res) => {
 			userType: userType || 'guest'
 		});
 		const token = signToken({ id: user._id, email: user.email, userType: user.userType, name: `${user.firstName} ${user.lastName}` });
-		res.cookie(TOKEN_COOKIE, token, { httpOnly: true, sameSite: 'lax' });
+		res.cookie(TOKEN_COOKIE, token, { httpOnly: true, sameSite: 'none', secure: true });
 		return res.status(201).json({
 			user: {
 				id: user._id,
@@ -67,7 +67,7 @@ router.post('/login', async (req, res) => {
 		const ok = await bcrypt.compare(password, user.passwordHash);
 		if (!ok) return res.status(401).json({ message: 'Invalid credentials' });
 		const token = signToken({ id: user._id, email: user.email, userType: user.userType, name: `${user.firstName} ${user.lastName}` });
-		res.cookie(TOKEN_COOKIE, token, { httpOnly: true, sameSite: 'lax' });
+		res.cookie(TOKEN_COOKIE, token, { httpOnly: true, sameSite: 'none', secure: true });
 		return res.json({
 			user: {
 				id: user._id,
@@ -84,7 +84,7 @@ router.post('/login', async (req, res) => {
 });
 
 router.post('/logout', (req, res) => {
-	res.clearCookie(TOKEN_COOKIE);
+	res.clearCookie(TOKEN_COOKIE, { httpOnly: true, sameSite: 'none', secure: true });
 	return res.json({ message: 'Logged out' });
 });
 
