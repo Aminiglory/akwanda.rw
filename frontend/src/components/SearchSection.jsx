@@ -54,7 +54,7 @@ const SearchSection = () => {
 
           <form onSubmit={handleSearch} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {/* Location */}
-            <div className="field">
+            <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 {activeTab==='cars' ? 'Pickup Location' : 'Location'}
               </label>
