@@ -7,13 +7,23 @@ import AdminCommissionManager from '../components/AdminCommissionManager';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const makeAbsolute = (u) => {
-  if (!u) return u;
-  let s = String(u).replace(/\\/g, '/');
-  if (!s.startsWith('http')) {
-    if (!s.startsWith('/')) s = `/${s}`;
-    return `${API_URL}${s}`;
+  if (!u) return '';
+  // Normalize common DB image shapes
+  let v = u;
+  if (typeof v === 'object') {
+    // pull from typical fields
+    v = v.path || v.url || v.src || v.location || v.image || '';
+    if (v && typeof v === 'object') {
+      v = v.path || v.url || v.src || v.location || '';
+    }
   }
-  return s;
+  if (typeof v !== 'string') v = String(v || '').trim();
+  let s = v.replace(/\\+/g, '/');
+  if (!s) return '';
+  if (s.startsWith('data:')) return s; // base64
+  if (s.startsWith('http')) return s;
+  if (!s.startsWith('/')) s = `/${s}`;
+  return `${API_URL}${s}`;
 };
 
 const AdminDashboard = () => {
@@ -283,7 +293,7 @@ const AdminDashboard = () => {
         {/* Navigation Tabs */}
         <div className="bg-white rounded-2xl shadow-lg mb-8">
           <div className="border-b border-gray-200">
-            <nav className="flex px-4 md:px-6 overflow-x-auto whitespace-nowrap no-scrollbar">
+            <nav className="flex px-4 md:px-6 overflow-x-auto whitespace-nowrap no-scrollbar gap-1">
               {[
                 { id: 'overview', label: 'Overview', icon: FaChartLine },
                 { id: 'properties', label: 'Properties', icon: FaBed },
@@ -296,7 +306,7 @@ const AdminDashboard = () => {
                 <button
                   key={id}
                   onClick={() => setActiveTab(id)}
-                  className={`py-4 px-3 md:px-1 border-b-2 font-medium text-sm transition-colors duration-300 inline-flex items-center gap-2 shrink-0 ${
+                  className={`py-3 px-3 sm:px-4 md:px-5 border-b-2 font-medium text-sm transition-colors duration-300 inline-flex items-center gap-2 shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:rounded-lg ${
                     activeTab === id
                       ? 'border-blue-500 text-blue-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -625,27 +635,36 @@ const AdminDashboard = () => {
             {activeTab === 'content' && (
               <div className="space-y-6">
                 <h3 className="text-lg font-semibold text-gray-900">Site Content</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  <Link to="/admin/landing" className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
-                    <div className="flex items-center gap-3 mb-3">
-                      <FaCamera className="text-blue-600 text-xl" />
-                      <div className="font-semibold text-gray-900">Landing Page CMS</div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                  <Link
+                    to="/admin/landing"
+                    className="group block bg-white rounded-xl shadow-lg p-5 sm:p-6 hover:shadow-xl transition-shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                  >
+                    <div className="flex items-center gap-3 sm:gap-4 mb-2 sm:mb-3">
+                      <FaCamera className="text-blue-600 text-lg sm:text-xl" />
+                      <div className="font-semibold text-gray-900 text-sm sm:text-base">Landing Page CMS</div>
                     </div>
-                    <p className="text-sm text-gray-600">Edit hero title/subtitle, manage slideshow images and captions, and publish changes.</p>
+                    <p className="text-xs sm:text-sm text-gray-600">Edit hero title/subtitle, manage slideshow images and captions, and publish changes.</p>
                   </Link>
-                  <Link to="/admin/attractions" className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
-                    <div className="flex items-center gap-3 mb-3">
-                      <FaCamera className="text-purple-600 text-xl" />
-                      <div className="font-semibold text-gray-900">Attractions Page CMS</div>
+                  <Link
+                    to="/admin/attractions"
+                    className="group block bg-white rounded-xl shadow-lg p-5 sm:p-6 hover:shadow-xl transition-shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                  >
+                    <div className="flex items-center gap-3 sm:gap-4 mb-2 sm:mb-3">
+                      <FaCamera className="text-purple-600 text-lg sm:text-xl" />
+                      <div className="font-semibold text-gray-900 text-sm sm:text-base">Attractions Page CMS</div>
                     </div>
-                    <p className="text-sm text-gray-600">Manage attractions content, images, and publish the page.</p>
+                    <p className="text-xs sm:text-sm text-gray-600">Manage attractions content, images, and publish the page.</p>
                   </Link>
-                  <Link to="/messages" className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
-                    <div className="flex items-center gap-3 mb-3">
-                      <FaComments className="text-green-600 text-xl" />
-                      <div className="font-semibold text-gray-900">Messages</div>
+                  <Link
+                    to="/messages"
+                    className="group block bg-white rounded-xl shadow-lg p-5 sm:p-6 hover:shadow-xl transition-shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                  >
+                    <div className="flex items-center gap-3 sm:gap-4 mb-2 sm:mb-3">
+                      <FaComments className="text-green-600 text-lg sm:text-xl" />
+                      <div className="font-semibold text-gray-900 text-sm sm:text-base">Messages</div>
                     </div>
-                    <p className="text-sm text-gray-600">Open conversations with users and property/car owners.</p>
+                    <p className="text-xs sm:text-sm text-gray-600">Open conversations with users and property/car owners.</p>
                   </Link>
                 </div>
               </div>
@@ -655,27 +674,36 @@ const AdminDashboard = () => {
             {activeTab === 'cars' && (
               <div className="space-y-6">
                 <h3 className="text-lg font-semibold text-gray-900">Car Rentals</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  <Link to="/owner/cars" className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
-                    <div className="flex items-center gap-3 mb-3">
-                      <FaCar className="text-blue-600 text-xl" />
-                      <div className="font-semibold text-gray-900">Manage Fleet</div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                  <Link
+                    to="/owner/cars"
+                    className="group block bg-white rounded-xl shadow-lg p-5 sm:p-6 hover:shadow-xl transition-shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                  >
+                    <div className="flex items-center gap-3 sm:gap-4 mb-2 sm:mb-3">
+                      <FaCar className="text-blue-600 text-lg sm:text-xl" />
+                      <div className="font-semibold text-gray-900 text-sm sm:text-base">Manage Fleet</div>
                     </div>
-                    <p className="text-sm text-gray-600">Create and edit cars, upload images, view and manage bookings.</p>
+                    <p className="text-xs sm:text-sm text-gray-600">Create and edit cars, upload images, view and manage bookings.</p>
                   </Link>
-                  <Link to="/cars" className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
-                    <div className="flex items-center gap-3 mb-3">
-                      <FaEye className="text-indigo-600 text-xl" />
-                      <div className="font-semibold text-gray-900">Public Car Listings</div>
+                  <Link
+                    to="/cars"
+                    className="group block bg-white rounded-xl shadow-lg p-5 sm:p-6 hover:shadow-xl transition-shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                  >
+                    <div className="flex items-center gap-3 sm:gap-4 mb-2 sm:mb-3">
+                      <FaEye className="text-indigo-600 text-lg sm:text-xl" />
+                      <div className="font-semibold text-gray-900 text-sm sm:text-base">Public Car Listings</div>
                     </div>
-                    <p className="text-sm text-gray-600">View the public car rental page as users see it.</p>
+                    <p className="text-xs sm:text-sm text-gray-600">View the public car rental page as users see it.</p>
                   </Link>
-                  <Link to="/messages" className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
-                    <div className="flex items-center gap-3 mb-3">
-                      <FaComments className="text-green-600 text-xl" />
-                      <div className="font-semibold text-gray-900">Messages</div>
+                  <Link
+                    to="/messages"
+                    className="group block bg-white rounded-xl shadow-lg p-5 sm:p-6 hover:shadow-xl transition-shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                  >
+                    <div className="flex items-center gap-3 sm:gap-4 mb-2 sm:mb-3">
+                      <FaComments className="text-green-600 text-lg sm:text-xl" />
+                      <div className="font-semibold text-gray-900 text-sm sm:text-base">Messages</div>
                     </div>
-                    <p className="text-sm text-gray-600">Chat with renters and owners in real-time.</p>
+                    <p className="text-xs sm:text-sm text-gray-600">Chat with renters and owners in real-time.</p>
                   </Link>
                 </div>
               </div>
