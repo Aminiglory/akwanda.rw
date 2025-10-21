@@ -8,25 +8,25 @@ const http = require('http');
 const { Server } = require('socket.io');
 const jwt = require('jsonwebtoken');
 
-const authRouter = require('./tables/auth');
-const propertiesRouter = require('./routes/properties');
-const bookingsRouter = require('./routes/bookings');
-const adminRouter = require('./routes/admin');
-const userRouter = require('./routes/user');
-const paymentsRouter = require('./routes/payments');
-const billingRouter = require('./routes/billing');
-const supportRouter = require('./routes/support');
-const messagesRouter = require('./routes/messages');
-const contentRouter = require('./routes/content');
-const notificationsRouter = require('./routes/notifications');
-const carsRouter = require('./routes/cars');
-const carBookingsRouter = require('./routes/carBookings');
-const adminUserManagementRouter = require('./routes/admin-user-management');
-const reportsRouter = require('./routes/reports');
-const workersRouter = require('./routes/workers');
-const User = require('./tables/user');
-const Worker = require('./tables/worker');
-const Notification = require('./tables/notification');
+const authRouter = require('./src/tables/auth');
+const propertiesRouter = require('./src/routes/properties');
+const bookingsRouter = require('./src/routes/bookings');
+const adminRouter = require('./src/routes/admin');
+const userRouter = require('./src/routes/user');
+const paymentsRouter = require('./src/routes/payments');
+const billingRouter = require('./src/routes/billing');
+const supportRouter = require('./src/routes/support');
+const messagesRouter = require('./src/routes/messages');
+const contentRouter = require('./src/routes/content');
+const notificationsRouter = require('./src/routes/notifications');
+const carsRouter = require('./src/routes/cars');
+const carBookingsRouter = require('./src/routes/carBookings');
+const adminUserManagementRouter = require('./src/routes/admin-user-management');
+const reportsRouter = require('./src/routes/reports');
+const workersRouter = require('./src/routes/workers');
+const User = require('./src/tables/user');
+const Worker = require('./src/tables/worker');
+const Notification = require('./src/tables/notification');
 
 const app = express();
 
@@ -121,8 +121,8 @@ app.get('/api/test', (req, res) => {
 
 app.get('/api/metrics/landing', async (req, res) => {
     try {
-        const Booking = require('./tables/booking');
-        const Property = require('./tables/property');
+        const Booking = require('./src/tables/booking');
+        const Property = require('./src/tables/property');
         // Active Listings: properties with isActive true
         const activeListings = await Property.countDocuments({ isActive: true });
         // Happy Guests: unique users who have made at least one booking
@@ -193,8 +193,8 @@ io.on('connection', (socket) => {
   // Join a booking room after validation
   socket.on('join_booking', async ({ bookingId }) => {
     try {
-      const Booking = require('./tables/booking');
-      const Property = require('./tables/property');
+      const Booking = require('./src/tables/booking');
+      const Property = require('./src/tables/property');
       const b = await Booking.findById(bookingId).populate('property');
       if (!b) return;
       const isGuest = String(b.guest) === String(socket.user.id);
