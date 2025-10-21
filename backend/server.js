@@ -80,7 +80,6 @@ app.use(cors({
   },
   credentials: true,
 }));
-app.options('*', cors());
 app.use(express.json());
 app.use(cookieParser());
 app.use('/uploads', require('express').static(require('path').join(process.cwd(), 'uploads')));
