@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaCalendarAlt, FaUsers, FaBed, FaBath, FaWifi, FaCar, FaSwimmingPool, FaUtensils, FaStar, FaMapMarkerAlt, FaHeart, FaShare, FaChevronLeft, FaChevronRight, FaCheck, FaTimes, FaCreditCard, FaMobile, FaShieldAlt, FaDollarSign } from 'react-icons/fa';
+import { FaCalendarAlt, FaUsers, FaBed, FaCheck, FaMobile, FaShieldAlt, FaDollarSign } from 'react-icons/fa';
 import { useParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
@@ -32,6 +32,7 @@ const BookingProcess = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [loadingRooms, setLoadingRooms] = useState(false);
+
   const [availableRooms, setAvailableRooms] = useState([]);
   const [filteredRooms, setFilteredRooms] = useState([]);
   const [totalPrice, setTotalPrice] = useState(0);
@@ -278,9 +279,12 @@ const BookingProcess = () => {
         
         // If selected room is no longer available, keep it visible and mark as unavailable with message
         if (selectedRoom) {
-          const isStillAvailable = processedAvailableRooms.some(room => 
-            room._id === selectedRoom._id || room.roomNumber === selectedRoom.roomNumber
-          );
+          const isStillAvailable = processedAvailableRooms.some(room => {
+            const roomId = room._id || room.id;
+            const selectedId = selectedRoom._id || selectedRoom.id;
+            if (roomId && selectedId) return roomId === selectedId;
+            return room.roomNumber === selectedRoom.roomNumber;
+          });
           setSelectedRoomUnavailable(!isStillAvailable);
           if (!isStillAvailable) {
             toast.error(`Sorry, ${selectedRoom.roomNumber || 'this room'} is not available for ${new Date(bookingData.checkIn).toLocaleDateString()} to ${new Date(bookingData.checkOut).toLocaleDateString()}.`);
@@ -291,8 +295,7 @@ const BookingProcess = () => {
       }
     } catch (error) {
       console.error('Availability check failed:', error);
-    }
-    finally {
+    } finally {
       setLoadingRooms(false);
     }
   };
@@ -344,7 +347,8 @@ const BookingProcess = () => {
       const checkInDate = new Date(bookingData.checkIn);
       const checkOutDate = new Date(bookingData.checkOut);
       const numberOfNights = Math.ceil((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24));
-      const total = selectedRoom.pricePerNight * numberOfNights;
+      const nightly = Number(selectedRoom.pricePerNight || selectedRoom.price || 0);
+      const total = nightly * numberOfNights;
       setTotalPrice(total);
     }
   };
@@ -457,235 +461,236 @@ const BookingProcess = () => {
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="grid lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2">
-            {/* NOTE: Budget step is skipped by navigating from step 1 directly to step 3. */}
-                
-          {/* Summary is shown in the sidebar; debug info removed in production */}
-          {currentStep === 1 && (
-            <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Plan your stay</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Check-in</label>
-                  <div className="field">
-                    <FaCalendarAlt className="icon-left text-gray-400" />
-                    <input
-                      type="date"
-                      value={bookingData.checkIn}
-                      onChange={(e) => handleInputChange('checkIn', e.target.value)}
-                      className="w-full pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
+            {currentStep === 1 && (
+              <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">Plan your stay</h2>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Check-in</label>
+                    <div className="relative">
+                      <FaCalendarAlt className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                      <input
+                        type="date"
+                        value={bookingData.checkIn}
+                        onChange={(e) => handleInputChange('checkIn', e.target.value)}
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Check-out</label>
+                    <div className="relative">
+                      <FaCalendarAlt className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                      <input
+                        type="date"
+                        value={bookingData.checkOut}
+                        onChange={(e) => handleInputChange('checkOut', e.target.value)}
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Guests</label>
+                    <div className="relative">
+                      <FaUsers className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                      <input
+                        type="number"
+                        min={1}
+                        value={bookingData.guests}
+                        onChange={(e) => handleInputChange('guests', Number(e.target.value) || 1)}
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Check-out</label>
-                  <div className="field">
-                    <FaCalendarAlt className="icon-left text-gray-400" />
-                    <input
-                      type="date"
-                      value={bookingData.checkOut}
-                      onChange={(e) => handleInputChange('checkOut', e.target.value)}
-                      className="w-full pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Budget</label>
+                    <div className="relative">
+                      <FaDollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                      <select
+                        value={bookingData.budget}
+                        onChange={(e) => handleInputChange('budget', e.target.value)}
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      >
+                        <option value="">Any</option>
+                        {budgetRanges.map(b => (
+                          <option key={b.label} value={b.label}>{b.label}</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Guests</label>
-                  <div className="field">
-                    <FaUsers className="icon-left text-gray-400" />
-                    <input
-                      type="number"
-                      min={1}
-                      value={bookingData.guests}
-                      onChange={(e) => handleInputChange('guests', Number(e.target.value) || 1)}
-                      className="w-full pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                </div>
-
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Budget</label>
-                  <div className="field">
-                    <FaDollarSign className="icon-left text-gray-400" />
-                    <select
-                      value={bookingData.budget}
-                      onChange={(e) => handleInputChange('budget', e.target.value)}
-                      className="w-full pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  <div className="flex items-end">
+                    <button
+                      onClick={async () => {
+                        if (!bookingData.checkIn || !bookingData.checkOut) {
+                          toast.error('Please select check-in and check-out dates');
+                          return;
+                        }
+                        await checkAvailability();
+                        setCurrentStep(2);
+                      }}
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
                     >
-                      <option value="">Any</option>
-                      {budgetRanges.map(b => (
-                        <option key={b.label} value={b.label}>{b.label}</option>
-                      ))}
-                    </select>
+                      Find available rooms
+                    </button>
                   </div>
-                </div>
-                <div className="flex items-end">
-                  <button
-                    onClick={async () => {
-                      if (!bookingData.checkIn || !bookingData.checkOut) {
-                        toast.error('Please select check-in and check-out dates');
-                        return;
-                      }
-                      await checkAvailability();
-                      setCurrentStep(2);
-                    }}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
-                  >
-                    Find available rooms
-                  </button>
                 </div>
               </div>
             )}
             
-            {filteredRooms.length === 0 ? (
-              <div className="text-center py-12">
-                <FaBed className="text-4xl text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">No rooms available</h3>
-                <p className="text-gray-600 mb-4">
-                  No rooms match your selected criteria. Try adjusting your budget or dates.
-                </p>
-                <button
-                  onClick={() => setCurrentStep(1)}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
-                >
-                  Adjust Budget
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {filteredRooms.map((room, index) => (
-                  <div
-                    key={room._id || room.roomNumber || index}
-                    className={`group border-2 rounded-xl p-6 cursor-pointer transition-all duration-500 transform hover:scale-105 hover:shadow-xl ${
-                      isRoomSelected(room)
-                        ? 'border-blue-500 bg-gradient-to-br from-blue-50 to-blue-100 shadow-lg scale-105'
-                        : 'border-gray-200 hover:border-blue-300 bg-white'
-                    }`}
-                    onClick={() => handleRoomSelect(room)}
-                  >
-                    <div className="flex items-start space-x-4">
-                      {/* Enhanced Room Images */}
-                      <div className="w-32 h-24 rounded-lg overflow-hidden relative group/image">
-                        {room.images && room.images.length > 0 ? (
-                          <img
-                            src={room.images[0]}
-                            alt={room.roomNumber}
-                            className="w-full h-full object-cover transition-transform duration-500 group-hover/image:scale-110"
-                            onError={(e) => {
-                              e.target.style.display = 'none';
-                              e.target.nextSibling.style.display = 'flex';
-                            }}
-                          />
-                        ) : null}
-                        <div 
-                          className={`w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center ${room.images && room.images.length > 0 ? 'hidden' : ''}`}
-                          style={{ display: room.images && room.images.length > 0 ? 'none' : 'flex' }}
-                        >
-                          <FaBed className="text-gray-400 text-2xl" />
-                        </div>
-                        {isRoomSelected(room) && (
-                          <div className="absolute inset-0 bg-blue-500 bg-opacity-20 flex items-center justify-center">
-                            <FaCheck className="text-white text-2xl" />
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="flex-1">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-700 transition-colors duration-300">
-                              {room.roomNumber || 'Room ' + (index + 1)}
-                            </h3>
-                            <p className="text-sm text-gray-600 capitalize font-medium">
-                              {(room.roomType || 'Standard')} Room
-                            </p>
-                            <div className="flex items-center mt-3 space-x-4 text-sm text-gray-600">
-                              <div className="flex items-center bg-gray-100 px-3 py-1 rounded-full">
-                                <FaUsers className="mr-1 text-blue-600" />
-                                <span className="font-medium">{room.capacity || 1} guests</span>
-                              </div>
-                              <div className={`px-3 py-1 rounded-full text-xs font-medium transition-all duration-300 ${
-                                room.isAvailable !== false 
-                                  ? 'bg-green-100 text-green-800 hover:bg-green-200' 
-                                  : 'bg-red-100 text-red-800 hover:bg-red-200'
-                              }`}>
-                                {room.isAvailable !== false ? '✓ Available' : '✗ Unavailable'}
-                              </div>
+            {currentStep === 2 && (
+              <div>
+                {filteredRooms.length === 0 ? (
+                  <div className="text-center py-12">
+                    <FaBed className="text-4xl text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No rooms available</h3>
+                    <p className="text-gray-600 mb-4">
+                      No rooms match your selected criteria. Try adjusting your budget or dates.
+                    </p>
+                    <button
+                      onClick={() => setCurrentStep(1)}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+                    >
+                      Adjust Budget
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {filteredRooms.map((room, index) => (
+                      <div
+                        key={room._id || room.roomNumber || index}
+                        className={`group border-2 rounded-xl p-6 cursor-pointer transition-all duration-500 transform hover:scale-105 hover:shadow-xl ${
+                          isRoomSelected(room)
+                            ? 'border-blue-500 bg-gradient-to-br from-blue-50 to-blue-100 shadow-lg scale-105'
+                            : 'border-gray-200 hover:border-blue-300 bg-white'
+                        }`}
+                        onClick={() => handleRoomSelect(room)}
+                      >
+                        <div className="flex items-start space-x-4">
+                          {/* Enhanced Room Images */}
+                          <div className="w-32 h-24 rounded-lg overflow-hidden relative group">
+                            {room.images && room.images.length > 0 ? (
+                              <img
+                                src={room.images[0]}
+                                alt={room.roomNumber}
+                                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                onError={(e) => {
+                                  e.target.style.display = 'none';
+                                  e.target.nextSibling.style.display = 'flex';
+                                }}
+                              />
+                            ) : null}
+                            <div 
+                              className={`w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center ${room.images && room.images.length > 0 ? 'hidden' : ''}`}
+                              style={{ display: room.images && room.images.length > 0 ? 'none' : 'flex' }}
+                            >
+                              <FaBed className="text-gray-400 text-2xl" />
                             </div>
-                            
-                            {/* Room Amenities */}
-                            {room.amenities && room.amenities.length > 0 && (
-                              <div className="flex flex-wrap gap-2 mt-3">
-                                {room.amenities.slice(0, 3).map((amenity, amenityIndex) => (
-                                  <span 
-                                    key={amenityIndex}
-                                    className="px-2 py-1 bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 text-xs rounded-full font-medium"
-                                  >
-                                    {amenity}
-                                  </span>
-                                ))}
-                                {room.amenities.length > 3 && (
-                                  <span className="px-2 py-1 bg-gradient-to-r from-purple-100 to-purple-200 text-purple-800 text-xs rounded-full font-medium">
-                                    +{room.amenities.length - 3} more
-                                  </span>
+                            {isRoomSelected(room) && (
+                              <div className="absolute inset-0 bg-blue-500 bg-opacity-20 flex items-center justify-center">
+                                <FaCheck className="text-white text-2xl" />
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex-1">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-700 transition-colors duration-300">
+                                  {room.roomNumber || 'Room ' + (index + 1)}
+                                </h3>
+                                <p className="text-sm text-gray-600 capitalize font-medium">
+                                  {(room.roomType || 'Standard')} Room
+                                </p>
+                                <div className="flex items-center mt-3 space-x-4 text-sm text-gray-600">
+                                  <div className="flex items-center bg-gray-100 px-3 py-1 rounded-full">
+                                    <FaUsers className="mr-1 text-blue-600" />
+                                    <span className="font-medium">{room.capacity || 1} guests</span>
+                                  </div>
+                                  <div className={`px-3 py-1 rounded-full text-xs font-medium transition-all duration-300 ${
+                                    room.isAvailable !== false 
+                                      ? 'bg-green-100 text-green-800 hover:bg-green-200' 
+                                      : 'bg-red-100 text-red-800 hover:bg-red-200'
+                                  }`}>
+                                    {room.isAvailable !== false ? '✓ Available' : '✗ Unavailable'}
+                                  </div>
+                                </div>
+                                
+                                {/* Room Amenities */}
+                                {room.amenities && room.amenities.length > 0 && (
+                                  <div className="flex flex-wrap gap-2 mt-3">
+                                    {room.amenities.slice(0, 3).map((amenity, amenityIndex) => (
+                                      <span 
+                                        key={amenityIndex}
+                                        className="px-2 py-1 bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 text-xs rounded-full font-medium"
+                                      >
+                                        {amenity}
+                                      </span>
+                                    ))}
+                                    {room.amenities.length > 3 && (
+                                      <span className="px-2 py-1 bg-gradient-to-r from-purple-100 to-purple-200 text-purple-800 text-xs rounded-full font-medium">
+                                        +{room.amenities.length - 3} more
+                                      </span>
+                                    )}
+                                  </div>
                                 )}
                               </div>
-                            )}
-                          </div>
-                          <div className="text-right">
-                            <div className="text-xl font-bold text-blue-600 group-hover:text-blue-700 transition-colors duration-300">
-                              RWF {(() => {
-                                const pricePerNight = room.pricePerNight || room.price || 0;
-                                return pricePerNight.toLocaleString();
-                              })()}
-                            </div>
-                            <div className="text-sm text-gray-500">per night</div>
-                            {isRoomSelected(room) && (
-                              <div className="mt-2 flex items-center justify-center">
-                                <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center animate-pulse">
-                                  <FaCheck className="text-white text-xs" />
+                              <div className="text-right">
+                                <div className="text-xl font-bold text-blue-600 group-hover:text-blue-700 transition-colors duration-300">
+                                  RWF {(() => {
+                                    const pricePerNight = room.pricePerNight || room.price || 0;
+                                    return pricePerNight.toLocaleString();
+                                  })()}
                                 </div>
+                                <div className="text-sm text-gray-500">per night</div>
+                                {isRoomSelected(room) && (
+                                  <div className="mt-2 flex items-center justify-center">
+                                    <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center animate-pulse">
+                                      <FaCheck className="text-white text-xs" />
+                                    </div>
+                                  </div>
+                                )}
                               </div>
-                            )}
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            )}
+                )}
 
-            {/* Navigation buttons for room selection */}
-            {filteredRooms.length > 0 && (
-              <div className="flex justify-between mt-6">
-                <button
-                  onClick={() => setCurrentStep(1)}
-                  className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  Back
-                </button>
-                <button
-                  onClick={() => {
-                    if (selectedRoom) {
-                      setCurrentStep(4);
-                    } else {
-                      toast.error('Please select a room to continue');
-                    }
-                  }}
-                  disabled={!selectedRoom}
-                  className={`px-8 py-3 rounded-lg font-medium transition-colors ${
-                    selectedRoom
-                      ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  }`}
-                >
-                  Continue to Contact Info
-                </button>
+                {/* Navigation buttons for room selection */}
+                {filteredRooms.length > 0 && (
+                  <div className="flex justify-between mt-6">
+                    <button
+                      onClick={() => setCurrentStep(1)}
+                      className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      Back
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (selectedRoom) {
+                          setCurrentStep(4);
+                        } else {
+                          toast.error('Please select a room to continue');
+                        }
+                      }}
+                      disabled={!selectedRoom}
+                      className={`px-8 py-3 rounded-lg font-medium transition-colors ${
+                        selectedRoom
+                          ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                          : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      }`}
+                    >
+                      Continue to Contact Info
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 
@@ -693,8 +698,6 @@ const BookingProcess = () => {
             {currentStep === 4 && (
               <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
                 <h2 className="text-2xl font-bold text-gray-900 mb-6">Contact Information</h2>
-                
-                {/* Clean UI in production */}
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                   <div>
@@ -767,7 +770,6 @@ const BookingProcess = () => {
                   </div>
                 </div>
 
-
                 <div className="mb-6">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Special Requests (Optional)
@@ -783,7 +785,7 @@ const BookingProcess = () => {
 
                 <div className="flex justify-between">
                   <button
-                    onClick={() => setCurrentStep(3)}
+                    onClick={() => setCurrentStep(2)}
                     className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                   >
                     Back
@@ -857,7 +859,8 @@ const BookingProcess = () => {
                           <div className="text-sm text-gray-600">Pay with your mobile money account</div>
                         </div>
                       </div>
-                    </button></div>
+                    </button>
+                  </div>
                 </div>
 
                 <div className="flex justify-between">
@@ -873,15 +876,15 @@ const BookingProcess = () => {
                     className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-lg font-medium transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {loading ? (
-                      <>
+                      <span className="inline-flex items-center gap-2">
                         <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                         Processing...
-                      </>
+                      </span>
                     ) : (
-                      <>
+                      <span className="inline-flex items-center gap-2">
                         <FaCheck />
                         Complete Booking (Pay Later)
-                      </>
+                      </span>
                     )}
                   </button>
                 </div>
@@ -889,20 +892,25 @@ const BookingProcess = () => {
             )}
           </div>
 
-          {/* Sidebar - Booking Summary */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-2xl shadow-lg p-6 sticky top-24">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Booking Summary</h3>
               {selectedRoom ? (
-                <>
+                <div>
                   <div className="flex items-center gap-3 mb-4">
                     <img
                       loading="lazy"
-                      src={selectedRoom.images?.[0]?.startsWith('http') ? selectedRoom.images[0] : `${API_URL}${selectedRoom.images?.[0]}` || 'https://via.placeholder.com/150?text=Room'}
+                      src={(function(){
+                        const imgs = selectedRoom && selectedRoom.images;
+                        const img = (imgs && imgs[0]) ? imgs[0] : '';
+                        if (!img) return 'https://via.placeholder.com/150?text=Room';
+                        return img.startsWith('http') ? img : `${API_URL}${img}`;
+                      })()}
                       alt={selectedRoom.roomNumber}
                       className="w-16 h-16 object-cover rounded-lg"
                       onError={(e) => { e.currentTarget.src = 'https://via.placeholder.com/150?text=Room'; }}
                     />
+
                     <div>
                       <div className="font-semibold text-gray-900">{selectedRoom.roomNumber}</div>
                       <p className="text-sm text-gray-600 capitalize">{(selectedRoom.roomType || 'Standard')} Room</p>
@@ -950,7 +958,7 @@ const BookingProcess = () => {
                       </div>
                     </div>
                   )}
-                </>
+                </div>
               ) : (
                 <div className="text-center py-8 text-gray-500">
                   <FaBed className="text-4xl mx-auto mb-4 text-gray-300" />
