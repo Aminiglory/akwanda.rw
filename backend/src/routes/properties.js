@@ -306,7 +306,7 @@ router.post('/seed-demo', requireAuth, async (req, res) => {
     };
 }
 
-// One-time sanitization for legacy documents having invalid commissionRate
+// Expose post-connect sanitization to be invoked after Mongo is ready
 router.sanitizeCommissionRates = async () => {
     try {
         await Property.updateMany({ commissionRate: { $gt: 12 } }, { $set: { commissionRate: 12 } });

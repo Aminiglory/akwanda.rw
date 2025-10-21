@@ -297,7 +297,7 @@ async function connectMongo(retryDelayMs = 5000) {
         console.log('Connected to MongoDB');
         await seedAdminIfNeeded();
 
-        // Run post-connect data maintenance tasks
+        // Run post-connect data maintenance tasks (avoid pre-connection buffering timeouts)
         if (typeof propertiesRouter?.sanitizeCommissionRates === 'function') {
           try {
             await propertiesRouter.sanitizeCommissionRates();
