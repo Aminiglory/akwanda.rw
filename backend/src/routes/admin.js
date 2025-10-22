@@ -251,6 +251,53 @@ router.get('/stats/monthly', requireAdmin, async (req, res) => {
     });
 });
 
+// Update admin credentials (email/password)
+router.put('/me/credentials', requireAdmin, async (req, res) => {
+    try {
+        const { email, currentPassword, newPassword } = req.body || {};
+        const u = await User.findById(req.user.id);
+        if (!u) return res.status(404).json({ message: 'User not found' });
+
+        // Update email if provided
+        if (email && String(email).toLowerCase() !== u.email) {
+            const exists = await User.findOne({ email: String(email).toLowerCase() });
+            if (exists) return res.status(409).json({ message: 'Email already in use' });
+            u.email = String(email).toLowerCase();
+        }
+
+        // Update password if requested
+        if (newPassword) {
+            if (!currentPassword) return res.status(400).json({ message: 'Current password required' });
+            const ok = await bcrypt.compare(currentPassword, u.passwordHash);
+            if (!ok) return res.status(401).json({ message: 'Current password is incorrect' });
+            if (String(newPassword).length < 6) return res.status(400).json({ message: 'New password too short' });
+            u.passwordHash = await bcrypt.hash(String(newPassword), 10);
+        }
+
+        await u.save();
+        return res.json({ user: { id: u._id, email: u.email } });
+    } catch (e) {
+        console.error('Admin update credentials error:', e);
+        return res.status(500).json({ message: 'Failed to update credentials' });
+    }
+});
+
+// Hard delete a user (admin only)
+router.delete('/users/:id', requireAdmin, async (req, res) => {
+    try {
+        if (String(req.params.id) === String(req.user.id)) {
+            return res.status(400).json({ message: 'Cannot delete your own admin account' });
+        }
+        const user = await User.findById(req.params.id);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+        await User.deleteOne({ _id: user._id });
+        return res.json({ success: true, message: 'User deleted' });
+    } catch (e) {
+        console.error('Admin delete user error:', e);
+        return res.status(500).json({ message: 'Failed to delete user' });
+    }
+});
+
 module.exports = router;
 // Additional admin endpoints
 // Landing page metrics endpoint (public)
@@ -645,37 +692,6 @@ router.post('/users/:id/deactivate', requireAdmin, async (req, res) => {
     } catch (error) {
         console.error('Deactivate user error:', error);
         res.status(500).json({ message: 'Failed to deactivate user', error: error.message });
-    }
-});
-
-// Reactivate user account
-router.post('/users/:id/reactivate', requireAdmin, async (req, res) => {
-    try {
-        const user = await User.findById(req.params.id);
-        
-        if (!user) return res.status(404).json({ message: 'User not found' });
-        
-        user.isBlocked = false;
-        user.blockedUntil = null;
-        user.blockReason = null;
-        await user.save();
-
-        // Create notification for user
-        await Notification.create({
-            type: 'account_reactivated',
-            title: 'Account Reactivated',
-            message: 'Your account has been reactivated. You can now access all features.',
-            recipientUser: user._id
-        });
-
-        res.json({ 
-            success: true, 
-            message: 'User account reactivated successfully',
-            user: { ...user.toObject(), passwordHash: undefined }
-        });
-    } catch (error) {
-        console.error('Reactivate user error:', error);
-        res.status(500).json({ message: 'Failed to reactivate user', error: error.message });
     }
 });
 

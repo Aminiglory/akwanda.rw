@@ -9,6 +9,7 @@ import {
   FaCheck, FaCheckDouble, FaClock, FaUser, FaCalendarAlt,
   FaMapMarkerAlt, FaBed, FaMoneyBillWave, FaStar, FaComments, FaTimes, FaReply, FaLink
 } from 'react-icons/fa';
+import { ListItemSkeleton, ChatBubbleSkeleton } from '../components/Skeletons';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -38,6 +39,7 @@ export default function Messages() {
   const [searchLoading, setSearchLoading] = useState(false);
   const MAX_MESSAGE_LEN = 2000;
   const [onlineUsers, setOnlineUsers] = useState(new Set());
+  const [messagesLoading, setMessagesLoading] = useState(false);
 
   const extractSenderId = (val) => {
     if (!val) return '';
@@ -240,6 +242,7 @@ export default function Messages() {
 
   const loadMessages = async (threadId) => {
     try {
+      setMessagesLoading(true);
       const thread = threads.find(t => t.id === threadId);
       const params = new URLSearchParams({ userId: thread.userId });
       if (thread?.context?.bookingId) params.set('bookingId', thread.context.bookingId);
@@ -288,6 +291,8 @@ export default function Messages() {
       ));
     } catch (error) {
       toast.error('Failed to load messages');
+    } finally {
+      setMessagesLoading(false);
     }
   };
 
@@ -786,7 +791,7 @@ export default function Messages() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Threads Sidebar */}
-        <div className="lg:col-span-1 modern-card-elevated p-6 flex flex-col h-[60vh] md:h-[70vh] lg:h-[78vh]">
+        <div className={`lg:col-span-1 modern-card-elevated p-6 flex flex-col h-[60vh] md:h-[70vh] lg:h-[78vh] ${activeThread ? 'hidden lg:flex' : 'flex'}`}>
           <div className="mb-4">
             <h2 className="text-xl font-bold text-gray-900 mb-1">AKWANDA Chat</h2>
             <p className="text-sm text-gray-500 mb-3 animate-pulse">Fast, simple and reliable messaging</p>
@@ -810,25 +815,37 @@ export default function Messages() {
           </div>
           
           <div className="space-y-1 overflow-y-auto flex-1">
-            {threads
-              .filter(thread => {
-                const name = (thread.userName || '').toLowerCase();
-                const last = (thread.lastMessage || '').toLowerCase();
-                const q = (searchTerm || '').toLowerCase();
-                return name.includes(q) || last.includes(q);
-              })
-              .map(renderThread)}
+            {loading ? (
+              <ListItemSkeleton rows={8} />
+            ) : (
+              threads
+                .filter(thread => {
+                  const name = (thread.userName || '').toLowerCase();
+                  const last = (thread.lastMessage || '').toLowerCase();
+                  const q = (searchTerm || '').toLowerCase();
+                  return name.includes(q) || last.includes(q);
+                })
+                .map(renderThread)
+            )}
           </div>
         </div>
 
         {/* Chat Area */}
-        <div className="lg:col-span-3 modern-card-elevated flex flex-col h-[60vh] md:h-[70vh] lg:h-[78vh]">
+        <div className={`lg:col-span-3 modern-card-elevated flex flex-col h-[60vh] md:h-[70vh] lg:h-[78vh] ${!activeThread ? 'hidden lg:flex' : 'flex'}`}>
           {activeThread ? (
             <>
               {/* Chat Header */}
-              <div className="p-4 border-b border-gray-200">
+              <div className="p-4 border-b border-gray-200 sticky top-0 bg-white z-10">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
+                    {/* Mobile back button */}
+                    <button
+                      className="lg:hidden mr-1 p-2 rounded-lg hover:bg-gray-100 text-gray-700"
+                      onClick={() => setActiveThread(null)}
+                      aria-label="Back"
+                    >
+                      <FaTimes />
+                    </button>
                     <img
                       src={activeThread.userAvatar}
                       alt={activeThread.userName}
@@ -858,7 +875,11 @@ export default function Messages() {
 
               {/* Messages */}
               <div className="flex-1 p-4 overflow-y-auto">
-                {messages.map(renderMessage)}
+                {messagesLoading ? (
+                  <ChatBubbleSkeleton rows={8} />
+                ) : (
+                  messages.map(renderMessage)
+                )}
                 {otherTyping && (
                   <div className="flex justify-start mb-4">
                     <div className="bg-white border border-gray-200 rounded-2xl px-4 py-2">
@@ -912,35 +933,30 @@ export default function Messages() {
               )}
 
               {/* Message Input */}
-              <div className="p-4 border-t border-gray-200 relative">
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => imageInputRef.current?.click()}
-                    className="p-2 text-gray-600 hover:text-blue-600 hover:bg-gray-100 rounded-lg"
-                  >
-                    <FaImage />
-                  </button>
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="p-2 text-gray-600 hover:text-blue-600 hover:bg-gray-100 rounded-lg"
-                  >
-                    <FaFile />
-                  </button>
-                  <button
-                    onClick={() => setShowEmojiPicker(v => !v)}
-                    className="p-2 text-gray-600 hover:text-blue-600 hover:bg-gray-100 rounded-lg"
-                    title="Emoji"
-                  >
-                    <FaSmile />
-                  </button>
-                  <button
-                    onClick={() => setNewMessage(prev => prev + (prev && !prev.endsWith(' ') ? ' 🔗' : '🔗'))}
-                    className="hidden md:inline p-2 text-gray-600 hover:text-blue-600 hover:bg-gray-100 rounded-lg"
-                    title="Quick action"
-                  >
-                    <FaLink />
-                  </button>
-                  <div className="flex-1">
+              <div className="p-4 border-t border-gray-200 relative sticky bottom-0 bg-white">
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-1 bg-gray-100 rounded-full px-3 py-2">
+                    <button
+                      onClick={() => imageInputRef.current?.click()}
+                      className="shrink-0 p-2 text-gray-600 hover:text-blue-600 hover:bg-gray-200 rounded-full"
+                      title="Add image"
+                    >
+                      <FaImage />
+                    </button>
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="shrink-0 p-2 text-gray-600 hover:text-blue-600 hover:bg-gray-200 rounded-full"
+                      title="Attach file"
+                    >
+                      <FaFile />
+                    </button>
+                    <button
+                      onClick={() => setShowEmojiPicker(v => !v)}
+                      className="shrink-0 p-2 text-gray-600 hover:text-blue-600 hover:bg-gray-200 rounded-full"
+                      title="Emoji"
+                    >
+                      <FaSmile />
+                    </button>
                     <input
                       type="text"
                       value={newMessage}
@@ -949,27 +965,28 @@ export default function Messages() {
                         setNewMessage(val);
                         handleTypingStart();
                       }}
-                      onKeyPress={(e) => {
+                      onKeyDown={(e) => {
                         if (e.key === 'Enter' && !e.shiftKey) {
                           e.preventDefault();
                           sendMessage();
                         }
                       }}
-                      placeholder="Type a message..."
-                      className="modern-input w-full"
+                      placeholder="Message..."
+                      className="bg-transparent flex-1 min-w-0 text-sm placeholder-gray-500 focus:outline-none"
                     />
                   </div>
                   <button
                     onClick={sendMessage}
                     disabled={(!newMessage.trim() && attachments.length === 0) || newMessage.length > MAX_MESSAGE_LEN}
-                    className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="p-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Send"
                   >
                     <FaPaperPlane />
                   </button>
                 </div>
                 {/* Emoji Picker Popover */}
                 {showEmojiPicker && (
-                  <div className="absolute bottom-16 left-4 bg-white border border-gray-200 rounded-xl p-2 shadow-lg grid grid-cols-8 gap-1 z-10">
+                  <div className="absolute bottom-16 left-4 right-4 sm:right-auto bg-white border border-gray-200 rounded-xl p-2 shadow-lg grid grid-cols-8 gap-1 z-10">
                     {['😀','😁','😂','🤣','😊','😍','😘','🤩','👍','🙏','🔥','🎉','🏡','🛏️','🛁','📅','📍','💬','✨','💯','📎','📷'].map((em)=> (
                       <button key={em} className="p-1 hover:bg-gray-100 rounded" onClick={() => setNewMessage(s => (s || '') + em)}>{em}</button>
                     ))}

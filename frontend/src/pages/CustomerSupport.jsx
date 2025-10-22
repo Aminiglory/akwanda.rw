@@ -145,7 +145,7 @@ const CustomerSupport = () => {
         {/* Navigation Tabs */}
         <div className="bg-white rounded-2xl shadow-lg mb-8">
           <div className="border-b border-gray-200">
-            <nav className="flex space-x-8 px-6">
+            <nav className="flex gap-4 px-4 sm:px-6 overflow-x-auto no-scrollbar whitespace-nowrap">
               {[
                 { id: 'contact', label: 'Contact Us', icon: FaPhone },
                 { id: 'ticket', label: 'Submit Ticket', icon: FaTicketAlt },
@@ -156,7 +156,7 @@ const CustomerSupport = () => {
                 <button
                   key={id}
                   onClick={() => setActiveTab(id)}
-                  className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-300 flex items-center gap-2 ${
+                  className={`py-4 px-2 sm:px-3 border-b-2 font-medium text-sm transition-colors duration-300 flex items-center gap-2 shrink-0 ${
                     activeTab === id
                       ? 'border-blue-500 text-blue-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -169,7 +169,7 @@ const CustomerSupport = () => {
             </nav>
           </div>
 
-          <div className="p-8">
+          <div className="p-4 sm:p-8">
             {/* Contact Us Tab */}
             {activeTab === 'contact' && (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

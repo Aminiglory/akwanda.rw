@@ -51,6 +51,10 @@ import TestUpload from './pages/TestUpload'
 import QuickLogin from './pages/QuickLogin'
 import AdminUserManagement from './pages/AdminUserManagement'
 import EditProperty from './pages/EditProperty'
+import Favorites from './pages/Favorites'
+import LogoutSuccess from './pages/LogoutSuccess'
+import BookingSuccess from './pages/BookingSuccess'
+import PaymentSuccess from './pages/PaymentSuccess'
 
 function App() {
   const [isLoading, setIsLoading] = useState(true)
@@ -65,10 +69,24 @@ function App() {
 
   if (isLoading) {
     return (
-      <div className="w-full h-screen bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-white/30 border-t-white rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-white text-lg animate-pulse">Loading AKWANDA.rw...</p>
+      <div className="w-full h-screen bg-gradient-to-br from-white via-blue-50 to-blue-100 flex items-center justify-center p-6">
+        <div className="max-w-sm w-full text-center">
+          {/* Logo / Brand */}
+          <div className="mx-auto mb-6 w-16 h-16 rounded-2xl bg-white shadow-md flex items-center justify-center ring-1 ring-blue-100">
+            <span className="text-blue-700 font-extrabold text-xl">AK</span>
+          </div>
+          {/* Orbit loader */}
+          <div className="relative w-20 h-20 mx-auto mb-4">
+            <div className="absolute inset-0 rounded-full border-4 border-blue-200"></div>
+            <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-blue-500 animate-spin"></div>
+            <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-3 h-3 bg-blue-600 rounded-full shadow"></div>
+          </div>
+          <p className="text-sm text-gray-600">Preparing your experience…</p>
+          <div className="mt-3 flex items-center justify-center gap-1">
+            <span className="w-2 h-2 bg-blue-500/60 rounded-full animate-bounce [animation-delay:-0.2s]"></span>
+            <span className="w-2 h-2 bg-blue-500/60 rounded-full animate-bounce"></span>
+            <span className="w-2 h-2 bg-blue-500/60 rounded-full animate-bounce [animation-delay:0.2s]"></span>
+          </div>
         </div>
       </div>
     )
@@ -97,6 +115,10 @@ function App() {
             <Route path="/cars/:id" element={<CarDetail />} />
             <Route path="/taxis" element={<AirportTaxis />} />
             <Route path="/apartment/:id" element={<ApartmentDetails />} />
+            <Route path="/favorites" element={<Favorites />} />
+            <Route path="/logout-success" element={<LogoutSuccess />} />
+            <Route path="/booking-success" element={<BookingSuccess />} />
+            <Route path="/payment-success" element={<PaymentSuccess />} />
             <Route path="/edit-property/:id" element={<ProtectedRoute><EditProperty /></ProtectedRoute>} />
             <Route path="/booking/:id" element={<BookingProcess />} />
             <Route path="/booking-confirmation/:id" element={<BookingConfirmation />} />

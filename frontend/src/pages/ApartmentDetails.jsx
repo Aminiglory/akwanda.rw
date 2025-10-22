@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { CardGridSkeleton, ListItemSkeleton } from '../components/Skeletons';
 import RoomCalendarPanel from '../components/RoomCalendarPanel';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -227,7 +228,64 @@ const ApartmentDetails = () => {
     });
   };
 
-  if (!apartment) return <div className="min-h-screen bg-gray-50" />;
+  if (!apartment) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 pt-6 pb-8">
+          {/* Header skeleton */}
+          <div className="rounded-2xl bg-white shadow p-4 md:p-5 mb-6">
+            <div className="h-4 w-32 bg-gray-200 rounded mb-2 animate-pulse" />
+            <div className="h-7 w-3/4 bg-gray-200 rounded mb-3 animate-pulse" />
+            <div className="flex gap-2">
+              <div className="h-6 w-32 bg-gray-200 rounded animate-pulse" />
+              <div className="h-6 w-40 bg-gray-200 rounded animate-pulse" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 space-y-8">
+              {/* Gallery skeleton */}
+              <div className="bg-white rounded-2xl shadow overflow-hidden">
+                <div className="h-96 bg-gray-200 animate-pulse" />
+                <div className="p-4 grid grid-cols-4 gap-2">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="h-20 bg-gray-200 rounded animate-pulse" />
+                  ))}
+                </div>
+              </div>
+
+              {/* Overview skeleton */}
+              <div className="bg-white rounded-2xl shadow p-6 space-y-3">
+                <div className="h-6 w-48 bg-gray-200 rounded animate-pulse" />
+                <div className="grid grid-cols-3 gap-3">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="h-8 bg-gray-200 rounded animate-pulse" />
+                  ))}
+                </div>
+                <div className="space-y-2 mt-2">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="h-3 bg-gray-200 rounded animate-pulse" />
+                  ))}
+                </div>
+              </div>
+
+              {/* Rooms skeleton */}
+              <CardGridSkeleton count={2} />
+            </div>
+
+            {/* Sidebar skeleton */}
+            <div className="lg:col-span-1">
+              <div className="bg-white rounded-2xl shadow p-6 space-y-4 sticky top-8">
+                <div className="h-8 w-40 bg-gray-200 rounded animate-pulse" />
+                <div className="h-10 w-full bg-gray-200 rounded animate-pulse" />
+                <div className="h-10 w-full bg-gray-200 rounded animate-pulse" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

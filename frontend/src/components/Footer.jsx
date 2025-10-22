@@ -1,7 +1,24 @@
-import React from 'react';
-import { FaFacebook, FaTwitter, FaInstagram, FaLinkedin, FaPhone, FaEnvelope, FaMapMarkerAlt, FaBed, FaPlane, FaBuffer, FaTaxi } from 'react-icons/fa';
+import React, { useMemo } from 'react';
+import { FaFacebook, FaTwitter, FaInstagram, FaLinkedin, FaPhone, FaEnvelope, FaMapMarkerAlt, FaBed, FaBuffer } from 'react-icons/fa';
 
 const Footer = () => {
+  const site = useMemo(() => {
+    try {
+      const raw = localStorage.getItem('siteSettings');
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const companyEmail = site?.companyEmail || 'info@akwanda.rw';
+  const phone = site?.phone || '0781714167';
+  const socials = {
+    facebook: site?.facebook || '',
+    twitter: site?.twitter || '',
+    instagram: site?.instagram || '',
+    linkedin: site?.linkedin || ''
+  };
   const footerSections = [
     {
       title: "For Guests",
@@ -63,28 +80,36 @@ const Footer = () => {
               </div>
               <div className="flex items-center">
                 <FaPhone className="text-blue-400 mr-3" />
-                <span className="text-gray-300">0781714167</span>
+                <a href={`tel:${phone}`} className="text-gray-300 hover:text-white">{phone}</a>
               </div>
               <div className="flex items-center">
                 <FaEnvelope className="text-blue-400 mr-3" />
-                <span className="text-gray-300">info@akwanda.rw</span>
+                <a href={`mailto:${companyEmail}`} className="text-gray-300 hover:text-white">{companyEmail}</a>
               </div>
             </div>
 
             {/* Social Media */}
-            <div className="flex space-x-4">
-              <a href="#" className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center hover:bg-blue-700 transition-colors duration-300">
-                <FaFacebook />
-              </a>
-              <a href="#" className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center hover:bg-blue-700 transition-colors duration-300">
-                <FaTwitter />
-              </a>
-              <a href="#" className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center hover:bg-blue-700 transition-colors duration-300">
-                <FaInstagram />
-              </a>
-              <a href="#" className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center hover:bg-blue-700 transition-colors duration-300">
-                <FaLinkedin />
-              </a>
+            <div className="flex flex-wrap gap-3">
+              {socials.facebook && (
+                <a href={socials.facebook} target="_blank" rel="noreferrer" className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center hover:bg-blue-700 transition-colors duration-300">
+                  <FaFacebook />
+                </a>
+              )}
+              {socials.twitter && (
+                <a href={socials.twitter} target="_blank" rel="noreferrer" className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center hover:bg-blue-700 transition-colors duration-300">
+                  <FaTwitter />
+                </a>
+              )}
+              {socials.instagram && (
+                <a href={socials.instagram} target="_blank" rel="noreferrer" className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center hover:bg-blue-700 transition-colors duration-300">
+                  <FaInstagram />
+                </a>
+              )}
+              {socials.linkedin && (
+                <a href={socials.linkedin} target="_blank" rel="noreferrer" className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center hover:bg-blue-700 transition-colors duration-300">
+                  <FaLinkedin />
+                </a>
+              )}
             </div>
           </div>
 

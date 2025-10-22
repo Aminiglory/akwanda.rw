@@ -32,11 +32,45 @@ const Settings = () => {
     paymentAlerts: true
   });
 
+  // Admin site settings (footer contact + social)
+  const [siteSettings, setSiteSettings] = useState(() => {
+    try {
+      const raw = localStorage.getItem('siteSettings');
+      return raw ? JSON.parse(raw) : {
+        companyEmail: 'info@akwanda.rw',
+        phone: '0781714167',
+        facebook: '',
+        instagram: '',
+        twitter: '',
+        linkedin: ''
+      };
+    } catch {
+      return {
+        companyEmail: 'info@akwanda.rw',
+        phone: '0781714167',
+        facebook: '',
+        instagram: '',
+        twitter: '',
+        linkedin: ''
+      };
+    }
+  });
+
   const tabs = [
     { id: 'profile', label: 'Profile', icon: FaUser },
     { id: 'security', label: 'Security', icon: FaLock },
-    { id: 'notifications', label: 'Notifications', icon: FaBell }
+    { id: 'notifications', label: 'Notifications', icon: FaBell },
+    ...(user?.userType === 'admin' ? [{ id: 'site', label: 'Site', icon: FaUser }] : [])
   ];
+
+  const saveSiteSettings = () => {
+    try {
+      localStorage.setItem('siteSettings', JSON.stringify(siteSettings));
+      toast.success('Site settings saved');
+    } catch {
+      toast.error('Failed to save site settings');
+    }
+  };
 
   const updateProfile = async () => {
     try {
@@ -362,6 +396,74 @@ const Settings = () => {
                     </button>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {activeTab === 'site' && user?.userType === 'admin' && (
+              <div className="space-y-6">
+                <h3 className="text-lg font-semibold text-gray-900">Public Site Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Company Email</label>
+                    <input
+                      type="email"
+                      value={siteSettings.companyEmail}
+                      onChange={(e) => setSiteSettings(prev => ({ ...prev, companyEmail: e.target.value }))}
+                      className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Phone</label>
+                    <input
+                      type="tel"
+                      value={siteSettings.phone}
+                      onChange={(e) => setSiteSettings(prev => ({ ...prev, phone: e.target.value }))}
+                      className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Facebook URL</label>
+                    <input
+                      type="url"
+                      value={siteSettings.facebook}
+                      onChange={(e) => setSiteSettings(prev => ({ ...prev, facebook: e.target.value }))}
+                      className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Instagram URL</label>
+                    <input
+                      type="url"
+                      value={siteSettings.instagram}
+                      onChange={(e) => setSiteSettings(prev => ({ ...prev, instagram: e.target.value }))}
+                      className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Twitter URL</label>
+                    <input
+                      type="url"
+                      value={siteSettings.twitter}
+                      onChange={(e) => setSiteSettings(prev => ({ ...prev, twitter: e.target.value }))}
+                      className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">LinkedIn URL</label>
+                    <input
+                      type="url"
+                      value={siteSettings.linkedin}
+                      onChange={(e) => setSiteSettings(prev => ({ ...prev, linkedin: e.target.value }))}
+                      className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+                <button
+                  onClick={saveSiteSettings}
+                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  Save Site Settings
+                </button>
               </div>
             )}
           </div>

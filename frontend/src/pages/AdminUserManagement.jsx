@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ListItemSkeleton } from '../components/Skeletons';
 import { FaUsers, FaExclamationTriangle, FaCheckCircle, FaUserShield, FaUserTimes, FaSearch, FaFilter, FaSync } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
@@ -9,166 +10,139 @@ const AdminUserManagement = () => {
   const [roleIssues, setRoleIssues] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState('all'); // all, guest, host, admin, issues
+  const [filterType, setFilterType] = useState('all');
   const [selectedUser, setSelectedUser] = useState(null);
   const [showUserDetails, setShowUserDetails] = useState(false);
-
-  useEffect(() => {
-    loadData();
-  }, []);
+  const [viewMode, setViewMode] = useState('table');
 
   const loadData = async () => {
-    setLoading(true);
     try {
+      setLoading(true);
       const [usersRes, issuesRes] = await Promise.all([
         fetch(`${API_URL}/api/admin/user-management/users`, { credentials: 'include' }),
-        fetch(`${API_URL}/api/admin/user-management/users/role-issues`, { credentials: 'include' })
+        fetch(`${API_URL}/api/admin/user-management/role-issues`, { credentials: 'include' })
       ]);
-
-      if (usersRes.ok) {
-        const usersData = await usersRes.json();
-        setUsers(usersData.users || []);
-      }
-
-      if (issuesRes.ok) {
-        const issuesData = await issuesRes.json();
-        setRoleIssues(issuesData.issues || []);
-      }
-    } catch (error) {
-      toast.error('Failed to load user data');
-      console.error('Error loading data:', error);
+      const usersJson = await usersRes.json();
+      const issuesJson = await issuesRes.json();
+      setUsers(usersJson.users || []);
+      setRoleIssues(issuesJson.issues || []);
+    } catch (e) {
+      toast.error('Failed to load users');
     } finally {
       setLoading(false);
     }
   };
 
+  useEffect(() => { loadData(); }, []);
+
+  const filteredUsers = useMemo(() => {
+    const q = (searchTerm || '').toLowerCase();
+    let list = users;
+    if (filterType !== 'all') {
+      if (filterType === 'issues') {
+        const ids = new Set((roleIssues || []).map(r => String(r.userId || r._id)));
+        list = list.filter(u => ids.has(String(u.id || u._id)));
+      } else {
+        list = list.filter(u => (u.userType || '').toLowerCase() === filterType);
+      }
+    }
+    return list.filter(u =>
+      (u.name || '').toLowerCase().includes(q) ||
+      (u.email || '').toLowerCase().includes(q)
+    );
+  }, [users, searchTerm, filterType, roleIssues]);
+
+  const getRoleColor = (role) => {
+    switch ((role || '').toLowerCase()) {
+      case 'admin': return 'bg-purple-100 text-purple-700';
+      case 'host': return 'bg-green-100 text-green-700';
+      default: return 'bg-gray-100 text-gray-700';
+    }
+  };
+
+  const viewUserDetails = async (id) => {
+    try {
+      setShowUserDetails(true);
+      const res = await fetch(`${API_URL}/api/admin/user-management/users/${id}`, { credentials: 'include' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to load user');
+      setSelectedUser({
+        user: data.user,
+        properties: data.properties || [],
+        propertyCount: (data.properties || []).length
+      });
+    } catch (e) {
+      toast.error(e.message || 'Failed to load user');
+      setShowUserDetails(false);
+    }
+  };
+
+  const promoteToHost = async (id) => {
+    try {
+      const res = await fetch(`${API_URL}/api/admin/user-management/users/${id}/promote`, { method: 'POST', credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to promote');
+      toast.success('Promoted to host');
+      setUsers(prev => prev.map(u => (String(u.id) === String(id) ? { ...u, userType: 'host' } : u)));
+    } catch (e) {
+      toast.error(e.message);
+    }
+  };
+
+  const demoteToGuest = async (id) => {
+    try {
+      const res = await fetch(`${API_URL}/api/admin/user-management/users/${id}/demote`, { method: 'POST', credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to demote');
+      toast.success('Demoted to guest');
+      setUsers(prev => prev.map(u => (String(u.id) === String(id) ? { ...u, userType: 'guest' } : u)));
+    } catch (e) {
+      toast.error(e.message);
+    }
+  };
+
   const fixAllRoles = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/admin/user-management/users/fix-roles`, {
-        method: 'POST',
-        credentials: 'include'
-      });
-
-      const data = await res.json();
-      if (res.ok) {
-        toast.success(data.message);
-        loadData(); // Reload data
-      } else {
-        toast.error(data.message || 'Failed to fix roles');
-      }
-    } catch (error) {
+      await fetch(`${API_URL}/api/admin/user-management/fix-roles`, { method: 'POST', credentials: 'include' });
+      toast.success('Role issues resolved');
+      loadData();
+    } catch {
       toast.error('Failed to fix roles');
-      console.error('Error fixing roles:', error);
     }
   };
-
-  const promoteToHost = async (userId) => {
-    try {
-      const res = await fetch(`${API_URL}/api/admin/user-management/users/${userId}/promote-to-host`, {
-        method: 'POST',
-        credentials: 'include'
-      });
-
-      const data = await res.json();
-      if (res.ok) {
-        toast.success(data.message);
-        loadData(); // Reload data
-      } else {
-        toast.error(data.message || 'Failed to promote user');
-      }
-    } catch (error) {
-      toast.error('Failed to promote user');
-      console.error('Error promoting user:', error);
-    }
-  };
-
-  const demoteToGuest = async (userId) => {
-    try {
-      const res = await fetch(`${API_URL}/api/admin/user-management/users/${userId}/demote-to-guest`, {
-        method: 'POST',
-        credentials: 'include'
-      });
-
-      const data = await res.json();
-      if (res.ok) {
-        toast.success(data.message);
-        loadData(); // Reload data
-      } else {
-        toast.error(data.message || 'Failed to demote user');
-      }
-    } catch (error) {
-      toast.error('Failed to demote user');
-      console.error('Error demoting user:', error);
-    }
-  };
-
-  const viewUserDetails = async (userId) => {
-    try {
-      const res = await fetch(`${API_URL}/api/admin/user-management/users/${userId}`, {
-        credentials: 'include'
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        setSelectedUser(data);
-        setShowUserDetails(true);
-      } else {
-        toast.error('Failed to load user details');
-      }
-    } catch (error) {
-      toast.error('Failed to load user details');
-      console.error('Error loading user details:', error);
-    }
-  };
-
-  const filteredUsers = users.filter(user => {
-    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.email.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    if (!matchesSearch) return false;
-
-    switch (filterType) {
-      case 'guest': return user.userType === 'guest';
-      case 'host': return user.userType === 'host';
-      case 'admin': return user.userType === 'admin';
-      case 'issues': return user.shouldBeHost;
-      default: return true;
-    }
-  });
-
-  const getRoleColor = (userType) => {
-    switch (userType) {
-      case 'admin': return 'bg-red-100 text-red-800';
-      case 'host': return 'bg-blue-100 text-blue-800';
-      case 'guest': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Filters */}
       <div className="bg-white rounded-lg shadow p-6">
-        <div className="flex items-center justify-between">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
             <p className="text-gray-600 mt-1">Manage user roles and permissions</p>
           </div>
-          <button
-            onClick={loadData}
-            className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            <FaSync />
-            <span>Refresh</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <div className="inline-flex rounded-lg overflow-hidden border">
+              <button
+                className={`px-3 py-2 text-sm ${viewMode==='table' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700'}`}
+                onClick={() => setViewMode('table')}
+                title="Table view"
+              >
+                Table
+              </button>
+              <button
+                className={`px-3 py-2 text-sm ${viewMode==='cards' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700'}`}
+                onClick={() => setViewMode('cards')}
+                title="Cards view"
+              >
+                Cards
+              </button>
+            </div>
+            <button
+              onClick={loadData}
+              className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              <FaSync />
+              <span>Refresh</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -276,89 +250,86 @@ const AdminUserManagement = () => {
         </div>
       </div>
 
-      {/* Users Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  User
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Role
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Properties
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredUsers.map((user) => (
-                <tr key={user.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">{user.name}</div>
-                      <div className="text-sm text-gray-500">{user.email}</div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getRoleColor(user.userType)}`}>
-                      {user.userType}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {user.propertyCount}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {user.shouldBeHost ? (
-                      <span className="inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
-                        <FaExclamationTriangle className="mr-1" />
-                        Needs Host Role
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                        <FaCheckCircle className="mr-1" />
-                        Correct Role
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                    <button
-                      onClick={() => viewUserDetails(user.id)}
-                      className="text-blue-600 hover:text-blue-900"
-                    >
-                      View
-                    </button>
-                    {user.userType !== 'host' && user.userType !== 'admin' && (
-                      <button
-                        onClick={() => promoteToHost(user.id)}
-                        className="text-green-600 hover:text-green-900"
-                      >
-                        Promote to Host
-                      </button>
-                    )}
-                    {user.userType === 'host' && user.propertyCount === 0 && (
-                      <button
-                        onClick={() => demoteToGuest(user.id)}
-                        className="text-red-600 hover:text-red-900"
-                      >
-                        Demote to Guest
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {/* Users List */}
+      {loading ? (
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="mb-4 h-5 w-40 bg-gray-200 rounded animate-pulse" />
+          <ListItemSkeleton rows={8} />
         </div>
-      </div>
+      ) : viewMode === 'table' ? (
+        <div className="bg-white rounded-lg shadow overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Properties</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredUsers.map((user) => (
+                  <tr key={user.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">{user.name}</div>
+                        <div className="text-sm text-gray-500">{user.email}</div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getRoleColor(user.userType)}`}>{user.userType}</span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.propertyCount}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {user.shouldBeHost ? (
+                        <span className="inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800"><FaExclamationTriangle className="mr-1" />Needs Host Role</span>
+                      ) : (
+                        <span className="inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800"><FaCheckCircle className="mr-1" />Correct Role</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                      <button onClick={() => viewUserDetails(user.id)} className="text-blue-600 hover:text-blue-900">View</button>
+                      {user.userType !== 'host' && user.userType !== 'admin' && (
+                        <button onClick={() => promoteToHost(user.id)} className="text-green-600 hover:text-green-900">Promote to Host</button>
+                      )}
+                      {user.userType === 'host' && user.propertyCount === 0 && (
+                        <button onClick={() => demoteToGuest(user.id)} className="text-red-600 hover:text-red-900">Demote to Guest</button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredUsers.map((u) => (
+            <div key={u.id} className="bg-white rounded-lg shadow p-5 border border-gray-100">
+              <div className="flex items-center gap-3 mb-3">
+                <div className={`w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-sm font-semibold`}>{(u.name || u.email || 'U').charAt(0)}</div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-gray-900 truncate">{u.name}</div>
+                  <div className="text-sm text-gray-500 truncate">{u.email}</div>
+                </div>
+                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getRoleColor(u.userType)}`}>{u.userType}</span>
+              </div>
+              <div className="text-xs text-gray-600 mb-3">Properties: <span className="font-semibold">{u.propertyCount}</span></div>
+              <div className="flex flex-wrap gap-2">
+                <button onClick={() => viewUserDetails(u.id)} className="px-3 py-1 text-sm bg-blue-50 text-blue-700 rounded hover:bg-blue-100">View</button>
+                {u.userType !== 'host' && u.userType !== 'admin' && (
+                  <button onClick={() => promoteToHost(u.id)} className="px-3 py-1 text-sm bg-green-50 text-green-700 rounded hover:bg-green-100">Promote</button>
+                )}
+                {u.userType === 'host' && u.propertyCount === 0 && (
+                  <button onClick={() => demoteToGuest(u.id)} className="px-3 py-1 text-sm bg-red-50 text-red-700 rounded hover:bg-red-100">Demote</button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* User Details Modal */}
       {showUserDetails && selectedUser && (
@@ -382,6 +353,14 @@ const AdminUserManagement = () => {
                 <p><strong>Phone:</strong> {selectedUser.user.phone}</p>
                 <p><strong>Role:</strong> {selectedUser.user.userType}</p>
                 <p><strong>Joined:</strong> {new Date(selectedUser.user.createdAt).toLocaleDateString()}</p>
+                <div className="mt-3">
+                  <a
+                    href={`/messages?to=${encodeURIComponent(selectedUser.user._id || selectedUser.user.id)}`}
+                    className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  >
+                    Start Chat
+                  </a>
+                </div>
               </div>
               
               <div>

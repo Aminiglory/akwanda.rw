@@ -163,7 +163,23 @@ const BookingProcess = () => {
 
       if (paymentMethod === 'cash') {
         toast.success('Booking created successfully! Payment on arrival.');
-        navigate(`/booking-confirmation/${bookingResponse.booking._id}`);
+        // Compute lightweight details for success page
+        const nights = (() => {
+          try {
+            const ci = new Date(bookingData.checkIn);
+            const co = new Date(bookingData.checkOut);
+            const n = Math.max(1, Math.ceil((co - ci) / (1000 * 60 * 60 * 24)));
+            return n;
+          } catch { return 1; }
+        })();
+        const params = new URLSearchParams({
+          id: String(bookingResponse.booking._id || ''),
+          property: property?.title || 'Your stay',
+          date: bookingData.checkIn && bookingData.checkOut ? `${bookingData.checkIn} → ${bookingData.checkOut}` : '',
+          loc: property?.address || property?.city || '',
+          nights: String(nights)
+        });
+        navigate(`/booking-success?${params.toString()}`);
         return;
       }
 

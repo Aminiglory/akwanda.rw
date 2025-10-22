@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const { uploadBuffer } = require('../utils/cloudinary');
 const mongoose = require('mongoose');
 const Worker = require('../tables/worker');
 const WorkerActionLog = require('../tables/workerActionLog');
@@ -46,17 +47,8 @@ async function requirePropertyOwner(req, res, next) {
   }
 }
 
-// File upload setup
-const uploadDir = path.join(process.cwd(), 'uploads');
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) { cb(null, uploadDir); },
-  filename: function (req, file, cb) {
-    const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    const ext = path.extname(file.originalname);
-    cb(null, unique + ext);
-  }
-});
+// File upload setup -> use memory storage and Cloudinary
+const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
 // Helper function to log worker actions
@@ -231,18 +223,20 @@ router.post('/', requireAuth, requirePropertyOwner, upload.single('avatar'), asy
       createdBy: req.user.id
     });
 
-    // If avatar was uploaded, set it; else generate a simple initials SVG avatar
-    if (req.file) {
-      worker.avatar = `/uploads/${path.basename(req.file.path)}`;
+    // If avatar was uploaded, set it via Cloudinary; else generate a simple initials SVG avatar
+    if (req.file && req.file.buffer) {
+      try {
+        const up = await uploadBuffer(req.file.buffer, req.file.originalname, 'workers/avatars');
+        worker.avatar = up.secure_url || up.url;
+      } catch (_) { /* ignore */ }
     } else {
       try {
         const initials = `${(firstName||'').charAt(0)}${(lastName||'').charAt(0)}`.toUpperCase() || (email||'U').charAt(0).toUpperCase();
         const bg = '#2563eb';
         const svg = `<?xml version="1.0" encoding="UTF-8"?><svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"><rect width="100%" height="100%" fill="${bg}"/><text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="120" fill="#ffffff">${initials}</text></svg>`;
-        const filename = `worker-${Date.now()}-${Math.round(Math.random()*1e6)}.svg`;
-        const filePath = path.join(uploadDir, filename);
-        fs.writeFileSync(filePath, svg, 'utf8');
-        worker.avatar = `/uploads/${filename}`;
+        const buffer = Buffer.from(svg, 'utf8');
+        const up = await uploadBuffer(buffer, `worker-${Date.now()}-${Math.round(Math.random()*1e6)}.svg`, 'workers/avatars');
+        worker.avatar = up.secure_url || up.url;
       } catch (e) {
         // Fallback: leave empty, frontend shows initials placeholder
       }
@@ -405,11 +399,12 @@ router.post('/:id/avatar', requireAuth, requirePropertyOwner, upload.single('ava
       return res.status(404).json({ message: 'Worker not found' });
     }
     
-    if (!req.file) {
+    if (!req.file || !req.file.buffer) {
       return res.status(400).json({ message: 'No file uploaded' });
     }
     
-    const avatarUrl = `/uploads/${path.basename(req.file.path)}`;
+    const up = await uploadBuffer(req.file.buffer, req.file.originalname, 'workers/avatars');
+    const avatarUrl = up.secure_url || up.url;
     worker.avatar = avatarUrl;
     await worker.save();
     
@@ -429,6 +424,40 @@ router.post('/:id/avatar', requireAuth, requirePropertyOwner, upload.single('ava
   } catch (error) {
     console.error('Avatar upload error:', error);
     res.status(500).json({ message: 'Failed to upload avatar' });
+  }
+});
+
+// Create or link worker login account with provided credentials (owner/admin only)
+router.post('/:id/account', requireAuth, requirePropertyOwner, async (req, res) => {
+  try {
+    const worker = await Worker.findOne({ _id: req.params.id, employerId: req.user.id });
+    if (!worker) return res.status(404).json({ message: 'Worker not found' });
+    const { username, email, password } = req.body || {};
+    if (!email || !password) return res.status(400).json({ message: 'Email and password are required' });
+    const lower = String(email).toLowerCase();
+    let user = worker.userAccount ? await User.findById(worker.userAccount) : await User.findOne({ email: lower });
+    if (!user) {
+      const hash = await bcrypt.hash(password, 10);
+      user = await User.create({ firstName: worker.firstName, lastName: worker.lastName, email: lower, phone: worker.phone, passwordHash: hash, userType: 'worker', username });
+      worker.userAccount = user._id;
+      await worker.save();
+      await logWorkerAction(worker._id, req.user.id, 'account_created', 'worker', worker._id, `Created worker account for ${worker.fullName}`, { targetName: worker.fullName }, req);
+      return res.status(201).json({ message: 'Worker account created', user: { id: user._id, email: user.email } });
+    } else {
+      // Reset password and ensure worker role
+      const hash = await bcrypt.hash(password, 10);
+      user.passwordHash = hash;
+      user.userType = user.userType || 'worker';
+      if (username) user.username = username;
+      await user.save();
+      worker.userAccount = user._id;
+      await worker.save();
+      await logWorkerAction(worker._id, req.user.id, 'account_reset', 'worker', worker._id, `Reset worker account credentials for ${worker.fullName}`, { targetName: worker.fullName }, req);
+      return res.json({ message: 'Worker account updated', user: { id: user._id, email: user.email } });
+    }
+  } catch (e) {
+    console.error('Create/link worker account error:', e);
+    return res.status(500).json({ message: 'Failed to create/link worker account' });
   }
 });
 

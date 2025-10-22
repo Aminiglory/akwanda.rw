@@ -1058,7 +1058,8 @@ router.put('/:id', requireAuth, requireWorkerPrivilege('canEditProperties'), upl
 // Admin-only: normalize stored image URLs for all properties and rooms
 router.post('/admin/normalize-images', requireAuth, async (req, res) => {
     try {
-        if (req.user.userType !== 'admin') return res.status(403).json({ message: 'Admin only' });
+        // Admin-only toggle requires auth; keep it protected
+    if (!req.user || req.user.userType !== 'admin') return res.status(403).json({ message: 'Admin only' });
         const norm = (u) => {
             if (!u) return u;
             let s = String(u).trim();
@@ -1095,7 +1096,8 @@ router.post('/admin/normalize-images', requireAuth, async (req, res) => {
 // [Removed duplicate delete route here] Use the later host-only delete route below instead.
 
 // Toggle availability (admin-only)
-router.post('/:id/availability', requireAuth, async (req, res) => {
+// Public availability check: do NOT require auth when dates are provided
+router.post('/:id/availability', async (req, res) => {
     const property = await Property.findById(req.params.id);
     if (!property) return res.status(404).json({ message: 'Property not found' });
 

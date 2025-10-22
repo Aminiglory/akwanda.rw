@@ -147,80 +147,108 @@ const AdminCommissionManager = () => {
           <p className="text-gray-600">No users have unpaid commissions at this time</p>
         </div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b">
-              <tr>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">User</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Total Commission Owed</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Bookings</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {users.map(user => (
-                <tr key={user._id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4">
-                    <div>
-                      <p className="font-semibold text-gray-900">
-                        {user.firstName} {user.lastName}
-                      </p>
-                      <p className="text-sm text-gray-600">{user.email}</p>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center space-x-2">
-                      <FaMoneyBillWave className="text-red-600" />
-                      <span className="text-xl font-bold text-red-600">
-                        {formatCurrency(user.totalCommission)}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
-                      {user.bookings?.length || 0} unpaid bookings
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    {user.isBlocked ? (
-                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                        <FaToggleOff className="mr-1" />
-                        Deactivated
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        <FaToggleOn className="mr-1" />
-                        Active
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4">
-                    {user.isBlocked ? (
-                      <button
-                        onClick={() => handleReactivateUser(user._id)}
-                        disabled={processingId === user._id}
-                        className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-colors ${processingId === user._id ? 'bg-green-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 text-white'}`}
-                      >
-                        <FaToggleOn />
-                        <span>{processingId === user._id ? 'Reactivating...' : 'Reactivate'}</span>
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => handleDeactivateUser(user._id, user.totalCommission)}
-                        disabled={processingId === user._id}
-                        className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-colors ${processingId === user._id ? 'bg-red-400 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700 text-white'}`}
-                      >
-                        <FaToggleOff />
-                        <span>{processingId === user._id ? 'Deactivating...' : 'Deactivate'}</span>
-                      </button>
-                    )}
-                  </td>
+        <>
+          {/* Cards on small screens */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:hidden">
+            {users.map(user => (
+              <div key={user._id} className="border border-gray-200 rounded-xl p-4 bg-white">
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <div className="font-semibold text-gray-900">{user.firstName} {user.lastName}</div>
+                    <div className="text-sm text-gray-600">{user.email}</div>
+                  </div>
+                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${user.isBlocked ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>
+                    {user.isBlocked ? 'Deactivated' : 'Active'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <FaMoneyBillWave className="text-red-600" />
+                    <span className="font-semibold text-red-600">{formatCurrency(user.totalCommission)}</span>
+                  </div>
+                  <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs">
+                    {user.bookings?.length || 0} unpaid
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {user.isBlocked ? (
+                    <button
+                      onClick={() => handleReactivateUser(user._id)}
+                      disabled={processingId === user._id}
+                      className={`flex-1 px-3 py-2 rounded-lg text-white text-sm ${processingId === user._id ? 'bg-green-400' : 'bg-green-600 hover:bg-green-700'}`}
+                    >
+                      Reactivate
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handleDeactivateUser(user._id, user.totalCommission)}
+                      disabled={processingId === user._id}
+                      className={`flex-1 px-3 py-2 rounded-lg text-white text-sm ${processingId === user._id ? 'bg-red-400' : 'bg-red-600 hover:bg-red-700'}`}
+                    >
+                      Deactivate
+                    </button>
+                  )}
+                  <button
+                    onClick={() => handleAddFine(user._id)}
+                    className="px-3 py-2 rounded-lg border text-sm hover:bg-gray-50"
+                  >
+                    Add Fine
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Table on md+ */}
+          <div className="overflow-x-auto hidden md:block">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b">
+                <tr>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">User</th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Total Commission Owed</th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Bookings</th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {users.map(user => (
+                  <tr key={user._id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4">
+                      <div>
+                        <p className="font-semibold text-gray-900">{user.firstName} {user.lastName}</p>
+                        <p className="text-sm text-gray-600">{user.email}</p>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center space-x-2">
+                        <FaMoneyBillWave className="text-red-600" />
+                        <span className="text-xl font-bold text-red-600">{formatCurrency(user.totalCommission)}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">{user.bookings?.length || 0} unpaid bookings</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      {user.isBlocked ? (
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">Deactivated</span>
+                      ) : (
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">Active</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      {user.isBlocked ? (
+                        <button onClick={() => handleReactivateUser(user._id)} disabled={processingId === user._id} className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-colors ${processingId === user._id ? 'bg-green-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 text-white'}`}>Reactivate</button>
+                      ) : (
+                        <button onClick={() => handleDeactivateUser(user._id, user.totalCommission)} disabled={processingId === user._id} className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-colors ${processingId === user._id ? 'bg-red-400 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700 text-white'}`}>Deactivate</button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
       <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
