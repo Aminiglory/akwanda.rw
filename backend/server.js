@@ -82,7 +82,20 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(cookieParser());
-app.use('/uploads', require('express').static(require('path').join(process.cwd(), 'uploads')));
+// Serve uploads with strong caching and permissive CORS for cross-origin image loads
+const path = require('path');
+const uploadsDir = path.join(process.cwd(), 'uploads');
+app.use('/uploads', express.static(uploadsDir, {
+  etag: true,
+  lastModified: true,
+  // Cache for 30 days; files are content-addressed by unique names on upload
+  maxAge: '30d',
+  setHeaders: (res) => {
+    res.setHeader('Cache-Control', 'public, max-age=2592000, immutable');
+    // Allow hotlinking from any origin (images only)
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
+}));
 
 app.get('/health', (req, res) => {
 	res.json({ status: 'ok', db: DB_READY ? 'connected' : 'connecting' }); 
