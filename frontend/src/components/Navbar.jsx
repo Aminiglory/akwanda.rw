@@ -555,7 +555,10 @@ const Navbar = () => {
                   )}
                 </div>
 
-              {/* Favorites */}
+                )}
+
+              {/* Favorites */
+}
               {isAuthenticated && (
                 <Link
                   to="/favorites"
