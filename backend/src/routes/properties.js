@@ -4,6 +4,7 @@ const Worker = require('../tables/worker');
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
+const { uploadBuffer } = require('../utils/cloudinary');
 const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 
@@ -913,42 +914,21 @@ router.post('/:id/rooms/:roomId/unlock', requireAuth, async (req, res) => {
     }
 });
 
-const uploadDir = path.join(process.cwd(), 'uploads');
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-const storage = multer.diskStorage({
-	destination: function (req, file, cb) {
-		cb(null, uploadDir);
-	},
-	filename: function (req, file, cb) {
-		const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
-		const ext = path.extname(file.originalname);
-		cb(null, unique + ext);
-	}
-});
+// Use memory storage; files will be forwarded to Cloudinary
+const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
 // Dedicated image upload endpoint
 router.post('/upload/images', requireAuth, upload.array('images', 10), async (req, res) => {
     try {
-        console.log('Image upload request received:', {
-            files: req.files?.length || 0,
-            user: req.user?.id,
-            body: req.body
-        });
-
         if (!req.files || req.files.length === 0) {
-            console.log('No files uploaded');
             return res.status(400).json({ message: 'No images uploaded' });
         }
-        
-        const imagePaths = req.files.map(f => `/uploads/${path.basename(f.path)}`);
-        console.log('Images uploaded successfully:', imagePaths);
-        
-        res.json({ 
-            success: true, 
-            imageUrls: imagePaths,
-            message: 'Images uploaded successfully' 
-        });
+        const results = await Promise.all(
+            req.files.map(f => uploadBuffer(f.buffer, f.originalname, 'properties'))
+        );
+        const imageUrls = results.map(r => r.secure_url || r.url);
+        res.json({ success: true, imageUrls, message: 'Images uploaded successfully' });
     } catch (error) {
         console.error('Image upload error:', error);
         res.status(500).json({ message: 'Failed to upload images', error: error.message });
@@ -1041,8 +1021,9 @@ router.put('/:id', requireAuth, requireWorkerPrivilege('canEditProperties'), upl
     }
     // Merge or replace images if new files provided
     if (req.files && req.files.length) {
-        const imagePaths = req.files.map(f => `/uploads/${path.basename(f.path)}`);
-        updates.images = imagePaths;
+        const uploaded = await Promise.all(req.files.map(f => uploadBuffer(f.buffer, f.originalname, 'properties')));
+        const urls = uploaded.map(u => u.secure_url || u.url);
+        updates.images = urls;
     }
     // Merge explicit imageUrls if provided
     if (req.body.imageUrls) {
@@ -1243,7 +1224,9 @@ router.post('/:id/rooms', requireAuth, upload.array('images', 10), async (req, r
         }
 
         // Merge uploaded files + body images into final images array
-        const uploaded = (req.files || []).map(f => `/uploads/${path.basename(f.path)}`);
+        const uploaded = (req.files && req.files.length)
+            ? (await Promise.all(req.files.map(f => uploadBuffer(f.buffer, f.originalname, 'properties/rooms')))).map(r => r.secure_url || r.url)
+            : [];
         const bodyImages = Array.isArray(images) ? images : [images].filter(Boolean);
         const mergedImages = Array.from(new Set([...uploaded, ...bodyImages].map(u => String(u).replace(/\\+/g, '/')).filter(Boolean)));
 
@@ -1283,7 +1266,9 @@ router.post('/:id/rooms/:roomId/images', requireAuth, upload.array('images', 10)
         const room = (property.rooms || []).id(req.params.roomId);
         if (!room) return res.status(404).json({ message: 'Room not found' });
 
-        const uploaded = (req.files || []).map(f => `/uploads/${path.basename(f.path)}`);
+        const uploaded = (req.files && req.files.length)
+            ? (await Promise.all(req.files.map(f => uploadBuffer(f.buffer, f.originalname, 'properties/rooms')))).map(r => r.secure_url || r.url)
+            : [];
         const bodyUrls = req.body.imageUrls ? (Array.isArray(req.body.imageUrls) ? req.body.imageUrls : [req.body.imageUrls]) : [];
         const all = Array.from(new Set([...(room.images || []), ...uploaded, ...bodyUrls].map(u => String(u).replace(/\\+/g, '/')).filter(Boolean)));
         room.images = all;

@@ -9,6 +9,7 @@ const jwt = require('jsonwebtoken');
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
+const { uploadBuffer } = require('../utils/cloudinary');
 const bcrypt = require('bcryptjs');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
@@ -321,23 +322,17 @@ router.post('/properties/:id/toggle', requireAdmin, async (req, res) => {
 });
 
 // Avatar upload
-const uploadDir = path.join(process.cwd(), 'uploads');
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) { cb(null, uploadDir); },
-    filename: function (req, file, cb) {
-        const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
-        const ext = path.extname(file.originalname);
-        cb(null, unique + ext);
-    }
-});
+// Use memory storage and forward uploads to Cloudinary
+const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
 router.post('/me/avatar', requireAdmin, upload.single('avatar'), async (req, res) => {
     const User = require('../tables/user');
     const u = await User.findById(req.user.id);
     if (!u) return res.status(404).json({ message: 'User not found' });
-    u.avatar = `/uploads/${path.basename(req.file.path)}`;
+    if (!req.file || !req.file.buffer) return res.status(400).json({ message: 'No avatar uploaded' });
+    const up = await uploadBuffer(req.file.buffer, req.file.originalname, 'admin/avatars');
+    u.avatar = up.secure_url || up.url;
     await u.save();
     res.json({ user: { id: u._id, avatar: u.avatar } });
 });
@@ -371,8 +366,9 @@ router.post('/landing-content', requireAdmin, async (req, res) => {
 
 router.post('/landing-content/images', requireAdmin, upload.array('images', 12), async (req, res) => {
     try {
-        const files = (req.files || []).map(f => `/uploads/${path.basename(f.path)}`);
-        res.json({ images: files });
+        if (!req.files || !req.files.length) return res.status(400).json({ message: 'No images uploaded' });
+        const results = await Promise.all(req.files.map(f => uploadBuffer(f.buffer, f.originalname, 'cms/landing')));
+        res.json({ images: results.map(r => r.secure_url || r.url) });
     } catch (e) {
         res.status(500).json({ message: 'Failed to upload images' });
     }

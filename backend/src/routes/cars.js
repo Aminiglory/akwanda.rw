@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
+const { uploadBuffer } = require('../utils/cloudinary');
 const router = express.Router();
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
@@ -32,17 +33,8 @@ function requireOwnerOrAdmin(getOwnerId) {
   };
 }
 
-// uploads
-const uploadDir = path.join(process.cwd(), 'uploads');
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
-  filename: (req, file, cb) => {
-    const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    const ext = path.extname(file.originalname);
-    cb(null, unique + ext);
-  }
-});
+// uploads -> use memory storage and forward to Cloudinary
+const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
 // Public list cars with filters
@@ -168,10 +160,12 @@ router.post('/:id/images', requireAuth, requireOwnerOrAdmin(async (req) => {
     const CarRental = require('../tables/carRental');
     const car = await CarRental.findById(req.params.id);
     if (!car) return res.status(404).json({ message: 'Car not found' });
-    const files = (req.files || []).map(f => `/uploads/${path.basename(f.path)}`);
-    car.images = [...(car.images || []), ...files];
+    const uploaded = (req.files && req.files.length)
+      ? (await Promise.all(req.files.map(f => uploadBuffer(f.buffer, f.originalname, 'cars')))).map(r => r.secure_url || r.url)
+      : [];
+    car.images = [...(car.images || []), ...uploaded];
     await car.save();
-    res.json({ car, images: files });
+    res.json({ car, images: uploaded });
   } catch (e) {
     res.status(500).json({ message: 'Failed to upload images' });
   }

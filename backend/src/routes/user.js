@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
+const { uploadBuffer } = require('../utils/cloudinary');
 const User = require('../tables/user');
 const sharp = require('sharp');
 
@@ -20,22 +21,16 @@ function requireAuth(req, res, next) {
 	}
 }
 
-const uploadDir = path.join(process.cwd(), 'uploads');
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-const storage = multer.diskStorage({
-	destination: function (req, file, cb) { cb(null, uploadDir); },
-	filename: function (req, file, cb) {
-		const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
-		const ext = path.extname(file.originalname);
-		cb(null, unique + ext);
-	}
-});
+// Use memory storage; forward to Cloudinary
+const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
 router.post('/me/avatar', requireAuth, upload.single('avatar'), async (req, res) => {
 	const u = await User.findById(req.user.id);
 	if (!u) return res.status(404).json({ message: 'User not found' });
-	u.avatar = `/uploads/${path.basename(req.file.path)}`;
+	if (!req.file || !req.file.buffer) return res.status(400).json({ message: 'No avatar uploaded' });
+	const up = await uploadBuffer(req.file.buffer, req.file.originalname, 'users/avatars');
+	u.avatar = up.secure_url || up.url;
 	await u.save();
 	res.json({ user: { id: u._id, avatar: u.avatar } });
 });
@@ -54,15 +49,12 @@ async function generateDefaultAvatar(initials, userId) {
 			</svg>
 		`;
 		
-		const filename = `avatar-${userId}-${Date.now()}.png`;
-		const filepath = path.join(uploadDir, filename);
-		
-		await sharp(Buffer.from(svg))
+		const pngBuffer = await sharp(Buffer.from(svg))
 			.png()
 			.resize(200, 200)
-			.toFile(filepath);
-		
-		return `/uploads/${filename}`;
+			.toBuffer();
+		const up = await uploadBuffer(pngBuffer, `avatar-${userId}-${Date.now()}.png`, 'users/avatars');
+		return up.secure_url || up.url;
 	} catch (error) {
 		console.error('Error generating default avatar:', error);
 		return null;
@@ -77,9 +69,10 @@ router.post('/upload-avatar', requireAuth, upload.single('avatar'), async (req, 
 		
 		let avatarUrl;
 		
-		if (req.file) {
+		if (req.file && req.file.buffer) {
 			// User uploaded a file
-			avatarUrl = `/uploads/${path.basename(req.file.path)}`;
+			const up = await uploadBuffer(req.file.buffer, req.file.originalname, 'users/avatars');
+			avatarUrl = up.secure_url || up.url;
 		} else {
 			// Generate default avatar with user's initials
 			const firstName = user.firstName || '';
