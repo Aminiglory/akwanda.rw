@@ -90,6 +90,15 @@ export default function Messages() {
   // Placeholder avatar if backend doesn't return one
   const placeholderAvatar = 'https://ui-avatars.com/api/?name=A&background=0D8ABC&color=fff&size=64';
 
+  // Determine if an attachment should be treated as an image
+  const isImageAttachment = (att) => {
+    if (!att) return false;
+    const mime = String(att.type || att.mime || '');
+    if (mime.toLowerCase().startsWith('image/')) return true;
+    const url = String(att.url || att.path || att.src || '');
+    return /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(url);
+  };
+
   useEffect(() => {
     loadThreads();
   }, []);
@@ -285,7 +294,8 @@ export default function Messages() {
         booking: t.context?.bookingId ? { id: t.context.bookingId, propertyName: 'Booking', status: '' } : null,
         context: t.context || {}
       }));
-      setThreads(mapped);
+      const sorted = mapped.sort((a, b) => new Date(b.lastMessageTime || 0) - new Date(a.lastMessageTime || 0));
+      setThreads(sorted);
       // Preselect thread via query: by userId or bookingId
       let preset = null;
       if (prefillTo) preset = mapped.find(x => String(x.userId) === String(prefillTo)) || null;
@@ -382,12 +392,16 @@ export default function Messages() {
           reply: ref ? { id: ref.id, senderName: ref.senderName, text: ref.content } : null
         }]);
       } else {
-        // Update unread count for threads not currently active
-        setThreads(prev => prev.map(t => 
-          t.context?.bookingId && String(t.context.bookingId) === String(payload.bookingId) && String(m.sender) !== myId
-            ? { ...t, unreadCount: (t.unreadCount || 0) + 1, lastMessage: m.message, lastMessageTime: m.createdAt }
-            : t
-        ));
+        // Update unread count and bump thread to top for threads not currently active
+        setThreads(prev => {
+          const updated = prev.map(t => 
+            t.context?.bookingId && String(t.context.bookingId) === String(payload.bookingId) && String(m.sender) !== myId
+              ? { ...t, unreadCount: (t.unreadCount || 0) + 1, lastMessage: m.message, lastMessageTime: m.createdAt }
+              : t
+          );
+          updated.sort((a, b) => new Date(b.lastMessageTime || 0) - new Date(a.lastMessageTime || 0));
+          return updated;
+        });
       }
       return;
     }
@@ -407,21 +421,17 @@ export default function Messages() {
           return;
         }
         // Ignore own echoes
-        if (isMine) return;
-        
-        const ref = payload.replyTo ? messages.find(x => String(x.id) === String(payload.replyTo)) : null;
-        const mid = extractMessageId(payload) || String(Math.random());
-        setMessages(prev => [...prev, {
-          id: mid,
-          senderId: senderId,
-          senderName: isMine ? (user?.name || 'You') : thread.userName,
-          content: payload.text || '',
-          attachments: payload.attachments || [],
-          timestamp: payload.createdAt,
-          type: (payload.attachments && payload.attachments.length) ? 'file' : 'text',
-          status: 'delivered',
-          reply: ref ? { id: ref.id, senderName: ref.senderName, text: ref.content } : null
-        }]);
+        if (payload.senderId && String(payload.senderId) === myId) return;
+        // bump unread and preview for this user thread and reorder
+        setThreads(prev => {
+          const updated = prev.map(t => 
+            (String(t.userId) === senderId || String(t.userId) === String(payload.to))
+              ? { ...t, unreadCount: (t.unreadCount || 0) + 1, lastMessage: payload.message || '', lastMessageTime: payload.createdAt || new Date().toISOString() }
+              : t
+          );
+          updated.sort((a, b) => new Date(b.lastMessageTime || 0) - new Date(a.lastMessageTime || 0));
+          return updated;
+        });
       } else if (!isMine && isForMe) {
         // Update unread count for threads not currently active
         setThreads(prev => prev.map(t => 
@@ -517,7 +527,13 @@ export default function Messages() {
         const up = await fetch(`${API_URL}/api/messages/upload`, { method: 'POST', credentials: 'include', body: form });
         const upJson = await up.json();
         if (!up.ok) throw new Error(upJson.message || 'Upload failed');
-        uploaded = upJson.attachments || [];
+        // Normalize server attachments to include url/name/isImage
+        uploaded = (upJson.attachments || []).map(a => ({
+          ...a,
+          url: a.url || a.path || a.src,
+          name: a.name || a.filename || a.originalname,
+          isImage: isImageAttachment(a)
+        }));
       }
 
       const payload = {
@@ -789,7 +805,7 @@ export default function Messages() {
         onTouchStart={() => { if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current); longPressTimerRef.current = setTimeout(() => setContextMenu({ visible: true, x: window.innerWidth/2, y: window.innerHeight/2, message }), 500); }}
         onTouchEnd={() => { if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current); }}
       >
-        <div className={`max-w-[85%] sm:max-w-[75%] lg:max-w-[60%] ${isOwn ? 'order-2' : 'order-1'}`}>
+        <div className={`max-w-[92%] sm:max-w-[75%] lg:max-w-[60%] ${isOwn ? 'order-2' : 'order-1'}`}>
           {!isOwn && (
             <div className="flex items-center mb-1">
               <img
@@ -806,29 +822,35 @@ export default function Messages() {
               <div className="truncate max-w-[240px]">{message.reply.text}</div>
             </div>
           )}
-          <div className={`rounded-2xl px-4 py-2 ${
+          <div className={`rounded-2xl px-3 sm:px-4 py-2 ${
             isOwn 
               ? 'bg-blue-600 text-white' 
               : 'bg-white text-gray-800 border border-gray-200'
           }`}>
             {message.type === 'file' && message.attachments ? (
               <div className="space-y-2">
-                {message.attachments.map(attachment => (
-                  <div key={attachment.id} className="flex items-center space-x-2">
-                    {attachment.isImage ? (
-                      <img
-                        src={attachment.url}
-                        alt={attachment.name}
-                        className="max-w-full h-auto rounded-lg"
-                      />
-                    ) : (
-                      <div className="flex items-center space-x-2 p-2 bg-gray-100 rounded-lg">
-                        <FaFile className="text-gray-600" />
-                        <span className="text-sm">{attachment.name}</span>
-                      </div>
-                    )}
-                  </div>
-                ))}
+                {message.attachments.map(attachment => {
+                  const isImg = attachment.isImage ?? isImageAttachment(attachment);
+                  const url = attachment.url || attachment.path || attachment.src;
+                  return (
+                    <div key={attachment.id || url} className="flex items-center space-x-2">
+                      {isImg ? (
+                        <a href={url} target="_blank" rel="noreferrer">
+                          <img
+                            src={url}
+                            alt={attachment.name || 'image'}
+                            className="max-w-full h-auto rounded-lg"
+                          />
+                        </a>
+                      ) : (
+                        <a href={url} target="_blank" rel="noreferrer" className="flex items-center space-x-2 p-2 bg-gray-100 rounded-lg">
+                          <FaFile className="text-gray-600" />
+                          <span className="text-sm">{attachment.name || 'file'}</span>
+                        </a>
+                      )}
+                    </div>
+                  );
+                })}
                 {message.content && <p className="mt-2 break-words">{message.content}</p>}
               </div>
             ) : (
@@ -1082,7 +1104,7 @@ export default function Messages() {
 
               {/* Attachments Preview */}
               {attachments.length > 0 && (
-                <div className="p-4 border-t border-gray-200">
+                <div className="p-3 sm:p-4 border-t border-gray-200">
                   <div className="flex flex-wrap gap-2">
                     {attachments.map(attachment => (
                       <div key={attachment.id} className="relative">
@@ -1090,7 +1112,7 @@ export default function Messages() {
                           <img
                             src={attachment.url}
                             alt={attachment.name}
-                            className="w-16 h-16 object-cover rounded-lg"
+                            className="w-14 h-14 sm:w-16 sm:h-16 object-cover rounded-lg"
                           />
                         ) : (
                           <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center">
@@ -1123,26 +1145,26 @@ export default function Messages() {
               )}
 
               {/* Message Input */}
-              <div className="p-4 border-t border-gray-200 relative sticky bottom-0 bg-white">
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-2 flex-1 bg-gray-100 rounded-full px-3 py-2">
+              <div className="p-3 sm:p-4 border-t border-gray-200 relative sticky bottom-0 bg-white">
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  <div className="flex items-center gap-1.5 sm:gap-2 flex-1 bg-gray-100 rounded-full px-2.5 sm:px-3 py-1.5 sm:py-2">
                     <button
                       onClick={() => imageInputRef.current?.click()}
-                      className="shrink-0 p-2 text-gray-600 hover:text-blue-600 hover:bg-gray-200 rounded-full"
+                      className="shrink-0 p-1.5 sm:p-2 text-gray-600 hover:text-blue-600 hover:bg-gray-200 rounded-full"
                       title="Add image"
                     >
                       <FaImage />
                     </button>
                     <button
                       onClick={() => fileInputRef.current?.click()}
-                      className="shrink-0 p-2 text-gray-600 hover:text-blue-600 hover:bg-gray-200 rounded-full"
+                      className="shrink-0 p-1.5 sm:p-2 text-gray-600 hover:text-blue-600 hover:bg-gray-200 rounded-full"
                       title="Attach file"
                     >
                       <FaFile />
                     </button>
                     <button
                       onClick={() => setShowEmojiPicker(v => !v)}
-                      className="shrink-0 p-2 text-gray-600 hover:text-blue-600 hover:bg-gray-200 rounded-full"
+                      className="shrink-0 p-1.5 sm:p-2 text-gray-600 hover:text-blue-600 hover:bg-gray-200 rounded-full"
                       title="Emoji"
                     >
                       <FaSmile />
@@ -1162,13 +1184,13 @@ export default function Messages() {
                         }
                       }}
                       placeholder="Message..."
-                      className="bg-transparent flex-1 min-w-0 text-sm placeholder-gray-500 focus:outline-none"
+                      className="bg-transparent flex-1 min-w-0 text-xs sm:text-sm placeholder-gray-500 focus:outline-none"
                     />
                   </div>
                   <button
                     onClick={sendMessage}
                     disabled={(!newMessage.trim() && attachments.length === 0) || newMessage.length > MAX_MESSAGE_LEN}
-                    className="p-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="p-2.5 sm:p-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                     title="Send"
                   >
                     <FaPaperPlane />
@@ -1176,7 +1198,7 @@ export default function Messages() {
                 </div>
                 {/* Emoji Picker Popover */}
                 {showEmojiPicker && (
-                  <div className="absolute bottom-16 left-4 right-4 sm:right-auto bg-white border border-gray-200 rounded-xl p-2 shadow-lg grid grid-cols-8 gap-1 z-10">
+                  <div className="absolute bottom-14 sm:bottom-16 left-3 sm:left-4 right-3 sm:right-4 bg-white border border-gray-200 rounded-xl p-2 shadow-lg grid grid-cols-8 gap-1 z-10">
                     {['😀','😁','😂','🤣','😊','😍','😘','🤩','👍','🙏','🔥','🎉','🏡','🛏️','🛁','📅','📍','💬','✨','💯','📎','📷'].map((em)=> (
                       <button key={em} className="p-1 hover:bg-gray-100 rounded" onClick={() => setNewMessage(s => (s || '') + em)}>{em}</button>
                     ))}

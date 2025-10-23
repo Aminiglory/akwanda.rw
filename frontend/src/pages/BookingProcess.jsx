@@ -344,8 +344,17 @@ const BookingProcess = () => {
       return nightly >= nightlyMin && nightly <= nightlyMax;
     });
 
-    // If no rooms match, gracefully fall back to all rooms instead of blocking the user
-    if (filtered.length === 0) {
+    // Always keep selected room visible even if outside the current filter
+    if (selectedRoom) {
+      const inList = filtered.some(r => (r._id && r._id === selectedRoom._id) || r.roomNumber === selectedRoom.roomNumber);
+      if (!inList) {
+        filtered = [...filtered, { ...selectedRoom, __outsideFilter: true }];
+      }
+    }
+
+    // If no rooms match besides possibly the selected one, fallback to all rooms with info toast
+    const nonSelectedCount = filtered.filter(r => !r.__outsideFilter).length;
+    if (nonSelectedCount === 0) {
       filtered = dedupeRooms(availableRooms);
       toast.dismiss();
       toast('No rooms within selected budget; showing all available rooms', { icon: 'ℹ️' });
@@ -573,109 +582,125 @@ const BookingProcess = () => {
                     </button>
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    {filteredRooms.map((room, index) => (
-                      <div
-                        key={room._id || room.roomNumber || index}
-                        className={`group border-2 rounded-xl p-6 cursor-pointer transition-all duration-500 transform hover:scale-105 hover:shadow-xl ${
-                          isRoomSelected(room)
-                            ? 'border-blue-500 bg-gradient-to-br from-blue-50 to-blue-100 shadow-lg scale-105'
-                            : 'border-gray-200 hover:border-blue-300 bg-white'
-                        }`}
-                        onClick={() => handleRoomSelect(room)}
-                      >
-                        <div className="flex items-start space-x-4">
-                          {/* Enhanced Room Images */}
-                          <div className="w-32 h-24 rounded-lg overflow-hidden relative group">
-                            {room.images && room.images.length > 0 ? (
-                              <img
-                                src={room.images[0]}
-                                alt={room.roomNumber}
-                                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                                onError={(e) => {
-                                  e.target.style.display = 'none';
-                                  e.target.nextSibling.style.display = 'flex';
-                                }}
-                              />
-                            ) : null}
-                            <div 
-                              className={`w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center ${room.images && room.images.length > 0 ? 'hidden' : ''}`}
-                              style={{ display: room.images && room.images.length > 0 ? 'none' : 'flex' }}
+                  <div className="space-y-6">
+                    {Object.entries(
+                      filteredRooms.reduce((acc, r) => {
+                        const key = (r.roomType || 'Standard').toString();
+                        if (!acc[key]) acc[key] = [];
+                        acc[key].push(r);
+                        return acc;
+                      }, {})
+                    ).sort(([a],[b]) => a.localeCompare(b)).map(([type, list]) => (
+                      <div key={type}>
+                        <h4 className="text-lg font-bold text-gray-800 mb-2">{type} Rooms</h4>
+                        <div className="space-y-4">
+                          {list.map((room, index) => (
+                            <div
+                              key={room._id || room.roomNumber || index}
+                              className={`group border-2 rounded-xl p-6 cursor-pointer transition-all duration-500 transform hover:scale-105 hover:shadow-xl ${
+                                isRoomSelected(room)
+                                  ? 'border-blue-500 bg-gradient-to-br from-blue-50 to-blue-100 shadow-lg scale-105'
+                                  : 'border-gray-200 hover:border-blue-300 bg-white'
+                              }`}
+                              onClick={() => handleRoomSelect(room)}
                             >
-                              <FaBed className="text-gray-400 text-2xl" />
-                            </div>
-                            {isRoomSelected(room) && (
-                              <div className="absolute inset-0 bg-blue-500 bg-opacity-20 flex items-center justify-center">
-                                <FaCheck className="text-white text-2xl" />
-                              </div>
-                            )}
-                          </div>
+                              <div className="flex items-start space-x-4">
+                                <div className="w-32 h-24 rounded-lg overflow-hidden relative group">
+                                  {room.images && room.images.length > 0 ? (
+                                    <img
+                                      src={room.images[0]}
+                                      alt={room.roomNumber}
+                                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                      onError={(e) => {
+                                        e.target.style.display = 'none';
+                                        e.target.nextSibling.style.display = 'flex';
+                                      }}
+                                    />
+                                  ) : null}
+                                  <div 
+                                    className={`w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center ${room.images && room.images.length > 0 ? 'hidden' : ''}`}
+                                    style={{ display: room.images && room.images.length > 0 ? 'none' : 'flex' }}
+                                  >
+                                    <FaBed className="text-gray-400 text-2xl" />
+                                  </div>
+                                  {isRoomSelected(room) && (
+                                    <div className="absolute inset-0 bg-blue-500 bg-opacity-20 flex items-center justify-center">
+                                      <FaCheck className="text-white text-2xl" />
+                                    </div>
+                                  )}
+                                </div>
 
-                          <div className="flex-1">
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1">
-                                <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-700 transition-colors duration-300">
-                                  {room.roomNumber || 'Room ' + (index + 1)}
-                                </h3>
-                                <p className="text-sm text-gray-600 capitalize font-medium">
-                                  {(room.roomType || 'Standard')} Room
-                                </p>
-                                <div className="flex items-center mt-3 space-x-4 text-sm text-gray-600">
-                                  <div className="flex items-center bg-gray-100 px-3 py-1 rounded-full">
-                                    <FaUsers className="mr-1 text-blue-600" />
-                                    <span className="font-medium">{room.capacity || 1} guests</span>
-                                  </div>
-                                  <div className={`px-3 py-1 rounded-full text-xs font-medium transition-all duration-300 ${
-                                    room.isAvailable !== false 
-                                      ? 'bg-green-100 text-green-800 hover:bg-green-200' 
-                                      : 'bg-red-100 text-red-800 hover:bg-red-200'
-                                  }`}>
-                                    {room.isAvailable !== false ? '✓ Available' : '✗ Unavailable'}
-                                  </div>
-                                </div>
-                                
-                                {/* Room Amenities */}
-                                {room.amenities && room.amenities.length > 0 && (
-                                  <div className="flex flex-wrap gap-2 mt-3">
-                                    {room.amenities.slice(0, 3).map((amenity, amenityIndex) => (
-                                      <span 
-                                        key={amenityIndex}
-                                        className="px-2 py-1 bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 text-xs rounded-full font-medium"
-                                      >
-                                        {amenity}
-                                      </span>
-                                    ))}
-                                    {room.amenities.length > 3 && (
-                                      <span className="px-2 py-1 bg-gradient-to-r from-purple-100 to-purple-200 text-purple-800 text-xs rounded-full font-medium">
-                                        +{room.amenities.length - 3} more
-                                      </span>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                              <div className="text-right">
-                                <div className="text-xl font-bold text-blue-600 group-hover:text-blue-700 transition-colors duration-300">
-                                  RWF {(() => {
-                                    const pricePerNight = room.pricePerNight || room.price || 0;
-                                    return pricePerNight.toLocaleString();
-                                  })()}
-                                </div>
-                                <div className="text-sm text-gray-500">per night</div>
-                                {isRoomSelected(room) && (
-                                  <div className="mt-2 flex items-center justify-center">
-                                    <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center animate-pulse">
-                                      <FaCheck className="text-white text-xs" />
+                                <div className="flex-1">
+                                  <div className="flex items-start justify-between">
+                                    <div className="flex-1">
+                                      <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-700 transition-colors duration-300">
+                                        {room.roomNumber || 'Room ' + (index + 1)}
+                                      </h3>
+                                      <p className="text-sm text-gray-600 capitalize font-medium">
+                                        {(room.roomType || 'Standard')} Room
+                                      </p>
+                                      <div className="flex items-center mt-3 space-x-4 text-sm text-gray-600">
+                                        <div className="flex items-center bg-gray-100 px-3 py-1 rounded-full">
+                                          <FaUsers className="mr-1 text-blue-600" />
+                                          <span className="font-medium">{room.capacity || 1} guests</span>
+                                        </div>
+                                        <div className={`px-3 py-1 rounded-full text-xs font-medium transition-all duration-300 ${
+                                          room.isAvailable !== false 
+                                            ? 'bg-green-100 text-green-800 hover:bg-green-200' 
+                                            : 'bg-red-100 text-red-800 hover:bg-red-200'
+                                        }`}>
+                                          {room.isAvailable !== false ? '✓ Available' : '✗ Unavailable'}
+                                        </div>
+                                        {room.__outsideFilter && (
+                                          <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs">Outside current filter</span>
+                                        )}
+                                      </div>
+
+                                      {room.amenities && room.amenities.length > 0 && (
+                                        <div className="flex flex-wrap gap-2 mt-3">
+                                          {room.amenities.slice(0, 3).map((amenity, amenityIndex) => (
+                                            <span 
+                                              key={amenityIndex}
+                                              className="px-2 py-1 bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 text-xs rounded-full font-medium"
+                                            >
+                                              {amenity}
+                                            </span>
+                                          ))}
+                                          {room.amenities.length > 3 && (
+                                            <span className="px-2 py-1 bg-gradient-to-r from-purple-100 to-purple-200 text-purple-800 text-xs rounded-full font-medium">
+                                              +{room.amenities.length - 3} more
+                                            </span>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                    <div className="text-right">
+                                      <div className="text-xl font-bold text-blue-600 group-hover:text-blue-700 transition-colors duration-300">
+                                        RWF {(() => {
+                                          const pricePerNight = room.pricePerNight || room.price || 0;
+                                          return pricePerNight.toLocaleString();
+                                        })()}
+                                      </div>
+                                      <div className="text-sm text-gray-500">per night</div>
+                                      {isRoomSelected(room) && (
+                                        <div className="mt-2 flex items-center justify-center">
+                                          <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center animate-pulse">
+                                            <FaCheck className="text-white text-xs" />
+                                          </div>
+                                        </div>
+                                      )}
                                     </div>
                                   </div>
-                                )}
+                                </div>
                               </div>
                             </div>
-                          </div>
+                          ))}
                         </div>
                       </div>
                     ))}
                   </div>
                 )}
+                
 
                 {/* Navigation buttons for room selection */}
                 {filteredRooms.length > 0 && (

@@ -14,6 +14,7 @@ const AdminUserManagement = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [showUserDetails, setShowUserDetails] = useState(false);
   const [viewMode, setViewMode] = useState('table');
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
   const loadData = async () => {
     try {
@@ -78,7 +79,6 @@ const AdminUserManagement = () => {
 
   const deleteUser = async (id) => {
     try {
-      if (!window.confirm('Are you sure you want to permanently delete this user? This action cannot be undone.')) return;
       const res = await fetch(`${API_URL}/api/admin/user-management/users/${id}`, { method: 'DELETE', credentials: 'include' });
       const data = await res.json().catch(()=>({}));
       if (!res.ok) throw new Error(data.message || 'Failed to delete user');
@@ -101,6 +101,10 @@ const AdminUserManagement = () => {
       } else {
         list = list.filter(u => (u.userType || '').toLowerCase() === filterType);
       }
+    }
+    // Exclude admins by default in 'all' view
+    if (filterType === 'all') {
+      list = list.filter(u => (u.userType || '').toLowerCase() !== 'admin');
     }
     return list.filter(u =>
       (u.name || '').toLowerCase().includes(q) ||
@@ -209,7 +213,7 @@ const AdminUserManagement = () => {
             <FaUsers className="text-2xl text-blue-600" />
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Total Users</p>
-              <p className="text-2xl font-bold text-gray-900">{users.length}</p>
+              <p className="text-2xl font-bold text-gray-900">{users.filter(u => u.userType !== 'admin').length}</p>
             </div>
           </div>
         </div>
@@ -219,9 +223,7 @@ const AdminUserManagement = () => {
             <FaUserShield className="text-2xl text-green-600" />
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Hosts</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {users.filter(u => u.userType === 'host').length}
-              </p>
+              <p className="text-2xl font-bold text-gray-900">{users.filter(u => u.userType === 'host').length}</p>
             </div>
           </div>
         </div>
@@ -231,9 +233,7 @@ const AdminUserManagement = () => {
             <FaUsers className="text-2xl text-gray-600" />
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Guests</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {users.filter(u => u.userType === 'guest').length}
-              </p>
+              <p className="text-2xl font-bold text-gray-900">{users.filter(u => u.userType === 'guest').length}</p>
             </div>
           </div>
         </div>
@@ -275,44 +275,65 @@ const AdminUserManagement = () => {
       )}
 
       {/* Search and Filter */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
-          <div className="flex items-center space-x-4">
-            <div className="relative">
-              <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search users..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-            <div className="relative">
-              <FaFilter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              <select
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value)}
-                className="pl-10 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="all">All Users</option>
-                <option value="guest">Guests</option>
-                <option value="host">Hosts</option>
-                <option value="admin">Admins</option>
-                <option value="issues">Role Issues</option>
-              </select>
-            </div>
-          </div>
+      <div className="flex items-center space-x-4">
+        <div className="relative">
+          <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search users..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+        </div>
+        <div className="relative">
+          <FaFilter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+          <select
+            value={filterType}
+            onChange={(e) => setFilterType(e.target.value)}
+            className="pl-10 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            <option value="all">All Users</option>
+            <option value="guest">Guests</option>
+            <option value="host">Hosts</option>
+            <option value="admin">Admins</option>
+            <option value="issues">Role Issues</option>
+          </select>
         </div>
       </div>
-
-      {/* Users List */}
-      {loading ? (
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="mb-4 h-5 w-40 bg-gray-200 rounded animate-pulse" />
-          <ListItemSkeleton rows={8} />
+      <div className="mt-2 md:mt-0 flex items-center gap-2">
+        <div className="inline-flex rounded-lg overflow-hidden border">
+          <button
+            className={`px-3 py-2 text-sm ${viewMode==='table' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700'}`}
+            onClick={() => setViewMode('table')}
+            title="Table view"
+          >
+            Table
+          </button>
+          <button
+            className={`px-3 py-2 text-sm ${viewMode==='cards' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700'}`}
+            onClick={() => setViewMode('cards')}
+            title="Cards view"
+          >
+            Cards
+          </button>
         </div>
-      ) : viewMode === 'table' ? (
+        <button
+          onClick={loadData}
+          className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        >
+          <FaSync />
+          <span>Refresh</span>
+        </button>
+      </div>
+
+    {/* Users List */}
+    {loading ? (
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="mb-4 h-5 w-40 bg-gray-200 rounded animate-pulse" />
+        <ListItemSkeleton rows={8} />
+      </div>
+    ) : viewMode === 'table' ? (
         <div className="bg-white rounded-lg shadow overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
@@ -329,9 +350,16 @@ const AdminUserManagement = () => {
                 {filteredUsers.map((user) => (
                   <tr key={user.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">{user.name}</div>
-                        <div className="text-sm text-gray-500">{user.email}</div>
+                      <div className="flex items-center gap-3">
+                        {user.avatar ? (
+                          <img src={user.avatar} alt={user.name} className="w-10 h-10 rounded-full object-cover" />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-sm font-semibold">{(user.name || user.email || 'U').charAt(0)}</div>
+                        )}
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">{user.name}</div>
+                          <div className="text-sm text-gray-500">{user.email}</div>
+                        </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -358,7 +386,7 @@ const AdminUserManagement = () => {
                       ) : (
                         <button onClick={() => deactivateUser(user.id)} disabled={togglingId===user.id} className="text-orange-600 hover:text-orange-900 disabled:opacity-50">Deactivate</button>
                       )}
-                      <button onClick={() => deleteUser(user.id)} className="text-rose-600 hover:text-rose-900">Delete</button>
+                      <button onClick={() => setConfirmDeleteId(user.id)} className="text-rose-600 hover:text-rose-900">Delete</button>
                     </td>
                   </tr>
                 ))}
@@ -371,7 +399,11 @@ const AdminUserManagement = () => {
           {filteredUsers.map((u) => (
             <div key={u.id} className="bg-white rounded-lg shadow p-5 border border-gray-100">
               <div className="flex items-center gap-3 mb-3">
-                <div className={`w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-sm font-semibold`}>{(u.name || u.email || 'U').charAt(0)}</div>
+                {u.avatar ? (
+                  <img src={u.avatar} alt={u.name} className="w-10 h-10 rounded-full object-cover" />
+                ) : (
+                  <div className={`w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-sm font-semibold`}>{(u.name || u.email || 'U').charAt(0)}</div>
+                )}
                 <div className="flex-1 min-w-0">
                   <div className="font-medium text-gray-900 truncate">{u.name}</div>
                   <div className="text-sm text-gray-500 truncate">{u.email}</div>
@@ -392,7 +424,7 @@ const AdminUserManagement = () => {
                 ) : (
                   <button onClick={() => deactivateUser(u.id)} disabled={togglingId===u.id} className="px-3 py-1 text-sm bg-orange-50 text-orange-700 rounded hover:bg-orange-100 disabled:opacity-50">Deactivate</button>
                 )}
-                <button onClick={() => deleteUser(u.id)} className="px-3 py-1 text-sm bg-rose-50 text-rose-700 rounded hover:bg-rose-100">Delete</button>
+                <button onClick={() => setConfirmDeleteId(u.id)} className="px-3 py-1 text-sm bg-rose-50 text-rose-700 rounded hover:bg-rose-100">Delete</button>
               </div>
             </div>
           ))}
@@ -414,6 +446,14 @@ const AdminUserManagement = () => {
             </div>
             
             <div className="space-y-4">
+              <div className="flex items-center gap-4">
+                {selectedUser.user.avatar ? (
+                  <img src={selectedUser.user.avatar} alt={selectedUser.user.firstName} className="w-16 h-16 rounded-full object-cover border" />
+                ) : (
+                  <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center text-base font-semibold">{(selectedUser.user.firstName || selectedUser.user.email || 'U').charAt(0)}</div>
+                )}
+                <div className="text-sm text-gray-600">Profile</div>
+              </div>
               <div>
                 <h3 className="font-semibold">Personal Information</h3>
                 <p><strong>Name:</strong> {selectedUser.user.firstName} {selectedUser.user.lastName}</p>
@@ -447,6 +487,29 @@ const AdminUserManagement = () => {
                   <p className="text-gray-500">No properties</p>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm Delete Modal */}
+      {confirmDeleteId && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md">
+            <div className="p-4 border-b">
+              <div className="text-lg font-semibold text-gray-900">Delete User</div>
+            </div>
+            <div className="p-4 text-sm text-gray-700">
+              Are you sure you want to permanently delete this user? This action cannot be undone and may remove their properties, bookings, messages and related data.
+            </div>
+            <div className="p-4 border-t flex items-center justify-end gap-2">
+              <button className="px-4 py-2 border rounded" onClick={() => setConfirmDeleteId(null)}>Cancel</button>
+              <button
+                className="px-4 py-2 bg-rose-600 text-white rounded"
+                onClick={async () => { await deleteUser(confirmDeleteId); setConfirmDeleteId(null); }}
+              >
+                Delete
+              </button>
             </div>
           </div>
         </div>

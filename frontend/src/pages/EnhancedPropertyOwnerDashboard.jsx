@@ -10,6 +10,11 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import BookingManagementPanel from '../components/BookingManagementPanel';
 import RoomCalendarPanel from '../components/RoomCalendarPanel';
+import MasterCalendar from '../components/MasterCalendar';
+import ReservationDetailDrawer from '../components/ReservationDetailDrawer';
+import PromotionsPanel from '../components/PromotionsPanel';
+import FinancePanel from '../components/FinancePanel';
+import AnalyticsPanel from '../components/AnalyticsPanel';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -39,6 +44,8 @@ const EnhancedPropertyOwnerDashboard = () => {
   const [addRoomData, setAddRoomData] = useState({}); // { [propertyId]: { roomNumber, roomType, pricePerNight, capacity, amenities, images } }
   const [editingRoom, setEditingRoom] = useState(null); // { propertyId, room }
   const [editRoomData, setEditRoomData] = useState({}); // fields for edit
+  const [openMenu, setOpenMenu] = useState(null); // 'rates' | 'promotions' | 'reservations' | 'property' | 'more'
+  const [showMasterCalendar, setShowMasterCalendar] = useState(false);
 
   useEffect(() => {
     fetchDashboardData();
@@ -338,6 +345,130 @@ const EnhancedPropertyOwnerDashboard = () => {
         <div className="max-w-7xl mx-auto px-4">
           <h1 className="text-3xl font-bold mb-2">Property Owner Dashboard</h1>
           <p className="text-blue-100">Manage your properties and track bookings</p>
+        </div>
+      </div>
+
+      {/* Classified Navigation (Booking.com-style) */}
+      <div className="bg-blue-800 text-white">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex items-center gap-2 py-2 overflow-x-auto no-scrollbar">
+            {/* Home */}
+            <button
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg ${activeTab==='overview' ? 'bg-blue-700' : 'hover:bg-blue-700/60'}`}
+              onClick={() => { setActiveTab('overview'); setOpenMenu(null); }}
+              title="Home"
+            >
+              <FaHome />
+              <span className="hidden sm:inline">Home</span>
+            </button>
+
+            {/* Rates & Availability */}
+            <div className="relative">
+              <button
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg ${openMenu==='rates' ? 'bg-blue-700' : 'hover:bg-blue-700/60'}`}
+                onClick={() => setOpenMenu(prev => prev==='rates' ? null : 'rates')}
+                title="Rates & Availability"
+              >
+                <FaCalendarAlt />
+                <span className="hidden sm:inline">Rates & Availability</span>
+              </button>
+              {openMenu==='rates' && (
+                <div className="absolute left-0 mt-2 w-56 bg-white text-gray-800 rounded-xl shadow-xl ring-1 ring-black/5 z-20">
+                  <div className="py-1">
+                    <button onClick={() => { setShowMasterCalendar(true); setOpenMenu(null); }} className="w-full text-left px-4 py-2 hover:bg-gray-50">Calendar</button>
+                    <button onClick={() => { setActiveTab('properties'); setOpenMenu(null); }} className="w-full text-left px-4 py-2 hover:bg-gray-50">Manage Rooms & Rates</button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Promotions */}
+            <div className="relative">
+              <button
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg ${openMenu==='promotions' ? 'bg-blue-700' : 'hover:bg-blue-700/60'}`}
+                onClick={() => setOpenMenu(prev => prev==='promotions' ? null : 'promotions')}
+                title="Promotions"
+              >
+                <FaChartLine />
+                <span className="hidden sm:inline">Promotions</span>
+              </button>
+              {openMenu==='promotions' && (
+                <div className="absolute left-0 mt-2 w-56 bg-white text-gray-800 rounded-xl shadow-xl ring-1 ring-black/5 z-20">
+                  <div className="py-1">
+                    <button onClick={() => { setActiveTab('analytics'); setOpenMenu(null); }} className="w-full text-left px-4 py-2 hover:bg-gray-50">Performance</button>
+                    <button onClick={() => { setActiveTab('analytics'); setOpenMenu(null); }} className="w-full text-left px-4 py-2 hover:bg-gray-50">Visibility Options</button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Reservations */}
+            <div className="relative">
+              <button
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg ${openMenu==='reservations' ? 'bg-blue-700' : 'hover:bg-blue-700/60'}`}
+                onClick={() => { setActiveTab('bookings'); setOpenMenu(prev => prev==='reservations' ? null : 'reservations'); }}
+                title="Reservations"
+              >
+                <FaFileInvoice />
+                <span className="hidden sm:inline">Reservations</span>
+                {bookings?.length ? (
+                  <span className="ml-1 inline-flex items-center justify-center text-xs bg-red-600 text-white rounded-full h-5 min-w-[20px] px-1">
+                    {bookings.filter(b=>b.paymentStatus==='pending' || b.paymentStatus==='unpaid').length}
+                  </span>
+                ) : null}
+              </button>
+              {openMenu==='reservations' && (
+                <div className="absolute left-0 mt-2 w-56 bg-white text-gray-800 rounded-xl shadow-xl ring-1 ring-black/5 z-20">
+                  <div className="py-1">
+                    <button onClick={() => { setActiveTab('bookings'); setOpenMenu(null); }} className="w-full text-left px-4 py-2 hover:bg-gray-50">All Reservations</button>
+                    <button onClick={() => { setActiveTab('bookings'); setOpenMenu(null); }} className="w-full text-left px-4 py-2 hover:bg-gray-50">Pending Payments</button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Property */}
+            <div className="relative">
+              <button
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg ${openMenu==='property' ? 'bg-blue-700' : 'hover:bg-blue-700/60'}`}
+                onClick={() => setOpenMenu(prev => prev==='property' ? null : 'property')}
+                title="Property"
+              >
+                <FaBed />
+                <span className="hidden sm:inline">Property</span>
+              </button>
+              {openMenu==='property' && (
+                <div className="absolute left-0 mt-2 w-56 bg-white text-gray-800 rounded-xl shadow-xl ring-1 ring-black/5 z-20">
+                  <div className="py-1">
+                    <button onClick={() => { setActiveTab('properties'); setOpenMenu(null); }} className="w-full text-left px-4 py-2 hover:bg-gray-50">My Properties</button>
+                    <button onClick={() => { if (user?.isBlocked) { toast.error('Your account is deactivated. Listing is disabled.'); return; } setOpenMenu(null); navigate('/upload'); }} className="w-full text-left px-4 py-2 hover:bg-gray-50">Add Property</button>
+                    <button onClick={() => { setActiveTab('properties'); setOpenMenu(null); }} className="w-full text-left px-4 py-2 hover:bg-gray-50">Policies & House Rules</button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* More */}
+            <div className="relative">
+              <button
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg ${openMenu==='more' ? 'bg-blue-700' : 'hover:bg-blue-700/60'}`}
+                onClick={() => setOpenMenu(prev => prev==='more' ? null : 'more')}
+                title="More"
+              >
+                <FaUsers />
+                <span className="hidden sm:inline">More</span>
+              </button>
+              {openMenu==='more' && (
+                <div className="absolute left-0 mt-2 w-56 bg-white text-gray-800 rounded-xl shadow-xl ring-1 ring-black/5 z-20">
+                  <div className="py-1">
+                    <button onClick={() => { setOpenMenu(null); navigate('/messages'); }} className="w-full text-left px-4 py-2 hover:bg-gray-50">Messages</button>
+                    <button onClick={() => { setOpenMenu(null); navigate('/notifications'); }} className="w-full text-left px-4 py-2 hover:bg-gray-50">Notifications</button>
+                    <button onClick={() => { setOpenMenu(null); navigate('/settings'); }} className="w-full text-left px-4 py-2 hover:bg-gray-50">Settings</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -831,62 +962,37 @@ const EnhancedPropertyOwnerDashboard = () => {
         {/* Analytics Tab */}
         {activeTab === 'analytics' && (
           <div className="space-y-6">
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Revenue Analytics</h2>
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-6 border border-green-200">
-                  <p className="text-sm text-green-700 mb-2">Total Earnings (Paid)</p>
-                  <p className="text-3xl font-bold text-green-900">{formatCurrency(stats.totalRevenue)}</p>
-                  <p className="text-xs text-green-600 mt-2">After commission deduction</p>
-                </div>
-
-                <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl p-6 border border-yellow-200">
-                  <p className="text-sm text-yellow-700 mb-2">Expected Revenue</p>
-                  <p className="text-3xl font-bold text-yellow-900">{formatCurrency(stats.pendingRevenue)}</p>
-                  <p className="text-xs text-yellow-600 mt-2">From pending bookings</p>
-                </div>
-
-                <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-xl p-6 border border-red-200">
-                  <p className="text-sm text-red-700 mb-2">Commission Owed</p>
-                  <p className="text-3xl font-bold text-red-900">{formatCurrency(stats.commissionOwed)}</p>
-                  <p className="text-xs text-red-600 mt-2">Must be paid to platform</p>
-                </div>
-              </div>
-
-              <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
-                <h3 className="text-lg font-semibold text-blue-900 mb-4">Booking Summary</h3>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <div className="text-center">
-                    <p className="text-3xl font-bold text-blue-900">{stats.totalBookings}</p>
-                    <p className="text-sm text-blue-700">Total Bookings</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-3xl font-bold text-green-900">{stats.paidBookings}</p>
-                    <p className="text-sm text-green-700">Paid</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-3xl font-bold text-yellow-900">{stats.pendingBookings}</p>
-                    <p className="text-sm text-yellow-700">Pending</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-3xl font-bold text-red-900">{stats.unpaidBookings}</p>
-                    <p className="text-sm text-red-700">Pay on Arrival</p>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <AnalyticsPanel propertyOptions={properties} />
+            <PromotionsPanel propertyOptions={properties} onChanged={fetchDashboardData} />
+            <FinancePanel propertyOptions={properties} />
           </div>
         )}
       </div>
 
-      {/* Booking Management Panel */}
-      {showBookingPanel && selectedBooking && (
-        <BookingManagementPanel
+      {/* Booking Detail Drawer */}
+      {selectedBooking && (
+        <ReservationDetailDrawer
           booking={selectedBooking}
+          open={showBookingPanel}
           onClose={handleCloseBookingPanel}
-          onUpdate={handleBookingUpdate}
+          onUpdated={handleBookingUpdate}
         />
+      )}
+
+      {/* Master Calendar Modal */}
+      {showMasterCalendar && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setShowMasterCalendar(false)} />
+          <div className="relative w-full max-w-5xl bg-white rounded-2xl shadow-2xl overflow-hidden max-h-[90vh]">
+            <div className="flex items-center justify-between px-5 py-4 bg-gray-50/70 sticky top-0 z-10">
+              <div className="text-gray-900 font-semibold">Rates & Availability</div>
+              <button className="px-3 py-1 border rounded" onClick={() => setShowMasterCalendar(false)}>Close</button>
+            </div>
+            <div className="p-5 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 56px)' }}>
+              <MasterCalendar properties={properties} onChanged={fetchDashboardData} />
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

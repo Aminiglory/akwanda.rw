@@ -99,7 +99,7 @@ const FeaturedApartments = () => {
                   </div>
                 )}
                 <div className="absolute top-4 left-4 bg-black/60 text-white backdrop-blur-sm rounded-full px-3 py-1 text-xs font-semibold">
-                  From RWF {apartment.price.toLocaleString()}/night
+                  From RWF {apartment.price.toLocaleString()}
                 </div>
                 {apartment.discountPercent > 0 && (
                   <div className="absolute top-4 left-40 bg-green-600 text-white px-3 py-1 rounded-full text-xs font-semibold">

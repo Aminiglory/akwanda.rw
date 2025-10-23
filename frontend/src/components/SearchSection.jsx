@@ -18,9 +18,13 @@ const SearchSection = () => {
 
   const handleSearch = (e) => {
     e.preventDefault();
-    // TODO: route based on activeTab
     if (activeTab === 'stays') {
-      window.location.href = '/apartments';
+      const params = new URLSearchParams();
+      if (searchData.location) params.set('q', searchData.location);
+      if (searchData.checkIn) params.set('startDate', searchData.checkIn);
+      if (searchData.checkOut) params.set('endDate', searchData.checkOut);
+      if (searchData.guests) params.set('guests', String(searchData.guests));
+      window.location.href = `/apartments${params.toString() ? `?${params.toString()}` : ''}`;
     } else if (activeTab === 'cars') {
       window.location.href = '/cars';
     } else {

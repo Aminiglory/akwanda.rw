@@ -46,6 +46,84 @@ function useWorkers() {
     } finally {
       setLoading(false);
     }
+
+// Inline modal: View worker profile and privileges (read-only), with larger avatar and actions
+function ViewWorkerModal({ worker, onClose, onEdit, onDelete, defaultPrivileges = {} }) {
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  const makeAbsolute = (u) => {
+    if (!u) return u;
+    let s = String(u).replace(/\\+/g, '/');
+    if (s.startsWith('http')) return s;
+    if (!s.startsWith('/')) s = `/${s}`;
+    return `${apiUrl}${s}`;
+  };
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="p-4 border-b flex items-center justify-between">
+          <div className="font-semibold">Worker Profile</div>
+          <button className="px-2 py-1" onClick={onClose}>Close</button>
+        </div>
+        <div className="p-6 space-y-4">
+          <div className="flex items-center gap-4">
+            <div className="w-20 h-20 rounded-full bg-gray-100 overflow-hidden flex items-center justify-center border">
+              {worker.avatar ? (
+                <img src={makeAbsolute(worker.avatar)} alt="avatar" className="w-full h-full object-cover" />
+              ) : (
+                <FaUser className="text-gray-400 text-3xl" />
+              )}
+            </div>
+            <div className="min-w-0">
+              <div className="text-lg font-semibold text-gray-900 truncate">{worker.firstName} {worker.lastName}</div>
+              <div className="text-sm text-gray-600 truncate">{worker.position} • {worker.department}</div>
+              <div className="text-sm text-gray-500 break-all">{worker.email}</div>
+              <div className="text-sm text-gray-500">{worker.phone}</div>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-gray-50 rounded-xl p-4">
+              <div className="font-semibold text-gray-800 mb-2">Profile Info</div>
+              <div className="text-sm text-gray-700 space-y-1">
+                <div><span className="text-gray-500">Employee ID:</span> {worker.employeeId || '—'}</div>
+                <div><span className="text-gray-500">National ID:</span> {worker.nationalId || '—'}</div>
+                <div><span className="text-gray-500">Status:</span> <span className={`px-2 py-0.5 rounded-full text-xs ${worker.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>{worker.status}</span></div>
+                <div><span className="text-gray-500">Assigned Properties:</span> {(worker.assignedProperties || []).length}</div>
+              </div>
+            </div>
+            <div className="bg-gray-50 rounded-xl p-4">
+              <div className="font-semibold text-gray-800 mb-2">Privileges</div>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                {Object.keys(defaultPrivileges).map((k) => (
+                  <div key={k} className={`px-2 py-1 rounded border ${worker.privileges?.[k] ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-white border-gray-200 text-gray-600'}`}>
+                    {k}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="p-4 border-t flex items-center justify-end gap-2">
+          <button className="px-4 py-2 border rounded" onClick={onClose}>Close</button>
+          <button className="px-4 py-2 bg-blue-600 text-white rounded" onClick={onEdit}><FaEdit className="inline mr-2"/> Edit</button>
+          <button className="px-4 py-2 border border-rose-300 text-rose-700 rounded" onClick={onDelete}><FaTrash className="inline mr-2"/> Delete</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+  };
+
+  const onDeleteWorker = async (workerId) => {
+    try {
+      const res = await fetch(`${API_URL}/api/workers/${workerId}`, { method: 'DELETE', credentials: 'include' });
+      if (!res.ok) {
+        const data = await res.json().catch(()=>({ message: 'Failed to delete worker' }));
+        throw new Error(data.message || 'Failed to delete worker');
+      }
+      setWorkers(prev => prev.filter(w => String(w._id) !== String(workerId)));
+      toast.success('Worker deleted');
+      setViewFor(null);
+    } catch (e) { toast.error(e.message); }
   };
 
   useEffect(() => { fetchWorkers(); /* eslint-disable-next-line */ }, [query.page, query.limit]);
@@ -64,7 +142,9 @@ export default function WorkersManagement() {
   const [accountFor, setAccountFor] = useState(null); // worker object for account creation
   const [privFor, setPrivFor] = useState(null); // worker object for full privileges modal
   const [resetFor, setResetFor] = useState(null); // worker object for reset password
+  const [viewFor, setViewFor] = useState(null); // worker object for profile view
   const [properties, setProperties] = useState([]);
+  const [confirmDeleteWorkerId, setConfirmDeleteWorkerId] = useState(null);
 
   const [form, setForm] = useState({
     firstName: '',
@@ -177,6 +257,18 @@ export default function WorkersManagement() {
       if (!res.ok) throw new Error(data.message || 'Failed to create account');
       toast.success('Worker account created');
       setAccountFor(null);
+      // Best-effort: notify the worker about their new account and required actions
+      try {
+        await fetch(`${API_URL}/api/notifications`, {
+          method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: workerId,
+            type: 'worker_account_created',
+            title: 'Your worker account is ready',
+            message: 'You have been granted access as a worker. Please log in to view assigned properties, manage tasks, and respond to messages.'
+          })
+        });
+      } catch (_) {}
     } catch (e) { toast.error(e.message); }
   };
 
@@ -358,7 +450,8 @@ export default function WorkersManagement() {
                   <div className="text-sm text-gray-600 truncate leading-tight" title={`${w.position || ''} • ${w.department || ''}`}>{w.position} • {w.department}</div>
                   <div className="text-xs text-gray-500 truncate break-all leading-tight" title={w.email || ''}>{w.email}</div>
                 </div>
-                <label className={`px-3 py-1 bg-blue-50 text-blue-700 rounded cursor-pointer text-xs flex items-center gap-1 ${user?.isBlocked ? 'opacity-50 pointer-events-none' : ''}`}>
+                <span className="px-2 py-1 rounded-full bg-blue-50 text-blue-700 text-xs">Worker</span>
+                <label className={`px-3 py-1 bg-blue-50 text-blue-700 rounded cursor-pointer text-xs flex items-center gap-1 ${user?.isBlocked ? 'opacity-50 pointer-events-none' : ''}`}> 
                   <FaImage /> Avatar
                   <input className="hidden" type="file" accept="image/*" onChange={e => e.target.files?.[0] && onAvatarUpload(w._id, e.target.files[0])} disabled={user?.isBlocked} />
                 </label>
@@ -388,10 +481,12 @@ export default function WorkersManagement() {
               <div className="mt-auto flex items-center justify-between">
                 <span className={`px-2 py-1 rounded-full text-xs ${w.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>{w.status}</span>
                 <div className="flex items-center gap-2 text-xs sm:text-sm flex-wrap justify-end overflow-hidden">
+                  <button disabled={user?.isBlocked} onClick={()=> setViewFor(w)} className="px-2 py-1 border rounded flex items-center gap-1 disabled:opacity-50"><FaUser /> View</button>
                   <button disabled={user?.isBlocked} onClick={()=> setEditing(w)} className="px-2 py-1 border rounded flex items-center gap-1 disabled:opacity-50"><FaEdit /> Edit</button>
                   <button disabled={user?.isBlocked} onClick={()=> setAccountFor(w)} className="px-2 py-1 border rounded flex items-center gap-1 disabled:opacity-50"><FaIdCard /> Account</button>
                   <button disabled={user?.isBlocked} onClick={()=> setPrivFor(w)} className="px-2 py-1 border rounded flex items-center gap-1 disabled:opacity-50"><FaShieldAlt /> Privileges</button>
                   <button disabled={user?.isBlocked} onClick={()=> setResetFor(w)} className="px-2 py-1 border rounded flex items-center gap-1 disabled:opacity-50"><FaKey /> Reset</button>
+                  <button disabled={user?.isBlocked} onClick={()=> setConfirmDeleteWorkerId(w._id)} className="px-2 py-1 border rounded flex items-center gap-1 disabled:opacity-50 text-rose-600"><FaTrash /> Delete</button>
                 </div>
               </div>
             </div>
@@ -418,6 +513,7 @@ export default function WorkersManagement() {
                       <div className="font-medium text-gray-900">{w.firstName} {w.lastName}</div>
                       <div className="text-xs text-gray-500">{w.employeeId || ''}</div>
                     </td>
+                    <td className="px-4 py-2 text-xs"><span className="px-2 py-1 rounded-full bg-blue-50 text-blue-700">Worker</span></td>
                     <td className="px-4 py-2 text-sm text-gray-600">
                       <div>{w.email}</div>
                       <div>{w.phone}</div>
@@ -427,11 +523,13 @@ export default function WorkersManagement() {
                       <span className={`px-2 py-1 rounded-full text-xs ${w.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>{w.status}</span>
                     </td>
                     <td className="px-4 py-2 text-sm">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <button onClick={()=> setViewFor(w)} className="px-2 py-1 border rounded flex items-center gap-1"><FaUser /> View</button>
                         <button onClick={()=> setEditing(w)} className="px-2 py-1 border rounded flex items-center gap-1"><FaEdit /> Edit</button>
                         <button onClick={()=> setAccountFor(w)} className="px-2 py-1 border rounded flex items-center gap-1"><FaIdCard /> Create Account</button>
                         <button onClick={()=> setPrivFor(w)} className="px-2 py-1 border rounded flex items-center gap-1"><FaShieldAlt /> Privileges</button>
                         <button onClick={()=> setResetFor(w)} className="px-2 py-1 border rounded flex items-center gap-1"><FaKey /> Reset Password</button>
+                        <button onClick={()=> setConfirmDeleteWorkerId(w._id)} className="px-2 py-1 border rounded flex items-center gap-1 text-rose-600"><FaTrash /> Delete</button>
                       </div>
                     </td>
                   </tr>
@@ -493,8 +591,38 @@ export default function WorkersManagement() {
             onClose={() => setResetFor(null)}
           />
         )}
+        {viewFor && (
+          <ViewWorkerModal
+            worker={viewFor}
+            onClose={() => setViewFor(null)}
+            onEdit={() => { setEditing(viewFor); setViewFor(null); }}
+            onDelete={() => onDeleteWorker(viewFor._id)}
+            defaultPrivileges={defaultPrivileges}
+          />
+        )}
         {filtered.length === 0 && !loading && (
           <div className="text-center text-gray-500 py-8">No workers found</div>
+        )}
+        {confirmDeleteWorkerId && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl w-full max-w-md">
+              <div className="p-4 border-b">
+                <div className="text-lg font-semibold text-gray-900">Delete Worker</div>
+              </div>
+              <div className="p-4 text-sm text-gray-700">
+                Are you sure you want to permanently delete this worker account? This action cannot be undone and may remove their assignments and related data.
+              </div>
+              <div className="p-4 border-t flex items-center justify-end gap-2">
+                <button className="px-4 py-2 border rounded" onClick={() => setConfirmDeleteWorkerId(null)}>Cancel</button>
+                <button
+                  className="px-4 py-2 bg-rose-600 text-white rounded"
+                  onClick={async () => { await onDeleteWorker(confirmDeleteWorkerId); setConfirmDeleteWorkerId(null); }}
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
   );

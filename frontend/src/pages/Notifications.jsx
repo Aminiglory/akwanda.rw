@@ -10,6 +10,7 @@ const Notifications = () => {
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState([]);
   const [busy, setBusy] = useState({});
+  const [filter, setFilter] = useState('all'); // all | commission | bookings | unread | read
 
   const load = async () => {
     setLoading(true);
@@ -70,12 +71,29 @@ const Notifications = () => {
     }
   };
 
+  const filteredItems = items.filter(n => {
+    if (filter === 'commission') return String(n.type || '').includes('commission');
+    if (filter === 'bookings') return !!n.booking;
+    if (filter === 'unread') return !n.isRead;
+    if (filter === 'read') return !!n.isRead;
+    return true;
+  });
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-5xl mx-auto px-4 py-8">
         <div className="flex items-center gap-3 mb-6">
           <FaBell className="text-blue-600 text-2xl" />
           <h1 className="text-2xl font-bold text-gray-900">Notifications</h1>
+        </div>
+
+        {/* Filter Chips */}
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          <button onClick={() => setFilter('all')} className={`px-3 py-1.5 rounded-full text-sm border ${filter==='all' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}>All</button>
+          <button onClick={() => setFilter('commission')} className={`px-3 py-1.5 rounded-full text-sm border ${filter==='commission' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}>Commission</button>
+          <button onClick={() => setFilter('bookings')} className={`px-3 py-1.5 rounded-full text-sm border ${filter==='bookings' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}>Bookings</button>
+          <button onClick={() => setFilter('unread')} className={`px-3 py-1.5 rounded-full text-sm border ${filter==='unread' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}>Unread</button>
+          <button onClick={() => setFilter('read')} className={`px-3 py-1.5 rounded-full text-sm border ${filter==='read' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}>Read</button>
         </div>
 
         {loading ? (
@@ -97,34 +115,56 @@ const Notifications = () => {
           </div>
         ) : (
           <div className="space-y-3">
-            {items.map(n => (
+            {filteredItems.map(n => (
               <div key={n.id} className={`modern-card p-4 ${!n.isRead ? 'border-l-4 border-blue-600' : ''}`}>
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="font-semibold text-gray-900">{n.title}</div>
-                    <div className="text-sm text-gray-600 mt-1">{n.message}</div>
-                    <div className="text-xs text-gray-400 mt-1">{n.createdAt ? new Date(n.createdAt).toLocaleString() : ''}</div>
+                {/* Commission explainer card */}
+                {String(n.type || '').includes('commission') ? (
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="text-blue-700 font-semibold">Commission Update</div>
+                      <div className="text-sm text-gray-700 mt-1">{n.message}</div>
+                      <div className="text-xs text-gray-400 mt-1">{n.createdAt ? new Date(n.createdAt).toLocaleString() : ''}</div>
+                      <div className="mt-2 text-sm text-gray-600 bg-blue-50 border border-blue-100 rounded-lg p-2">
+                        You can start the booking process once your commission is set. This helps keep your listing visible and bookable.
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {n.property && (
+                        <Link to={`/apartment/${n.property}`} className="px-3 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded">View Property</Link>
+                      )}
+                      {!n.isRead && (
+                        <button onClick={() => markRead(n.id)} className="px-3 py-2 text-sm bg-white border border-gray-200 hover:bg-gray-50 rounded">Dismiss</button>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {n.booking && (
-                      <>
-                        <button onClick={() => openBooking(n)} className="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-800 rounded">Open</button>
-                        {(n.type === 'booking_paid' || n.type === 'booking_created') && (
-                          <button
-                            onClick={() => confirmBooking(n)}
-                            disabled={!!busy[n.id]}
-                            className="px-3 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded disabled:opacity-50"
-                          >
-                            {busy[n.id] ? 'Confirming...' : 'Confirm'}
-                          </button>
-                        )}
-                      </>
-                    )}
-                    {!n.isRead && (
-                      <button onClick={() => markRead(n.id)} className="px-3 py-2 text-sm bg-white border border-gray-200 hover:bg-gray-50 rounded">Mark read</button>
-                    )}
+                ) : (
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="font-semibold text-gray-900">{n.title}</div>
+                      <div className="text-sm text-gray-600 mt-1">{n.message}</div>
+                      <div className="text-xs text-gray-400 mt-1">{n.createdAt ? new Date(n.createdAt).toLocaleString() : ''}</div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {n.booking && (
+                        <>
+                          <button onClick={() => openBooking(n)} className="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-800 rounded">Open</button>
+                          {(n.type === 'booking_paid' || n.type === 'booking_created') && (
+                            <button
+                              onClick={() => confirmBooking(n)}
+                              disabled={!!busy[n.id]}
+                              className="px-3 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded disabled:opacity-50"
+                            >
+                              {busy[n.id] ? 'Confirming...' : 'Confirm'}
+                            </button>
+                          )}
+                        </>
+                      )}
+                      {!n.isRead && (
+                        <button onClick={() => markRead(n.id)} className="px-3 py-2 text-sm bg-white border border-gray-200 hover:bg-gray-50 rounded">Mark read</button>
+                      )}
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             ))}
           </div>

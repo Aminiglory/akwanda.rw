@@ -364,12 +364,14 @@ const Navbar = () => {
             <div className="flex items-center space-x-4 lg:space-x-6">
               {isAuthenticated && user?.userType !== "admin" && (
                 <>
-                  <Link
-                    to="/dashboard"
-                    className="hidden sm:inline hover:text-blue-200 font-medium"
-                  >
-                    Dashboard
-                  </Link>
+                  {user?.userType === 'host' && userStats.properties > 0 && (
+                    <Link
+                      to="/dashboard"
+                      className="hidden sm:inline hover:text-blue-200 font-medium"
+                    >
+                      Dashboard
+                    </Link>
+                  )}
                   <Link
                     to="/upload"
                     className="hidden sm:inline hover:text-blue-200 font-medium"
@@ -573,7 +575,7 @@ const Navbar = () => {
               {isAuthenticated && (
                 <Link
                   to="/messages"
-                  className="hidden lg:flex items-center px-3 py-2 rounded-lg text-gray-700 hover:text-blue-600 hover:bg-gray-50 relative transition-colors"
+                  className="flex items-center px-3 py-2 rounded-lg text-gray-700 hover:text-blue-600 hover:bg-gray-50 relative transition-colors"
                   title="Messages"
                 >
                   <FaEnvelope className="text-lg" />
@@ -587,7 +589,7 @@ const Navbar = () => {
 
               {/* Notifications (admin and host) */}
               {(user?.userType === "admin" || user?.userType === 'host') && (
-                <div className="hidden lg:block relative group">
+                <div className="relative group">
                   <button className="relative px-3 py-2 text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-lg transition-colors">
                     <FaBell className="text-lg" />
                     {unreadNotifCount > 0 && (
@@ -596,7 +598,7 @@ const Navbar = () => {
                       </span>
                     )}
                   </button>
-                  <div className="hidden group-hover:block absolute right-0 mt-2 w-80 bg-white rounded-xl dropdown-shadow border border-gray-200 py-2 z-50">
+                  <div className="hidden lg:block group-hover:block absolute right-0 mt-2 w-80 bg-white rounded-xl dropdown-shadow border border-gray-200 py-2 z-50">
                     <div className="px-4 py-2 border-b border-gray-100 font-semibold text-sm">
                       Notifications
                     </div>
@@ -672,7 +674,7 @@ const Navbar = () => {
                             </div>
                             <div className="text-sm text-gray-500">{user?.email}</div>
                             <div className="text-xs text-blue-600 font-medium">
-                              {user?.userType === 'host' ? 'Property Owner' : 'Guest'}
+                              {user?.userType === 'host' ? 'Property Owner' : user?.userType === 'worker' ? 'Worker' : 'Guest'}
                             </div>
                           </div>
                         </div>
@@ -825,6 +827,17 @@ const Navbar = () => {
               {isAuthenticated && user?.userType !== 'admin' && (
                 <>
                   <Link
+                    to="/notifications"
+                    className="flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 relative"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    <FaBell className="text-lg" />
+                    <span>Notifications</span>
+                    {unreadNotifCount > 0 && (
+                      <span className="absolute right-4 bg-green-600 text-white text-[10px] rounded-full px-1.5 py-0.5 min-w-[16px] text-center">{unreadNotifCount}</span>
+                    )}
+                  </Link>
+                  <Link
                     to="/favorites"
                     className="flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
                     onClick={() => setIsMenuOpen(false)}
@@ -840,14 +853,16 @@ const Navbar = () => {
                     <FaEnvelope className="text-lg" />
                     <span>Messages</span>
                   </Link>
-                  <Link
-                    to="/dashboard"
-                    className="flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    <FaChartLine className="text-lg" />
-                    <span>Dashboard</span>
-                  </Link>
+                  {user?.userType === 'host' && userStats.properties > 0 && (
+                    <Link
+                      to="/dashboard"
+                      className="flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      <FaChartLine className="text-lg" />
+                      <span>Dashboard</span>
+                    </Link>
+                  )}
                   <Link
                     to="/upload"
                     className={`flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium ${user?.isBlocked ? 'text-gray-400' : 'text-gray-700 hover:bg-gray-50'}`}

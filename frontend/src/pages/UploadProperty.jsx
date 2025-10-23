@@ -18,7 +18,7 @@ const UploadProperty = () => {
     city: '',
     pricePerNight: '',
     discountPercent: '',
-    commissionChoice: 'standard' // 'standard' = 8%, 'higher' = 12%
+    commissionChoice: 'standard' // 'standard' = 8%, 'mid' = 10%, 'higher' = 12%
   });
   const [details, setDetails] = useState({ bedrooms: '1', bathrooms: '1', size: '', amenities: '' });
   useEffect(() => {
@@ -36,7 +36,12 @@ const UploadProperty = () => {
             city: p.city || '',
             pricePerNight: p.pricePerNight || '',
             discountPercent: p.discountPercent || '',
-            commissionChoice: p.commissionRate && Number(p.commissionRate) >= 12 ? 'higher' : 'standard'
+            commissionChoice: (() => {
+              const r = Number(p.commissionRate || 0);
+              if (r >= 12) return 'higher';
+              if (r >= 10) return 'mid';
+              return 'standard';
+            })()
           });
           setDetails({
             bedrooms: p.bedrooms?.toString() || '1',
@@ -63,8 +68,8 @@ const UploadProperty = () => {
     }
     const body = new FormData();
     Object.entries(form).forEach(([k, v]) => v !== '' && body.append(k, v));
-    // derive numeric commission rate
-    const commissionRate = form.commissionChoice === 'higher' ? 12 : 8;
+    // derive numeric commission rate (8, 10, 12)
+    const commissionRate = form.commissionChoice === 'higher' ? 12 : (form.commissionChoice === 'mid' ? 10 : 8);
     body.set('commissionRate', String(commissionRate));
     // extra details
     body.append('bedrooms', Number(details.bedrooms || 0));
@@ -158,13 +163,14 @@ const UploadProperty = () => {
                 className="w-full border border-gray-300 rounded-lg px-4 py-3"
               >
                 <option value="standard">Standard — 8%</option>
+                <option value="mid">Mid — 10%</option>
                 <option value="higher">Higher — 12%</option>
               </select>
             </div>
             <div className="flex items-end">
               <div className="w-full text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded-lg px-4 py-3">
                 {(() => {
-                  const pct = form.commissionChoice === 'higher' ? 12 : 8;
+                  const pct = form.commissionChoice === 'higher' ? 12 : (form.commissionChoice === 'mid' ? 10 : 8);
                   const price = Number(form.pricePerNight || 0);
                   const est = Math.round((price * pct) / 100);
                   return <span>Estimated commission per night: <span className="font-semibold text-blue-700">RWF {isNaN(est) ? 0 : est.toLocaleString()}</span> ({pct}%)</span>;

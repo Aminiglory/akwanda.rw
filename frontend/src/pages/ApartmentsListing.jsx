@@ -41,6 +41,26 @@ const ApartmentsListing = () => {
   const [fetchTimer, setFetchTimer] = useState(null);
   const [budgetBounds, setBudgetBounds] = useState({ min: 0, max: 5000000 });
 
+  // Initialize filters from URL query params (q, startDate, endDate, guests)
+  useEffect(() => {
+    try {
+      const sp = new URLSearchParams(window.location.search || '');
+      const q = sp.get('q') || '';
+      const startDate = sp.get('startDate') || '';
+      const endDate = sp.get('endDate') || '';
+      const guests = sp.get('guests');
+      if (q || startDate || endDate || guests) {
+        setFilters(prev => ({
+          ...prev,
+          location: q || prev.location,
+          checkIn: startDate || prev.checkIn,
+          checkOut: endDate || prev.checkOut,
+          guests: guests ? Number(guests) || prev.guests : prev.guests,
+        }));
+      }
+    } catch (_) {}
+  }, []);
+
   const makeAbsolute = (u) => {
     if (!u) return u;
     let s = String(u).replace(/\\/g, '/');
@@ -303,7 +323,7 @@ const ApartmentsListing = () => {
 
               {/* Budget Range Slider (Booking.com-like) */}
               <div className="mb-6">
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Budget (per night)</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Budget</label>
                 <div className="px-1">
                   <div className="flex items-center justify-between text-xs text-gray-600 mb-1">
                     <span>RWF {filters.priceMin.toLocaleString()}</span>

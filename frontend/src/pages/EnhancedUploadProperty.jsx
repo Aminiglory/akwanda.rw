@@ -91,7 +91,12 @@ const EnhancedUploadProperty = () => {
         category: data.property.category || 'apartment',
         groupBookingEnabled: data.property.groupBookingEnabled || false,
         groupBookingDiscount: data.property.groupBookingDiscount || 0,
-        commissionRate: data.property.commissionRate || 10,
+        commissionRate: (() => {
+          const r = Number(data.property.commissionRate || 10);
+          if (r >= 12) return 12;
+          if (r >= 10) return 10;
+          return 8;
+        })(),
         visibilityLevel: data.property.visibilityLevel || 'standard',
         featuredUntil: data.property.featuredUntil ? new Date(data.property.featuredUntil).toISOString().split('T')[0] : ''
       });
@@ -702,15 +707,16 @@ const EnhancedUploadProperty = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Commission Rate (%)
                   </label>
-                  <input
-                    type="number"
+                  <select
                     name="commissionRate"
                     value={formData.commissionRate}
-                    onChange={handleInputChange}
+                    onChange={(e)=> setFormData(prev => ({ ...prev, commissionRate: Number(e.target.value) }))}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    min="0"
-                    max="50"
-                  />
+                  >
+                    <option value={8}>8%</option>
+                    <option value={10}>10%</option>
+                    <option value={12}>12%</option>
+                  </select>
                 </div>
               </div>
 

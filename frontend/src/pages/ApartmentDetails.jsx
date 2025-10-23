@@ -843,22 +843,6 @@ const ApartmentDetails = () => {
                 </div>
                 <span className="text-gray-600">per month</span>
               </div>
-              {/* Owner commission alert */}
-              {(() => {
-                const isOwner = Boolean(user && apartment?.host?.id && ((user._id || user.id) === apartment.host.id));
-                if (!isOwner) return null;
-                const commissionRate = 0.1; // 10%
-                const commission = Math.round(apartment.price * commissionRate);
-                return (
-                  <div className="mb-4 p-3 rounded-lg bg-yellow-50 border border-yellow-200 text-yellow-800 flex items-start gap-2">
-                    <FaShieldAlt className="mt-0.5" />
-                    <div>
-                      <div className="font-semibold">Commission Notice</div>
-                      <div className="text-sm">Your estimated commission due for this month is <span className="font-medium">RWF {commission.toLocaleString()}</span> ({commissionRate * 100}%). Please ensure timely payment.</div>
-                    </div>
-                  </div>
-                );
-              })()}
               <button
                 type="button"
                 disabled={!isAuthenticated}
@@ -887,16 +871,7 @@ const ApartmentDetails = () => {
                   <span className="text-gray-600">Monthly rent</span>
                   <span className="font-medium">RWF {apartment.price?.toLocaleString() || '0'}</span>
                 </div>
-                {(() => {
-                  const commissionRate = 0.1;
-                  const commission = Math.round(apartment.price * commissionRate);
-                  return (
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-600">Commission (10%)</span>
-                      <span className="font-medium">RWF {commission.toLocaleString()}</span>
-                    </div>
-                  );
-                })()}
+                {/* Commission details are surfaced in Notifications for property owners */}
               </div>
             </div>
           </div>
@@ -907,7 +882,7 @@ const ApartmentDetails = () => {
       {isCalendarOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px]" onClick={() => setIsCalendarOpen(false)} />
-          <div className="relative w-full max-w-3xl bg-white/95 rounded-2xl shadow-2xl overflow-hidden animate-fade-in-up">
+          <div className="relative w-full max-w-3xl bg-white/95 rounded-2xl shadow-2xl overflow-hidden animate-fade-in-up max-h-[90vh]">
             {/* Mobile-friendly floating close button */}
             <button
               type="button"
@@ -917,7 +892,7 @@ const ApartmentDetails = () => {
             >
               <FaTimes />
             </button>
-            <div className="flex items-center justify-between px-5 py-4 bg-gray-50/70">
+            <div className="flex items-center justify-between px-5 py-4 bg-gray-50/70 sticky top-0 z-10">
               <div className="flex items-center gap-2 text-gray-900 font-semibold">
                 <FaCalendarAlt className="text-blue-600" />
                 <span>Room Availability</span>
@@ -931,7 +906,7 @@ const ApartmentDetails = () => {
                 <FaTimes />
               </button>
             </div>
-            <div className="p-5">
+            <div className="p-5 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 56px)' }}>
               {calendarRoom && (
                 <RoomCalendarPanel
                   propertyId={apartment.id}
