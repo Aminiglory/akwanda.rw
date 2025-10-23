@@ -317,8 +317,8 @@ const BookingProcess = () => {
   };
 
   const filterRoomsByBudget = () => {
+    // If no budget selected, show all (with unavailable selected room kept visible)
     if (!bookingData.budget) {
-      // If the selected room is not available, append it (marked unavailable) so it doesn't disappear
       if (selectedRoom && selectedRoomUnavailable) {
         const exists = availableRooms.some(r => (r._id && r._id === selectedRoom._id) || r.roomNumber === selectedRoom.roomNumber);
         const merged = exists ? availableRooms : [...availableRooms, { ...selectedRoom, isAvailable: false }];
@@ -331,31 +331,29 @@ const BookingProcess = () => {
 
     const budgetRange = budgetRanges.find(range => range.label === bookingData.budget);
     if (!budgetRange) {
-      setFilteredRooms(availableRooms);
+      setFilteredRooms(dedupeRooms(availableRooms));
       return;
     }
 
-    // Filter by monthly price (convert budget range to monthly)
-    const monthlyMin = budgetRange.min * 30;
-    const monthlyMax = budgetRange.max * 30;
-    
-    const filtered = dedupeRooms(availableRooms).filter(room => {
-      const roomMonthlyPrice = room.pricePerMonth || ((room.pricePerNight || 0) * 30);
-      return roomMonthlyPrice >= monthlyMin && roomMonthlyPrice <= monthlyMax;
+    // Compare per-night price directly to the budget range
+    const nightlyMin = budgetRange.min;
+    const nightlyMax = budgetRange.max;
+
+    let filtered = dedupeRooms(availableRooms).filter(room => {
+      const nightly = Number(room.pricePerNight || room.price || 0);
+      return nightly >= nightlyMin && nightly <= nightlyMax;
     });
-    
-    setFilteredRooms(filtered);
-    
-    // FIX: If selected room doesn't match current budget filter, clear selection
-    if (selectedRoom && filtered.length > 0) {
-      const isInFiltered = filtered.some(room => 
-        room._id === selectedRoom._id || room.roomNumber === selectedRoom.roomNumber
-      );
-      if (!isInFiltered) {
-        setSelectedRoom(null);
-        toast.info('Your selected room no longer matches the budget filter');
-      }
+
+    // If no rooms match, gracefully fall back to all rooms instead of blocking the user
+    if (filtered.length === 0) {
+      filtered = dedupeRooms(availableRooms);
+      toast.dismiss();
+      toast('No rooms within selected budget; showing all available rooms', { icon: 'ℹ️' });
     }
+
+    setFilteredRooms(filtered);
+
+    // If selected room doesn't match current budget filter, keep selection (do not auto-clear)
   };
 
   const calculateTotalPrice = () => {

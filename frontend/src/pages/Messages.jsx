@@ -40,6 +40,14 @@ export default function Messages() {
   const MAX_MESSAGE_LEN = 2000;
   const [onlineUsers, setOnlineUsers] = useState(new Set());
   const [messagesLoading, setMessagesLoading] = useState(false);
+  const [overlayReady, setOverlayReady] = useState(false); // mobile overlay animation
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const sidebarRef = useRef(null);
+  const touchStartYRef = useRef(0);
+  const pulledRef = useRef(false);
+  const typingTimersRef = useRef({}); // per-thread typing timers
+  const [contextMenu, setContextMenu] = useState({ visible: false, x: 0, y: 0, message: null });
+  const longPressTimerRef = useRef(null);
 
   const extractSenderId = (val) => {
     if (!val) return '';
@@ -91,6 +99,40 @@ export default function Messages() {
       loadMessages(activeThread.id);
     }
   }, [activeThread]);
+
+  // Pull-to-refresh for threads (mobile)
+  useEffect(() => {
+    const el = sidebarRef.current;
+    if (!el) return;
+    let pulling = false;
+    const onStart = (e) => {
+      if (el.scrollTop === 0) {
+        touchStartYRef.current = e.touches?.[0]?.clientY || 0;
+        pulling = true;
+        pulledRef.current = false;
+      }
+    };
+    const onMove = (e) => {
+      if (!pulling) return;
+      const y = e.touches?.[0]?.clientY || 0;
+      const delta = y - touchStartYRef.current;
+      if (delta > 70 && !pulledRef.current) {
+        pulledRef.current = true;
+        setIsRefreshing(true);
+        loadThreads().finally(() => setTimeout(() => setIsRefreshing(false), 400));
+        if (navigator?.vibrate) try { navigator.vibrate(10); } catch (_) {}
+      }
+    };
+    const onEnd = () => { pulling = false; };
+    el.addEventListener('touchstart', onStart, { passive: true });
+    el.addEventListener('touchmove', onMove, { passive: true });
+    el.addEventListener('touchend', onEnd, { passive: true });
+    return () => {
+      el.removeEventListener('touchstart', onStart);
+      el.removeEventListener('touchmove', onMove);
+      el.removeEventListener('touchend', onEnd);
+    };
+  }, [sidebarRef.current]);
 
   useEffect(() => {
     if (!socket) return;
@@ -209,6 +251,22 @@ export default function Messages() {
       return () => clearTimeout(t);
     }
   }, [otherTyping]);
+
+  // Lock body scroll on mobile when chat overlay is open
+  useEffect(() => {
+    try {
+      const isMobile = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(max-width: 1023.5px)').matches;
+      if (activeThread && isMobile) {
+        const prevOverflow = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+        // trigger slide-in after mount
+        const t = setTimeout(() => setOverlayReady(true), 0);
+        const onKey = (e) => { if (e.key === 'Escape') setActiveThread(null); };
+        window.addEventListener('keydown', onKey);
+        return () => { clearTimeout(t); window.removeEventListener('keydown', onKey); setOverlayReady(false); document.body.style.overflow = prevOverflow; };
+      }
+    } catch (_) {}
+  }, [activeThread]);
 
   const loadThreads = async () => {
     setLoading(true);
@@ -400,6 +458,23 @@ export default function Messages() {
         setOtherTyping(!!data.typing);
       }
     }
+
+    // Update typing badge in thread list (best-effort)
+    if (typingUserId) {
+      setThreads(prev => prev.map(t => (
+        String(t.userId) === String(typingUserId)
+          ? { ...t, isTyping: !!data.typing }
+          : t
+      )));
+      // auto-clear after 4s
+      const key = String(typingUserId);
+      if (typingTimersRef.current[key]) clearTimeout(typingTimersRef.current[key]);
+      typingTimersRef.current[key] = setTimeout(() => {
+        setThreads(prev => prev.map(t => (
+          String(t.userId) === key ? { ...t, isTyping: false } : t
+        )));
+      }, 4000);
+    }
   };
 
   const handleMessageRead = (data) => {
@@ -474,13 +549,61 @@ export default function Messages() {
         status: 'delivered',
         reply: optimistic.reply || null
       } : m));
+      if (navigator?.vibrate) try { navigator.vibrate(15); } catch (_) {}
     } catch (error) {
       toast.error(error.message || 'Failed to send message');
-      setMessages(prev => prev.filter(m => m.id !== tempId));
+      // Mark optimistic as failed for retry
+      setMessages(prev => prev.map(m => m.id === tempId ? { ...m, status: 'failed' } : m));
     } finally {
       setNewMessage('');
       setAttachments([]);
       setReplyTarget(null);
+    }
+  };
+
+  const resendMessage = async (failedMessage) => {
+    if (!failedMessage) return;
+    // Reset status to sending
+    setMessages(prev => prev.map(m => m.id === failedMessage.id ? { ...m, status: 'sending' } : m));
+    try {
+      let uploaded = [];
+      if (failedMessage.attachments && failedMessage.attachments.length) {
+        const form = new FormData();
+        failedMessage.attachments.forEach(a => { if (a.file) form.append('files', a.file); });
+        if (form.has && !form.has('files')) { /* no-op */ }
+        if ([...form.keys()].length) {
+          const up = await fetch(`${API_URL}/api/messages/upload`, { method: 'POST', credentials: 'include', body: form });
+          const upJson = await up.json();
+          if (!up.ok) throw new Error(upJson.message || 'Upload failed');
+          uploaded = upJson.attachments || [];
+        }
+      }
+      const payload = {
+        to: activeThread?.userId || failedMessage.senderId,
+        text: failedMessage.content,
+        bookingId: activeThread?.context?.bookingId,
+        attachments: uploaded
+      };
+      const res = await fetch(`${API_URL}/api/messages/send`, {
+        method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Send failed');
+      // Replace local failed with server
+      setMessages(prev => prev.map(m => m.id === failedMessage.id ? {
+        id: String(data.message._id),
+        senderId: extractSenderId(data.message.sender),
+        senderName: user?.name || 'You',
+        content: data.message.message,
+        attachments: data.message.attachments || [],
+        timestamp: data.message.createdAt,
+        type: (data.message.attachments && data.message.attachments.length) ? 'file' : 'text',
+        status: 'delivered',
+        reply: failedMessage.reply || null
+      } : m));
+    } catch (e) {
+      toast.error(e.message || 'Retry failed');
+      setMessages(prev => prev.map(m => m.id === failedMessage.id ? { ...m, status: 'failed' } : m));
     }
   };
 
@@ -514,6 +637,7 @@ export default function Messages() {
 
   const removeAttachment = (attachmentId) => {
     setAttachments(prev => prev.filter(att => att.id !== attachmentId));
+    if (navigator?.vibrate) try { navigator.vibrate(8); } catch (_) {}
   };
 
   const handleTypingStart = () => {
@@ -658,7 +782,13 @@ export default function Messages() {
     const isOwn = String(message.senderId) === myId;
     
     return (
-      <div key={message.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'} mb-4`}>
+      <div
+        key={message.id}
+        className={`flex ${isOwn ? 'justify-end' : 'justify-start'} mb-4`}
+        onContextMenu={(e) => { e.preventDefault(); setContextMenu({ visible: true, x: e.clientX, y: e.clientY, message }); }}
+        onTouchStart={() => { if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current); longPressTimerRef.current = setTimeout(() => setContextMenu({ visible: true, x: window.innerWidth/2, y: window.innerHeight/2, message }), 500); }}
+        onTouchEnd={() => { if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current); }}
+      >
         <div className={`max-w-[85%] sm:max-w-[75%] lg:max-w-[60%] ${isOwn ? 'order-2' : 'order-1'}`}>
           {!isOwn && (
             <div className="flex items-center mb-1">
@@ -709,12 +839,20 @@ export default function Messages() {
           <div className={`flex items-center mt-1 ${isOwn ? 'justify-end' : 'justify-start'}`}>
             <span className="text-xs text-gray-500">{formatTime(message.timestamp)}</span>
             {isOwn && (
-              <div className="ml-2">
+              <div className="ml-2 flex items-center gap-2">
                 {message.status === 'sending' && <FaClock className="text-gray-400 text-xs" />}
                 {message.status === 'delivered' && <FaCheck className="text-gray-400 text-xs" />}
                 {message.status === 'read' && <FaCheckDouble className="text-blue-500 text-xs" />}
+                {message.status === 'failed' && (
+                  <button
+                    className="text-xs text-rose-600 underline"
+                    onClick={() => resendMessage(message)}
+                    title="Retry send"
+                  >Retry</button>
+                )}
               </div>
             )}
+            <div className={`mt-1 ${isOwn ? 'text-right' : 'text-left'}`}></div>
           </div>
           <div className={`mt-1 ${isOwn ? 'text-right' : 'text-left'}`}>
             <button
@@ -754,6 +892,9 @@ export default function Messages() {
                 {thread.unreadCount}
               </span>
             )}
+            {thread.isTyping && (
+              <span className="absolute -bottom-1 -left-1 bg-blue-600 text-white text-[10px] rounded px-1">typing…</span>
+            )}
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between">
@@ -789,6 +930,29 @@ export default function Messages() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {contextMenu.visible && contextMenu.message && (
+        <div className="fixed inset-0 z-50" onClick={() => setContextMenu({ visible: false, x: 0, y: 0, message: null })}>
+          <div
+            className="absolute bg-white border border-gray-200 rounded-lg shadow-lg text-sm"
+            style={{ top: contextMenu.y, left: contextMenu.x, transform: 'translate(-50%, 0)' }}
+          >
+            <button
+              className="block w-full text-left px-4 py-2 hover:bg-gray-50"
+              onClick={async () => {
+                try { await navigator.clipboard.writeText(contextMenu.message.content || ''); } catch (_) {}
+                setContextMenu({ visible: false, x: 0, y: 0, message: null });
+              }}
+            >Copy</button>
+            <button
+              className="block w-full text-left px-4 py-2 hover:bg-gray-50"
+              onClick={() => {
+                setMessages(prev => prev.filter(m => m.id !== contextMenu.message.id));
+                setContextMenu({ visible: false, x: 0, y: 0, message: null });
+              }}
+            >Remove for me</button>
+          </div>
+        </div>
+      )}
       <div className="max-w-7xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Threads Sidebar */}
         <div className={`lg:col-span-1 modern-card-elevated p-6 flex flex-col h-[60vh] md:h-[70vh] lg:h-[78vh] ${activeThread ? 'hidden lg:flex' : 'flex'}`}>
@@ -814,28 +978,54 @@ export default function Messages() {
             </button>
           </div>
           
-          <div className="space-y-1 overflow-y-auto flex-1">
+          <div ref={sidebarRef} className="space-y-1 overflow-y-auto flex-1">
+            {isRefreshing && (
+              <div className="sticky top-0 z-10 flex items-center justify-center py-1 text-xs text-blue-600">Refreshing…</div>
+            )}
             {loading ? (
               <ListItemSkeleton rows={8} />
-            ) : (
-              threads
+            ) : (() => {
+              const filtered = threads
                 .filter(thread => {
                   const name = (thread.userName || '').toLowerCase();
                   const last = (thread.lastMessage || '').toLowerCase();
                   const q = (searchTerm || '').toLowerCase();
                   return name.includes(q) || last.includes(q);
-                })
-                .map(renderThread)
-            )}
+                });
+              if (filtered.length === 0) {
+                return (
+                  <div className="flex flex-col items-center justify-center text-center text-gray-600 py-10">
+                    <FaComments className="text-4xl text-gray-300 mb-2" />
+                    <div className="mb-3">No conversations yet</div>
+                    <button
+                      onClick={() => setShowUserSearch(true)}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                    >Start New Conversation</button>
+                  </div>
+                );
+              }
+              return filtered.map(renderThread);
+            })()}
           </div>
         </div>
 
         {/* Chat Area */}
-        <div className={`lg:col-span-3 modern-card-elevated flex flex-col h-[60vh] md:h-[70vh] lg:h-[78vh] ${!activeThread ? 'hidden lg:flex' : 'flex'}`}>
+        <div
+          className={`lg:col-span-3 modern-card-elevated flex flex-col 
+            ${!activeThread ? 'hidden lg:flex' : 'flex'}
+            ${activeThread ? 'fixed inset-0 z-40 bg-white/95 lg:relative lg:inset-auto lg:z-auto lg:bg-transparent' : ''}
+            ${activeThread ? (overlayReady ? 'opacity-100' : 'opacity-0') : ''}
+            transition-opacity duration-200 ease-out
+            h-[100vh] md:h-[80vh] lg:h-[78vh]
+          `}
+          role="region"
+          aria-label="Chat Area"
+          aria-modal={activeThread ? true : undefined}
+        >
           {activeThread ? (
             <>
               {/* Chat Header */}
-              <div className="p-4 border-b border-gray-200 sticky top-0 bg-white z-10">
+              <div className={`p-4 border-b border-gray-200 sticky top-0 bg-white z-10 ${activeThread ? 'lg:p-4' : ''}`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     {/* Mobile back button */}
@@ -874,7 +1064,7 @@ export default function Messages() {
               </div>
 
               {/* Messages */}
-              <div className="flex-1 p-4 overflow-y-auto">
+              <div className={`flex-1 p-4 overflow-y-auto transform transition-transform duration-300 ease-out lg:transform-none ${overlayReady ? 'translate-y-0' : 'translate-y-full lg:translate-y-0'}`}>
                 {messagesLoading ? (
                   <ChatBubbleSkeleton rows={8} />
                 ) : (
@@ -1004,6 +1194,12 @@ export default function Messages() {
                 <FaComments className="text-6xl text-gray-300 mx-auto mb-4" />
                 <h3 className="text-xl font-semibold text-gray-600 mb-2">Select a conversation</h3>
                 <p className="text-gray-500">Choose a conversation from the sidebar to start messaging</p>
+                <div className="mt-4 lg:hidden">
+                  <button
+                    onClick={() => setShowUserSearch(true)}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  >Start New Conversation</button>
+                </div>
               </div>
             </div>
           )}

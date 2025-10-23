@@ -45,6 +45,10 @@ const ApartmentDetails = () => {
   const [isFavorited, setIsFavorited] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [apartment, setApartment] = useState(null);
+  const [showEmailShare, setShowEmailShare] = useState(false);
+  const [shareToEmail, setShareToEmail] = useState('');
+  const [shareNote, setShareNote] = useState('');
+  const [sharing, setSharing] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [calendarRoom, setCalendarRoom] = useState(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
@@ -58,6 +62,71 @@ const ApartmentDetails = () => {
       return `${API_URL}${s}`;
     }
     return s;
+  };
+
+  const sendShareByEmail = async () => {
+    if (!apartment) return;
+    const to = (shareToEmail || '').trim();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) { toast.error('Enter a valid email'); return; }
+    try {
+      setSharing(true);
+      const subject = `Check this apartment: ${apartment.title}`;
+      const primaryImg = Array.isArray(apartment.images) && apartment.images.length ? apartment.images[0] : '';
+      const priceNight = Number(apartment.pricePerNight || 0).toLocaleString();
+      const detailsUrl = window.location.href;
+      const noteHtml = shareNote ? `<p style="margin:16px 0;color:#374151;line-height:1.5">${shareNote.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</p>` : '';
+      const html = `
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width" />
+  <title>${subject}</title>
+  <style>
+    .card{max-width:640px;margin:0 auto;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #e5e7eb}
+    .hdr{padding:16px 20px;background:#0ea5e9;color:#fff;font-weight:700;font-size:18px}
+    .img{width:100%;height:auto;display:block}
+    .body{padding:20px;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu}
+    .pill{display:inline-flex;align-items:center;background:#eef2ff;color:#3730a3;border-radius:9999px;padding:4px 10px;font-size:12px;margin-right:8px}
+    .btn{display:inline-block;background:#0ea5e9;color:#fff;text-decoration:none;padding:12px 16px;border-radius:10px;font-weight:600}
+    .meta{color:#374151;font-size:14px;margin:6px 0}
+  </style>
+  </head>
+  <body style="background:#f3f4f6;padding:24px">
+    <div class="card">
+      <div class="hdr">Akwanda.rw • Apartment Recommendation</div>
+      ${primaryImg ? `<img class="img" src="${primaryImg}" alt="${apartment.title}" />` : ''}
+      <div class="body">
+        <h1 style="margin:0 0 6px 0;font-size:22px;color:#111827">${apartment.title}</h1>
+        <div class="meta">${apartment.location}</div>
+        <div class="meta">RWF ${priceNight} per night</div>
+        <div style="margin:10px 0 14px 0">
+          <span class="pill">${apartment.bedrooms} Bedrooms</span>
+          <span class="pill">${apartment.bathrooms} Bathrooms</span>
+        </div>
+        ${noteHtml}
+        <div style="margin-top:16px">
+          <a class="btn" href="${detailsUrl}" target="_blank" rel="noopener">View Apartment</a>
+        </div>
+        <p style="color:#6b7280;font-size:12px;margin-top:18px">Shared via Akwanda.rw</p>
+      </div>
+    </div>
+  </body>
+</html>
+`;
+      const res = await fetch(`${API_URL}/api/share/email`, {
+        method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to, subject, html })
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(()=>({}));
+        throw new Error(d.message || 'Failed to send email');
+      }
+      toast.success('Shared via email');
+      setShowEmailShare(false);
+      setShareToEmail('');
+      setShareNote('');
+    } catch (e) { toast.error(e.message); } finally { setSharing(false); }
   };
 
   // Favorite persistence helpers
@@ -323,6 +392,9 @@ const ApartmentDetails = () => {
             <div className="flex items-center gap-2">
               <button onClick={handleShare} className="p-3 rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors" title="Share" aria-label="Share">
                 <FaShare className="text-lg" />
+              </button>
+              <button onClick={()=> setShowEmailShare(true)} className="p-3 rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors" title="Share via Email" aria-label="Share via Email">
+                <FaEnvelope className="text-lg" />
               </button>
               <button
                 onClick={toggleFavorite}

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 import { 
   FaHome, FaCalendarAlt, FaMoneyBillWave, FaCheckCircle, FaClock, FaEye, 
   FaEdit, FaTrash, FaPlus, FaFileInvoice, FaFilter, FaDownload, FaChartLine,
@@ -14,6 +15,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const EnhancedPropertyOwnerDashboard = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('overview'); // overview, properties, bookings, analytics
   const [properties, setProperties] = useState([]);
   const [bookings, setBookings] = useState([]);
@@ -339,6 +341,15 @@ const EnhancedPropertyOwnerDashboard = () => {
         </div>
       </div>
 
+      {/* Deactivation banner */}
+      {user?.isBlocked && (
+        <div className="bg-red-50 border-y border-red-200">
+          <div className="max-w-7xl mx-auto px-4 py-3 text-sm text-red-700">
+            Your account is deactivated due to unpaid commissions. Actions are limited until reactivated.
+          </div>
+        </div>
+      )}
+
       {/* Navigation Tabs */}
       <div className="bg-white border-b sticky top-0 z-10 shadow-sm">
         <div className="max-w-7xl mx-auto px-4">
@@ -433,8 +444,9 @@ const EnhancedPropertyOwnerDashboard = () => {
               <h2 className="text-xl font-bold text-gray-900 mb-4">Quick Actions</h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <button
-                  onClick={() => navigate('/upload')}
-                  className="flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-4 rounded-lg font-medium transition-colors"
+                  onClick={() => { if (user?.isBlocked) { toast.error('Your account is deactivated. Listing is disabled.'); return; } navigate('/upload'); }}
+                  disabled={user?.isBlocked}
+                  className="flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-6 py-4 rounded-lg font-medium transition-colors"
                 >
                   <FaPlus />
                   <span>Add New Property</span>
@@ -497,8 +509,9 @@ const EnhancedPropertyOwnerDashboard = () => {
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-bold text-gray-900">My Properties</h2>
               <button
-                onClick={() => navigate('/upload')}
-                className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+                onClick={() => { if (user?.isBlocked) { toast.error('Your account is deactivated. Listing is disabled.'); return; } navigate('/upload'); }}
+                disabled={user?.isBlocked}
+                className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-6 py-3 rounded-lg font-medium transition-colors"
               >
                 <FaPlus />
                 <span>Add New Property</span>
@@ -511,8 +524,9 @@ const EnhancedPropertyOwnerDashboard = () => {
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">No Properties Yet</h3>
                 <p className="text-gray-600 mb-6">Start by adding your first property</p>
                 <button
-                  onClick={() => navigate('/upload')}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-medium transition-colors"
+                  onClick={() => { if (user?.isBlocked) { toast.error('Your account is deactivated. Listing is disabled.'); return; } navigate('/upload'); }}
+                  disabled={user?.isBlocked}
+                  className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-8 py-3 rounded-lg font-medium transition-colors"
                 >
                   Add Property
                 </button>
@@ -564,26 +578,29 @@ const EnhancedPropertyOwnerDashboard = () => {
                           <span>View</span>
                         </button>
                         <button
-                          onClick={() => navigate(`/edit-property/${property._id}`)}
-                          className="flex-1 flex items-center justify-center space-x-1 bg-green-100 text-green-600 px-3 py-2 rounded-lg hover:bg-green-200 transition-colors text-sm font-medium"
+                          onClick={() => { if (user?.isBlocked) { toast.error('Your account is deactivated. Editing is disabled.'); return; } navigate(`/edit-property/${property._id}`); }}
+                          disabled={user?.isBlocked}
+                          className="flex-1 flex items-center justify-center space-x-1 bg-green-100 text-green-600 px-3 py-2 rounded-lg hover:bg-green-200 disabled:opacity-50 transition-colors text-sm font-medium"
                         >
                           <FaEdit />
                           <span>Edit</span>
                         </button>
                         <button
-                          onClick={() => handleTogglePropertyStatus(property._id, property.isActive)}
+                          onClick={() => { if (user?.isBlocked) { toast.error('Your account is deactivated. Status changes are disabled.'); return; } handleTogglePropertyStatus(property._id, property.isActive); }}
+                          disabled={user?.isBlocked}
                           className={`flex-1 flex items-center justify-center space-x-1 px-3 py-2 rounded-lg transition-colors text-sm font-medium ${
                             property.isActive
                               ? 'bg-yellow-100 text-yellow-600 hover:bg-yellow-200'
                               : 'bg-green-100 text-green-600 hover:bg-green-200'
-                          }`}
+                          } disabled:opacity-50`}
                         >
                           {property.isActive ? <FaToggleOff /> : <FaToggleOn />}
                           <span>{property.isActive ? 'Hide' : 'Show'}</span>
                         </button>
                         <button
-                          onClick={() => handleDeleteProperty(property._id)}
-                          className="flex items-center justify-center bg-red-100 text-red-600 px-3 py-2 rounded-lg hover:bg-red-200 transition-colors text-sm font-medium"
+                          onClick={() => { if (user?.isBlocked) { toast.error('Your account is deactivated. Delete is disabled.'); return; } handleDeleteProperty(property._id); }}
+                          disabled={user?.isBlocked}
+                          className="flex items-center justify-center bg-red-100 text-red-600 px-3 py-2 rounded-lg hover:bg-red-200 disabled:opacity-50 transition-colors text-sm font-medium"
                         >
                           <FaTrash />
                         </button>
@@ -592,8 +609,9 @@ const EnhancedPropertyOwnerDashboard = () => {
                         <div className="flex items-center justify-between mb-2">
                           <div className="text-sm font-semibold text-gray-800">Room Availability</div>
                           <button
-                            onClick={() => setAddRoomOpen(prev => ({ ...prev, [property._id]: !prev[property._id] }))}
-                            className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded bg-blue-600 text-white hover:bg-blue-700"
+                            onClick={() => { if (user?.isBlocked) { toast.error('Your account is deactivated. Adding rooms is disabled.'); return; } setAddRoomOpen(prev => ({ ...prev, [property._id]: !prev[property._id] })); }}
+                            disabled={user?.isBlocked}
+                            className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
                           >
                             <FaPlus /> Add Room
                           </button>
@@ -612,7 +630,7 @@ const EnhancedPropertyOwnerDashboard = () => {
                               <input placeholder="Amenities (comma separated)" className="px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent md:col-span-2" value={(addRoomData[property._id]?.amenities)||''} onChange={e=>setAddRoomData(p=>({ ...p, [property._id]: { ...(p[property._id]||{}), amenities:e.target.value } }))} />
                               <input placeholder="Image URLs (comma separated)" className="px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent md:col-span-3" value={(addRoomData[property._id]?.images)||''} onChange={e=>setAddRoomData(p=>({ ...p, [property._id]: { ...(p[property._id]||{}), images:e.target.value } }))} />
                               <div className="md:col-span-3 flex gap-2">
-                                <button onClick={()=>handleAddRoom(property._id)} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Save Room</button>
+                                <button onClick={()=>handleAddRoom(property._id)} disabled={user?.isBlocked} className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 rounded">Save Room</button>
                                 <button onClick={()=>setAddRoomOpen(prev=>({...prev,[property._id]:false}))} className="flex-1 border px-4 py-2 rounded">Cancel</button>
                               </div>
                             </div>
@@ -626,23 +644,23 @@ const EnhancedPropertyOwnerDashboard = () => {
                                 <div className="flex items-center justify-between">
                                   <div className="text-sm text-gray-700">{room.roomNumber} • {room.roomType} • Capacity {room.capacity}</div>
                                   <div className="flex gap-2">
-                                    <button onClick={()=>handleStartEditRoom(property._id, room)} className="px-3 py-1 text-xs rounded border">Edit</button>
-                                    <button onClick={()=>handleDeleteRoom(property._id, room)} className="px-3 py-1 text-xs rounded border text-red-600">Delete</button>
+                                    <button onClick={()=>{ if (user?.isBlocked) { toast.error('Your account is deactivated. Editing is disabled.'); return; } handleStartEditRoom(property._id, room); }} disabled={user?.isBlocked} className="px-3 py-1 text-xs rounded border disabled:opacity-50">Edit</button>
+                                    <button onClick={()=>{ if (user?.isBlocked) { toast.error('Your account is deactivated. Delete is disabled.'); return; } handleDeleteRoom(property._id, room); }} disabled={user?.isBlocked} className="px-3 py-1 text-xs rounded border text-red-600 disabled:opacity-50">Delete</button>
                                   </div>
                                 </div>
                                 {editingRoom && editingRoom.propertyId===property._id && editingRoom.roomId===(room._id) && (
                                   <div className="p-3 bg-gray-50 border rounded">
                                     <div className="grid grid-cols-1 md:grid-cols-6 gap-2">
-                                      <input className="px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" value={editRoomData.roomNumber||''} onChange={e=>setEditRoomData(d=>({...d, roomNumber:e.target.value}))} />
+                                      <input disabled={user?.isBlocked} className="px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50" value={editRoomData.roomNumber||''} onChange={e=>setEditRoomData(d=>({...d, roomNumber:e.target.value}))} />
                                       <select className="px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" value={editRoomData.roomType||''} onChange={e=>setEditRoomData(d=>({...d, roomType:e.target.value}))}>
                                         {['single','double','suite','family','deluxe'].map(t=> (<option key={t} value={t}>{t}</option>))}
                                       </select>
-                                      <input type="number" className="px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" value={editRoomData.pricePerNight||''} onChange={e=>setEditRoomData(d=>({...d, pricePerNight:e.target.value}))} />
-                                      <input type="number" className="px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" value={editRoomData.capacity||''} onChange={e=>setEditRoomData(d=>({...d, capacity:e.target.value}))} />
-                                      <input className="px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent md:col-span-2" placeholder="Amenities" value={editRoomData.amenities||''} onChange={e=>setEditRoomData(d=>({...d, amenities:e.target.value}))} />
-                                      <input className="px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent md:col-span-3" placeholder="Image URLs" value={editRoomData.images||''} onChange={e=>setEditRoomData(d=>({...d, images:e.target.value}))} />
+                                      <input disabled={user?.isBlocked} type="number" className="px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50" value={editRoomData.pricePerNight||''} onChange={e=>setEditRoomData(d=>({...d, pricePerNight:e.target.value}))} />
+                                      <input disabled={user?.isBlocked} type="number" className="px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50" value={editRoomData.capacity||''} onChange={e=>setEditRoomData(d=>({...d, capacity:e.target.value}))} />
+                                      <input disabled={user?.isBlocked} className="px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent md:col-span-2 disabled:opacity-50" placeholder="Amenities" value={editRoomData.amenities||''} onChange={e=>setEditRoomData(d=>({...d, amenities:e.target.value}))} />
+                                      <input disabled={user?.isBlocked} className="px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent md:col-span-3 disabled:opacity-50" placeholder="Image URLs" value={editRoomData.images||''} onChange={e=>setEditRoomData(d=>({...d, images:e.target.value}))} />
                                       <div className="md:col-span-3 flex gap-2">
-                                        <button onClick={handleSaveEditRoom} className="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">Save</button>
+                                        <button onClick={handleSaveEditRoom} disabled={user?.isBlocked} className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white px-4 py-2 rounded">Save</button>
                                         <button onClick={()=>{setEditingRoom(null); setEditRoomData({});}} className="flex-1 border px-4 py-2 rounded">Cancel</button>
                                       </div>
                                     </div>

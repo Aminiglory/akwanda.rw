@@ -1,9 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
+import { useAuth } from '../contexts/AuthContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 export default function CarOwnerDashboard() {
+  const { user } = useAuth();
   const [cars, setCars] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -39,6 +41,7 @@ export default function CarOwnerDashboard() {
   async function createCar(e) {
     e.preventDefault();
     try {
+      if (user?.isBlocked) { toast.error('Your account is deactivated. Creating cars is disabled.'); return; }
       setSaving(true);
       const res = await fetch(`${API_URL}/api/cars`, {
         method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form)
@@ -53,6 +56,7 @@ export default function CarOwnerDashboard() {
 
   async function updateCar(id, patch) {
     try {
+      if (user?.isBlocked) { toast.error('Your account is deactivated. Updates are disabled.'); return; }
       const res = await fetch(`${API_URL}/api/cars/${id}`, {
         method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch)
       });
@@ -66,6 +70,7 @@ export default function CarOwnerDashboard() {
   async function deleteCar(id) {
     if (!confirm('Delete this car?')) return;
     try {
+      if (user?.isBlocked) { toast.error('Your account is deactivated. Delete is disabled.'); return; }
       const res = await fetch(`${API_URL}/api/cars/${id}`, { method: 'DELETE', credentials: 'include' });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Delete failed');
@@ -77,6 +82,7 @@ export default function CarOwnerDashboard() {
   async function uploadImages(id, files) {
     if (!files?.length) return;
     try {
+      if (user?.isBlocked) { toast.error('Your account is deactivated. Uploads are disabled.'); return; }
       setUploadingId(id);
       const formData = new FormData();
       Array.from(files).forEach(f => formData.append('images', f));
@@ -90,6 +96,11 @@ export default function CarOwnerDashboard() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-6">
+      {user?.isBlocked && (
+        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
+          Your account is deactivated. Car management is disabled until reactivated.
+        </div>
+      )}
       <h1 className="text-2xl font-bold text-gray-900 mb-4">My Cars</h1>
 
       {/* Create Car */}
@@ -116,7 +127,7 @@ export default function CarOwnerDashboard() {
           <input type="checkbox" checked={!!form.isAvailable} onChange={e => setForm({ ...form, isAvailable: !!e.target.checked })} />
         </div>
         <div className="md:col-span-3">
-          <button disabled={saving} className="px-4 py-2 bg-blue-600 text-white rounded">{saving ? 'Saving...' : 'Add Car'}</button>
+          <button disabled={saving || user?.isBlocked} className="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50">{saving ? 'Saving...' : 'Add Car'}</button>
         </div>
       </form>
 

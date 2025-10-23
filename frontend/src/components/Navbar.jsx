@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import toast from 'react-hot-toast';
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useSocket } from "../contexts/SocketContext";
@@ -784,6 +785,15 @@ const Navbar = () => {
           </div>
         </div>
 
+        {/* Global banner for deactivated owners */}
+        {isAuthenticated && user?.userType === 'host' && user?.isBlocked && (
+          <div className="bg-red-50 border-t border-b border-red-200">
+            <div className="max-w-7xl mx-auto px-4 py-2 text-sm text-red-700">
+              Your account is currently deactivated due to unpaid commissions. Actions are limited until reactivated.
+            </div>
+          </div>
+        )}
+
         {/* Mobile Menu - booking.com Style */}
         {isMenuOpen && (
           <div className="lg:hidden bg-white border-t border-gray-200 mobile-menu">
@@ -823,6 +833,14 @@ const Navbar = () => {
                     <span>Favorites</span>
                   </Link>
                   <Link
+                    to="/messages"
+                    className="flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    <FaEnvelope className="text-lg" />
+                    <span>Messages</span>
+                  </Link>
+                  <Link
                     to="/dashboard"
                     className="flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
                     onClick={() => setIsMenuOpen(false)}
@@ -832,8 +850,8 @@ const Navbar = () => {
                   </Link>
                   <Link
                     to="/upload"
-                    className="flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
-                    onClick={() => setIsMenuOpen(false)}
+                    className={`flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium ${user?.isBlocked ? 'text-gray-400' : 'text-gray-700 hover:bg-gray-50'}`}
+                    onClick={(e) => { if (user?.isBlocked) { e.preventDefault(); toast.error('Your account is deactivated. Listing is disabled until reactivated.'); return; } setIsMenuOpen(false); }}
                   >
                     <FaBuilding className="text-lg" />
                     <span>List your property</span>
@@ -856,6 +874,37 @@ const Navbar = () => {
                         <FaCar className="text-lg" />
                         <span>My Cars</span>
                       </Link>
+
+                      {/* Owner Tools Accordion (mobile only) */}
+                      <div className="mt-2 border-t border-gray-200 pt-2">
+                        <div className="text-xs font-semibold text-gray-500 px-4 mb-1">Owner Tools</div>
+                        <div className="space-y-2">
+                          {ownerManagementLinks.map((category, idx) => (
+                            <details key={idx} className="group">
+                              <summary className="list-none cursor-pointer flex items-center justify-between px-4 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-50">
+                                <div className="flex items-center gap-2">
+                                  {React.createElement(category.icon, { className: 'text-blue-600' })}
+                                  <span>{category.category}</span>
+                                </div>
+                                <FaChevronDown className="text-xs group-open:rotate-180 transition-transform" />
+                              </summary>
+                              <div className="mt-1">
+                                {category.links.map((l, i) => (
+                                  <Link
+                                    key={i}
+                                    to={l.href}
+                                    className="block px-8 py-2 text-sm text-gray-600 hover:bg-gray-50"
+                                    onClick={() => setIsMenuOpen(false)}
+                                  >
+                                    {l.label}
+                                  </Link>
+                                ))}
+                              </div>
+                            </details>
+                          ))}
+                        </div>
+                      </div>
+
                     </>
                   )}
                 </>

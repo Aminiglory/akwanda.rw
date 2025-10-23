@@ -33,6 +33,62 @@ const AdminUserManagement = () => {
     }
   };
 
+  const [togglingId, setTogglingId] = useState(null);
+  const deactivateUser = async (id) => {
+    try {
+      if (!window.confirm('Deactivate this user account?')) return;
+      setTogglingId(id);
+      const res = await fetch(`${API_URL}/api/admin/users/${id}/deactivate`, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reason: 'Admin deactivation' }) });
+      const data = await res.json().catch(()=>({}));
+      if (!res.ok) throw new Error(data.message || 'Failed to deactivate');
+      toast.success('User deactivated');
+      setUsers(prev => prev.map(u => (String(u.id||u._id)===String(id) ? { ...u, isBlocked: true } : u)));
+      // Best-effort: notify the user and deactivate their workers
+      try {
+        await fetch(`${API_URL}/api/notifications`, {
+          method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'account_deactivated',
+            userId: id,
+            title: 'Account Deactivated',
+            message: 'Your account has been deactivated due to unpaid commissions. Your workers have been suspended. Please settle outstanding amounts to regain access.'
+          })
+        });
+      } catch (_) {}
+      try {
+        await fetch(`${API_URL}/api/admin/users/${id}/workers/deactivate`, { method: 'POST', credentials: 'include' });
+      } catch (_) {}
+    } catch (e) {
+      toast.error(e.message || 'Failed to deactivate');
+    } finally { setTogglingId(null); }
+  };
+  const reactivateUser = async (id) => {
+    try {
+      if (!window.confirm('Reactivate this user account?')) return;
+      setTogglingId(id);
+      const res = await fetch(`${API_URL}/api/admin/users/${id}/reactivate`, { method: 'POST', credentials: 'include' });
+      const data = await res.json().catch(()=>({}));
+      if (!res.ok) throw new Error(data.message || 'Failed to reactivate');
+      toast.success('User reactivated');
+      setUsers(prev => prev.map(u => (String(u.id||u._id)===String(id) ? { ...u, isBlocked: false } : u)));
+    } catch (e) {
+      toast.error(e.message || 'Failed to reactivate');
+    } finally { setTogglingId(null); }
+  };
+
+  const deleteUser = async (id) => {
+    try {
+      if (!window.confirm('Are you sure you want to permanently delete this user? This action cannot be undone.')) return;
+      const res = await fetch(`${API_URL}/api/admin/user-management/users/${id}`, { method: 'DELETE', credentials: 'include' });
+      const data = await res.json().catch(()=>({}));
+      if (!res.ok) throw new Error(data.message || 'Failed to delete user');
+      toast.success('User deleted');
+      setUsers(prev => prev.filter(u => String(u.id) !== String(id) && String(u._id) !== String(id)));
+    } catch (e) {
+      toast.error(e.message || 'Failed to delete user');
+    }
+  };
+
   useEffect(() => { loadData(); }, []);
 
   const filteredUsers = useMemo(() => {
@@ -297,6 +353,12 @@ const AdminUserManagement = () => {
                       {user.userType === 'host' && user.propertyCount === 0 && (
                         <button onClick={() => demoteToGuest(user.id)} className="text-red-600 hover:text-red-900">Demote to Guest</button>
                       )}
+                      {user.isBlocked ? (
+                        <button onClick={() => reactivateUser(user.id)} disabled={togglingId===user.id} className="text-emerald-600 hover:text-emerald-900 disabled:opacity-50">Reactivate</button>
+                      ) : (
+                        <button onClick={() => deactivateUser(user.id)} disabled={togglingId===user.id} className="text-orange-600 hover:text-orange-900 disabled:opacity-50">Deactivate</button>
+                      )}
+                      <button onClick={() => deleteUser(user.id)} className="text-rose-600 hover:text-rose-900">Delete</button>
                     </td>
                   </tr>
                 ))}
@@ -317,7 +379,7 @@ const AdminUserManagement = () => {
                 <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getRoleColor(u.userType)}`}>{u.userType}</span>
               </div>
               <div className="text-xs text-gray-600 mb-3">Properties: <span className="font-semibold">{u.propertyCount}</span></div>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex items-center gap-2">
                 <button onClick={() => viewUserDetails(u.id)} className="px-3 py-1 text-sm bg-blue-50 text-blue-700 rounded hover:bg-blue-100">View</button>
                 {u.userType !== 'host' && u.userType !== 'admin' && (
                   <button onClick={() => promoteToHost(u.id)} className="px-3 py-1 text-sm bg-green-50 text-green-700 rounded hover:bg-green-100">Promote</button>
@@ -325,6 +387,12 @@ const AdminUserManagement = () => {
                 {u.userType === 'host' && u.propertyCount === 0 && (
                   <button onClick={() => demoteToGuest(u.id)} className="px-3 py-1 text-sm bg-red-50 text-red-700 rounded hover:bg-red-100">Demote</button>
                 )}
+                {u.isBlocked ? (
+                  <button onClick={() => reactivateUser(u.id)} disabled={togglingId===u.id} className="px-3 py-1 text-sm bg-emerald-50 text-emerald-700 rounded hover:bg-emerald-100 disabled:opacity-50">Reactivate</button>
+                ) : (
+                  <button onClick={() => deactivateUser(u.id)} disabled={togglingId===u.id} className="px-3 py-1 text-sm bg-orange-50 text-orange-700 rounded hover:bg-orange-100 disabled:opacity-50">Deactivate</button>
+                )}
+                <button onClick={() => deleteUser(u.id)} className="px-3 py-1 text-sm bg-rose-50 text-rose-700 rounded hover:bg-rose-100">Delete</button>
               </div>
             </div>
           ))}

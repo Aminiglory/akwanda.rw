@@ -22,6 +22,15 @@ const BookingSuccess = () => {
             <p className="text-gray-600 mt-1">Thank you! Your reservation has been secured successfully.</p>
 
             <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {bookingId && (
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50">
+                  <FaCheckCircle className="text-blue-600" />
+                  <div className="truncate">
+                    <div className="text-sm text-gray-500">Reference</div>
+                    <div className="font-medium text-gray-900 truncate">{bookingId}</div>
+                  </div>
+                </div>
+              )}
               <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50">
                 <FaBed className="text-blue-600" />
                 <div className="truncate">

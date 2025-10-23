@@ -17,7 +17,8 @@ const UploadProperty = () => {
     address: '',
     city: '',
     pricePerNight: '',
-    discountPercent: ''
+    discountPercent: '',
+    commissionChoice: 'standard' // 'standard' = 8%, 'higher' = 12%
   });
   const [details, setDetails] = useState({ bedrooms: '1', bathrooms: '1', size: '', amenities: '' });
   useEffect(() => {
@@ -34,7 +35,8 @@ const UploadProperty = () => {
             address: p.address || '',
             city: p.city || '',
             pricePerNight: p.pricePerNight || '',
-            discountPercent: p.discountPercent || ''
+            discountPercent: p.discountPercent || '',
+            commissionChoice: p.commissionRate && Number(p.commissionRate) >= 12 ? 'higher' : 'standard'
           });
           setDetails({
             bedrooms: p.bedrooms?.toString() || '1',
@@ -61,6 +63,9 @@ const UploadProperty = () => {
     }
     const body = new FormData();
     Object.entries(form).forEach(([k, v]) => v !== '' && body.append(k, v));
+    // derive numeric commission rate
+    const commissionRate = form.commissionChoice === 'higher' ? 12 : 8;
+    body.set('commissionRate', String(commissionRate));
     // extra details
     body.append('bedrooms', Number(details.bedrooms || 0));
     body.append('bathrooms', Number(details.bathrooms || 0));
@@ -91,9 +96,19 @@ const UploadProperty = () => {
         if (!res.ok) throw new Error(data.message || 'Failed to create property');
         toast.success('Property created');
       }
-      setForm({ title: '', description: '', address: '', city: '', pricePerNight: '', discountPercent: '' });
+      setForm({ title: '', description: '', address: '', city: '', pricePerNight: '', discountPercent: '', commissionChoice: 'standard' });
       setDetails({ bedrooms: '1', bathrooms: '1', size: '', amenities: '' });
       setFiles([]);
+      // Best-effort: notify owner about commission selection (do not block UX)
+      try {
+        const note = {
+          type: 'commission_choice',
+          title: 'Commission rate set',
+          message: `You chose a ${commissionRate}% commission rate for ${data?.property?.title || 'your property'}.`,
+          property: data?.property?._id
+        };
+        await fetch(`${API_URL}/api/notifications`, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(note) }).catch(() => {});
+      } catch (_) {}
       if (data.property?._id) navigate(`/apartment/${data.property._id}`);
     } catch (e) {
       toast.error(e.message);
@@ -106,6 +121,11 @@ const UploadProperty = () => {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-3xl mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-6">Upload Apartment</h1>
+        {user?.isBlocked && (
+          <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
+            Your account is currently deactivated. You cannot create or edit listings until reactivated.
+          </div>
+        )}
         <form onSubmit={onSubmit} className="bg-white rounded-2xl shadow-lg p-6 space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
@@ -128,6 +148,29 @@ const UploadProperty = () => {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Price per night (RWF)</label>
             <input type="number" value={form.pricePerNight} onChange={e => onChange('pricePerNight', e.target.value)} className="w-full border border-gray-300 rounded-lg px-4 py-3" required />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Commission</label>
+              <select
+                value={form.commissionChoice}
+                onChange={(e)=> onChange('commissionChoice', e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-4 py-3"
+              >
+                <option value="standard">Standard — 8%</option>
+                <option value="higher">Higher — 12%</option>
+              </select>
+            </div>
+            <div className="flex items-end">
+              <div className="w-full text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded-lg px-4 py-3">
+                {(() => {
+                  const pct = form.commissionChoice === 'higher' ? 12 : 8;
+                  const price = Number(form.pricePerNight || 0);
+                  const est = Math.round((price * pct) / 100);
+                  return <span>Estimated commission per night: <span className="font-semibold text-blue-700">RWF {isNaN(est) ? 0 : est.toLocaleString()}</span> ({pct}%)</span>;
+                })()}
+              </div>
+            </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
@@ -158,7 +201,7 @@ const UploadProperty = () => {
               <p className="text-sm text-gray-500 mt-1">{files.length} file(s) selected</p>
             )}
           </div>
-          <button disabled={submitting} type="submit" className="bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white px-6 py-3 rounded-xl font-semibold">
+          <button disabled={submitting || user?.isBlocked} type="submit" className="bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white px-6 py-3 rounded-xl font-semibold">
             {submitting ? 'Uploading...' : 'Create Listing'}
           </button>
         </form>

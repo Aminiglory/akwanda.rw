@@ -334,9 +334,9 @@ const BookingCalendar = ({ propertyId, onBookingSelect, initialDate }) => {
             </div>
           </div>
           {/* Property selector for users with multiple properties */}
-          <div className="flex items-center gap-1.5 md:gap-2 flex-nowrap overflow-x-auto">
+          <div className="flex items-center gap-2 md:gap-3 flex-nowrap overflow-x-auto py-1">
               <select
-                className="px-2 py-1 md:px-4 md:py-3 rounded-xl bg-white border border-gray-300 text-[11px] md:text-sm"
+                className="px-3 py-2 md:px-4 md:py-3 rounded-xl bg-white border border-gray-300 text-[11px] md:text-sm"
                 value={propertyOverride}
                 onChange={(e)=> setPropertyOverride(e.target.value)}
                 title="Select property"
@@ -349,7 +349,7 @@ const BookingCalendar = ({ propertyId, onBookingSelect, initialDate }) => {
                 ))}
               </select>
               <select
-                className="px-2 py-1 md:px-4 md:py-3 border border-gray-300 rounded-xl text-[11px] md:text-sm"
+                className="px-3 py-2 md:px-4 md:py-3 border border-gray-300 rounded-xl text-[11px] md:text-sm"
                 value={currentDate.getMonth()}
                 onChange={(e)=>{
                   const m = Number(e.target.value);
@@ -361,7 +361,7 @@ const BookingCalendar = ({ propertyId, onBookingSelect, initialDate }) => {
                 ))}
               </select>
               <select
-                className="px-2 py-1 md:px-4 md:py-3 border border-gray-300 rounded-xl text-[11px] md:text-sm"
+                className="px-3 py-2 md:px-4 md:py-3 border border-gray-300 rounded-xl text-[11px] md:text-sm"
                 value={currentDate.getFullYear()}
                 onChange={(e)=>{
                   const y = Number(e.target.value);

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 import { FaPlus, FaSearch, FaUser, FaUsers, FaShieldAlt, FaTrash, FaEdit, FaImage, FaIdCard, FaKey } from 'react-icons/fa';
 
@@ -53,6 +54,7 @@ function useWorkers() {
 }
 
 export default function WorkersManagement() {
+  const { user } = useAuth();
   const { workers, loading, query, setQuery, meta, fetchWorkers, setWorkers } = useWorkers();
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -209,11 +211,17 @@ export default function WorkersManagement() {
             <button onClick={() => setViewMode('cards')} className={`px-3 py-1 rounded ${viewMode==='cards' ? 'bg-white shadow text-gray-900' : 'text-gray-600'}`}>Cards</button>
             <button onClick={() => setViewMode('table')} className={`px-3 py-1 rounded ${viewMode==='table' ? 'bg-white shadow text-gray-900' : 'text-gray-600'}`}>Table</button>
           </div>
-          <button onClick={() => setShowForm(s => !s)} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2">
+          <button disabled={user?.isBlocked} onClick={() => setShowForm(s => !s)} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2">
             <FaPlus /> Add Worker
           </button>
         </div>
       </div>
+
+      {user?.isBlocked && (
+        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
+          Your account is deactivated. Worker management is disabled until reactivated.
+        </div>
+      )}
 
       {showForm && (
         <form onSubmit={onCreate} className="bg-white rounded-xl shadow p-6 mb-8 grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -350,9 +358,9 @@ export default function WorkersManagement() {
                   <div className="text-sm text-gray-600 truncate leading-tight" title={`${w.position || ''} • ${w.department || ''}`}>{w.position} • {w.department}</div>
                   <div className="text-xs text-gray-500 truncate break-all leading-tight" title={w.email || ''}>{w.email}</div>
                 </div>
-                <label className="px-3 py-1 bg-blue-50 text-blue-700 rounded cursor-pointer text-xs flex items-center gap-1">
+                <label className={`px-3 py-1 bg-blue-50 text-blue-700 rounded cursor-pointer text-xs flex items-center gap-1 ${user?.isBlocked ? 'opacity-50 pointer-events-none' : ''}`}>
                   <FaImage /> Avatar
-                  <input className="hidden" type="file" accept="image/*" onChange={e => e.target.files?.[0] && onAvatarUpload(w._id, e.target.files[0])} />
+                  <input className="hidden" type="file" accept="image/*" onChange={e => e.target.files?.[0] && onAvatarUpload(w._id, e.target.files[0])} disabled={user?.isBlocked} />
                 </label>
               </div>
 
@@ -364,8 +372,8 @@ export default function WorkersManagement() {
                   return (
                     <div className="flex flex-wrap gap-2">
                       {shown.map((k) => (
-                        <label key={k} className="inline-flex items-center gap-1 px-2 py-1 border rounded">
-                          <input type="checkbox" checked={!!w.privileges?.[k]} onChange={(e) => onUpdatePrivileges(w._id, { [k]: e.target.checked })} />
+                        <label key={k} className={`inline-flex items-center gap-1 px-2 py-1 border rounded ${user?.isBlocked ? 'opacity-50 pointer-events-none' : ''}`}>
+                          <input type="checkbox" checked={!!w.privileges?.[k]} onChange={(e) => onUpdatePrivileges(w._id, { [k]: e.target.checked })} disabled={user?.isBlocked} />
                           <span className="whitespace-nowrap">{k}</span>
                         </label>
                       ))}
@@ -380,10 +388,10 @@ export default function WorkersManagement() {
               <div className="mt-auto flex items-center justify-between">
                 <span className={`px-2 py-1 rounded-full text-xs ${w.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>{w.status}</span>
                 <div className="flex items-center gap-2 text-xs sm:text-sm flex-wrap justify-end overflow-hidden">
-                  <button onClick={()=> setEditing(w)} className="px-2 py-1 border rounded flex items-center gap-1"><FaEdit /> Edit</button>
-                  <button onClick={()=> setAccountFor(w)} className="px-2 py-1 border rounded flex items-center gap-1"><FaIdCard /> Account</button>
-                  <button onClick={()=> setPrivFor(w)} className="px-2 py-1 border rounded flex items-center gap-1"><FaShieldAlt /> Privileges</button>
-                  <button onClick={()=> setResetFor(w)} className="px-2 py-1 border rounded flex items-center gap-1"><FaKey /> Reset</button>
+                  <button disabled={user?.isBlocked} onClick={()=> setEditing(w)} className="px-2 py-1 border rounded flex items-center gap-1 disabled:opacity-50"><FaEdit /> Edit</button>
+                  <button disabled={user?.isBlocked} onClick={()=> setAccountFor(w)} className="px-2 py-1 border rounded flex items-center gap-1 disabled:opacity-50"><FaIdCard /> Account</button>
+                  <button disabled={user?.isBlocked} onClick={()=> setPrivFor(w)} className="px-2 py-1 border rounded flex items-center gap-1 disabled:opacity-50"><FaShieldAlt /> Privileges</button>
+                  <button disabled={user?.isBlocked} onClick={()=> setResetFor(w)} className="px-2 py-1 border rounded flex items-center gap-1 disabled:opacity-50"><FaKey /> Reset</button>
                 </div>
               </div>
             </div>

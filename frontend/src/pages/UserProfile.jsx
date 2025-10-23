@@ -24,6 +24,42 @@ const UserProfile = () => {
     return `${API_URL}${s}`;
   };
 
+  // Simple center square crop for selected avatar (optional)
+  const cropAvatarToSquare = async () => {
+    if (!avatarFile) return;
+    const file = avatarFile;
+    const img = document.createElement('img');
+    const url = URL.createObjectURL(file);
+    try {
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+        img.src = url;
+      });
+      const size = Math.min(img.naturalWidth, img.naturalHeight);
+      const sx = Math.max(0, Math.floor((img.naturalWidth - size) / 2));
+      const sy = Math.max(0, Math.floor((img.naturalHeight - size) / 2));
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, sx, sy, size, size, 0, 0, size, size);
+      await new Promise((resolve) => setTimeout(resolve));
+      const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.92));
+      if (blob) {
+        const croppedFile = new File([blob], file.name.replace(/\.[^.]+$/, '') + '-sq.jpg', { type: 'image/jpeg' });
+        if (avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl);
+        const preview = URL.createObjectURL(croppedFile);
+        setAvatarFile(croppedFile);
+        setAvatarPreviewUrl(preview);
+      }
+    } catch (_) {
+      // ignore errors; keep original
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  };
+
   const [profileData, setProfileData] = useState({
     firstName: user?.firstName || '',
     lastName: user?.lastName || '',
@@ -38,8 +74,28 @@ const UserProfile = () => {
   useEffect(() => {
     fetchProperties();
     fetchReports();
-    // keep avatar in sync if auth user changes
-    setProfileData((prev) => ({ ...prev, avatar: makeAbsolute(user?.avatar) || prev.avatar }));
+    // Fetch latest profile from backend to populate real form data
+    (async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/user/profile`, { credentials: 'include' });
+        const data = await res.json().catch(()=>({}));
+        if (res.ok && data?.user) {
+          setProfileData({
+            firstName: data.user.firstName || '',
+            lastName: data.user.lastName || '',
+            email: data.user.email || '',
+            phone: data.user.phone || '',
+            bio: data.user.bio || '',
+            avatar: makeAbsolute(data.user.avatar) || ''
+          });
+        } else {
+          // keep avatar in sync if auth user changes
+          setProfileData((prev) => ({ ...prev, avatar: makeAbsolute(user?.avatar) || prev.avatar }));
+        }
+      } catch (_) {
+        setProfileData((prev) => ({ ...prev, avatar: makeAbsolute(user?.avatar) || prev.avatar }));
+      }
+    })();
   }, []);
 
   // Refetch when switching to My Properties tab to ensure fresh data
@@ -272,6 +328,11 @@ const UserProfile = () => {
                     onClick={uploadAvatar}
                     className="px-3 py-1.5 md:px-4 md:py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
                   >Save Avatar</button>
+                  <button
+                    onClick={cropAvatarToSquare}
+                    type="button"
+                    className="px-3 py-1.5 md:px-4 md:py-2 border rounded-lg text-sm"
+                  >Crop to square</button>
                   <button
                     onClick={() => { if (avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl); setAvatarPreviewUrl(null); setAvatarFile(null); }}
                     className="px-3 py-1.5 md:px-4 md:py-2 border rounded-lg text-sm"
@@ -534,6 +595,51 @@ const UserProfile = () => {
           <div>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-gray-900">Reports & Analytics</h2>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => generateReport('summary', 'daily', 'pdf')}
+                  className="px-3 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 text-sm"
+                >Download PDF</button>
+                <button
+                  onClick={() => generateReport('summary', 'daily', 'csv')}
+                  className="px-3 py-2 rounded-lg border text-sm hover:bg-gray-50"
+                >Export CSV</button>
+              </div>
+            </div>
+
+            {/* Compact Tabular Overview */}
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 mb-8 overflow-x-auto">
+              <table className="min-w-[560px] w-full text-sm">
+                <thead>
+                  <tr className="text-left text-gray-500">
+                    <th className="py-2 pr-4">Metric</th>
+                    <th className="py-2 pr-4">All Time</th>
+                    <th className="py-2 pr-4">This Month</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  <tr>
+                    <td className="py-2 pr-4 font-medium text-gray-900">Bookings</td>
+                    <td className="py-2 pr-4">{reports.totalBookings || 0}</td>
+                    <td className="py-2 pr-4">{reports.thisMonth?.bookings || 0}</td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 pr-4 font-medium text-gray-900">Revenue</td>
+                    <td className="py-2 pr-4">RWF {(reports.totalRevenue || 0).toLocaleString()}</td>
+                    <td className="py-2 pr-4">RWF {(reports.thisMonth?.revenue || 0).toLocaleString()}</td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 pr-4 font-medium text-gray-900">Occupancy</td>
+                    <td className="py-2 pr-4">{reports.occupancyRate || 0}%</td>
+                    <td className="py-2 pr-4">{reports.thisMonth?.occupancyRate ?? '—'}{typeof reports.thisMonth?.occupancyRate === 'number' ? '%' : ''}</td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 pr-4 font-medium text-gray-900">Avg Stay (nights)</td>
+                    <td className="py-2 pr-4">{reports.averageStay || 0}</td>
+                    <td className="py-2 pr-4">{reports.thisMonth?.averageStay ?? '—'}</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
             
             {/* Report Generation */}
