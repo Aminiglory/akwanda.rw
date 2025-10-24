@@ -48,6 +48,7 @@ const Navbar = () => {
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [unreadNotifCount, setUnreadNotifCount] = useState(0);
@@ -280,6 +281,23 @@ const Navbar = () => {
   }, [isAuthenticated, user?.userType]);
 
   // Refresh counts/stats when opening the profile dropdown to ensure fresh DB values
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!event.target.closest('.notification-dropdown') && !event.target.closest('.notification-button')) {
+        setIsNotificationOpen(false);
+      }
+      if (!event.target.closest('.profile-dropdown') && !event.target.closest('.profile-button')) {
+        setIsProfileOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
   useEffect(() => {
     if (!isAuthenticated || !isProfileOpen) return;
     (async () => {
@@ -338,6 +356,12 @@ const Navbar = () => {
 
   const toggleProfile = () => {
     setIsProfileOpen(!isProfileOpen);
+    setIsNotificationOpen(false); // Close notifications when opening profile
+  };
+
+  const toggleNotifications = () => {
+    setIsNotificationOpen(!isNotificationOpen);
+    setIsProfileOpen(false); // Close profile when opening notifications
   };
 
   const toggleDropdown = (dropdownName) => {
@@ -589,8 +613,15 @@ const Navbar = () => {
 
               {/* Notifications (admin and host) */}
               {(user?.userType === "admin" || user?.userType === 'host') && (
-                <div className="relative group">
-                  <button className="relative px-3 py-2 text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-lg transition-colors">
+                <div className="relative">
+                  <button 
+                    onClick={toggleNotifications}
+                    className={`notification-button relative px-3 py-2 rounded-lg transition-colors ${
+                      isNotificationOpen 
+                        ? 'bg-blue-600 text-white' 
+                        : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'
+                    }`}
+                  >
                     <FaBell className="text-lg" />
                     {unreadNotifCount > 0 && (
                       <span className="absolute -top-1 -right-1 bg-green-600 text-white text-xs rounded-full px-2 py-1 min-w-[18px] text-center">
@@ -598,36 +629,59 @@ const Navbar = () => {
                       </span>
                     )}
                   </button>
-                  <div className="hidden lg:block group-hover:block absolute right-0 mt-2 w-80 bg-white rounded-xl dropdown-shadow border border-gray-200 py-2 z-50">
-                    <div className="px-4 py-2 border-b border-gray-100 font-semibold text-sm">
-                      Notifications
-                    </div>
-                    <div className="max-h-96 overflow-auto">
-                      {Object.entries(groupedNotifications()).map(([category, notifs]) => (
-                        <div key={category} className="px-4 py-2">
-                          <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
-                            {category}
+                  {isNotificationOpen && (
+                    <div className="notification-dropdown absolute right-0 mt-2 w-80 bg-white rounded-xl dropdown-shadow border border-gray-200 py-2 z-50">
+                      <div className="px-4 py-2 border-b border-gray-100 font-semibold text-sm flex items-center justify-between">
+                        <span>Notifications</span>
+                        <Link 
+                          to="/notifications" 
+                          className="text-xs text-blue-600 hover:text-blue-800"
+                          onClick={() => setIsNotificationOpen(false)}
+                        >
+                          View All
+                        </Link>
+                      </div>
+                      <div className="max-h-96 overflow-auto">
+                        {notifications.length === 0 ? (
+                          <div className="px-4 py-8 text-center text-gray-500 text-sm">
+                            No notifications
                           </div>
-                          {notifs.map((n) => (
-                            <Link
-                              key={n.id}
-                              to={getNotificationLink(n)}
-                              onClick={() => markNotificationRead(n.id)}
-                              className={`block text-xs py-2 rounded hover:bg-gray-50 ${!n.isRead ? 'font-semibold' : 'text-gray-600'}`}
-                            >
-                              <div className="flex items-start gap-2">
-                                <div className={`w-2 h-2 mt-1 rounded-full ${!n.isRead ? 'bg-blue-600' : 'bg-gray-300'}`}></div>
-                                <div>
-                                  <div className="text-gray-800 line-clamp-2">{n.title || n.message}</div>
-                                  <div className="text-[10px] text-gray-500">{n.createdAt ? new Date(n.createdAt).toLocaleString() : ''}</div>
-                                </div>
+                        ) : (
+                          Object.entries(groupedNotifications()).map(([category, notifs]) => (
+                            <div key={category} className="px-4 py-2">
+                              <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                                {category}
                               </div>
-                            </Link>
-                          ))}
-                        </div>
-                      ))}
+                              {notifs.slice(0, 3).map((n) => (
+                                <Link
+                                  key={n.id}
+                                  to={getNotificationLink(n)}
+                                  onClick={() => {
+                                    markNotificationRead(n.id);
+                                    setIsNotificationOpen(false);
+                                  }}
+                                  className={`block text-xs py-2 rounded hover:bg-gray-50 ${!n.isRead ? 'font-semibold' : 'text-gray-600'}`}
+                                >
+                                  <div className="flex items-start gap-2">
+                                    <div className={`w-2 h-2 mt-1 rounded-full ${!n.isRead ? 'bg-blue-600' : 'bg-gray-300'}`}></div>
+                                    <div>
+                                      <div className="text-gray-800 line-clamp-2">{n.title || n.message}</div>
+                                      <div className="text-[10px] text-gray-500">{n.createdAt ? new Date(n.createdAt).toLocaleString() : ''}</div>
+                                    </div>
+                                  </div>
+                                </Link>
+                              ))}
+                              {notifs.length > 3 && (
+                                <div className="text-xs text-gray-500 text-center py-1">
+                                  +{notifs.length - 3} more in {category}
+                                </div>
+                              )}
+                            </div>
+                          ))
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               )}
 
@@ -636,7 +690,7 @@ const Navbar = () => {
                 <div className="relative">
                   <button
                     onClick={toggleProfile}
-                    className="flex items-center space-x-2 px-3 py-2 rounded-lg text-gray-700 hover:text-blue-600 hover:bg-gray-50 transition-colors"
+                    className="profile-button flex items-center space-x-2 px-3 py-2 rounded-lg text-gray-700 hover:text-blue-600 hover:bg-gray-50 transition-colors"
                   >
                     <FaUserCircle className="text-lg" />
                     <span className="hidden sm:inline font-medium text-sm">
@@ -650,7 +704,7 @@ const Navbar = () => {
                   </button>
 
                   {isProfileOpen && (
-                    <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl dropdown-shadow border border-gray-200 py-3 z-50">
+                    <div className="profile-dropdown absolute right-0 mt-2 w-64 bg-white rounded-xl dropdown-shadow border border-gray-200 py-3 z-50">
                       {/* Profile Header */}
                       <div className="px-4 pb-3 border-b border-gray-100">
                         <div className="flex items-center space-x-3">
