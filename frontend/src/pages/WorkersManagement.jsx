@@ -70,7 +70,9 @@ function ViewWorkerModal({ worker, onClose, onEdit, onDelete, defaultPrivileges 
               {worker.avatar ? (
                 <img src={makeAbsolute(worker.avatar)} alt="avatar" className="w-full h-full object-cover" />
               ) : (
-                <FaUser className="text-gray-400 text-3xl" />
+                <div className="w-full h-full flex items-center justify-center text-xl font-semibold text-gray-700">
+                  {`${(worker.firstName||'').charAt(0)}${(worker.lastName||'').charAt(0)}` || 'W'}
+                </div>
               )}
             </div>
             <div className="min-w-0">
@@ -442,7 +444,9 @@ export default function WorkersManagement() {
                   {w.avatar ? (
                     <img src={makeAbsolute(w.avatar)} alt="avatar" className="w-full h-full object-cover" />
                   ) : (
-                    <FaUser className="text-gray-400 text-2xl" />
+                    <div className="w-full h-full flex items-center justify-center text-base font-semibold text-gray-700">
+                      {`${(w.firstName||'').charAt(0)}${(w.lastName||'').charAt(0)}` || 'W'}
+                    </div>
                   )}
                 </div>
                 <div className="flex-1 min-w-0">

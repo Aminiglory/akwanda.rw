@@ -419,65 +419,135 @@ router.get('/generate-pdf', requireAuth, requireWorkerPrivilege('canViewReports'
   try {
     const { type = 'summary', period = 'monthly' } = req.query;
     const userId = req.user.id;
-    
+
     // Get data for report
     const properties = await Property.find({ host: userId });
     const propertyIds = properties.map(p => p._id);
     const bookings = await Booking.find({ 
       property: { $in: propertyIds }
     }).populate('property guest');
-    
+
     // Create PDF
     const doc = new PDFDocument();
     const filename = `${type}-${period}-report-${Date.now()}.pdf`;
-    
+
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    
+
     doc.pipe(res);
-    
-    // PDF Content
-    doc.fontSize(20).text('AKWANDA.rw Property Report', 50, 50);
-    doc.fontSize(12).text(`Report Type: ${type.toUpperCase()}`, 50, 80);
-    doc.text(`Period: ${period.toUpperCase()}`, 50, 95);
+
+    // PDF Header
+    doc.fontSize(20).text('AKWANDA.rw Report', 50, 50);
+    doc.fontSize(12).text(`Report Type: ${String(type).toUpperCase()}`, 50, 80);
+    doc.text(`Period: ${String(period).toUpperCase()}`, 50, 95);
     doc.text(`Generated: ${new Date().toLocaleDateString()}`, 50, 110);
-    doc.text('─'.repeat(80), 50, 130);
-    
-    let yPosition = 150;
-    
-    // Summary Statistics
-    doc.fontSize(14).text('Summary Statistics', 50, yPosition);
-    yPosition += 25;
-    doc.fontSize(10);
-    doc.text(`Total Properties: ${properties.length}`, 50, yPosition);
-    yPosition += 15;
-    doc.text(`Total Bookings: ${bookings.length}`, 50, yPosition);
-    yPosition += 15;
-    
-    const totalRevenue = bookings.reduce((sum, b) => sum + (b.totalAmount || 0), 0);
-    doc.text(`Total Revenue: RWF ${totalRevenue.toLocaleString()}`, 50, yPosition);
-    yPosition += 30;
-    
-    // Properties List
-    if (properties.length > 0) {
-      doc.fontSize(14).text('Properties', 50, yPosition);
-      yPosition += 20;
-      doc.fontSize(9);
-      
-      properties.forEach((property, index) => {
-        if (yPosition > 700) {
-          doc.addPage();
-          yPosition = 50;
-        }
-        doc.text(`${index + 1}. ${property.title}`, 50, yPosition);
-        yPosition += 12;
-        doc.text(`   Location: ${property.city}, ${property.country}`, 50, yPosition);
-        yPosition += 12;
-        doc.text(`   Price: RWF ${property.pricePerNight?.toLocaleString()}/night`, 50, yPosition);
-        yPosition += 15;
+    doc.text('─'.repeat(90), 50, 130);
+
+    const pageWidth = doc.page.width;
+    const marginLeft = 50;
+    const marginRight = 50;
+    const usableWidth = pageWidth - marginLeft - marginRight;
+    let y = 150;
+
+    // Helpers
+    const ensureSpace = (delta = 24) => {
+      if (y + delta > doc.page.height - 50) { doc.addPage(); y = 50; }
+    };
+    const drawRow = (cols, widths, opts = {}) => {
+      const fontSize = opts.fontSize || 9;
+      const bold = opts.bold || false;
+      const padding = 4;
+      doc.fontSize(fontSize);
+      if (bold) doc.font('Helvetica-Bold'); else doc.font('Helvetica');
+      let x = marginLeft;
+      const height = 16;
+      cols.forEach((val, idx) => {
+        const w = widths[idx];
+        doc.text(String(val ?? ''), x + padding, y + padding, { width: w - padding * 2, ellipsis: true });
+        x += w;
       });
+      y += height;
+    };
+    const drawTableHeader = (headers, widths) => {
+      doc.rect(marginLeft, y, usableWidth, 18).fillAndStroke('#f3f4f6', '#e5e7eb');
+      doc.fillColor('#111827');
+      drawRow(headers, widths, { fontSize: 10, bold: true });
+      doc.fillColor('#000000');
+    };
+
+    // Compute report data based on type
+    let data;
+    if (type === 'revenue') {
+      data = generateRevenueReport(bookings, properties, period);
+      doc.fontSize(14).text('Summary', marginLeft, y); y += 18;
+      doc.fontSize(10).text(`Total Bookings: ${data.summary.totalBookings}`, marginLeft, y); y += 14;
+      doc.text(`Total Revenue: RWF ${Number(data.summary.totalRevenue||0).toLocaleString()}`, marginLeft, y); y += 14;
+      doc.text(`Total Commissions: RWF ${Number(data.summary.totalCommissions||0).toLocaleString()}`, marginLeft, y); y += 14;
+      doc.text(`Net Revenue: RWF ${Number(data.summary.netRevenue||0).toLocaleString()}`, marginLeft, y); y += 20;
+
+      // Table: byProperty
+      const widths = [usableWidth*0.45, usableWidth*0.2, usableWidth*0.175, usableWidth*0.175];
+      drawTableHeader(['Property', 'Bookings', 'Revenue', 'Net Revenue'], widths);
+      data.byProperty.forEach(row => {
+        ensureSpace();
+        drawRow([
+          row.propertyName,
+          row.bookingsCount,
+          `RWF ${Number(row.totalRevenue||0).toLocaleString()}`,
+          `RWF ${Number(row.netRevenue||0).toLocaleString()}`
+        ], widths);
+      });
+    } else if (type === 'bookings') {
+      data = generateBookingsReport(bookings, properties, period);
+      doc.fontSize(14).text('Summary', marginLeft, y); y += 18;
+      doc.fontSize(10).text(`Total Bookings: ${data.summary.totalBookings}`, marginLeft, y); y += 14;
+      const statuses = Object.entries(data.summary.statusBreakdown || {});
+      if (statuses.length) {
+        doc.text('Status Breakdown:', marginLeft, y); y += 14;
+        statuses.forEach(([k, v]) => { doc.text(`- ${k}: ${v}`, marginLeft + 12, y); y += 12; });
+        y += 6;
+      }
+      const widths = [usableWidth*0.6, usableWidth*0.2, usableWidth*0.2];
+      drawTableHeader(['Property', 'Bookings', 'Avg Value'], widths);
+      data.byProperty.forEach(row => {
+        ensureSpace();
+        drawRow([
+          row.propertyName,
+          row.bookingsCount,
+          `RWF ${Number(row.averageBookingValue||0).toLocaleString()}`
+        ], widths);
+      });
+    } else if (type === 'performance') {
+      data = generatePerformanceReport(bookings, properties, period);
+      const widths = [usableWidth*0.5, usableWidth*0.25, usableWidth*0.25];
+      drawTableHeader(['Property', 'Occupancy Rate', 'Avg Stay (days)'], widths);
+      data.occupancyData.forEach(row => {
+        ensureSpace();
+        drawRow([
+          row.propertyName,
+          `${Number(row.occupancyRate||0)}%`,
+          Number(row.averageStay||0)
+        ], widths);
+      });
+    } else if (type === 'tax') {
+      data = generateTaxReport(bookings, properties, new Date().getFullYear());
+      doc.fontSize(14).text('Tax Summary', marginLeft, y); y += 18;
+      doc.fontSize(10).text(`Year: ${data.year}`, marginLeft, y); y += 14;
+      doc.text(`Taxable Income: RWF ${Number(data.taxableIncome||0).toLocaleString()}`, marginLeft, y); y += 14;
+      doc.text(`Commissions Paid: RWF ${Number(data.commissionsPaid||0).toLocaleString()}`, marginLeft, y); y += 14;
+      doc.text(`Net Income: RWF ${Number(data.netIncome||0).toLocaleString()}`, marginLeft, y); y += 14;
+      doc.text(`Estimated Tax: RWF ${Number(data.estimatedTax||0).toLocaleString()}`, marginLeft, y); y += 14;
+      doc.text(`Properties: ${data.properties}`, marginLeft, y); y += 14;
+      doc.text(`Total Bookings: ${data.totalBookings}`, marginLeft, y); y += 14;
+    } else {
+      // Default summary table (fallback)
+      const totalRevenue = bookings.reduce((sum, b) => sum + (b.totalAmount || 0), 0);
+      doc.fontSize(14).text('Summary', marginLeft, y); y += 18;
+      doc.fontSize(10).text(`Total Properties: ${properties.length}`, marginLeft, y); y += 14;
+      doc.text(`Total Bookings: ${bookings.length}`, marginLeft, y); y += 14;
+      doc.text(`Total Revenue: RWF ${Number(totalRevenue).toLocaleString()}`, marginLeft, y); y += 14;
     }
-    
+
     doc.end();
   } catch (error) {
     console.error('PDF generation error:', error);
@@ -490,6 +560,7 @@ router.get('/generate-csv', requireAuth, requireWorkerPrivilege('canViewReports'
   try {
     const { type = 'bookings', period = 'monthly' } = req.query;
     const userId = req.user.id;
+
     
     // Get data for report
     const properties = await Property.find({ host: userId });

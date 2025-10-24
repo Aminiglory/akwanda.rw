@@ -50,6 +50,7 @@ import Notifications from './pages/Notifications'
 import TestUpload from './pages/TestUpload'
 import QuickLogin from './pages/QuickLogin'
 import AdminUserManagement from './pages/AdminUserManagement'
+import AdminReports from './pages/AdminReports'
 import EditProperty from './pages/EditProperty'
 import Favorites from './pages/Favorites'
 import LogoutSuccess from './pages/LogoutSuccess'
@@ -136,6 +137,7 @@ function App() {
             <Route path="/admin/landing" element={<AdminRoute><div className="dashboard"><AdminLanding /></div></AdminRoute>} />
             <Route path="/admin/attractions" element={<AdminRoute><div className="dashboard"><AdminAttractions /></div></AdminRoute>} />
             <Route path="/admin/users" element={<AdminRoute><div className="dashboard"><AdminUserManagement /></div></AdminRoute>} />
+            <Route path="/admin/reports" element={<AdminRoute><div className="dashboard"><AdminReports /></div></AdminRoute>} />
             <Route path="/mtn-payment" element={<ProtectedRoute><MTNMobileMoneyPayment /></ProtectedRoute>} />
             <Route path="/payment/mtn-mobile-money" element={<MTNMobileMoneyPayment />} />
             <Route path="/billing/rra-ebm" element={<RRAEBMIntegration />} />
@@ -155,10 +157,13 @@ function App() {
             <Route path="/quick-login" element={<QuickLogin />} />
             </Routes>
             
-            {/* Footer - Hidden on messages and profile pages */}
+            {/* Footer - Hidden on messages, profile, auth pages */}
             <Routes>
               <Route path="/messages" element={null} />
               <Route path="/profile" element={null} />
+              <Route path="/login" element={null} />
+              <Route path="/register" element={null} />
+              <Route path="/quick-login" element={null} />
               <Route path="*" element={<Footer />} />
             </Routes>
             </div>

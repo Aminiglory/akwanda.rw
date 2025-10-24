@@ -1,18 +1,29 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { FaFacebook, FaTwitter, FaInstagram, FaLinkedin, FaPhone, FaEnvelope, FaMapMarkerAlt, FaBed, FaBuffer } from 'react-icons/fa';
 
 const Footer = () => {
-  const site = useMemo(() => {
+  const [site, setSite] = useState(() => {
     try {
       const raw = localStorage.getItem('siteSettings');
       return raw ? JSON.parse(raw) : null;
     } catch {
       return null;
     }
+  });
+
+  useEffect(() => {
+    const handler = (e) => {
+      setSite(e.detail || null);
+    };
+    window.addEventListener('siteSettingsUpdated', handler);
+    return () => window.removeEventListener('siteSettingsUpdated', handler);
   }, []);
 
   const companyEmail = site?.companyEmail || 'info@akwanda.rw';
   const phone = site?.phone || '0781714167';
+  const adminEmail = site?.adminEmail || companyEmail;
+  const adminPhone = site?.adminPhone || phone;
+  const year = useMemo(() => new Date().getFullYear(), []);
   const socials = {
     facebook: site?.facebook || '',
     twitter: site?.twitter || '',
@@ -24,31 +35,31 @@ const Footer = () => {
       title: "For Guests",
       links: [
         { name: "Search Apartments", href: "/apartments" },
-        { name: "How to Book", href: "#how-to-book" },
-        { name: "Guest Reviews", href: "#reviews" }
+        { name: "How to Book", href: "/support#faq" },
+        { name: "Guest Reviews", href: "/support#reviews" }
       ]
     },
     {
       title: "For Hosts",
       links: [
         { name: "List Your Property", href: "/upload-property" },
-        { name: "Host Guidelines", href: "#guidelines" },
+        { name: "Host Guidelines", href: "/support" },
         { name: "Host Support", href: "/support" }
       ]
     },
     {
       title: "Company",
       links: [
-        { name: "About Us", href: "#about" },
-        { name: "Contact Us", href: "#contact" }
+        { name: "About Us", href: "/support" },
+        { name: "Contact Us", href: "/support#contact" }
       ]
     },
     {
       title: "Support",
       links: [
         { name: "Help Center", href: "/support" },
-        { name: "Safety Center", href: "#safety" },
-        { name: "Terms of Service", href: "#terms" }
+        { name: "Safety Center", href: "/support" },
+        { name: "Terms of Service", href: "/support" }
       ]
     }
   ];
@@ -61,8 +72,8 @@ const Footer = () => {
   return (
     <footer className="bg-gray-900 text-white">
       {/* Main Footer Content */}
-      <div className="max-w-6xl mx-auto px-4 py-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
+      <div className="max-w-6xl mx-auto px-4 py-12 md:py-16">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
           {/* Brand Section */}
           <div className="lg:col-span-1">
             <div className="mb-6">
@@ -80,11 +91,11 @@ const Footer = () => {
               </div>
               <div className="flex items-center">
                 <FaPhone className="text-blue-400 mr-3" />
-                <a href={`tel:${phone}`} className="text-gray-300 hover:text-white">{phone}</a>
+                <a href={`tel:${adminPhone}`} className="text-gray-300 hover:text-white">{adminPhone}</a>
               </div>
               <div className="flex items-center">
                 <FaEnvelope className="text-blue-400 mr-3" />
-                <a href={`mailto:${companyEmail}`} className="text-gray-300 hover:text-white">{companyEmail}</a>
+                <a href={`mailto:${adminEmail}`} className="text-gray-300 hover:text-white">{adminEmail}</a>
               </div>
             </div>
 
@@ -113,37 +124,41 @@ const Footer = () => {
             </div>
           </div>
 
-          {/* Footer Links */}
-          {footerSections.map((section, index) => (
-            <div key={index}>
-              <h3 className="text-lg font-semibold mb-4">{section.title}</h3>
-              <ul className="space-y-2">
-                {section.links.map((link, linkIndex) => (
-                  <li key={linkIndex}>
-                    <a
-                      href={link.href}
-                      className="text-gray-300 hover:text-white transition-colors duration-300"
-                    >
-                      {link.name}
-                    </a>
-                  </li>
-                ))}
-              </ul>
+          {/* Footer Links - wrapped to reduce height on small screens */}
+          <div className="lg:col-span-4">
+            <div className="grid grid-cols-2 gap-6 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4">
+              {footerSections.map((section, index) => (
+                <div key={index}>
+                  <h3 className="text-lg font-semibold mb-4">{section.title}</h3>
+                  <ul className="space-y-2">
+                    {section.links.map((link, linkIndex) => (
+                      <li key={linkIndex}>
+                        <a
+                          href={link.href}
+                          className="text-gray-300 hover:text-white transition-colors duration-300"
+                        >
+                          {link.name}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
             </div>
-          ))}
+          </div>
         </div>
 
         {/* Quick Links */}
         <div className="border-t border-gray-800 mt-12 pt-8">
           <h3 className="text-lg font-semibold mb-6 text-center">Quick Links</h3>
-          <div className="flex flex-wrap justify-center gap-4">
+          <div className="flex flex-wrap justify-center gap-3 sm:gap-4">
             {quickLinks.map((link, index) => {
               const IconComponent = link.icon;
               return (
                 <a
                   key={index}
                   href={link.href}
-                  className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded-lg transition-all duration-300 hover:scale-105"
+                  className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 px-3 py-1.5 text-sm md:px-4 md:py-2 md:text-base rounded-lg transition-all duration-300 hover:scale-105"
                 >
                   <IconComponent className="text-blue-400" />
                   <span>{link.name}</span>
@@ -159,13 +174,13 @@ const Footer = () => {
         <div className="max-w-6xl mx-auto px-4 py-6">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="text-gray-300 text-sm mb-4 md:mb-0">
-              © 2024 AKWANDA.rw. All rights reserved.
+              © {year} AKWANDA.rw. All rights reserved.
             </div>
             <div className="flex flex-wrap gap-6 text-sm">
-              <a href="#privacy" className="text-gray-300 hover:text-white transition-colors duration-300">
+              <a href="/support" className="text-gray-300 hover:text-white transition-colors duration-300">
                 Privacy Policy
               </a>
-              <a href="#terms" className="text-gray-300 hover:text-white transition-colors duration-300">
+              <a href="/support" className="text-gray-300 hover:text-white transition-colors duration-300">
                 Terms of Service
               </a>
             </div>

@@ -103,6 +103,31 @@ export default function Messages() {
     loadThreads();
   }, []);
 
+  // Hydrate thread user avatars and names from backend basic info
+  useEffect(() => {
+    const hydrate = async () => {
+      try {
+        const ids = Array.from(new Set((threads || []).map(t => String(t.userId)).filter(Boolean)));
+        if (!ids.length) return;
+        const params = new URLSearchParams({ ids: ids.join(',') });
+        const res = await fetch(`${API_URL}/api/user/basic?${params.toString()}`, { credentials: 'include' });
+        const data = await res.json();
+        if (!res.ok) return;
+        const byId = new Map((data.users || []).map(u => [String(u.id), u]));
+        setThreads(prev => prev.map(t => {
+          const u = byId.get(String(t.userId));
+          if (!u) return t;
+          return {
+            ...t,
+            userName: u.name || t.userName,
+            userAvatar: u.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name || 'U')}&background=0D8ABC&color=fff&size=64`
+          };
+        }));
+      } catch (_) {}
+    };
+    hydrate();
+  }, [threads.length]);
+
   useEffect(() => {
     if (activeThread) {
       loadMessages(activeThread.id);
@@ -625,7 +650,11 @@ export default function Messages() {
 
   const handleFileSelect = (event) => {
     const files = Array.from(event.target.files);
-    const newAttachments = files.map(file => ({
+    const MAX_FILE_MB = 25;
+    const valid = files.filter(f => f.size <= MAX_FILE_MB * 1024 * 1024);
+    const rejected = files.filter(f => f.size > MAX_FILE_MB * 1024 * 1024);
+    if (rejected.length) toast.error(`Some files exceed ${MAX_FILE_MB}MB and were skipped`);
+    const newAttachments = valid.map(file => ({
       id: Date.now() + Math.random(),
       name: file.name,
       size: file.size,
@@ -639,7 +668,11 @@ export default function Messages() {
   const handleImageSelect = (event) => {
     const files = Array.from(event.target.files);
     const imageFiles = files.filter(file => file.type.startsWith('image/'));
-    const newAttachments = imageFiles.map(file => ({
+    const MAX_IMG_MB = 10;
+    const valid = imageFiles.filter(f => f.size <= MAX_IMG_MB * 1024 * 1024);
+    const rejected = imageFiles.filter(f => f.size > MAX_IMG_MB * 1024 * 1024);
+    if (rejected.length) toast.error(`Some images exceed ${MAX_IMG_MB}MB and were skipped`);
+    const newAttachments = valid.map(file => ({
       id: Date.now() + Math.random(),
       name: file.name,
       size: file.size,

@@ -15,13 +15,48 @@ const AdminUserManagement = () => {
   const [showUserDetails, setShowUserDetails] = useState(false);
   const [viewMode, setViewMode] = useState('table');
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const [page, setPage] = useState(1);
+  const pageSize = 5;
+  const [reportType, setReportType] = useState('revenue');
+  const [reportPeriod, setReportPeriod] = useState('monthly');
+
+  const downloadFile = async (url, filename) => {
+    try {
+      const res = await fetch(url, { credentials: 'include' });
+      if (!res.ok) {
+        const data = await res.json().catch(()=>({}));
+        throw new Error(data.message || 'Download failed');
+      }
+      const blob = await res.blob();
+      const link = document.createElement('a');
+      const objUrl = window.URL.createObjectURL(blob);
+      link.href = objUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(objUrl);
+      toast.success('Download started');
+    } catch (e) {
+      toast.error(e.message || 'Failed to download');
+    }
+  };
+
+  const downloadPdf = async () => {
+    const qs = new URLSearchParams({ type: reportType, period: reportPeriod }).toString();
+    await downloadFile(`${API_URL}/api/reports/generate-pdf?${qs}`, `${reportType}-${reportPeriod}-report.pdf`);
+  };
+  const downloadCsv = async () => {
+    const qs = new URLSearchParams({ type: reportType, period: reportPeriod }).toString();
+    await downloadFile(`${API_URL}/api/reports/generate-csv?${qs}`, `${reportType}-${reportPeriod}-report.csv`);
+  };
 
   const loadData = async () => {
     try {
       setLoading(true);
       const [usersRes, issuesRes] = await Promise.all([
         fetch(`${API_URL}/api/admin/user-management/users`, { credentials: 'include' }),
-        fetch(`${API_URL}/api/admin/user-management/role-issues`, { credentials: 'include' })
+        fetch(`${API_URL}/api/admin/user-management/users/role-issues`, { credentials: 'include' })
       ]);
       const usersJson = await usersRes.json();
       const issuesJson = await issuesRes.json();
@@ -106,11 +141,20 @@ const AdminUserManagement = () => {
     if (filterType === 'all') {
       list = list.filter(u => (u.userType || '').toLowerCase() !== 'admin');
     }
-    return list.filter(u =>
+    const result = list.filter(u =>
       (u.name || '').toLowerCase().includes(q) ||
       (u.email || '').toLowerCase().includes(q)
     );
+    return result;
   }, [users, searchTerm, filterType, roleIssues]);
+
+  const paged = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredUsers.slice(start, start + pageSize);
+  }, [filteredUsers, page]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / pageSize));
+  useEffect(() => { if (page > totalPages) setPage(1); }, [filteredUsers.length]);
 
   const getRoleColor = (role) => {
     switch ((role || '').toLowerCase()) {
@@ -139,7 +183,7 @@ const AdminUserManagement = () => {
 
   const promoteToHost = async (id) => {
     try {
-      const res = await fetch(`${API_URL}/api/admin/user-management/users/${id}/promote`, { method: 'POST', credentials: 'include' });
+      const res = await fetch(`${API_URL}/api/admin/user-management/users/${id}/promote-to-host`, { method: 'POST', credentials: 'include' });
       if (!res.ok) throw new Error('Failed to promote');
       toast.success('Promoted to host');
       setUsers(prev => prev.map(u => (String(u.id) === String(id) ? { ...u, userType: 'host' } : u)));
@@ -150,7 +194,7 @@ const AdminUserManagement = () => {
 
   const demoteToGuest = async (id) => {
     try {
-      const res = await fetch(`${API_URL}/api/admin/user-management/users/${id}/demote`, { method: 'POST', credentials: 'include' });
+      const res = await fetch(`${API_URL}/api/admin/user-management/users/${id}/demote-to-guest`, { method: 'POST', credentials: 'include' });
       if (!res.ok) throw new Error('Failed to demote');
       toast.success('Demoted to guest');
       setUsers(prev => prev.map(u => (String(u.id) === String(id) ? { ...u, userType: 'guest' } : u)));
@@ -161,7 +205,7 @@ const AdminUserManagement = () => {
 
   const fixAllRoles = async () => {
     try {
-      await fetch(`${API_URL}/api/admin/user-management/fix-roles`, { method: 'POST', credentials: 'include' });
+      await fetch(`${API_URL}/api/admin/user-management/users/fix-roles`, { method: 'POST', credentials: 'include' });
       toast.success('Role issues resolved');
       loadData();
     } catch {
@@ -202,6 +246,30 @@ const AdminUserManagement = () => {
               <FaSync />
               <span>Refresh</span>
             </button>
+          </div>
+        </div>
+        {/* Reports Toolbar */}
+        <div className="mt-4 flex flex-col md:flex-row items-start md:items-center gap-3">
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-gray-600">Type</label>
+            <select value={reportType} onChange={(e)=>setReportType(e.target.value)} className="px-3 py-2 border rounded-lg text-sm">
+              <option value="revenue">Revenue</option>
+              <option value="bookings">Bookings</option>
+              <option value="performance">Performance</option>
+              <option value="tax">Tax</option>
+            </select>
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-gray-600">Period</label>
+            <select value={reportPeriod} onChange={(e)=>setReportPeriod(e.target.value)} className="px-3 py-2 border rounded-lg text-sm">
+              <option value="daily">Daily</option>
+              <option value="monthly">Monthly</option>
+              <option value="yearly">Yearly</option>
+            </select>
+          </div>
+          <div className="flex items-center gap-2">
+            <button onClick={downloadPdf} className="px-3 py-2 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700">Download PDF</button>
+            <button onClick={downloadCsv} className="px-3 py-2 text-sm bg-gray-800 text-white rounded-lg hover:bg-black">Download CSV</button>
           </div>
         </div>
       </div>
@@ -347,7 +415,7 @@ const AdminUserManagement = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredUsers.map((user) => (
+                {paged.map((user) => (
                   <tr key={user.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-3">
@@ -392,6 +460,17 @@ const AdminUserManagement = () => {
                 ))}
               </tbody>
             </table>
+          </div>
+          {/* Pagination */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 border-t">
+            <div className="text-sm text-gray-600">Showing <span className="font-semibold">{Math.min(page*pageSize, filteredUsers.length)}</span> of <span className="font-semibold">{filteredUsers.length}</span></div>
+            <div className="flex items-center gap-2">
+              <button disabled={page<=1} onClick={() => setPage(p => Math.max(1, p-1))} className="px-3 py-1.5 text-sm border rounded disabled:opacity-50">Prev</button>
+              {Array.from({ length: totalPages }, (_, i) => (
+                <button key={i} onClick={() => setPage(i+1)} className={`px-3 py-1.5 text-sm border rounded ${page===i+1? 'bg-blue-600 text-white border-blue-600':'bg-white text-gray-700'}`}>{i+1}</button>
+              ))}
+              <button disabled={page>=totalPages} onClick={() => setPage(p => Math.min(totalPages, p+1))} className="px-3 py-1.5 text-sm border rounded disabled:opacity-50">Next</button>
+            </div>
           </div>
         </div>
       ) : (
@@ -452,7 +531,19 @@ const AdminUserManagement = () => {
                 ) : (
                   <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center text-base font-semibold">{(selectedUser.user.firstName || selectedUser.user.email || 'U').charAt(0)}</div>
                 )}
-                <div className="text-sm text-gray-600">Profile</div>
+                <div className="text-sm text-gray-600">
+                  <div className="font-semibold text-gray-900">Profile</div>
+                  <div className="mt-1 flex items-center gap-2">
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${String(selectedUser.user.userType).toLowerCase()==='admin' ? 'bg-purple-100 text-purple-700' : String(selectedUser.user.userType).toLowerCase()==='host' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
+                      {selectedUser.user.userType}
+                    </span>
+                    {selectedUser.user.isBlocked ? (
+                      <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">Blocked</span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">Active</span>
+                    )}
+                  </div>
+                </div>
               </div>
               <div>
                 <h3 className="font-semibold">Personal Information</h3>
@@ -471,6 +562,20 @@ const AdminUserManagement = () => {
                 </div>
               </div>
               
+              {selectedUser.user?.privileges && (
+                <div>
+                  <h3 className="font-semibold">Privileges</h3>
+                  {Object.values(selectedUser.user.privileges).some(Boolean) ? (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {Object.entries(selectedUser.user.privileges).filter(([_, v]) => v).map(([k]) => (
+                        <span key={k} className="px-2 py-1 text-xs rounded bg-blue-50 text-blue-700 border border-blue-200">{k}</span>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-sm text-gray-500">No privileges assigned</div>
+                  )}
+                </div>
+              )}
               <div>
                 <h3 className="font-semibold">Properties ({selectedUser.propertyCount})</h3>
                 {selectedUser.properties.length > 0 ? (

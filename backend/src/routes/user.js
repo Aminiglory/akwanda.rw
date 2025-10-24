@@ -21,6 +21,32 @@ function requireAuth(req, res, next) {
 	}
 }
 
+// Bulk basic user info by IDs for chat/thread hydration
+// GET /api/user/basic?ids=ID1,ID2,ID3
+router.get('/basic', requireAuth, async (req, res) => {
+    try {
+        const idsParam = String(req.query.ids || '').trim();
+        if (!idsParam) return res.json({ users: [] });
+        const ids = idsParam.split(',').map(s => s.trim()).filter(Boolean);
+        if (!ids.length) return res.json({ users: [] });
+
+        const users = await User.find({ _id: { $in: ids } })
+            .select('_id firstName lastName email avatar userType');
+
+        const result = users.map(u => ({
+            id: String(u._id),
+            name: `${u.firstName} ${u.lastName}`.trim(),
+            email: u.email,
+            avatar: u.avatar,
+            userType: u.userType
+        }));
+        res.json({ users: result });
+    } catch (error) {
+        console.error('Bulk basic user fetch error:', error);
+        res.status(500).json({ message: 'Failed to fetch users' });
+    }
+});
+
 // Use memory storage; forward to Cloudinary
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
@@ -29,10 +55,32 @@ router.post('/me/avatar', requireAuth, upload.single('avatar'), async (req, res)
 	const u = await User.findById(req.user.id);
 	if (!u) return res.status(404).json({ message: 'User not found' });
 	if (!req.file || !req.file.buffer) return res.status(400).json({ message: 'No avatar uploaded' });
-	const up = await uploadBuffer(req.file.buffer, req.file.originalname, 'users/avatars');
-	u.avatar = up.secure_url || up.url;
-	await u.save();
-	res.json({ user: { id: u._id, avatar: u.avatar } });
+	// Auto-crop to centered square and resize to 512x512
+	try {
+		let img = sharp(req.file.buffer);
+		const meta = await img.metadata();
+		const width = meta.width || 0;
+		const height = meta.height || 0;
+		let processedBuffer = req.file.buffer;
+		if (width > 0 && height > 0) {
+			const size = Math.min(width, height);
+			const left = Math.max(0, Math.floor((width - size) / 2));
+			const top = Math.max(0, Math.floor((height - size) / 2));
+			processedBuffer = await img
+				.extract({ left, top, width: size, height: size })
+				.resize(512, 512)
+				.toBuffer();
+		} else {
+			processedBuffer = await img.resize(512, 512, { fit: 'cover' }).toBuffer();
+		}
+		const up = await uploadBuffer(processedBuffer, req.file.originalname, 'users/avatars');
+		u.avatar = up.secure_url || up.url;
+		await u.save();
+		return res.json({ user: { id: u._id, avatar: u.avatar } });
+	} catch (e) {
+		console.error('Avatar processing error:', e);
+		return res.status(500).json({ message: 'Failed to process avatar' });
+	}
 });
 
 // Generate default avatar with initials

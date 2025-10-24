@@ -21,6 +21,7 @@ const CustomerSupport = () => {
     message: ''
   });
   const [submitting, setSubmitting] = useState(false);
+  const [faqs, setFaqs] = useState([]);
 
   // Prefill support form from logged-in user profile
   useEffect(() => {
@@ -64,6 +65,23 @@ const CustomerSupport = () => {
     };
     loadReviews();
   }, [activeTab, user]);
+
+  // Load FAQs from CMS/content API so admin can manage them
+  useEffect(() => {
+    const loadFaqs = async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/content/landing`, { credentials: 'include' });
+        const json = await res.json();
+        if (!res.ok) return;
+        const content = json?.content || json || {};
+        const sections = Array.isArray(content.sections) ? content.sections : [];
+        const how = sections.find(s => s?.type === 'howItWorks' || s?.key === 'howItWorks') || content?.howItWorks;
+        const items = Array.isArray(how?.faqs) ? how.faqs : [];
+        setFaqs(items);
+      } catch (_) {}
+    };
+    loadFaqs();
+  }, []);
 
   const priorities = [
     { value: 'low', label: 'Low', color: 'text-green-600' },
@@ -481,48 +499,18 @@ const CustomerSupport = () => {
               <div className="max-w-4xl mx-auto">
                 <h2 className="text-2xl font-bold text-gray-900 mb-8">Frequently Asked Questions</h2>
                 
-                <div className="space-y-6">
-                  <div className="bg-white rounded-xl shadow-lg p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-3">How do I make a booking?</h3>
-                    <p className="text-gray-600">
-                      To make a booking, simply search for properties on our platform, select your dates, 
-                      choose your preferred accommodation, and complete the payment process. You'll receive 
-                      a confirmation email with your booking details.
-                    </p>
+                {faqs && faqs.length > 0 ? (
+                  <div className="space-y-6">
+                    {faqs.map((f, i) => (
+                      <div key={i} className="bg-white rounded-xl shadow-lg p-6">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-3">{f.q || f.question}</h3>
+                        <p className="text-gray-600">{f.a || f.answer}</p>
+                      </div>
+                    ))}
                   </div>
-
-                  <div className="bg-white rounded-xl shadow-lg p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-3">What payment methods do you accept?</h3>
-                    <p className="text-gray-600">
-                      We accept various payment methods including MTN Mobile Money, credit cards, bank transfers, 
-                      and cash payments. All transactions are secure and encrypted.
-                    </p>
-                  </div>
-
-                  <div className="bg-white rounded-xl shadow-lg p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-3">Can I cancel my booking?</h3>
-                    <p className="text-gray-600">
-                      Yes, you can cancel your booking depending on the property's cancellation policy. 
-                      Please check the cancellation terms before booking, or contact us for assistance.
-                    </p>
-                  </div>
-
-                  <div className="bg-white rounded-xl shadow-lg p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-3">How do I contact the property owner?</h3>
-                    <p className="text-gray-600">
-                      After making a booking, you'll receive the property owner's contact details in your 
-                      confirmation email. You can also find this information in your booking confirmation page.
-                    </p>
-                  </div>
-
-                  <div className="bg-white rounded-xl shadow-lg p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-3">What if I have a problem during my stay?</h3>
-                    <p className="text-gray-600">
-                      If you encounter any issues during your stay, please contact the property owner first. 
-                      If the issue persists, contact our support team using your booking ID for immediate assistance.
-                    </p>
-                  </div>
-                </div>
+                ) : (
+                  <div className="bg-white rounded-xl shadow p-6 text-gray-600">No FAQs available yet.</div>
+                )}
               </div>
             )}
           </div>

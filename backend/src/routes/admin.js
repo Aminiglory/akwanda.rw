@@ -378,10 +378,29 @@ router.post('/me/avatar', requireAdmin, upload.single('avatar'), async (req, res
     const u = await User.findById(req.user.id);
     if (!u) return res.status(404).json({ message: 'User not found' });
     if (!req.file || !req.file.buffer) return res.status(400).json({ message: 'No avatar uploaded' });
-    const up = await uploadBuffer(req.file.buffer, req.file.originalname, 'admin/avatars');
-    u.avatar = up.secure_url || up.url;
-    await u.save();
-    res.json({ user: { id: u._id, avatar: u.avatar } });
+    try {
+        const sharp = require('sharp');
+        let img = sharp(req.file.buffer);
+        const meta = await img.metadata();
+        const width = meta.width || 0;
+        const height = meta.height || 0;
+        let processedBuffer = req.file.buffer;
+        if (width > 0 && height > 0) {
+            const size = Math.min(width, height);
+            const left = Math.max(0, Math.floor((width - size) / 2));
+            const top = Math.max(0, Math.floor((height - size) / 2));
+            processedBuffer = await img.extract({ left, top, width: size, height: size }).resize(512, 512).toBuffer();
+        } else {
+            processedBuffer = await img.resize(512, 512, { fit: 'cover' }).toBuffer();
+        }
+        const up = await uploadBuffer(processedBuffer, req.file.originalname, 'admin/avatars');
+        u.avatar = up.secure_url || up.url;
+        await u.save();
+        res.json({ user: { id: u._id, avatar: u.avatar } });
+    } catch (e) {
+        console.error('Admin avatar processing error:', e);
+        res.status(500).json({ message: 'Failed to process avatar' });
+    }
 });
 
 // --- Admin CMS: Landing Page Content ---

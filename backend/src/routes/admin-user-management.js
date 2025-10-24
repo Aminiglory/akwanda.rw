@@ -1,6 +1,14 @@
 const { Router } = require('express');
+const mongoose = require('mongoose');
 const User = require('../tables/user');
 const Property = require('../tables/property');
+const Booking = require('../tables/booking');
+const Message = require('../tables/message');
+const Notification = require('../tables/notification');
+const Worker = require('../tables/worker');
+const CarRental = require('../tables/carRental');
+const CarRentalBooking = require('../tables/carRentalBooking');
+const TaxiBooking = require('../tables/taxiBooking');
 
 const router = Router();
 
@@ -8,16 +16,13 @@ const router = Router();
 function requireAdmin(req, res, next) {
     const token = req.cookies.akw_token || (req.headers.authorization || '').replace('Bearer ', '');
     if (!token) return res.status(401).json({ message: 'Unauthorized' });
-    
     try {
         const jwt = require('jsonwebtoken');
         const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
         const decoded = jwt.verify(token, JWT_SECRET);
-        
         if (decoded.userType !== 'admin') {
             return res.status(403).json({ message: 'Admin access required' });
         }
-        
         req.user = decoded;
         next();
     } catch (e) {
@@ -25,11 +30,69 @@ function requireAdmin(req, res, next) {
     }
 }
 
+// Delete a user and cascade delete related data (admin only)
+router.delete('/users/:userId', requireAdmin, async (req, res) => {
+    const { userId } = req.params;
+    const session = await mongoose.startSession();
+    try {
+        await session.withTransaction(async () => {
+            const user = await User.findById(userId).session(session);
+            if (!user) {
+                throw Object.assign(new Error('User not found'), { status: 404 });
+            }
+
+            // Collect related entities
+            const properties = await Property.find({ host: userId }).select('_id').session(session);
+            const propIds = properties.map(p => p._id);
+
+            const cars = await CarRental.find({ owner: userId }).select('_id').session(session);
+            const carIds = cars.map(c => c._id);
+
+            // Delete worker records owned by this user (as employer)
+            await Worker.deleteMany({ employerId: userId }).session(session);
+
+            // Bookings related to this user as a guest and as host via properties
+            await Booking.deleteMany({ $or: [ { guest: userId }, { property: { $in: propIds } } ] }).session(session);
+
+            // Car rental bookings related to this user
+            await CarRentalBooking.deleteMany({ $or: [ { guest: userId }, { car: { $in: carIds } } ] }).session(session);
+
+            // Taxi bookings created by this user
+            await TaxiBooking.deleteMany({ guest: userId }).session(session);
+
+            // Messages sent or received by this user
+            await Message.deleteMany({ $or: [ { sender: userId }, { recipient: userId } ] }).session(session);
+
+            // Notifications for this user or tied to their properties
+            await Notification.deleteMany({ $or: [ { recipientUser: userId }, { property: { $in: propIds } } ] }).session(session);
+
+            // Properties and Cars owned by the user
+            if (propIds.length) {
+                await Property.deleteMany({ _id: { $in: propIds } }).session(session);
+            }
+            if (carIds.length) {
+                await CarRental.deleteMany({ _id: { $in: carIds } }).session(session);
+            }
+
+            // Finally, delete the user
+            await User.deleteOne({ _id: userId }).session(session);
+        });
+
+        res.json({ success: true, message: 'User and related data deleted successfully' });
+    } catch (err) {
+        const status = err.status || 500;
+        console.error('Cascade delete failed:', err);
+        res.status(status).json({ success: false, message: err.message || 'Failed to delete user' });
+    } finally {
+        session.endSession();
+    }
+});
+
 // Get all users with their property counts and role status
 router.get('/users', requireAdmin, async (req, res) => {
     try {
         const users = await User.find({})
-            .select('_id firstName lastName email userType createdAt')
+            .select('_id firstName lastName email userType createdAt avatar isBlocked')
             .sort({ createdAt: -1 });
 
         const usersWithProperties = await Promise.all(users.map(async (user) => {
@@ -39,6 +102,8 @@ router.get('/users', requireAdmin, async (req, res) => {
                 name: `${user.firstName} ${user.lastName}`,
                 email: user.email,
                 userType: user.userType,
+                avatar: user.avatar,
+                isBlocked: !!user.isBlocked,
                 propertyCount,
                 createdAt: user.createdAt,
                 shouldBeHost: propertyCount > 0 && user.userType !== 'host'

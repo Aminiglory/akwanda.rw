@@ -216,24 +216,12 @@ const AdminDashboard = () => {
       {/* Header */}
       <div className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3">
             <div>
               <h1 className="text-2xl md:text-3xl font-bold text-gray-900 leading-tight">Admin Dashboard</h1>
               <p className="text-sm md:text-base text-gray-600 mt-1">Manage your AKWANDA platform</p>
             </div>
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={seedDemoProperties}
-                className="bg-gray-800 hover:bg-gray-900 text-white px-4 md:px-6 py-2 rounded-xl font-semibold text-sm md:text-base transition-colors duration-300"
-                title="Quickly create a few demo properties for testing"
-              >
-                Seed Demo Properties
-              </button>
-              <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 md:px-6 py-2 rounded-xl font-semibold text-sm md:text-base transition-colors duration-300 flex items-center gap-2">
-                <FaPlus />
-                Add New Service
-              </button>
-            </div>
+            
           </div>
         </div>
       </div>
@@ -370,32 +358,38 @@ const AdminDashboard = () => {
             {/* Properties Tab */}
             {activeTab === 'properties' && (
               <div>
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900">All Properties</h3>
-                  <div className="flex items-center space-x-2">
-                    <div className="relative">
-                      <FaSearch className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                      <input
-                        type="text"
-                        value={searchTerm}
-                        onChange={e => setSearchTerm(e.target.value)}
-                        placeholder="Search properties..."
-                        className="pl-10 pr-3 h-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">All Properties</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
+                    <div className="w-full">
+                      <label className="block text-xs text-gray-600 mb-1 sm:hidden">Search</label>
+                      <div className="relative">
+                        <FaSearch className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                        <input
+                          type="text"
+                          value={searchTerm}
+                          onChange={e => setSearchTerm(e.target.value)}
+                          placeholder="Search properties..."
+                          className="w-full pl-10 pr-3 h-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
                     </div>
-                    <select
-                      value={filterStatus}
-                      onChange={e => setFilterStatus(e.target.value)}
-                      className="p-2 border border-gray-300 rounded-lg bg-white text-gray-700"
-                    >
-                      <option value="">All Categories</option>
-                      <option value="hotel">Hotels</option>
-                      <option value="apartment">Apartments</option>
-                      <option value="villa">Villas</option>
-                      <option value="hostel">Hostels</option>
-                      <option value="resort">Resorts</option>
-                      <option value="guesthouse">Guesthouses</option>
-                    </select>
+                    <div className="w-full">
+                      <label className="block text-xs text-gray-600 mb-1 sm:hidden">Category</label>
+                      <select
+                        value={filterStatus}
+                        onChange={e => setFilterStatus(e.target.value)}
+                        className="w-full p-2 border border-gray-300 rounded-lg bg-white text-gray-700"
+                      >
+                        <option value="">All Categories</option>
+                        <option value="hotel">Hotels</option>
+                        <option value="apartment">Apartments</option>
+                        <option value="villa">Villas</option>
+                        <option value="hostel">Hostels</option>
+                        <option value="resort">Resorts</option>
+                        <option value="guesthouse">Guesthouses</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
 
@@ -455,30 +449,36 @@ const AdminDashboard = () => {
             {/* Bookings Tab */}
             {activeTab === 'bookings' && (
               <div>
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900">All Bookings</h3>
-                  <div className="flex items-center space-x-2">
-                    <div className="relative">
-                      <FaSearch className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                      <input
-                        type="text"
-                        value={searchTerm}
-                        onChange={e => setSearchTerm(e.target.value)}
-                        placeholder="Search bookings..."
-                        className="pl-10 pr-3 h-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">All Bookings</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
+                    <div className="w-full">
+                      <label className="block text-xs text-gray-600 mb-1 sm:hidden">Search</label>
+                      <div className="relative">
+                        <FaSearch className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                        <input
+                          type="text"
+                          value={searchTerm}
+                          onChange={e => setSearchTerm(e.target.value)}
+                          placeholder="Search bookings..."
+                          className="w-full pl-10 pr-3 h-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
                     </div>
-                    <select
-                      value={filterStatus}
-                      onChange={e => setFilterStatus(e.target.value)}
-                      className="p-2 border border-gray-300 rounded-lg bg-white text-gray-700"
-                    >
-                      <option value="">All Statuses</option>
-                      <option value="pending">Pending</option>
-                      <option value="confirmed">Confirmed</option>
-                      <option value="cancelled">Cancelled</option>
-                      <option value="ended">Ended</option>
-                    </select>
+                    <div className="w-full">
+                      <label className="block text-xs text-gray-600 mb-1 sm:hidden">Status</label>
+                      <select
+                        value={filterStatus}
+                        onChange={e => setFilterStatus(e.target.value)}
+                        className="w-full p-2 border border-gray-300 rounded-lg bg-white text-gray-700"
+                      >
+                        <option value="">All Statuses</option>
+                        <option value="pending">Pending</option>
+                        <option value="confirmed">Confirmed</option>
+                        <option value="cancelled">Cancelled</option>
+                        <option value="ended">Ended</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
 
@@ -551,29 +551,35 @@ const AdminDashboard = () => {
             {/* Users Tab */}
             {activeTab === 'users' && (
               <div>
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900">All Users</h3>
-                  <div className="flex items-center space-x-2">
-                    <div className="relative">
-                      <FaSearch className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                      <input
-                        type="text"
-                        value={searchTerm}
-                        onChange={e => setSearchTerm(e.target.value)}
-                        placeholder="Search users..."
-                        className="pl-10 pr-3 h-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">All Users</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
+                    <div className="w-full">
+                      <label className="block text-xs text-gray-600 mb-1 sm:hidden">Search</label>
+                      <div className="relative">
+                        <FaSearch className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                        <input
+                          type="text"
+                          value={searchTerm}
+                          onChange={e => setSearchTerm(e.target.value)}
+                          placeholder="Search users..."
+                          className="w-full pl-10 pr-3 h-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
                     </div>
-                    <select
-                      value={filterStatus}
-                      onChange={e => setFilterStatus(e.target.value)}
-                      className="p-2 border border-gray-300 rounded-lg bg-white text-gray-700"
-                    >
-                      <option value="">All Types</option>
-                      <option value="guest">Guests</option>
-                      <option value="host">Hosts</option>
-                      <option value="admin">Admins</option>
-                    </select>
+                    <div className="w-full">
+                      <label className="block text-xs text-gray-600 mb-1 sm:hidden">User Type</label>
+                      <select
+                        value={filterStatus}
+                        onChange={e => setFilterStatus(e.target.value)}
+                        className="w-full p-2 border border-gray-300 rounded-lg bg-white text-gray-700"
+                      >
+                        <option value="">All Types</option>
+                        <option value="guest">Guests</option>
+                        <option value="host">Hosts</option>
+                        <option value="admin">Admins</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
 

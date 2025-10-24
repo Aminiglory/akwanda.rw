@@ -382,266 +382,281 @@ const Navbar = () => {
   return (
     <>
       <nav className="w-full bg-white navbar-shadow border-b border-gray-200 relative">
-        {/* Top Bar - Like Booking.com */}
-        <div className="bg-blue-800 text-white py-2 px-4">
-          <div className="max-w-7xl mx-auto flex justify-between items-center text-xs">
-            <div className="flex items-center space-x-4 lg:space-x-6">
-              {isAuthenticated && user?.userType !== "admin" && (
-                <>
-                  {user?.userType === 'host' && userStats.properties > 0 && (
-                    <Link
-                      to="/dashboard"
-                      className="hidden sm:inline hover:text-blue-200 font-medium"
-                    >
-                      Dashboard
-                    </Link>
-                  )}
-                  <Link
-                    to="/upload"
-                    className="hidden sm:inline hover:text-blue-200 font-medium"
-                  >
-                    List your property
-                  </Link>
-                  {user?.userType === 'host' && (
-                    <Link
-                      to="/my-bookings"
-                      className="hidden sm:inline hover:text-blue-200 font-medium"
-                    >
-                      My Bookings
-                    </Link>
-                  )}
-                  {user?.userType === 'host' && (
-                    <Link
-                      to="/owner/cars"
-                      className="hidden sm:inline hover:text-blue-200 font-medium"
-                    >
-                      My Cars
-                    </Link>
-                  )}
-                </>
-              )}
-              {isAuthenticated && user?.userType === "admin" && (
-                <Link
-                  to="/admin"
-                  className="hidden sm:inline hover:text-blue-200 font-medium"
-                >
-                  Admin Dashboard
-                </Link>
-              )}
+  {/* Top Bar - Like Booking.com */}
+  <div className="bg-blue-800 text-white py-2 px-4">
+    <div className="max-w-7xl mx-auto flex justify-between items-center text-xs">
+      <div className="flex items-center space-x-4 lg:space-x-6">
+        {isAuthenticated && user?.userType !== "admin" && (
+          <>
+            {user?.userType === 'host' && userStats.properties > 0 && (
               <Link
-                to="/support"
-                className="hover:text-blue-200 font-medium"
-              >
-                Customer Support
-              </Link>
-              <Link
-                to="/notifications"
+                to="/dashboard"
                 className="hidden sm:inline hover:text-blue-200 font-medium"
               >
-                Notifications
+                Dashboard
               </Link>
-              <span className="hidden lg:inline hover:text-blue-200 cursor-pointer font-medium">
-                Partner Portal
-              </span>
-            </div>
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2 hover:text-blue-200 cursor-pointer">
-                <FaGlobe className="text-sm" />
-                <span className="hidden sm:inline">English</span>
-              </div>
-              <div className="flex items-center space-x-2 hover:text-blue-200 cursor-pointer">
-                <span className="font-semibold">RWF</span>
-              </div>
-            </div>
-          </div>
+            )}
+            {user?.userType === 'host' && (
+              <Link
+                to="/upload"
+                className="hidden sm:inline hover:text-blue-200 font-medium"
+              >
+                List your property
+              </Link>
+            )}
+            {user?.userType === 'host' && (
+              <Link
+                to="/my-bookings"
+                className="hidden sm:inline hover:text-blue-200 font-medium"
+              >
+                My Bookings
+              </Link>
+            )}
+            {user?.userType === 'host' && (
+              <Link
+                to="/owner/cars"
+                className="hidden sm:inline hover:text-blue-200 font-medium"
+              >
+                My Cars
+              </Link>
+            )}
+          </>
+        )}
+        {isAuthenticated && user?.userType === "admin" && (
+          <>
+            <Link
+              to="/admin"
+              className="hidden sm:inline hover:text-blue-200 font-medium"
+            >
+              Admin Dashboard
+            </Link>
+            <Link
+              to="/admin/reports"
+              className="hidden sm:inline hover:text-blue-200 font-medium"
+            >
+              Reports
+            </Link>
+            <Link
+              to="/admin/landing"
+              className="hidden sm:inline hover:text-blue-200 font-medium"
+            >
+              Content
+            </Link>
+          </>
+        )}
+        <Link
+          to="/support"
+          className="hover:text-blue-200 font-medium"
+        >
+          Customer Support
+        </Link>
+        <Link
+          to="/notifications"
+          className="hidden sm:inline hover:text-blue-200 font-medium"
+        >
+          Notifications
+        </Link>
+        <span className="hidden lg:inline hover:text-blue-200 cursor-pointer font-medium">
+          Partner Portal
+        </span>
+      </div>
+      <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-2 hover:text-blue-200 cursor-pointer">
+          <FaGlobe className="text-sm" />
+          <span className="hidden sm:inline">English</span>
         </div>
+        <div className="flex items-center space-x-2 hover:text-blue-200 cursor-pointer">
+          <span className="font-semibold">RWF</span>
+        </div>
+      </div>
+    </div>
+  </div>
 
-        {/* Friendly error banner */}
-        {uiError && (
-          <div className="bg-red-50 text-red-700 px-4 py-2 text-sm border-t border-b border-red-200">
-            <div className="max-w-7xl mx-auto flex justify-between items-center">
-              <span>{uiError}</span>
-              <button className="text-xs underline" onClick={() => setUiError(null)}>Dismiss</button>
-            </div>
+  {/* Friendly error banner */}
+  {uiError && (
+    <div className="bg-red-50 text-red-700 px-4 py-2 text-sm border-t border-b border-red-200">
+      <div className="max-w-7xl mx-auto flex justify-between items-center">
+        <span>{uiError}</span>
+        <button className="text-xs underline" onClick={() => setUiError(null)}>Dismiss</button>
+      </div>
+    </div>
+  )}
+
+  {/* Main Navigation - Booking.com Style */}
+  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+    <div className="flex justify-between items-center">
+      {/* Logo */}
+      <div className="flex items-center space-x-8">
+        <Link
+          to="/"
+          className="text-xl font-bold text-blue-800 hover:text-blue-600"
+        >
+          AKWANDA.rw
+        </Link>
+
+        {/* Main Navigation Items - Booking.com Style */}
+        {user?.userType !== "admin" && (
+          <div className="hidden lg:flex items-center space-x-1">
+            {mainNavItems.map((item, index) => {
+              const Icon = item.icon;
+              const isActive = isActiveRoute(item.href);
+              const isDropdownOpen = activeDropdown === item.label;
+              
+              return (
+                <div key={index} className="relative group">
+                  <button
+                    onClick={() => toggleDropdown(item.label)}
+                    className={`flex items-center space-x-1 px-3 py-2 rounded-lg transition-all duration-300 font-medium text-sm ${
+                      isActive
+                        ? "bg-blue-600 text-white shadow-md"
+                        : "text-gray-700 hover:text-blue-600 hover:bg-gray-50"
+                    }`}
+                  >
+                    <Icon className="text-sm" />
+                    <span>{item.label}</span>
+                    <FaCaretDown className={`text-xs transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {/* Dropdown Menu - Booking.com Style */}
+                  {isDropdownOpen && (
+                    <div className="absolute top-full left-0 mt-1 w-64 bg-white rounded-xl dropdown-shadow border border-gray-200 py-3 z-50">
+                      {item.children.map((child, childIndex) => {
+                        const ChildIcon = child.icon;
+                        const isChildActive = isActiveRoute(child.href);
+                        return (
+                          <Link
+                            key={childIndex}
+                            to={child.href}
+                            className={`flex items-center space-x-3 px-4 py-3 text-sm hover:bg-gray-50 transition-colors ${
+                              isChildActive ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
+                            }`}
+                            onClick={() => setActiveDropdown(null)}
+                          >
+                            <ChildIcon className="text-sm" />
+                            <span>{child.label}</span>
+                            {isChildActive && <FaChevronRight className="text-xs ml-auto" />}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
+      </div>
 
-        {/* Main Navigation - Booking.com Style */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex justify-between items-center">
-            {/* Logo */}
-            <div className="flex items-center space-x-8">
-              <Link
-                to="/"
-                className="text-xl font-bold text-blue-800 hover:text-blue-600"
-              >
-                AKWANDA.rw
-              </Link>
+      {/* Right Side - Booking.com Style */}
+      <div className="flex items-center space-x-2">
+        {/* Analytics Dropdown - Booking.com Style */}
+        {isAuthenticated && user?.userType === 'host' && (
+          <div className="hidden lg:block relative">
+            <button
+              onClick={() => toggleDropdown('owner')}
+              className={`flex items-center px-3 py-2 rounded-lg transition-all duration-300 ${
+                activeDropdown === 'owner'
+                  ? "bg-blue-600 text-white shadow-md"
+                  : "text-gray-700 hover:text-blue-600 hover:bg-gray-50"
+              }`}
+              title="Analytics & Management"
+            >
+              <FaChartLine className="text-lg" />
+            </button>
 
-              {/* Main Navigation Items - Booking.com Style */}
-              {user?.userType !== "admin" && (
-                <div className="hidden lg:flex items-center space-x-1">
-                  {mainNavItems.map((item, index) => {
-                    const Icon = item.icon;
-                    const isActive = isActiveRoute(item.href);
-                    const isDropdownOpen = activeDropdown === item.label;
-                    
+            {/* Owner Management Dropdown - Booking.com Style */}
+            {activeDropdown === 'owner' && (
+              <div className="absolute top-full right-0 mt-1 w-[900px] bg-white rounded-xl dropdown-shadow border border-gray-200 p-6 z-50">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-sm">
+                  {ownerManagementLinks.map((category, index) => {
+                    const CategoryIcon = category.icon;
                     return (
-                      <div key={index} className="relative group">
-                        <button
-                          onClick={() => toggleDropdown(item.label)}
-                          className={`flex items-center space-x-1 px-3 py-2 rounded-lg transition-all duration-300 font-medium text-sm ${
-                            isActive
-                              ? "bg-blue-600 text-white shadow-md"
-                              : "text-gray-700 hover:text-blue-600 hover:bg-gray-50"
-                          }`}
-                        >
-                          <Icon className="text-sm" />
-                          <span>{item.label}</span>
-                          <FaCaretDown className={`text-xs transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
-                        </button>
-
-                        {/* Dropdown Menu - Booking.com Style */}
-                        {isDropdownOpen && (
-                          <div className="absolute top-full left-0 mt-1 w-64 bg-white rounded-xl dropdown-shadow border border-gray-200 py-3 z-50">
-                            {item.children.map((child, childIndex) => {
-                              const ChildIcon = child.icon;
-                              const isChildActive = isActiveRoute(child.href);
-                              return (
-                                <Link
-                                  key={childIndex}
-                                  to={child.href}
-                                  className={`flex items-center space-x-3 px-4 py-3 text-sm hover:bg-gray-50 transition-colors ${
-                                    isChildActive ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
-                                  }`}
-                                  onClick={() => setActiveDropdown(null)}
-                                >
-                                  <ChildIcon className="text-sm" />
-                                  <span>{child.label}</span>
-                                  {isChildActive && <FaChevronRight className="text-xs ml-auto" />}
-                                </Link>
-                              );
-                            })}
+                      <div key={index}>
+                        <div className="flex items-center space-x-2 mb-4">
+                          <CategoryIcon className="text-blue-600 text-lg" />
+                          <div className="text-sm font-semibold text-gray-700">
+                            {category.category}
                           </div>
-                        )}
+                        </div>
+                        <div className="space-y-1">
+                          {category.links.map((link, linkIndex) => (
+                            <Link
+                              key={linkIndex}
+                              to={link.href}
+                              className="block px-3 py-2 rounded hover:bg-blue-50 hover:text-blue-700 text-gray-600 transition-colors"
+                              onClick={() => setActiveDropdown(null)}
+                            >
+                              {link.label}
+                            </Link>
+                          ))}
+                        </div>
                       </div>
                     );
                   })}
                 </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Favorites */}
+        {isAuthenticated && (
+          <Link
+            to="/favorites"
+            className="hidden lg:flex items-center px-3 py-2 rounded-lg text-gray-700 hover:text-blue-600 hover:bg-gray-50 transition-colors"
+            title="Favorites"
+          >
+            <FaHeart className="text-lg" />
+          </Link>
+        )}
+
+        {/* Messages */}
+        {isAuthenticated && (user?.userType !== 'worker' ? true : !!user?.privileges?.canMessageGuests) && (
+          <Link
+            to="/messages"
+            className="flex items-center px-3 py-2 rounded-lg text-gray-700 hover:text-blue-600 hover:bg-gray-50 relative transition-colors"
+            title="Messages"
+          >
+            <FaEnvelope className="text-lg" />
+            {unreadMsgCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs rounded-full px-2 py-1 min-w-[18px] text-center">
+                {unreadMsgCount}
+              </span>
+            )}
+          </Link>
+        )}
+
+        {/* Notifications (admin and host) */}
+        {(user?.userType === "admin" || user?.userType === 'host') && (
+          <div className="relative">
+            <button 
+              onClick={toggleNotifications}
+              className={`notification-button relative px-3 py-2 rounded-lg transition-colors ${
+                isNotificationOpen 
+                  ? 'bg-blue-600 text-white' 
+                  : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'
+              }`}
+            >
+              <FaBell className="text-lg" />
+              {unreadNotifCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-green-600 text-white text-xs rounded-full px-2 py-1 min-w-[18px] text-center">
+                  {unreadNotifCount}
+                </span>
               )}
-            </div>
-
-            {/* Right Side - Booking.com Style */}
-            <div className="flex items-center space-x-2">
-              {/* Analytics Dropdown - Booking.com Style */}
-              {isAuthenticated && user?.userType === 'host' && (
-                <div className="hidden lg:block relative">
-                  <button
-                    onClick={() => toggleDropdown('owner')}
-                    className={`flex items-center px-3 py-2 rounded-lg transition-all duration-300 ${
-                      activeDropdown === 'owner'
-                        ? "bg-blue-600 text-white shadow-md"
-                        : "text-gray-700 hover:text-blue-600 hover:bg-gray-50"
-                    }`}
-                    title="Analytics & Management"
+            </button>
+            {isNotificationOpen && (
+              <div className="notification-dropdown absolute right-0 mt-2 w-80 bg-white rounded-xl dropdown-shadow border border-gray-200 py-2 z-50">
+                <div className="px-4 py-2 border-b border-gray-100 font-semibold text-sm flex items-center justify-between">
+                  <span>Notifications</span>
+                  <Link 
+                    to="/notifications" 
+                    className="text-xs text-blue-600 hover:text-blue-800"
+                    onClick={() => setIsNotificationOpen(false)}
                   >
-                    <FaChartLine className="text-lg" />
-                  </button>
-
-                  {/* Owner Management Dropdown - Booking.com Style */}
-                  {activeDropdown === 'owner' && (
-                    <div className="absolute top-full right-0 mt-1 w-[900px] bg-white rounded-xl dropdown-shadow border border-gray-200 p-6 z-50">
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-sm">
-                        {ownerManagementLinks.map((category, index) => {
-                          const CategoryIcon = category.icon;
-                          return (
-                            <div key={index}>
-                              <div className="flex items-center space-x-2 mb-4">
-                                <CategoryIcon className="text-blue-600 text-lg" />
-                                <div className="text-sm font-semibold text-gray-700">
-                                  {category.category}
-                                </div>
-                              </div>
-                              <div className="space-y-1">
-                                {category.links.map((link, linkIndex) => (
-                                  <Link
-                                    key={linkIndex}
-                                    to={link.href}
-                                    className="block px-3 py-2 rounded hover:bg-blue-50 hover:text-blue-700 text-gray-600 transition-colors"
-                                    onClick={() => setActiveDropdown(null)}
-                                  >
-                                    {link.label}
-                                  </Link>
-                                ))}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
+                    View All
+                  </Link>
                 </div>
-
-                )}
-
-              {/* Favorites */}
-              {isAuthenticated && (
-                <Link
-                  to="/favorites"
-                  className="hidden lg:flex items-center px-3 py-2 rounded-lg text-gray-700 hover:text-blue-600 hover:bg-gray-50 transition-colors"
-                  title="Favorites"
-                >
-                  <FaHeart className="text-lg" />
-                </Link>
-              )}
-
-              {/* Messages */}
-              {isAuthenticated && (
-                <Link
-                  to="/messages"
-                  className="flex items-center px-3 py-2 rounded-lg text-gray-700 hover:text-blue-600 hover:bg-gray-50 relative transition-colors"
-                  title="Messages"
-                >
-                  <FaEnvelope className="text-lg" />
-                  {unreadMsgCount > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs rounded-full px-2 py-1 min-w-[18px] text-center">
-                      {unreadMsgCount}
-                    </span>
-                  )}
-                </Link>
-              )}
-
-              {/* Notifications (admin and host) */}
-              {(user?.userType === "admin" || user?.userType === 'host') && (
-                <div className="relative">
-                  <button 
-                    onClick={toggleNotifications}
-                    className={`notification-button relative px-3 py-2 rounded-lg transition-colors ${
-                      isNotificationOpen 
-                        ? 'bg-blue-600 text-white' 
-                        : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'
-                    }`}
-                  >
-                    <FaBell className="text-lg" />
-                    {unreadNotifCount > 0 && (
-                      <span className="absolute -top-1 -right-1 bg-green-600 text-white text-xs rounded-full px-2 py-1 min-w-[18px] text-center">
-                        {unreadNotifCount}
-                      </span>
-                    )}
-                  </button>
-                  {isNotificationOpen && (
-                    <div className="notification-dropdown absolute right-0 mt-2 w-80 bg-white rounded-xl dropdown-shadow border border-gray-200 py-2 z-50">
-                      <div className="px-4 py-2 border-b border-gray-100 font-semibold text-sm flex items-center justify-between">
-                        <span>Notifications</span>
-                        <Link 
-                          to="/notifications" 
-                          className="text-xs text-blue-600 hover:text-blue-800"
-                          onClick={() => setIsNotificationOpen(false)}
-                        >
-                          View All
-                        </Link>
-                      </div>
-                      <div className="max-h-96 overflow-auto">
+                <div className="max-h-96 overflow-auto">
                         {notifications.length === 0 ? (
                           <div className="px-4 py-8 text-center text-gray-500 text-sm">
                             No notifications
@@ -754,6 +769,28 @@ const Navbar = () => {
                         </div>
                       )}
 
+                      {user?.userType === 'worker' && (
+                        <div className="px-4 py-2 border-b border-gray-100">
+                          <div className="text-xs font-semibold text-gray-500 mb-1">Abilities</div>
+                          <div className="flex flex-wrap gap-2">
+                            {(() => {
+                              const enabled = Object.entries(user?.privileges || {}).filter(([k, v]) => v);
+                              if (enabled.length === 0) {
+                                return <span className="text-xs text-gray-500">No abilities assigned</span>;
+                              }
+                              return enabled.slice(0, 12).map(([k]) => (
+                                <span key={k} className="px-2 py-1 text-xs rounded bg-emerald-50 text-emerald-700 border border-emerald-200">{k}</span>
+                              ));
+                            })()}
+                          </div>
+                          {Array.isArray(user?.assignedProperties) && (
+                            <div className="mt-2 text-xs text-gray-600">
+                              Assigned properties: <span className="font-semibold">{user.assignedProperties.length}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
                       {/* Menu Items */}
                       <div className="py-1">
                         <Link
@@ -764,6 +801,26 @@ const Navbar = () => {
                           <FaUser className="text-blue-600" />
                           <span className="font-medium">My Profile</span>
                         </Link>
+                        {user?.userType === 'admin' && (
+                          <Link
+                            to="/admin/reports"
+                            className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors"
+                            onClick={() => setIsProfileOpen(false)}
+                          >
+                            <FaFileAlt className="text-blue-600" />
+                            <span className="font-medium">Admin Reports</span>
+                          </Link>
+                        )}
+                        {user?.userType === 'admin' && (
+                          <Link
+                            to="/admin/landing"
+                            className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors"
+                            onClick={() => setIsProfileOpen(false)}
+                          >
+                            <FaFileAlt className="text-blue-600" />
+                            <span className="font-medium">Landing Content</span>
+                          </Link>
+                        )}
                         
                         {user?.userType === 'host' && (
                           <Link
@@ -899,14 +956,17 @@ const Navbar = () => {
                     <FaHeart className="text-lg" />
                     <span>Favorites</span>
                   </Link>
-                  <Link
-                    to="/messages"
-                    className="flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    <FaEnvelope className="text-lg" />
-                    <span>Messages</span>
-                  </Link>
+                  {(user?.userType !== 'worker' ? true : !!user?.privileges?.canMessageGuests) && (
+                    <Link
+                      to="/messages"
+                      className="flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      <FaEnvelope className="text-lg" />
+                      <span>Messages</span>
+                    </Link>
+                  )}
+
                   {user?.userType === 'host' && userStats.properties > 0 && (
                     <Link
                       to="/dashboard"
@@ -917,20 +977,22 @@ const Navbar = () => {
                       <span>Dashboard</span>
                     </Link>
                   )}
-                  <Link
-                    to="/upload"
-                    className={`flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium ${user?.isBlocked ? 'text-gray-400' : 'text-gray-700 hover:bg-gray-50'}`}
-                    onClick={(e) => { if (user?.isBlocked) { e.preventDefault(); toast.error('Your account is deactivated. Listing is disabled until reactivated.'); return; } setIsMenuOpen(false); }}
-                  >
-                    <FaBuilding className="text-lg" />
-                    <span>List your property</span>
-                  </Link>
+                  {(user?.userType === 'host' && !user?.isBlocked) && (
+                    <Link
+                      to="/upload"
+                      className={`flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50`}
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      <FaBuilding className="text-lg" />
+                      <span>List your property</span>
+                    </Link>
+                  )}
+
                   {user?.userType === 'host' && (
                     <>
                       <Link
                         to="/my-bookings"
                         className="flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
-                        onClick={() => setIsMenuOpen(false)}
                       >
                         <FaCalendarAlt className="text-lg" />
                         <span>My Bookings</span>

@@ -8,7 +8,7 @@ import { safeApiGet, apiGet, apiPost, apiPut, apiDelete, apiDownload } from '../
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const UserProfile = () => {
-  const { user, refreshUser } = useAuth();
+  const { user, refreshUser, updateProfile: ctxUpdateProfile, updateAvatar: ctxUpdateAvatar } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
   const [properties, setProperties] = useState([]);
@@ -198,49 +198,35 @@ const UserProfile = () => {
 
   const updateProfile = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/user/profile`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(profileData)
+      const updated = await ctxUpdateProfile({
+        firstName: profileData.firstName,
+        lastName: profileData.lastName,
+        email: profileData.email,
+        phone: profileData.phone,
+        bio: profileData.bio
       });
-      if (res.ok) {
-        const data = await res.json();
-        if (data?.user?.avatar) {
-          setProfileData((p) => ({ ...p, avatar: makeAbsolute(data.user.avatar) }));
-        }
-        toast.success('Profile updated successfully');
+      if (updated?.avatar) {
+        setProfileData((p) => ({ ...p, avatar: updated.avatar }));
       }
+      toast.success('Profile updated successfully');
     } catch (e) {
-      toast.error('Failed to update profile');
+      toast.error(e.message || 'Failed to update profile');
     }
   };
 
   const uploadAvatar = async () => {
     if (!avatarFile) return;
-    const formData = new FormData();
-    formData.append('avatar', avatarFile);
-
     try {
-      const res = await fetch(`${API_URL}/api/user/upload-avatar`, {
-        method: 'POST',
-        credentials: 'include',
-        body: formData
-      });
-      
-      if (res.ok) {
-        const data = await res.json();
-        setProfileData(prev => ({ ...prev, avatar: makeAbsolute(data.avatarUrl) }));
-        if (avatarPreviewUrl) { URL.revokeObjectURL(avatarPreviewUrl); setAvatarPreviewUrl(null); }
-        setAvatarFile(null);
-        // refresh global user so avatar reflects across Navbar and app
-        try { await refreshUser(); } catch (_) {}
-        toast.success('Avatar updated successfully');
-      } else {
-        toast.error('Failed to upload avatar');
+      const updated = await ctxUpdateAvatar(avatarFile, false);
+      if (updated?.avatar) {
+        setProfileData(prev => ({ ...prev, avatar: updated.avatar }));
       }
+      if (avatarPreviewUrl) { URL.revokeObjectURL(avatarPreviewUrl); setAvatarPreviewUrl(null); }
+      setAvatarFile(null);
+      try { await refreshUser(); } catch (_) {}
+      toast.success('Avatar updated successfully');
     } catch (error) {
-      toast.error('Failed to upload avatar');
+      toast.error(error.message || 'Failed to upload avatar');
     }
   };
 
@@ -850,6 +836,8 @@ const UserProfile = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Current Password</label>
                   <input
                     type="password"
+                    value={passwords.current || ''}
+                    onChange={(e) => setPasswords(p => ({ ...p, current: e.target.value }))}
                     className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Enter current password"
                   />
@@ -858,11 +846,28 @@ const UserProfile = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
                   <input
                     type="password"
+                    value={passwords.new || ''}
+                    onChange={(e) => setPasswords(p => ({ ...p, new: e.target.value }))}
                     className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Enter new password"
                   />
                 </div>
-                <button className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                <button
+                  className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  onClick={async () => {
+                    try {
+                      if (!passwords?.current || !passwords?.new) {
+                        toast.error('Enter current and new password');
+                        return;
+                      }
+                      await ctxUpdateProfile({ currentPassword: passwords.current, password: passwords.new });
+                      setPasswords({ current: '', new: '' });
+                      toast.success('Password updated');
+                    } catch (e) {
+                      toast.error(e.message || 'Failed to update password');
+                    }
+                  }}
+                >
                   Update Password
                 </button>
               </div>
@@ -873,19 +878,34 @@ const UserProfile = () => {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-gray-700">Email Notifications</span>
-                  <input type="checkbox" className="toggle" defaultChecked />
+                  <input type="checkbox" className="toggle" checked={!!prefs.email}
+                    onChange={(e)=> setPrefs(p => ({ ...p, email: e.target.checked }))} />
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-gray-700">SMS Notifications</span>
-                  <input type="checkbox" className="toggle" />
+                  <input type="checkbox" className="toggle" checked={!!prefs.sms}
+                    onChange={(e)=> setPrefs(p => ({ ...p, sms: e.target.checked }))} />
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-gray-700">Booking Alerts</span>
-                  <input type="checkbox" className="toggle" defaultChecked />
+                  <input type="checkbox" className="toggle" checked={!!prefs.booking}
+                    onChange={(e)=> setPrefs(p => ({ ...p, booking: e.target.checked }))} />
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-gray-700">Marketing Emails</span>
-                  <input type="checkbox" className="toggle" />
+                  <input type="checkbox" className="toggle" checked={!!prefs.marketing}
+                    onChange={(e)=> setPrefs(p => ({ ...p, marketing: e.target.checked }))} />
+                </div>
+                <div className="text-right pt-2">
+                  <button
+                    className="px-4 py-2 bg-gray-800 text-white rounded hover:bg-black text-sm"
+                    onClick={async () => {
+                      try {
+                        await ctxUpdateProfile({ preferences: { email: !!prefs.email, sms: !!prefs.sms, booking: !!prefs.booking, marketing: !!prefs.marketing } });
+                        toast.success('Preferences saved');
+                      } catch (e) { toast.error(e.message || 'Failed to save preferences'); }
+                    }}
+                  >Save Preferences</button>
                 </div>
               </div>
             </div>

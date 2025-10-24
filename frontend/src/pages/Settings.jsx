@@ -66,6 +66,7 @@ const Settings = () => {
   const saveSiteSettings = () => {
     try {
       localStorage.setItem('siteSettings', JSON.stringify(siteSettings));
+      window.dispatchEvent(new CustomEvent('siteSettingsUpdated', { detail: siteSettings }));
       toast.success('Site settings saved');
     } catch {
       toast.error('Failed to save site settings');

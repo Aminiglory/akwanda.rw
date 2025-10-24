@@ -1,98 +1,37 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { FaMapMarkerAlt, FaStar, FaClock, FaTicketAlt, FaCamera, FaHeart } from 'react-icons/fa';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const Attractions = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  const categories = [
-    { id: 'all', name: 'All Amenities', icon: '🏢' },
-    { id: 'shopping', name: 'Shopping', icon: '🛍️' },
-    { id: 'dining', name: 'Dining', icon: '🍽️' },
-    { id: 'healthcare', name: 'Healthcare', icon: '🏥' },
-    { id: 'education', name: 'Education', icon: '🎓' },
-    { id: 'transport', name: 'Transport', icon: '🚌' }
-  ];
+  useEffect(() => {
+    (async () => {
+      try {
+        setLoading(true);
+        const res = await fetch(`${API_URL}/api/content/attractions`, { credentials: 'include' });
+        const data = await res.json();
+        const content = data?.content || {};
+        // Expect an array of attractions at content.items; fallback to []
+        if (res.ok) setItems(Array.isArray(content.items) ? content.items : []);
+        else setItems([]);
+      } catch (_) { setItems([]); } finally { setLoading(false); }
+    })();
+  }, []);
 
-  const attractions = [
-    {
-      id: 1,
-      name: "Kigali City Mall",
-      location: "Kigali, Rwanda",
-      category: "shopping",
-      rating: 4.7,
-      reviews: 1247,
-      distance: "2.5 km",
-      price: "Free",
-      image: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=500&h=400&fit=crop",
-      description: "Modern shopping mall with international brands, restaurants, cinema, and entertainment facilities.",
-      highlights: ["Supermarket", "Fashion Stores", "Food Court", "Cinema"]
-    },
-    {
-      id: 2,
-      name: "King Faisal Hospital",
-      location: "Kigali, Rwanda",
-      category: "healthcare",
-      rating: 4.8,
-      reviews: 892,
-      distance: "3.2 km",
-      price: "Medical",
-      image: "https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?w=500&h=400&fit=crop",
-      description: "Leading private hospital with modern facilities, emergency services, and specialized medical care.",
-      highlights: ["Emergency Services", "Specialists", "Pharmacy", "Laboratory"]
-    },
-    {
-      id: 3,
-      name: "University of Rwanda",
-      location: "Kigali, Rwanda",
-      category: "education",
-      rating: 4.6,
-      reviews: 2156,
-      distance: "4.1 km",
-      price: "Educational",
-      image: "https://images.unsplash.com/photo-1562774053-701939374585?w=500&h=400&fit=crop",
-      description: "Premier university with excellent facilities, library, and research centers for higher education.",
-      highlights: ["Library", "Research Centers", "Student Services", "Cafeteria"]
-    },
-    {
-      id: 4,
-      name: "Kimisagara Market",
-      location: "Kigali, Rwanda",
-      category: "shopping",
-      rating: 4.4,
-      reviews: 634,
-      distance: "1.8 km",
-      price: "Local Prices",
-      image: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=500&h=400&fit=crop",
-      description: "Local market with fresh produce, traditional crafts, and authentic Rwandan goods at affordable prices.",
-      highlights: ["Fresh Produce", "Local Crafts", "Traditional Goods", "Street Food"]
-    },
-    {
-      id: 5,
-      name: "Kigali Bus Station",
-      location: "Kigali, Rwanda",
-      category: "transport",
-      rating: 4.3,
-      reviews: 445,
-      distance: "2.1 km",
-      price: "Transport",
-      image: "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=500&h=400&fit=crop",
-      description: "Main bus terminal connecting to all major cities and towns across Rwanda with reliable service.",
-      highlights: ["Intercity Buses", "Local Transport", "Ticket Office", "Waiting Area"]
-    },
-    {
-      id: 6,
-      name: "Restaurant des Mille Collines",
-      location: "Kigali, Rwanda",
-      category: "dining",
-      rating: 4.5,
-      reviews: 312,
-      distance: "1.2 km",
-      price: "RWF 15,000+",
-      image: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=500&h=400&fit=crop",
-      description: "Upscale restaurant serving international and local cuisine with beautiful city views and excellent service.",
-      highlights: ["International Cuisine", "Local Dishes", "City Views", "Bar"]
+  const categories = useMemo(() => {
+    const all = new Map();
+    for (const a of items) {
+      const id = (a.category || 'other').toLowerCase();
+      if (!all.has(id)) all.set(id, { id, name: id.charAt(0).toUpperCase()+id.slice(1), icon: '📍' });
     }
-  ];
+    const arr = Array.from(all.values());
+    return [{ id: 'all', name: 'All', icon: '🏷️' }, ...arr];
+  }, [items]);
+
+  const attractions = items;
 
   const filteredAttractions = selectedCategory === 'all' 
     ? attractions 
@@ -141,6 +80,11 @@ const Attractions = () => {
         </div>
 
         {/* Attractions Grid */}
+        {loading ? (
+          <div className="text-center text-gray-600 py-16">Loading...</div>
+        ) : filteredAttractions.length === 0 ? (
+          <div className="text-center text-gray-600 py-16">No attractions available yet.</div>
+        ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {filteredAttractions.map((attraction, index) => (
             <div
@@ -151,7 +95,7 @@ const Attractions = () => {
               {/* Image */}
               <div className="relative h-48 overflow-hidden">
                 <img
-                  src={attraction.image}
+                  src={attraction.image?.startsWith?.('http') ? attraction.image : `${API_URL}${attraction.image || ''}`}
                   alt={attraction.name}
                   className="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
                 />
@@ -164,9 +108,11 @@ const Attractions = () => {
                   </button>
                 </div>
                 <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1">
-                  <span className="text-blue-600 font-bold">
-                    {attraction.price === 'Free' ? 'Free' : `RWF ${attraction.price}`}
-                  </span>
+                  {attraction.price && (
+                    <span className="text-blue-600 font-bold">
+                      {typeof attraction.price === 'string' ? attraction.price : `RWF ${attraction.price}`}
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -192,7 +138,7 @@ const Attractions = () => {
                 {/* Distance */}
                 <div className="flex items-center mb-4">
                   <FaMapMarkerAlt className="text-gray-400 mr-2" />
-                  <span className="text-sm text-gray-600">{attraction.distance} from city center</span>
+                  {attraction.distance && <span className="text-sm text-gray-600">{attraction.distance}</span>}
                 </div>
 
                 <p className="text-gray-700 text-sm mb-4 line-clamp-2">
@@ -201,7 +147,7 @@ const Attractions = () => {
 
                 {/* Highlights */}
                 <div className="flex flex-wrap gap-2 mb-4">
-                  {attraction.highlights.slice(0, 2).map((highlight, idx) => (
+                  {(attraction.highlights || []).slice(0, 2).map((highlight, idx) => (
                     <span
                       key={idx}
                       className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full"
@@ -225,7 +171,8 @@ const Attractions = () => {
             </div>
           ))}
         </div>
-
+        )}
+        
         {/* Call to Action */}
         <div className="mt-12 text-center">
           <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-2xl p-8 text-white">

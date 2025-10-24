@@ -286,8 +286,19 @@ const PropertyOwnerBookings = () => {
       <div className="grid grid-cols-2 gap-4 mb-4">
         <div>
           <p className="text-sm text-gray-600">Guest</p>
-          <p className="font-medium">{booking.guest.name}</p>
-          <p className="text-sm text-gray-500">{booking.guest.email}</p>
+          <div className="flex items-center gap-2">
+            {booking.guest?.avatar ? (
+              <img src={booking.guest.avatar.startsWith('http') ? booking.guest.avatar : `${API_URL}${booking.guest.avatar}`} alt={booking.guest.name} className="w-8 h-8 rounded-full object-cover border" />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-semibold">
+                {((booking.guest?.firstName || booking.guest?.name || '').charAt(0) || (booking.guest?.email || 'U').charAt(0))}
+              </div>
+            )}
+            <div>
+              <p className="font-medium">{booking.guest.name}</p>
+              <p className="text-sm text-gray-500">{booking.guest.email}</p>
+            </div>
+          </div>
         </div>
         <div>
           <p className="text-sm text-gray-600">Dates</p>
@@ -319,7 +330,18 @@ const PropertyOwnerBookings = () => {
                     <td className="px-4 py-3 text-sm">{new Date(tr.createdAt).toLocaleString()}</td>
                     <td className="px-4 py-3 text-sm">{tr.confirmationCode || tr._id}</td>
                     <td className="px-4 py-3 text-sm">{tr.property?.title || tr.property?.name || 'Property'}</td>
-                    <td className="px-4 py-3 text-sm">{`${tr.guest?.firstName || ''} ${tr.guest?.lastName || ''}`.trim() || tr.guest?.email || 'Guest'}</td>
+                    <td className="px-4 py-3 text-sm">
+                      <div className="flex items-center gap-2">
+                        {tr.guest?.avatar ? (
+                          <img src={tr.guest.avatar.startsWith('http') ? tr.guest.avatar : `${API_URL}${tr.guest.avatar}`} alt={tr.guest?.firstName} className="w-6 h-6 rounded-full object-cover border" />
+                        ) : (
+                          <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-[10px] font-semibold">
+                            {((tr.guest?.firstName || '').charAt(0) || (tr.guest?.email || 'U').charAt(0))}
+                          </div>
+                        )}
+                        <span>{`${tr.guest?.firstName || ''} ${tr.guest?.lastName || ''}`.trim() || tr.guest?.email || 'Guest'}</span>
+                      </div>
+                    </td>
                     <td className="px-4 py-3 text-right font-semibold">RWF {(tr.totalAmount || 0).toLocaleString()}</td>
                     <td className="px-4 py-3 text-sm">{tr.paymentMethod}</td>
                     <td className="px-4 py-3 text-sm">{tr.paymentStatus || tr.status}</td>
@@ -625,7 +647,7 @@ const PropertyOwnerBookings = () => {
         {/* Tab Navigation - Booking.com Style */}
         <div className="mb-6">
           <div className="border-b border-gray-200">
-            <nav className="-mb-px flex space-x-8">
+            <nav className="-mb-px flex space-x-4 sm:space-x-8 overflow-x-auto no-scrollbar snap-x">
               {[
                 { id: 'dashboard', label: 'Dashboard', icon: FaHome },
                 { id: 'reservations', label: 'Reservations', icon: FaCalendarAlt },
@@ -641,7 +663,7 @@ const PropertyOwnerBookings = () => {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`group inline-flex items-center py-4 px-1 border-b-2 font-medium text-sm ${
+                  className={`group inline-flex items-center py-3 sm:py-4 px-1 border-b-2 font-medium text-sm snap-start ${
                     activeTab === tab.id
                       ? 'border-blue-500 text-blue-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
