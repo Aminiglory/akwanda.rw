@@ -48,6 +48,9 @@ const AdminDashboard = () => {
   const [carRentals, setCarRentals] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
+  const [showUserDetails, setShowUserDetails] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [deletingUserId, setDeletingUserId] = useState(null);
 
   useEffect(() => {
     fetchDashboardData();
@@ -70,6 +73,36 @@ const AdminDashboard = () => {
           return fallbackData;
         }
       };
+
+  const viewUserDetails = async (id) => {
+    try {
+      setShowUserDetails(true);
+      setSelectedUser(null);
+      const res = await fetch(`${API_URL}/api/admin/user-management/users/${id}`, { credentials: 'include' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to load user');
+      setSelectedUser(data);
+    } catch (e) {
+      setShowUserDetails(false);
+      toast.error(e.message || 'Something went wrong');
+    }
+  };
+
+  const deleteUser = async (id) => {
+    try {
+      if (!window.confirm('Delete this user permanently? This will remove their related data.')) return;
+      setDeletingUserId(id);
+      const res = await fetch(`${API_URL}/api/admin/user-management/users/${id}`, { method: 'DELETE', credentials: 'include' });
+      const data = await res.json().catch(()=>({}));
+      if (!res.ok) throw new Error(data.message || 'Failed to delete user');
+      toast.success('User deleted');
+      setUsers(prev => prev.filter(u => String(u._id) !== String(id)));
+    } catch (e) {
+      toast.error(e.message || 'Failed to delete user');
+    } finally {
+      setDeletingUserId(null);
+    }
+  };
 
     // Fetch all data with fallbacks
     const [metricsData, propertiesData, bookingsData, usersData] = await Promise.all([
@@ -614,13 +647,13 @@ const AdminDashboard = () => {
                         </div>
                       </div>
                       <div className="mt-4 flex items-center space-x-2">
-                        <button className="flex-1 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
+                        <button onClick={() => viewUserDetails(user._id)} className="flex-1 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
                           View Profile
                         </button>
                         <button className="p-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
                           <FaEdit />
                         </button>
-                        <button className="p-2 border border-gray-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors">
+                        <button onClick={() => deleteUser(user._id)} disabled={deletingUserId===user._id} className="p-2 border border-gray-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50">
                           <FaTrash />
                         </button>
                       </div>
@@ -717,6 +750,50 @@ const AdminDashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* User Details Modal */}
+      {showUserDetails && selectedUser && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold">User Details</h2>
+              <button onClick={() => setShowUserDetails(false)} className="text-gray-500 hover:text-gray-700">×</button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center gap-4">
+                {selectedUser.user?.avatar ? (
+                  <img src={selectedUser.user.avatar} alt={selectedUser.user.firstName} className="w-16 h-16 rounded-full object-cover border" />
+                ) : (
+                  <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center text-base font-semibold">{(selectedUser.user?.firstName || selectedUser.user?.email || 'U').charAt(0)}</div>
+                )}
+                <div className="text-sm text-gray-600">
+                  <div className="font-semibold text-gray-900">{selectedUser.user?.firstName} {selectedUser.user?.lastName}</div>
+                  <div>{selectedUser.user?.email}</div>
+                  <div>{selectedUser.user?.phone}</div>
+                  <div className="mt-1 inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">{selectedUser.user?.userType}</div>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="font-semibold">Properties ({selectedUser.propertyCount})</h3>
+                {selectedUser.properties?.length > 0 ? (
+                  <div className="space-y-2 mt-2">
+                    {selectedUser.properties.map((p) => (
+                      <div key={p._id} className="p-2 bg-gray-50 rounded">
+                        <div className="font-medium">{p.title}</div>
+                        <div className="text-xs text-gray-600">Status: {p.status} • Created: {new Date(p.createdAt).toLocaleDateString()}</div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-sm text-gray-500">No properties</div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

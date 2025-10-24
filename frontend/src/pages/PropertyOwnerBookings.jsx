@@ -629,14 +629,14 @@ const PropertyOwnerBookings = () => {
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-col items-start gap-4">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 mb-2">Property Owner Dashboard</h1>
               <p className="text-gray-600">Manage your properties, bookings, and revenue</p>
             </div>
             <button
               onClick={() => setShowDirectBooking(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 w-full sm:w-auto"
             >
               <FaPlus />
               New Booking
@@ -1174,7 +1174,96 @@ const PropertyOwnerBookings = () => {
               </button>
             </div>
             <div className="p-6">
-              <p className="text-gray-600">Direct booking form would go here...</p>
+              <form onSubmit={(e) => { e.preventDefault(); submitDirectBooking(); }} className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Property</label>
+                  <select
+                    value={directForm.propertyId}
+                    onChange={(e) => onSelectProperty(e.target.value)}
+                    className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  >
+                    <option value="">Select property…</option>
+                    {properties.map(p => (
+                      <option key={p._id} value={p._id}>{p.title || p.name || 'Property'}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Room (optional)</label>
+                    <select
+                      value={directForm.roomId}
+                      onChange={(e) => onDirectChange('roomId', e.target.value)}
+                      className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="">Any room</option>
+                      {ownerRooms.map(r => (
+                        <option key={r._id} value={r._id}>{r.roomNumber || r.roomType || 'Room'}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Check-in</label>
+                    <input type="date" value={directForm.checkIn} onChange={e => onDirectChange('checkIn', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" required />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Check-out</label>
+                    <input type="date" value={directForm.checkOut} onChange={e => onDirectChange('checkOut', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" required />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Guests</label>
+                    <input type="number" min={1} value={directForm.guests} onChange={e => onDirectChange('guests', Number(e.target.value) || 1)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
+                    <select value={directForm.paymentMethod} onChange={e => onDirectChange('paymentMethod', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                      <option value="cash">Pay on Arrival</option>
+                      <option value="mtn_mobile_money">MTN Mobile Money</option>
+                    </select>
+                  </div>
+                  {directForm.paymentMethod === 'cash' && (
+                    <div className="flex items-end">
+                      <label className="inline-flex items-center space-x-2">
+                        <input type="checkbox" checked={directForm.markPaid} onChange={e => onDirectChange('markPaid', e.target.checked)} />
+                        <span className="text-sm">Mark as paid</span>
+                      </label>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Guest Info</label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <input placeholder="First name" value={directForm.guestInfo.firstName} onChange={e => onDirectChange('guestInfo.firstName', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" required />
+                    <input placeholder="Last name" value={directForm.guestInfo.lastName} onChange={e => onDirectChange('guestInfo.lastName', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" required />
+                    <input type="email" placeholder="Email" value={directForm.guestInfo.email} onChange={e => onDirectChange('guestInfo.email', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                    <input type="tel" placeholder="Phone" value={directForm.guestInfo.phone} onChange={e => onDirectChange('guestInfo.phone', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">A guest account will be linked or created automatically if necessary.</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Contact Info (for booking records)</label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <input type="email" placeholder="Contact email" value={directForm.contactInfo.email} onChange={e => onDirectChange('contactInfo.email', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                    <input type="tel" placeholder="Contact phone" value={directForm.contactInfo.phone} onChange={e => onDirectChange('contactInfo.phone', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Special Requests</label>
+                  <textarea value={directForm.specialRequests} onChange={e => onDirectChange('specialRequests', e.target.value)} rows={3} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Any special notes..."></textarea>
+                </div>
+
+                <div className="flex items-center justify-end border-t pt-4">
+                  <button type="submit" className="px-6 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium">Create Booking</button>
+                </div>
+              </form>
             </div>
           </div>
         </div>

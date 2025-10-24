@@ -352,12 +352,12 @@ const BookingProcess = () => {
       }
     }
 
-    // If no rooms match besides possibly the selected one, fallback to all rooms with info toast
+    // If no rooms match besides possibly the selected one, fallback to all rooms with neutral info toast
     const nonSelectedCount = filtered.filter(r => !r.__outsideFilter).length;
     if (nonSelectedCount === 0) {
       filtered = dedupeRooms(availableRooms);
       toast.dismiss();
-      toast('No rooms within selected budget; showing all available rooms', { icon: 'ℹ️' });
+      toast('No rooms match the selected budget. Showing all available rooms.', { icon: 'ℹ️' });
     }
 
     setFilteredRooms(filtered);
