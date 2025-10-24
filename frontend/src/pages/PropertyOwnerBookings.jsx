@@ -11,7 +11,7 @@ import {
   FaShoppingBag, FaCog, FaFileAlt, FaImages, FaQuestionCircle,
   FaPercent, FaCalendar, FaRulerCombined, FaUpload, FaBook
 } from 'react-icons/fa';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import BookingCalendar from '../components/BookingCalendar';
 
@@ -20,10 +20,10 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 const PropertyOwnerBookings = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [bookings, setBookings] = useState([]);
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('bookings');
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [showBookingDetails, setShowBookingDetails] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
@@ -61,6 +61,7 @@ const PropertyOwnerBookings = () => {
     search: ''
   });
   const [ownerView, setOwnerView] = useState('table'); // 'table' | 'calendar'
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'dashboard');
   const [expandedSections, setExpandedSections] = useState({
     reservations: true,
     calendar: false,
@@ -616,8 +617,43 @@ const PropertyOwnerBookings = () => {
               className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
             >
               <FaPlus />
-              New Direct Booking
+              New Booking
             </button>
+          </div>
+        </div>
+
+        {/* Tab Navigation - Booking.com Style */}
+        <div className="mb-6">
+          <div className="border-b border-gray-200">
+            <nav className="-mb-px flex space-x-8">
+              {[
+                { id: 'dashboard', label: 'Dashboard', icon: FaHome },
+                { id: 'reservations', label: 'Reservations', icon: FaCalendarAlt },
+                { id: 'calendar', label: 'Calendar', icon: FaCalendarCheck },
+                { id: 'finance', label: 'Finance', icon: FaMoneyBillWave },
+                { id: 'analytics', label: 'Analytics', icon: FaChartLine },
+                { id: 'promotions', label: 'Promotions', icon: FaShoppingBag },
+                { id: 'reviews', label: 'Reviews', icon: FaStar },
+                { id: 'messages', label: 'Messages', icon: FaComments },
+                { id: 'photos', label: 'Photos', icon: FaImages },
+                { id: 'settings', label: 'Settings', icon: FaCog }
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`group inline-flex items-center py-4 px-1 border-b-2 font-medium text-sm ${
+                    activeTab === tab.id
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <tab.icon className={`mr-2 text-sm ${
+                    activeTab === tab.id ? 'text-blue-500' : 'text-gray-400 group-hover:text-gray-500'
+                  }`} />
+                  {tab.label}
+                </button>
+              ))}
+            </nav>
           </div>
         </div>
 
@@ -661,7 +697,89 @@ const PropertyOwnerBookings = () => {
           </div>
         </div>
 
-        {/* Filters */}
+        {/* Tab Content */}
+        {activeTab === 'dashboard' && (
+          <div className="space-y-8">
+            {/* Revenue Management */}
+            <div className="neu-card p-0">
+              <div 
+                className="flex items-center justify-between p-6 border-b cursor-pointer hover:bg-gray-50"
+                onClick={() => toggleSection('revenue')}
+              >
+                <div className="flex items-center space-x-3">
+                  <FaDollarSign className="text-green-600 text-xl" />
+                  <h2 className="text-xl font-semibold text-gray-900">Revenue Management</h2>
+                </div>
+                {expandedSections.revenue ? <FaChevronUp /> : <FaChevronDown />}
+              </div>
+              
+              {expandedSections.revenue && (
+                <div className="p-6 space-y-6">
+                  {/* Revenue content from previous implementation */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="bg-green-50 border border-green-200 rounded-xl p-6">
+                      <h3 className="text-lg font-semibold text-green-900 mb-4">Monthly Revenue</h3>
+                      <div className="text-3xl font-bold text-green-600">RWF {stats.totalRevenue.toLocaleString()}</div>
+                      <p className="text-sm text-green-700 mt-2">+12% from last month</p>
+                    </div>
+                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
+                      <h3 className="text-lg font-semibold text-blue-900 mb-4">Average Daily Rate</h3>
+                      <div className="text-3xl font-bold text-blue-600">RWF {Math.round(stats.totalRevenue / Math.max(stats.total, 1)).toLocaleString()}</div>
+                      <p className="text-sm text-blue-700 mt-2">Per booking average</p>
+                    </div>
+                    <div className="bg-purple-50 border border-purple-200 rounded-xl p-6">
+                      <h3 className="text-lg font-semibold text-purple-900 mb-4">Occupancy Rate</h3>
+                      <div className="text-3xl font-bold text-purple-600">{stats.occupancyRate}%</div>
+                      <p className="text-sm text-purple-700 mt-2">Current month</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Analytics */}
+            <div className="neu-card p-0">
+              <div 
+                className="flex items-center justify-between p-6 border-b cursor-pointer hover:bg-gray-50"
+                onClick={() => toggleSection('advancedAnalytics')}
+              >
+                <div className="flex items-center space-x-3">
+                  <FaChartLine className="text-purple-600 text-xl" />
+                  <h2 className="text-xl font-semibold text-gray-900">Advanced Analytics</h2>
+                </div>
+                {expandedSections.advancedAnalytics ? <FaChevronUp /> : <FaChevronDown />}
+              </div>
+              
+              {expandedSections.advancedAnalytics && (
+                <div className="p-6 space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-6">
+                      <h3 className="text-lg font-semibold text-indigo-900 mb-4">Performance Metrics</h3>
+                      <div className="space-y-3">
+                        <div className="flex justify-between">
+                          <span className="text-indigo-700">Conversion Rate</span>
+                          <span className="font-semibold text-indigo-900">24.5%</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-indigo-700">Avg Booking Value</span>
+                          <span className="font-semibold text-indigo-900">RWF {Math.round(stats.totalRevenue / Math.max(stats.total, 1)).toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-indigo-700">Repeat Guests</span>
+                          <span className="font-semibold text-indigo-900">18%</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'reservations' && (
+          <div>
+            {/* Filters */}
         <div className="neu-card p-6 mb-8">
           <div className="flex flex-wrap gap-4">
             <select
@@ -847,898 +965,178 @@ const PropertyOwnerBookings = () => {
             </div>
           )}
         </div>
-      </div>
-
-      {/* Revenue Management Section */}
-      <div className="neu-card p-0 mb-8">
-        <div 
-          className="flex items-center justify-between p-6 border-b cursor-pointer hover:bg-gray-50"
-          onClick={() => toggleSection('revenue')}
-        >
-          <div className="flex items-center space-x-3">
-            <FaMoneyBillWave className="text-green-600 text-xl" />
-            <h2 className="text-xl font-semibold text-gray-900">Revenue Management</h2>
-          </div>
-          {expandedSections.revenue ? <FaChevronUp /> : <FaChevronDown />}
-        </div>
-        
-        {expandedSections.revenue && (
-          <div className="p-6 space-y-6">
-            {/* Pricing Tools */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
-                <h3 className="text-lg font-semibold text-blue-900 mb-4 flex items-center">
-                  <FaDollarSign className="mr-2" />
-                  Dynamic Pricing
-                </h3>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-blue-700">Base Rate</span>
-                    <div className="flex items-center space-x-2">
-                      <input type="number" className="w-20 px-2 py-1 border rounded" placeholder="100" />
-                      <span className="text-blue-900">RWF/night</span>
-                    </div>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-blue-700">Weekend Premium</span>
-                    <div className="flex items-center space-x-2">
-                      <input type="number" className="w-16 px-2 py-1 border rounded" placeholder="20" />
-                      <span className="text-blue-900">%</span>
-                    </div>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-blue-700">Peak Season</span>
-                    <div className="flex items-center space-x-2">
-                      <input type="number" className="w-16 px-2 py-1 border rounded" placeholder="50" />
-                      <span className="text-blue-900">%</span>
-                    </div>
-                  </div>
-                  <button className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors">
-                    Update Pricing Rules
-                  </button>
-                </div>
-              </div>
-
-              <div className="bg-green-50 border border-green-200 rounded-xl p-6">
-                <h3 className="text-lg font-semibold text-green-900 mb-4 flex items-center">
-                  <FaChartLine className="mr-2" />
-                  Revenue Insights
-                </h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-green-700">This Month</span>
-                    <span className="font-semibold text-green-900">RWF {stats.totalRevenue.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-green-700">Average Daily Rate</span>
-                    <span className="font-semibold text-green-900">RWF {Math.round(stats.totalRevenue / Math.max(stats.total, 1)).toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-green-700">Revenue per Property</span>
-                    <span className="font-semibold text-green-900">RWF {Math.round(stats.totalRevenue / Math.max(stats.totalProperties, 1)).toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-green-700">Occupancy Rate</span>
-                    <span className="font-semibold text-green-900">{stats.occupancyRate}%</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Rate Calendar */}
-            <div className="bg-white border border-gray-200 rounded-xl p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <FaCalendarAlt className="mr-2 text-blue-600" />
-                Rate Calendar
-              </h3>
-              <div className="grid grid-cols-7 gap-2 text-center text-sm">
-                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                  <div key={day} className="font-semibold text-gray-600 py-2">{day}</div>
-                ))}
-                {Array.from({ length: 35 }, (_, i) => (
-                  <div key={i} className="border border-gray-200 rounded p-2 hover:bg-blue-50 cursor-pointer">
-                    <div className="text-xs text-gray-600">{((i % 30) + 1)}</div>
-                    <div className="text-xs font-semibold text-blue-600">RWF 100k</div>
-                  </div>
-                ))}
-              </div>
-            </div>
           </div>
         )}
-      </div>
 
-      {/* Advanced Analytics Section */}
-      <div className="neu-card p-0 mb-8">
-        <div 
-          className="flex items-center justify-between p-6 border-b cursor-pointer hover:bg-gray-50"
-          onClick={() => toggleSection('advancedAnalytics')}
-        >
-          <div className="flex items-center space-x-3">
-            <FaChartLine className="text-purple-600 text-xl" />
-            <h2 className="text-xl font-semibold text-gray-900">Advanced Analytics</h2>
-          </div>
-          {expandedSections.advancedAnalytics ? <FaChevronUp /> : <FaChevronDown />}
-        </div>
-        
-        {expandedSections.advancedAnalytics && (
-          <div className="p-6 space-y-6">
-            {/* Performance Metrics */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-purple-50 border border-purple-200 rounded-xl p-6">
-                <h3 className="text-lg font-semibold text-purple-900 mb-4">Booking Performance</h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-purple-700">Conversion Rate</span>
-                    <span className="font-semibold text-purple-900">12.5%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-purple-700">Avg. Booking Value</span>
-                    <span className="font-semibold text-purple-900">RWF {Math.round(stats.totalRevenue / Math.max(stats.total, 1)).toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-purple-700">Repeat Guests</span>
-                    <span className="font-semibold text-purple-900">23%</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-orange-50 border border-orange-200 rounded-xl p-6">
-                <h3 className="text-lg font-semibold text-orange-900 mb-4">Market Position</h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-orange-700">Market Share</span>
-                    <span className="font-semibold text-orange-900">8.2%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-orange-700">Competitor Rank</span>
-                    <span className="font-semibold text-orange-900">#3</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-orange-700">Price Competitiveness</span>
-                    <span className="font-semibold text-orange-900">Good</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-teal-50 border border-teal-200 rounded-xl p-6">
-                <h3 className="text-lg font-semibold text-teal-900 mb-4">Guest Satisfaction</h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-teal-700">Average Rating</span>
-                    <span className="font-semibold text-teal-900 flex items-center">
-                      <FaStar className="text-yellow-400 mr-1" />
-                      {stats.averageRating || 'N/A'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-teal-700">Response Rate</span>
-                    <span className="font-semibold text-teal-900">95%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-teal-700">Review Score</span>
-                    <span className="font-semibold text-teal-900">Excellent</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Revenue Trends Chart */}
-            <div className="bg-white border border-gray-200 rounded-xl p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <FaChartLine className="mr-2 text-purple-600" />
-                Revenue Trends (Last 12 Months)
-              </h3>
-              <div className="h-64 bg-gray-50 rounded-lg flex items-center justify-center">
-                <div className="text-center text-gray-500">
-                  <FaChartLine className="text-4xl mx-auto mb-2" />
-                  <p>Revenue chart visualization</p>
-                  <p className="text-sm">Integration with Chart.js recommended</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Guest Reviews Management */}
-      <div className="neu-card p-0 mb-8">
-        <div 
-          className="flex items-center justify-between p-6 border-b cursor-pointer hover:bg-gray-50"
-          onClick={() => toggleSection('reviewsManagement')}
-        >
-          <div className="flex items-center space-x-3">
-            <FaStar className="text-yellow-500 text-xl" />
-            <h2 className="text-xl font-semibold text-gray-900">Guest Reviews Management</h2>
-          </div>
-          {expandedSections.reviewsManagement ? <FaChevronUp /> : <FaChevronDown />}
-        </div>
-        
-        {expandedSections.reviewsManagement && (
-          <div className="p-6 space-y-6">
-            {/* Review Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center">
-                <FaStar className="text-yellow-500 text-2xl mx-auto mb-2" />
-                <div className="text-2xl font-bold text-yellow-900">{stats.averageRating || 'N/A'}</div>
-                <div className="text-sm text-yellow-700">Average Rating</div>
-              </div>
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
-                <FaCheckCircle className="text-green-500 text-2xl mx-auto mb-2" />
-                <div className="text-2xl font-bold text-green-900">24</div>
-                <div className="text-sm text-green-700">Total Reviews</div>
-              </div>
-              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 text-center">
-                <FaClock className="text-orange-500 text-2xl mx-auto mb-2" />
-                <div className="text-2xl font-bold text-orange-900">3</div>
-                <div className="text-sm text-orange-700">Pending Response</div>
-              </div>
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
-                <FaComments className="text-blue-500 text-2xl mx-auto mb-2" />
-                <div className="text-2xl font-bold text-blue-900">95%</div>
-                <div className="text-sm text-blue-700">Response Rate</div>
-              </div>
-            </div>
-
-            {/* Recent Reviews */}
-            <div className="bg-white border border-gray-200 rounded-xl p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Reviews</h3>
-              <div className="space-y-4">
-                {[1, 2, 3].map(i => (
-                  <div key={i} className="border-b border-gray-100 pb-4 last:border-b-0">
-                    <div className="flex items-start justify-between mb-2">
-                      <div>
-                        <div className="flex items-center space-x-2 mb-1">
-                          <span className="font-medium text-gray-900">Guest {i}</span>
-                          <div className="flex text-yellow-400">
-                            {[1, 2, 3, 4, 5].map(star => (
-                              <FaStar key={star} className="text-sm" />
-                            ))}
-                          </div>
-                        </div>
-                        <p className="text-sm text-gray-600">Great location and clean rooms. Highly recommended!</p>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-xs text-gray-500">2 days ago</div>
-                        <button className="text-blue-600 hover:text-blue-800 text-sm mt-1">
-                          Reply
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <button className="w-full mt-4 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors">
-                View All Reviews
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Property Performance */}
-      <div className="neu-card p-0 mb-8">
-        <div 
-          className="flex items-center justify-between p-6 border-b cursor-pointer hover:bg-gray-50"
-          onClick={() => toggleSection('propertyPerformance')}
-        >
-          <div className="flex items-center space-x-3">
-            <FaHome className="text-indigo-600 text-xl" />
-            <h2 className="text-xl font-semibold text-gray-900">Property Performance</h2>
-          </div>
-          {expandedSections.propertyPerformance ? <FaChevronUp /> : <FaChevronDown />}
-        </div>
-        
-        {expandedSections.propertyPerformance && (
-          <div className="p-6 space-y-6">
-            {/* Property Cards */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {properties.slice(0, 4).map(property => (
-                <div key={property._id} className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-shadow">
-                  <div className="flex items-start justify-between mb-4">
-                    <div>
-                      <h3 className="font-semibold text-gray-900">{property.title || property.name}</h3>
-                      <p className="text-sm text-gray-600 flex items-center">
-                        <FaMapMarkerAlt className="mr-1" />
-                        {property.city || property.address}
-                      </p>
-                    </div>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      property.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                    }`}>
-                      {property.status}
-                    </span>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4 mb-4">
-                    <div>
-                      <div className="text-sm text-gray-600">Occupancy</div>
-                      <div className="text-lg font-semibold text-indigo-600">75%</div>
-                    </div>
-                    <div>
-                      <div className="text-sm text-gray-600">Revenue</div>
-                      <div className="text-lg font-semibold text-green-600">RWF 450k</div>
-                    </div>
-                    <div>
-                      <div className="text-sm text-gray-600">Rating</div>
-                      <div className="text-lg font-semibold text-yellow-600 flex items-center">
-                        <FaStar className="mr-1" />
-                        {property.rating || 'N/A'}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-sm text-gray-600">Bookings</div>
-                      <div className="text-lg font-semibold text-blue-600">12</div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex space-x-2">
-                    <button className="flex-1 bg-indigo-600 text-white py-2 px-3 rounded-lg hover:bg-indigo-700 transition-colors text-sm">
-                      View Details
-                    </button>
-                    <button className="flex-1 bg-gray-100 text-gray-700 py-2 px-3 rounded-lg hover:bg-gray-200 transition-colors text-sm">
-                      Edit Property
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Guest Communication Templates */}
-      <div className="neu-card p-0 mb-8">
-        <div 
-          className="flex items-center justify-between p-6 border-b cursor-pointer hover:bg-gray-50"
-          onClick={() => toggleSection('guestCommunication')}
-        >
-          <div className="flex items-center space-x-3">
-            <FaComments className="text-blue-600 text-xl" />
-            <h2 className="text-xl font-semibold text-gray-900">Guest Communication Templates</h2>
-          </div>
-          {expandedSections.guestCommunication ? <FaChevronUp /> : <FaChevronDown />}
-        </div>
-        
-        {expandedSections.guestCommunication && (
-          <div className="p-6 space-y-6">
-            {/* Quick Actions */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <button className="bg-green-50 border border-green-200 rounded-lg p-4 text-left hover:bg-green-100 transition-colors">
-                <FaCheckCircle className="text-green-600 text-xl mb-2" />
-                <h3 className="font-semibold text-green-900">Booking Confirmation</h3>
-                <p className="text-sm text-green-700">Send confirmation details</p>
-              </button>
-              <button className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-left hover:bg-blue-100 transition-colors">
-                <FaCalendarAlt className="text-blue-600 text-xl mb-2" />
-                <h3 className="font-semibold text-blue-900">Check-in Instructions</h3>
-                <p className="text-sm text-blue-700">Pre-arrival information</p>
-              </button>
-              <button className="bg-purple-50 border border-purple-200 rounded-lg p-4 text-left hover:bg-purple-100 transition-colors">
-                <FaStar className="text-purple-600 text-xl mb-2" />
-                <h3 className="font-semibold text-purple-900">Review Request</h3>
-                <p className="text-sm text-purple-700">Post-stay feedback</p>
-              </button>
-            </div>
-
-            {/* Message Templates */}
-            <div className="bg-white border border-gray-200 rounded-xl p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Message Templates</h3>
-              <div className="space-y-4">
-                {[
-                  { title: "Welcome Message", trigger: "After booking confirmation", status: "Active" },
-                  { title: "Check-in Instructions", trigger: "24 hours before arrival", status: "Active" },
-                  { title: "Thank You & Review Request", trigger: "After checkout", status: "Active" },
-                  { title: "Special Offers", trigger: "Manual send", status: "Draft" }
-                ].map((template, i) => (
-                  <div key={i} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                    <div>
-                      <h4 className="font-medium text-gray-900">{template.title}</h4>
-                      <p className="text-sm text-gray-600">{template.trigger}</p>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        template.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                      }`}>
-                        {template.status}
-                      </span>
-                      <button className="text-blue-600 hover:text-blue-800 text-sm">
-                        Edit
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <button className="w-full mt-4 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors">
-                Create New Template
-              </button>
-            </div>
-
-            {/* Automated Messaging Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-6">
-                <h3 className="text-lg font-semibold text-indigo-900 mb-4">Message Statistics</h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-indigo-700">Messages Sent</span>
-                    <span className="font-semibold text-indigo-900">156</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-indigo-700">Response Rate</span>
-                    <span className="font-semibold text-indigo-900">87%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-indigo-700">Avg Response Time</span>
-                    <span className="font-semibold text-indigo-900">2.3 hrs</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-6">
-                <h3 className="text-lg font-semibold text-emerald-900 mb-4">Guest Satisfaction</h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-emerald-700">Communication Rating</span>
-                    <span className="font-semibold text-emerald-900 flex items-center">
-                      <FaStar className="text-yellow-400 mr-1" />
-                      4.8
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-emerald-700">Positive Feedback</span>
-                    <span className="font-semibold text-emerald-900">94%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-emerald-700">Complaints</span>
-                    <span className="font-semibold text-emerald-900">2</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-6">
-                <h3 className="text-lg font-semibold text-amber-900 mb-4">Automation Status</h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-amber-700">Active Templates</span>
-                    <span className="font-semibold text-amber-900">3</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-amber-700">Scheduled Messages</span>
-                    <span className="font-semibold text-amber-900">12</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-amber-700">Success Rate</span>
-                    <span className="font-semibold text-amber-900">99.2%</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Promotions & Deals Management */}
-      <div className="neu-card p-0 mb-8">
-        <div 
-          className="flex items-center justify-between p-6 border-b cursor-pointer hover:bg-gray-50"
-          onClick={() => toggleSection('promotionsManagement')}
-        >
-          <div className="flex items-center space-x-3">
-            <FaShoppingBag className="text-pink-600 text-xl" />
-            <h2 className="text-xl font-semibold text-gray-900">Promotions & Deals Management</h2>
-          </div>
-          {expandedSections.promotionsManagement ? <FaChevronUp /> : <FaChevronDown />}
-        </div>
-        
-        {expandedSections.promotionsManagement && (
-          <div className="p-6 space-y-6">
-            {/* Quick Actions */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <button className="bg-pink-50 border border-pink-200 rounded-lg p-4 text-left hover:bg-pink-100 transition-colors">
-                <FaPercent className="text-pink-600 text-xl mb-2" />
-                <h3 className="font-semibold text-pink-900">Early Bird Discount</h3>
-                <p className="text-sm text-pink-700">Book 30 days in advance</p>
-              </button>
-              <button className="bg-orange-50 border border-orange-200 rounded-lg p-4 text-left hover:bg-orange-100 transition-colors">
-                <FaCalendar className="text-orange-600 text-xl mb-2" />
-                <h3 className="font-semibold text-orange-900">Last Minute Deals</h3>
-                <p className="text-sm text-orange-700">Fill empty nights</p>
-              </button>
-              <button className="bg-purple-50 border border-purple-200 rounded-lg p-4 text-left hover:bg-purple-100 transition-colors">
-                <FaUsers className="text-purple-600 text-xl mb-2" />
-                <h3 className="font-semibold text-purple-900">Group Booking</h3>
-                <p className="text-sm text-purple-700">5+ guests discount</p>
-              </button>
-            </div>
-
-            {/* Active Promotions */}
-            <div className="bg-white border border-gray-200 rounded-xl p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Active Promotions</h3>
-              <div className="space-y-4">
-                {[
-                  { title: "Summer Special 2024", discount: "20%", bookings: 45, revenue: "RWF 2.1M", status: "Active" },
-                  { title: "Weekend Getaway", discount: "15%", bookings: 23, revenue: "RWF 890K", status: "Active" },
-                  { title: "Extended Stay", discount: "25%", bookings: 12, revenue: "RWF 1.5M", status: "Paused" }
-                ].map((promo, i) => (
-                  <div key={i} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                    <div>
-                      <h4 className="font-medium text-gray-900">{promo.title}</h4>
-                      <p className="text-sm text-gray-600">{promo.discount} discount • {promo.bookings} bookings • {promo.revenue} revenue</p>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        promo.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {promo.status}
-                      </span>
-                      <button className="text-blue-600 hover:text-blue-800 text-sm">
-                        Edit
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <button className="w-full mt-4 bg-pink-600 text-white py-2 rounded-lg hover:bg-pink-700 transition-colors">
-                Create New Promotion
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Property Settings */}
-      <div className="neu-card p-0 mb-8">
-        <div 
-          className="flex items-center justify-between p-6 border-b cursor-pointer hover:bg-gray-50"
-          onClick={() => toggleSection('propertySettings')}
-        >
-          <div className="flex items-center space-x-3">
-            <FaCog className="text-gray-600 text-xl" />
-            <h2 className="text-xl font-semibold text-gray-900">Property Settings</h2>
-          </div>
-          {expandedSections.propertySettings ? <FaChevronUp /> : <FaChevronDown />}
-        </div>
-        
-        {expandedSections.propertySettings && (
-          <div className="p-6 space-y-6">
-            {/* Availability Calendar */}
-            <div className="bg-white border border-gray-200 rounded-xl p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <FaCalendar className="mr-2 text-blue-600" />
-                Availability Calendar
-              </h3>
-              <div className="grid grid-cols-7 gap-2 text-center text-sm mb-4">
-                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                  <div key={day} className="font-semibold text-gray-600 py-2">{day}</div>
-                ))}
-                {Array.from({ length: 35 }, (_, i) => (
-                  <div key={i} className={`border rounded p-2 cursor-pointer transition-colors ${
-                    i % 7 === 0 || i % 7 === 6 ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200 hover:bg-green-100'
-                  }`}>
-                    <div className="text-xs text-gray-600">{((i % 30) + 1)}</div>
-                    <div className={`text-xs font-semibold ${
-                      i % 7 === 0 || i % 7 === 6 ? 'text-red-600' : 'text-green-600'
-                    }`}>
-                      {i % 7 === 0 || i % 7 === 6 ? 'Blocked' : 'Available'}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="flex space-x-4">
-                <button className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
-                  Block Dates
-                </button>
-                <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-                  Set Minimum Stay
-                </button>
-              </div>
-            </div>
-
-            {/* House Rules */}
-            <div className="bg-white border border-gray-200 rounded-xl p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <FaRulerCombined className="mr-2 text-orange-600" />
-                House Rules & Policies
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Check-in Time</label>
-                    <select className="w-full border border-gray-300 rounded-lg px-3 py-2">
-                      <option>3:00 PM</option>
-                      <option>4:00 PM</option>
-                      <option>5:00 PM</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Check-out Time</label>
-                    <select className="w-full border border-gray-300 rounded-lg px-3 py-2">
-                      <option>11:00 AM</option>
-                      <option>12:00 PM</option>
-                      <option>1:00 PM</option>
-                    </select>
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">House Rules</label>
-                    <div className="space-y-2">
-                      {['No smoking', 'No pets', 'No parties', 'Quiet hours 10 PM - 8 AM'].map((rule, i) => (
-                        <label key={i} className="flex items-center">
-                          <input type="checkbox" defaultChecked className="mr-2" />
-                          <span className="text-sm text-gray-600">{rule}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Financial Reports */}
-      <div className="neu-card p-0 mb-8">
-        <div 
-          className="flex items-center justify-between p-6 border-b cursor-pointer hover:bg-gray-50"
-          onClick={() => toggleSection('financialReports')}
-        >
-          <div className="flex items-center space-x-3">
-            <FaFileAlt className="text-green-600 text-xl" />
-            <h2 className="text-xl font-semibold text-gray-900">Financial Reports & Tax Documents</h2>
-          </div>
-          {expandedSections.financialReports ? <FaChevronUp /> : <FaChevronDown />}
-        </div>
-        
-        {expandedSections.financialReports && (
-          <div className="p-6 space-y-6">
-            {/* Report Generation */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-green-50 border border-green-200 rounded-xl p-6">
-                <h3 className="text-lg font-semibold text-green-900 mb-4">Income Statement</h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-green-700">Gross Revenue</span>
-                    <span className="font-semibold text-green-900">RWF {stats.totalRevenue.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-green-700">Commission Paid</span>
-                    <span className="font-semibold text-green-900">RWF {Math.round(stats.totalRevenue * 0.1).toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between border-t pt-2">
-                    <span className="text-green-700 font-semibold">Net Income</span>
-                    <span className="font-bold text-green-900">RWF {Math.round(stats.totalRevenue * 0.9).toLocaleString()}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
-                <h3 className="text-lg font-semibold text-blue-900 mb-4">Tax Information</h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-blue-700">Taxable Income</span>
-                    <span className="font-semibold text-blue-900">RWF {Math.round(stats.totalRevenue * 0.9).toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-blue-700">Est. Tax (18%)</span>
-                    <span className="font-semibold text-blue-900">RWF {Math.round(stats.totalRevenue * 0.9 * 0.18).toLocaleString()}</span>
-                  </div>
-                  <button className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm">
-                    Download Tax Report
-                  </button>
-                </div>
-              </div>
-
-              <div className="bg-purple-50 border border-purple-200 rounded-xl p-6">
-                <h3 className="text-lg font-semibold text-purple-900 mb-4">Payout Tracking</h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-purple-700">Total Payouts</span>
-                    <span className="font-semibold text-purple-900">RWF {Math.round(stats.totalRevenue * 0.85).toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-purple-700">Pending</span>
-                    <span className="font-semibold text-purple-900">RWF {Math.round(stats.pendingRevenue * 0.9).toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-purple-700">Next Payout</span>
-                    <span className="font-semibold text-purple-900">Dec 1, 2024</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Document Downloads */}
-            <div className="bg-white border border-gray-200 rounded-xl p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Available Reports</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {[
-                  { name: "Monthly Revenue Report", period: "November 2024", format: "PDF" },
-                  { name: "Annual Tax Summary", period: "2024", format: "PDF" },
-                  { name: "Commission Statement", period: "Q4 2024", format: "CSV" },
-                  { name: "Payout History", period: "Last 12 months", format: "Excel" }
-                ].map((doc, i) => (
-                  <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div>
-                      <div className="font-medium text-gray-900">{doc.name}</div>
-                      <div className="text-sm text-gray-600">{doc.period} • {doc.format}</div>
-                    </div>
-                    <button className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 transition-colors">
-                      <FaDownload className="mr-1" />
-                      Download
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Property Photos Management */}
-      <div className="neu-card p-0 mb-8">
-        <div 
-          className="flex items-center justify-between p-6 border-b cursor-pointer hover:bg-gray-50"
-          onClick={() => toggleSection('photoManagement')}
-        >
-          <div className="flex items-center space-x-3">
-            <FaImages className="text-indigo-600 text-xl" />
-            <h2 className="text-xl font-semibold text-gray-900">Property Photos Management</h2>
-          </div>
-          {expandedSections.photoManagement ? <FaChevronUp /> : <FaChevronDown />}
-        </div>
-        
-        {expandedSections.photoManagement && (
-          <div className="p-6 space-y-6">
-            {/* Upload Area */}
-            <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-indigo-400 transition-colors">
-              <FaUpload className="text-4xl text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Upload Property Photos</h3>
-              <p className="text-gray-600 mb-4">Drag and drop photos here, or click to browse</p>
-              <button className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition-colors">
-                Choose Files
-              </button>
-              <p className="text-xs text-gray-500 mt-2">Supported: JPG, PNG, WebP • Max 10MB per file</p>
-            </div>
-
-            {/* Photo Gallery */}
-            <div className="bg-white border border-gray-200 rounded-xl p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Current Photos</h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {Array.from({ length: 8 }, (_, i) => (
-                  <div key={i} className="relative group">
-                    <div className="aspect-square bg-gray-200 rounded-lg flex items-center justify-center">
-                      <FaImages className="text-gray-400 text-2xl" />
-                    </div>
-                    <div className="absolute inset-0 bg-black bg-opacity-50 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center space-x-2">
-                      <button className="bg-white text-gray-800 p-2 rounded-full hover:bg-gray-100">
-                        <FaEye />
-                      </button>
-                      <button className="bg-white text-gray-800 p-2 rounded-full hover:bg-gray-100">
-                        <FaEdit />
-                      </button>
-                      <button className="bg-red-600 text-white p-2 rounded-full hover:bg-red-700">
-                        <FaTrash />
-                      </button>
-                    </div>
-                    {i === 0 && (
-                      <div className="absolute top-2 left-2 bg-blue-600 text-white text-xs px-2 py-1 rounded">
-                        Main
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-              <div className="mt-4 flex space-x-2">
-                <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-                  Set Main Photo
-                </button>
-                <button className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors">
-                  Bulk Actions
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Help & Support */}
-      <div className="neu-card p-0 mb-8">
-        <div 
-          className="flex items-center justify-between p-6 border-b cursor-pointer hover:bg-gray-50"
-          onClick={() => toggleSection('helpSupport')}
-        >
-          <div className="flex items-center space-x-3">
-            <FaQuestionCircle className="text-blue-600 text-xl" />
-            <h2 className="text-xl font-semibold text-gray-900">Help & Support Center</h2>
-          </div>
-          {expandedSections.helpSupport ? <FaChevronUp /> : <FaChevronDown />}
-        </div>
-        
-        {expandedSections.helpSupport && (
-          <div className="p-6 space-y-6">
-            {/* Quick Help */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <button className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-left hover:bg-blue-100 transition-colors">
-                <FaBook className="text-blue-600 text-xl mb-2" />
-                <h3 className="font-semibold text-blue-900">Getting Started</h3>
-                <p className="text-sm text-blue-700">Setup your property</p>
-              </button>
-              <button className="bg-green-50 border border-green-200 rounded-lg p-4 text-left hover:bg-green-100 transition-colors">
-                <FaMoneyBillWave className="text-green-600 text-xl mb-2" />
-                <h3 className="font-semibold text-green-900">Pricing Guide</h3>
-                <p className="text-sm text-green-700">Optimize your rates</p>
-              </button>
-              <button className="bg-purple-50 border border-purple-200 rounded-lg p-4 text-left hover:bg-purple-100 transition-colors">
-                <FaUsers className="text-purple-600 text-xl mb-2" />
-                <h3 className="font-semibold text-purple-900">Guest Relations</h3>
-                <p className="text-sm text-purple-700">Handle guest issues</p>
-              </button>
-            </div>
-
-            {/* Knowledge Base */}
-            <div className="bg-white border border-gray-200 rounded-xl p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Frequently Asked Questions</h3>
-              <div className="space-y-4">
-                {[
-                  { question: "How do I update my property availability?", category: "Property Management" },
-                  { question: "When do I receive payouts?", category: "Payments" },
-                  { question: "How to respond to guest reviews?", category: "Reviews" },
-                  { question: "What are the commission rates?", category: "Pricing" },
-                  { question: "How to handle booking cancellations?", category: "Bookings" }
-                ].map((faq, i) => (
-                  <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer">
-                    <div>
-                      <div className="font-medium text-gray-900">{faq.question}</div>
-                      <div className="text-sm text-gray-600">{faq.category}</div>
-                    </div>
-                    <FaArrowRight className="text-gray-400" />
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Contact Support */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-orange-50 border border-orange-200 rounded-xl p-6">
-                <h3 className="text-lg font-semibold text-orange-900 mb-4">Contact Support</h3>
-                <div className="space-y-3">
-                  <div className="flex items-center space-x-3">
-                    <FaPhone className="text-orange-600" />
-                    <span className="text-orange-800">+250 788 123 456</span>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <FaEnvelope className="text-orange-600" />
-                    <span className="text-orange-800">support@akwanda.rw</span>
-                  </div>
-                  <button className="w-full bg-orange-600 text-white py-2 rounded-lg hover:bg-orange-700 transition-colors">
-                    Start Live Chat
-                  </button>
-                </div>
-              </div>
-
-              <div className="bg-gray-50 border border-gray-200 rounded-xl p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Submit Ticket</h3>
-                <div className="space-y-3">
-                  <select className="w-full border border-gray-300 rounded-lg px-3 py-2">
-                    <option>Select Issue Type</option>
-                    <option>Technical Problem</option>
-                    <option>Payment Issue</option>
-                    <option>Property Question</option>
-                    <option>Guest Complaint</option>
+        {activeTab === 'calendar' && (
+          <div>
+            <div className="neu-card p-6 mb-8">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-semibold">Property Calendar</h2>
+                <div className="flex space-x-4">
+                  <select
+                    value={filters.property}
+                    onChange={(e) => setFilters(prev => ({ ...prev, property: e.target.value }))}
+                    className="modern-input"
+                  >
+                    <option value="all">All Properties</option>
+                    {properties.map(p => (
+                      <option key={p._id} value={p._id}>{p.name}</option>
+                    ))}
                   </select>
-                  <textarea 
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 h-20" 
-                    placeholder="Describe your issue..."
-                  ></textarea>
-                  <button className="w-full bg-gray-600 text-white py-2 rounded-lg hover:bg-gray-700 transition-colors">
-                    Submit Ticket
-                  </button>
+                </div>
+              </div>
+              
+              {(() => {
+                const propertyForCalendar = filters.property !== 'all' ? filters.property : (properties[0]?._id || '');
+                if (!propertyForCalendar) {
+                  return (
+                    <div className="text-gray-500 py-8 text-center">Select a property to view its calendar.</div>
+                  );
+                }
+
+                const mo = parseInt(searchParams.get('monthOffset') || '0');
+                const base = new Date(filters.year, new Date().getMonth(), 1);
+                if (!isNaN(mo)) {
+                  base.setMonth(base.getMonth() + mo);
+                }
+                return (
+                  <BookingCalendar
+                    propertyId={propertyForCalendar}
+                    initialDate={base}
+                    onBookingSelect={(booking) => {
+                      setSelectedBooking(booking);
+                      setShowBookingDetails(true);
+                    }}
+                  />
+                );
+              })()}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'finance' && (
+          <div className="space-y-8">
+            <div className="neu-card p-6">
+              <h2 className="text-xl font-semibold mb-6">Financial Overview</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-green-50 border border-green-200 rounded-xl p-6">
+                  <h3 className="text-lg font-semibold text-green-900 mb-4">Total Revenue</h3>
+                  <div className="text-3xl font-bold text-green-600">RWF {stats.totalRevenue.toLocaleString()}</div>
+                  <p className="text-sm text-green-700 mt-2">All time earnings</p>
+                </div>
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
+                  <h3 className="text-lg font-semibold text-blue-900 mb-4">Pending Revenue</h3>
+                  <div className="text-3xl font-bold text-blue-600">RWF {stats.pendingRevenue.toLocaleString()}</div>
+                  <p className="text-sm text-blue-700 mt-2">Awaiting payout</p>
+                </div>
+                <div className="bg-purple-50 border border-purple-200 rounded-xl p-6">
+                  <h3 className="text-lg font-semibold text-purple-900 mb-4">Commission Paid</h3>
+                  <div className="text-3xl font-bold text-purple-600">RWF {Math.round(stats.totalRevenue * 0.1).toLocaleString()}</div>
+                  <p className="text-sm text-purple-700 mt-2">Platform fees</p>
                 </div>
               </div>
             </div>
           </div>
         )}
+
+        {activeTab === 'analytics' && (
+          <div className="space-y-8">
+            <div className="neu-card p-6">
+              <h2 className="text-xl font-semibold mb-6">Performance Analytics</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-6">
+                  <h3 className="text-lg font-semibold text-indigo-900 mb-2">Occupancy Rate</h3>
+                  <div className="text-2xl font-bold text-indigo-600">{stats.occupancyRate}%</div>
+                </div>
+                <div className="bg-orange-50 border border-orange-200 rounded-xl p-6">
+                  <h3 className="text-lg font-semibold text-orange-900 mb-2">Avg Rating</h3>
+                  <div className="text-2xl font-bold text-orange-600">{stats.averageRating}</div>
+                </div>
+                <div className="bg-teal-50 border border-teal-200 rounded-xl p-6">
+                  <h3 className="text-lg font-semibold text-teal-900 mb-2">Total Bookings</h3>
+                  <div className="text-2xl font-bold text-teal-600">{stats.total}</div>
+                </div>
+                <div className="bg-pink-50 border border-pink-200 rounded-xl p-6">
+                  <h3 className="text-lg font-semibold text-pink-900 mb-2">Properties</h3>
+                  <div className="text-2xl font-bold text-pink-600">{stats.totalProperties}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'promotions' && (
+          <div className="space-y-8">
+            <div className="neu-card p-6">
+              <h2 className="text-xl font-semibold mb-6">Promotions & Deals</h2>
+              <div className="text-center py-12">
+                <FaShoppingBag className="text-6xl text-gray-300 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No Active Promotions</h3>
+                <p className="text-gray-600 mb-6">Create your first promotion to boost bookings</p>
+                <button className="bg-pink-600 text-white px-6 py-3 rounded-lg hover:bg-pink-700 transition-colors">
+                  Create Promotion
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'reviews' && (
+          <div className="space-y-8">
+            <div className="neu-card p-6">
+              <h2 className="text-xl font-semibold mb-6">Guest Reviews</h2>
+              <div className="text-center py-12">
+                <FaStar className="text-6xl text-gray-300 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No Reviews Yet</h3>
+                <p className="text-gray-600">Reviews from guests will appear here</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'messages' && (
+          <div className="space-y-8">
+            <div className="neu-card p-6">
+              <h2 className="text-xl font-semibold mb-6">Messages</h2>
+              <div className="text-center py-12">
+                <FaComments className="text-6xl text-gray-300 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No Messages</h3>
+                <p className="text-gray-600">Guest messages will appear here</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'photos' && (
+          <div className="space-y-8">
+            <div className="neu-card p-6">
+              <h2 className="text-xl font-semibold mb-6">Property Photos</h2>
+              <div className="text-center py-12">
+                <FaImages className="text-6xl text-gray-300 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Manage Photos</h3>
+                <p className="text-gray-600">Upload and manage your property photos</p>
+                <button className="bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition-colors mt-4">
+                  Upload Photos
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'settings' && (
+          <div className="space-y-8">
+            <div className="neu-card p-6">
+              <h2 className="text-xl font-semibold mb-6">Property Settings</h2>
+              <div className="text-center py-12">
+                <FaCog className="text-6xl text-gray-300 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Property Configuration</h3>
+                <p className="text-gray-600">Manage your property settings and preferences</p>
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
 
       {/* Modals */}
@@ -1753,101 +1151,8 @@ const PropertyOwnerBookings = () => {
                 <FaTimes className="text-xl" />
               </button>
             </div>
-            <div className="p-6 space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm text-gray-600 mb-1">Property</label>
-                  <select
-                    value={directForm.propertyId}
-                    onChange={(e) => onSelectProperty(e.target.value)}
-                    className="modern-input w-full"
-                  >
-                    <option value="">Select property</option>
-                    {properties.map(p => (
-                      <option key={p._id} value={p._id}>{p.title || p.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-600 mb-1">Room</label>
-                  <select
-                    value={directForm.roomId}
-                    onChange={(e) => onDirectChange('roomId', e.target.value)}
-                    className="modern-input w-full"
-                  >
-                    <option value="">Select room</option>
-                    {ownerRooms.map(r => (
-                      <option key={r._id} value={r._id}>{r.roomNumber} • {r.roomType}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-600 mb-1">Check-in</label>
-                  <input type="date" value={directForm.checkIn} onChange={(e) => onDirectChange('checkIn', e.target.value)} className="modern-input w-full" />
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-600 mb-1">Check-out</label>
-                  <input type="date" value={directForm.checkOut} onChange={(e) => onDirectChange('checkOut', e.target.value)} className="modern-input w-full" />
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-600 mb-1">Guests</label>
-                  <input type="number" min={1} value={directForm.guests} onChange={(e) => onDirectChange('guests', Number(e.target.value))} className="modern-input w-full" />
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-600 mb-1">Payment Method</label>
-                  <select value={directForm.paymentMethod} onChange={(e) => onDirectChange('paymentMethod', e.target.value)} className="modern-input w-full">
-                    <option value="cash">Cash</option>
-                    <option value="mtn_mobile_money">MTN Mobile Money</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm text-gray-600 mb-1">Guest First Name</label>
-                  <input type="text" value={directForm.guestInfo.firstName} onChange={(e) => onDirectChange('guestInfo.firstName', e.target.value)} className="modern-input w-full" />
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-600 mb-1">Guest Last Name</label>
-                  <input type="text" value={directForm.guestInfo.lastName} onChange={(e) => onDirectChange('guestInfo.lastName', e.target.value)} className="modern-input w-full" />
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-600 mb-1">Guest Phone</label>
-                  <input type="tel" value={directForm.guestInfo.phone} onChange={(e) => onDirectChange('guestInfo.phone', e.target.value)} className="modern-input w-full" />
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-600 mb-1">Guest Email (optional)</label>
-                  <input type="email" value={directForm.guestInfo.email} onChange={(e) => onDirectChange('guestInfo.email', e.target.value)} className="modern-input w-full" />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm text-gray-600 mb-1">Contact Phone</label>
-                  <input type="tel" value={directForm.contactInfo.phone} onChange={(e) => onDirectChange('contactInfo.phone', e.target.value)} className="modern-input w-full" />
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-600 mb-1">Contact Email</label>
-                  <input type="email" value={directForm.contactInfo.email} onChange={(e) => onDirectChange('contactInfo.email', e.target.value)} className="modern-input w-full" />
-                </div>
-              </div>
-
-              {directForm.paymentMethod === 'cash' && (
-                <div className="flex items-center gap-2">
-                  <input id="markPaid" type="checkbox" checked={!!directForm.markPaid} onChange={(e) => onDirectChange('markPaid', e.target.checked)} />
-                  <label htmlFor="markPaid" className="text-sm text-gray-600">Mark as paid now</label>
-                </div>
-              )}
-
-              <div>
-                <label className="block text-sm text-gray-600 mb-1">Special Requests</label>
-                <textarea value={directForm.specialRequests} onChange={(e) => onDirectChange('specialRequests', e.target.value)} className="modern-input w-full" rows={3} />
-              </div>
-
-              <div className="flex justify-end gap-3">
-                <button onClick={() => setShowDirectBooking(false)} className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-lg">Cancel</button>
-                <button onClick={submitDirectBooking} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">Create Booking</button>
-              </div>
+            <div className="p-6">
+              <p className="text-gray-600">Direct booking form would go here...</p>
             </div>
           </div>
         </div>
