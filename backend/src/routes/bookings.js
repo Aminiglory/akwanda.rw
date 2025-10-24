@@ -144,7 +144,8 @@ router.post('/', requireAuth, async (req, res) => {
     if (!property || !property.isActive) {
       return res.status(404).json({ message: 'Property not found or inactive' });
     }
-    if (String(property.host) === String(req.user.id)) {
+    // Allow owners to record direct bookings for clients (with guestInfo)
+    if (String(property.host) === String(req.user.id) && !(directBooking && guestInfo)) {
       return res.status(403).json({ message: 'Owners cannot book their own properties' });
     }
 

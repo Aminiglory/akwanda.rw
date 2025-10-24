@@ -196,7 +196,7 @@ const Settings = () => {
         {/* Tabs */}
         <div className="bg-white rounded-lg shadow-sm border">
           <div className="border-b border-gray-200">
-            <nav className="flex space-x-8 px-6">
+            <nav className="flex space-x-8 px-6 overflow-x-auto">
               {tabs.map((tab) => {
                 const Icon = tab.icon;
                 return (
@@ -401,7 +401,7 @@ const Settings = () => {
             )}
 
             {activeTab === 'site' && user?.userType === 'admin' && (
-              <div className="space-y-6">
+              <div className="space-y-6 max-h-[70vh] overflow-y-auto pr-1">
                 <h3 className="text-lg font-semibold text-gray-900">Public Site Information</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>

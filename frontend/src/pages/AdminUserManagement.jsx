@@ -137,10 +137,8 @@ const AdminUserManagement = () => {
         list = list.filter(u => (u.userType || '').toLowerCase() === filterType);
       }
     }
-    // Exclude admins by default in 'all' view
-    if (filterType === 'all') {
-      list = list.filter(u => (u.userType || '').toLowerCase() !== 'admin');
-    }
+    // Always exclude admins from the Users tab
+    list = list.filter(u => (u.userType || '').toLowerCase() !== 'admin');
     const result = list.filter(u =>
       (u.name || '').toLowerCase().includes(q) ||
       (u.email || '').toLowerCase().includes(q)
@@ -364,7 +362,6 @@ const AdminUserManagement = () => {
             <option value="all">All Users</option>
             <option value="guest">Guests</option>
             <option value="host">Hosts</option>
-            <option value="admin">Admins</option>
             <option value="issues">Role Issues</option>
           </select>
         </div>

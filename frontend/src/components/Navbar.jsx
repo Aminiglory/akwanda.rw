@@ -546,7 +546,7 @@ const Navbar = () => {
             </div>
 
             {/* Right Side - Booking.com Style */}
-            <div className="flex items-center space-x-2">
+            <div className="flex flex-nowrap items-center gap-3">
               {/* Analytics Dropdown - Booking.com Style */}
               {isAuthenticated && user?.userType === 'host' && (
                 <div className="hidden lg:block relative">
@@ -625,7 +625,7 @@ const Navbar = () => {
 
               {/* Notifications (admin and host) */}
               {(user?.userType === "admin" || user?.userType === 'host') && (
-                <div className="relative">
+                <div className="relative inline-flex items-center">
                   <button
                     onClick={toggleNotifications}
                     className={`notification-button relative px-3 py-2 rounded-lg transition-colors ${isNotificationOpen
@@ -694,7 +694,7 @@ const Navbar = () => {
 
                   {/* Profile Menu */}
                   {isAuthenticated ? (
-                    <div className="relative">
+                    <div className="relative inline-flex items-center">
                       <button
                         onClick={toggleProfile}
                         className="profile-button flex items-center space-x-2 px-3 py-2 rounded-lg text-gray-700 hover:text-blue-600 hover:bg-gray-50 transition-colors"

@@ -291,7 +291,18 @@ const BookingProcess = () => {
             ) : []
           };
         });
-        setAvailableRooms(dedupeRooms(processedAvailableRooms));
+        // If no rooms returned by availability, gracefully fall back to all property rooms
+        if (processedAvailableRooms.length === 0 && property && Array.isArray(property.rooms)) {
+          const processedRooms = property.rooms.map(room => ({
+            ...room,
+            pricePerNight: room.pricePerNight || room.price || 0,
+            images: room.images ? room.images.map(img => img.startsWith('http') ? img : `${API_URL}${img}`) : []
+          }));
+          setAvailableRooms(dedupeRooms(processedRooms));
+          try { toast.dismiss(); toast('No rooms matched the selected dates. Showing all rooms for this property.', { icon: 'ℹ️' }); } catch (_) {}
+        } else {
+          setAvailableRooms(dedupeRooms(processedAvailableRooms));
+        }
         
         // If selected room is no longer available, keep it visible and mark as unavailable with message
         if (selectedRoom) {
@@ -352,12 +363,11 @@ const BookingProcess = () => {
       }
     }
 
-    // If no rooms match besides possibly the selected one, fallback to all rooms with neutral info toast
+    // If no rooms match (besides possibly the selected one), silently fall back to all rooms
     const nonSelectedCount = filtered.filter(r => !r.__outsideFilter).length;
     if (nonSelectedCount === 0) {
       filtered = dedupeRooms(availableRooms);
-      toast.dismiss();
-      toast('No rooms match the selected budget. Showing all available rooms.', { icon: 'ℹ️' });
+      try { toast.dismiss(); toast('No rooms match the selected budget. Showing all rooms.', { icon: 'ℹ️' }); } catch (_) {}
     }
 
     setFilteredRooms(filtered);
