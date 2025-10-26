@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaChartLine, FaUsers, FaBed, FaCalendarAlt, FaDollarSign, FaStar, FaMapMarkerAlt, FaCar, FaPlane, FaCamera, FaFilter, FaSearch, FaEdit, FaTrash, FaPlus, FaEye, FaCheckCircle, FaTimesCircle, FaComments } from 'react-icons/fa';
+import { FaChartLine, FaUsers, FaBed, FaCalendarAlt, FaDollarSign, FaStar, FaMapMarkerAlt, FaCar, FaPlane, FaCamera, FaFilter, FaSearch, FaEdit, FaTrash, FaPlus, FaEye, FaCheckCircle, FaTimesCircle, FaComments, FaEllipsisV, FaUser, FaHome, FaUserTimes } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import AdminCommissionManager from '../components/AdminCommissionManager';
@@ -51,6 +51,8 @@ const AdminDashboard = () => {
   const [showUserDetails, setShowUserDetails] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [deletingUserId, setDeletingUserId] = useState(null);
+  const [menuForUserId, setMenuForUserId] = useState(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
   useEffect(() => {
     fetchDashboardData();
@@ -74,14 +76,20 @@ const AdminDashboard = () => {
         }
       };
 
+  // Admin user actions (moved to component scope)
   const viewUserDetails = async (id) => {
     try {
       setShowUserDetails(true);
       setSelectedUser(null);
       const res = await fetch(`${API_URL}/api/admin/user-management/users/${id}`, { credentials: 'include' });
-      const data = await res.json();
+      let data = {};
+      try { data = await res.json(); } catch { data = {}; }
       if (!res.ok) throw new Error(data.message || 'Failed to load user');
-      setSelectedUser(data);
+      setSelectedUser({
+        user: data.user,
+        properties: data.properties || [],
+        propertyCount: (data.properties || []).length
+      });
     } catch (e) {
       setShowUserDetails(false);
       toast.error(e.message || 'Something went wrong');
@@ -90,7 +98,6 @@ const AdminDashboard = () => {
 
   const deleteUser = async (id) => {
     try {
-      if (!window.confirm('Delete this user permanently? This will remove their related data.')) return;
       setDeletingUserId(id);
       const res = await fetch(`${API_URL}/api/admin/user-management/users/${id}`, { method: 'DELETE', credentials: 'include' });
       const data = await res.json().catch(()=>({}));
@@ -102,6 +109,46 @@ const AdminDashboard = () => {
     } finally {
       setDeletingUserId(null);
     }
+  };
+
+  const promoteToHost = async (id) => {
+    try {
+      const res = await fetch(`${API_URL}/api/admin/user-management/users/${id}/promote-to-host`, { method: 'POST', credentials: 'include' });
+      let data = {}; try { data = await res.json(); } catch {}
+      if (!res.ok) throw new Error(data.message || 'Failed to promote');
+      toast.success('Promoted to host');
+      setUsers(prev => prev.map(u => (String(u._id) === String(id) ? { ...u, userType: 'host' } : u)));
+    } catch (e) { toast.error(e.message || 'Failed to promote'); }
+  };
+
+  const demoteToGuest = async (id) => {
+    try {
+      const res = await fetch(`${API_URL}/api/admin/user-management/users/${id}/demote-to-guest`, { method: 'POST', credentials: 'include' });
+      let data = {}; try { data = await res.json(); } catch {}
+      if (!res.ok) throw new Error(data.message || 'Failed to demote');
+      toast.success('Demoted to guest');
+      setUsers(prev => prev.map(u => (String(u._id) === String(id) ? { ...u, userType: 'guest' } : u)));
+    } catch (e) { toast.error(e.message || 'Failed to demote'); }
+  };
+
+  const deactivateUser = async (id) => {
+    try {
+      const res = await fetch(`${API_URL}/api/admin/users/${id}/deactivate`, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reason: 'Admin deactivation' }) });
+      let data = {}; try { data = await res.json(); } catch {}
+      if (!res.ok) throw new Error(data.message || 'Failed to deactivate');
+      toast.success('User deactivated');
+      setUsers(prev => prev.map(u => (String(u._id)===String(id) ? { ...u, isBlocked: true } : u)));
+    } catch (e) { toast.error(e.message || 'Failed to deactivate'); }
+  };
+
+  const reactivateUser = async (id) => {
+    try {
+      const res = await fetch(`${API_URL}/api/admin/users/${id}/reactivate`, { method: 'POST', credentials: 'include' });
+      let data = {}; try { data = await res.json(); } catch {}
+      if (!res.ok) throw new Error(data.message || 'Failed to reactivate');
+      toast.success('User reactivated');
+      setUsers(prev => prev.map(u => (String(u._id)===String(id) ? { ...u, isBlocked: false } : u)));
+    } catch (e) { toast.error(e.message || 'Failed to reactivate'); }
   };
 
     // Fetch all data with fallbacks
@@ -273,7 +320,7 @@ const AdminDashboard = () => {
               </div>
             </div>
           </div>
-          
+
           <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow">
             <div className="flex items-center">
               <div className="p-3 bg-green-100 rounded-xl">
@@ -619,11 +666,12 @@ const AdminDashboard = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {users
                     .filter(u => {
-                      const matchesSearch = u.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                          u.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                          u.email.toLowerCase().includes(searchTerm.toLowerCase());
+                      const matchesSearch = (u.firstName||'').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                          (u.lastName||'').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                          (u.email||'').toLowerCase().includes(searchTerm.toLowerCase());
                       const matchesType = filterStatus ? u.userType === filterStatus : true;
-                      return matchesSearch && matchesType;
+                      const excludeAdmins = filterStatus !== 'admin' ? (String(u.userType||'').toLowerCase() !== 'admin') : true;
+                      return matchesSearch && matchesType && excludeAdmins;
                     })
                     .map((user) => (
                     <div key={user._id} className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
@@ -631,10 +679,10 @@ const AdminDashboard = () => {
                         <div className="w-12 h-12 rounded-full bg-blue-600 text-white flex items-center justify-center text-lg font-bold">
                           {user.firstName?.[0]}{user.lastName?.[0]}
                         </div>
-                        <div className="flex-1">
-                          <h4 className="font-semibold text-gray-900">{user.firstName} {user.lastName}</h4>
-                          <p className="text-sm text-gray-600">{user.email}</p>
-                          <p className="text-sm text-gray-500">{user.phone}</p>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-semibold text-gray-900 truncate">{user.firstName} {user.lastName}</h4>
+                          <p className="text-sm text-gray-600 truncate">{user.email}</p>
+                          <p className="text-sm text-gray-500 truncate">{user.phone}</p>
                         </div>
                         <div className="text-right">
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${
@@ -645,17 +693,22 @@ const AdminDashboard = () => {
                             {user.userType}
                           </span>
                         </div>
-                      </div>
-                      <div className="mt-4 flex items-center space-x-2">
-                        <button onClick={() => viewUserDetails(user._id)} className="flex-1 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
-                          View Profile
-                        </button>
-                        <button className="p-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
-                          <FaEdit />
-                        </button>
-                        <button onClick={() => deleteUser(user._id)} disabled={deletingUserId===user._id} className="p-2 border border-gray-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50">
-                          <FaTrash />
-                        </button>
+                        <div className="relative">
+                          <button onClick={()=> setMenuForUserId(m => m===user._id ? null : user._id)} className="p-2 border rounded" aria-haspopup="menu" aria-expanded={menuForUserId===user._id} title="Actions"><FaEllipsisV /></button>
+                          {menuForUserId===user._id && (
+                            <div className="absolute right-0 mt-2 w-56 bg-white border rounded shadow z-10">
+                              <button onClick={()=> { viewUserDetails(user._id); setMenuForUserId(null); }} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left"><FaUser className="md:hidden" /><span className="hidden md:inline">View</span><span className="md:hidden">View</span></button>
+                              {user.userType !== 'host' && user.userType !== 'admin' && (
+                                <button onClick={()=> { promoteToHost(user._id); setMenuForUserId(null); }} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left"><FaHome className="md:hidden" /><span className="hidden md:inline">Promote to Host</span><span className="md:hidden">Promote</span></button>
+                              )}
+                              {user.userType === 'host' && (user.propertyCount===0 || (user.properties?.length||0)===0) && (
+                                <button onClick={()=> { demoteToGuest(user._id); setMenuForUserId(null); }} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left"><FaUserTimes className="md:hidden" /><span className="hidden md:inline">Demote to Guest</span><span className="md:hidden">Demote</span></button>
+                              )}
+                              <button onClick={()=> { (user.isBlocked ? reactivateUser(user._id) : deactivateUser(user._id)); setMenuForUserId(null); }} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left"><FaEdit className="md:hidden" /><span className="hidden md:inline">{user.isBlocked ? 'Reactivate' : 'Deactivate'}</span><span className="md:hidden">{user.isBlocked ? 'Reactivate' : 'Deactivate'}</span></button>
+                              <button onClick={()=> { setConfirmDeleteId(user._id); setMenuForUserId(null); }} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left text-rose-600"><FaTrash className="md:hidden" /><span className="hidden md:inline">Delete</span><span className="md:hidden">Delete</span></button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}

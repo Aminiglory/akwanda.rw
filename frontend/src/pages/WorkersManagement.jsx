@@ -149,6 +149,8 @@ export default function WorkersManagement() {
   const [properties, setProperties] = useState([]);
   const [confirmDeleteWorkerId, setConfirmDeleteWorkerId] = useState(null);
   const [menuFor, setMenuFor] = useState(null); // workerId for action menu
+  const [preDeleteWorker, setPreDeleteWorker] = useState(null); // worker object for pre-delete review
+  const [confirmDeleteInput, setConfirmDeleteInput] = useState('');
 
   const [form, setForm] = useState({
     firstName: '',
@@ -286,6 +288,10 @@ export default function WorkersManagement() {
       (w.employeeId || '').toLowerCase().includes(t)
     ));
   }, [workers, query.search]);
+
+  const workerToDelete = useMemo(() => (
+    workers.find(w => String(w._id) === String(confirmDeleteWorkerId)) || null
+  ), [workers, confirmDeleteWorkerId]);
 
   // fetch owner properties for assignment
   useEffect(() => {
@@ -508,7 +514,7 @@ export default function WorkersManagement() {
                       <button onClick={()=> { setAccountFor(w); setMenuFor(null); }} disabled={user?.isBlocked} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left disabled:opacity-50"><FaIdCard className="md:hidden" /><span className="hidden md:inline">Account</span><span className="md:hidden">Account</span></button>
                       <button onClick={()=> { setPrivFor(w); setMenuFor(null); }} disabled={user?.isBlocked} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left disabled:opacity-50"><FaShieldAlt className="md:hidden" /><span className="hidden md:inline">Privileges</span><span className="md:hidden">Privileges</span></button>
                       <button onClick={()=> { setResetFor(w); setMenuFor(null); }} disabled={user?.isBlocked} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left disabled:opacity-50"><FaKey className="md:hidden" /><span className="hidden md:inline">Reset Password</span><span className="md:hidden">Reset</span></button>
-                      <button onClick={()=> { setConfirmDeleteWorkerId(w._id); setMenuFor(null); }} disabled={user?.isBlocked} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left text-rose-600 disabled:opacity-50"><FaTrash className="md:hidden" /><span className="hidden md:inline">Delete</span><span className="md:hidden">Delete</span></button>
+                      <button onClick={()=> { setPreDeleteWorker(w); setMenuFor(null); }} disabled={user?.isBlocked} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left text-rose-600 disabled:opacity-50"><FaTrash className="md:hidden" /><span className="hidden md:inline">Delete</span><span className="md:hidden">Delete</span></button>
                     </div>
                   )}
                 </div>
@@ -556,7 +562,7 @@ export default function WorkersManagement() {
                             <button onClick={()=> { setAccountFor(w); setMenuFor(null); }} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left"><FaIdCard /><span className="hidden md:inline">Create Account</span><span className="md:hidden">Account</span></button>
                             <button onClick={()=> { setPrivFor(w); setMenuFor(null); }} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left"><FaShieldAlt /><span className="hidden md:inline">Privileges</span><span className="md:hidden">Privs</span></button>
                             <button onClick={()=> { setResetFor(w); setMenuFor(null); }} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left"><FaKey /><span className="hidden md:inline">Reset Password</span><span className="md:hidden">Reset</span></button>
-                            <button onClick={()=> { setConfirmDeleteWorkerId(w._id); setMenuFor(null); }} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left text-rose-600"><FaTrash /><span className="hidden md:inline">Delete</span><span className="md:hidden">Delete</span></button>
+                            <button onClick={()=> { setPreDeleteWorker(w); setMenuFor(null); }} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left text-rose-600"><FaTrash /><span className="hidden md:inline">Delete</span><span className="md:hidden">Delete</span></button>
                           </div>
                         )}
                       </div>
@@ -625,12 +631,45 @@ export default function WorkersManagement() {
             worker={viewFor}
             onClose={() => setViewFor(null)}
             onEdit={() => { setEditing(viewFor); setViewFor(null); }}
-            onDelete={() => onDeleteWorker(viewFor._id)}
+            onDelete={() => setPreDeleteWorker(viewFor)}
             defaultPrivileges={defaultPrivileges}
           />
         )}
         {filtered.length === 0 && !loading && (
           <div className="text-center text-gray-500 py-8">No workers found</div>
+        )}
+        {preDeleteWorker && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1000] p-4">
+            <div className="bg-white rounded-2xl w-full max-w-md">
+              <div className="p-4 border-b">
+                <div className="text-lg font-semibold text-gray-900">Review Deletion</div>
+              </div>
+              <div className="p-4 text-sm text-gray-700 space-y-2">
+                <div>You're about to delete this worker. Please review their info before confirming:</div>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gray-100 overflow-hidden flex items-center justify-center">
+                    {preDeleteWorker.avatar ? (
+                      <img src={makeAbsolute(preDeleteWorker.avatar)} alt="avatar" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-sm font-semibold text-gray-700">
+                        {`${(preDeleteWorker.firstName||'').charAt(0)}${(preDeleteWorker.lastName||'').charAt(0)}` || 'W'}
+                      </div>
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="font-semibold text-gray-900 truncate">{preDeleteWorker.firstName} {preDeleteWorker.lastName}</div>
+                    <div className="text-xs text-gray-600 truncate">{preDeleteWorker.position} • {preDeleteWorker.department}</div>
+                    <div className="text-xs text-gray-500 truncate break-all">{preDeleteWorker.email}</div>
+                  </div>
+                </div>
+                <div className="text-xs text-gray-600">This action cannot be undone and may remove their assignments and related data.</div>
+              </div>
+              <div className="p-4 border-t flex items-center justify-end gap-2">
+                <button className="px-4 py-2 border rounded" onClick={() => setPreDeleteWorker(null)}>Back</button>
+                <button className="px-4 py-2 bg-rose-600 text-white rounded" onClick={() => { setConfirmDeleteWorkerId(preDeleteWorker._id); setPreDeleteWorker(null); setConfirmDeleteInput(''); }}>Continue</button>
+              </div>
+            </div>
+          </div>
         )}
         {confirmDeleteWorkerId && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1000] p-4">
@@ -641,11 +680,22 @@ export default function WorkersManagement() {
               <div className="p-4 text-sm text-gray-700">
                 Are you sure you want to permanently delete this worker account? This action cannot be undone and may remove their assignments and related data.
               </div>
+              <div className="px-4 pb-2">
+                <label className="block text-xs text-gray-600 mb-1">Type the worker's full name to confirm:</label>
+                <div className="text-xs mb-2">Expected: <span className="font-semibold">{`${(workerToDelete?.firstName||'').trim()} ${(workerToDelete?.lastName||'').trim()}`.trim()}</span></div>
+                <input
+                  className="w-full border rounded px-3 py-2 text-sm"
+                  placeholder="e.g. John Doe"
+                  value={confirmDeleteInput}
+                  onChange={e => setConfirmDeleteInput(e.target.value)}
+                />
+              </div>
               <div className="p-4 border-t flex items-center justify-end gap-2">
-                <button className="px-4 py-2 border rounded" onClick={() => setConfirmDeleteWorkerId(null)}>Cancel</button>
+                <button className="px-4 py-2 border rounded" onClick={() => { setConfirmDeleteWorkerId(null); setConfirmDeleteInput(''); }}>Cancel</button>
                 <button
-                  className="px-4 py-2 bg-rose-600 text-white rounded"
-                  onClick={async () => { await onDeleteWorker(confirmDeleteWorkerId); setConfirmDeleteWorkerId(null); }}
+                  className="px-4 py-2 bg-rose-600 text-white rounded disabled:opacity-50"
+                  disabled={confirmDeleteInput.trim() !== `${(workerToDelete?.firstName||'').trim()} ${(workerToDelete?.lastName||'').trim()}`.trim()}
+                  onClick={async () => { await onDeleteWorker(confirmDeleteWorkerId); setConfirmDeleteWorkerId(null); setConfirmDeleteInput(''); }}
                 >
                   Delete
                 </button>
