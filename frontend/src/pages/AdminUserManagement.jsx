@@ -562,7 +562,7 @@ const AdminUserManagement = () => {
       ))}
 
       {/* User Details Modal */}
-      {showUserDetails && selectedUser && (
+      {showUserDetails && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
@@ -574,76 +574,89 @@ const AdminUserManagement = () => {
                 ×
               </button>
             </div>
-            
-            <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                {selectedUser.user.avatar ? (
-                  <img src={selectedUser.user.avatar?.startsWith('http') ? selectedUser.user.avatar : `${API_URL}${selectedUser.user.avatar || ''}`} alt={selectedUser.user.firstName} className="w-16 h-16 rounded-full object-cover border" />
-                ) : (
-                  <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center text-base font-semibold">{(selectedUser.user.firstName || selectedUser.user.email || 'U').charAt(0)}</div>
-                )}
-                <div className="text-sm text-gray-600">
-                  <div className="font-semibold text-gray-900">Profile</div>
-                  <div className="mt-1 flex items-center gap-2">
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${String(selectedUser.user.userType).toLowerCase()==='admin' ? 'bg-purple-100 text-purple-700' : String(selectedUser.user.userType).toLowerCase()==='host' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
-                      {selectedUser.user.userType}
-                    </span>
-                    {selectedUser.user.isBlocked ? (
-                      <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">Blocked</span>
-                    ) : (
-                      <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">Active</span>
-                    )}
+            {(!selectedUser) ? (
+              <div className="space-y-3">
+                <div className="h-6 w-40 bg-gray-200 rounded animate-pulse" />
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 rounded-full bg-gray-200 animate-pulse" />
+                  <div className="space-y-2 flex-1">
+                    <div className="h-4 bg-gray-200 rounded w-1/3 animate-pulse" />
+                    <div className="h-3 bg-gray-200 rounded w-1/2 animate-pulse" />
                   </div>
                 </div>
+                <div className="h-4 bg-gray-200 rounded w-1/2 animate-pulse" />
+                <div className="h-4 bg-gray-200 rounded w-1/3 animate-pulse" />
               </div>
-              <div>
-                <h3 className="font-semibold">Personal Information</h3>
-                <p><strong>Name:</strong> {selectedUser.user.firstName} {selectedUser.user.lastName}</p>
-                <p><strong>Email:</strong> {selectedUser.user.email}</p>
-                <p><strong>Phone:</strong> {selectedUser.user.phone}</p>
-                <p><strong>Role:</strong> {selectedUser.user.userType}</p>
-                <p><strong>Joined:</strong> {new Date(selectedUser.user.createdAt).toLocaleDateString()}</p>
-                <div className="mt-3">
-                  <a
-                    href={`/messages?to=${encodeURIComponent(selectedUser.user._id || selectedUser.user.id)}`}
-                    className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                  >
-                    Start Chat
-                  </a>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-center gap-4">
+                  {selectedUser.user.avatar ? (
+                    <img src={selectedUser.user.avatar?.startsWith('http') ? selectedUser.user.avatar : `${API_URL}${selectedUser.user.avatar || ''}`} alt={selectedUser.user.firstName} className="w-16 h-16 rounded-full object-cover border" />
+                  ) : (
+                    <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center text-base font-semibold">{(selectedUser.user.firstName || selectedUser.user.email || 'U').charAt(0)}</div>
+                  )}
+                  <div className="text-sm text-gray-600">
+                    <div className="font-semibold text-gray-900">Profile</div>
+                    <div className="mt-1 flex items-center gap-2">
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${String(selectedUser.user.userType).toLowerCase()==='admin' ? 'bg-purple-100 text-purple-700' : String(selectedUser.user.userType).toLowerCase()==='host' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
+                        {selectedUser.user.userType}
+                      </span>
+                      {selectedUser.user.isBlocked ? (
+                        <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">Blocked</span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">Active</span>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
-              
-              {selectedUser.user?.privileges && (
                 <div>
-                  <h3 className="font-semibold">Privileges</h3>
-                  {Object.values(selectedUser.user.privileges).some(Boolean) ? (
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {Object.entries(selectedUser.user.privileges).filter(([_, v]) => v).map(([k]) => (
-                        <span key={k} className="px-2 py-1 text-xs rounded bg-blue-50 text-blue-700 border border-blue-200">{k}</span>
+                  <h3 className="font-semibold">Personal Information</h3>
+                  <p><strong>Name:</strong> {selectedUser.user.firstName} {selectedUser.user.lastName}</p>
+                  <p><strong>Email:</strong> {selectedUser.user.email}</p>
+                  <p><strong>Phone:</strong> {selectedUser.user.phone}</p>
+                  <p><strong>Role:</strong> {selectedUser.user.userType}</p>
+                  <p><strong>Joined:</strong> {new Date(selectedUser.user.createdAt).toLocaleDateString()}</p>
+                  <div className="mt-3">
+                    <a
+                      href={`/messages?to=${encodeURIComponent(selectedUser.user._id || selectedUser.user.id)}`}
+                      className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                    >
+                      Start Chat
+                    </a>
+                  </div>
+                </div>
+                {selectedUser.user?.privileges && (
+                  <div>
+                    <h3 className="font-semibold">Privileges</h3>
+                    {Object.values(selectedUser.user.privileges).some(Boolean) ? (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {Object.entries(selectedUser.user.privileges).filter(([_, v]) => v).map(([k]) => (
+                          <span key={k} className="px-2 py-1 text-xs rounded bg-blue-50 text-blue-700 border border-blue-200">{k}</span>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-sm text-gray-500">No privileges assigned</div>
+                    )}
+                  </div>
+                )}
+                <div>
+                  <h3 className="font-semibold">Properties ({selectedUser.propertyCount})</h3>
+                  {selectedUser.properties.length > 0 ? (
+                    <div className="space-y-2">
+                      {selectedUser.properties.map((property) => (
+                        <button key={property._id} onClick={() => setPropertyFor(property)} className="w-full text-left p-2 bg-gray-50 rounded hover:bg-gray-100">
+                          <p className="font-semibold text-gray-900 flex items-center gap-2"><FaHome className="text-blue-600" /> {property.title}</p>
+                          <p className="text-sm text-gray-600">Status: {property.status}</p>
+                          <p className="text-sm text-gray-600">Created: {new Date(property.createdAt).toLocaleDateString()}</p>
+                        </button>
                       ))}
                     </div>
                   ) : (
-                    <div className="text-sm text-gray-500">No privileges assigned</div>
+                    <p className="text-gray-500">No properties</p>
                   )}
                 </div>
-              )}
-              <div>
-                <h3 className="font-semibold">Properties ({selectedUser.propertyCount})</h3>
-                {selectedUser.properties.length > 0 ? (
-                  <div className="space-y-2">
-                    {selectedUser.properties.map((property) => (
-                      <button key={property._id} onClick={() => setPropertyFor(property)} className="w-full text-left p-2 bg-gray-50 rounded hover:bg-gray-100">
-                        <p className="font-semibold text-gray-900 flex items-center gap-2"><FaHome className="text-blue-600" /> {property.title}</p>
-                        <p className="text-sm text-gray-600">Status: {property.status}</p>
-                        <p className="text-sm text-gray-600">Created: {new Date(property.createdAt).toLocaleDateString()}</p>
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-gray-500">No properties</p>
-                )}
               </div>
-            </div>
+            )}
           </div>
         </div>
       )}

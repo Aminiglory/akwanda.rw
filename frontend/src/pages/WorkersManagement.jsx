@@ -58,7 +58,7 @@ function ViewWorkerModal({ worker, onClose, onEdit, onDelete, defaultPrivileges 
     return `${apiUrl}${s}`;
   };
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1000] p-4">
       <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="p-4 border-b flex items-center justify-between">
           <div className="font-semibold">Worker Profile</div>
@@ -632,7 +632,7 @@ export default function WorkersManagement() {
           <div className="text-center text-gray-500 py-8">No workers found</div>
         )}
         {confirmDeleteWorkerId && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1000] p-4">
             <div className="bg-white rounded-2xl w-full max-w-md">
               <div className="p-4 border-b">
                 <div className="text-lg font-semibold text-gray-900">Delete Worker</div>
