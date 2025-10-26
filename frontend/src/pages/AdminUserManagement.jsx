@@ -60,12 +60,26 @@ const AdminUserManagement = () => {
         fetch(`${API_URL}/api/admin/user-management/users`, { credentials: 'include' }),
         fetch(`${API_URL}/api/admin/user-management/users/role-issues`, { credentials: 'include' })
       ]);
+
+      const safeJson = async (res) => {
+        try { return await res.json(); } catch { return {}; }
+      };
+      if (!usersRes.ok) {
+        const body = await safeJson(usersRes);
+        throw new Error(body.message || `${usersRes.status} ${usersRes.statusText}`);
+      }
+      if (!issuesRes.ok) {
+        const body = await safeJson(issuesRes);
+        throw new Error(body.message || `${issuesRes.status} ${issuesRes.statusText}`);
+      }
+
       const usersJson = await usersRes.json();
       const issuesJson = await issuesRes.json();
       setUsers(usersJson.users || []);
       setRoleIssues(issuesJson.issues || []);
     } catch (e) {
-      toast.error('Failed to load users');
+      const msg = e?.message || 'Failed to load users';
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -168,8 +182,9 @@ const AdminUserManagement = () => {
     try {
       setShowUserDetails(true);
       const res = await fetch(`${API_URL}/api/admin/user-management/users/${id}`, { credentials: 'include' });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed to load user');
+      let data = {};
+      try { data = await res.json(); } catch { data = {}; }
+      if (!res.ok) throw new Error(data.message || `${res.status} ${res.statusText}`);
       setSelectedUser({
         user: data.user,
         properties: data.properties || [],
@@ -184,22 +199,26 @@ const AdminUserManagement = () => {
   const promoteToHost = async (id) => {
     try {
       const res = await fetch(`${API_URL}/api/admin/user-management/users/${id}/promote-to-host`, { method: 'POST', credentials: 'include' });
-      if (!res.ok) throw new Error('Failed to promote');
+      let data = {};
+      try { data = await res.json(); } catch { data = {}; }
+      if (!res.ok) throw new Error(data.message || 'Failed to promote');
       toast.success('Promoted to host');
       setUsers(prev => prev.map(u => (String(u.id) === String(id) ? { ...u, userType: 'host' } : u)));
     } catch (e) {
-      toast.error(e.message);
+      toast.error(e.message || 'Failed to promote');
     }
   };
 
   const demoteToGuest = async (id) => {
     try {
       const res = await fetch(`${API_URL}/api/admin/user-management/users/${id}/demote-to-guest`, { method: 'POST', credentials: 'include' });
-      if (!res.ok) throw new Error('Failed to demote');
+      let data = {};
+      try { data = await res.json(); } catch { data = {}; }
+      if (!res.ok) throw new Error(data.message || 'Failed to demote');
       toast.success('Demoted to guest');
       setUsers(prev => prev.map(u => (String(u.id) === String(id) ? { ...u, userType: 'guest' } : u)));
     } catch (e) {
-      toast.error(e.message);
+      toast.error(e.message || 'Failed to demote');
     }
   };
 
