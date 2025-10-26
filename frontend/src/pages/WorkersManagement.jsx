@@ -46,8 +46,28 @@ function useWorkers() {
     } finally {
       setLoading(false);
     }
+  };
+  
 
-// Inline modal: View worker profile and privileges (read-only), with larger avatar and actions
+  const onDeleteWorker = async (workerId) => {
+    try {
+      const res = await fetch(`${API_URL}/api/workers/${workerId}`, { method: 'DELETE', credentials: 'include' });
+      if (!res.ok) {
+        const data = await res.json().catch(()=>({ message: 'Failed to delete worker' }));
+        throw new Error(data.message || 'Failed to delete worker');
+      }
+      setWorkers(prev => prev.filter(w => String(w._id) !== String(workerId)));
+      toast.success('Worker deleted');
+      setViewFor(null);
+    } catch (e) { toast.error(e.message); }
+  };
+
+  useEffect(() => { fetchWorkers(); /* eslint-disable-next-line */ }, [query.page, query.limit]);
+
+  return { workers, loading, query, setQuery, meta, fetchWorkers, setWorkers };
+}
+
+// View worker profile modal (read-only)
 function ViewWorkerModal({ worker, onClose, onEdit, onDelete, defaultPrivileges = {} }) {
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
   const makeAbsolute = (u) => {
@@ -112,25 +132,6 @@ function ViewWorkerModal({ worker, onClose, onEdit, onDelete, defaultPrivileges 
       </div>
     </div>
   );
-}
-  };
-
-  const onDeleteWorker = async (workerId) => {
-    try {
-      const res = await fetch(`${API_URL}/api/workers/${workerId}`, { method: 'DELETE', credentials: 'include' });
-      if (!res.ok) {
-        const data = await res.json().catch(()=>({ message: 'Failed to delete worker' }));
-        throw new Error(data.message || 'Failed to delete worker');
-      }
-      setWorkers(prev => prev.filter(w => String(w._id) !== String(workerId)));
-      toast.success('Worker deleted');
-      setViewFor(null);
-    } catch (e) { toast.error(e.message); }
-  };
-
-  useEffect(() => { fetchWorkers(); /* eslint-disable-next-line */ }, [query.page, query.limit]);
-
-  return { workers, loading, query, setQuery, meta, fetchWorkers, setWorkers };
 }
 
 export default function WorkersManagement() {
@@ -668,7 +669,7 @@ function EditWorkerModal({ worker, onClose, onSubmit, properties = [] }) {
     assignedProperties: Array.isArray(worker.assignedProperties) ? worker.assignedProperties : [],
   });
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1000] p-4">
       <div className="bg-white rounded-2xl w-full max-w-lg">
         <div className="p-4 border-b flex items-center justify-between">
           <div className="font-semibold">Edit Worker</div>
