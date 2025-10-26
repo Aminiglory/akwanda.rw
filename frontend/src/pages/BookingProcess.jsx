@@ -607,15 +607,15 @@ const BookingProcess = () => {
                           {list.map((room, index) => (
                             <div
                               key={room._id || room.roomNumber || index}
-                              className={`group border-2 rounded-xl p-6 cursor-pointer transition-all duration-500 transform hover:scale-105 hover:shadow-xl ${
+                              className={`group border rounded-xl p-5 cursor-pointer transition-all duration-300 ${
                                 isRoomSelected(room)
-                                  ? 'border-blue-500 bg-gradient-to-br from-blue-50 to-blue-100 shadow-lg scale-105'
+                                  ? 'border-blue-500 bg-blue-50 shadow'
                                   : 'border-gray-200 hover:border-blue-300 bg-white'
                               }`}
                               onClick={() => handleRoomSelect(room)}
                             >
                               <div className="flex items-start space-x-4">
-                                <div className="w-32 h-24 rounded-lg overflow-hidden relative group">
+                                <div className="w-32 h-24 rounded-lg overflow-hidden relative">
                                   {room.images && room.images.length > 0 ? (
                                     <img
                                       src={room.images[0]}
@@ -628,7 +628,7 @@ const BookingProcess = () => {
                                     />
                                   ) : null}
                                   <div 
-                                    className={`w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center ${room.images && room.images.length > 0 ? 'hidden' : ''}`}
+                                    className={`w-full h-full bg-gray-200 flex items-center justify-center ${room.images && room.images.length > 0 ? 'hidden' : ''}`}
                                     style={{ display: room.images && room.images.length > 0 ? 'none' : 'flex' }}
                                   >
                                     <FaBed className="text-gray-400 text-2xl" />
@@ -671,13 +671,13 @@ const BookingProcess = () => {
                                           {room.amenities.slice(0, 3).map((amenity, amenityIndex) => (
                                             <span 
                                               key={amenityIndex}
-                                              className="px-2 py-1 bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 text-xs rounded-full font-medium"
+                                              className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full font-medium"
                                             >
                                               {amenity}
                                             </span>
                                           ))}
                                           {room.amenities.length > 3 && (
-                                            <span className="px-2 py-1 bg-gradient-to-r from-purple-100 to-purple-200 text-purple-800 text-xs rounded-full font-medium">
+                                            <span className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full font-medium">
                                               +{room.amenities.length - 3} more
                                             </span>
                                           )}

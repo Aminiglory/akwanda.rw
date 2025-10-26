@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { FaBell, FaCheckCircle, FaClock, FaExclamationTriangle } from 'react-icons/fa';
 
@@ -7,10 +7,15 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const Notifications = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState([]);
   const [busy, setBusy] = useState({});
   const [filter, setFilter] = useState('all'); // all | commission | bookings | unread | read
+  const [focusId, setFocusId] = useState(null);
+
+  // Parse query param ?open or ?id to focus a notification
+  const openParam = useMemo(() => new URLSearchParams(location.search).get('open') || new URLSearchParams(location.search).get('id'), [location.search]);
 
   const load = async () => {
     setLoading(true);
@@ -37,6 +42,19 @@ const Notifications = () => {
   };
 
   useEffect(() => { load(); }, []);
+
+  // When items load or param changes, focus the target notification
+  useEffect(() => {
+    if (!openParam || !items || items.length === 0) return;
+    const id = String(openParam);
+    setFocusId(id);
+    // mark as read and scroll into view
+    try { markRead(id); } catch (_) {}
+    const el = document.getElementById(`notif-${id}`);
+    if (el && typeof el.scrollIntoView === 'function') {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [openParam, items]);
 
   const markRead = async (id) => {
     try {
@@ -116,7 +134,7 @@ const Notifications = () => {
         ) : (
           <div className="space-y-3">
             {filteredItems.map(n => (
-              <div key={n.id} className={`modern-card p-4 ${!n.isRead ? 'border-l-4 border-blue-600' : ''}`}>
+              <div id={`notif-${n.id}`} key={n.id} className={`modern-card p-4 ${!n.isRead ? 'border-l-4 border-blue-600' : ''} ${focusId===n.id ? 'ring-2 ring-blue-400' : ''}`}>
                 {/* Commission explainer card */}
                 {String(n.type || '').includes('commission') ? (
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">

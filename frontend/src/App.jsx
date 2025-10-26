@@ -30,6 +30,7 @@ import AdminProfile from './pages/AdminProfile'
 import UserProfile from './pages/UserProfile'
 import Settings from './pages/Settings'
 import MTNMobileMoneyPayment from './pages/MTNMobileMoneyPayment'
+import PayCommission from './pages/PayCommission'
 import RRAEBMIntegration from './pages/RRAEBMIntegration'
 import BookingProcess from './pages/BookingProcess'
 import BookingConfirmation from './pages/BookingConfirmation'
@@ -120,6 +121,7 @@ function App() {
             <Route path="/logout-success" element={<LogoutSuccess />} />
             <Route path="/booking-success" element={<BookingSuccess />} />
             <Route path="/payment-success" element={<PaymentSuccess />} />
+            <Route path="/billing/pay-commission" element={<ProtectedRoute><PayCommission /></ProtectedRoute>} />
             <Route path="/edit-property/:id" element={<ProtectedRoute><EditProperty /></ProtectedRoute>} />
             <Route path="/booking/:id" element={<BookingProcess />} />
             <Route path="/booking-confirmation/:id" element={<BookingConfirmation />} />

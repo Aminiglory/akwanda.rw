@@ -32,12 +32,44 @@ const HowItWorks = () => {
   const [reduceMotion, setReduceMotion] = useState(false);
   const [sectionImagesGuests, setSectionImagesGuests] = useState([]);
   const [sectionImagesHosts, setSectionImagesHosts] = useState([]);
+  const [howMedia, setHowMedia] = useState([]); // server-provided media items
+  const [testimonials, setTestimonials] = useState([]);
   useEffect(() => {
     (async () => {
       try {
   const res = await fetch(`${API_URL}/api/metrics/landing`);
   const data = await res.json();
   if (res.ok && data.metrics) setMetrics(data.metrics);
+      } catch (_) {}
+    })();
+  }, []);
+
+  // Load How It Works media from server (non-breaking: prefers this if available)
+  useEffect(() => {
+    (async () => {
+      try {
+        const audience = activeTab === 'hosts' ? 'hosts' : 'guests';
+        const res = await fetch(`${API_URL}/api/how-it-works?audience=${audience}`);
+        if (!res.ok) { setHowMedia([]); return; }
+        const data = await res.json();
+        const items = Array.isArray(data.items) ? data.items : [];
+        setHowMedia(items);
+        // Reset slide to first when switching source
+        setSlideIndex(0);
+      } catch (_) {
+        setHowMedia([]);
+      }
+    })();
+  }, [activeTab]);
+
+  // Load testimonials (real user comments)
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/testimonials?limit=12`);
+        if (!res.ok) return;
+        const data = await res.json();
+        setTestimonials(Array.isArray(data.testimonials) ? data.testimonials : []);
       } catch (_) {}
     })();
   }, []);
@@ -280,7 +312,11 @@ const HowItWorks = () => {
   useEffect(() => {
     // Resolve slides using the same logic as render
     const steps = activeTab === 'guests' ? cmsGuestSteps : cmsHostSteps;
-    let slides = steps.filter(s => (typeof s.image === 'string' && s.image.trim().length > 0));
+    // Prefer server-provided media if present
+    let slides = (howMedia && howMedia.length)
+      ? howMedia.filter(m => typeof m.image === 'string' && m.image.trim().length > 0)
+                .map(m => ({ title: m.title || how.title, description: m.description || how.subtitle, image: m.image }))
+      : steps.filter(s => (typeof s.image === 'string' && s.image.trim().length > 0));
     const tabImages = activeTab === 'guests' ? sectionImagesGuests : sectionImagesHosts;
     if (slides.length === 0 && Array.isArray(tabImages) && tabImages.length > 0) {
       slides = tabImages
@@ -301,7 +337,7 @@ const HowItWorks = () => {
       setSlideIndex((i) => (i + 1) % count);
     }, Number.isFinite(how?.mediaIntervalMs) ? how.mediaIntervalMs : 5000);
     return () => clearInterval(slideTimer.current);
-  }, [activeTab, cmsGuestSteps, cmsHostSteps, sectionImagesGuests, sectionImagesHosts, heroSlides, paused, reduceMotion, slideshowInView, how?.mediaIntervalMs]);
+  }, [activeTab, cmsGuestSteps, cmsHostSteps, sectionImagesGuests, sectionImagesHosts, heroSlides, paused, reduceMotion, slideshowInView, how?.mediaIntervalMs, howMedia]);
 
   return (
     <div className="bg-[#FFF9F3] py-16 px-4">
@@ -363,7 +399,10 @@ const HowItWorks = () => {
           >
             {(() => {
               const steps = activeTab==='guests' ? cmsGuestSteps : cmsHostSteps;
-              let slides = steps.filter(s => (typeof s.image === 'string' && s.image.trim().length > 0));
+              let slides = (howMedia && howMedia.length)
+                ? howMedia.filter(m => typeof m.image === 'string' && m.image.trim().length > 0)
+                          .map(m => ({ title: m.title || how.title, description: m.description || how.subtitle, image: m.image }))
+                : steps.filter(s => (typeof s.image === 'string' && s.image.trim().length > 0));
               // fallback to tab-specific section images (public schema) if no step media
               const tabImages = activeTab==='guests' ? sectionImagesGuests : sectionImagesHosts;
               if (slides.length === 0 && Array.isArray(tabImages) && tabImages.length > 0) {
@@ -439,6 +478,28 @@ const HowItWorks = () => {
           {activeTab==='guests' ? renderSteps(cmsGuestSteps, true) : renderSteps(cmsHostSteps, false)}
         </div>
 
+        {/* How It Works gallery (server-provided items) */}
+        {howMedia && howMedia.length > 0 && (
+          <div className="mb-12">
+            <h3 className="text-xl font-bold text-[#2B1B0E] mb-3">More on how it works</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {howMedia.map((m, i) => (
+                <div key={i} className="bg-white rounded-xl shadow p-3 border border-gray-100">
+                  <div className="aspect-video rounded-lg overflow-hidden bg-gray-100">
+                    <img src={m.image?.startsWith('http') ? m.image : `${API_URL}${m.image}`} alt={m.title || 'How it works'} className="w-full h-full object-cover" />
+                  </div>
+                  {(m.title || m.description) && (
+                    <div className="mt-2">
+                      {m.title && (<div className="font-semibold text-gray-900 text-sm">{m.title}</div>)}
+                      {m.description && (<div className="text-xs text-gray-600 mt-0.5">{m.description}</div>)}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* CTA for hosts */}
         <div className="rounded-2xl p-8 chocolate-gradient backdrop-blur shadow-md text-center">
           <Link 
@@ -495,6 +556,31 @@ const HowItWorks = () => {
                   <div className={`px-5 pb-4 text-gray-600 ${openFaq === i ? 'block' : 'hidden'}`}>{f.a}</div>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* What our users say */}
+        {testimonials && testimonials.length > 0 && (
+          <div className="bg-white py-12 px-4">
+            <div className="max-w-6xl mx-auto">
+              <h3 className="text-2xl md:text-3xl font-extrabold text-[#2B1B0E] mb-6">What our users say</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {testimonials.map((t, i) => (
+                  <div key={i} className="rounded-xl border border-gray-200 p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="font-semibold text-gray-900 text-sm truncate max-w-[70%]">{t.propertyTitle}</div>
+                      <div className="text-yellow-500 text-xs">
+                        {Array.from({ length: 5 }).map((_, s) => (
+                          <span key={s}>{s < Math.round(t.rating || 0) ? '★' : '☆'}</span>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="text-sm text-gray-700 line-clamp-4">{t.comment}</div>
+                    {t.createdAt && (<div className="text-xs text-gray-400 mt-2">{new Date(t.createdAt).toLocaleDateString()}</div>)}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}

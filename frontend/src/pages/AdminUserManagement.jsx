@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ListItemSkeleton } from '../components/Skeletons';
-import { FaUsers, FaExclamationTriangle, FaCheckCircle, FaUserShield, FaUserTimes, FaSearch, FaFilter, FaSync } from 'react-icons/fa';
+import { FaUsers, FaExclamationTriangle, FaCheckCircle, FaUserShield, FaUserTimes, FaSearch, FaFilter, FaSync, FaEllipsisV, FaUser, FaEdit, FaTrash, FaHome } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -15,6 +15,8 @@ const AdminUserManagement = () => {
   const [showUserDetails, setShowUserDetails] = useState(false);
   const [viewMode, setViewMode] = useState('table');
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const [menuFor, setMenuFor] = useState(null); // action menu per user
+  const [propertyFor, setPropertyFor] = useState(null); // property details modal
   const [page, setPage] = useState(1);
   const pageSize = 5;
   const [reportType, setReportType] = useState('revenue');
@@ -340,6 +342,32 @@ const AdminUserManagement = () => {
         </div>
       )}
 
+      {/* Property Details Modal */}
+      {propertyFor && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="p-4 border-b flex items-center justify-between">
+              <div className="text-lg font-semibold flex items-center gap-2"><FaHome className="text-blue-600" /> Property Details</div>
+              <button className="px-2 py-1" onClick={() => setPropertyFor(null)}>Close</button>
+            </div>
+            <div className="p-6 space-y-3 text-sm text-gray-700">
+              <div><span className="text-gray-500">Title:</span> {propertyFor.title}</div>
+              <div><span className="text-gray-500">Status:</span> {propertyFor.status}</div>
+              <div><span className="text-gray-500">Created:</span> {new Date(propertyFor.createdAt).toLocaleString()}</div>
+              {propertyFor.city && (<div><span className="text-gray-500">City:</span> {propertyFor.city}</div>)}
+              {Array.isArray(propertyFor.images) && propertyFor.images.length>0 && (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {propertyFor.images.slice(0,6).map((img, i) => (
+                    <img key={i} src={typeof img==='string'? img: (img?.path||img?.url||'')} alt="property" className="w-full h-24 object-cover rounded border" />
+                  ))}
+                </div>
+              )}
+              {propertyFor.description && (<div className="mt-2"><span className="text-gray-500">Description:</span><div className="mt-1 whitespace-pre-wrap">{propertyFor.description}</div></div>)}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Search and Filter */}
       <div className="flex items-center space-x-4">
         <div className="relative">
@@ -438,20 +466,41 @@ const AdminUserManagement = () => {
                         <span className="inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800"><FaCheckCircle className="mr-1" />Correct Role</span>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                      <button onClick={() => viewUserDetails(user.id)} className="text-blue-600 hover:text-blue-900">View</button>
-                      {user.userType !== 'host' && user.userType !== 'admin' && (
-                        <button onClick={() => promoteToHost(user.id)} className="text-green-600 hover:text-green-900">Promote to Host</button>
-                      )}
-                      {user.userType === 'host' && user.propertyCount === 0 && (
-                        <button onClick={() => demoteToGuest(user.id)} className="text-red-600 hover:text-red-900">Demote to Guest</button>
-                      )}
-                      {user.isBlocked ? (
-                        <button onClick={() => reactivateUser(user.id)} disabled={togglingId===user.id} className="text-emerald-600 hover:text-emerald-900 disabled:opacity-50">Reactivate</button>
-                      ) : (
-                        <button onClick={() => deactivateUser(user.id)} disabled={togglingId===user.id} className="text-orange-600 hover:text-orange-900 disabled:opacity-50">Deactivate</button>
-                      )}
-                      <button onClick={() => setConfirmDeleteId(user.id)} className="text-rose-600 hover:text-rose-900">Delete</button>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="relative">
+                        <button
+                          onClick={() => setMenuFor(menuFor === user.id ? null : user.id)}
+                          className="p-2 border rounded"
+                          aria-haspopup="menu"
+                          aria-expanded={menuFor === user.id}
+                          title="Actions"
+                        >
+                          <FaEllipsisV />
+                        </button>
+                        {menuFor === user.id && (
+                          <div className="absolute right-0 mt-2 w-56 bg-white border rounded shadow z-10">
+                            <button onClick={() => { viewUserDetails(user.id); setMenuFor(null); }} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left">
+                              <FaUser className="md:hidden" /><span className="hidden md:inline">View</span><span className="md:hidden">View</span>
+                            </button>
+                            {user.userType !== 'host' && user.userType !== 'admin' && (
+                              <button onClick={() => { promoteToHost(user.id); setMenuFor(null); }} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left">
+                                <FaHome className="md:hidden" /><span className="hidden md:inline">Promote to Host</span><span className="md:hidden">Promote</span>
+                              </button>
+                            )}
+                            {user.userType === 'host' && user.propertyCount === 0 && (
+                              <button onClick={() => { demoteToGuest(user.id); setMenuFor(null); }} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left">
+                                <FaUserTimes className="md:hidden" /><span className="hidden md:inline">Demote to Guest</span><span className="md:hidden">Demote</span>
+                              </button>
+                            )}
+                            <button onClick={() => { (user.isBlocked ? reactivateUser(user.id) : deactivateUser(user.id)); setMenuFor(null); }} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left">
+                              <FaEdit className="md:hidden" /><span className="hidden md:inline">{user.isBlocked ? 'Reactivate' : 'Deactivate'}</span><span className="md:hidden">{user.isBlocked ? 'Reactivate' : 'Deactivate'}</span>
+                            </button>
+                            <button onClick={() => { setConfirmDeleteId(user.id); setMenuFor(null); }} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left text-rose-600">
+                              <FaTrash className="md:hidden" /><span className="hidden md:inline">Delete</span><span className="md:hidden">Delete</span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -487,20 +536,21 @@ const AdminUserManagement = () => {
                 <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getRoleColor(u.userType)}`}>{u.userType}</span>
               </div>
               <div className="text-xs text-gray-600 mb-3">Properties: <span className="font-semibold">{u.propertyCount}</span></div>
-              <div className="flex items-center gap-2">
-                <button onClick={() => viewUserDetails(u.id)} className="px-3 py-1 text-sm bg-blue-50 text-blue-700 rounded hover:bg-blue-100">View</button>
-                {u.userType !== 'host' && u.userType !== 'admin' && (
-                  <button onClick={() => promoteToHost(u.id)} className="px-3 py-1 text-sm bg-green-50 text-green-700 rounded hover:bg-green-100">Promote</button>
+              <div className="relative">
+                <button onClick={() => setMenuFor(menuFor === u.id ? null : u.id)} className="p-2 border rounded" aria-haspopup="menu" aria-expanded={menuFor===u.id} title="Actions"><FaEllipsisV /></button>
+                {menuFor===u.id && (
+                  <div className="absolute right-0 mt-2 w-56 bg-white border rounded shadow z-10">
+                    <button onClick={() => { viewUserDetails(u.id); setMenuFor(null); }} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left"><FaUser className="md:hidden" /><span className="hidden md:inline">View</span><span className="md:hidden">View</span></button>
+                    {u.userType !== 'host' && u.userType !== 'admin' && (
+                      <button onClick={() => { promoteToHost(u.id); setMenuFor(null); }} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left"><FaHome className="md:hidden" /><span className="hidden md:inline">Promote to Host</span><span className="md:hidden">Promote</span></button>
+                    )}
+                    {u.userType === 'host' && u.propertyCount === 0 && (
+                      <button onClick={() => { demoteToGuest(u.id); setMenuFor(null); }} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left"><FaUserTimes className="md:hidden" /><span className="hidden md:inline">Demote to Guest</span><span className="md:hidden">Demote</span></button>
+                    )}
+                    <button onClick={() => { (u.isBlocked ? reactivateUser(u.id) : deactivateUser(u.id)); setMenuFor(null); }} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left"><FaEdit className="md:hidden" /><span className="hidden md:inline">{u.isBlocked ? 'Reactivate' : 'Deactivate'}</span><span className="md:hidden">{u.isBlocked ? 'Reactivate' : 'Deactivate'}</span></button>
+                    <button onClick={() => { setConfirmDeleteId(u.id); setMenuFor(null); }} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left text-rose-600"><FaTrash className="md:hidden" /><span className="hidden md:inline">Delete</span><span className="md:hidden">Delete</span></button>
+                  </div>
                 )}
-                {u.userType === 'host' && u.propertyCount === 0 && (
-                  <button onClick={() => demoteToGuest(u.id)} className="px-3 py-1 text-sm bg-red-50 text-red-700 rounded hover:bg-red-100">Demote</button>
-                )}
-                {u.isBlocked ? (
-                  <button onClick={() => reactivateUser(u.id)} disabled={togglingId===u.id} className="px-3 py-1 text-sm bg-emerald-50 text-emerald-700 rounded hover:bg-emerald-100 disabled:opacity-50">Reactivate</button>
-                ) : (
-                  <button onClick={() => deactivateUser(u.id)} disabled={togglingId===u.id} className="px-3 py-1 text-sm bg-orange-50 text-orange-700 rounded hover:bg-orange-100 disabled:opacity-50">Deactivate</button>
-                )}
-                <button onClick={() => setConfirmDeleteId(u.id)} className="px-3 py-1 text-sm bg-rose-50 text-rose-700 rounded hover:bg-rose-100">Delete</button>
               </div>
             </div>
           ))}
@@ -578,11 +628,11 @@ const AdminUserManagement = () => {
                 {selectedUser.properties.length > 0 ? (
                   <div className="space-y-2">
                     {selectedUser.properties.map((property) => (
-                      <div key={property._id} className="p-2 bg-gray-50 rounded">
-                        <p><strong>{property.title}</strong></p>
+                      <button key={property._id} onClick={() => setPropertyFor(property)} className="w-full text-left p-2 bg-gray-50 rounded hover:bg-gray-100">
+                        <p className="font-semibold text-gray-900 flex items-center gap-2"><FaHome className="text-blue-600" /> {property.title}</p>
                         <p className="text-sm text-gray-600">Status: {property.status}</p>
                         <p className="text-sm text-gray-600">Created: {new Date(property.createdAt).toLocaleDateString()}</p>
-                      </div>
+                      </button>
                     ))}
                   </div>
                 ) : (

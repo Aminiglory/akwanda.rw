@@ -1,9 +1,10 @@
 import React from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 export const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
+  const location = useLocation();
   if (isLoading) {
     return (
       <div className="w-full h-screen bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center">
@@ -15,6 +16,18 @@ export const ProtectedRoute = ({ children }) => {
     );
   }
   if (!isAuthenticated) return <Navigate to="/login" replace />;
+  // Blocked account global guard: only allow notifications and commission payment routes
+  if (user?.isBlocked) {
+    const allowed = [
+      '/notifications',
+      '/billing/pay-commission',
+      '/payment/mtn-mobile-money',
+      '/logout-success'
+    ];
+    const path = location.pathname || '';
+    const isAllowed = allowed.some(a => path.startsWith(a));
+    if (!isAllowed) return <Navigate to="/billing/pay-commission" replace />;
+  }
   return children;
 };
 
@@ -32,5 +45,17 @@ export const AdminRoute = ({ children }) => {
   }
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   if (user?.userType !== 'admin') return <Navigate to="/" replace />;
+  // Blocked account global guard: only allow notifications and commission payment routes
+  if (user?.isBlocked) {
+    const allowed = [
+      '/notifications',
+      '/billing/pay-commission',
+      '/payment/mtn-mobile-money',
+      '/logout-success'
+    ];
+    const path = window.location.pathname || '';
+    const isAllowed = allowed.some(a => path.startsWith(a));
+    if (!isAllowed) return <Navigate to="/billing/pay-commission" replace />;
+  }
   return children;
 };

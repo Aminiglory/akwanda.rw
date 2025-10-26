@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
-import { FaPlus, FaSearch, FaUser, FaUsers, FaShieldAlt, FaTrash, FaEdit, FaImage, FaIdCard, FaKey } from 'react-icons/fa';
+import { FaPlus, FaSearch, FaUser, FaUsers, FaShieldAlt, FaTrash, FaEdit, FaImage, FaIdCard, FaKey, FaEllipsisV } from 'react-icons/fa';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -147,6 +147,7 @@ export default function WorkersManagement() {
   const [viewFor, setViewFor] = useState(null); // worker object for profile view
   const [properties, setProperties] = useState([]);
   const [confirmDeleteWorkerId, setConfirmDeleteWorkerId] = useState(null);
+  const [menuFor, setMenuFor] = useState(null); // workerId for action menu
 
   const [form, setForm] = useState({
     firstName: '',
@@ -298,17 +299,19 @@ export default function WorkersManagement() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
-      <div className="flex items-center justify-between mb-6">
+      {/* Title on its own row for clarity */}
+      <div className="mb-4">
         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2"><FaUsers /> Workers</h1>
-        <div className="flex items-center gap-2">
-          <div className="bg-gray-100 rounded-lg p-1">
-            <button onClick={() => setViewMode('cards')} className={`px-3 py-1 rounded ${viewMode==='cards' ? 'bg-white shadow text-gray-900' : 'text-gray-600'}`}>Cards</button>
-            <button onClick={() => setViewMode('table')} className={`px-3 py-1 rounded ${viewMode==='table' ? 'bg-white shadow text-gray-900' : 'text-gray-600'}`}>Table</button>
-          </div>
-          <button disabled={user?.isBlocked} onClick={() => setShowForm(s => !s)} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2">
-            <FaPlus /> Add Worker
-          </button>
+      </div>
+      {/* Controls row: view mode + add worker */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+        <div className="bg-gray-100 rounded-lg p-1 inline-flex w-fit">
+          <button onClick={() => setViewMode('cards')} className={`px-3 py-1 rounded ${viewMode==='cards' ? 'bg-white shadow text-gray-900' : 'text-gray-600'}`}>Cards</button>
+          <button onClick={() => setViewMode('table')} className={`px-3 py-1 rounded ${viewMode==='table' ? 'bg-white shadow text-gray-900' : 'text-gray-600'}`}>Table</button>
         </div>
+        <button disabled={user?.isBlocked} onClick={() => setShowForm(s => !s)} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2">
+          <FaPlus /> Add Worker
+        </button>
       </div>
 
       {user?.isBlocked && (
@@ -414,25 +417,28 @@ export default function WorkersManagement() {
       )}
 
       <div className="bg-white rounded-xl shadow p-4">
-        <div className="flex items-center gap-2 mb-4">
-          <div className="relative flex-1">
+        {/* Filters: stack selects below search on small screens */}
+        <div className="gap-3 mb-4 grid grid-cols-1 sm:grid-cols-3">
+          <div className="relative sm:col-span-3">
             <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input value={query.search} onChange={e => setQuery(q => ({ ...q, search: e.target.value }))} placeholder="Search workers..." className="w-full pl-10 pr-3 py-2 border rounded-lg" />
           </div>
-          <select value={query.status} onChange={e => setQuery(q => ({ ...q, status: e.target.value, page: 1 }))} className="border rounded-lg px-2 py-2">
-            <option value="">All Status</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-            <option value="suspended">Suspended</option>
-            <option value="terminated">Terminated</option>
-          </select>
-          <select value={query.department} onChange={e => setQuery(q => ({ ...q, department: e.target.value, page: 1 }))} className="border rounded-lg px-2 py-2">
-            <option value="">All Departments</option>
-            <option value="General">General</option>
-            <option value="Operations">Operations</option>
-            <option value="Maintenance">Maintenance</option>
-            <option value="Cleaning">Cleaning</option>
-          </select>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:col-span-3">
+            <select value={query.status} onChange={e => setQuery(q => ({ ...q, status: e.target.value, page: 1 }))} className="border rounded-lg px-2 py-2">
+              <option value="">All Status</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+              <option value="suspended">Suspended</option>
+              <option value="terminated">Terminated</option>
+            </select>
+            <select value={query.department} onChange={e => setQuery(q => ({ ...q, department: e.target.value, page: 1 }))} className="border rounded-lg px-2 py-2">
+              <option value="">All Departments</option>
+              <option value="General">General</option>
+              <option value="Operations">Operations</option>
+              <option value="Maintenance">Maintenance</option>
+              <option value="Cleaning">Cleaning</option>
+            </select>
+          </div>
         </div>
 
         {viewMode === 'cards' && (
@@ -484,13 +490,27 @@ export default function WorkersManagement() {
 
               <div className="mt-auto flex items-center justify-between">
                 <span className={`px-2 py-1 rounded-full text-xs ${w.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>{w.status}</span>
-                <div className="flex items-center gap-2 text-xs sm:text-sm flex-wrap justify-end overflow-hidden">
-                  <button disabled={user?.isBlocked} onClick={()=> setViewFor(w)} className="px-2 py-1 border rounded flex items-center gap-1 disabled:opacity-50"><FaUser /> View</button>
-                  <button disabled={user?.isBlocked} onClick={()=> setEditing(w)} className="px-2 py-1 border rounded flex items-center gap-1 disabled:opacity-50"><FaEdit /> Edit</button>
-                  <button disabled={user?.isBlocked} onClick={()=> setAccountFor(w)} className="px-2 py-1 border rounded flex items-center gap-1 disabled:opacity-50"><FaIdCard /> Account</button>
-                  <button disabled={user?.isBlocked} onClick={()=> setPrivFor(w)} className="px-2 py-1 border rounded flex items-center gap-1 disabled:opacity-50"><FaShieldAlt /> Privileges</button>
-                  <button disabled={user?.isBlocked} onClick={()=> setResetFor(w)} className="px-2 py-1 border rounded flex items-center gap-1 disabled:opacity-50"><FaKey /> Reset</button>
-                  <button disabled={user?.isBlocked} onClick={()=> setConfirmDeleteWorkerId(w._id)} className="px-2 py-1 border rounded flex items-center gap-1 disabled:opacity-50 text-rose-600"><FaTrash /> Delete</button>
+                <div className="relative">
+                  <button
+                    disabled={user?.isBlocked}
+                    onClick={() => setMenuFor(menuFor === w._id ? null : w._id)}
+                    className="p-2 border rounded disabled:opacity-50"
+                    aria-haspopup="menu"
+                    aria-expanded={menuFor === w._id}
+                    title="Actions"
+                  >
+                    <FaEllipsisV />
+                  </button>
+                  {menuFor === w._id && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white border rounded shadow z-10">
+                      <button onClick={()=> { setViewFor(w); setMenuFor(null); }} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left"><FaUser className="md:hidden" /><span className="hidden md:inline">View</span><span className="md:hidden">View</span></button>
+                      <button onClick={()=> { setEditing(w); setMenuFor(null); }} disabled={user?.isBlocked} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left disabled:opacity-50"><FaEdit className="md:hidden" /><span className="hidden md:inline">Edit</span><span className="md:hidden">Edit</span></button>
+                      <button onClick={()=> { setAccountFor(w); setMenuFor(null); }} disabled={user?.isBlocked} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left disabled:opacity-50"><FaIdCard className="md:hidden" /><span className="hidden md:inline">Account</span><span className="md:hidden">Account</span></button>
+                      <button onClick={()=> { setPrivFor(w); setMenuFor(null); }} disabled={user?.isBlocked} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left disabled:opacity-50"><FaShieldAlt className="md:hidden" /><span className="hidden md:inline">Privileges</span><span className="md:hidden">Privileges</span></button>
+                      <button onClick={()=> { setResetFor(w); setMenuFor(null); }} disabled={user?.isBlocked} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left disabled:opacity-50"><FaKey className="md:hidden" /><span className="hidden md:inline">Reset Password</span><span className="md:hidden">Reset</span></button>
+                      <button onClick={()=> { setConfirmDeleteWorkerId(w._id); setMenuFor(null); }} disabled={user?.isBlocked} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left text-rose-600 disabled:opacity-50"><FaTrash className="md:hidden" /><span className="hidden md:inline">Delete</span><span className="md:hidden">Delete</span></button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -527,13 +547,18 @@ export default function WorkersManagement() {
                       <span className={`px-2 py-1 rounded-full text-xs ${w.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>{w.status}</span>
                     </td>
                     <td className="px-4 py-2 text-sm">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <button onClick={()=> setViewFor(w)} className="px-2 py-1 border rounded flex items-center gap-1"><FaUser /> View</button>
-                        <button onClick={()=> setEditing(w)} className="px-2 py-1 border rounded flex items-center gap-1"><FaEdit /> Edit</button>
-                        <button onClick={()=> setAccountFor(w)} className="px-2 py-1 border rounded flex items-center gap-1"><FaIdCard /> Create Account</button>
-                        <button onClick={()=> setPrivFor(w)} className="px-2 py-1 border rounded flex items-center gap-1"><FaShieldAlt /> Privileges</button>
-                        <button onClick={()=> setResetFor(w)} className="px-2 py-1 border rounded flex items-center gap-1"><FaKey /> Reset Password</button>
-                        <button onClick={()=> setConfirmDeleteWorkerId(w._id)} className="px-2 py-1 border rounded flex items-center gap-1 text-rose-600"><FaTrash /> Delete</button>
+                      <div className="relative">
+                        <button onClick={()=> setMenuFor(menuFor===w._id? null : w._id)} className="p-2 border rounded" aria-haspopup="menu" aria-expanded={menuFor===w._id} title="Actions"><FaEllipsisV /></button>
+                        {menuFor===w._id && (
+                          <div className="absolute right-0 mt-2 w-52 bg-white border rounded shadow z-10">
+                            <button onClick={()=> { setViewFor(w); setMenuFor(null); }} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left"><FaUser /><span className="hidden md:inline">View</span><span className="md:hidden">View</span></button>
+                            <button onClick={()=> { setEditing(w); setMenuFor(null); }} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left"><FaEdit /><span className="hidden md:inline">Edit</span><span className="md:hidden">Edit</span></button>
+                            <button onClick={()=> { setAccountFor(w); setMenuFor(null); }} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left"><FaIdCard /><span className="hidden md:inline">Create Account</span><span className="md:hidden">Account</span></button>
+                            <button onClick={()=> { setPrivFor(w); setMenuFor(null); }} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left"><FaShieldAlt /><span className="hidden md:inline">Privileges</span><span className="md:hidden">Privs</span></button>
+                            <button onClick={()=> { setResetFor(w); setMenuFor(null); }} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left"><FaKey /><span className="hidden md:inline">Reset Password</span><span className="md:hidden">Reset</span></button>
+                            <button onClick={()=> { setConfirmDeleteWorkerId(w._id); setMenuFor(null); }} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left text-rose-600"><FaTrash /><span className="hidden md:inline">Delete</span><span className="md:hidden">Delete</span></button>
+                          </div>
+                        )}
                       </div>
                     </td>
                   </tr>

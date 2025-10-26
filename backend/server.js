@@ -26,6 +26,8 @@ const notificationsRouter = require('./src/routes/notifications');
 const carsRouter = require('./src/routes/cars');
 const carBookingsRouter = require('./src/routes/carBookings');
 const adminUserManagementRouter = require('./src/routes/admin-user-management');
+const howItWorksRouter = require('./src/routes/howItWorks');
+const testimonialsRouter = require('./src/routes/testimonials');
 const reportsRouter = require('./src/routes/reports');
 const workersRouter = require('./src/routes/workers');
 const User = require('./src/tables/user');
@@ -197,6 +199,8 @@ app.use('/api/notifications', notificationsRouter);
 app.use('/api/admin/user-management', adminUserManagementRouter);
 app.use('/api/reports', reportsRouter);
 app.use('/api/workers', workersRouter);
+app.use('/api/how-it-works', howItWorksRouter);
+app.use('/api/testimonials', testimonialsRouter);
 
 // Create HTTP server and bind Socket.IO
 const server = http.createServer(app);
