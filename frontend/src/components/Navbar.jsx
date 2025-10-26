@@ -623,6 +623,24 @@ const Navbar = () => {
                 </Link>
               )}
 
+              {/* Show Login / Sign Up when not authenticated */}
+              {!isAuthenticated && (
+                <div className="flex items-center space-x-2">
+                  <Link
+                    to="/login"
+                    className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600"
+                  >
+                    Login
+                  </Link>
+                  <Link
+                    to="/register"
+                    className="px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    Sign Up
+                  </Link>
+                </div>
+              )}
+
               {/* Notifications (admin and host) */}
               {(user?.userType === "admin" || user?.userType === 'host') && (
                 <div className="relative inline-flex items-center">
@@ -860,22 +878,7 @@ const Navbar = () => {
                         </div>
                       )}
                     </div>
-                  ) : (
-                    <div className="flex items-center space-x-2">
-                      <Link
-                        to="/login"
-                        className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600"
-                      >
-                        Login
-                      </Link>
-                      <Link
-                        to="/register"
-                        className="px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
-                      >
-                        Sign Up
-                      </Link>
-                    </div>
-                  )}
+                  ) : null}
 
                   {/* Mobile Menu Button - only for authenticated users */}
                   {isAuthenticated && (

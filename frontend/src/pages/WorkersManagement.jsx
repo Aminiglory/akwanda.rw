@@ -492,9 +492,8 @@ export default function WorkersManagement() {
                 <span className={`px-2 py-1 rounded-full text-xs ${w.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>{w.status}</span>
                 <div className="relative">
                   <button
-                    disabled={user?.isBlocked}
                     onClick={() => setMenuFor(menuFor === w._id ? null : w._id)}
-                    className="p-2 border rounded disabled:opacity-50"
+                    className="p-2 border rounded"
                     aria-haspopup="menu"
                     aria-expanded={menuFor === w._id}
                     title="Actions"
