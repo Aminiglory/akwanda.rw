@@ -75,20 +75,45 @@ const propertySchema = new mongoose.Schema(
   }, { timestamps: true }
 );
 
-// Generate a human-friendly unique property number, e.g. PR-AB12CD
+// Generate property number with 5 numbers and 5 capital letters (10 chars total)
 async function generateUniquePropertyNumber(Model) {
+  const generatePropertyNumber = () => {
+    const numbers = '0123456789';
+    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    let result = '';
+    
+    // Add 5 random numbers
+    for (let i = 0; i < 5; i++) {
+      result += numbers.charAt(Math.floor(Math.random() * numbers.length));
+    }
+    
+    // Add 5 random capital letters
+    for (let i = 0; i < 5; i++) {
+      result += letters.charAt(Math.floor(Math.random() * letters.length));
+    }
+    
+    // Shuffle the result to mix numbers and letters
+    return result.split('').sort(() => Math.random() - 0.5).join('');
+  };
+
   const tryOnce = async () => {
-    const rand = Math.random().toString(36).slice(2, 8).toUpperCase();
-    const code = `PR-${rand}`;
+    const code = generatePropertyNumber();
     const exists = await Model.findOne({ propertyNumber: code }).select('_id').lean();
     return exists ? null : code;
   };
-  for (let i = 0; i < 5; i++) {
+  
+  for (let i = 0; i < 10; i++) {
     const code = await tryOnce();
     if (code) return code;
   }
+  
   // Fallback with timestamp component if rare collision persists
-  const fallback = `PR-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2,4).toUpperCase()}`;
+  const timestamp = Date.now().toString().slice(-4);
+  const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  let fallback = timestamp;
+  for (let i = 0; i < 6; i++) {
+    fallback += letters.charAt(Math.floor(Math.random() * letters.length));
+  }
   return fallback;
 }
 
