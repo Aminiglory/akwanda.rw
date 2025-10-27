@@ -398,11 +398,11 @@ const Navbar = () => {
 
   const goToPropertyDashboard = () => {
     if (!isAuthenticated) {
-      navigate('/login?redirect=/user-dashboard');
+      navigate('/login?redirect=/dashboard');
       return;
     }
     if (user?.userType === 'host') {
-      navigate('/user-dashboard');
+      navigate('/dashboard');
       return;
     }
     // This should not be reachable since button is only shown to hosts
@@ -565,25 +565,47 @@ const Navbar = () => {
             </div>
 
             {/* Right Side - Booking.com Style */}
-            <div className="flex flex-nowrap items-center gap-3">
-              {/* List your property - Visible to all users (Booking.com style) */}
+            <div className="flex flex-nowrap items-center gap-2 lg:gap-3">
+              {/* List your property - Responsive visibility */}
               <button
                 onClick={handleListProperty}
-                className="hidden sm:inline-flex items-center px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors"
+                className="hidden md:inline-flex items-center px-2 lg:px-3 py-2 rounded-lg bg-blue-600 text-white text-xs lg:text-sm font-medium hover:bg-blue-700 transition-colors whitespace-nowrap"
                 title="List your property"
               >
-                List your property
+                <span className="hidden lg:inline">List your property</span>
+                <span className="lg:hidden">List Property</span>
+              </button>
+              
+              {/* Mobile List Property Button */}
+              <button
+                onClick={handleListProperty}
+                className="md:hidden inline-flex items-center px-2 py-2 rounded-lg bg-blue-600 text-white text-xs font-medium hover:bg-blue-700 transition-colors"
+                title="List your property"
+              >
+                <FaBuilding className="text-sm" />
               </button>
               
               {/* Property Dashboard - Only for authenticated hosts */}
               {isAuthenticated && user?.userType === 'host' && (
-                <button
-                  onClick={goToPropertyDashboard}
-                  className="hidden sm:inline-flex items-center px-3 py-2 rounded-lg bg-green-600 text-white text-sm font-medium hover:bg-green-700 transition-colors"
-                  title="Property Owner Dashboard"
-                >
-                  Dashboard
-                </button>
+                <>
+                  <button
+                    onClick={goToPropertyDashboard}
+                    className="hidden md:inline-flex items-center px-2 lg:px-3 py-2 rounded-lg bg-green-600 text-white text-xs lg:text-sm font-medium hover:bg-green-700 transition-colors whitespace-nowrap"
+                    title="Property Owner Dashboard"
+                  >
+                    <span className="hidden lg:inline">Dashboard</span>
+                    <span className="lg:hidden">Dash</span>
+                  </button>
+                  
+                  {/* Mobile Dashboard Button */}
+                  <button
+                    onClick={goToPropertyDashboard}
+                    className="md:hidden inline-flex items-center px-2 py-2 rounded-lg bg-green-600 text-white text-xs font-medium hover:bg-green-700 transition-colors"
+                    title="Property Owner Dashboard"
+                  >
+                    <FaChartLine className="text-sm" />
+                  </button>
+                </>
               )}
               {/* Analytics Dropdown - Booking.com Style */}
               {isAuthenticated && user?.userType === 'host' && (
@@ -663,24 +685,26 @@ const Navbar = () => {
 
               {/* Show Login / Sign Up when not authenticated */}
               {!isAuthenticated && (
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-1 lg:space-x-2">
                   <Link
                     to="/login"
-                    className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600"
+                    className="px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium text-gray-700 hover:text-blue-600 whitespace-nowrap"
                   >
                     Login
                   </Link>
                   <Link
                     to="/owner-login"
-                    className="px-3 py-2 text-sm font-medium text-blue-700 hover:text-blue-900"
+                    className="hidden sm:inline px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium text-blue-700 hover:text-blue-900 whitespace-nowrap"
                   >
-                    Owner Login
+                    <span className="hidden md:inline">Owner Login</span>
+                    <span className="md:hidden">Owner</span>
                   </Link>
                   <Link
                     to="/register"
-                    className="px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                    className="px-2 lg:px-3 py-2 bg-blue-600 text-white text-xs lg:text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap"
                   >
-                    Sign Up
+                    <span className="hidden sm:inline">Sign Up</span>
+                    <span className="sm:hidden">Join</span>
                   </Link>
                 </div>
               )}
@@ -936,7 +960,6 @@ const Navbar = () => {
                     </button>
                   )}
                 </div>
-              )}
             </div>
           </div>
         </div>

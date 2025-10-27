@@ -20,7 +20,6 @@ import OwnerRegister from './pages/OwnerRegister'
 import BecomeHost from './pages/BecomeHost'
 import OwnerLogin from './pages/OwnerLogin'
 import Dashboard from './pages/Dashboard'
-import UserDashboard from './pages/UserDashboard'
 import UploadProperty from './pages/UploadProperty'
 import EnhancedUploadProperty from './pages/EnhancedUploadProperty'
 import AdminDashboard from './pages/AdminDashboard'
@@ -133,8 +132,8 @@ function App() {
             <Route path="/register" element={<Register />} />
             <Route path="/owner-register" element={<OwnerRegister />} />
             <Route path="/become-host" element={<ProtectedRoute><BecomeHost /></ProtectedRoute>} />
-            <Route path="/dashboard" element={<ProtectedRoute><div className="dashboard"><Dashboard /></div></ProtectedRoute>} />
-            <Route path="/user-dashboard" element={<HostRoute><div className="dashboard"><UserDashboard /></div></HostRoute>} />
+            <Route path="/dashboard" element={<HostRoute><div className="dashboard"><PropertyOwnerBookings /></div></HostRoute>} />
+            <Route path="/user-dashboard" element={<HostRoute><div className="dashboard"><PropertyOwnerBookings /></div></HostRoute>} />
             <Route path="/profile" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
             <Route path="/upload" element={<HostRoute><EnhancedUploadProperty /></HostRoute>} />
@@ -152,7 +151,7 @@ function App() {
             <Route path="/support" element={<CustomerSupport />} />
             <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
             <Route path="/my-bookings" element={<HostRoute><div className="dashboard"><PropertyOwnerBookings /></div></HostRoute>} />
-            {/* Removed /owner-dashboard route; use /my-bookings */}
+            {/* All property owner dashboard routes now point to PropertyOwnerBookings */}
             <Route path="/owner/cars" element={<HostRoute><div className="dashboard"><CarOwnerDashboard /></div></HostRoute>} />
             <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
             <Route path="/owner/promotions" element={<HostRoute><div className="dashboard"><OwnerPromotions /></div></HostRoute>} />
