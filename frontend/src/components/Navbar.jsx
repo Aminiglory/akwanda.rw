@@ -418,9 +418,9 @@ const Navbar = () => {
 
   return (
     <>
-      <nav className="w-full bg-gray-50 navbar-shadow border-b border-gray-200 relative">
+      <nav className="w-full bg-white navbar-shadow border-b border-gray-200 relative">
         {/* Top Bar - Like Booking.com */}
-        <div className="bg-blue-800 text-white py-2 px-4">
+        <div className="bg-gray-800 text-white py-2 px-4">
           <div className="max-w-7xl mx-auto flex justify-between items-center text-xs">
             <div className="flex items-center space-x-4 lg:space-x-6">
               {/* Property Owner Links - Show when authenticated as host */}
@@ -429,20 +429,20 @@ const Navbar = () => {
                   {userStats.properties > 0 && (
                     <Link
                       to="/dashboard"
-                      className="hidden sm:inline hover:text-blue-200 font-medium"
+                      className="hidden sm:inline hover:text-gray-200 font-medium"
                     >
                       Dashboard
                     </Link>
                   )}
                   <Link
                     to="/my-bookings"
-                    className="hidden sm:inline hover:text-blue-200 font-medium"
+                    className="hidden sm:inline hover:text-gray-200 font-medium"
                   >
                     My Bookings
                   </Link>
                   <Link
                     to="/owner/cars"
-                    className="hidden sm:inline hover:text-blue-200 font-medium"
+                    className="hidden sm:inline hover:text-gray-200 font-medium"
                   >
                     My Cars
                   </Link>
@@ -454,19 +454,19 @@ const Navbar = () => {
                 <>
                   <Link
                     to="/admin"
-                    className="hidden sm:inline hover:text-blue-200 font-medium"
+                    className="hidden sm:inline hover:text-gray-200 font-medium"
                   >
                     Admin Dashboard
                   </Link>
                   <Link
                     to="/admin/reports"
-                    className="hidden sm:inline hover:text-blue-200 font-medium"
+                    className="hidden sm:inline hover:text-gray-200 font-medium"
                   >
                     Reports
                   </Link>
                   <Link
                     to="/admin/landing"
-                    className="hidden sm:inline hover:text-blue-200 font-medium"
+                    className="hidden sm:inline hover:text-gray-200 font-medium"
                   >
                     Content
                   </Link>
@@ -476,7 +476,7 @@ const Navbar = () => {
               {/* Universal Links - Show to all users */}
               <Link
                 to="/support"
-                className="hover:text-blue-200 font-medium"
+                className="hover:text-gray-200 font-medium"
               >
                 Customer Support
               </Link>
@@ -486,22 +486,22 @@ const Navbar = () => {
                 <>
                   <Link
                     to="/notifications"
-                    className="hidden sm:inline hover:text-blue-200 font-medium"
+                    className="hidden sm:inline hover:text-gray-200 font-medium"
                   >
                     Notifications
                   </Link>
-                  <span className="hidden lg:inline hover:text-blue-200 cursor-pointer font-medium">
+                  <span className="hidden lg:inline hover:text-gray-200 cursor-pointer font-medium">
                     Partner Portal
                   </span>
                 </>
               )}
             </div>
             <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2 hover:text-blue-200 cursor-pointer">
+              <div className="flex items-center space-x-2 hover:text-gray-200 cursor-pointer">
                 <FaGlobe className="text-sm" />
                 <span className="hidden sm:inline">English</span>
               </div>
-              <div className="flex items-center space-x-2 hover:text-blue-200 cursor-pointer">
+              <div className="flex items-center space-x-2 hover:text-gray-200 cursor-pointer">
                 <span className="font-semibold">RWF</span>
               </div>
             </div>
@@ -524,7 +524,7 @@ const Navbar = () => {
             <div className="flex items-center space-x-8">
               <Link
                 to="/"
-                className="text-xl font-bold text-blue-800 hover:text-blue-600"
+                className="text-xl font-bold text-gray-800 hover:text-gray-700"
               >
                 AKWANDA.rw
               </Link>
@@ -532,15 +532,15 @@ const Navbar = () => {
               {/* Property Owner Mode Indicator */}
               {user?.userType === 'host' && isInPropertyOwnerDashboard() && (
                 <div className="hidden lg:flex items-center space-x-4">
-                  <div className="flex items-center space-x-2 px-3 py-2 bg-blue-50 rounded-lg border border-blue-200">
-                    <FaBuilding className="text-blue-600 text-sm" />
-                    <span className="text-sm font-medium text-blue-800">Property Owner Mode</span>
+                  <div className="flex items-center space-x-2 px-3 py-2 bg-gray-100 rounded-lg border border-gray-300">
+                    <FaBuilding className="text-gray-700 text-sm" />
+                    <span className="text-sm font-medium text-gray-800">Property Owner Mode</span>
                   </div>
                   <div className="text-xs text-gray-600">
                     <span>To book as guest, </span>
                     <button 
                       onClick={handleLogout}
-                      className="text-blue-600 hover:text-blue-800 underline font-medium"
+                      className="text-gray-700 hover:text-gray-800 underline font-medium"
                     >
                       logout and login as guest
                     </button>
@@ -561,8 +561,8 @@ const Navbar = () => {
                         <button
                           onClick={() => toggleDropdown(item.label)}
                           className={`flex items-center space-x-1 px-3 py-2 rounded-lg transition-all duration-300 font-medium text-sm ${isActive
-                              ? "bg-blue-600 text-white shadow-md"
-                              : "text-gray-700 hover:text-blue-600 hover:bg-gray-50"
+                              ? "bg-gray-700 text-white shadow-md"
+                              : "text-gray-700 hover:text-gray-700 hover:bg-gray-50"
                             }`}
                         >
                           <Icon className="text-sm" />
@@ -580,7 +580,7 @@ const Navbar = () => {
                                 <Link
                                   key={childIndex}
                                   to={child.href}
-                                  className={`flex items-center space-x-3 px-4 py-3 text-sm hover:bg-gray-50 transition-colors ${isChildActive ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
+                                  className={`flex items-center space-x-3 px-4 py-3 text-sm hover:bg-gray-50 transition-colors ${isChildActive ? 'bg-gray-100 text-gray-800' : 'text-gray-700'
                                     }`}
                                   onClick={() => setActiveDropdown(null)}
                                 >
@@ -601,50 +601,26 @@ const Navbar = () => {
 
             {/* Right Side - Booking.com Style */}
             <div className="flex flex-nowrap items-center gap-2 lg:gap-3">
-              {/* List your property - Always show but hide on small screens when in dashboard mode */}
+              {/* List your property - Hidden on small screens completely */}
               <button
                 onClick={handleListProperty}
-                className={`${isInPropertyOwnerDashboard() ? 'hidden lg:inline-flex' : 'hidden md:inline-flex'} items-center px-2 lg:px-3 py-2 rounded-lg bg-blue-600 text-white text-xs lg:text-sm font-medium hover:bg-blue-700 transition-colors whitespace-nowrap`}
+                className="hidden lg:inline-flex items-center px-2 lg:px-3 py-2 rounded-lg bg-gray-700 text-white text-xs lg:text-sm font-medium hover:bg-gray-800 transition-colors whitespace-nowrap"
                 title="List your property"
               >
                 <span className="hidden lg:inline">List your property</span>
                 <span className="lg:hidden">List Property</span>
               </button>
               
-              {/* Mobile List Property Button - Hide when in property owner dashboard */}
-              {!isInPropertyOwnerDashboard() && (
-                <button
-                  onClick={handleListProperty}
-                  className="md:hidden inline-flex items-center px-2 py-2 rounded-lg bg-blue-600 text-white text-xs font-medium hover:bg-blue-700 transition-colors"
-                  title="List your property"
-                >
-                  <FaBuilding className="text-sm" />
-                </button>
-              )}
-              
-              {/* Property Dashboard - Hide on small screens when in dashboard mode */}
+              {/* Property Dashboard - Hidden on small screens completely */}
               {isAuthenticated && user?.userType === 'host' && (
-                <>
-                  <button
-                    onClick={goToPropertyDashboard}
-                    className={`${isInPropertyOwnerDashboard() ? 'hidden lg:inline-flex' : 'hidden md:inline-flex'} items-center px-2 lg:px-3 py-2 rounded-lg bg-green-600 text-white text-xs lg:text-sm font-medium hover:bg-green-700 transition-colors whitespace-nowrap`}
-                    title="Property Owner Dashboard"
-                  >
-                    <span className="hidden lg:inline">Dashboard</span>
-                    <span className="lg:hidden">Dash</span>
-                  </button>
-                  
-                  {/* Mobile Dashboard Button - Hide when in property owner dashboard */}
-                  {!isInPropertyOwnerDashboard() && (
-                    <button
-                      onClick={goToPropertyDashboard}
-                      className="md:hidden inline-flex items-center px-2 py-2 rounded-lg bg-green-600 text-white text-xs font-medium hover:bg-green-700 transition-colors"
-                      title="Property Owner Dashboard"
-                    >
-                      <FaChartLine className="text-sm" />
-                    </button>
-                  )}
-                </>
+                <button
+                  onClick={goToPropertyDashboard}
+                  className="hidden lg:inline-flex items-center px-2 lg:px-3 py-2 rounded-lg bg-green-600 text-white text-xs lg:text-sm font-medium hover:bg-green-700 transition-colors whitespace-nowrap"
+                  title="Property Owner Dashboard"
+                >
+                  <span className="hidden lg:inline">Dashboard</span>
+                  <span className="lg:hidden">Dash</span>
+                </button>
               )}
               {/* Analytics Dropdown - Booking.com Style */}
               {isAuthenticated && user?.userType === 'host' && (
@@ -652,8 +628,8 @@ const Navbar = () => {
                   <button
                     onClick={() => toggleDropdown('owner')}
                     className={`flex items-center px-3 py-2 rounded-lg transition-all duration-300 ${activeDropdown === 'owner'
-                        ? "bg-blue-600 text-white shadow-md"
-                        : "text-gray-700 hover:text-blue-600 hover:bg-gray-50"
+                        ? "bg-gray-700 text-white shadow-md"
+                        : "text-gray-700 hover:text-gray-700 hover:bg-gray-50"
                       }`}
                     title="Analytics & Management"
                   >
@@ -669,7 +645,7 @@ const Navbar = () => {
                           return (
                             <div key={index}>
                               <div className="flex items-center space-x-2 mb-4">
-                                <CategoryIcon className="text-blue-600 text-lg" />
+                                <CategoryIcon className="text-gray-700 text-lg" />
                                 <div className="text-sm font-semibold text-gray-700">
                                   {category.category}
                                 </div>
@@ -679,7 +655,7 @@ const Navbar = () => {
                                   <Link
                                     key={linkIndex}
                                     to={link.href}
-                                    className="block px-3 py-2 rounded hover:bg-blue-50 hover:text-blue-700 text-gray-600 transition-colors"
+                                    className="block px-3 py-2 rounded hover:bg-gray-100 hover:text-gray-800 text-gray-600 transition-colors"
                                     onClick={() => setActiveDropdown(null)}
                                   >
                                     {link.label}
@@ -699,7 +675,7 @@ const Navbar = () => {
               {isAuthenticated && (
                 <Link
                   to="/favorites"
-                  className="hidden lg:flex items-center px-3 py-2 rounded-lg text-gray-700 hover:text-blue-600 hover:bg-gray-50 transition-colors"
+                  className="hidden lg:flex items-center px-3 py-2 rounded-lg text-gray-700 hover:text-gray-700 hover:bg-gray-50 transition-colors"
                   title="Favorites"
                 >
                   <FaHeart className="text-lg" />
@@ -710,7 +686,7 @@ const Navbar = () => {
               {isAuthenticated && (user?.userType !== 'worker' ? true : !!user?.privileges?.canMessageGuests) && (
                 <Link
                   to="/messages"
-                  className="flex items-center px-3 py-2 rounded-lg text-gray-700 hover:text-blue-600 hover:bg-gray-50 relative transition-colors"
+                  className="flex items-center px-3 py-2 rounded-lg text-gray-700 hover:text-gray-700 hover:bg-gray-50 relative transition-colors"
                   title="Messages"
                 >
                   <FaEnvelope className="text-lg" />
@@ -727,20 +703,20 @@ const Navbar = () => {
                 <div className="flex items-center space-x-1 lg:space-x-2">
                   <Link
                     to="/login"
-                    className="px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium text-gray-700 hover:text-blue-600 whitespace-nowrap"
+                    className="px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium text-gray-700 hover:text-gray-700 whitespace-nowrap"
                   >
                     Login
                   </Link>
                   <Link
                     to="/owner-login"
-                    className="hidden sm:inline px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium text-blue-700 hover:text-blue-900 whitespace-nowrap"
+                    className="hidden sm:inline px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium text-gray-700 hover:text-gray-800 whitespace-nowrap"
                   >
                     <span className="hidden md:inline">Owner Login</span>
                     <span className="md:hidden">Owner</span>
                   </Link>
                   <Link
                     to="/register"
-                    className="px-2 lg:px-3 py-2 bg-blue-600 text-white text-xs lg:text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap"
+                    className="px-2 lg:px-3 py-2 bg-gray-700 text-white text-xs lg:text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors whitespace-nowrap"
                   >
                     <span className="hidden sm:inline">Sign Up</span>
                     <span className="sm:hidden">Join</span>
@@ -754,8 +730,8 @@ const Navbar = () => {
                   <button
                     onClick={toggleNotifications}
                     className={`notification-button relative px-3 py-2 rounded-lg transition-colors ${isNotificationOpen
-                        ? 'bg-blue-600 text-white'
-                        : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'
+                        ? 'bg-gray-700 text-white'
+                        : 'text-gray-700 hover:text-gray-700 hover:bg-gray-50'
                       }`}
                   >
                     <FaBell className="text-lg" />
@@ -771,7 +747,7 @@ const Navbar = () => {
                         <span>Notifications</span>
                         <Link
                           to="/notifications"
-                          className="text-xs text-blue-600 hover:text-blue-800"
+                          className="text-xs text-gray-700 hover:text-gray-800"
                           onClick={() => setIsNotificationOpen(false)}
                         >
                           View All
@@ -824,7 +800,7 @@ const Navbar = () => {
                     <div className="relative inline-flex items-center">
                       <button
                         onClick={toggleProfile}
-                        className="profile-button flex items-center space-x-2 px-3 py-2 rounded-lg text-gray-700 hover:text-blue-600 hover:bg-gray-50 transition-colors"
+                        className="profile-button flex items-center space-x-2 px-3 py-2 rounded-lg text-gray-700 hover:text-gray-700 hover:bg-gray-50 transition-colors"
                       >
                         <FaUserCircle className="text-lg" />
                         <span className="hidden sm:inline font-medium text-sm">
@@ -861,7 +837,7 @@ const Navbar = () => {
                                   {user?.firstName} {user?.lastName}
                                 </div>
                                 <div className="text-sm text-gray-500">{user?.email}</div>
-                                <div className="text-xs text-blue-600 font-medium">
+                                <div className="text-xs text-gray-700 font-medium">
                                   {user?.userType === 'host' ? 'Property Owner' : user?.userType === 'worker' ? 'Worker' : 'Guest'}
                                 </div>
                               </div>
@@ -873,7 +849,7 @@ const Navbar = () => {
                             <div className="px-4 py-2 border-b border-gray-100">
                               <div className="grid grid-cols-3 gap-2 text-center">
                                 <div>
-                                  <div className="text-sm font-bold text-blue-600">{userStats.properties}</div>
+                                  <div className="text-sm font-bold text-gray-700">{userStats.properties}</div>
                                   <div className="text-xs text-gray-500">Properties</div>
                                 </div>
                                 <div>
@@ -914,29 +890,29 @@ const Navbar = () => {
                           <div className="py-1">
                             <Link
                               to="/profile"
-                              className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors"
+                              className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-800 transition-colors"
                               onClick={() => setIsProfileOpen(false)}
                             >
-                              <FaUser className="text-blue-600" />
+                              <FaUser className="text-gray-700" />
                               <span className="font-medium">My Profile</span>
                             </Link>
                             {user?.userType === 'admin' && (
                               <Link
                                 to="/admin/reports"
-                                className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors"
+                                className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-800 transition-colors"
                                 onClick={() => setIsProfileOpen(false)}
                               >
-                                <FaFileAlt className="text-blue-600" />
+                                <FaFileAlt className="text-gray-700" />
                                 <span className="font-medium">Admin Reports</span>
                               </Link>
                             )}
                             {user?.userType === 'admin' && (
                               <Link
                                 to="/admin/landing"
-                                className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors"
+                                className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-800 transition-colors"
                                 onClick={() => setIsProfileOpen(false)}
                               >
-                                <FaFileAlt className="text-blue-600" />
+                                <FaFileAlt className="text-gray-700" />
                                 <span className="font-medium">Landing Content</span>
                               </Link>
                             )}
@@ -993,7 +969,7 @@ const Navbar = () => {
                   {isAuthenticated && (
                     <button
                       onClick={toggleMenu}
-                      className="lg:hidden p-2 text-gray-700 hover:text-blue-600"
+                      className="lg:hidden p-2 text-gray-700 hover:text-gray-800"
                     >
                       {isMenuOpen ? <FaTimes className="text-xl" /> : <FaBars className="text-xl" />}
                     </button>
@@ -1016,8 +992,8 @@ const Navbar = () => {
           {isMenuOpen && (
             <div className="lg:hidden bg-white border-t border-gray-200 mobile-menu">
               <div className="px-4 py-2 space-y-1">
-                {/* Main Navigation Items */}
-                {isAuthenticated && user?.userType !== "admin" && (
+                {/* Main Navigation Items - Hide for property owners, show only for guests */}
+                {isAuthenticated && user?.userType !== "admin" && user?.userType !== 'host' && (
                   <>
                     {mainNavItems.map((item, index) => {
                       const Icon = item.icon;
@@ -1026,7 +1002,7 @@ const Navbar = () => {
                         <Link
                           key={index}
                           to={item.href}
-                          className={`flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${isActive ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'
+                          className={`flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${isActive ? 'bg-gray-100 text-gray-800' : 'text-gray-700 hover:bg-gray-50'
                             }`}
                           onClick={() => setIsMenuOpen(false)}
                         >
@@ -1038,8 +1014,8 @@ const Navbar = () => {
                   </>
                 )}
 
-                {/* Quick actions visible on small screens */}
-                {isAuthenticated && user?.userType !== 'admin' && (
+                {/* Guest actions - only for non-property owners */}
+                {isAuthenticated && user?.userType !== 'admin' && user?.userType !== 'host' && (
                   <>
                     <Link
                       to="/notifications"
