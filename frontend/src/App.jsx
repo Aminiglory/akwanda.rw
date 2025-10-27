@@ -16,6 +16,8 @@ import AirportTaxis from './pages/AirportTaxis'
 import ApartmentDetails from './pages/ApartmentDetails'
 import Login from './pages/Login'
 import Register from './pages/Register'
+import OwnerRegister from './pages/OwnerRegister'
+import BecomeHost from './pages/BecomeHost'
 import OwnerLogin from './pages/OwnerLogin'
 import Dashboard from './pages/Dashboard'
 import UserDashboard from './pages/UserDashboard'
@@ -129,6 +131,8 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/owner-login" element={<OwnerLogin />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/owner-register" element={<OwnerRegister />} />
+            <Route path="/become-host" element={<ProtectedRoute><BecomeHost /></ProtectedRoute>} />
             <Route path="/dashboard" element={<ProtectedRoute><div className="dashboard"><Dashboard /></div></ProtectedRoute>} />
             <Route path="/user-dashboard" element={<HostRoute><div className="dashboard"><UserDashboard /></div></HostRoute>} />
             <Route path="/profile" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />

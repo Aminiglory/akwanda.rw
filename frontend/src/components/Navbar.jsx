@@ -379,6 +379,23 @@ const Navbar = () => {
 
   const avatarUrl = user?.avatar ? makeAbsolute(user.avatar) : null;
   
+  const handleListProperty = () => {
+    if (!isAuthenticated) {
+      // Not logged in - redirect to property owner registration
+      navigate('/owner-register');
+      return;
+    }
+    
+    if (user?.userType === 'host') {
+      // Already a property owner - go to upload property
+      navigate('/upload');
+      return;
+    }
+    
+    // Logged in as guest - offer to become property owner
+    navigate('/become-host');
+  };
+
   const goToPropertyDashboard = () => {
     if (!isAuthenticated) {
       navigate('/login?redirect=/user-dashboard');
@@ -400,9 +417,10 @@ const Navbar = () => {
         <div className="bg-blue-800 text-white py-2 px-4">
           <div className="max-w-7xl mx-auto flex justify-between items-center text-xs">
             <div className="flex items-center space-x-4 lg:space-x-6">
-              {isAuthenticated && user?.userType !== "admin" && (
+              {/* Only show property owner links to authenticated hosts */}
+              {isAuthenticated && user?.userType === 'host' && (
                 <>
-                  {user?.userType === 'host' && userStats.properties > 0 && (
+                  {userStats.properties > 0 && (
                     <Link
                       to="/dashboard"
                       className="hidden sm:inline hover:text-blue-200 font-medium"
@@ -410,30 +428,18 @@ const Navbar = () => {
                       Dashboard
                     </Link>
                   )}
-                  {user?.userType === 'host' && (
-                    <Link
-                      to="/upload"
-                      className="hidden sm:inline hover:text-blue-200 font-medium"
-                    >
-                      List your property
-                    </Link>
-                  )}
-                  {user?.userType === 'host' && (
-                    <Link
-                      to="/my-bookings"
-                      className="hidden sm:inline hover:text-blue-200 font-medium"
-                    >
-                      My Bookings
-                    </Link>
-                  )}
-                  {user?.userType === 'host' && (
-                    <Link
-                      to="/owner/cars"
-                      className="hidden sm:inline hover:text-blue-200 font-medium"
-                    >
-                      My Cars
-                    </Link>
-                  )}
+                  <Link
+                    to="/my-bookings"
+                    className="hidden sm:inline hover:text-blue-200 font-medium"
+                  >
+                    My Bookings
+                  </Link>
+                  <Link
+                    to="/owner/cars"
+                    className="hidden sm:inline hover:text-blue-200 font-medium"
+                  >
+                    My Cars
+                  </Link>
                 </>
               )}
               {isAuthenticated && user?.userType === "admin" && (
@@ -484,7 +490,6 @@ const Navbar = () => {
               </div>
             </div>
           </div>
-        </div>
 
         {/* Friendly error banner */}
         {uiError && (
@@ -561,14 +566,23 @@ const Navbar = () => {
 
             {/* Right Side - Booking.com Style */}
             <div className="flex flex-nowrap items-center gap-3">
-              {/* Property Dashboard entry point - Only for authenticated hosts */}
+              {/* List your property - Visible to all users (Booking.com style) */}
+              <button
+                onClick={handleListProperty}
+                className="hidden sm:inline-flex items-center px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors"
+                title="List your property"
+              >
+                List your property
+              </button>
+              
+              {/* Property Dashboard - Only for authenticated hosts */}
               {isAuthenticated && user?.userType === 'host' && (
                 <button
                   onClick={goToPropertyDashboard}
-                  className="hidden sm:inline-flex items-center px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors"
+                  className="hidden sm:inline-flex items-center px-3 py-2 rounded-lg bg-green-600 text-white text-sm font-medium hover:bg-green-700 transition-colors"
                   title="Property Owner Dashboard"
                 >
-                  Property Dashboard
+                  Dashboard
                 </button>
               )}
               {/* Analytics Dropdown - Booking.com Style */}
@@ -739,9 +753,11 @@ const Navbar = () => {
                       </div>
                     </div>
                   )}
+                </div>
+              )}
 
-                  {/* Profile Menu */}
-                  {isAuthenticated ? (
+              {/* Profile Menu */}
+              {isAuthenticated && (
                     <div className="relative inline-flex items-center">
                       <button
                         onClick={toggleProfile}
@@ -908,7 +924,7 @@ const Navbar = () => {
                         </div>
                       )}
                     </div>
-                  ) : null}
+              )}
 
                   {/* Mobile Menu Button - only for authenticated users */}
                   {isAuthenticated && (
