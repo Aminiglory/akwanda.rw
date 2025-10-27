@@ -418,7 +418,7 @@ const Navbar = () => {
 
   return (
     <>
-      <nav className="w-full bg-white navbar-shadow border-b border-gray-200 relative">
+      <nav className="w-full bg-gray-50 navbar-shadow border-b border-gray-200 relative">
         {/* Top Bar - Like Booking.com */}
         <div className="bg-blue-800 text-white py-2 px-4">
           <div className="max-w-7xl mx-auto flex justify-between items-center text-xs">
@@ -766,7 +766,7 @@ const Navbar = () => {
                     )}
                   </button>
                   {isNotificationOpen && (
-                    <div className="notification-dropdown absolute right-0 mt-2 w-80 bg-white rounded-xl dropdown-shadow border border-gray-200 py-2 z-50">
+                    <div className="notification-dropdown absolute top-full right-0 mt-2 w-80 bg-white rounded-xl dropdown-shadow border border-gray-200 py-2 z-50">
                       <div className="px-4 py-2 border-b border-gray-100 font-semibold text-sm flex items-center justify-between">
                         <span>Notifications</span>
                         <Link
@@ -777,7 +777,7 @@ const Navbar = () => {
                           View All
                         </Link>
                       </div>
-                      <div className="max-h-96 overflow-auto">
+                      <div className="max-h-80 overflow-y-auto">
                         {notifications.length === 0 ? (
                           <div className="px-4 py-8 text-center text-gray-500 text-sm">No notifications</div>
                         ) : (
@@ -838,7 +838,7 @@ const Navbar = () => {
                       </button>
 
                       {isProfileOpen && (
-                        <div className="profile-dropdown absolute right-0 mt-2 w-64 bg-white rounded-xl dropdown-shadow border border-gray-200 py-3 z-50">
+                        <div className="profile-dropdown absolute top-full right-0 mt-2 w-64 bg-white rounded-xl dropdown-shadow border border-gray-200 py-3 z-50">
                           {/* Profile Header */}
                           <div className="px-4 pb-3 border-b border-gray-100">
                             <div className="flex items-center space-x-3">
