@@ -25,7 +25,7 @@
   --color-gray-800: #4B2E05; /* Cocoa Brown - strong text */
   --color-gray-900: #2B1B0E; /* Espresso - headings */
 
-  /* Pure white */
+  /* Pure white for dashboard backgrounds */
   --color-white: #ffffff;
 
   /* Proper status colors */
@@ -80,9 +80,9 @@
     4px 4px 10px #E5E7EB,
     -4px -4px 10px #FFFFFF;
 }
-/* Base document colors with chocolate theme */
+/* Base document colors with white dashboard background */
 :root, html, body {
-  background-color: #FFF9F3; /* White Chocolate */
+  background-color: #ffffff; /* Pure White */
   color: #2B1B0E; /* Espresso */
 }
 

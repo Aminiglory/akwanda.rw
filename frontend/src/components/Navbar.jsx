@@ -345,6 +345,12 @@ const Navbar = () => {
     return location.pathname === path;
   };
 
+  // Check if user is in property owner dashboard context
+  const isInPropertyOwnerDashboard = () => {
+    const ownerRoutes = ['/dashboard', '/user-dashboard', '/my-bookings', '/upload', '/owner'];
+    return ownerRoutes.some(route => location.pathname.startsWith(route));
+  };
+
   const handleLogout = () => {
     logout();
     navigate("/logout-success");
@@ -417,7 +423,7 @@ const Navbar = () => {
         <div className="bg-blue-800 text-white py-2 px-4">
           <div className="max-w-7xl mx-auto flex justify-between items-center text-xs">
             <div className="flex items-center space-x-4 lg:space-x-6">
-              {/* Only show property owner links to authenticated hosts */}
+              {/* Property Owner Links - Show when authenticated as host */}
               {isAuthenticated && user?.userType === 'host' && (
                 <>
                   {userStats.properties > 0 && (
@@ -442,6 +448,8 @@ const Navbar = () => {
                   </Link>
                 </>
               )}
+              
+              {/* Admin Links */}
               {isAuthenticated && user?.userType === "admin" && (
                 <>
                   <Link
@@ -464,21 +472,29 @@ const Navbar = () => {
                   </Link>
                 </>
               )}
+              
+              {/* Universal Links - Show to all users */}
               <Link
                 to="/support"
                 className="hover:text-blue-200 font-medium"
               >
                 Customer Support
               </Link>
-              <Link
-                to="/notifications"
-                className="hidden sm:inline hover:text-blue-200 font-medium"
-              >
-                Notifications
-              </Link>
-              <span className="hidden lg:inline hover:text-blue-200 cursor-pointer font-medium">
-                Partner Portal
-              </span>
+              
+              {/* Hide guest-specific links when in property owner dashboard */}
+              {!isInPropertyOwnerDashboard() && (
+                <>
+                  <Link
+                    to="/notifications"
+                    className="hidden sm:inline hover:text-blue-200 font-medium"
+                  >
+                    Notifications
+                  </Link>
+                  <span className="hidden lg:inline hover:text-blue-200 cursor-pointer font-medium">
+                    Partner Portal
+                  </span>
+                </>
+              )}
             </div>
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2 hover:text-blue-200 cursor-pointer">
@@ -513,8 +529,27 @@ const Navbar = () => {
                 AKWANDA.rw
               </Link>
 
-              {/* Main Navigation Items - Booking.com Style */}
-              {user?.userType !== "admin" && (
+              {/* Property Owner Mode Indicator */}
+              {user?.userType === 'host' && isInPropertyOwnerDashboard() && (
+                <div className="hidden lg:flex items-center space-x-4">
+                  <div className="flex items-center space-x-2 px-3 py-2 bg-blue-50 rounded-lg border border-blue-200">
+                    <FaBuilding className="text-blue-600 text-sm" />
+                    <span className="text-sm font-medium text-blue-800">Property Owner Mode</span>
+                  </div>
+                  <div className="text-xs text-gray-600">
+                    <span>To book as guest, </span>
+                    <button 
+                      onClick={handleLogout}
+                      className="text-blue-600 hover:text-blue-800 underline font-medium"
+                    >
+                      logout and login as guest
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Main Navigation Items - Hide guest booking links in property owner dashboard */}
+              {user?.userType !== "admin" && !isInPropertyOwnerDashboard() && (
                 <div className="hidden lg:flex items-center space-x-1">
                   {mainNavItems.map((item, index) => {
                     const Icon = item.icon;
@@ -566,45 +601,49 @@ const Navbar = () => {
 
             {/* Right Side - Booking.com Style */}
             <div className="flex flex-nowrap items-center gap-2 lg:gap-3">
-              {/* List your property - Responsive visibility */}
+              {/* List your property - Always show but hide on small screens when in dashboard mode */}
               <button
                 onClick={handleListProperty}
-                className="hidden md:inline-flex items-center px-2 lg:px-3 py-2 rounded-lg bg-blue-600 text-white text-xs lg:text-sm font-medium hover:bg-blue-700 transition-colors whitespace-nowrap"
+                className={`${isInPropertyOwnerDashboard() ? 'hidden lg:inline-flex' : 'hidden md:inline-flex'} items-center px-2 lg:px-3 py-2 rounded-lg bg-blue-600 text-white text-xs lg:text-sm font-medium hover:bg-blue-700 transition-colors whitespace-nowrap`}
                 title="List your property"
               >
                 <span className="hidden lg:inline">List your property</span>
                 <span className="lg:hidden">List Property</span>
               </button>
               
-              {/* Mobile List Property Button */}
-              <button
-                onClick={handleListProperty}
-                className="md:hidden inline-flex items-center px-2 py-2 rounded-lg bg-blue-600 text-white text-xs font-medium hover:bg-blue-700 transition-colors"
-                title="List your property"
-              >
-                <FaBuilding className="text-sm" />
-              </button>
+              {/* Mobile List Property Button - Hide when in property owner dashboard */}
+              {!isInPropertyOwnerDashboard() && (
+                <button
+                  onClick={handleListProperty}
+                  className="md:hidden inline-flex items-center px-2 py-2 rounded-lg bg-blue-600 text-white text-xs font-medium hover:bg-blue-700 transition-colors"
+                  title="List your property"
+                >
+                  <FaBuilding className="text-sm" />
+                </button>
+              )}
               
-              {/* Property Dashboard - Only for authenticated hosts */}
+              {/* Property Dashboard - Hide on small screens when in dashboard mode */}
               {isAuthenticated && user?.userType === 'host' && (
                 <>
                   <button
                     onClick={goToPropertyDashboard}
-                    className="hidden md:inline-flex items-center px-2 lg:px-3 py-2 rounded-lg bg-green-600 text-white text-xs lg:text-sm font-medium hover:bg-green-700 transition-colors whitespace-nowrap"
+                    className={`${isInPropertyOwnerDashboard() ? 'hidden lg:inline-flex' : 'hidden md:inline-flex'} items-center px-2 lg:px-3 py-2 rounded-lg bg-green-600 text-white text-xs lg:text-sm font-medium hover:bg-green-700 transition-colors whitespace-nowrap`}
                     title="Property Owner Dashboard"
                   >
                     <span className="hidden lg:inline">Dashboard</span>
                     <span className="lg:hidden">Dash</span>
                   </button>
                   
-                  {/* Mobile Dashboard Button */}
-                  <button
-                    onClick={goToPropertyDashboard}
-                    className="md:hidden inline-flex items-center px-2 py-2 rounded-lg bg-green-600 text-white text-xs font-medium hover:bg-green-700 transition-colors"
-                    title="Property Owner Dashboard"
-                  >
-                    <FaChartLine className="text-sm" />
-                  </button>
+                  {/* Mobile Dashboard Button - Hide when in property owner dashboard */}
+                  {!isInPropertyOwnerDashboard() && (
+                    <button
+                      onClick={goToPropertyDashboard}
+                      className="md:hidden inline-flex items-center px-2 py-2 rounded-lg bg-green-600 text-white text-xs font-medium hover:bg-green-700 transition-colors"
+                      title="Property Owner Dashboard"
+                    >
+                      <FaChartLine className="text-sm" />
+                    </button>
+                  )}
                 </>
               )}
               {/* Analytics Dropdown - Booking.com Style */}
