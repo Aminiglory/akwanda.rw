@@ -40,7 +40,12 @@ const Register = () => {
     
     if (result.success) {
       toast.success('Account created');
-      navigate('/dashboard');
+      const role = (formData.userType || '').toLowerCase();
+      if (role === 'host') {
+        navigate('/user-dashboard');
+      } else {
+        navigate('/dashboard');
+      }
     } else {
       const message = result.error || 'Registration failed. Please try again.';
       setError(message);

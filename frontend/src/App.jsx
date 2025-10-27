@@ -4,7 +4,7 @@ import './App.css'
 import { AuthProvider } from './contexts/AuthContext'
 import { SocketProvider } from './contexts/SocketContext'
 import { Toaster } from 'react-hot-toast'
-import { ProtectedRoute, AdminRoute } from './components/ProtectedRoute'
+import { ProtectedRoute, AdminRoute, HostRoute } from './components/ProtectedRoute'
 import Navbar from './components/Navbar'
 import ErrorBoundary from './components/ErrorBoundary'
 import Footer from './components/Footer'
@@ -16,6 +16,7 @@ import AirportTaxis from './pages/AirportTaxis'
 import ApartmentDetails from './pages/ApartmentDetails'
 import Login from './pages/Login'
 import Register from './pages/Register'
+import OwnerLogin from './pages/OwnerLogin'
 import Dashboard from './pages/Dashboard'
 import UserDashboard from './pages/UserDashboard'
 import UploadProperty from './pages/UploadProperty'
@@ -126,14 +127,15 @@ function App() {
             <Route path="/booking/:id" element={<BookingProcess />} />
             <Route path="/booking-confirmation/:id" element={<BookingConfirmation />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/owner-login" element={<OwnerLogin />} />
             <Route path="/register" element={<Register />} />
             <Route path="/dashboard" element={<ProtectedRoute><div className="dashboard"><Dashboard /></div></ProtectedRoute>} />
-            <Route path="/user-dashboard" element={<ProtectedRoute><div className="dashboard"><UserDashboard /></div></ProtectedRoute>} />
+            <Route path="/user-dashboard" element={<HostRoute><div className="dashboard"><UserDashboard /></div></HostRoute>} />
             <Route path="/profile" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-            <Route path="/upload" element={<ProtectedRoute><EnhancedUploadProperty /></ProtectedRoute>} />
-            <Route path="/upload-property" element={<ProtectedRoute><EnhancedUploadProperty /></ProtectedRoute>} />
-            <Route path="/upload-legacy" element={<ProtectedRoute><UploadProperty /></ProtectedRoute>} />
+            <Route path="/upload" element={<HostRoute><EnhancedUploadProperty /></HostRoute>} />
+            <Route path="/upload-property" element={<HostRoute><EnhancedUploadProperty /></HostRoute>} />
+            <Route path="/upload-legacy" element={<HostRoute><UploadProperty /></HostRoute>} />
             <Route path="/admin" element={<AdminRoute><div className="dashboard"><AdminDashboard /></div></AdminRoute>} />
             <Route path="/admin/profile" element={<AdminRoute><div className="dashboard"><AdminProfile /></div></AdminRoute>} />
             <Route path="/admin/landing" element={<AdminRoute><div className="dashboard"><AdminLanding /></div></AdminRoute>} />
@@ -145,14 +147,14 @@ function App() {
             <Route path="/billing/rra-ebm" element={<RRAEBMIntegration />} />
             <Route path="/support" element={<CustomerSupport />} />
             <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
-            <Route path="/my-bookings" element={<ProtectedRoute><div className="dashboard"><PropertyOwnerBookings /></div></ProtectedRoute>} />
+            <Route path="/my-bookings" element={<HostRoute><div className="dashboard"><PropertyOwnerBookings /></div></HostRoute>} />
             {/* Removed /owner-dashboard route; use /my-bookings */}
-            <Route path="/owner/cars" element={<ProtectedRoute><div className="dashboard"><CarOwnerDashboard /></div></ProtectedRoute>} />
+            <Route path="/owner/cars" element={<HostRoute><div className="dashboard"><CarOwnerDashboard /></div></HostRoute>} />
             <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
-            <Route path="/owner/promotions" element={<ProtectedRoute><div className="dashboard"><OwnerPromotions /></div></ProtectedRoute>} />
-            <Route path="/owner/reviews" element={<ProtectedRoute><div className="dashboard"><OwnerReviews /></div></ProtectedRoute>} />
-            <Route path="/owner/direct-booking" element={<ProtectedRoute><DirectBooking /></ProtectedRoute>} />
-            <Route path="/owner/workers" element={<ProtectedRoute><div className="dashboard"><WorkersManagement /></div></ProtectedRoute>} />
+            <Route path="/owner/promotions" element={<HostRoute><div className="dashboard"><OwnerPromotions /></div></HostRoute>} />
+            <Route path="/owner/reviews" element={<HostRoute><div className="dashboard"><OwnerReviews /></div></HostRoute>} />
+            <Route path="/owner/direct-booking" element={<HostRoute><DirectBooking /></HostRoute>} />
+            <Route path="/owner/workers" element={<HostRoute><div className="dashboard"><WorkersManagement /></div></HostRoute>} />
             <Route path="/invoice/:id" element={<ProtectedRoute><Invoice /></ProtectedRoute>} />
             <Route path="/receipt/:id" element={<ProtectedRoute><Receipt /></ProtectedRoute>} />
             <Route path="/test-upload" element={<TestUpload />} />

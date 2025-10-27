@@ -76,6 +76,25 @@ const AdminDashboard = () => {
         }
       };
 
+  // Backfill legacy properties: assign propertyNumber and promote owners to host
+  const backfillProperties = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/admin/backfill/properties-owner-codes`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || 'Backfill failed');
+      const { updatedProperties = 0, promotedOwners = 0, totalProperties = 0 } = data || {};
+      toast.success(`Backfill done • Updated: ${updatedProperties} • Promoted owners: ${promotedOwners} • Total props: ${totalProperties}`);
+      await fetchDashboardData();
+      setActiveTab('properties');
+    } catch (e) {
+      toast.error(e.message || 'Failed to run backfill');
+    }
+  };
+
   // Admin user actions (moved to component scope)
   const viewUserDetails = async (id) => {
     try {
@@ -205,30 +224,7 @@ const AdminDashboard = () => {
   };
 
   // Seed a few demo properties for quick testing
-  const seedDemoProperties = async () => {
-    try {
-      const res = await fetch(`${API_URL}/api/admin/seed-demo-properties`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' }
-      });
-      const text = await res.text();
-      let data = {};
-      try { data = text ? JSON.parse(text) : {}; } catch (_) { /* non-JSON */ }
-      if (!res.ok) {
-        const msg = data?.message || `Failed to seed properties (status ${res.status})`;
-        console.error('Seed demo error:', { status: res.status, body: text });
-        throw new Error(msg);
-      }
-      const created = data?.created ?? 0;
-      const skipped = data?.skipped ?? 0;
-      toast.success(`Seed complete. Created ${created}, skipped ${skipped}.`);
-      await fetchDashboardData();
-      setActiveTab('properties');
-    } catch (e) {
-      toast.error(e?.message || 'Seeding failed');
-    }
-  };
+  
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -301,7 +297,22 @@ const AdminDashboard = () => {
               <h1 className="text-2xl md:text-3xl font-bold text-gray-900 leading-tight">Admin Dashboard</h1>
               <p className="text-sm md:text-base text-gray-600 mt-1">Manage your AKWANDA platform</p>
             </div>
-            
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={backfillProperties}
+                className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors"
+                title="Assign property numbers and promote owners to host"
+              >
+                Backfill Properties
+              </button>
+              <button
+                onClick={seedDemoProperties}
+                className="px-4 py-2 rounded-lg bg-gray-100 text-gray-800 text-sm font-medium hover:bg-gray-200 transition-colors"
+                title="Seed a few demo properties for admin"
+              >
+                Seed Demo Properties
+              </button>
+            </div>
           </div>
         </div>
       </div>

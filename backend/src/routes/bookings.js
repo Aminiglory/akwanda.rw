@@ -7,6 +7,7 @@ const Commission = require('../tables/commission');
 const Notification = require('../tables/notification');
 const User = require('../tables/user');
 const bcrypt = require('bcryptjs');
+const Invoice = require('../tables/invoice');
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
@@ -71,6 +72,32 @@ router.post('/:id/confirm', requireAuth, requireWorkerPrivilege('canConfirmBooki
     booking.status = 'confirmed';
     await booking.save();
 
+    try {
+      // Ensure invoice reflects latest booking info
+      await Invoice.findOneAndUpdate(
+        { booking: booking._id },
+        {
+          booking: booking._id,
+          property: booking.property?._id || booking.property,
+          host: booking.property?.host || (booking.property && booking.property.host),
+          guest: booking.guest?._id || booking.guest,
+          confirmationCode: booking.confirmationCode,
+          propertyNumber: booking.property?.propertyNumber,
+          amountBeforeTax: booking.amountBeforeTax || 0,
+          taxAmount: booking.taxAmount || 0,
+          taxRate: booking.taxRate || 3,
+          totalAmount: booking.totalAmount || 0,
+          commissionAmount: booking.commissionAmount || 0,
+          commissionPaid: booking.commissionPaid || false,
+          paymentMethod: booking.paymentMethod,
+          paymentStatus: booking.paymentStatus,
+          issuedAt: booking.createdAt || new Date(),
+          paidAt: booking.paymentStatus === 'paid' ? new Date() : undefined
+        },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      );
+    } catch (_) { /* invoice upsert non-blocking */ }
+
     const confirmedBy = isAdmin ? 'admin' : 'owner';
     await Notification.create({
       type: 'booking_confirmed',
@@ -80,6 +107,33 @@ router.post('/:id/confirm', requireAuth, requireWorkerPrivilege('canConfirmBooki
       property: booking.property._id,
       recipientUser: booking.guest._id
     });
+
+    // Create invoice record for reporting and analytics
+    try {
+      const prop = property; // already loaded
+      await Invoice.findOneAndUpdate(
+        { booking: booking._id },
+        {
+          booking: booking._id,
+          property: prop._id,
+          host: prop.host,
+          guest: req.user.id,
+          confirmationCode: booking.confirmationCode,
+          propertyNumber: prop.propertyNumber,
+          amountBeforeTax: booking.amountBeforeTax || 0,
+          taxAmount: booking.taxAmount || 0,
+          taxRate: booking.taxRate || 3,
+          totalAmount: booking.totalAmount || 0,
+          commissionAmount: booking.commissionAmount || 0,
+          commissionPaid: booking.commissionPaid || false,
+          paymentMethod: booking.paymentMethod,
+          paymentStatus: booking.paymentStatus,
+          issuedAt: booking.createdAt || new Date(),
+          paidAt: booking.paymentStatus === 'paid' ? new Date() : undefined
+        },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      );
+    } catch (_) { /* invoice upsert non-blocking */ }
 
     if (booking.commissionAmount > 0) {
       await Notification.create({
@@ -562,6 +616,17 @@ router.patch('/:id/status', requireAuth, async (req, res) => {
 
     booking.status = status;
     await booking.save();
+
+    try {
+      await Invoice.findOneAndUpdate(
+        { booking: booking._id },
+        {
+          commissionPaid: booking.commissionPaid || false,
+          paymentStatus: booking.paymentStatus
+        },
+        { upsert: true }
+      );
+    } catch (_) { /* invoice upsert non-blocking */ }
 
     await Notification.create({
       type: 'booking_status_updated',

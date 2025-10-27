@@ -48,6 +48,8 @@ const propertySchema = new mongoose.Schema(
     commissionRate: { type: Number, default: 10, min: 8, max: 12 },
     visibilityLevel: { type: String, enum: ['standard', 'premium', 'featured'], default: 'standard' },
     featuredUntil: { type: Date },
+    // Booking.com-like globally unique property identifier (human-friendly)
+    propertyNumber: { type: String, unique: true, index: true },
     promotions: [{
       type: { type: String, enum: ['last_minute','advance_purchase','coupon','member_rate'], required: true },
       title: { type: String },
@@ -73,6 +75,53 @@ const propertySchema = new mongoose.Schema(
   }, { timestamps: true }
 );
 
+// Generate a human-friendly unique property number, e.g. PR-AB12CD
+async function generateUniquePropertyNumber(Model) {
+  const tryOnce = async () => {
+    const rand = Math.random().toString(36).slice(2, 8).toUpperCase();
+    const code = `PR-${rand}`;
+    const exists = await Model.findOne({ propertyNumber: code }).select('_id').lean();
+    return exists ? null : code;
+  };
+  for (let i = 0; i < 5; i++) {
+    const code = await tryOnce();
+    if (code) return code;
+  }
+  // Fallback with timestamp component if rare collision persists
+  const fallback = `PR-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2,4).toUpperCase()}`;
+  return fallback;
+}
+
+// Ensure propertyNumber on save
+propertySchema.pre('save', async function(next) {
+  try {
+    if (!this.propertyNumber) {
+      this.propertyNumber = await generateUniquePropertyNumber(this.constructor);
+    }
+    next();
+  } catch (e) {
+    next(e);
+  }
+});
+
+// Ensure propertyNumber on insertMany (seed/imports bypass save middleware)
+propertySchema.pre('insertMany', async function(next, docs) {
+  try {
+    if (!Array.isArray(docs)) return next();
+    for (const d of docs) {
+      if (!d.propertyNumber) {
+        // Use the model from this to check uniqueness
+        const Model = this.model ? this.model : mongoose.model('Property');
+        d.propertyNumber = await generateUniquePropertyNumber(Model);
+      }
+    }
+    next();
+  } catch (e) {
+    next(e);
+  }
+});
+
 module.exports = mongoose.model('Property', propertySchema);
+
 
 

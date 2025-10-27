@@ -378,6 +378,19 @@ const Navbar = () => {
   };
 
   const avatarUrl = user?.avatar ? makeAbsolute(user.avatar) : null;
+  
+  const goToPropertyDashboard = () => {
+    if (!isAuthenticated) {
+      navigate('/login?redirect=/user-dashboard');
+      return;
+    }
+    if (user?.userType === 'host') {
+      navigate('/user-dashboard');
+      return;
+    }
+    toast.error('Please sign in with a Property Owner account to access the dashboard.');
+    navigate('/register');
+  };
 
   return (
     <>
@@ -547,6 +560,14 @@ const Navbar = () => {
 
             {/* Right Side - Booking.com Style */}
             <div className="flex flex-nowrap items-center gap-3">
+              {/* Property Dashboard entry point */}
+              <button
+                onClick={goToPropertyDashboard}
+                className="hidden sm:inline-flex items-center px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors"
+                title="Property Owner Dashboard"
+              >
+                Property Dashboard
+              </button>
               {/* Analytics Dropdown - Booking.com Style */}
               {isAuthenticated && user?.userType === 'host' && (
                 <div className="hidden lg:block relative">
@@ -631,6 +652,12 @@ const Navbar = () => {
                     className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600"
                   >
                     Login
+                  </Link>
+                  <Link
+                    to="/owner-login"
+                    className="px-3 py-2 text-sm font-medium text-blue-700 hover:text-blue-900"
+                  >
+                    Owner Login
                   </Link>
                   <Link
                     to="/register"

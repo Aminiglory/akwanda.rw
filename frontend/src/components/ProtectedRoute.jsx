@@ -59,3 +59,33 @@ export const AdminRoute = ({ children }) => {
   }
   return children;
 };
+
+export const HostRoute = ({ children }) => {
+  const { isAuthenticated, user, isLoading } = useAuth();
+  const location = useLocation();
+  if (isLoading) {
+    return (
+      <div className="w-full h-screen bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-white/30 border-t-white rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-white text-lg animate-pulse">Checking owner access...</p>
+        </div>
+      </div>
+    );
+  }
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (user?.userType !== 'host') return <Navigate to="/dashboard" replace />;
+  if (user?.isBlocked) {
+    const allowed = [
+      '/notifications',
+      '/billing/pay-commission',
+      '/payment/mtn-mobile-money',
+      '/logout-success'
+    ];
+    const path = location.pathname || '';
+    const isAllowed = allowed.some(a => path.startsWith(a));
+    if (!isAllowed) return <Navigate to="/billing/pay-commission" replace />;
+  }
+  return children;
+};
+

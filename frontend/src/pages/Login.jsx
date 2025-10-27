@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { FaEnvelope, FaLock, FaEye, FaEyeSlash } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
@@ -21,6 +21,8 @@ const Login = () => {
     }));
   };
 
+  const location = useLocation();
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -29,8 +31,17 @@ const Login = () => {
     
     if (result.success) {
       toast.success('Signed in successfully');
-      if (result.user?.userType === 'admin') {
+      const role = result.user?.userType;
+      const params = new URLSearchParams(location.search);
+      const redirect = params.get('redirect');
+      if (role === 'admin') {
         navigate('/admin');
+      } else if (role === 'host') {
+        if (redirect && redirect.startsWith('/user-dashboard')) {
+          navigate(redirect);
+        } else {
+          navigate('/user-dashboard');
+        }
       } else {
         navigate('/dashboard');
       }

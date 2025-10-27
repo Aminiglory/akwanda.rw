@@ -1,3 +1,41 @@
+// Backfill legacy properties: assign propertyNumber and promote owners to host
+// POST /api/admin/backfill/properties-owner-codes
+router.post('/backfill/properties-owner-codes', requireAdmin, async (req, res) => {
+  try {
+    const Property = require('../tables/property');
+    const User = require('../tables/user');
+
+    const props = await Property.find({});
+    let updatedProperties = 0;
+    let promotedOwners = 0;
+    const touchedOwners = new Set();
+
+    for (const p of props) {
+      // Ensure propertyNumber is present (pre-save hook will generate if missing)
+      if (!p.propertyNumber) {
+        // touch to trigger pre-save generation
+        p.markModified('title');
+        await p.save();
+        updatedProperties++;
+      }
+      // Ensure host is a host userType
+      if (p.host && !touchedOwners.has(String(p.host))) {
+        const owner = await User.findById(p.host);
+        if (owner && owner.userType !== 'host' && owner.userType !== 'admin') {
+          owner.userType = 'host';
+          await owner.save();
+          promotedOwners++;
+        }
+        touchedOwners.add(String(p.host));
+      }
+    }
+
+    return res.json({ success: true, updatedProperties, promotedOwners, totalProperties: props.length });
+  } catch (e) {
+    console.error('Backfill error:', e);
+    return res.status(500).json({ message: 'Failed to backfill properties', error: e?.message || String(e) });
+  }
+});
 const express = require('express');
 const router = express.Router();
 const User = require('../tables/user');

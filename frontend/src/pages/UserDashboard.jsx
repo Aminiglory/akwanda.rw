@@ -33,10 +33,18 @@ const UserDashboard = () => {
 
   const [properties, setProperties] = useState([]);
   const [bookings, setBookings] = useState([]);
+  const [selectedPropertyId, setSelectedPropertyId] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [unreadCount, setUnreadCount] = useState(0);
+  
+  const getBookingCountFor = (propertyId) => {
+    try {
+      const pid = String(propertyId || '');
+      return bookings.filter(b => String(b.property?._id || b.property) === pid).length;
+    } catch (_) { return 0; }
+  };
 
   useEffect(() => {
     fetchDashboardData();
@@ -50,7 +58,7 @@ const UserDashboard = () => {
           fallback: { properties: [] },
           timeout: 15000
         }),
-        safeApiGet('/api/bookings/mine', { 
+        safeApiGet('/api/bookings/property-owner', { 
           fallback: { bookings: [] },
           timeout: 15000
         }),
@@ -389,6 +397,9 @@ const UserDashboard = () => {
                         <div key={property._id} className="flex items-center justify-between p-3 bg-white rounded-lg">
                           <div>
                             <p className="font-medium text-gray-900">{property.title}</p>
+                            {property.propertyNumber && (
+                              <p className="text-xs text-gray-500">{property.propertyNumber}</p>
+                            )}
                             <p className="text-sm text-gray-600">{property.city}</p>
                           </div>
                           <div className="text-right">
@@ -500,7 +511,17 @@ const UserDashboard = () => {
                       />
                       <div className="p-4">
                         <div className="flex items-start justify-between mb-2">
-                          <h4 className="font-semibold text-gray-900">{property.title}</h4>
+                          <h4 className="font-semibold text-gray-900 flex items-center gap-2">
+                            {property.title}
+                            {property.propertyNumber && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700" title="Property Number">
+                                {property.propertyNumber}
+                              </span>
+                            )}
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                              {getBookingCountFor(property._id)} bookings
+                            </span>
+                          </h4>
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(property.isActive ? 'active' : 'inactive')}`}>
                             {property.isActive ? 'Active' : 'Inactive'}
                           </span>
@@ -586,6 +607,19 @@ const UserDashboard = () => {
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-lg font-semibold text-gray-900">All Bookings</h3>
                   <div className="flex items-center space-x-2">
+                    <select
+                      value={selectedPropertyId}
+                      onChange={e => setSelectedPropertyId(e.target.value)}
+                      className="px-4 py-3 border border-gray-300 rounded-lg bg-white text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      title="Filter by property"
+                    >
+                      <option value="">All Properties</option>
+                      {properties.map(p => (
+                        <option key={p._id} value={p._id}>
+                          {(p.propertyNumber ? `${p.propertyNumber} · ` : '') + p.title}
+                        </option>
+                      ))}
+                    </select>
                     <div className="relative">
                       <FaEye className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                       <input
@@ -619,7 +653,8 @@ const UserDashboard = () => {
                                           b.guest?.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                                           b.guest?.lastName.toLowerCase().includes(searchTerm.toLowerCase());
                       const matchesStatus = filterStatus ? b.status === filterStatus : true;
-                      return matchesSearch && matchesStatus;
+                      const matchesProperty = selectedPropertyId ? String(b.property?._id) === String(selectedPropertyId) : true;
+                      return matchesSearch && matchesStatus && matchesProperty;
                     })
                     .map((booking) => (
                     <div key={booking._id} className="bg-gray-50 rounded-xl p-6 hover:shadow-md transition-shadow">
@@ -634,7 +669,14 @@ const UserDashboard = () => {
                               onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=100&h=100&fit=crop'; }}
                             />
                             <div className="flex-1">
-                              <h4 className="font-semibold text-gray-900">{booking.property?.title}</h4>
+                              <h4 className="font-semibold text-gray-900 flex items-center gap-2">
+                                {booking.property?.title}
+                                {booking.property?.propertyNumber && (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700" title="Property Number">
+                                    {booking.property.propertyNumber}
+                                  </span>
+                                )}
+                              </h4>
                               <div className="flex items-center mt-1 text-gray-600">
                                 <FaMapMarkerAlt className="mr-1" />
                                 <span className="text-sm">{booking.property?.city}</span>
