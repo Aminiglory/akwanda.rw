@@ -388,6 +388,7 @@ const Navbar = () => {
       navigate('/user-dashboard');
       return;
     }
+    // This should not be reachable since button is only shown to hosts
     toast.error('Please sign in with a Property Owner account to access the dashboard.');
     navigate('/register');
   };
@@ -560,14 +561,16 @@ const Navbar = () => {
 
             {/* Right Side - Booking.com Style */}
             <div className="flex flex-nowrap items-center gap-3">
-              {/* Property Dashboard entry point */}
-              <button
-                onClick={goToPropertyDashboard}
-                className="hidden sm:inline-flex items-center px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors"
-                title="Property Owner Dashboard"
-              >
-                Property Dashboard
-              </button>
+              {/* Property Dashboard entry point - Only for authenticated hosts */}
+              {isAuthenticated && user?.userType === 'host' && (
+                <button
+                  onClick={goToPropertyDashboard}
+                  className="hidden sm:inline-flex items-center px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors"
+                  title="Property Owner Dashboard"
+                >
+                  Property Dashboard
+                </button>
+              )}
               {/* Analytics Dropdown - Booking.com Style */}
               {isAuthenticated && user?.userType === 'host' && (
                 <div className="hidden lg:block relative">

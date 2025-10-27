@@ -1,3 +1,32 @@
+const express = require('express');
+const router = express.Router();
+const User = require('../tables/user');
+const Property = require('../tables/property');
+const Booking = require('../tables/booking');
+const Notification = require('../tables/notification');
+const Commission = require('../tables/commission');
+const jwt = require('jsonwebtoken');
+const path = require('path');
+const fs = require('fs');
+const multer = require('multer');
+const { uploadBuffer } = require('../utils/cloudinary');
+const bcrypt = require('bcryptjs');
+
+const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
+
+function requireAdmin(req, res, next) {
+    const token = req.cookies.akw_token || (req.headers.authorization || '').replace('Bearer ', '');
+    if (!token) return res.status(401).json({ message: 'Unauthorized' });
+    try {
+        const user = jwt.verify(token, JWT_SECRET);
+        if (user.userType !== 'admin') return res.status(403).json({ message: 'Admin only' });
+        req.user = user;
+        return next();
+    } catch (e) {
+        return res.status(401).json({ message: 'Invalid token' });
+    }
+}
+
 // Backfill legacy properties: assign propertyNumber and promote owners to host
 // POST /api/admin/backfill/properties-owner-codes
 router.post('/backfill/properties-owner-codes', requireAdmin, async (req, res) => {
@@ -36,34 +65,6 @@ router.post('/backfill/properties-owner-codes', requireAdmin, async (req, res) =
     return res.status(500).json({ message: 'Failed to backfill properties', error: e?.message || String(e) });
   }
 });
-const express = require('express');
-const router = express.Router();
-const User = require('../tables/user');
-const Property = require('../tables/property');
-const Booking = require('../tables/booking');
-const Notification = require('../tables/notification');
-const Commission = require('../tables/commission');
-const jwt = require('jsonwebtoken');
-const path = require('path');
-const fs = require('fs');
-const multer = require('multer');
-const { uploadBuffer } = require('../utils/cloudinary');
-const bcrypt = require('bcryptjs');
-
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
-
-function requireAdmin(req, res, next) {
-    const token = req.cookies.akw_token || (req.headers.authorization || '').replace('Bearer ', '');
-    if (!token) return res.status(401).json({ message: 'Unauthorized' });
-    try {
-        const user = jwt.verify(token, JWT_SECRET);
-        if (user.userType !== 'admin') return res.status(403).json({ message: 'Admin only' });
-        req.user = user;
-        return next();
-    } catch (e) {
-        return res.status(401).json({ message: 'Invalid token' });
-    }
-}
 
 // Admin overview metrics
 router.get('/overview', requireAdmin, async (req, res) => {
@@ -336,7 +337,6 @@ router.delete('/users/:id', requireAdmin, async (req, res) => {
     }
 });
 
-module.exports = router;
 // Additional admin endpoints
 // Landing page metrics endpoint (public)
 router.get('/metrics', async (req, res) => {
