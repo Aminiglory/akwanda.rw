@@ -86,6 +86,11 @@
   color: #2B1B0E; /* Espresso */
 }
 
+/* Ensure mobile menu has pure white background */
+.mobile-menu {
+  background-color: #ffffff !important;
+}
+
 /* Scrollbar styling - apply cocoa palette */
 /* Firefox */
 * {
