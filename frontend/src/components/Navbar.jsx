@@ -418,10 +418,9 @@ const Navbar = () => {
 
   return (
     <>
-      <nav className="w-full bg-white navbar-shadow border-b border-gray-200 relative">
-        {/* Top Bar - Like Booking.com */}
-        <div className="bg-gray-800 text-white py-2 px-4">
-          <div className="max-w-7xl mx-auto flex justify-between items-center text-xs">
+      {/* Top Bar - First Level */}
+      <div className="w-full bg-[#4b2a00] text-white py-2 px-4 border-b border-[#3a2000]">
+        <div className="max-w-7xl mx-auto flex justify-between items-center text-xs">
             <div className="flex items-center space-x-4 lg:space-x-6">
               {/* Property Owner Links - Show when authenticated as host */}
               {isAuthenticated && user?.userType === 'host' && (
@@ -429,20 +428,20 @@ const Navbar = () => {
                   {userStats.properties > 0 && (
                     <Link
                       to="/dashboard"
-                      className="hidden sm:inline hover:text-gray-200 font-medium"
+                      className="hidden sm:inline hover:text-white font-medium"
                     >
                       Dashboard
                     </Link>
                   )}
                   <Link
                     to="/my-bookings"
-                    className="hidden sm:inline hover:text-gray-200 font-medium"
+                    className="hidden sm:inline hover:text-white font-medium"
                   >
                     My Bookings
                   </Link>
                   <Link
                     to="/owner/cars"
-                    className="hidden sm:inline hover:text-gray-200 font-medium"
+                    className="hidden sm:inline hover:text-white font-medium"
                   >
                     My Cars
                   </Link>
@@ -454,19 +453,19 @@ const Navbar = () => {
                 <>
                   <Link
                     to="/admin"
-                    className="hidden sm:inline hover:text-gray-200 font-medium"
+                    className="hidden sm:inline hover:text-white font-medium"
                   >
                     Admin Dashboard
                   </Link>
                   <Link
                     to="/admin/reports"
-                    className="hidden sm:inline hover:text-gray-200 font-medium"
+                    className="hidden sm:inline hover:text-white font-medium"
                   >
                     Reports
                   </Link>
                   <Link
                     to="/admin/landing"
-                    className="hidden sm:inline hover:text-gray-200 font-medium"
+                    className="hidden sm:inline hover:text-white font-medium"
                   >
                     Content
                   </Link>
@@ -476,7 +475,7 @@ const Navbar = () => {
               {/* Universal Links - Show to all users */}
               <Link
                 to="/support"
-                className="hover:text-gray-200 font-medium"
+                className="hover:text-white font-medium"
               >
                 Customer Support
               </Link>
@@ -486,45 +485,47 @@ const Navbar = () => {
                 <>
                   <Link
                     to="/notifications"
-                    className="hidden sm:inline hover:text-gray-200 font-medium"
+                    className="hidden sm:inline hover:text-white font-medium"
                   >
                     Notifications
                   </Link>
-                  <span className="hidden lg:inline hover:text-gray-200 cursor-pointer font-medium">
+                  <span className="hidden lg:inline hover:text-white cursor-pointer font-medium">
                     Partner Portal
                   </span>
                 </>
               )}
             </div>
             <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2 hover:text-gray-200 cursor-pointer">
+              <div className="flex items-center space-x-2 hover:text-white cursor-pointer">
                 <FaGlobe className="text-sm" />
                 <span className="hidden sm:inline">English</span>
               </div>
-              <div className="flex items-center space-x-2 hover:text-gray-200 cursor-pointer">
+              <div className="flex items-center space-x-2 hover:text-white cursor-pointer">
                 <span className="font-semibold">RWF</span>
               </div>
             </div>
-          </div>
+        </div>
+      </div>
 
-        {/* Friendly error banner */}
-        {uiError && (
-          <div className="bg-red-50 text-red-700 px-4 py-2 text-sm border-t border-b border-red-200">
-            <div className="max-w-7xl mx-auto flex justify-between items-center">
-              <span>{uiError}</span>
-              <button className="text-xs underline" onClick={() => setUiError(null)}>Dismiss</button>
-            </div>
+      {/* Friendly error banner */}
+      {uiError && (
+        <div className="w-full bg-red-50 text-red-700 px-4 py-2 text-sm border-b border-red-200">
+          <div className="max-w-7xl mx-auto flex justify-between items-center">
+            <span>{uiError}</span>
+            <button className="text-xs underline" onClick={() => setUiError(null)}>Dismiss</button>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Main Navigation - Booking.com Style */}
+      {/* Second Bar - Navigation Level */}
+      <nav className="w-full bg-[#f5f0e8] border-b border-[#e0d5c7] navbar-shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
             {/* Logo */}
             <div className="flex items-center space-x-8">
               <Link
                 to="/"
-                className="text-xl font-bold text-gray-800 hover:text-gray-700"
+                className="text-xl font-bold text-[#4b2a00] hover:text-[#6b3f1f]"
               >
                 AKWANDA.rw
               </Link>
@@ -532,15 +533,15 @@ const Navbar = () => {
               {/* Property Owner Mode Indicator */}
               {user?.userType === 'host' && isInPropertyOwnerDashboard() && (
                 <div className="hidden lg:flex items-center space-x-4">
-                  <div className="flex items-center space-x-2 px-3 py-2 bg-gray-100 rounded-lg border border-gray-300">
-                    <FaBuilding className="text-gray-700 text-sm" />
-                    <span className="text-sm font-medium text-gray-800">Property Owner Mode</span>
+                  <div className="flex items-center space-x-2 px-3 py-2 bg-[#e8dcc8] rounded-lg border border-[#d0c4b0]">
+                    <FaBuilding className="text-[#8b6f47] text-sm" />
+                    <span className="text-sm font-medium text-[#6b5744]">Property Owner Mode</span>
                   </div>
-                  <div className="text-xs text-gray-600">
+                  <div className="text-xs text-[#F5E6D3]">
                     <span>To book as guest, </span>
                     <button 
                       onClick={handleLogout}
-                      className="text-gray-700 hover:text-gray-800 underline font-medium"
+                      className="text-[#8b6f47] hover:text-[#4b2a00] underline font-medium"
                     >
                       logout and login as guest
                     </button>
@@ -561,8 +562,8 @@ const Navbar = () => {
                         <button
                           onClick={() => toggleDropdown(item.label)}
                           className={`flex items-center space-x-1 px-3 py-2 rounded-lg transition-all duration-300 font-medium text-sm ${isActive
-                              ? "bg-gray-700 text-white shadow-md"
-                              : "text-gray-700 hover:text-gray-700 hover:bg-gray-50"
+                              ? "bg-[#a06b42] text-white shadow-md"
+                              : "text-[#6b5744] hover:text-[#4b2a00] hover:bg-[#e8dcc8]"
                             }`}
                         >
                           <Icon className="text-sm" />
@@ -572,7 +573,7 @@ const Navbar = () => {
 
                         {/* Dropdown Menu - Booking.com Style */}
                         {isDropdownOpen && (
-                          <div className="absolute top-full left-0 mt-1 w-64 bg-white rounded-xl dropdown-shadow border border-gray-200 py-3 z-50">
+                          <div className="absolute top-full left-0 mt-1 w-64 bg-[#f6e9d8] rounded-xl dropdown-shadow border border-[#d4c4b0] py-3 z-50">
                             {item.children.map((child, childIndex) => {
                               const ChildIcon = child.icon;
                               const isChildActive = isActiveRoute(child.href);
@@ -580,7 +581,7 @@ const Navbar = () => {
                                 <Link
                                   key={childIndex}
                                   to={child.href}
-                                  className={`flex items-center space-x-3 px-4 py-3 text-sm hover:bg-gray-50 transition-colors ${isChildActive ? 'bg-gray-100 text-gray-800' : 'text-gray-700'
+                                  className={`flex items-center space-x-3 px-4 py-3 text-sm hover:bg-white transition-colors ${isChildActive ? 'bg-white text-[#4b2a00]' : 'text-[#4b2a00]'
                                     }`}
                                   onClick={() => setActiveDropdown(null)}
                                 >
@@ -604,7 +605,7 @@ const Navbar = () => {
               {/* List your property - Hidden on small screens completely */}
               <button
                 onClick={handleListProperty}
-                className="hidden lg:inline-flex items-center px-2 lg:px-3 py-2 rounded-lg bg-gray-700 text-white text-xs lg:text-sm font-medium hover:bg-gray-800 transition-colors whitespace-nowrap"
+                className="hidden lg:inline-flex items-center px-2 lg:px-3 py-2 rounded-lg bg-[#a06b42] text-white text-xs lg:text-sm font-medium hover:bg-[#8f5a32] transition-colors whitespace-nowrap shadow-md"
                 title="List your property"
               >
                 <span className="hidden lg:inline">List your property</span>
@@ -628,8 +629,8 @@ const Navbar = () => {
                   <button
                     onClick={() => toggleDropdown('owner')}
                     className={`flex items-center px-3 py-2 rounded-lg transition-all duration-300 ${activeDropdown === 'owner'
-                        ? "bg-gray-700 text-white shadow-md"
-                        : "text-gray-700 hover:text-gray-700 hover:bg-gray-50"
+                        ? "bg-[#a06b42] text-white shadow-md"
+                        : "text-[#6b5744] hover:text-[#4b2a00] hover:bg-[#e8dcc8]"
                       }`}
                     title="Analytics & Management"
                   >
@@ -638,7 +639,7 @@ const Navbar = () => {
 
                   {/* Owner Management Dropdown - Booking.com Style */}
                   {activeDropdown === 'owner' && (
-                    <div className="absolute top-full right-0 mt-1 w-[900px] bg-white rounded-xl dropdown-shadow border border-gray-200 p-6 z-50">
+                    <div className="absolute top-full right-0 mt-1 w-[900px] bg-[#f6e9d8] rounded-xl dropdown-shadow border border-[#d4c4b0] p-6 z-50">
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-sm">
                         {ownerManagementLinks.map((category, index) => {
                           const CategoryIcon = category.icon;
@@ -675,7 +676,7 @@ const Navbar = () => {
               {isAuthenticated && (
                 <Link
                   to="/favorites"
-                  className="hidden lg:flex items-center px-3 py-2 rounded-lg text-gray-700 hover:text-gray-700 hover:bg-gray-50 transition-colors"
+                  className="hidden lg:flex items-center px-3 py-2 rounded-lg text-[#6b5744] hover:text-[#4b2a00] hover:bg-[#e8dcc8] transition-colors"
                   title="Favorites"
                 >
                   <FaHeart className="text-lg" />
@@ -686,7 +687,7 @@ const Navbar = () => {
               {isAuthenticated && (user?.userType !== 'worker' ? true : !!user?.privileges?.canMessageGuests) && (
                 <Link
                   to="/messages"
-                  className="flex items-center px-3 py-2 rounded-lg text-gray-700 hover:text-gray-700 hover:bg-gray-50 relative transition-colors"
+                  className="flex items-center px-3 py-2 rounded-lg text-[#6b5744] hover:text-[#4b2a00] hover:bg-[#e8dcc8] relative transition-colors"
                   title="Messages"
                 >
                   <FaEnvelope className="text-lg" />
@@ -703,20 +704,20 @@ const Navbar = () => {
                 <div className="flex items-center space-x-1 lg:space-x-2">
                   <Link
                     to="/login"
-                    className="px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium text-gray-700 hover:text-gray-700 whitespace-nowrap"
+                    className="px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium text-[#6b5744] hover:text-[#4b2a00] whitespace-nowrap"
                   >
                     Login
                   </Link>
                   <Link
                     to="/owner-login"
-                    className="hidden sm:inline px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium text-gray-700 hover:text-gray-800 whitespace-nowrap"
+                    className="hidden sm:inline px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium text-[#6b5744] hover:text-[#4b2a00] whitespace-nowrap"
                   >
                     <span className="hidden md:inline">Owner Login</span>
                     <span className="md:hidden">Owner</span>
                   </Link>
                   <Link
                     to="/register"
-                    className="px-2 lg:px-3 py-2 bg-gray-700 text-white text-xs lg:text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors whitespace-nowrap"
+                    className="px-2 lg:px-3 py-2 bg-[#a06b42] text-white text-xs lg:text-sm font-medium rounded-lg hover:bg-[#8f5a32] transition-colors whitespace-nowrap shadow-md"
                   >
                     <span className="hidden sm:inline">Sign Up</span>
                     <span className="sm:hidden">Join</span>
@@ -730,8 +731,8 @@ const Navbar = () => {
                   <button
                     onClick={toggleNotifications}
                     className={`notification-button relative px-3 py-2 rounded-lg transition-colors ${isNotificationOpen
-                        ? 'bg-gray-700 text-white'
-                        : 'text-gray-700 hover:text-gray-700 hover:bg-gray-50'
+                        ? 'bg-[#a06b42] text-white'
+                        : 'text-[#6b5744] hover:text-[#4b2a00] hover:bg-[#e8dcc8]'
                       }`}
                   >
                     <FaBell className="text-lg" />
@@ -742,12 +743,12 @@ const Navbar = () => {
                     )}
                   </button>
                   {isNotificationOpen && (
-                    <div className="notification-dropdown absolute top-full right-0 mt-2 w-80 bg-white rounded-xl dropdown-shadow border border-gray-200 py-2 z-50">
+                    <div className="notification-dropdown absolute top-full right-0 mt-2 w-80 bg-[#f6e9d8] rounded-xl dropdown-shadow border border-[#d4c4b0] py-2 z-50">
                       <div className="px-4 py-2 border-b border-gray-100 font-semibold text-sm flex items-center justify-between">
                         <span>Notifications</span>
                         <Link
                           to="/notifications"
-                          className="text-xs text-gray-700 hover:text-gray-800"
+                          className="text-xs text-gray-700 hover:text-gray-900"
                           onClick={() => setIsNotificationOpen(false)}
                         >
                           View All
@@ -800,7 +801,7 @@ const Navbar = () => {
                     <div className="relative inline-flex items-center">
                       <button
                         onClick={toggleProfile}
-                        className="profile-button flex items-center space-x-2 px-3 py-2 rounded-lg text-gray-700 hover:text-gray-700 hover:bg-gray-50 transition-colors"
+                        className="profile-button flex items-center space-x-2 px-3 py-2 rounded-lg text-[#6b5744] hover:text-[#4b2a00] hover:bg-[#e8dcc8] transition-colors"
                       >
                         <FaUserCircle className="text-lg" />
                         <span className="hidden sm:inline font-medium text-sm">
@@ -814,7 +815,7 @@ const Navbar = () => {
                       </button>
 
                       {isProfileOpen && (
-                        <div className="profile-dropdown absolute top-full right-0 mt-2 w-64 bg-white rounded-xl dropdown-shadow border border-gray-200 py-3 z-50">
+                        <div className="profile-dropdown absolute top-full right-0 mt-2 w-64 bg-[#f6e9d8] rounded-xl dropdown-shadow border border-[#d4c4b0] py-3 z-50">
                           {/* Profile Header */}
                           <div className="px-4 pb-3 border-b border-gray-100">
                             <div className="flex items-center space-x-3">
@@ -969,7 +970,7 @@ const Navbar = () => {
                   {isAuthenticated && (
                     <button
                       onClick={toggleMenu}
-                      className="lg:hidden p-2 text-gray-700 hover:text-gray-800"
+                      className="lg:hidden p-2 text-[#6b5744] hover:text-[#4b2a00]"
                     >
                       {isMenuOpen ? <FaTimes className="text-xl" /> : <FaBars className="text-xl" />}
                     </button>
@@ -977,24 +978,15 @@ const Navbar = () => {
                 </div>
             </div>
           </div>
-        </div>
+      </nav>
 
-        {/* Global banner for deactivated owners - visible on all screens */}
-        {isAuthenticated && user?.userType === 'host' && user?.isBlocked && (
-          <div className="bg-red-50 border-t border-b border-red-200">
-            <div className="max-w-7xl mx-auto px-4 py-2 text-sm text-red-700">
-              Your account is currently deactivated due to unpaid commissions. Actions are limited until reactivated.
-            </div>
-          </div>
-        )}
-
-          {/* Mobile Menu - booking.com Style */}
-          {isMenuOpen && (
-            <div className="lg:hidden bg-white border-t border-gray-200 mobile-menu">
-              <div className="px-4 py-2 space-y-1">
-                {/* Main Navigation Items - Hide for property owners, show only for guests */}
-                {isAuthenticated && user?.userType !== "admin" && user?.userType !== 'host' && (
-                  <>
+      {/* Mobile Menu - booking.com Style */}
+      {isMenuOpen && (
+        <div className="lg:hidden bg-white border-t border-gray-200 mobile-menu">
+          <div className="px-4 py-2 space-y-1">
+            {/* Main Navigation Items - Hide for property owners, show only for guests */}
+            {isAuthenticated && user?.userType !== "admin" && user?.userType !== 'host' && (
+              <>
                     {mainNavItems.map((item, index) => {
                       const Icon = item.icon;
                       const isActive = isActiveRoute(item.href);
@@ -1131,10 +1123,18 @@ const Navbar = () => {
                     <span>Admin Dashboard</span>
                   </Link>
                 )}
-              </div>
-            </div>
-          )}
-      </nav>
+          </div>
+        </div>
+      )}
+
+      {/* Global banner for deactivated owners - visible on all screens */}
+      {isAuthenticated && user?.userType === 'host' && user?.isBlocked && (
+        <div className="w-full bg-red-50 border-b border-red-200">
+          <div className="max-w-7xl mx-auto px-4 py-2 text-sm text-red-700">
+            Your account is currently deactivated due to unpaid commissions. Actions are limited until reactivated.
+          </div>
+        </div>
+      )}
     </>
   );
 };

@@ -13,8 +13,8 @@
   --color-blue-800: #4B2E05; /* Cocoa Brown - emphasis */
   --color-blue-900: #2B1B0E; /* Espresso - deepest tone */
 
-  /* Very light chocolate for navbar - almost white */
-  --color-gray-50: #FEFCF9; /* Very Light Chocolate - navbar background */
+  /* Chocolate-complementary gray scale */
+  --color-gray-50: #FFF9F3; /* White Chocolate - backgrounds */
   --color-gray-100: #F2E2CE; /* Cream Beige - cards */
   --color-gray-200: #E8D6BE; /* Light borders */
   --color-gray-300: #DCC6A8; /* Medium borders */
@@ -80,15 +80,10 @@
     4px 4px 10px #E5E7EB,
     -4px -4px 10px #FFFFFF;
 }
-/* Base document colors with very light chocolate background */
+/* Base document colors with chocolate theme */
 :root, html, body {
-  background-color: #FEFCF9; /* Very Light Chocolate */
+  background-color: #FFF9F3; /* White Chocolate */
   color: #2B1B0E; /* Espresso */
-}
-
-/* Ensure mobile menu has pure white background */
-.mobile-menu {
-  background-color: #ffffff !important;
 }
 
 /* Scrollbar styling - apply cocoa palette */
