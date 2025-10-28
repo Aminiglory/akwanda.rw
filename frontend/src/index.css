@@ -91,6 +91,11 @@
   background-color: #ffffff !important;
 }
 
+/* Navbar should match the page background (very light chocolate) */
+.site-navbar {
+  background-color: var(--color-gray-50);
+}
+
 /* Scrollbar styling - apply cocoa palette */
 /* Firefox */
 * {
