@@ -421,19 +421,19 @@ const Navbar = () => {
       {/* Top Bar - First Level */}
       <div className="w-full bg-[#4b2a00] text-white py-2 px-4 border-b border-[#3a2000]">
         <div className="max-w-7xl mx-auto flex justify-between items-center text-xs">
-            <div className="flex items-center space-x-4 lg:space-x-6">
-              {/* Property Owner Links - Show when authenticated as host */}
-              {isAuthenticated && user?.userType === 'host' && (
-                <>
-                  {userStats.properties > 0 && (
-                    <Link
-                      to="/dashboard"
-                      className="hidden sm:inline hover:text-white font-medium"
-                    >
-                      Dashboard
-                    </Link>
-                  )}
+          <div className="flex items-center space-x-4 lg:space-x-6">
+            {/* Property Owner Links - Show when authenticated as host */}
+            {isAuthenticated && user?.userType === 'host' && (
+              <>
+                {userStats.properties > 0 && (
                   <Link
+                    to="/dashboard"
+                    className="hidden sm:inline hover:text-white font-medium"
+                  >
+                    Dashboard
+                  </Link>
+                )}
+                <Link
                     to="/my-bookings"
                     className="hidden sm:inline hover:text-white font-medium"
                   >
@@ -1038,8 +1038,11 @@ const Navbar = () => {
                         <span>Messages</span>
                       </Link>
                     )}
+                  </>
+                )}
 
-                    {user?.userType === 'host' && userStats.properties > 0 && (
+                {/* Host-specific links (move outside guest-only block) */}
+                {user?.userType === 'host' && userStats.properties > 0 && (
                       <Link
                         to="/dashboard"
                         className="flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
@@ -1102,16 +1105,14 @@ const Navbar = () => {
                                       {l.label}
                                     </Link>
                                   ))}
+                                        </div>
+                                      </details>
+                                    ))}
+                                  </div>
                                 </div>
-                              </details>
-                            ))}
-                          </div>
-                        </div>
 
-                      </>
-                    )}
-                  </>
-                )}
+                              </>
+                            )}
 
                 {isAuthenticated && user?.userType === 'admin' && (
                   <Link

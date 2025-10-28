@@ -76,25 +76,6 @@ const AdminDashboard = () => {
         }
       };
 
-  // Backfill legacy properties: assign propertyNumber and promote owners to host
-  const backfillProperties = async () => {
-    try {
-      const res = await fetch(`${API_URL}/api/admin/backfill/properties-owner-codes`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' }
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.message || 'Backfill failed');
-      const { updatedProperties = 0, promotedOwners = 0, totalProperties = 0 } = data || {};
-      toast.success(`Backfill done • Updated: ${updatedProperties} • Promoted owners: ${promotedOwners} • Total props: ${totalProperties}`);
-      await fetchDashboardData();
-      setActiveTab('properties');
-    } catch (e) {
-      toast.error(e.message || 'Failed to run backfill');
-    }
-  };
-
   // Admin user actions (moved to component scope)
   const viewUserDetails = async (id) => {
     try {
@@ -224,7 +205,45 @@ const AdminDashboard = () => {
   };
 
   // Seed a few demo properties for quick testing
-  
+  // Backfill legacy properties: assign propertyNumber and promote owners to host
+  const backfillProperties = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/admin/backfill/properties-owner-codes`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || 'Backfill failed');
+      const { updatedProperties = 0, promotedOwners = 0, totalProperties = 0 } = data || {};
+      toast.success(`Backfill done • Updated: ${updatedProperties} • Promoted owners: ${promotedOwners} • Total props: ${totalProperties}`);
+      // Refresh dashboard data and switch to properties tab
+      await fetchDashboardData();
+      setActiveTab('properties');
+    } catch (e) {
+      toast.error(e.message || 'Failed to run backfill');
+    }
+  };
+
+  // Seed a few demo properties (safe no-op if endpoint missing)
+  const seedDemoProperties = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/admin/demo/seed-properties`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || 'Seeding demo properties failed');
+      toast.success(data.message || 'Demo properties seeded');
+      await fetchDashboardData();
+      setActiveTab('properties');
+    } catch (e) {
+      // If there is no endpoint, show informative message instead of crashing
+      console.warn('seedDemoProperties failed:', e);
+      toast.error(e.message || 'Failed to seed demo properties');
+    }
+  };
 
   const getStatusColor = (status) => {
     switch (status) {
