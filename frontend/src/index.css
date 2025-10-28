@@ -93,7 +93,8 @@
 
 /* Navbar should match the page background (very light chocolate) */
 .site-navbar {
-  background-color: var(--color-gray-50);
+  /* Use var with fallback and force precedence to override utility classes */
+  background-color: var(--color-gray-50, #FEFCF9) !important;
 }
 
 /* Scrollbar styling - apply cocoa palette */

@@ -1046,8 +1046,11 @@ const Navbar = () => {
                         <span>Messages</span>
                       </Link>
                     )}
+                  </>
+                )}
 
-                    {user?.userType === 'host' && userStats.properties > 0 && (
+                {/* Host-specific links (move outside guest-only block) */}
+                {user?.userType === 'host' && userStats.properties > 0 && (
                       <Link
                         to="/dashboard"
                         className="flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
@@ -1110,16 +1113,14 @@ const Navbar = () => {
                                       {l.label}
                                     </Link>
                                   ))}
+                                        </div>
+                                      </details>
+                                    ))}
+                                  </div>
                                 </div>
-                              </details>
-                            ))}
-                          </div>
-                        </div>
 
-                      </>
-                    )}
-                  </>
-                )}
+                              </>
+                            )}
 
                 {isAuthenticated && user?.userType === 'admin' && (
                   <Link
