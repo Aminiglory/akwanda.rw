@@ -14,16 +14,31 @@ const AdminCommissionManager = () => {
     fetchUsersWithUnpaidCommissions();
   }, []);
 
+  const safeParseJson = async (res) => {
+    const ct = (res.headers && res.headers.get ? res.headers.get('content-type') : '') || '';
+    if (ct.includes('application/json')) {
+      try { return await res.json(); } catch (e) { return {}; }
+    }
+    // Not JSON - return raw text so callers can present a helpful message
+    try {
+      const text = await res.text();
+      return { __raw: text };
+    } catch (_) { return {}; }
+  };
+
   const fetchUsersWithUnpaidCommissions = async () => {
     try {
       setLoading(true);
       const res = await fetch(`${API_URL}/api/admin/users/unpaid-commissions`, {
         credentials: 'include'
       });
-      const data = await res.json();
-      
-      if (!res.ok) throw new Error(data.message || 'Failed to fetch users');
-      
+      const data = await safeParseJson(res);
+
+      if (!res.ok) {
+        const msg = data?.message || (data && data.__raw ? data.__raw.slice(0, 200) : 'Failed to fetch users');
+        throw new Error(msg);
+      }
+
       setUsers(data.users || []);
     } catch (error) {
       toast.error(error.message);
@@ -47,8 +62,8 @@ const AdminCommissionManager = () => {
         credentials: 'include',
         body: JSON.stringify({ reason, amount })
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed to add fine');
+      const data = await safeParseJson(res);
+      if (!res.ok) throw new Error(data.message || (data && data.__raw ? data.__raw.slice(0,200) : 'Failed to add fine'));
       toast.success('Fine added and owner will be notified');
       fetchUsersWithUnpaidCommissions();
     } catch (e) {
@@ -77,9 +92,9 @@ const AdminCommissionManager = () => {
         })
       });
 
-      const data = await res.json();
+  const data = await safeParseJson(res);
 
-      if (!res.ok) throw new Error(data.message || 'Failed to deactivate user');
+  if (!res.ok) throw new Error(data.message || (data && data.__raw ? data.__raw.slice(0,200) : 'Failed to deactivate user'));
 
       toast.success('User account deactivated successfully');
       fetchUsersWithUnpaidCommissions();
@@ -101,10 +116,9 @@ const AdminCommissionManager = () => {
         method: 'POST',
         credentials: 'include'
       });
+      const data = await safeParseJson(res);
 
-      const data = await res.json();
-
-      if (!res.ok) throw new Error(data.message || 'Failed to reactivate user');
+      if (!res.ok) throw new Error(data.message || (data && data.__raw ? data.__raw.slice(0,200) : 'Failed to reactivate user'));
 
       toast.success('User account reactivated successfully');
       fetchUsersWithUnpaidCommissions();
