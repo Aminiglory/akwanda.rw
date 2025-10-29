@@ -752,4 +752,40 @@ router.post('/users/:id/deactivate', requireAdmin, async (req, res) => {
     }
 });
 
+// Reactivate user account
+router.post('/users/:id/reactivate', requireAdmin, async (req, res) => {
+    try {
+        const user = await User.findById(req.params.id);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        user.isBlocked = false;
+        user.blockedAt = null;
+        user.blockedUntil = null;
+        user.blockReason = null;
+        await user.save();
+
+        // Notify the user
+        await Notification.create({
+            type: 'account_reactivated',
+            title: 'Account Reactivated',
+            message: 'Your account has been reactivated. You can now access your account features.',
+            recipientUser: user._id
+        });
+
+        // Reactivate any workers associated with this owner (best-effort)
+        try {
+            const Worker = require('../tables/worker');
+            await Worker.updateMany({ employerId: user._id }, { $set: { status: 'active', isActive: true } });
+        } catch (wErr) {
+            // non-fatal
+            console.warn('Failed to reactivate workers for user', req.params.id, wErr && wErr.message);
+        }
+
+        return res.json({ success: true, message: 'User account reactivated successfully', user: { ...user.toObject(), passwordHash: undefined } });
+    } catch (error) {
+        console.error('Reactivate user error:', error);
+        return res.status(500).json({ message: 'Failed to reactivate user', error: error.message });
+    }
+});
+
 module.exports = router;
