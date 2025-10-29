@@ -482,10 +482,10 @@ router.get('/', async (req, res) => {
             properties = visible;
         }
 
-        // Fetch active deals for these properties
-        const propertyIds = properties.map(p => p._id);
-        const now = new Date();
-        const activeDeals = await Deal.find({
+    // Fetch active deals for these properties
+    const propertyIds = properties.map(p => p._id);
+    // reuse earlier `now` variable from visibility checks
+    const activeDeals = await Deal.find({
             property: { $in: propertyIds },
             isActive: true,
             isPublished: true,
