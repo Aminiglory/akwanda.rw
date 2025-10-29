@@ -30,7 +30,13 @@ const howItWorksRouter = require('./src/routes/howItWorks');
 const testimonialsRouter = require('./src/routes/testimonials');
 const reportsRouter = require('./src/routes/reports');
 const workersRouter = require('./src/routes/workers');
-const dealsRouter = require('./src/routes/deals');
+let dealsRouter, seedDealsRouter;
+try {
+  dealsRouter = require('./src/routes/deals');
+  seedDealsRouter = require('./src/routes/seed-deals');
+} catch (e) {
+  console.warn('Deals routes not available - deals feature disabled');
+}
 const User = require('./src/tables/user');
 const Worker = require('./src/tables/worker');
 const Notification = require('./src/tables/notification');
@@ -200,7 +206,10 @@ app.use('/api/notifications', notificationsRouter);
 app.use('/api/admin/user-management', adminUserManagementRouter);
 app.use('/api/reports', reportsRouter);
 app.use('/api/workers', workersRouter);
-app.use('/api/deals', dealsRouter);
+if (dealsRouter) {
+  app.use('/api/deals', dealsRouter);
+  app.use('/api/seed', seedDealsRouter);
+}
 app.use('/api/how-it-works', howItWorksRouter);
 app.use('/api/testimonials', testimonialsRouter);
 

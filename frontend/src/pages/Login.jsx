@@ -11,7 +11,7 @@ const Login = () => {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
-  const { login } = useAuth();
+  const { login, logout } = useAuth();
   const navigate = useNavigate();
 
   const handleInputChange = (field, value) => {
@@ -30,20 +30,26 @@ const Login = () => {
     const result = await login(formData.email, formData.password);
     
     if (result.success) {
-      toast.success('Signed in successfully');
       const role = result.user?.userType;
       const params = new URLSearchParams(location.search);
       const redirect = params.get('redirect');
+      
       if (role === 'admin') {
+        toast.success('Welcome Admin');
         navigate('/admin');
       } else if (role === 'host') {
-        if (redirect && redirect.startsWith('/user-dashboard')) {
-          navigate(redirect);
-        } else {
-          navigate('/user-dashboard');
-        }
+        // Property owners can login here to book as guests
+        toast.success('Welcome! You can browse and book properties here. Use Owner Login to manage your properties.');
+        navigate(redirect || '/apartments');
+      } else if (role === 'worker') {
+        toast.error('Workers must use the Worker Login');
+        await logout();
+        setError('Workers have a separate login portal');
+        return;
       } else {
-        navigate('/dashboard');
+        // Regular guest user
+        toast.success('Welcome! Start exploring properties');
+        navigate(redirect || '/apartments');
       }
     } else {
       const message = result.error || 'Login failed. Please try again.';

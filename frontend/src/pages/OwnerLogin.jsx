@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
 
 const OwnerLogin = () => {
-  const { login } = useAuth();
+  const { login, logout } = useAuth();
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -22,15 +22,21 @@ const OwnerLogin = () => {
     if (result.success) {
       if (result.user?.userType === 'host') {
         toast.success('Welcome to your Property Dashboard');
-        navigate('/user-dashboard');
+        navigate('/my-bookings');
       } else if (result.user?.userType === 'admin') {
-        // Admins can also manage properties; send them to admin area
-        toast.success('Admin access');
+        // Admins can also manage properties
+        toast.success('Admin access granted');
         navigate('/admin');
+      } else if (result.user?.userType === 'worker') {
+        // Workers have limited access based on privileges
+        toast.success('Worker access granted');
+        navigate('/worker/dashboard');
       } else {
-        const msg = 'This area is for Property Owners. Please sign in with a host account or upgrade your account.';
+        // Regular guest trying to access owner portal
+        const msg = 'This login is for Property Owners only. Please use the regular login or upgrade your account to become a property owner.';
         setError(msg);
         toast.error(msg);
+        await logout();
       }
     } else {
       const message = result.error || 'Login failed. Please try again.';
