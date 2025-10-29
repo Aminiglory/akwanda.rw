@@ -290,14 +290,20 @@ export default function Messages() {
   useEffect(() => {
     try {
       const isMobile = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(max-width: 1023.5px)').matches;
-      if (activeThread && isMobile) {
-        const prevOverflow = document.body.style.overflow;
-        document.body.style.overflow = 'hidden';
-        // trigger slide-in after mount
-        const t = setTimeout(() => setOverlayReady(true), 0);
-        const onKey = (e) => { if (e.key === 'Escape') setActiveThread(null); };
-        window.addEventListener('keydown', onKey);
-        return () => { clearTimeout(t); window.removeEventListener('keydown', onKey); setOverlayReady(false); document.body.style.overflow = prevOverflow; };
+      if (activeThread) {
+        if (isMobile) {
+          const prevOverflow = document.body.style.overflow;
+          document.body.style.overflow = 'hidden';
+          // trigger slide-in after mount
+          const t = setTimeout(() => setOverlayReady(true), 0);
+          const onKey = (e) => { if (e.key === 'Escape') setActiveThread(null); };
+          window.addEventListener('keydown', onKey);
+          return () => { clearTimeout(t); window.removeEventListener('keydown', onKey); setOverlayReady(false); document.body.style.overflow = prevOverflow; };
+        } else {
+          // On desktop, set overlayReady immediately
+          setOverlayReady(true);
+          return () => setOverlayReady(false);
+        }
       }
     } catch (_) {}
   }, [activeThread]);
@@ -1068,8 +1074,8 @@ export default function Messages() {
         <div
           className={`lg:col-span-3 modern-card-elevated flex flex-col 
             ${!activeThread ? 'hidden lg:flex' : 'flex'}
-            ${activeThread ? 'fixed inset-0 z-40 bg-white/95 lg:relative lg:inset-auto lg:z-auto lg:bg-transparent' : ''}
-            ${activeThread ? (overlayReady ? 'opacity-100' : 'opacity-0') : ''}
+            ${activeThread ? 'fixed inset-0 z-40 lg:relative lg:inset-auto lg:z-auto lg:bg-transparent' : ''}
+            ${activeThread ? (overlayReady ? 'opacity-100' : 'opacity-0 lg:opacity-100') : ''}
             transition-opacity duration-200 ease-out
             h-[100vh] md:h-[80vh] lg:h-[78vh]
           `}

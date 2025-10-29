@@ -30,6 +30,7 @@ const howItWorksRouter = require('./src/routes/howItWorks');
 const testimonialsRouter = require('./src/routes/testimonials');
 const reportsRouter = require('./src/routes/reports');
 const workersRouter = require('./src/routes/workers');
+const dealsRouter = require('./src/routes/deals');
 const User = require('./src/tables/user');
 const Worker = require('./src/tables/worker');
 const Notification = require('./src/tables/notification');
@@ -199,6 +200,7 @@ app.use('/api/notifications', notificationsRouter);
 app.use('/api/admin/user-management', adminUserManagementRouter);
 app.use('/api/reports', reportsRouter);
 app.use('/api/workers', workersRouter);
+app.use('/api/deals', dealsRouter);
 app.use('/api/how-it-works', howItWorksRouter);
 app.use('/api/testimonials', testimonialsRouter);
 
@@ -253,6 +255,11 @@ io.use((socket, next) => {
 });
 
 io.on('connection', (socket) => {
+  console.log(`User connected: ${socket.user.id}`);
+  
+  // Announce user is online
+  io.emit('user:online', { userId: socket.user.id });
+  
   // Join a booking room after validation
   socket.on('join_booking', async ({ bookingId }) => {
     try {
@@ -272,6 +279,75 @@ io.on('connection', (socket) => {
   // Typing indicator within a booking room
   socket.on('typing', ({ bookingId, typing }) => {
     io.to(`booking:${bookingId}`).emit('typing', { bookingId, userId: socket.user.id, typing: !!typing });
+  });
+
+  // Send message
+  socket.on('message:send', async (data) => {
+    try {
+      const Message = require('./src/tables/message');
+      const { to, text, bookingId, carBookingId, attachments, replyTo } = data;
+      
+      const msg = await Message.create({
+        sender: socket.user.id,
+        recipient: to,
+        message: text || '',
+        booking: bookingId || undefined,
+        carBooking: carBookingId || undefined,
+        attachments: attachments || [],
+        replyTo: replyTo || undefined,
+        isRead: false
+      });
+
+      const populated = await Message.findById(msg._id)
+        .populate('sender', 'firstName lastName avatar')
+        .populate('recipient', 'firstName lastName avatar');
+
+      // Emit to recipient
+      io.to(`user:${to}`).emit('message:new', populated);
+      
+      // Emit back to sender for confirmation
+      socket.emit('message:sent', populated);
+    } catch (e) {
+      socket.emit('message:error', { error: e.message });
+    }
+  });
+
+  // Mark messages as read
+  socket.on('message:markRead', async (data) => {
+    try {
+      const Message = require('./src/tables/message');
+      const { messageIds, userId } = data;
+      
+      await Message.updateMany(
+        { _id: { $in: messageIds }, recipient: socket.user.id },
+        { isRead: true }
+      );
+
+      // Notify sender that messages were read
+      if (userId) {
+        io.to(`user:${userId}`).emit('message:read', { messageIds, readBy: socket.user.id });
+      }
+    } catch (e) {
+      console.error('Mark read error:', e);
+    }
+  });
+
+  // Presence query
+  socket.on('presence:query', () => {
+    const onlineUsers = Array.from(io.sockets.sockets.values())
+      .map(s => s.user?.id)
+      .filter(Boolean);
+    socket.emit('presence:list', { users: onlineUsers });
+  });
+
+  socket.on('presence:here', () => {
+    io.emit('user:online', { userId: socket.user.id });
+  });
+
+  // Handle disconnect
+  socket.on('disconnect', () => {
+    console.log(`User disconnected: ${socket.user.id}`);
+    io.emit('user:offline', { userId: socket.user.id });
   });
 
   // Optional: simple ping
