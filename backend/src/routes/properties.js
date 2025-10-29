@@ -1,6 +1,7 @@
 const { Router } = require('express');
 const Property = require('../tables/property');
 const Worker = require('../tables/worker');
+const Deal = require('../tables/deal');
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
@@ -481,6 +482,27 @@ router.get('/', async (req, res) => {
             properties = visible;
         }
 
+        // Fetch active deals for these properties
+        const propertyIds = properties.map(p => p._id);
+        const now = new Date();
+        const activeDeals = await Deal.find({
+            property: { $in: propertyIds },
+            isActive: true,
+            isPublished: true,
+            validFrom: { $lte: now },
+            validUntil: { $gte: now }
+        }).select('property dealType title tagline discountType discountValue badge badgeColor priority');
+
+        // Group deals by property
+        const dealsByProperty = new Map();
+        activeDeals.forEach(deal => {
+            const propId = String(deal.property);
+            if (!dealsByProperty.has(propId)) {
+                dealsByProperty.set(propId, []);
+            }
+            dealsByProperty.get(propId).push(deal);
+        });
+
         // Normalize image paths to web-friendly URLs to avoid broken/black cards on frontend
         const norm = (u) => {
             if (!u) return u;
@@ -500,6 +522,13 @@ router.get('/', async (req, res) => {
                     images: Array.isArray(r.images) ? r.images.map(norm) : []
                 }));
             }
+            
+            // Add deals information
+            const propDeals = dealsByProperty.get(String(p._id)) || [];
+            o.activeDeals = propDeals.sort((a, b) => (b.priority || 0) - (a.priority || 0));
+            o.activeDealsCount = propDeals.length;
+            o.bestDeal = propDeals.length > 0 ? propDeals[0] : null;
+            
             return o;
         });
         res.json({ properties: out });

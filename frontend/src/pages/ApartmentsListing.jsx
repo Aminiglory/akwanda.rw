@@ -14,6 +14,7 @@ import {
 import toast from "react-hot-toast";
 import { useAuth } from "../contexts/AuthContext";
 import { safeApiGet, apiGet } from "../utils/apiUtils";
+import PropertyDealBadge from "../components/PropertyDealBadge";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -112,6 +113,8 @@ const ApartmentsListing = () => {
         id: p._id,
         title: p.title,
         location: `${p.address}, ${p.city}`,
+        bestDeal: p.bestDeal || null,
+        activeDealsCount: p.activeDealsCount || 0,
         price: pricePerNight,
         pricePerMonth: pricePerNight * 30,
         category: p.category || 'apartment',
@@ -553,6 +556,13 @@ const ApartmentsListing = () => {
 
                         {/* Content */}
                         <div className="p-6">
+                          {/* Deal Badge */}
+                          {apartment.bestDeal && (
+                            <div className="mb-3">
+                              <PropertyDealBadge deal={apartment.bestDeal} size="sm" />
+                            </div>
+                          )}
+                          
                           <h3 className="text-xl font-bold text-gray-800 mb-2 line-clamp-2">
                             {apartment.title}
                           </h3>

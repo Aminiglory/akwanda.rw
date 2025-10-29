@@ -46,6 +46,7 @@ import OwnerReviews from './pages/OwnerReviews'
 import Homes from './pages/Homes'
 import Experiences from './pages/Experiences'
 import Deals from './pages/Deals'
+import DealsPage from './pages/DealsPage'
 import DirectBooking from './pages/DirectBooking'
 import Invoice from './pages/Invoice'
 import Receipt from './pages/Receipt'
@@ -112,7 +113,8 @@ function App() {
             <Route path="/apartments" element={<ProtectedRoute><ApartmentsListing /></ProtectedRoute>} />
             <Route path="/homes" element={<Homes />} />
             <Route path="/experiences" element={<Experiences />} />
-            <Route path="/deals" element={<Deals />} />
+            <Route path="/deals" element={<DealsPage />} />
+            <Route path="/deals-old" element={<Deals />} />
             <Route path="/flights" element={<Flights />} />
             <Route path="/attractions" element={<Attractions />} />
             <Route path="/cars" element={<CarsList />} />
