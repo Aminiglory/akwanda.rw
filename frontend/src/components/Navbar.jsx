@@ -57,6 +57,9 @@ const Navbar = () => {
   const { socket } = useSocket();
   const [uiError, setUiError] = useState(null);
   const [avatarOk, setAvatarOk] = useState(true);
+  const [showOwnerSwitch, setShowOwnerSwitch] = useState(false);
+  const [ownerEmail, setOwnerEmail] = useState('');
+  const [switchLoading, setSwitchLoading] = useState(false);
 
   const makeAbsolute = (u) => {
     if (!u) return u;
@@ -384,20 +387,20 @@ const Navbar = () => {
   };
 
   const avatarUrl = user?.avatar ? makeAbsolute(user.avatar) : null;
-  
+
   const handleListProperty = () => {
     if (!isAuthenticated) {
       // Not logged in - redirect to property owner registration
       navigate('/owner-register');
       return;
     }
-    
+
     if (user?.userType === 'host') {
       // Already a property owner - go to upload property
       navigate('/upload');
       return;
     }
-    
+
     // Logged in as guest - offer to become property owner
     navigate('/become-host');
   };
@@ -411,9 +414,29 @@ const Navbar = () => {
       navigate('/dashboard');
       return;
     }
-    // This should not be reachable since button is only shown to hosts
-    toast.error('Please sign in with a Property Owner account to access the dashboard.');
-    navigate('/register');
+    // Non-host trying to access dashboard: open pre-confirm modal
+    setOwnerEmail(user?.email || '');
+    setShowOwnerSwitch(true);
+  };
+
+  const submitOwnerSwitch = async (e) => {
+    e?.preventDefault?.();
+    const email = String(ownerEmail || '').trim();
+    if (!email) { toast.error('Enter the email of your owner account'); return; }
+    try {
+      setSwitchLoading(true);
+      // Optional: verify owner email if backend supports it
+      // const verify = await safeApiGet(`/api/users/check-owner?email=${encodeURIComponent(email)}`, { isOwner: true });
+      // if (!verify?.isOwner) { toast.error('No owner account found for that email'); setSwitchLoading(false); return; }
+      await logout();
+      navigate(`/owner-login?email=${encodeURIComponent(email)}`);
+      toast.success('Please sign in as Property Owner');
+    } catch (err) {
+      toast.error('Could not switch account. Please try again.');
+    } finally {
+      setSwitchLoading(false);
+      setShowOwnerSwitch(false);
+    }
   };
 
   return (
@@ -434,76 +457,76 @@ const Navbar = () => {
                   </Link>
                 )}
                 <Link
-                    to="/my-bookings"
-                    className="hidden sm:inline hover:text-white font-medium"
-                  >
-                    My Bookings
-                  </Link>
-                  <Link
-                    to="/owner/cars"
-                    className="hidden sm:inline hover:text-white font-medium"
-                  >
-                    My Cars
-                  </Link>
-                </>
-              )}
-              
-              {/* Admin Links */}
-              {isAuthenticated && user?.userType === "admin" && (
-                <>
-                  <Link
-                    to="/admin"
-                    className="hidden sm:inline hover:text-white font-medium"
-                  >
-                    Admin Dashboard
-                  </Link>
-                  <Link
-                    to="/admin/reports"
-                    className="hidden sm:inline hover:text-white font-medium"
-                  >
-                    Reports
-                  </Link>
-                  <Link
-                    to="/admin/landing"
-                    className="hidden sm:inline hover:text-white font-medium"
-                  >
-                    Content
-                  </Link>
-                </>
-              )}
-              
-              {/* Universal Links - Show to all users */}
-              <Link
-                to="/support"
-                className="hover:text-white font-medium"
-              >
-                Customer Support
-              </Link>
-              
-              {/* Hide guest-specific links when in property owner dashboard */}
-              {!isInPropertyOwnerDashboard() && (
-                <>
-                  <Link
-                    to="/notifications"
-                    className="hidden sm:inline hover:text-white font-medium"
-                  >
-                    Notifications
-                  </Link>
-                  <span className="hidden lg:inline hover:text-white cursor-pointer font-medium">
-                    Partner Portal
-                  </span>
-                </>
-              )}
+                  to="/my-bookings"
+                  className="hidden sm:inline hover:text-white font-medium"
+                >
+                  My Bookings
+                </Link>
+                <Link
+                  to="/owner/cars"
+                  className="hidden sm:inline hover:text-white font-medium"
+                >
+                  My Cars
+                </Link>
+              </>
+            )}
+
+            {/* Admin Links */}
+            {isAuthenticated && user?.userType === "admin" && (
+              <>
+                <Link
+                  to="/admin"
+                  className="hidden sm:inline hover:text-white font-medium"
+                >
+                  Admin Dashboard
+                </Link>
+                <Link
+                  to="/admin/reports"
+                  className="hidden sm:inline hover:text-white font-medium"
+                >
+                  Reports
+                </Link>
+                <Link
+                  to="/admin/landing"
+                  className="hidden sm:inline hover:text-white font-medium"
+                >
+                  Content
+                </Link>
+              </>
+            )}
+
+            {/* Universal Links - Show to all users */}
+            <Link
+              to="/support"
+              className="hover:text-white font-medium"
+            >
+              Customer Support
+            </Link>
+
+            {/* Hide guest-specific links when in property owner dashboard */}
+            {!isInPropertyOwnerDashboard() && (
+              <>
+                <Link
+                  to="/notifications"
+                  className="hidden sm:inline hover:text-white font-medium"
+                >
+                  Notifications
+                </Link>
+                <span className="hidden lg:inline hover:text-white cursor-pointer font-medium">
+                  Partner Portal
+                </span>
+              </>
+            )}
+          </div>
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2 hover:text-white cursor-pointer">
+              <FaGlobe className="text-sm" />
+              <span className="hidden sm:inline">English</span>
             </div>
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2 hover:text-white cursor-pointer">
-                <FaGlobe className="text-sm" />
-                <span className="hidden sm:inline">English</span>
-              </div>
-              <div className="flex items-center space-x-2 hover:text-white cursor-pointer">
-                <span className="font-semibold">RWF</span>
-              </div>
+            <div className="flex items-center space-x-2 hover:text-white cursor-pointer">
+              <span className="font-semibold">RWF</span>
             </div>
+          </div>
         </div>
       </div>
 
@@ -513,6 +536,21 @@ const Navbar = () => {
           <div className="max-w-7xl mx-auto flex justify-between items-center">
             <span>{uiError}</span>
             <button className="text-xs underline" onClick={() => setUiError(null)}>Dismiss</button>
+          </div>
+        </div>
+      )}
+
+      {/* Blocked account banner */}
+      {isAuthenticated && user?.isBlocked && (
+        <div className="w-full bg-yellow-50 text-yellow-800 px-4 py-3 text-sm border-b border-yellow-200" role="region" aria-live="polite">
+          <div className="max-w-7xl mx-auto grid gap-2 sm:gap-3 sm:flex sm:flex-row sm:items-center sm:justify-between">
+            <div className="font-medium leading-relaxed">
+              Your account is temporarily deactivated due to outstanding dues. Some features are restricted.
+            </div>
+            <div className="flex flex-col sm:flex-row w-full sm:w-auto gap-2">
+              <Link to="/billing/pay-commission" className="inline-flex justify-center px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 w-full sm:w-auto">Pay commission</Link>
+              <Link to="/notifications" className="inline-flex justify-center px-3 py-2 bg-white text-yellow-800 border border-yellow-300 rounded-md hover:bg-yellow-100 w-full sm:w-auto">View notice</Link>
+            </div>
           </div>
         </div>
       )}
@@ -539,7 +577,7 @@ const Navbar = () => {
                   </div>
                   <div className="text-xs text-[#F5E6D3]">
                     <span>To book as guest, </span>
-                    <button 
+                    <button
                       onClick={handleLogout}
                       className="text-[#8b6f47] hover:text-[#4b2a00] underline font-medium"
                     >
@@ -611,7 +649,7 @@ const Navbar = () => {
                 <span className="hidden lg:inline">List your property</span>
                 <span className="lg:hidden">List Property</span>
               </button>
-              
+
               {/* Property Dashboard - Hidden on small screens completely */}
               {isAuthenticated && user?.userType === 'host' && (
                 <button
@@ -673,7 +711,7 @@ const Navbar = () => {
               )}
 
               {/* Favorites */}
-              {isAuthenticated && (
+              {isAuthenticated && user?.userType !== 'host' && (
                 <Link
                   to="/favorites"
                   className="hidden lg:flex items-center px-3 py-2 rounded-lg text-[#6b5744] hover:text-[#4b2a00] hover:bg-[#e8dcc8] transition-colors"
@@ -798,186 +836,186 @@ const Navbar = () => {
 
               {/* Profile Menu */}
               {isAuthenticated && (
-                    <div className="relative inline-flex items-center">
-                      <button
-                        onClick={toggleProfile}
-                        className="profile-button flex items-center space-x-2 px-3 py-2 rounded-lg text-[#6b5744] hover:text-[#4b2a00] hover:bg-[#e8dcc8] transition-colors"
-                      >
-                        <FaUserCircle className="text-lg" />
-                        <span className="hidden sm:inline font-medium text-sm">
-                          {user?.firstName || user?.name || user?.email}
-                        </span>
-                        {isProfileOpen ? (
-                          <FaChevronUp className="text-xs" />
-                        ) : (
-                          <FaChevronDown className="text-xs" />
-                        )}
-                      </button>
+                <div className="relative inline-flex items-center">
+                  <button
+                    onClick={toggleProfile}
+                    className="profile-button flex items-center space-x-2 px-3 py-2 rounded-lg text-[#6b5744] hover:text-[#4b2a00] hover:bg-[#e8dcc8] transition-colors"
+                  >
+                    <FaUserCircle className="text-lg" />
+                    <span className="hidden sm:inline font-medium text-sm">
+                      {user?.firstName || user?.name || user?.email}
+                    </span>
+                    {isProfileOpen ? (
+                      <FaChevronUp className="text-xs" />
+                    ) : (
+                      <FaChevronDown className="text-xs" />
+                    )}
+                  </button>
 
-                      {isProfileOpen && (
-                        <div className="profile-dropdown absolute top-full right-0 mt-2 w-64 bg-[#f6e9d8] rounded-xl dropdown-shadow border border-[#d4c4b0] py-3 z-50">
-                          {/* Profile Header */}
-                          <div className="px-4 pb-3 border-b border-gray-100">
-                            <div className="flex items-center space-x-3">
-                              {user?.avatar && avatarOk ? (
-                                <img
-                                  src={avatarUrl}
-                                  alt="Profile"
-                                  className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
-                                  onError={() => setAvatarOk(false)}
-                                />
-                              ) : (
-                                <div className="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center border-2 border-gray-200">
-                                  <span className="text-white font-bold text-lg">
-                                    {((user?.firstName || '').charAt(0) + (user?.lastName || '').charAt(0)) || user?.email?.charAt(0) || 'U'}
-                                  </span>
-                                </div>
-                              )}
-                              <div className="flex-1">
-                                <div className="font-semibold text-gray-900">
-                                  {user?.firstName} {user?.lastName}
-                                </div>
-                                <div className="text-sm text-gray-500">{user?.email}</div>
-                                <div className="text-xs text-gray-700 font-medium">
-                                  {user?.userType === 'host' ? 'Property Owner' : user?.userType === 'worker' ? 'Worker' : 'Guest'}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Quick Stats for Hosts */}
-                          {user?.userType === 'host' && (
-                            <div className="px-4 py-2 border-b border-gray-100">
-                              <div className="grid grid-cols-3 gap-2 text-center">
-                                <div>
-                                  <div className="text-sm font-bold text-gray-700">{userStats.properties}</div>
-                                  <div className="text-xs text-gray-500">Properties</div>
-                                </div>
-                                <div>
-                                  <div className="text-sm font-bold text-green-600">{userStats.bookings}</div>
-                                  <div className="text-xs text-gray-500">Bookings</div>
-                                </div>
-                                <div>
-                                  <div className="text-sm font-bold text-orange-600">{userStats.rating}</div>
-                                  <div className="text-xs text-gray-500">Rating</div>
-                                </div>
-                              </div>
+                  {isProfileOpen && (
+                    <div className="profile-dropdown absolute top-full right-0 mt-2 w-64 bg-[#f6e9d8] rounded-xl dropdown-shadow border border-[#d4c4b0] py-3 z-50">
+                      {/* Profile Header */}
+                      <div className="px-4 pb-3 border-b border-gray-100">
+                        <div className="flex items-center space-x-3">
+                          {user?.avatar && avatarOk ? (
+                            <img
+                              src={avatarUrl}
+                              alt="Profile"
+                              className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
+                              onError={() => setAvatarOk(false)}
+                            />
+                          ) : (
+                            <div className="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center border-2 border-gray-200">
+                              <span className="text-white font-bold text-lg">
+                                {((user?.firstName || '').charAt(0) + (user?.lastName || '').charAt(0)) || user?.email?.charAt(0) || 'U'}
+                              </span>
                             </div>
                           )}
-
-                          {user?.userType === 'worker' && (
-                            <div className="px-4 py-2 border-b border-gray-100">
-                              <div className="text-xs font-semibold text-gray-500 mb-1">Abilities</div>
-                              <div className="flex flex-wrap gap-2">
-                                {(() => {
-                                  const enabled = Object.entries(user?.privileges || {}).filter(([k, v]) => v);
-                                  if (enabled.length === 0) {
-                                    return <span className="text-xs text-gray-500">No abilities assigned</span>;
-                                  }
-                                  return enabled.slice(0, 12).map(([k]) => (
-                                    <span key={k} className="px-2 py-1 text-xs rounded bg-emerald-50 text-emerald-700 border border-emerald-200">{k}</span>
-                                  ));
-                                })()}
-                              </div>
-                              {Array.isArray(user?.assignedProperties) && (
-                                <div className="mt-2 text-xs text-gray-600">
-                                  Assigned properties: <span className="font-semibold">{user.assignedProperties.length}</span>
-                                </div>
-                              )}
+                          <div className="flex-1">
+                            <div className="font-semibold text-gray-900">
+                              {user?.firstName} {user?.lastName}
                             </div>
-                          )}
-
-                          {/* Menu Items */}
-                          <div className="py-1">
-                            <Link
-                              to="/profile"
-                              className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-800 transition-colors"
-                              onClick={() => setIsProfileOpen(false)}
-                            >
-                              <FaUser className="text-gray-700" />
-                              <span className="font-medium">My Profile</span>
-                            </Link>
-                            {user?.userType === 'admin' && (
-                              <Link
-                                to="/admin/reports"
-                                className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-800 transition-colors"
-                                onClick={() => setIsProfileOpen(false)}
-                              >
-                                <FaFileAlt className="text-gray-700" />
-                                <span className="font-medium">Admin Reports</span>
-                              </Link>
-                            )}
-                            {user?.userType === 'admin' && (
-                              <Link
-                                to="/admin/landing"
-                                className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-800 transition-colors"
-                                onClick={() => setIsProfileOpen(false)}
-                              >
-                                <FaFileAlt className="text-gray-700" />
-                                <span className="font-medium">Landing Content</span>
-                              </Link>
-                            )}
-
-                            {user?.userType === 'host' && (
-                              <Link
-                                to="/my-bookings"
-                                className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors"
-                                onClick={() => setIsProfileOpen(false)}
-                              >
-                                <FaChartLine className="text-green-600" />
-                                <span className="font-medium">Dashboard</span>
-                              </Link>
-                            )}
-
-                            <Link
-                              to="/settings"
-                              className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                              onClick={() => setIsProfileOpen(false)}
-                            >
-                              <FaCog className="text-gray-600" />
-                              <span className="font-medium">Settings</span>
-                            </Link>
-
-                            {user?.userType === 'host' && (
-                              <Link
-                                to="/support"
-                                className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-700 transition-colors"
-                                onClick={() => setIsProfileOpen(false)}
-                              >
-                                <FaQuestionCircle className="text-purple-600" />
-                                <span className="font-medium">Help</span>
-                              </Link>
-                            )}
+                            <div className="text-sm text-gray-500">{user?.email}</div>
+                            <div className="text-xs text-gray-700 font-medium">
+                              {user?.userType === 'host' ? 'Property Owner' : user?.userType === 'worker' ? 'Worker' : 'Guest'}
+                            </div>
                           </div>
+                        </div>
+                      </div>
 
-                          <hr className="my-2" />
-
-                          <div className="px-4 py-1">
-                            <button
-                              onClick={handleLogout}
-                              className="flex items-center space-x-3 w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                            >
-                              <FaSignOutAlt className="text-red-600" />
-                              <span className="font-medium">Sign Out</span>
-                            </button>
+                      {/* Quick Stats for Hosts */}
+                      {user?.userType === 'host' && (
+                        <div className="px-4 py-2 border-b border-gray-100">
+                          <div className="grid grid-cols-3 gap-2 text-center">
+                            <div>
+                              <div className="text-sm font-bold text-gray-700">{userStats.properties}</div>
+                              <div className="text-xs text-gray-500">Properties</div>
+                            </div>
+                            <div>
+                              <div className="text-sm font-bold text-green-600">{userStats.bookings}</div>
+                              <div className="text-xs text-gray-500">Bookings</div>
+                            </div>
+                            <div>
+                              <div className="text-sm font-bold text-orange-600">{userStats.rating}</div>
+                              <div className="text-xs text-gray-500">Rating</div>
+                            </div>
                           </div>
                         </div>
                       )}
-                    </div>
-              )}
 
-                  {/* Mobile Menu Button - only for authenticated users */}
-                  {isAuthenticated && (
-                    <button
-                      onClick={toggleMenu}
-                      className="lg:hidden p-2 text-[#6b5744] hover:text-[#4b2a00]"
-                    >
-                      {isMenuOpen ? <FaTimes className="text-xl" /> : <FaBars className="text-xl" />}
-                    </button>
+                      {user?.userType === 'worker' && (
+                        <div className="px-4 py-2 border-b border-gray-100">
+                          <div className="text-xs font-semibold text-gray-500 mb-1">Abilities</div>
+                          <div className="flex flex-wrap gap-2">
+                            {(() => {
+                              const enabled = Object.entries(user?.privileges || {}).filter(([k, v]) => v);
+                              if (enabled.length === 0) {
+                                return <span className="text-xs text-gray-500">No abilities assigned</span>;
+                              }
+                              return enabled.slice(0, 12).map(([k]) => (
+                                <span key={k} className="px-2 py-1 text-xs rounded bg-emerald-50 text-emerald-700 border border-emerald-200">{k}</span>
+                              ));
+                            })()}
+                          </div>
+                          {Array.isArray(user?.assignedProperties) && (
+                            <div className="mt-2 text-xs text-gray-600">
+                              Assigned properties: <span className="font-semibold">{user.assignedProperties.length}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Menu Items */}
+                      <div className="py-1">
+                        <Link
+                          to="/profile"
+                          className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-800 transition-colors"
+                          onClick={() => setIsProfileOpen(false)}
+                        >
+                          <FaUser className="text-gray-700" />
+                          <span className="font-medium">My Profile</span>
+                        </Link>
+                        {user?.userType === 'admin' && (
+                          <Link
+                            to="/admin/reports"
+                            className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-800 transition-colors"
+                            onClick={() => setIsProfileOpen(false)}
+                          >
+                            <FaFileAlt className="text-gray-700" />
+                            <span className="font-medium">Admin Reports</span>
+                          </Link>
+                        )}
+                        {user?.userType === 'admin' && (
+                          <Link
+                            to="/admin/landing"
+                            className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-800 transition-colors"
+                            onClick={() => setIsProfileOpen(false)}
+                          >
+                            <FaFileAlt className="text-gray-700" />
+                            <span className="font-medium">Landing Content</span>
+                          </Link>
+                        )}
+
+                        {user?.userType === 'host' && (
+                          <Link
+                            to="/my-bookings"
+                            className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors"
+                            onClick={() => setIsProfileOpen(false)}
+                          >
+                            <FaChartLine className="text-green-600" />
+                            <span className="font-medium">Dashboard</span>
+                          </Link>
+                        )}
+
+                        <Link
+                          to="/settings"
+                          className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                          onClick={() => setIsProfileOpen(false)}
+                        >
+                          <FaCog className="text-gray-600" />
+                          <span className="font-medium">Settings</span>
+                        </Link>
+
+                        {user?.userType === 'host' && (
+                          <Link
+                            to="/support"
+                            className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-700 transition-colors"
+                            onClick={() => setIsProfileOpen(false)}
+                          >
+                            <FaQuestionCircle className="text-purple-600" />
+                            <span className="font-medium">Help</span>
+                          </Link>
+                        )}
+                      </div>
+
+                      <hr className="my-2" />
+
+                      <div className="px-4 py-1">
+                        <button
+                          onClick={handleLogout}
+                          className="flex items-center space-x-3 w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        >
+                          <FaSignOutAlt className="text-red-600" />
+                          <span className="font-medium">Sign Out</span>
+                        </button>
+                      </div>
+                    </div>
                   )}
                 </div>
+              )}
+
+              {/* Mobile Menu Button - only for authenticated users */}
+              {isAuthenticated && (
+                <button
+                  onClick={toggleMenu}
+                  className="lg:hidden p-2 text-[#6b5744] hover:text-[#4b2a00]"
+                >
+                  {isMenuOpen ? <FaTimes className="text-xl" /> : <FaBars className="text-xl" />}
+                </button>
+              )}
             </div>
           </div>
+        </div>
       </nav>
 
       {/* Mobile Menu - booking.com Style */}
@@ -987,143 +1025,142 @@ const Navbar = () => {
             {/* Main Navigation Items - Hide for property owners, show only for guests */}
             {isAuthenticated && user?.userType !== "admin" && user?.userType !== 'host' && (
               <>
-                    {mainNavItems.map((item, index) => {
-                      const Icon = item.icon;
-                      const isActive = isActiveRoute(item.href);
-                      return (
-                        <Link
-                          key={index}
-                          to={item.href}
-                          className={`flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${isActive ? 'bg-gray-100 text-gray-800' : 'text-gray-700 hover:bg-gray-50'
-                            }`}
-                          onClick={() => setIsMenuOpen(false)}
-                        >
-                          <Icon className="text-lg" />
-                          <span>{item.label}</span>
-                        </Link>
-                      );
-                    })}
-                  </>
-                )}
-
-                {/* Guest actions - only for non-property owners */}
-                {isAuthenticated && user?.userType !== 'admin' && user?.userType !== 'host' && (
-                  <>
+                {mainNavItems.map((item, index) => {
+                  const Icon = item.icon;
+                  const isActive = isActiveRoute(item.href);
+                  return (
                     <Link
-                      to="/notifications"
-                      className="flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 relative"
+                      key={index}
+                      to={item.href}
+                      className={`flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${isActive ? 'bg-gray-100 text-gray-800' : 'text-gray-700 hover:bg-gray-50'
+                        }`}
                       onClick={() => setIsMenuOpen(false)}
                     >
-                      <FaBell className="text-lg" />
-                      <span>Notifications</span>
-                      {unreadNotifCount > 0 && (
-                        <span className="absolute right-4 bg-green-600 text-white text-[10px] rounded-full px-1.5 py-0.5 min-w-[16px] text-center">{unreadNotifCount}</span>
-                      )}
+                      <Icon className="text-lg" />
+                      <span>{item.label}</span>
                     </Link>
-                    <Link
-                      to="/favorites"
-                      className="flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      <FaHeart className="text-lg" />
-                      <span>Favorites</span>
-                    </Link>
-                    {(user?.userType !== 'worker' ? true : !!user?.privileges?.canMessageGuests) && (
-                      <Link
-                        to="/messages"
-                        className="flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
-                        onClick={() => setIsMenuOpen(false)}
-                      >
-                        <FaEnvelope className="text-lg" />
-                        <span>Messages</span>
-                      </Link>
-                    )}
-                  </>
-                )}
+                  );
+                })}
+              </>
+            )}
 
-                {/* Host-specific links (move outside guest-only block) */}
-                {user?.userType === 'host' && userStats.properties > 0 && (
-                      <Link
-                        to="/dashboard"
-                        className="flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
-                        onClick={() => setIsMenuOpen(false)}
-                      >
-                        <FaChartLine className="text-lg" />
-                        <span>Dashboard</span>
-                      </Link>
-                    )}
-                    {(user?.userType === 'host' && !user?.isBlocked) && (
-                      <Link
-                        to="/upload"
-                        className={`flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50`}
-                        onClick={() => setIsMenuOpen(false)}
-                      >
-                        <FaBuilding className="text-lg" />
-                        <span>List your property</span>
-                      </Link>
-                    )}
-
-                    {user?.userType === 'host' && (
-                      <>
-                        <Link
-                          to="/my-bookings"
-                          className="flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
-                        >
-                          <FaCalendarAlt className="text-lg" />
-                          <span>My Bookings</span>
-                        </Link>
-                        <Link
-                          to="/owner/cars"
-                          className="flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
-                          onClick={() => setIsMenuOpen(false)}
-                        >
-                          <FaCar className="text-lg" />
-                          <span>My Cars</span>
-                        </Link>
-
-                        {/* Owner Tools Accordion (mobile only) */}
-                        <div className="mt-2 border-t border-gray-200 pt-2">
-                          <div className="text-xs font-semibold text-gray-500 px-4 mb-1">Owner Tools</div>
-                          <div className="space-y-2">
-                            {ownerManagementLinks.map((category, idx) => (
-                              <details key={idx} className="group">
-                                <summary className="list-none cursor-pointer flex items-center justify-between px-4 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-50">
-                                  <div className="flex items-center gap-2">
-                                    {React.createElement(category.icon, { className: 'text-blue-600' })}
-                                    <span>{category.category}</span>
-                                  </div>
-                                  <FaChevronDown className="text-xs group-open:rotate-180 transition-transform" />
-                                </summary>
-                                <div className="mt-1">
-                                  {category.links.map((l, i) => (
-                                    <Link
-                                      key={i}
-                                      to={l.href}
-                                      className="block px-8 py-2 text-sm text-gray-600 hover:bg-gray-50"
-                                      onClick={() => setIsMenuOpen(false)}
-                                    >
-                                      {l.label}
-                                    </Link>
-                                  ))}
-                                        </div>
-                                      </details>
-                                    ))}
-                                  </div>
-                                </div>
-
-                              </>
-                            )}
-
-                {isAuthenticated && user?.userType === 'admin' && (
+            {/* Guest actions - only for non-property owners */}
+            {isAuthenticated && user?.userType !== 'admin' && user?.userType !== 'host' && (
+              <>
+                <Link
+                  to="/notifications"
+                  className="flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 relative"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  <FaBell className="text-lg" />
+                  <span>Notifications</span>
+                  {unreadNotifCount > 0 && (
+                    <span className="absolute right-4 bg-green-600 text-white text-[10px] rounded-full px-1.5 py-0.5 min-w-[16px] text-center">{unreadNotifCount}</span>
+                  )}
+                </Link>
+                <Link
+                  to="/favorites"
+                  className="flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  <FaHeart className="text-lg" />
+                  <span>Favorites</span>
+                </Link>
+                {(user?.userType !== 'worker' ? true : !!user?.privileges?.canMessageGuests) && (
                   <Link
-                    to="/admin"
+                    to="/messages"
                     className="flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
                     onClick={() => setIsMenuOpen(false)}
                   >
-                    <FaChartLine className="text-lg" />
-                    <span>Admin Dashboard</span>
+                    <FaEnvelope className="text-lg" />
+                    <span>Messages</span>
                   </Link>
                 )}
+              </>
+            )}
+
+            {/* Host-specific links (move outside guest-only block) */}
+            {user?.userType === 'host' && userStats.properties > 0 && (
+              <Link
+                to="/dashboard"
+                className="flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                <FaChartLine className="text-lg" />
+                <span>Dashboard</span>
+              </Link>
+            )}
+            {(user?.userType === 'host' && !user?.isBlocked) && (
+              <Link
+                to="/upload"
+                className={`flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50`}
+                onClick={() => setIsMenuOpen(false)}
+              >
+                <FaBuilding className="text-lg" />
+                <span>List your property</span>
+              </Link>
+            )}
+
+            {user?.userType === 'host' && (
+              <>
+                <Link
+                  to="/my-bookings"
+                  className="flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  <FaCalendarAlt className="text-lg" />
+                  <span>My Bookings</span>
+                </Link>
+                <Link
+                  to="/owner/cars"
+                  className="flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  <FaCar className="text-lg" />
+                  <span>My Cars</span>
+                </Link>
+
+                {/* Owner Tools Accordion (mobile only) */}
+                <div className="mt-2 border-t border-gray-200 pt-2">
+                  <div className="text-xs font-semibold text-gray-500 px-4 mb-1">Owner Tools</div>
+                  <div className="space-y-2">
+                    {ownerManagementLinks.map((category, idx) => (
+                      <details key={idx} className="group">
+                        <summary className="list-none cursor-pointer flex items-center justify-between px-4 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-50">
+                          <div className="flex items-center gap-2">
+                            {React.createElement(category.icon, { className: 'text-blue-600' })}
+                            <span>{category.category}</span>
+                          </div>
+                          <FaChevronDown className="text-xs group-open:rotate-180 transition-transform" />
+                        </summary>
+                        <div className="mt-1">
+                          {category.links.map((l, i) => (
+                            <Link
+                              key={i}
+                              to={l.href}
+                              className="block px-8 py-2 text-sm text-gray-600 hover:bg-gray-50"
+                              onClick={() => setIsMenuOpen(false)}
+                            >
+                              {l.label}
+                            </Link>
+                          ))}
+                        </div>
+                      </details>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+
+            {isAuthenticated && user?.userType === 'admin' && (
+              <Link
+                to="/admin"
+                className="flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                <FaChartLine className="text-lg" />
+                <span>Admin Dashboard</span>
+              </Link>
+            )}
           </div>
         </div>
       )}
@@ -1133,6 +1170,31 @@ const Navbar = () => {
         <div className="w-full bg-red-50 border-b border-red-200">
           <div className="max-w-7xl mx-auto px-4 py-2 text-sm text-red-700">
             Your account is currently deactivated due to unpaid commissions. Actions are limited until reactivated.
+          </div>
+        </div>
+      )}
+      {/* Pre-confirmation modal for owner switch */}
+      {showOwnerSwitch && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-xl">
+            <div className="mb-3 text-lg font-semibold text-gray-900">Confirm Property Owner Account</div>
+            <p className="text-sm text-gray-600 mb-4">Enter the email you use for your Property Owner account. We'll switch you to that login.</p>
+            <form onSubmit={submitOwnerSwitch} className="space-y-4">
+              <input
+                type="email"
+                value={ownerEmail}
+                onChange={(e) => setOwnerEmail(e.target.value)}
+                placeholder="owner@example.com"
+                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+              <div className="flex flex-col sm:flex-row gap-2 justify-end">
+                <button type="button" className="px-4 py-2 rounded-lg border" onClick={() => setShowOwnerSwitch(false)}>Cancel</button>
+                <button type="submit" disabled={switchLoading} className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50">
+                  {switchLoading ? 'Switching…' : 'Continue'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

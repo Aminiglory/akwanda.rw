@@ -54,6 +54,12 @@ const ApartmentDetails = () => {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [detailsRoom, setDetailsRoom] = useState(null);
 
+  // Deals state
+  const [deals, setDeals] = useState([]);
+  const [dealsLoading, setDealsLoading] = useState(true);
+  const [selectedDealId, setSelectedDealId] = useState('');
+  const [showDealsModal, setShowDealsModal] = useState(false);
+
   const makeAbsolute = (u) => {
     if (!u) return u;
     let s = String(u).replace(/\\/g, '/');
@@ -269,6 +275,33 @@ const ApartmentDetails = () => {
       }
     })();
   }, [id]);
+
+  // Fetch deals for this property once the id is known
+  useEffect(() => {
+    let ignore = false;
+    (async () => {
+      if (!id) return;
+      try {
+        setDealsLoading(true);
+        const res = await fetch(`${API_URL}/api/deals/property/${id}`);
+        const data = await res.json();
+        if (!ignore && res.ok) {
+          const list = Array.isArray(data.deals) ? data.deals : [];
+          setDeals(list);
+          // restore selection from localStorage if any
+          try {
+            const saved = localStorage.getItem(`deal:selected:${id}`);
+            if (saved && list.some(d => d._id === saved)) setSelectedDealId(saved);
+          } catch {}
+        }
+      } catch (e) {
+        // silent fail
+      } finally {
+        if (!ignore) setDealsLoading(false);
+      }
+    })();
+    return () => { ignore = true; };
+  }, [id, API_URL]);
 
   // Auto-expand the first room for bookers so the calendar is visible immediately
   useEffect(() => {
@@ -843,6 +876,57 @@ const ApartmentDetails = () => {
                 </div>
                 <span className="text-gray-600">per month</span>
               </div>
+
+              {/* Deals & Promotions (desktop inline) */}
+              <div className="hidden sm:block">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-sm font-semibold text-gray-800">Deals & Promotions</h4>
+                  {dealsLoading && <span className="text-xs text-gray-500">Loading…</span>}
+                </div>
+                {(!dealsLoading && deals.length === 0) ? (
+                  <div className="text-xs text-gray-500">No active deals</div>
+                ) : (
+                  <div className="space-y-2 max-h-40 overflow-auto pr-1">
+                    {deals.map((d) => (
+                      <label key={d._id} className="flex items-start gap-2 p-2 rounded-lg border hover:border-blue-300 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="deal"
+                          checked={selectedDealId === d._id}
+                          onChange={async () => {
+                            setSelectedDealId(d._id);
+                            try { localStorage.setItem(`deal:selected:${id}`, d._id); } catch {}
+                            try { await fetch(`${API_URL}/api/deals/${d._id}/click`, { method: 'POST' }); } catch {}
+                          }}
+                          className="mt-1"
+                        />
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium text-gray-800 flex items-center gap-2">
+                            <span className="inline-flex px-2 py-0.5 rounded-full text-white text-[11px]" style={{ backgroundColor: d.badgeColor || '#FF6B6B' }}>{d.badge || 'Deal'}</span>
+                            <span className="truncate">{d.title}</span>
+                          </div>
+                          <div className="text-xs text-gray-600 truncate">{d.tagline || d.description}</div>
+                          <div className="text-xs font-medium text-blue-700 mt-0.5">
+                            {d.discountType === 'percentage' ? `${d.discountValue}% off` : d.discountType === 'fixed_amount' ? `Save RWF ${Number(d.discountValue||0).toLocaleString()}` : `Free night x${d.discountValue}`}
+                          </div>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Mobile: open deal picker modal */}
+              <div className="sm:hidden">
+                <button
+                  type="button"
+                  onClick={() => setShowDealsModal(true)}
+                  className="w-full mb-4 bg-white border border-blue-200 text-blue-700 hover:bg-blue-50 py-3 rounded-xl font-semibold"
+                >
+                  {selectedDealId ? 'Change deal' : 'Choose a deal'}
+                </button>
+              </div>
+
               <button
                 type="button"
                 disabled={!isAuthenticated}
@@ -851,7 +935,8 @@ const ApartmentDetails = () => {
                     e.preventDefault();
                     navigate('/login');
                   } else {
-                    navigate(`/booking/${id}`);
+                    const qp = selectedDealId ? `?dealId=${encodeURIComponent(selectedDealId)}` : '';
+                    navigate(`/booking/${id}${qp}`);
                   }
                 }}
                 className={`w-full ${
@@ -866,6 +951,7 @@ const ApartmentDetails = () => {
               >
                 {isAuthenticated ? 'Start Booking Process' : 'Login to Book'}
               </button>
+
               <div className="mt-6 pt-6 border-t space-y-2 text-sm">
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600">Monthly rent</span>
@@ -977,6 +1063,72 @@ const ApartmentDetails = () => {
           </div>
         </div>
       )}
+
+      {/* Deals Modal (mobile) */}
+      {showDealsModal && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center sm:justify-center p-0 sm:p-4">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setShowDealsModal(false)} />
+          <div className="relative w-full sm:max-w-md bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b">
+              <div className="text-gray-900 font-semibold">Choose a deal</div>
+              <button
+                type="button"
+                className="p-2 rounded-lg hover:bg-gray-100"
+                onClick={() => setShowDealsModal(false)}
+                aria-label="Close"
+              >
+                <FaTimes />
+              </button>
+            </div>
+            <div className="p-4 max-h-[60vh] overflow-auto">
+              {dealsLoading ? (
+                <div className="text-sm text-gray-500">Loading…</div>
+              ) : deals.length === 0 ? (
+                <div className="text-sm text-gray-600">No active deals for this property.</div>
+              ) : (
+                <div className="space-y-2">
+                  {deals.map((d) => (
+                    <label key={d._id} className={`flex items-start gap-2 p-3 rounded-xl border ${selectedDealId === d._id ? 'border-blue-400 bg-blue-50' : 'border-gray-200'} active:bg-blue-50`}>
+                      <input
+                        type="radio"
+                        name="deal-mobile"
+                        checked={selectedDealId === d._id}
+                        onChange={() => setSelectedDealId(d._id)}
+                        className="mt-1"
+                      />
+                      <div className="min-w-0">
+                        <div className="text-sm font-semibold text-gray-800 flex items-center gap-2">
+                          <span className="inline-flex px-2 py-0.5 rounded-full text-white text-[11px]" style={{ backgroundColor: d.badgeColor || '#FF6B6B' }}>{d.badge || 'Deal'}</span>
+                          <span className="truncate">{d.title}</span>
+                        </div>
+                        <div className="text-xs text-gray-600 truncate">{d.tagline || d.description}</div>
+                        <div className="text-xs font-medium text-blue-700 mt-0.5">
+                          {d.discountType === 'percentage' ? `${d.discountValue}% off` : d.discountType === 'fixed_amount' ? `Save RWF ${Number(d.discountValue||0).toLocaleString()}` : `Free night x${d.discountValue}`}
+                        </div>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="p-4 border-t bg-white flex gap-2">
+              <button type="button" className="flex-1 py-2 rounded-lg border" onClick={() => setShowDealsModal(false)}>Cancel</button>
+              <button
+                type="button"
+                className="flex-1 py-2 rounded-lg bg-blue-600 text-white disabled:opacity-50"
+                disabled={!selectedDealId}
+                onClick={async () => {
+                  try { if (selectedDealId) localStorage.setItem(`deal:selected:${id}`, selectedDealId); } catch {}
+                  try { if (selectedDealId) await fetch(`${API_URL}/api/deals/${selectedDealId}/click`, { method: 'POST' }); } catch {}
+                  setShowDealsModal(false);
+                }}
+              >
+                Apply deal
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -984,3 +1136,6 @@ const ApartmentDetails = () => {
 // Modal Portal is not used; simple in-page modal overlay
 
 export default ApartmentDetails;
+
+/* Deals Modal (mobile) */
+// Placed after export to keep component code above focused; rendered conditionally earlier

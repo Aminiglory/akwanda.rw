@@ -17,7 +17,8 @@ const MTNMobileMoneyPayment = () => {
     description: bookingDetails.description || '',
     bookingId: bookingDetails.bookingId || '',
     customerName: bookingDetails.customerName || '',
-    customerEmail: bookingDetails.customerEmail || ''
+    customerEmail: bookingDetails.customerEmail || '',
+    settleFines: Boolean(bookingDetails.settleFines)
   });
 
   const [paymentStatus, setPaymentStatus] = useState('idle'); // idle, processing, success, failed
@@ -78,7 +79,8 @@ const MTNMobileMoneyPayment = () => {
         phoneNumber: formattedPhone,
         amount: Number(paymentData.amount),
         paymentMethod: 'mtn_mobile_money',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        settleFines: Boolean(paymentData.settleFines)
       };
 
       // Simulate MTN Mobile Money API call
@@ -126,7 +128,8 @@ const MTNMobileMoneyPayment = () => {
       description: '',
       bookingId: '',
       customerName: '',
-      customerEmail: ''
+      customerEmail: '',
+      settleFines: false
     });
     setPaymentStatus('idle');
     setTransactionId('');

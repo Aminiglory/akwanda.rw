@@ -252,7 +252,7 @@ const ApartmentsListing = () => {
                 FIND YOUR PERFECT STAY
               </h1>
               <p className="text-gray-600 mt-2 text-lg font-medium">
-                DISCOVER AMAZING APARTMENTS ACROSS RWANDA
+                DISCOVER AMAZING STAYS ACROSS RWANDA
               </p>
             </div>
 

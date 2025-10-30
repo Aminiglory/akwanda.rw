@@ -40,10 +40,11 @@ export default function PayCommission() {
       state: {
         phoneNumber,
         amount: amt,
-        description: 'Commission Payment',
+        description: 'Commission / Dues Payment',
         bookingId: '',
         customerName: '',
-        customerEmail: ''
+        customerEmail: '',
+        settleFines: true
       }
     });
   };
@@ -56,7 +57,10 @@ export default function PayCommission() {
             <FaMoneyBillWave className="text-green-600 text-2xl" />
             <h1 className="text-2xl font-bold text-gray-900">Pay Commission</h1>
           </div>
-          <p className="text-sm text-gray-600 mb-6">Your account is deactivated until commission is paid. Complete payment to regain full access.</p>
+
+          <div className="mb-4 rounded-lg bg-yellow-50 border border-yellow-200 p-3 text-sm text-yellow-800">
+            Your account is currently <span className="font-semibold">deactivated</span> due to outstanding dues. Pay the amount below to automatically reactivate your account.
+          </div>
 
           {loading ? (
             <div className="flex items-center gap-2 text-gray-600"><FaSpinner className="animate-spin" /> Loading due amount…</div>

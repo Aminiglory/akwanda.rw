@@ -636,9 +636,29 @@ router.post('/users/:userId/fines/:fineId/pay', requireAdmin, async (req, res) =
         fine.paid = true;
         fine.paidAt = new Date();
         user.fines.totalDue = Math.max(0, (user.fines.totalDue || 0) - fine.amount);
+
+        // Auto-unblock when all fines are cleared
+        let reactivated = false;
+        if ((user.fines.totalDue || 0) === 0 && user.isBlocked) {
+            user.isBlocked = false;
+            user.blockedAt = null;
+            user.blockedUntil = null;
+            user.blockReason = null;
+            reactivated = true;
+
+            try {
+                await Notification.create({
+                    type: 'account_reactivated',
+                    title: 'Account Reactivated',
+                    message: 'Your account has been reactivated after settling all dues.',
+                    recipientUser: user._id
+                });
+            } catch (_) { /* non-fatal */ }
+        }
+
         await user.save();
         
-        res.json({ message: 'Fine marked as paid', user: { id: user._id, fines: user.fines } });
+        res.json({ message: reactivated ? 'Fine paid and account reactivated' : 'Fine marked as paid', user: { id: user._id, fines: user.fines, isBlocked: user.isBlocked } });
     } catch (error) {
         console.error('Mark fine paid error:', error);
         res.status(500).json({ message: 'Failed to mark fine as paid', error: error.message });

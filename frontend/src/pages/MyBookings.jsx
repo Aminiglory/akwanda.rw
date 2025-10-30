@@ -11,6 +11,9 @@ const MyBookings = () => {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [ratingBusy, setRatingBusy] = useState({});
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [activeBooking, setActiveBooking] = useState(null);
+  const [reviewDraft, setReviewDraft] = useState({ rating: 0, comment: '' });
 
   const loadBookings = async () => {
     setLoading(true);
@@ -43,15 +46,40 @@ const MyBookings = () => {
   const submitQuickReview = async (b, rating) => {
     try {
       setRatingBusy(prev => ({ ...prev, [b._id]: true }));
-      const data = await apiPost(`/api/bookings/${b._id}/review`, { rating });
+      await apiPost(`/api/bookings/${b._id}/review`, { rating });
       toast.success('Thanks for your rating!');
-      // Refresh item in list
       setBookings(prev => prev.map(x => x._id === b._id ? { ...x, rating } : x));
     } catch (e) {
       console.error('Failed to submit review:', e);
       toast.error(e.message || 'Failed to submit review');
     } finally {
       setRatingBusy(prev => ({ ...prev, [b._id]: false }));
+    }
+  };
+
+  const openReviewModal = (b) => {
+    setActiveBooking(b);
+    setReviewDraft({ rating: b.rating || 0, comment: '' });
+    setShowReviewModal(true);
+  };
+
+  const submitReviewWithComment = async () => {
+    if (!activeBooking) return;
+    if (!(reviewDraft.rating >= 1 && reviewDraft.rating <= 5)) {
+      toast.error('Please choose a rating 1-5');
+      return;
+    }
+    try {
+      setRatingBusy(prev => ({ ...prev, [activeBooking._id]: true }));
+      await apiPost(`/api/bookings/${activeBooking._id}/review`, { rating: reviewDraft.rating, comment: reviewDraft.comment });
+      toast.success('Review submitted');
+      setBookings(prev => prev.map(x => x._id === activeBooking._id ? { ...x, rating: reviewDraft.rating } : x));
+      setShowReviewModal(false);
+      setActiveBooking(null);
+    } catch (e) {
+      toast.error(e.message || 'Failed to submit review');
+    } finally {
+      setRatingBusy(prev => ({ ...prev, [activeBooking?._id]: false }));
     }
   };
 
@@ -111,18 +139,26 @@ const MyBookings = () => {
                         {b.rating ? (
                           <div className="flex items-center gap-1 text-yellow-600"><FaStar /> {b.rating} / 5</div>
                         ) : canReview(b) ? (
-                          <div className="flex items-center gap-1">
-                            {[1,2,3,4,5].map(n => (
-                              <button
-                                key={n}
-                                disabled={!!ratingBusy[b._id]}
-                                onClick={() => submitQuickReview(b, n)}
-                                className={`text-xl ${n <= 3 ? 'text-yellow-500' : 'text-yellow-600'} ${ratingBusy[b._id] ? 'opacity-50' : ''}`}
-                                aria-label={`Rate ${n}`}
-                              >
-                                ★
-                              </button>
-                            ))}
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <div className="flex items-center gap-1">
+                              {[1,2,3,4,5].map(n => (
+                                <button
+                                  key={n}
+                                  disabled={!!ratingBusy[b._id]}
+                                  onClick={() => submitQuickReview(b, n)}
+                                  className={`text-xl ${n <= 3 ? 'text-yellow-500' : 'text-yellow-600'} ${ratingBusy[b._id] ? 'opacity-50' : ''}`}
+                                  aria-label={`Rate ${n}`}
+                                >
+                                  ★
+                                </button>
+                              ))}
+                            </div>
+                            <button
+                              onClick={() => openReviewModal(b)}
+                              className="text-xs px-2 py-1 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100"
+                            >
+                              Write review
+                            </button>
                           </div>
                         ) : (
                           <div className="text-sm text-gray-500">Rating available after checkout</div>
@@ -148,6 +184,49 @@ const MyBookings = () => {
           </div>
         )}
       </div>
+      {/* Review Modal (responsive) */}
+      {showReviewModal && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center sm:justify-center p-0 sm:p-4">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setShowReviewModal(false)} />
+          <div className="relative w-full sm:max-w-md bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden">
+            <div className="px-4 py-3 border-b flex items-center justify-between">
+              <div className="font-semibold">Write a review</div>
+              <button className="p-2 rounded hover:bg-gray-100" onClick={() => setShowReviewModal(false)} aria-label="Close">✕</button>
+            </div>
+            <div className="p-4 space-y-4">
+              <div className="flex items-center gap-2">
+                {[1,2,3,4,5].map(n => (
+                  <button
+                    key={n}
+                    onClick={() => setReviewDraft(rd => ({ ...rd, rating: n }))}
+                    className={`text-2xl ${reviewDraft.rating >= n ? 'text-yellow-500' : 'text-gray-300'}`}
+                    aria-label={`Rate ${n}`}
+                  >
+                    ★
+                  </button>
+                ))}
+              </div>
+              <textarea
+                className="w-full border border-gray-300 rounded-lg p-3"
+                rows={4}
+                placeholder="Share more about your stay (optional)"
+                value={reviewDraft.comment}
+                onChange={(e) => setReviewDraft(rd => ({ ...rd, comment: e.target.value }))}
+              />
+            </div>
+            <div className="p-4 border-t flex flex-col sm:flex-row gap-2">
+              <button className="px-4 py-2 rounded-lg border" onClick={() => setShowReviewModal(false)}>Cancel</button>
+              <button
+                className="px-4 py-2 rounded-lg bg-blue-600 text-white disabled:opacity-50"
+                disabled={ratingBusy[activeBooking?._id] || reviewDraft.rating === 0}
+                onClick={submitReviewWithComment}
+              >
+                Submit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

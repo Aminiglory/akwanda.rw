@@ -62,6 +62,9 @@ const PropertyOwnerBookings = () => {
   });
   const [ownerView, setOwnerView] = useState('table'); // 'table' | 'calendar'
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'dashboard');
+  const [ownerReviews, setOwnerReviews] = useState([]);
+  const [ownerAvgRating, setOwnerAvgRating] = useState(0);
+  const [ownerReviewCount, setOwnerReviewCount] = useState(0);
   const [expandedSections, setExpandedSections] = useState({
     reservations: true,
     calendar: false,
@@ -89,6 +92,12 @@ const PropertyOwnerBookings = () => {
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    if (activeTab === 'reviews') {
+      loadOwnerReviews();
+    }
+  }, [activeTab]);
 
   const loadData = async () => {
     setLoading(true);
@@ -134,6 +143,22 @@ const PropertyOwnerBookings = () => {
       const data = await res.json();
       if (res.ok) setProperties(data.properties || []);
     } catch (_) {}
+  };
+
+  const loadOwnerReviews = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/bookings/owner/reviews`, { credentials: 'include' });
+      const data = await res.json();
+      if (res.ok) {
+        setOwnerReviews(data.reviews || []);
+        setOwnerAvgRating(Number(data.avgRating || 0));
+        setOwnerReviewCount(Number(data.count || 0));
+      }
+    } catch (_) {
+      setOwnerReviews([]);
+      setOwnerAvgRating(0);
+      setOwnerReviewCount(0);
+    }
   };
 
   useEffect(() => { loadOwnerProperties(); }, []);

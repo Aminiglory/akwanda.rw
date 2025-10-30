@@ -37,6 +37,8 @@ const BookingProcess = () => {
   const [filteredRooms, setFilteredRooms] = useState([]);
   const [totalPrice, setTotalPrice] = useState(0);
   const [discount, setDiscount] = useState(0);
+  const [finalAmount, setFinalAmount] = useState(0);
+  const [selectedDealId, setSelectedDealId] = useState('');
   const [selectedRoomUnavailable, setSelectedRoomUnavailable] = useState(false);
 
   const budgetRanges = [
@@ -63,6 +65,14 @@ const BookingProcess = () => {
   useEffect(() => {
     fetchProperty();
   }, [id]);
+
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const d = params.get('dealId') || '';
+      if (d) setSelectedDealId(d);
+    } catch {}
+  }, []);
 
   // Prefill contact info from logged-in user profile
   useEffect(() => {
@@ -148,8 +158,9 @@ const BookingProcess = () => {
         groupBooking: bookingData.guests >= 4,
         groupSize: bookingData.guests,
         paymentMethod: paymentMethod,
-        totalAmount: totalPrice,
-        roomPrice: selectedRoom.pricePerNight || selectedRoom.price || 0
+        totalAmount: Math.max(0, Number(finalAmount || totalPrice || 0)),
+        roomPrice: selectedRoom.pricePerNight || selectedRoom.price || 0,
+        dealId: selectedDealId || undefined
       };
 
       const bookingRes = await fetch(`${API_URL}/api/bookings`, {
@@ -227,7 +238,6 @@ const BookingProcess = () => {
     filterRoomsByBudget();
   }, [availableRooms, bookingData.budget]);
 
-  // NEW: Effect to recalculate total price when relevant data changes
   useEffect(() => {
     if (selectedRoom && bookingData.checkIn && bookingData.checkOut) {
       calculateTotalPrice();
@@ -385,6 +395,60 @@ const BookingProcess = () => {
       setTotalPrice(total);
     }
   };
+
+  useEffect(() => {
+    const applyDealIfAny = async () => {
+      if (!selectedDealId || !bookingData.checkIn || !bookingData.checkOut) {
+        setDiscount(0);
+        setFinalAmount(totalPrice || 0);
+        return;
+      }
+      try {
+        const applicableRes = await fetch(`${API_URL}/api/deals/check-applicable`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            propertyId: id,
+            checkInDate: bookingData.checkIn,
+            checkOutDate: bookingData.checkOut,
+            guests: bookingData.guests || 1,
+            rooms: 1,
+            isMobile: /Mobi|Android/i.test(navigator.userAgent)
+          })
+        });
+        const applicableData = await applicableRes.json();
+        const list = Array.isArray(applicableData.deals) ? applicableData.deals : [];
+        const found = list.find(d => d._id === selectedDealId);
+        if (!found) {
+          setDiscount(0);
+          setFinalAmount(totalPrice || 0);
+          return;
+        }
+        if (totalPrice > 0) {
+          const calcRes = await fetch(`${API_URL}/api/deals/calculate-discount`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ dealId: selectedDealId, originalPrice: totalPrice, nights: undefined })
+          });
+          const calc = await calcRes.json();
+          if (calcRes.ok) {
+            setDiscount(Number(calc.discount || 0));
+            setFinalAmount(Number(calc.finalPrice || totalPrice));
+          } else {
+            setDiscount(0);
+            setFinalAmount(totalPrice || 0);
+          }
+        } else {
+          setDiscount(0);
+          setFinalAmount(totalPrice || 0);
+        }
+      } catch {
+        setDiscount(0);
+        setFinalAmount(totalPrice || 0);
+      }
+    };
+    applyDealIfAny();
+  }, [selectedDealId, totalPrice, bookingData.checkIn, bookingData.checkOut, bookingData.guests, id]);
 
   // FIX: Improved room selection handler with proper room data normalization
   const handleRoomSelect = (room) => {

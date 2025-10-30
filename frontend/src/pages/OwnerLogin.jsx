@@ -40,69 +40,94 @@ const OwnerLogin = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">Property Owner Login</h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Sign in to access your property management dashboard
-          </p>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-100 flex items-center justify-center py-10 px-4">
+      <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="hidden lg:flex flex-col justify-center rounded-2xl bg-white/60 border border-blue-100 p-8">
+          <h1 className="text-3xl font-extrabold text-gray-900">Welcome back, Property Owner</h1>
+          <p className="mt-2 text-gray-600">Manage reservations, update listings, and track performance in one place.</p>
+          <ul className="mt-6 space-y-3 text-sm text-gray-700">
+            <li className="flex items-start gap-2"><span className="mt-1 h-2 w-2 rounded-full bg-blue-600"></span> Real-time bookings overview</li>
+            <li className="flex items-start gap-2"><span className="mt-1 h-2 w-2 rounded-full bg-blue-600"></span> Easy listing management</li>
+            <li className="flex items-start gap-2"><span className="mt-1 h-2 w-2 rounded-full bg-blue-600"></span> Finance insights and payouts</li>
+          </ul>
         </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="rounded-md shadow-sm -space-y-px">
-            <div className="relative">
-              <label htmlFor="email-address" className="sr-only">Email address</label>
-              <input
-                id="email-address"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                className="appearance-none rounded-t-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Email address"
-                value={formData.email}
-                onChange={(e) => handleInputChange('email', e.target.value)}
-              />
-              <FaEnvelope className="absolute right-3 top-3 text-gray-400" />
+
+        <div className="bg-white rounded-2xl shadow-lg border border-blue-100 p-6 sm:p-8">
+          <div className="text-center">
+            <div className="mx-auto h-12 w-12 rounded-xl bg-blue-50 flex items-center justify-center">
+              <span className="text-blue-700 font-extrabold">AK</span>
             </div>
-            <div className="relative">
-              <label htmlFor="password" className="sr-only">Password</label>
-              <input
-                id="password"
-                name="password"
-                type={showPassword ? 'text' : 'password'}
-                autoComplete="current-password"
-                required
-                className="appearance-none rounded-b-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Password"
-                value={formData.password}
-                onChange={(e) => handleInputChange('password', e.target.value)}
-              />
-              {showPassword ? (
-                <FaEyeSlash className="absolute right-3 top-3 text-gray-400 cursor-pointer" onClick={() => setShowPassword(false)} />
-              ) : (
-                <FaEye className="absolute right-3 top-3 text-gray-400 cursor-pointer" onClick={() => setShowPassword(true)} />
-              )}
-              <FaLock className="absolute right-9 top-3 text-gray-400" />
-            </div>
+            <h2 className="mt-4 text-2xl font-bold text-gray-900">Property Owner Login</h2>
+            <p className="mt-1 text-sm text-gray-600">Sign in to access your owner dashboard</p>
           </div>
 
-          {error && (
-            <div className="text-sm text-red-600">{error}</div>
-          )}
+          <form className="mt-6 space-y-5" onSubmit={handleSubmit}>
+            <div className="space-y-4">
+              <div className="relative">
+                <label htmlFor="email-address" className="sr-only">Email address</label>
+                <input
+                  id="email-address"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  className="peer block w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-gray-900 placeholder-transparent focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                  placeholder="Email address"
+                  value={formData.email}
+                  onChange={(e) => handleInputChange('email', e.target.value)}
+                  aria-label="Email address"
+                />
+                <span className="pointer-events-none absolute left-3 top-2.5 text-gray-500 text-sm transition-all peer-placeholder-shown:top-2.5 peer-placeholder-shown:text-sm peer-focus:-top-2 peer-focus:text-xs peer-focus:text-blue-700 bg-white px-1">Email address</span>
+                <FaEnvelope className="absolute right-3 top-3.5 text-gray-400" />
+              </div>
 
-          <div>
+              <div className="relative">
+                <label htmlFor="password" className="sr-only">Password</label>
+                <input
+                  id="password"
+                  name="password"
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="current-password"
+                  required
+                  className="peer block w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-gray-900 placeholder-transparent focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                  placeholder="Password"
+                  value={formData.password}
+                  onChange={(e) => handleInputChange('password', e.target.value)}
+                  aria-label="Password"
+                />
+                <span className="pointer-events-none absolute left-3 top-2.5 text-gray-500 text-sm transition-all peer-placeholder-shown:top-2.5 peer-placeholder-shown:text-sm peer-focus:-top-2 peer-focus:text-xs peer-focus:text-blue-700 bg-white px-1">Password</span>
+                {showPassword ? (
+                  <FaEyeSlash className="absolute right-3 top-3.5 text-gray-400 cursor-pointer" onClick={() => setShowPassword(false)} />
+                ) : (
+                  <FaEye className="absolute right-3 top-3.5 text-gray-400 cursor-pointer" onClick={() => setShowPassword(true)} />
+                )}
+                <FaLock className="absolute right-10 top-3.5 text-gray-400" />
+              </div>
+            </div>
+
+            {error && (
+              <div className="rounded-md bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">{error}</div>
+            )}
+
+            <div className="flex items-center justify-between text-sm">
+              <label className="flex items-center gap-2">
+                <input type="checkbox" className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                <span className="text-gray-700">Remember me</span>
+              </label>
+              <Link to="/support" className="text-blue-700 hover:text-blue-900">Forgot password?</Link>
+            </div>
+
             <button
               type="submit"
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              className="w-full rounded-lg bg-blue-600 px-4 py-2.5 text-white font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-100"
             >
               Sign in
             </button>
-          </div>
-        </form>
 
-        <div className="text-center text-sm text-gray-600">
-          Not a host yet? <Link to="/register" className="text-blue-600 hover:text-blue-800 font-medium">Create an account</Link>
+            <div className="text-center text-sm text-gray-600">
+              Not a host yet? <Link to="/register" className="text-blue-700 hover:text-blue-900 font-medium">Create an account</Link>
+            </div>
+          </form>
         </div>
       </div>
     </div>
