@@ -634,6 +634,56 @@ router.put('/:id/privileges', requireAuth, requirePropertyOwner, async (req, res
   }
 });
 
+// Worker's own dashboard (for logged-in workers)
+router.get('/dashboard', requireAuth, async (req, res) => {
+  try {
+    // Check if user is a worker
+    if (req.user.userType !== 'worker') {
+      return res.status(403).json({ message: 'Access denied. Workers only.' });
+    }
+
+    // Find worker record linked to this user account
+    const worker = await Worker.findOne({ userAccount: req.user.id })
+      .populate('assignedProperties', 'name address city category')
+      .populate('employerId', 'firstName lastName email');
+
+    if (!worker) {
+      return res.status(404).json({ message: 'Worker profile not found' });
+    }
+
+    // Get worker stats
+    const stats = {
+      assignedProperties: worker.assignedProperties?.length || 0,
+      tasksCompleted: worker.performance?.totalTasksCompleted || 0,
+      tasksAssigned: worker.performance?.totalTasksAssigned || 0,
+      rating: worker.performance?.rating || 0
+    };
+
+    // Get recent tasks/actions
+    const recentActions = await WorkerActionLog.find({ workerId: worker._id })
+      .sort({ createdAt: -1 })
+      .limit(10);
+
+    res.json({
+      stats,
+      properties: worker.assignedProperties || [],
+      tasks: recentActions,
+      worker: {
+        id: worker._id,
+        name: worker.fullName,
+        position: worker.position,
+        department: worker.department,
+        employeeId: worker.employeeId,
+        privileges: worker.privileges,
+        performance: worker.performance
+      }
+    });
+  } catch (error) {
+    console.error('Worker dashboard error:', error);
+    res.status(500).json({ message: 'Failed to load dashboard' });
+  }
+});
+
 // Get dashboard summary for workers management
 router.get('/dashboard/summary', requireAuth, requirePropertyOwner, async (req, res) => {
   try {

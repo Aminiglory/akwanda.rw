@@ -1,7 +1,13 @@
 const { Router } = require('express');
 const Property = require('../tables/property');
 const Worker = require('../tables/worker');
-const Deal = require('../tables/deal');
+let Deal;
+try {
+  Deal = require('../tables/deal');
+} catch (e) {
+  console.warn('Deal model not available - deals feature disabled');
+  Deal = null;
+}
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
@@ -28,6 +34,34 @@ function requireWorkerPrivilege(privKey) {
     return async function(req, res, next) {
         try {
             if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
+            
+            // Hosts and admins bypass worker privilege checks
+            if (req.user.userType === 'host' || req.user.userType === 'admin') {
+                return next();
+            }
+            
+            // For workers, check if they have the required privilege
+            if (req.user.userType === 'worker') {
+                const worker = await Worker.findOne({ userAccount: req.user.id });
+                if (!worker) {
+                    return res.status(403).json({ message: 'Worker profile not found' });
+                }
+                
+                if (!worker.privileges || !worker.privileges[privKey]) {
+                    return res.status(403).json({ message: `Permission denied: ${privKey} required` });
+                }
+                
+                return next();
+            }
+            
+            // Other user types not allowed
+            return res.status(403).json({ message: 'Access denied' });
+        } catch (error) {
+            console.error('Worker privilege check error:', error);
+            return res.status(500).json({ message: 'Authorization check failed' });
+        }
+    };
+}
 
 // Seed demo properties for current user (host or admin)
 // POST /api/properties/seed-demo
@@ -293,20 +327,6 @@ router.post('/seed-demo', requireAuth, async (req, res) => {
         return res.status(500).json({ message: 'Failed to seed demo properties', error: error.message });
     }
 });
-            if (req.user.userType === 'admin' || req.user.userType === 'host') return next();
-            if (req.user.userType !== 'worker') return res.status(403).json({ message: 'Not allowed' });
-            // Find worker by linked user account
-            const worker = await Worker.findOne({ userAccount: req.user.id, isActive: true });
-            if (!worker) return res.status(403).json({ message: 'Worker profile not found' });
-            if (!worker.privileges || worker.privileges[privKey] !== true) {
-                return res.status(403).json({ message: 'Insufficient privileges' });
-            }
-            return next();
-        } catch (e) {
-            return res.status(500).json({ message: 'Privilege check failed' });
-        }
-    };
-}
 
 // Expose post-connect sanitization to be invoked after Mongo is ready
 router.sanitizeCommissionRates = async () => {
@@ -482,16 +502,26 @@ router.get('/', async (req, res) => {
             properties = visible;
         }
 
-    // Fetch active deals for these properties
-    const propertyIds = properties.map(p => p._id);
-    // reuse earlier `now` variable from visibility checks
-    const activeDeals = await Deal.find({
-            property: { $in: propertyIds },
-            isActive: true,
-            isPublished: true,
-            validFrom: { $lte: now },
-            validUntil: { $gte: now }
-        }).select('property dealType title tagline discountType discountValue badge badgeColor priority');
+        // Fetch active deals for these properties
+        const propertyIds = properties.map(p => p._id);
+        // Reuse 'now' variable from above
+        let activeDeals = [];
+        
+        if (Deal) {
+            try {
+                activeDeals = await Deal.find({
+                    property: { $in: propertyIds },
+                    isActive: true,
+                    isPublished: true,
+                    validFrom: { $lte: now },
+                    validUntil: { $gte: now }
+                }).select('property dealType title tagline discountType discountValue badge badgeColor priority');
+
+                console.log(`[Deals] Found ${activeDeals.length} active deals for ${propertyIds.length} properties`);
+            } catch (error) {
+                console.error('[Deals] Error fetching deals:', error.message);
+            }
+        }
 
         // Group deals by property
         const dealsByProperty = new Map();

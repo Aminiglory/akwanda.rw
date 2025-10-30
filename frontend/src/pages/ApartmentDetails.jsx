@@ -256,12 +256,16 @@ const ApartmentDetails = () => {
           host: {
             name: p.host ? `${p.host.firstName} ${p.host.lastName}` : '—',
             avatar: null,
-            rating: p.host?.rating || 0,
-            responseTime: 'Within an hour',
-            joinDate: '2020',
+            // Host panel will use apartment.rating and apartment.reviews from Property.ratings[]
             email: p.host?.email,
             phone: p.host?.phone,
-            id: p.host?._id || p.host?.id
+            id: p.host?._id || p.host?.id,
+            joinYear: (() => {
+              try {
+                const d = p.host?.createdAt ? new Date(p.host.createdAt) : null;
+                return d && !isNaN(d.getTime()) ? d.getFullYear() : null;
+              } catch { return null; }
+            })()
           },
           features: {
             checkIn: '3:00 PM',
@@ -818,13 +822,15 @@ const ApartmentDetails = () => {
                   <h4 className="font-semibold text-gray-800 text-lg">
                     {apartment.host.name}
                   </h4>
-                  <div className="flex items-center space-x-4 text-sm text-gray-600 mb-2">
+                  <div className="flex items-center space-x-4 text-sm text-gray-600 mb-2 flex-wrap">
                     <div className="flex items-center">
-                      {renderStars(apartment.host.rating)}
-                      <span className="ml-1">{apartment.host.rating}</span>
+                      {renderStars(apartment.rating)}
+                      <span className="ml-1">{Number(apartment.rating || 0).toFixed(1)}</span>
+                      <span className="ml-2 text-gray-500">({apartment.reviews} review{apartment.reviews === 1 ? '' : 's'})</span>
                     </div>
-                    <span>Response time: {apartment.host.responseTime}</span>
-                    <span>Host since {apartment.host.joinDate}</span>
+                    {apartment.host.joinYear && (
+                      <span>Host since {apartment.host.joinYear}</span>
+                    )}
                   </div>
                   
                   {/* Host Contact Info */}

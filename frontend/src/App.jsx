@@ -47,6 +47,7 @@ import Homes from './pages/Homes'
 import Experiences from './pages/Experiences'
 import Deals from './pages/Deals'
 import DealsPage from './pages/DealsPage'
+import TestDeals from './pages/TestDeals'
 import DirectBooking from './pages/DirectBooking'
 import Invoice from './pages/Invoice'
 import Receipt from './pages/Receipt'
@@ -115,6 +116,7 @@ function App() {
             <Route path="/experiences" element={<Experiences />} />
             <Route path="/deals" element={<DealsPage />} />
             <Route path="/deals-old" element={<Deals />} />
+            <Route path="/test-deals" element={<TestDeals />} />
             <Route path="/flights" element={<Flights />} />
             <Route path="/attractions" element={<Attractions />} />
             <Route path="/cars" element={<CarsList />} />

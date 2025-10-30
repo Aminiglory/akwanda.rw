@@ -587,8 +587,8 @@ const Navbar = () => {
                 </div>
               )}
 
-              {/* Main Navigation Items - Hide guest booking links in property owner dashboard */}
-              {user?.userType !== "admin" && !isInPropertyOwnerDashboard() && (
+              {/* Main Navigation Items - Show for guests and hide for property owners in dashboard */}
+              {user?.userType !== "admin" && (user?.userType !== 'host' || !isInPropertyOwnerDashboard()) && (
                 <div className="hidden lg:flex items-center space-x-1">
                   {mainNavItems.map((item, index) => {
                     const Icon = item.icon;
@@ -746,12 +746,15 @@ const Navbar = () => {
                   >
                     Login
                   </Link>
+                  {/* Property Owner Login - visible on all screens with icon on mobile */}
                   <Link
                     to="/owner-login"
-                    className="hidden sm:inline px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium text-[#6b5744] hover:text-[#4b2a00] whitespace-nowrap"
+                    className="flex items-center px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium text-[#6b5744] hover:text-[#4b2a00] whitespace-nowrap"
+                    title="Property Owner Login"
                   >
+                    <FaBuilding className="sm:hidden text-base" />
+                    <span className="hidden sm:inline md:hidden">Owner</span>
                     <span className="hidden md:inline">Owner Login</span>
-                    <span className="md:hidden">Owner</span>
                   </Link>
                   <Link
                     to="/register"
@@ -1022,8 +1025,8 @@ const Navbar = () => {
       {isMenuOpen && (
         <div className="lg:hidden bg-white border-t border-gray-200 mobile-menu">
           <div className="px-4 py-2 space-y-1">
-            {/* Main Navigation Items - Hide for property owners, show only for guests */}
-            {isAuthenticated && user?.userType !== "admin" && user?.userType !== 'host' && (
+            {/* Main Navigation Items - Show for guests and property owners not in dashboard */}
+            {isAuthenticated && user?.userType !== "admin" && (user?.userType !== 'host' || !isInPropertyOwnerDashboard()) && (
               <>
                 {mainNavItems.map((item, index) => {
                   const Icon = item.icon;
@@ -1032,8 +1035,7 @@ const Navbar = () => {
                     <Link
                       key={index}
                       to={item.href}
-                      className={`flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${isActive ? 'bg-gray-100 text-gray-800' : 'text-gray-700 hover:bg-gray-50'
-                        }`}
+                      className={`flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${isActive ? 'bg-gray-100 text-gray-800' : 'text-gray-700 hover:bg-gray-50'}`}
                       onClick={() => setIsMenuOpen(false)}
                     >
                       <Icon className="text-lg" />
