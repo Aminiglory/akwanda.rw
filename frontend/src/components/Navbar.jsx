@@ -1179,16 +1179,16 @@ const Navbar = () => {
                 <span>Dashboard</span>
               </Link>
             )}
-            {(user?.userType === 'host' && !user?.isBlocked) && (
-              <Link
-                to="/upload"
-                className={`flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50`}
-                onClick={() => setIsMenuOpen(false)}
-              >
-                <FaBuilding className="text-lg" />
-                <span>List your property</span>
-              </Link>
-            )}
+            {/* List your property (mobile) - available in user mode; triggers owner guard */}
+            <button
+              type="button"
+              className="flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
+              onClick={() => { setIsMenuOpen(false); handleListProperty(); }}
+              title="List your property"
+            >
+              <FaBuilding className="text-lg" />
+              <span>List your property</span>
+            </button>
 
             {user?.userType === 'host' && (
               <>
