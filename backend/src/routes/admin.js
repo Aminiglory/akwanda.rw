@@ -323,346 +323,124 @@ router.put('/me/credentials', requireAdmin, async (req, res) => {
 
 // Hard delete a user (admin only)
 router.delete('/users/:id', requireAdmin, async (req, res) => {
-    try {
-        if (String(req.params.id) === String(req.user.id)) {
-            return res.status(400).json({ message: 'Cannot delete your own admin account' });
-        }
-        const user = await User.findById(req.params.id);
-        if (!user) return res.status(404).json({ message: 'User not found' });
-        await User.deleteOne({ _id: user._id });
-        return res.json({ success: true, message: 'User deleted' });
-    } catch (e) {
-        console.error('Admin delete user error:', e);
-        return res.status(500).json({ message: 'Failed to delete user' });
-    }
-});
-
-// Additional admin endpoints
-// Landing page metrics endpoint (public)
-router.get('/metrics', async (req, res) => {
-    try {
-        const User = require('../tables/user');
-        const Property = require('../tables/property');
-        const Booking = require('../tables/booking');
-        
-        // Happy Guests: count unique guests from bookings
-        const guestIds = await Booking.distinct('guest');
-        const happyGuests = guestIds.length;
-        
-        // Active Listings: count of properties with isActive true
-        const activeListings = await Property.countDocuments({ isActive: true });
-        
-        // Satisfaction Rate: percent of confirmed bookings (as a proxy)
-        const totalBookings = await Booking.countDocuments();
-        const confirmedBookings = await Booking.countDocuments({ status: 'confirmed' });
-        const satisfactionRate = totalBookings > 0 ? Math.round((confirmedBookings / totalBookings) * 100) : 100;
-        
-        // Additional metrics for admin dashboard
-        const totalProperties = await Property.countDocuments();
-        const totalUsers = await User.countDocuments();
-        const totalRevenue = await Booking.aggregate([
-            { $match: { status: { $in: ['confirmed', 'ended'] } } },
-            { $group: { _id: null, total: { $sum: '$totalAmount' } } }
-        ]);
-        
-        res.json({ 
-            happyGuests, 
-            activeListings, 
-            satisfactionRate,
-            totalProperties,
-            totalBookings,
-            totalUsers,
-            totalRevenue: totalRevenue.length > 0 ? totalRevenue[0].total : 0
-        });
-    } catch (error) {
-        console.error('Metrics error:', error);
-        res.status(500).json({ message: 'Failed to fetch metrics' });
-    }
-});
-
-// Admin users endpoint
-router.get('/users', requireAdmin, async (req, res) => {
-    try {
-        const User = require('../tables/user');
-        const users = await User.find({}).select('-passwordHash');
-        res.json({ users });
-    } catch (error) {
-        console.error('Users fetch error:', error);
-        res.status(500).json({ message: 'Failed to fetch users' });
-    }
-});
-router.get('/bookings/pending-commission', requireAdmin, async (req, res) => {
-    const list = await Booking.find({ status: 'commission_due', commissionPaid: false })
-        .populate('property')
-        .populate('guest', 'firstName lastName email phone');
-    res.json({ bookings: list });
-});
-
-router.post('/properties/:id/toggle', requireAdmin, async (req, res) => {
-    const property = await Property.findById(req.params.id);
-    if (!property) return res.status(404).json({ message: 'Property not found' });
-    property.isActive = !property.isActive;
-    await property.save();
-    res.json({ property });
-});
-
-// Avatar upload
-// Use memory storage and forward uploads to Cloudinary
-const storage = multer.memoryStorage();
-const upload = multer({ storage });
-
-router.post('/me/avatar', requireAdmin, upload.single('avatar'), async (req, res) => {
-    const User = require('../tables/user');
-    const u = await User.findById(req.user.id);
-    if (!u) return res.status(404).json({ message: 'User not found' });
-    if (!req.file || !req.file.buffer) return res.status(400).json({ message: 'No avatar uploaded' });
-    try {
-        const sharp = require('sharp');
-        let img = sharp(req.file.buffer);
-        const meta = await img.metadata();
-        const width = meta.width || 0;
-        const height = meta.height || 0;
-        let processedBuffer = req.file.buffer;
-        if (width > 0 && height > 0) {
-            const size = Math.min(width, height);
-            const left = Math.max(0, Math.floor((width - size) / 2));
-            const top = Math.max(0, Math.floor((height - size) / 2));
-            processedBuffer = await img.extract({ left, top, width: size, height: size }).resize(512, 512).toBuffer();
-        } else {
-            processedBuffer = await img.resize(512, 512, { fit: 'cover' }).toBuffer();
-        }
-        const up = await uploadBuffer(processedBuffer, req.file.originalname, 'admin/avatars');
-        u.avatar = up.secure_url || up.url;
-        await u.save();
-        res.json({ user: { id: u._id, avatar: u.avatar } });
-    } catch (e) {
-        console.error('Admin avatar processing error:', e);
-        res.status(500).json({ message: 'Failed to process avatar' });
-    }
-});
-
-// --- Admin CMS: Landing Page Content ---
-router.get('/landing-content', requireAdmin, async (req, res) => {
-    try {
-        const LandingContent = require('../tables/landingContent');
-        const doc = await LandingContent.findOne({}).sort({ updatedAt: -1 });
-        res.json({ content: doc || null });
-    } catch (e) {
-        res.status(500).json({ message: 'Failed to fetch landing content' });
-    }
-});
-
-router.post('/landing-content', requireAdmin, async (req, res) => {
-    try {
-        const LandingContent = require('../tables/landingContent');
-        const payload = req.body || {};
-        let doc = await LandingContent.findOne({});
-        if (!doc) doc = await LandingContent.create(payload);
-        else {
-            Object.assign(doc, payload);
-            await doc.save();
-        }
-        res.json({ content: doc });
-    } catch (e) {
-        res.status(500).json({ message: 'Failed to save landing content' });
-    }
-});
-
-router.post('/landing-content/images', requireAdmin, upload.array('images', 12), async (req, res) => {
-    try {
-        if (!req.files || !req.files.length) return res.status(400).json({ message: 'No images uploaded' });
-        const results = await Promise.all(req.files.map(f => uploadBuffer(f.buffer, f.originalname, 'cms/landing')));
-        res.json({ images: results.map(r => r.secure_url || r.url) });
-    } catch (e) {
-        res.status(500).json({ message: 'Failed to upload images' });
-    }
-});
-
-// --- Admin CMS: Attractions Page Content ---
-router.get('/attractions-content', requireAdmin, async (req, res) => {
-    try {
-        const AttractionsPageContent = require('../tables/attractionsPageContent');
-        const doc = await AttractionsPageContent.findOne({}).sort({ updatedAt: -1 });
-        res.json({ content: doc || null });
-    } catch (e) {
-        res.status(500).json({ message: 'Failed to fetch attractions content' });
-    }
-});
-
-router.post('/attractions-content', requireAdmin, async (req, res) => {
-    try {
-        const AttractionsPageContent = require('../tables/attractionsPageContent');
-        const payload = req.body || {};
-        let doc = await AttractionsPageContent.findOne({});
-        if (!doc) doc = await AttractionsPageContent.create(payload);
-        else {
-            Object.assign(doc, payload);
-            await doc.save();
-        }
-        res.json({ content: doc });
-    } catch (e) {
-        res.status(500).json({ message: 'Failed to save attractions content' });
-    }
-});
-
-router.post('/attractions-content/images', requireAdmin, upload.array('images', 12), async (req, res) => {
-    try {
-        const files = (req.files || []).map(f => `/uploads/${path.basename(f.path)}`);
-        res.json({ images: files });
-    } catch (e) {
-        res.status(500).json({ message: 'Failed to upload images' });
-    }
-});
-
-// Notifications
-router.get('/notifications', requireAdmin, async (req, res) => {
-    const list = await Notification.find({ recipientUser: null })
-        .sort({ createdAt: -1 })
-        .limit(50)
-        .populate({ path: 'booking', populate: { path: 'guest', select: 'firstName lastName email phone' } })
-        .populate('property');
-    res.json({ notifications: list });
-});
-
-router.post('/notifications/:id/read', requireAdmin, async (req, res) => {
-    const n = await Notification.findById(req.params.id);
-    if (!n) return res.status(404).json({ message: 'Not found' });
-    n.isRead = true;
-    await n.save();
-    res.json({ notification: n });
-});
-
-// Admin booking detail (with guest and property)
-router.get('/bookings/:id', requireAdmin, async (req, res) => {
-    const b = await Booking.findById(req.params.id)
-        .populate('property')
-        .populate('guest', 'firstName lastName email phone');
-    if (!b) return res.status(404).json({ message: 'Booking not found' });
-    res.json({ booking: b });
-});
-
-// Block a user (for unpaid commissions or violations)
-router.post('/users/:id/block', requireAdmin, async (req, res) => {
-    try {
-        const User = require('../tables/user');
-        const { reason } = req.body;
-        
-        if (!reason) {
-            return res.status(400).json({ message: 'Block reason is required' });
-        }
-        
-        const user = await User.findById(req.params.id);
-        if (!user) return res.status(404).json({ message: 'User not found' });
-        
-        user.isBlocked = true;
-        user.blockReason = reason;
-        user.blockedAt = new Date();
-        await user.save();
-        
-        res.json({ message: 'User blocked successfully', user: { id: user._id, isBlocked: user.isBlocked, blockReason: user.blockReason } });
-    } catch (error) {
-        console.error('Block user error:', error);
-        res.status(500).json({ message: 'Failed to block user', error: error.message });
-    }
-});
-
-// Unblock a user
-router.post('/users/:id/unblock', requireAdmin, async (req, res) => {
-    try {
-        const User = require('../tables/user');
-        const user = await User.findById(req.params.id);
-        if (!user) return res.status(404).json({ message: 'User not found' });
-        
-        user.isBlocked = false;
-        user.blockReason = null;
-        user.blockedAt = null;
-        await user.save();
-        
-        res.json({ message: 'User unblocked successfully', user: { id: user._id, isBlocked: user.isBlocked } });
-    } catch (error) {
-        console.error('Unblock user error:', error);
-        res.status(500).json({ message: 'Failed to unblock user', error: error.message });
-    }
+  try {
+    const id = req.params.id;
+    const user = await User.findByIdAndDelete(id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    // Best-effort: clean up related records could be added here
+    return res.json({ success: true, message: 'User deleted' });
+  } catch (error) {
+    console.error('Delete user error:', error);
+    return res.status(500).json({ message: 'Failed to delete user', error: error.message });
+  }
 });
 
 // Add a fine to a user
 router.post('/users/:id/fines', requireAdmin, async (req, res) => {
-    try {
-        const User = require('../tables/user');
-        const { reason, amount } = req.body;
-        
-        if (!reason || !amount || amount <= 0) {
-            return res.status(400).json({ message: 'Valid reason and amount are required' });
-        }
-        
-        const user = await User.findById(req.params.id);
-        if (!user) return res.status(404).json({ message: 'User not found' });
-        
-        if (!user.fines) {
-            user.fines = { totalDue: 0, currency: 'RWF', items: [] };
-        }
-        
-        user.fines.items.push({
-            reason,
-            amount: Number(amount),
-            createdAt: new Date(),
-            paid: false
-        });
-        
-        user.fines.totalDue = (user.fines.totalDue || 0) + Number(amount);
-        await user.save();
-        
-        res.json({ message: 'Fine added successfully', user: { id: user._id, fines: user.fines } });
-    } catch (error) {
-        console.error('Add fine error:', error);
-        res.status(500).json({ message: 'Failed to add fine', error: error.message });
+  try {
+    const { reason, amount, block, durationDays, durationWeeks, blockedUntil, dueAt, dueInDays, dueInWeeks } = req.body || {};
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    const amt = Number(amount);
+    if (!reason || !amt || amt <= 0) {
+      return res.status(400).json({ message: 'Valid reason and amount are required' });
     }
+
+    if (!user.fines) user.fines = { totalDue: 0, currency: 'RWF', items: [] };
+    let fineDueAt = null;
+    if (dueAt) {
+      fineDueAt = new Date(dueAt);
+    } else if (dueInWeeks) {
+      fineDueAt = new Date(Date.now() + (Number(dueInWeeks) || 0) * 7 * 24 * 60 * 60 * 1000);
+    } else if (dueInDays) {
+      fineDueAt = new Date(Date.now() + (Number(dueInDays) || 0) * 24 * 60 * 60 * 1000);
+    }
+    user.fines.items.push({ reason: String(reason), amount: amt, dueAt: fineDueAt });
+    user.fines.totalDue = Number(user.fines.totalDue || 0) + amt;
+
+    // Optional immediate block
+    let blocked = false;
+    if (block === true) {
+      let until = null;
+      if (blockedUntil) {
+        until = new Date(blockedUntil);
+      } else if (durationWeeks) {
+        until = new Date(Date.now() + (Number(durationWeeks) || 0) * 7 * 24 * 60 * 60 * 1000);
+      } else if (durationDays) {
+        until = new Date(Date.now() + (Number(durationDays) || 0) * 24 * 60 * 60 * 1000);
+      }
+      user.isBlocked = true;
+      user.blockedAt = new Date();
+      user.blockedUntil = until || null;
+      user.blockReason = reason || user.blockReason || 'Unpaid fine';
+      blocked = true;
+    }
+
+    await user.save();
+
+    // Notifications
+    try {
+      await Notification.create({
+        type: 'fine_added',
+        title: 'Fine added',
+        message: `A fine of RWF ${amt.toLocaleString()} was added to your account. Reason: ${reason}.`,
+        recipientUser: user._id
+      });
+      if (blocked) {
+        let msg = 'Your account has been deactivated due to unpaid fine. Please settle your dues.';
+        if (user.blockedUntil) msg += ` Punishment ends on ${user.blockedUntil.toLocaleString()}.`;
+        await Notification.create({
+          type: 'account_blocked',
+          title: 'Account Deactivated',
+          message: msg,
+          recipientUser: user._id
+        });
+      }
+    } catch (_) {}
+
+    return res.json({ message: blocked ? 'Fine added and user blocked' : 'Fine added', user: { id: user._id, fines: user.fines, isBlocked: user.isBlocked } });
+  } catch (error) {
+    console.error('Add fine error:', error);
+    return res.status(500).json({ message: 'Failed to add fine', error: error.message });
+  }
 });
 
-// Mark a fine as paid
-router.post('/users/:userId/fines/:fineId/pay', requireAdmin, async (req, res) => {
-    try {
-        const User = require('../tables/user');
-        const user = await User.findById(req.params.userId);
-        if (!user) return res.status(404).json({ message: 'User not found' });
-        
-        const fine = user.fines?.items?.id(req.params.fineId);
-        if (!fine) return res.status(404).json({ message: 'Fine not found' });
-        
-        if (fine.paid) {
-            return res.status(400).json({ message: 'Fine already paid' });
-        }
-        
-        fine.paid = true;
-        fine.paidAt = new Date();
-        user.fines.totalDue = Math.max(0, (user.fines.totalDue || 0) - fine.amount);
+// Mark a specific fine as paid
+router.post('/users/:id/fines/:fineId/pay', requireAdmin, async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    const fine = user.fines?.items?.id(req.params.fineId);
+    if (!fine) return res.status(404).json({ message: 'Fine not found' });
+    if (fine.paid) return res.status(400).json({ message: 'Fine already paid' });
 
-        // Auto-unblock when all fines are cleared
-        let reactivated = false;
-        if ((user.fines.totalDue || 0) === 0 && user.isBlocked) {
-            user.isBlocked = false;
-            user.blockedAt = null;
-            user.blockedUntil = null;
-            user.blockReason = null;
-            reactivated = true;
+    fine.paid = true;
+    fine.paidAt = new Date();
+    user.fines.totalDue = Math.max(0, Number(user.fines.totalDue || 0) - Number(fine.amount || 0));
 
-            try {
-                await Notification.create({
-                    type: 'account_reactivated',
-                    title: 'Account Reactivated',
-                    message: 'Your account has been reactivated after settling all dues.',
-                    recipientUser: user._id
-                });
-            } catch (_) { /* non-fatal */ }
-        }
-
-        await user.save();
-        
-        res.json({ message: reactivated ? 'Fine paid and account reactivated' : 'Fine marked as paid', user: { id: user._id, fines: user.fines, isBlocked: user.isBlocked } });
-    } catch (error) {
-        console.error('Mark fine paid error:', error);
-        res.status(500).json({ message: 'Failed to mark fine as paid', error: error.message });
+    let reactivated = false;
+    if (Number(user.fines.totalDue || 0) === 0 && user.isBlocked) {
+      user.isBlocked = false;
+      user.blockedAt = null;
+      user.blockedUntil = null;
+      user.blockReason = null;
+      reactivated = true;
+      try {
+        await Notification.create({
+          type: 'account_reactivated',
+          title: 'Account Reactivated',
+          message: 'Your account has been reactivated after settling all dues.',
+          recipientUser: user._id
+        });
+      } catch (_) {}
     }
+
+    await user.save();
+    return res.json({ message: reactivated ? 'Fine paid and account reactivated' : 'Fine marked as paid', user: { id: user._id, fines: user.fines, isBlocked: user.isBlocked } });
+  } catch (error) {
+    console.error('Mark fine paid error:', error);
+    return res.status(500).json({ message: 'Failed to mark fine as paid', error: error.message });
+  }
 });
 
 // Get users with unpaid commissions (MUST BE BEFORE /users/:id)

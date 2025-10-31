@@ -22,6 +22,7 @@ const Favorites = () => {
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [ids, setIds] = useState([]);
+  const [carIds, setCarIds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState([]);
 
@@ -37,6 +38,13 @@ const Favorites = () => {
       setIds(Array.isArray(list) ? list : []);
     } catch (e) {
       setIds([]);
+    }
+    try {
+      const rawCars = localStorage.getItem('car-favorites');
+      const listCars = rawCars ? JSON.parse(rawCars) : [];
+      setCarIds(Array.isArray(listCars) ? listCars : []);
+    } catch {
+      setCarIds([]);
     }
   }, [storageKey]);
 
@@ -73,7 +81,29 @@ const Favorites = () => {
             bathrooms: p.bathrooms ?? 0,
             image: Array.isArray(p.images) && p.images.length ? makeAbsolute(p.images[0]) : 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&h=600&fit=crop'
           }));
-          setItems(mapped);
+          // Load car favorites from local storage (server wishlist doesn't include cars yet)
+          const carResults = await Promise.all(
+            (carIds||[]).map(async (cid) => {
+              try {
+                const resC = await fetch(`${API_URL}/api/cars/${cid}`);
+                const dataC = await resC.json();
+                if (!resC.ok) return null;
+                const c = dataC.car || dataC;
+                return {
+                  id: String(c._id || cid),
+                  title: c.vehicleName || `${c.brand || ''} ${c.model || ''}`.trim() || 'Car',
+                  location: c.location || '—',
+                  type: 'cars',
+                  price: Number(c.pricePerDay || 0),
+                  bedrooms: 0,
+                  bathrooms: 0,
+                  image: (Array.isArray(c.images) && c.images[0]) ? makeAbsolute(c.images[0]) : 'https://images.unsplash.com/photo-1549317336-206569e8475c?w=800&h=600&fit=crop',
+                  href: `/cars/${c._id || cid}`
+                };
+              } catch { return null; }
+            })
+          );
+          setItems([...mapped, ...carResults.filter(Boolean)]);
         } else {
           // Guest mode: hydrate from local ids
           const results = await Promise.all(
@@ -95,8 +125,29 @@ const Favorites = () => {
               };
             })
           );
+          const carResults = await Promise.all(
+            (carIds||[]).map(async (cid) => {
+              try {
+                const resC = await fetch(`${API_URL}/api/cars/${cid}`);
+                const dataC = await resC.json();
+                if (!resC.ok) return null;
+                const c = dataC.car || dataC;
+                return {
+                  id: String(c._id || cid),
+                  title: c.vehicleName || `${c.brand || ''} ${c.model || ''}`.trim() || 'Car',
+                  location: c.location || '—',
+                  type: 'cars',
+                  price: Number(c.pricePerDay || 0),
+                  bedrooms: 0,
+                  bathrooms: 0,
+                  image: (Array.isArray(c.images) && c.images[0]) ? makeAbsolute(c.images[0]) : 'https://images.unsplash.com/photo-1549317336-206569e8475c?w=800&h=600&fit=crop',
+                  href: `/cars/${c._id || cid}`
+                };
+              } catch { return null; }
+            })
+          );
           const filtered = results.filter(Boolean);
-          setItems(filtered);
+          setItems([...filtered, ...carResults.filter(Boolean)]);
         }
       } catch (e) {
         setItems([]);
@@ -104,8 +155,8 @@ const Favorites = () => {
         setLoading(false);
       }
     };
-    if (isAuthenticated) run(); else if (ids.length) run(); else { setItems([]); setLoading(false); }
-  }, [ids, isAuthenticated, storageKey]);
+    if (isAuthenticated || ids.length || carIds.length) run(); else { setItems([]); setLoading(false); }
+  }, [ids, carIds, isAuthenticated, storageKey]);
 
   const removeFavorite = async (removeId) => {
     try {
@@ -132,6 +183,14 @@ const Favorites = () => {
         localStorage.setItem(storageKey, JSON.stringify(next));
         setIds(next);
       }
+      // Also remove from car favorites store
+      try {
+        const rawCars = localStorage.getItem('car-favorites');
+        const listCars = rawCars ? JSON.parse(rawCars) : [];
+        const nextCars = Array.isArray(listCars) ? listCars.filter((x) => String(x) !== pid) : [];
+        localStorage.setItem('car-favorites', JSON.stringify(nextCars));
+        setCarIds(nextCars);
+      } catch {}
     } catch {}
   };
 
@@ -179,7 +238,7 @@ const Favorites = () => {
                 amenities={[]}
                 host={null}
                 isAvailable={true}
-                href={`/apartment/${p.id}`}
+                href={p.href || `/apartment/${p.id}`}
               />
               <div className="mt-2 flex items-center justify-between">
                 <Link to={`/apartment/${p.id}`} className="text-sm text-primary hover:underline">View details</Link>

@@ -472,7 +472,7 @@ const BookingProcess = () => {
     applyDealIfAny();
   }, [selectedDealId, totalPrice, bookingData.checkIn, bookingData.checkOut, bookingData.guests, id]);
 
-  // FIX: Improved room selection handler with proper room data normalization
+  // FIX: Improved room selection handler with proper room data normalization and toggle behavior
   const handleRoomSelect = (room) => {
     // Ensure room has all required properties with proper fallbacks
     const pricePerNight = room.pricePerNight || room.price || 0;
@@ -486,8 +486,12 @@ const BookingProcess = () => {
       capacity: room.capacity || 1,
       amenities: room.amenities || []
     };
-    
-    setSelectedRoom(roomWithDefaults);
+    // Toggle selection: clicking same room deselects
+    if (selectedRoom && ((selectedRoom._id && roomWithDefaults._id && selectedRoom._id === roomWithDefaults._id) || (selectedRoom.roomNumber === roomWithDefaults.roomNumber))) {
+      setSelectedRoom(null);
+    } else {
+      setSelectedRoom(roomWithDefaults);
+    }
   };
 
   // FIX: Improved room comparison function
@@ -998,7 +1002,7 @@ const BookingProcess = () => {
                     <button
                       onClick={() => handlePayment('cash')}
                       disabled={loading}
-                      className="w-full flex items-center p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full flex items-center p-3 text-sm border border-[#d4c4b0] rounded-lg cursor-pointer hover:bg-[#f6e9d8] text-[#4b2a00] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <div className="flex items-center">
                         <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center mr-3">
@@ -1014,7 +1018,7 @@ const BookingProcess = () => {
                     <button
                       onClick={() => handlePayment('mtn_mobile_money')}
                       disabled={loading}
-                      className="w-full flex items-center p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full flex items-center p-3 text-sm border border-[#d4c4b0] rounded-lg cursor-pointer hover:bg-[#f6e9d8] text-[#4b2a00] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <div className="flex items-center">
                         <div className="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center mr-3">

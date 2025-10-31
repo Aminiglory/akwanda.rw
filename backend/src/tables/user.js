@@ -26,8 +26,12 @@ const mongoose = require('mongoose');
             reason: { type: String, required: true },
             amount: { type: Number, required: true },
             createdAt: { type: Date, default: Date.now },
+            dueAt: { type: Date },
             paid: { type: Boolean, default: false },
-            paidAt: { type: Date }
+            paidAt: { type: Date },
+            // Late policy flags
+            penaltyApplied: { type: Boolean, default: false },
+            commissionApplied: { type: Boolean, default: false }
           }
         ]
       }

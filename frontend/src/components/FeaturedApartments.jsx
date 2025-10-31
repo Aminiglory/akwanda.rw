@@ -104,7 +104,7 @@ const FeaturedApartments = () => {
               <h4 className="text-2xl font-bold mb-2">Looking for more options?</h4>
               <p className="text-white/90 text-lg">Browse all apartments and filter by location, price, and amenities.</p>
             </div>
-            <Link to="/apartments" className="bg-white text-primary-700 px-8 py-4 rounded-xl font-bold hover:bg-gray-50 transition-all duration-300 shadow-lg hover:scale-105 transform">
+            <Link to="/apartments" className="bg-[#a06b42] text-white px-8 py-3 rounded-xl font-semibold hover:bg-[#8f5a32] transition-all duration-300 shadow-lg hover:scale-105 transform">
               View All Apartments
             </Link>
           </div>

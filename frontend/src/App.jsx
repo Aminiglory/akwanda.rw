@@ -12,6 +12,7 @@ import Home from './pages/Home'
 import ApartmentsListing from './pages/ApartmentsListing'
 import Flights from './pages/Flights'
 import Attractions from './pages/Attractions'
+import AttractionDetail from './pages/AttractionDetail'
 import AirportTaxis from './pages/AirportTaxis'
 import ApartmentDetails from './pages/ApartmentDetails'
 import Login from './pages/Login'
@@ -28,6 +29,7 @@ import AdminAttractions from './pages/AdminAttractions'
 import CarsList from './pages/CarsList'
 import CarDetail from './pages/CarDetail'
 import CarOwnerDashboard from './pages/CarOwnerDashboard'
+import OwnerAttractionsDashboard from './pages/OwnerAttractionsDashboard'
 import AdminProfile from './pages/AdminProfile'
 import UserProfile from './pages/UserProfile'
 import Settings from './pages/Settings'
@@ -119,6 +121,7 @@ function App() {
             <Route path="/test-deals" element={<TestDeals />} />
             <Route path="/flights" element={<Flights />} />
             <Route path="/attractions" element={<Attractions />} />
+            <Route path="/attractions/:id" element={<AttractionDetail />} />
             <Route path="/cars" element={<CarsList />} />
             <Route path="/cars/:id" element={<CarDetail />} />
             <Route path="/taxis" element={<AirportTaxis />} />
@@ -157,6 +160,7 @@ function App() {
             <Route path="/my-bookings" element={<HostRoute><div className="dashboard"><PropertyOwnerBookings /></div></HostRoute>} />
             {/* All property owner dashboard routes now point to PropertyOwnerBookings */}
             <Route path="/owner/cars" element={<HostRoute><div className="dashboard"><CarOwnerDashboard /></div></HostRoute>} />
+            <Route path="/owner/attractions" element={<HostRoute><div className="dashboard"><OwnerAttractionsDashboard /></div></HostRoute>} />
             <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
             <Route path="/owner/promotions" element={<HostRoute><div className="dashboard"><OwnerPromotions /></div></HostRoute>} />
             <Route path="/owner/reviews" element={<HostRoute><div className="dashboard"><OwnerReviews /></div></HostRoute>} />

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { FaMapMarkerAlt, FaStar, FaClock, FaTicketAlt, FaCamera, FaHeart } from 'react-icons/fa';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -49,11 +50,11 @@ const Attractions = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <div className="bg-gradient-to-r from-[var(--ak-primary)] to-[color-mix(in_srgb,_var(--ak-primary)_85%,_#000)] text-white py-16">
+      <div className="bg-[#a06b42] text-white py-12 md:py-16">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold mb-4">Local Amenities Near Your Apartment</h1>
-            <p className="text-xl text-gray-200">Discover what's around your apartment in Rwanda</p>
+            <h1 className="text-2xl md:text-4xl font-bold mb-2 md:mb-4">Local Amenities Near Your Apartment</h1>
+            <p className="text-base md:text-xl text-white/90">Discover what's around your apartment in Rwanda</p>
           </div>
         </div>
       </div>
@@ -66,10 +67,10 @@ const Attractions = () => {
               <button
                 key={category.id}
                 onClick={() => setSelectedCategory(category.id)}
-                className={`flex items-center space-x-2 px-6 py-3 rounded-full transition-all duration-300 ${
+                className={`flex items-center space-x-2 px-4 md:px-6 py-2.5 md:py-3 rounded-full transition-all duration-300 ${
                   selectedCategory === category.id
-                    ? 'btn-primary text-white shadow-lg'
-                    : 'bg-white text-gray-700 hover:bg-gray-100 shadow-md'
+                    ? 'bg-[#a06b42] text-white shadow-lg'
+                    : 'bg-[#f6e9d8] text-[#4b2a00] hover:bg-[#e8dcc8] border border-[#d4c4b0]'
                 }`}
               >
                 <span className="text-lg">{category.icon}</span>
@@ -104,12 +105,12 @@ const Attractions = () => {
                     <FaHeart className="text-red-500" />
                   </button>
                   <button className="bg-white/90 backdrop-blur-sm rounded-full p-2 hover:bg-white transition-colors">
-                    <FaCamera className="text-primary" />
+                    <FaCamera className="text-[#a06b42]" />
                   </button>
                 </div>
                 <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1">
                   {attraction.price && (
-                    <span className="text-primary font-bold">
+                    <span className="text-[#a06b42] font-bold">
                       {typeof attraction.price === 'string' ? attraction.price : `RWF ${attraction.price}`}
                     </span>
                   )}
@@ -121,7 +122,7 @@ const Attractions = () => {
                 <h3 className="text-lg md:text-xl font-bold text-gray-800 mb-2">{attraction.name}</h3>
                 
                 <div className="flex items-center text-gray-600 mb-3">
-                  <FaMapMarkerAlt className="text-primary mr-2" />
+                  <FaMapMarkerAlt className="text-[#a06b42] mr-2" />
                   <span className="text-xs md:text-sm">{attraction.location}</span>
                 </div>
 
@@ -163,10 +164,10 @@ const Attractions = () => {
                 </div>
 
                 {/* View Details Button */}
-                <button className="w-full btn-primary text-white py-3 rounded-xl font-semibold transition-all duration-300 hover:scale-105 flex items-center justify-center gap-2">
+                <Link to={`/attractions/${attraction.id || attraction._id || ''}`} className="w-full bg-[#a06b42] hover:bg-[#8f5a32] text-white py-3 rounded-xl font-semibold transition-all duration-300 hover:scale-105 flex items-center justify-center gap-2">
                   <FaMapMarkerAlt />
                   View Details
-                </button>
+                </Link>
               </div>
             </div>
           ))}
@@ -175,12 +176,12 @@ const Attractions = () => {
         
         {/* Call to Action */}
         <div className="mt-12 text-center">
-          <div className="bg-gradient-to-r from-[var(--ak-primary)] to-[color-mix(in_srgb,_var(--ak-primary)_85%,_#000)] rounded-2xl p-8 text-white">
+          <div className="bg-[#a06b42] rounded-2xl p-8 text-white">
             <h3 className="text-2xl font-bold mb-4">Find Your Perfect Apartment Location</h3>
-            <p className="text-gray-200 mb-6">
+            <p className="text-white/90 mb-6">
               Choose apartments near the amenities that matter most to you
             </p>
-            <button className="bg-white text-primary px-8 py-3 rounded-xl font-semibold hover:bg-gray-100 transition-all duration-300 hover:scale-105">
+            <button className="bg-white text-[#a06b42] px-8 py-3 rounded-xl font-semibold hover:bg-gray-100 transition-all duration-300 hover:scale-105">
               Browse Apartments
             </button>
           </div>

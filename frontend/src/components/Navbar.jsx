@@ -59,6 +59,7 @@ const Navbar = () => {
   const [avatarOk, setAvatarOk] = useState(true);
   const [showOwnerSwitch, setShowOwnerSwitch] = useState(false);
   const [ownerEmail, setOwnerEmail] = useState('');
+  const [ownerPassword, setOwnerPassword] = useState('');
   const [switchLoading, setSwitchLoading] = useState(false);
   const [myProperties, setMyProperties] = useState([]);
   const [propDropdownOpen, setPropDropdownOpen] = useState(false);
@@ -423,19 +424,17 @@ const Navbar = () => {
 
   const handleListProperty = () => {
     if (!isAuthenticated) {
-      // Not logged in - redirect to property owner registration
       navigate('/owner-register');
       return;
     }
-
     if (user?.userType === 'host') {
-      // Already a property owner - go to upload property
       navigate('/upload');
       return;
     }
-
-    // Logged in as guest - offer to become property owner
-    navigate('/become-host');
+    // Authenticated but not host: open owner login modal
+    setOwnerEmail(user?.email || '');
+    setOwnerPassword('');
+    setShowOwnerSwitch(true);
   };
 
   const goToPropertyDashboard = () => {
@@ -455,20 +454,35 @@ const Navbar = () => {
   const submitOwnerSwitch = async (e) => {
     e?.preventDefault?.();
     const email = String(ownerEmail || '').trim();
-    if (!email) { toast.error('Enter the email of your owner account'); return; }
+    const password = String(ownerPassword || '').trim();
+    if (!email || !password) { toast.error('Enter owner email and password'); return; }
     try {
       setSwitchLoading(true);
-      // Optional: verify owner email if backend supports it
-      // const verify = await safeApiGet(`/api/users/check-owner?email=${encodeURIComponent(email)}`, { isOwner: true });
-      // if (!verify?.isOwner) { toast.error('No owner account found for that email'); setSwitchLoading(false); return; }
-      await logout();
-      navigate(`/owner-login?email=${encodeURIComponent(email)}`);
-      toast.success('Please sign in as Property Owner');
+      // Logout current session (user mode)
+      await fetch(`${API_URL}/api/auth/logout`, { method: 'POST', credentials: 'include' });
+      // Login as owner
+      const res = await fetch(`${API_URL}/api/auth/login`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await res.json().catch(()=>({}));
+      if (!res.ok) throw new Error(data.message || 'Owner login failed');
+      // Ensure account is host
+      if (data?.user?.userType !== 'host') {
+        toast.error('That account is not a property owner');
+        return;
+      }
+      toast.success('Switched to Property Owner');
+      setShowOwnerSwitch(false);
+      setOwnerPassword('');
+      // Redirect to owner dashboard
+      navigate('/dashboard');
     } catch (err) {
-      toast.error('Could not switch account. Please try again.');
+      toast.error(err.message || 'Could not switch account');
     } finally {
       setSwitchLoading(false);
-      setShowOwnerSwitch(false);
     }
   };
 
@@ -478,14 +492,11 @@ const Navbar = () => {
       <div className="w-full bg-[#4b2a00] text-white py-2 px-4 border-b border-[#3a2000]">
         <div className="max-w-7xl mx-auto flex justify-between items-center text-xs">
           <div className="flex items-center space-x-4 lg:space-x-6">
-            {/* Property Owner Links - Show when authenticated as host */}
+            {/* Property Owner Links - Show when authenticated as host (only show Dashboard label in owner context) */}
             {isAuthenticated && user?.userType === 'host' && (
               <>
-                {userStats.properties > 0 && (
-                  <Link
-                    to="/dashboard"
-                    className="hidden sm:inline hover:text-white font-medium"
-                  >
+                {userStats.properties > 0 && isInPropertyOwnerDashboard() && (
+                  <Link to="/dashboard" className="hidden sm:inline hover:text-white font-medium">
                     Dashboard
                   </Link>
                 )}
@@ -724,7 +735,7 @@ const Navbar = () => {
               {/* Property Dashboard - Hidden on small screens completely */}
               {isAuthenticated && user?.userType === 'host' && (
                 <button
-                  onClick={goToPropertyDashboard}
+                  onClick={() => { if (!isInPropertyOwnerDashboard()) { setOwnerEmail(user?.email || ''); setOwnerPassword(''); setShowOwnerSwitch(true);} else { navigate('/dashboard'); } }}
                   className="hidden lg:inline-flex items-center px-2 lg:px-3 py-2 rounded-lg bg-green-600 text-white text-xs lg:text-sm font-medium hover:bg-green-700 transition-colors whitespace-nowrap"
                   title="Property Owner Dashboard"
                 >
@@ -782,7 +793,7 @@ const Navbar = () => {
               )}
 
               {/* Favorites */}
-              {isAuthenticated && user?.userType !== 'host' && (
+              {isAuthenticated && !isInPropertyOwnerDashboard() && (
                 <Link
                   to="/favorites"
                   className="hidden lg:flex items-center px-3 py-2 rounded-lg text-[#6b5744] hover:text-[#4b2a00] hover:bg-[#e8dcc8] transition-colors"
@@ -1236,25 +1247,39 @@ const Navbar = () => {
           </div>
         </div>
       )}
-      {/* Pre-confirmation modal for owner switch */}
+      {/* Owner switch modal (enter owner credentials) */}
       {showOwnerSwitch && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-xl">
-            <div className="mb-3 text-lg font-semibold text-gray-900">Confirm Property Owner Account</div>
-            <p className="text-sm text-gray-600 mb-4">Enter the email you use for your Property Owner account. We'll switch you to that login.</p>
-            <form onSubmit={submitOwnerSwitch} className="space-y-4">
-              <input
-                type="email"
-                value={ownerEmail}
-                onChange={(e) => setOwnerEmail(e.target.value)}
-                placeholder="owner@example.com"
-                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              />
-              <div className="flex flex-col sm:flex-row gap-2 justify-end">
+            <div className="mb-3 text-lg font-semibold text-gray-900">Switch to Property Owner Mode</div>
+            <p className="text-sm text-gray-600 mb-4">Enter your Property Owner account credentials. We'll log you out of user mode and sign you in as owner.</p>
+            <form onSubmit={submitOwnerSwitch} className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Owner Email</label>
+                <input
+                  type="email"
+                  value={ownerEmail}
+                  onChange={(e) => setOwnerEmail(e.target.value)}
+                  placeholder="owner@example.com"
+                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#a06b42]"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                <input
+                  type="password"
+                  value={ownerPassword}
+                  onChange={(e) => setOwnerPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#a06b42]"
+                  required
+                />
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2 justify-end pt-1">
                 <button type="button" className="px-4 py-2 rounded-lg border" onClick={() => setShowOwnerSwitch(false)}>Cancel</button>
-                <button type="submit" disabled={switchLoading} className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50">
-                  {switchLoading ? 'Switching…' : 'Continue'}
+                <button type="submit" disabled={switchLoading} className="px-4 py-2 rounded-lg bg-[#a06b42] text-white hover:bg-[#8f5a32] disabled:opacity-50">
+                  {switchLoading ? 'Switching…' : 'Switch to Owner'}
                 </button>
               </div>
             </form>
