@@ -423,18 +423,19 @@ const Navbar = () => {
   const avatarUrl = user?.avatar ? makeAbsolute(user.avatar) : null;
 
   const handleListProperty = () => {
-    if (!isAuthenticated) {
-      navigate('/owner-register');
+    // Always guard into owner mode before listing
+    if (!isAuthenticated || user?.userType !== 'host') {
+      setOwnerEmail(user?.email || '');
+      setOwnerPassword('');
+      setShowOwnerSwitch(true);
       return;
     }
-    if (user?.userType === 'host') {
-      navigate('/upload');
+    // Already host session: ensure owner dashboard context
+    if (!isInPropertyOwnerDashboard()) {
+      navigate('/dashboard');
       return;
     }
-    // Authenticated but not host: open owner login modal
-    setOwnerEmail(user?.email || '');
-    setOwnerPassword('');
-    setShowOwnerSwitch(true);
+    navigate('/upload');
   };
 
   const goToPropertyDashboard = () => {
@@ -732,10 +733,10 @@ const Navbar = () => {
                 <span className="lg:hidden">List Property</span>
               </button>
 
-              {/* Property Dashboard - Hidden on small screens completely */}
-              {isAuthenticated && user?.userType === 'host' && (
+              {/* Property Dashboard - hidden in user mode to reduce overflow; visible only in owner dashboard context */}
+              {isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard() && (
                 <button
-                  onClick={() => { if (!isInPropertyOwnerDashboard()) { setOwnerEmail(user?.email || ''); setOwnerPassword(''); setShowOwnerSwitch(true);} else { navigate('/dashboard'); } }}
+                  onClick={() => navigate('/dashboard')}
                   className="hidden lg:inline-flex items-center px-2 lg:px-3 py-2 rounded-lg bg-green-600 text-white text-xs lg:text-sm font-medium hover:bg-green-700 transition-colors whitespace-nowrap"
                   title="Property Owner Dashboard"
                 >
@@ -1042,14 +1043,18 @@ const Navbar = () => {
                         )}
 
                         {user?.userType === 'host' && (
-                          <Link
-                            to="/my-bookings"
-                            className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors"
-                            onClick={() => setIsProfileOpen(false)}
+                          <button
+                            type="button"
+                            className="w-full text-left flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors"
+                            onClick={() => {
+                              setIsProfileOpen(false);
+                              if (!isInPropertyOwnerDashboard()) { setOwnerEmail(user?.email || ''); setOwnerPassword(''); setShowOwnerSwitch(true); }
+                              else { navigate('/dashboard'); }
+                            }}
                           >
                             <FaChartLine className="text-green-600" />
                             <span className="font-medium">Dashboard</span>
-                          </Link>
+                          </button>
                         )}
 
                         <Link
