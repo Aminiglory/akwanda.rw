@@ -15,6 +15,7 @@ import toast from "react-hot-toast";
 import { useAuth } from "../contexts/AuthContext";
 import { safeApiGet, apiGet } from "../utils/apiUtils";
 import PropertyDealBadge from "../components/PropertyDealBadge";
+import AkwandaCard from "../components/AkwandaCard";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -38,6 +39,7 @@ const ApartmentsListing = () => {
 
   const [showFilters, setShowFilters] = useState(false);
   const [apartments, setApartments] = useState([]);
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'table'
   const [loading, setLoading] = useState(true);
   const [fetchTimer, setFetchTimer] = useState(null);
   const [budgetBounds, setBudgetBounds] = useState({ min: 0, max: 5000000 });
@@ -124,12 +126,14 @@ const ApartmentsListing = () => {
         bathrooms: p.bathrooms ?? 0,
         size: p.size || "—",
         image: img || "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=500&h=300&fit=crop",
+        images: Array.isArray(p.images) ? p.images.map(makeAbsolute) : (img ? [img] : []),
         amenities:
           Array.isArray(p.amenities) && p.amenities.length
             ? p.amenities
             : ["WiFi", "Parking", "Kitchen"],
         isAvailable: p.isActive && (!p.rooms || p.rooms.length === 0 || p.rooms.some(room => room.isAvailable !== false)),
         host: p.host ? `${p.host.firstName} ${p.host.lastName}` : "—",
+        hostId: p.host?._id || p.host?.id || null,
       });
       });
       setApartments(mapped);
@@ -259,7 +263,7 @@ const ApartmentsListing = () => {
             {/* Search Bar */}
             <div className="flex items-center w-full lg:w-auto space-x-2">
               <div className="relative flex-1">
-                <FaMapMarkerAlt className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-blue-600" />
+                <FaMapMarkerAlt className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-primary" />
                 <input
                   type="text"
                   placeholder="Search by location..."
@@ -274,7 +278,7 @@ const ApartmentsListing = () => {
                 onClick={() =>
                   setFilters({ ...filters, location: filters.location })
                 }
-                className="flex items-center bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
+                className="flex items-center btn-primary px-4 py-2 rounded-lg transition-colors"
               >
                 <FaSearch className="mr-2" />
                 Search
@@ -490,6 +494,23 @@ const ApartmentsListing = () => {
                   <option value="rating-desc">Highest Rated</option>
                   <option value="newest">Newest First</option>
                 </select>
+                {/* View mode toggle (large screens) */}
+                <div className="hidden lg:flex items-center gap-2 ml-4">
+                  <button
+                    onClick={() => setViewMode('grid')}
+                    className={`${viewMode==='grid' ? 'btn-primary text-white' : 'bg-gray-100 text-gray-700'} px-3 py-2 rounded-lg`}
+                    title="Grid view"
+                  >
+                    Grid
+                  </button>
+                  <button
+                    onClick={() => setViewMode('table')}
+                    className={`${viewMode==='table' ? 'btn-primary text-white' : 'bg-gray-100 text-gray-700'} px-3 py-2 rounded-lg`}
+                    title="Table view (large screens)"
+                  >
+                    Table
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -523,124 +544,89 @@ const ApartmentsListing = () => {
                   <h2 className="text-2xl font-bold text-gray-900 mb-4">
                     {category.charAt(0).toUpperCase() + category.slice(1)}
                   </h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {list.map((apartment, index) => (
-                      <div
-                        key={apartment.id}
-                        className="modern-card-elevated overflow-hidden hover:scale-105 transition-all duration-300"
-                        style={{ animationDelay: `${index * 0.1}s` }}
-                      >
-                        {/* Image */}
-                        <div className="relative h-48 overflow-hidden">
-                          <img
-                            loading="lazy"
-                            src={apartment.image}
-                            alt={apartment.title}
-                            className="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
-                            onError={(e) => {
-                              e.target.src = 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=500&h=300&fit=crop';
-                            }}
-                          />
-                          {!apartment.isAvailable && (
-                            <div className="absolute top-4 right-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
-                              Unavailable
-                            </div>
-                          )}
-                          <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1 text-sm font-semibold text-gray-800">
-                            RWF {apartment.pricePerMonth?.toLocaleString()}/month
-                          </div>
-                          <div className="absolute bottom-4 left-4 bg-gray-800/80 text-white px-2 py-0.5 rounded text-xs font-medium">
-                            {apartment.category.charAt(0).toUpperCase() + apartment.category.slice(1)}
-                          </div>
-                        </div>
-
-                        {/* Content */}
-                        <div className="p-6">
-                          {/* Deal Badge */}
+                  {/* Conditional rendering: table on large screens when selected, grid otherwise */}
+                  {viewMode === 'table' ? (
+                    <div className="hidden lg:block overflow-x-auto rounded-xl border border-gray-200">
+                      <table className="min-w-full text-sm">
+                        <thead className="bg-[var(--ak-secondary-200)] text-gray-700">
+                          <tr>
+                            <th className="text-left px-4 py-3">Property</th>
+                            <th className="text-left px-4 py-3">Location</th>
+                            <th className="text-left px-4 py-3">Type</th>
+                            <th className="text-left px-4 py-3">Price/night</th>
+                            <th className="text-left px-4 py-3">Rating</th>
+                            <th className="text-left px-4 py-3">BR</th>
+                            <th className="text-left px-4 py-3">Bath</th>
+                            <th className="text-left px-4 py-3">Status</th>
+                            <th className="text-left px-4 py-3">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          {list.map((a) => (
+                            <tr key={a.id} className="bg-white hover:bg-gray-50">
+                              <td className="px-4 py-3">
+                                <div className="flex items-center gap-3">
+                                  <img src={a.image} alt={a.title} className="w-14 h-14 rounded-lg object-cover" />
+                                  <div>
+                                    <Link to={`/apartment/${a.id}`} className="font-semibold text-gray-900 hover:underline line-clamp-1">{a.title}</Link>
+                                    <div className="text-xs text-gray-500">Hosted by {a.host}</div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-4 py-3 text-gray-700">{a.location}</td>
+                              <td className="px-4 py-3 capitalize text-gray-700">{a.category}</td>
+                              <td className="px-4 py-3 font-semibold text-primary-700">RWF {Number(a.price || 0).toLocaleString()}</td>
+                              <td className="px-4 py-3 text-gray-700">{Number(a.rating || 0).toFixed(1)} ({a.reviews})</td>
+                              <td className="px-4 py-3 text-gray-700">{a.bedrooms}</td>
+                              <td className="px-4 py-3 text-gray-700">{a.bathrooms}</td>
+                              <td className="px-4 py-3">
+                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${a.isAvailable ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                  {a.isAvailable ? 'Available' : 'Unavailable'}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3">
+                                <Link to={`/apartment/${a.id}`} className="btn-primary text-white px-3 py-1.5 rounded-lg">View</Link>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                      {list.map((apartment, index) => (
+                        <div key={apartment.id} style={{ animationDelay: `${index * 0.1}s` }}>
                           {apartment.bestDeal && (
                             <div className="mb-3">
                               <PropertyDealBadge deal={apartment.bestDeal} size="sm" />
                             </div>
                           )}
-                          
-                          <h3 className="text-xl font-bold text-gray-800 mb-2 line-clamp-2">
-                            {apartment.title}
-                          </h3>
-
-                          <div className="flex items-center text-gray-600 mb-3">
-                            <FaMapMarkerAlt className="text-blue-600 mr-2" />
-                            <span className="text-sm">{apartment.location}</span>
-                          </div>
-
-                          {/* Rating */}
-                          <div className="flex items-center mb-3">
-                            <div className="flex items-center mr-2">
-                              {renderStars(apartment.rating)}
-                            </div>
-                            <span className="text-sm text-gray-600">
-                              {apartment.rating} ({apartment.reviews} reviews)
-                            </span>
-                          </div>
-
-                          {/* Bedrooms & Bathrooms */}
-                          <div className="flex items-center gap-4 mb-4 text-sm text-gray-600">
-                            <div className="flex items-center">
-                              <FaBed className="mr-1" />
-                              {apartment.bedrooms} BR
-                            </div>
-                            <div className="flex items-center">
-                              <FaBath className="mr-1" />
-                              {apartment.bathrooms} Bath
-                            </div>
-                            <span>{apartment.size}</span>
-                          </div>
-
-                          {/* Amenities */}
-                          <div className="flex flex-wrap gap-2 mb-4">
-                            {apartment.amenities.slice(0, 3).map((amenity, idx) => (
-                              <span
-                                key={idx}
-                                className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full"
-                              >
-                                {amenity}
-                              </span>
-                            ))}
-                            {apartment.amenities.length > 3 && (
-                              <span className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-full">
-                                +{apartment.amenities.length - 3} more
-                              </span>
-                            )}
-                          </div>
-
-                          {/* Host */}
-                          <div className="flex items-center justify-between mb-4">
-                            <span className="text-sm text-gray-600">
-                              Hosted by {apartment.host}
-                            </span>
-                          </div>
-
-                          {/* View Details */}
-                          <Link
-                            to={`/apartment/${apartment.id}`}
-                            className={`w-full py-3 rounded-xl font-semibold transition-all duration-300 block text-center ${
-                              apartment.isAvailable
-                                ? "bg-blue-600 hover:bg-blue-700 text-white hover:scale-105"
-                                : "bg-gray-300 text-gray-500 cursor-not-allowed"
-                            }`}
-                          >
-                            {apartment.isAvailable ? "View Details" : "Unavailable"}
-                          </Link>
+                          <AkwandaCard
+                            id={apartment.id}
+                            title={apartment.title}
+                            location={apartment.location}
+                            images={apartment.images && apartment.images.length ? apartment.images : [apartment.image]}
+                            pricePerMonth={apartment.pricePerMonth}
+                            category={apartment.category}
+                            rating={Number(apartment.rating) || 0}
+                            reviews={apartment.reviews}
+                            amenities={apartment.amenities}
+                            host={apartment.host}
+                            ownerId={apartment.hostId}
+                            isAvailable={apartment.isAvailable}
+                            href={`/apartment/${apartment.id}`}
+                          />
                         </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
                ))
             )}
 
             {/* Load More */}
             <div className="text-center mt-12">
-              <button className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-semibold transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl">
+              <button className="btn-primary text-white px-8 py-3 rounded-xl font-semibold transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl">
                 Load More Apartments
               </button>
             </div>

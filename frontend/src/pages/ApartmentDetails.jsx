@@ -408,8 +408,8 @@ const ApartmentDetails = () => {
               </div>
               <h1 className="text-2xl md:text-3xl leading-tight font-bold text-gray-900 tracking-tight truncate capitalize">{apartment.title}</h1>
               <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 text-sm">
-                  <FaMapMarkerAlt className="text-blue-600" />
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full chip-primary text-sm">
+                  <FaMapMarkerAlt className="text-primary" />
                   <span className="truncate max-w-[60vw] md:max-w-none">{apartment.location}</span>
                 </span>
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-100 text-gray-700 text-sm">
@@ -516,8 +516,8 @@ const ApartmentDetails = () => {
                       onClick={() => setSelectedImage(index)}
                       className={`relative h-20 rounded-lg overflow-hidden transition-all duration-300 group/thumb ${
                         selectedImage === index 
-                          ? 'ring-2 ring-blue-500 scale-105' 
-                          : 'hover:scale-105 hover:ring-2 hover:ring-blue-300'
+                          ? 'ring-2 ring-primary scale-105' 
+                          : 'hover:scale-105 hover:ring-2 ring-primary'
                       }`}
                     >
                       <img
@@ -530,7 +530,7 @@ const ApartmentDetails = () => {
                         }}
                       />
                       {selectedImage === index && (
-                        <div className="absolute inset-0 bg-blue-500 bg-opacity-20 flex items-center justify-center">
+                        <div className="absolute inset-0 bg-primary bg-opacity-20 flex items-center justify-center">
                           <FaCheck className="text-white text-lg" />
                         </div>
                       )}
@@ -618,7 +618,7 @@ const ApartmentDetails = () => {
                       key={index}
                       className={`group rounded-2xl p-4 cursor-pointer bg-white shadow-sm transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 relative ${
                         selectedRoom === index 
-                          ? 'ring-2 ring-blue-200 bg-blue-50' 
+                          ? 'ring-2 ring-primary surface-secondary' 
                           : ''
                       }`}
                       onClick={(e) => {
@@ -635,7 +635,7 @@ const ApartmentDetails = () => {
                         onClick={(e) => { e.stopPropagation(); setSelectedRoom(selectedRoom === index ? null : index); }}
                       >
                         <div className="flex-1">
-                          <h4 className="font-semibold text-gray-800 text-lg group-hover:text-blue-700 transition-colors duration-300">
+                          <h4 className="font-semibold text-gray-800 text-lg group-hover:text-primary-700 transition-colors duration-300">
                             {room.roomNumber}
                           </h4>
                           <p className="text-sm text-gray-600 capitalize font-medium">
@@ -643,7 +643,7 @@ const ApartmentDetails = () => {
                           </p>
                         </div>
                         <div className="text-right">
-                          <div className="text-xl font-bold text-blue-600 group-hover:text-blue-700 transition-colors duration-300">
+                          <div className="text-xl font-bold text-primary group-hover:text-primary-700 transition-colors duration-300">
                             RWF {(() => {
                               const roomPricePerNight = room.pricePerNight || room.price || 0;
                               const monthlyPrice = room.pricePerMonth || (roomPricePerNight * 30);
@@ -665,7 +665,7 @@ const ApartmentDetails = () => {
                         <button
                           type="button"
                           aria-label="View availability"
-                          className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors text-xs md:text-sm"
+                          className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg btn-primary text-white transition-colors text-xs md:text-sm"
                           onClick={() => { setCalendarRoom(room); setIsCalendarOpen(true); }}
                           title="View availability"
                         >
@@ -734,7 +734,7 @@ const ApartmentDetails = () => {
                           {room.amenities.slice(0, 3).map((amenity, amenityIndex) => (
                             <span 
                               key={amenityIndex}
-                              className="px-3 py-1 bg-blue-50 text-blue-700 border border-blue-100 text-xs rounded-full font-medium hover:bg-blue-100 transition-colors"
+                              className="px-3 py-1 chip-primary border border-subtle text-xs rounded-full font-medium transition-colors"
                             >
                               {amenity}
                             </span>
@@ -751,7 +751,7 @@ const ApartmentDetails = () => {
 
                       {/* Selection Indicator */}
                       {selectedRoom === index && (
-                        <div className="absolute top-2 right-2 w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center animate-pulse">
+                        <div className="absolute top-2 right-2 w-6 h-6 bg-primary rounded-full flex items-center justify-center animate-pulse">
                           <FaCheck className="text-white text-xs" />
                         </div>
                       )}

@@ -416,5 +416,84 @@ router.post('/generate-default-avatar', requireAuth, async (req, res) => {
         res.status(500).json({ message: 'Failed to generate default avatar' });
     }
 });
+// Wishlist endpoints
+// GET /api/user/wishlist -> { wishlist: [propertyIds], properties?: populated optional }
+router.get('/wishlist', requireAuth, async (req, res) => {
+  try {
+    const Property = require('../tables/property');
+    const user = await User.findById(req.user.id).select('wishlist');
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    // Optionally populate basic property info for convenience
+    const props = await Property.find({ _id: { $in: user.wishlist || [] } })
+      .select('_id title address city price pricePerNight images category bedrooms bathrooms ratings isActive');
+    const properties = props.map(p => ({
+      _id: p._id,
+      title: p.title,
+      address: p.address,
+      city: p.city,
+      pricePerNight: p.pricePerNight || p.price || 0,
+      images: p.images || [],
+      category: p.category || 'apartment',
+      bedrooms: p.bedrooms || 0,
+      bathrooms: p.bathrooms || 0,
+      ratings: p.ratings || [],
+      isActive: p.isActive !== false
+    }));
+    return res.json({ wishlist: (user.wishlist || []).map(String), properties });
+  } catch (e) {
+    return res.status(500).json({ message: 'Failed to load wishlist' });
+  }
+});
+
+// POST /api/user/wishlist/:propertyId -> add to wishlist
+router.post('/wishlist/:propertyId', requireAuth, async (req, res) => {
+  try {
+    const Property = require('../tables/property');
+    const pid = String(req.params.propertyId || '').trim();
+    if (!pid) return res.status(400).json({ message: 'Property ID required' });
+    const exists = await Property.findById(pid).select('_id');
+    if (!exists) return res.status(404).json({ message: 'Property not found' });
+    const user = await User.findById(req.user.id).select('wishlist');
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    const set = new Set((user.wishlist || []).map(x => String(x)));
+    set.add(String(pid));
+    user.wishlist = Array.from(set);
+    await user.save();
+    return res.json({ wishlist: user.wishlist.map(String) });
+  } catch (e) {
+    return res.status(500).json({ message: 'Failed to add to wishlist' });
+  }
+});
+
+// DELETE /api/user/wishlist/:propertyId -> remove from wishlist
+router.delete('/wishlist/:propertyId', requireAuth, async (req, res) => {
+  try {
+    const pid = String(req.params.propertyId || '').trim();
+    const user = await User.findById(req.user.id).select('wishlist');
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    user.wishlist = (user.wishlist || []).filter(x => String(x) !== pid);
+    await user.save();
+    return res.json({ wishlist: user.wishlist.map(String) });
+  } catch (e) {
+    return res.status(500).json({ message: 'Failed to remove from wishlist' });
+  }
+});
+
+// POST /api/user/wishlist/merge -> body { ids: [propertyIds] } merges client-side list
+router.post('/wishlist/merge', requireAuth, async (req, res) => {
+  try {
+    const { ids } = req.body || {};
+    const list = Array.isArray(ids) ? ids.map(String).filter(Boolean) : [];
+    const user = await User.findById(req.user.id).select('wishlist');
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    const set = new Set((user.wishlist || []).map(x => String(x)));
+    for (const id of list) set.add(id);
+    user.wishlist = Array.from(set);
+    await user.save();
+    return res.json({ wishlist: user.wishlist.map(String) });
+  } catch (e) {
+    return res.status(500).json({ message: 'Failed to merge wishlist' });
+  }
+});
 
 module.exports = router;

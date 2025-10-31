@@ -10,6 +10,8 @@ const mongoose = require('mongoose');
       userType: { type: String, enum: ['guest', 'host', 'admin', 'worker'], default: 'guest' },
       avatar: { type: String },
       bio: { type: String, maxlength: 1000 },
+      // Wishlist of property IDs (server-synced favorites)
+      wishlist: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Property' }],
       // Admin control fields
       isBlocked: { type: Boolean, default: false },
       blockReason: { type: String, maxlength: 500 },
