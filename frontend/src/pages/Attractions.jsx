@@ -49,11 +49,11 @@ const Attractions = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-16">
+      <div className="bg-gradient-to-r from-[var(--ak-primary)] to-[color-mix(in_srgb,_var(--ak-primary)_85%,_#000)] text-white py-16">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-8">
             <h1 className="text-4xl font-bold mb-4">Local Amenities Near Your Apartment</h1>
-            <p className="text-xl text-blue-100">Discover what's around your apartment in Rwanda</p>
+            <p className="text-xl text-gray-200">Discover what's around your apartment in Rwanda</p>
           </div>
         </div>
       </div>
@@ -68,7 +68,7 @@ const Attractions = () => {
                 onClick={() => setSelectedCategory(category.id)}
                 className={`flex items-center space-x-2 px-6 py-3 rounded-full transition-all duration-300 ${
                   selectedCategory === category.id
-                    ? 'bg-blue-600 text-white shadow-lg'
+                    ? 'btn-primary text-white shadow-lg'
                     : 'bg-white text-gray-700 hover:bg-gray-100 shadow-md'
                 }`}
               >
@@ -89,7 +89,7 @@ const Attractions = () => {
           {filteredAttractions.map((attraction, index) => (
             <div
               key={attraction.id}
-              className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 hover:scale-105 cursor-pointer"
+              className="modern-card-elevated overflow-hidden hover:shadow-xl transition-all duration-300 hover:scale-105 cursor-pointer"
               style={{ animationDelay: `${index * 0.1}s` }}
             >
               {/* Image */}
@@ -104,12 +104,12 @@ const Attractions = () => {
                     <FaHeart className="text-red-500" />
                   </button>
                   <button className="bg-white/90 backdrop-blur-sm rounded-full p-2 hover:bg-white transition-colors">
-                    <FaCamera className="text-blue-500" />
+                    <FaCamera className="text-primary" />
                   </button>
                 </div>
                 <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1">
                   {attraction.price && (
-                    <span className="text-blue-600 font-bold">
+                    <span className="text-primary font-bold">
                       {typeof attraction.price === 'string' ? attraction.price : `RWF ${attraction.price}`}
                     </span>
                   )}
@@ -118,11 +118,11 @@ const Attractions = () => {
 
               {/* Content */}
               <div className="p-6">
-                <h3 className="text-xl font-bold text-gray-800 mb-2">{attraction.name}</h3>
+                <h3 className="text-lg md:text-xl font-bold text-gray-800 mb-2">{attraction.name}</h3>
                 
                 <div className="flex items-center text-gray-600 mb-3">
-                  <FaMapMarkerAlt className="text-blue-600 mr-2" />
-                  <span className="text-sm">{attraction.location}</span>
+                  <FaMapMarkerAlt className="text-primary mr-2" />
+                  <span className="text-xs md:text-sm">{attraction.location}</span>
                 </div>
 
                 {/* Rating */}
@@ -130,7 +130,7 @@ const Attractions = () => {
                   <div className="flex items-center mr-2">
                     {renderStars(attraction.rating)}
                   </div>
-                  <span className="text-sm text-gray-600">
+                  <span className="text-xs md:text-sm text-gray-600">
                     {attraction.rating} ({attraction.reviews} reviews)
                   </span>
                 </div>
@@ -138,7 +138,7 @@ const Attractions = () => {
                 {/* Distance */}
                 <div className="flex items-center mb-4">
                   <FaMapMarkerAlt className="text-gray-400 mr-2" />
-                  {attraction.distance && <span className="text-sm text-gray-600">{attraction.distance}</span>}
+                  {attraction.distance && <span className="text-xs md:text-sm text-gray-600">{attraction.distance}</span>}
                 </div>
 
                 <p className="text-gray-700 text-sm mb-4 line-clamp-2">
@@ -146,24 +146,24 @@ const Attractions = () => {
                 </p>
 
                 {/* Highlights */}
-                <div className="flex flex-wrap gap-2 mb-4">
+                <div className="flex flex-wrap gap-1.5 md:gap-2 mb-4">
                   {(attraction.highlights || []).slice(0, 2).map((highlight, idx) => (
                     <span
                       key={idx}
-                      className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full"
+                      className="bg-primary/10 text-primary text-[11px] md:text-xs px-2 py-1 rounded-full"
                     >
                       {highlight}
                     </span>
                   ))}
                   {attraction.highlights.length > 2 && (
-                    <span className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-full">
+                    <span className="bg-gray-100 text-gray-600 text-[11px] md:text-xs px-2 py-1 rounded-full">
                       +{attraction.highlights.length - 2} more
                     </span>
                   )}
                 </div>
 
                 {/* View Details Button */}
-                <button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-semibold transition-all duration-300 hover:scale-105 flex items-center justify-center gap-2">
+                <button className="w-full btn-primary text-white py-3 rounded-xl font-semibold transition-all duration-300 hover:scale-105 flex items-center justify-center gap-2">
                   <FaMapMarkerAlt />
                   View Details
                 </button>
@@ -175,12 +175,12 @@ const Attractions = () => {
         
         {/* Call to Action */}
         <div className="mt-12 text-center">
-          <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-2xl p-8 text-white">
+          <div className="bg-gradient-to-r from-[var(--ak-primary)] to-[color-mix(in_srgb,_var(--ak-primary)_85%,_#000)] rounded-2xl p-8 text-white">
             <h3 className="text-2xl font-bold mb-4">Find Your Perfect Apartment Location</h3>
-            <p className="text-blue-100 mb-6">
+            <p className="text-gray-200 mb-6">
               Choose apartments near the amenities that matter most to you
             </p>
-            <button className="bg-white text-blue-600 px-8 py-3 rounded-xl font-semibold hover:bg-gray-100 transition-all duration-300 hover:scale-105">
+            <button className="bg-white text-primary px-8 py-3 rounded-xl font-semibold hover:bg-gray-100 transition-all duration-300 hover:scale-105">
               Browse Apartments
             </button>
           </div>

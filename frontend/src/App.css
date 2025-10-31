@@ -1,8 +1,8 @@
 :root {
   /* Chocolate palette */
-  --ak-primary: #5d4037;        /* chocolate */
-  --ak-primary-600: #4e342e;    /* darker hover */
-  --ak-primary-700: #3e2723;    /* deepest tone */
+  --ak-primary: #111827;        /* footer chocolate (gray-900) */
+  --ak-primary-600: #0f172a;    /* darker hover */
+  --ak-primary-700: #0b1220;    /* deepest tone */
 
   --ak-secondary: #d7ccc8;      /* light cocoa background */
   --ak-secondary-200: #efebe9;  /* lighter surface */
@@ -52,10 +52,16 @@
 .modern-card-elevated {
   background: var(--ak-card);
   border: 1px solid var(--ak-border);
-  border-radius: 0.75rem;
+  border-radius: 1rem;
   box-shadow: 0 1px 2px rgba(0,0,0,.04);
 }
 .modern-card-elevated:hover { box-shadow: 0 8px 24px rgba(0,0,0,.12); }
+
+/* Bordered card helper */
+.card-bordered {
+  border: 1px solid var(--ak-border);
+  border-radius: 0.875rem;
+}
 
 /* Subtle secondary surfaces */
 .surface-secondary { background: var(--ak-secondary-200); }

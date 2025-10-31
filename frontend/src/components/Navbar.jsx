@@ -60,6 +60,8 @@ const Navbar = () => {
   const [showOwnerSwitch, setShowOwnerSwitch] = useState(false);
   const [ownerEmail, setOwnerEmail] = useState('');
   const [switchLoading, setSwitchLoading] = useState(false);
+  const [myProperties, setMyProperties] = useState([]);
+  const [propDropdownOpen, setPropDropdownOpen] = useState(false);
 
   const makeAbsolute = (u) => {
     if (!u) return u;
@@ -281,6 +283,37 @@ const Navbar = () => {
       loadList();
     }, 30000);
     return () => { if (timer) clearInterval(timer); };
+  }, [isAuthenticated, user?.userType]);
+
+  // Load host's properties for property selector (desktop and mobile)
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        if (!isAuthenticated || user?.userType !== 'host') return;
+        const [res1, res2] = await Promise.all([
+          fetch(`${API_URL}/api/properties/my-properties`, { credentials: 'include' }),
+          fetch(`${API_URL}/api/properties/mine`, { credentials: 'include' })
+        ]);
+        const [data1, data2] = await Promise.all([
+          res1.ok ? res1.json().catch(()=>({properties:[]})) : Promise.resolve({properties: []}),
+          res2.ok ? res2.json().catch(()=>({properties:[]})) : Promise.resolve({properties: []}),
+        ]);
+        const list = [...(data1.properties||[]), ...(data2.properties||[])];
+        // Deduplicate by _id
+        const seen = new Set();
+        const merged = list.filter(p => {
+          const id = String(p._id || p.id || '');
+          if (!id || seen.has(id)) return false;
+          seen.add(id);
+          return true;
+        });
+        if (!cancelled) setMyProperties(merged);
+      } catch (_) {
+        if (!cancelled) setMyProperties([]);
+      }
+    })();
+    return () => { cancelled = true; };
   }, [isAuthenticated, user?.userType]);
 
   // Refresh counts/stats when opening the profile dropdown to ensure fresh DB values
@@ -612,23 +645,30 @@ const Navbar = () => {
                         {/* Dropdown Menu - Booking.com Style */}
                         {isDropdownOpen && (
                           <div className="absolute top-full left-0 mt-1 w-64 bg-[#f6e9d8] rounded-xl dropdown-shadow border border-[#d4c4b0] py-3 z-50">
-                            {item.children.map((child, childIndex) => {
-                              const ChildIcon = child.icon;
-                              const isChildActive = isActiveRoute(child.href);
-                              return (
-                                <Link
-                                  key={childIndex}
-                                  to={child.href}
-                                  className={`flex items-center space-x-3 px-4 py-3 text-sm hover:bg-white transition-colors ${isChildActive ? 'bg-white text-[#4b2a00]' : 'text-[#4b2a00]'
-                                    }`}
-                                  onClick={() => setActiveDropdown(null)}
-                                >
-                                  <ChildIcon className="text-sm" />
-                                  <span>{child.label}</span>
-                                  {isChildActive && <FaChevronRight className="text-xs ml-auto" />}
-                                </Link>
-                              );
-                            })}
+                            {item.children
+                              .filter((child) => {
+                                const href = String(child.href || '');
+                                const ownerOnly = href.startsWith('/owner');
+                                if (ownerOnly) return user?.userType === 'host' || user?.userType === 'admin';
+                                return true;
+                              })
+                              .map((child, childIndex) => {
+                                const ChildIcon = child.icon;
+                                const isChildActive = isActiveRoute(child.href);
+                                return (
+                                  <Link
+                                    key={childIndex}
+                                    to={child.href}
+                                    className={`flex items-center space-x-3 px-4 py-3 text-sm hover:bg-white transition-colors ${isChildActive ? 'bg-white text-[#4b2a00]' : 'text-[#4b2a00]'
+                                      }`}
+                                    onClick={() => setActiveDropdown(null)}
+                                  >
+                                    <ChildIcon className="text-sm" />
+                                    <span>{child.label}</span>
+                                    {isChildActive && <FaChevronRight className="text-xs ml-auto" />}
+                                  </Link>
+                                );
+                              })}
                           </div>
                         )}
                       </div>
@@ -640,6 +680,37 @@ const Navbar = () => {
 
             {/* Right Side - Booking.com Style */}
             <div className="flex flex-nowrap items-center gap-2 lg:gap-3">
+              {/* Property selector (desktop) */}
+              {isAuthenticated && user?.userType === 'host' && myProperties.length > 0 && (
+                <div className="hidden lg:block relative">
+                  <button
+                    onClick={() => setPropDropdownOpen(v => !v)}
+                    className={`flex items-center px-3 py-2 rounded-lg transition-all duration-300 ${propDropdownOpen
+                        ? 'bg-[#a06b42] text-white shadow-md'
+                        : 'text-[#6b5744] hover:text-[#4b2a00] hover:bg-[#e8dcc8]'
+                      }`}
+                    title="Choose property to manage"
+                  >
+                    <FaBuilding className="text-lg" />
+                    <FaCaretDown className={`ml-2 text-xs transition-transform ${propDropdownOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  {propDropdownOpen && (
+                    <div className="absolute top-full right-0 mt-1 w-80 max-h-80 overflow-y-auto bg-[#f6e9d8] rounded-xl dropdown-shadow border border-[#d4c4b0] p-2 z-50">
+                      {myProperties.map((p) => (
+                        <Link
+                          key={p._id}
+                          to={`/my-bookings?tab=calendar&property=${p._id}`}
+                          className="block px-3 py-2 rounded hover:bg-white text-sm text-[#4b2a00] truncate"
+                          onClick={() => setPropDropdownOpen(false)}
+                          title={p.title}
+                        >
+                          {p.title || p.name || p.propertyNumber}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
               {/* List your property - Hidden on small screens completely */}
               <button
                 onClick={handleListProperty}
@@ -1121,35 +1192,25 @@ const Navbar = () => {
                   <span>My Cars</span>
                 </Link>
 
-                {/* Owner Tools Accordion (mobile only) */}
-                <div className="mt-2 border-t border-gray-200 pt-2">
-                  <div className="text-xs font-semibold text-gray-500 px-4 mb-1">Owner Tools</div>
-                  <div className="space-y-2">
-                    {ownerManagementLinks.map((category, idx) => (
-                      <details key={idx} className="group">
-                        <summary className="list-none cursor-pointer flex items-center justify-between px-4 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-50">
-                          <div className="flex items-center gap-2">
-                            {React.createElement(category.icon, { className: 'text-blue-600' })}
-                            <span>{category.category}</span>
-                          </div>
-                          <FaChevronDown className="text-xs group-open:rotate-180 transition-transform" />
-                        </summary>
-                        <div className="mt-1">
-                          {category.links.map((l, i) => (
-                            <Link
-                              key={i}
-                              to={l.href}
-                              className="block px-8 py-2 text-sm text-gray-600 hover:bg-gray-50"
-                              onClick={() => setIsMenuOpen(false)}
-                            >
-                              {l.label}
-                            </Link>
-                          ))}
-                        </div>
-                      </details>
-                    ))}
+                {/* Mobile property selector (compact, no overflow) */}
+                {myProperties.length > 0 && (
+                  <div className="mt-2 border-t border-gray-200 pt-2">
+                    <div className="text-xs font-semibold text-gray-500 px-4 mb-1">Select Property</div>
+                    <div className="max-h-56 overflow-y-auto">
+                      {myProperties.map((p) => (
+                        <Link
+                          key={p._id}
+                          to={`/my-bookings?tab=calendar&property=${p._id}`}
+                          className="block px-6 py-2 text-sm text-gray-700 hover:bg-gray-50 truncate"
+                          title={p.title || p.name || p.propertyNumber}
+                          onClick={() => setIsMenuOpen(false)}
+                        >
+                          {p.title || p.name || p.propertyNumber}
+                        </Link>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
               </>
             )}
 

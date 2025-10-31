@@ -2,61 +2,126 @@
 
 This guide focuses on how to use the system interactively — what you can do, what you see, and how the system responds at each step.
 
-## Guest Experience
+## How to use AKWANDA.rw (Desktop & Mobile)
 
-- **Search stays**: Go to `/apartments`. As results load, you’ll see skeleton cards. Filter by location, budget, bedrooms, dates, and guests.
-- **Open property**: Click a card to open the details page. Images are lazy‑loaded and always show a fallback if any image fails.
-- **Choose a room**: View available rooms and their monthly/nightly prices. A read‑only availability calendar explains booked/locked periods.
-- **Plan your stay**: In `/booking/:id`, enter check‑in/out, guests, and budget. Inputs have clear icons and spacing. Your choices are remembered (local storage).
-- **See availability**: The rooms list is deduplicated. If your previously chosen room becomes unavailable for your new dates, it stays visible with an “Unavailable” label and a message showing your chosen date range.
-- **Book and pay**: Complete the booking and choose the payment method. After mobile money payment, your booking becomes “Paid” but remains “Pending” until the property owner confirms.
-- **Track status**: The confirmation page at `/booking-confirmation/:id` shows:
-  - “Awaiting Confirmation” while pending.
-  - “Booking Confirmed!” after the owner confirms.
-  - A “Cancel booking” button appears when you can cancel (before check‑in).
-- **Notifications**: Open `/notifications` to see system messages. Use Open to view the booking or actions like Confirm (owners only). Items you open or act on are marked as read.
-- **Rate your stay**: After checkout, you’ll see a quick star‑rating in the confirmation page and in “My Bookings”. Ratings notify the owner.
+This is a simple, non‑technical guide to help you find your way around on both desktop and mobile.
 
-## Property Owner Experience
+### Home and Finding Stays
+- Go to the Home page `/`.
+- Scroll to “Featured Apartments” to see the first 4 listings.
+- Tap “View All Apartments” or open `/apartments` to see all properties.
 
-- **Receive alerts**: You get notifications when a booking is created or paid. You also receive a commission‑due notification so you know a commission will be applied.
-- **Confirm bookings**: From `/notifications` or the booking confirmation page, press “Confirm this booking” to finalize the reservation.
-- **Lock dates**: If you lock a date range for maintenance or personal use, those dates become unavailable in availability checks.
-- **Cancellations**: You can cancel your property’s bookings before check‑in if needed (guests and admins might also be able to cancel based on policy). All parties are notified.
-- **Reviews**: When guests leave reviews after checkout, you receive a notification to keep improving quality.
+### Apartments Listing (All Properties)
+- Filters (top of the page):
+  - Location (search box), Price Min/Max, Bedrooms, Amenities, Category, Dates, Guests.
+- Results update automatically. Tap any card to open the property page.
+- Mobile: filters are stacked; scroll if needed. Desktop: filters appear side‑by‑side.
 
-## Admin Experience
+### Property Details
+- See images, description, rooms, and price per night.
+- Tap “Book” to start your booking.
 
-- **System visibility**: Admin receives global notifications (including commission‑due and commission‑paid) to track finances.
-- **Commission control**: Admin can mark commission as paid; the system notifies both admin (global) and the property owner.
-- **Access control**: Admin can view bookings and use admin‑only functions. Owners cannot book their own properties.
+### Booking a Property (`/booking/:id`)
+1) Pick dates and number of guests.
+2) Optional: choose a Budget range to filter rooms.
+3) Optional: choose a Promotion if available.
+4) Check available rooms and select one.
+5) Fill in your contact details and confirm.
+- Payment: choose your preferred method. Cash on arrival is supported; some flows redirect to payment.
+- After booking, you’ll see a confirmation screen and can monitor your booking status.
 
-## Common Interactions and States
+### Promotions (Deals)
+- If a property has promotions, you’ll see them during booking as selectable chips.
+- Selecting a promotion applies the discount to your total when possible.
 
-- **Loading**: The app uses skeleton loaders while lists or pages fetch data (e.g., apartments list, availability checks, confirmations).
-- **Empty**: Pages like notifications and confirmation show clear empty or not‑found messages with suggested actions.
-- **Errors**: A global error boundary ensures friendly fallbacks with options to reload or go home.
-- **Images**: All key images are lazy‑loaded and switch to a placeholder automatically if an image fails, ensuring visuals are never broken.
+### Favorites (Guest Mode)
+- As a guest user, you can open `/favorites` from the top menu (desktop) or mobile menu.
+- In owner mode, Favorites is hidden so your owner tools fit cleanly.
 
-## Quick Paths
+### Messages
+- Open `/messages` to chat about a booking or ask questions.
+- New messages show counters in the navbar; opening a conversation marks it as read.
 
-- **Find a stay** → `/apartments`
-- **Property details** → `/apartment/:id`
-- **Booking flow** → `/booking/:id`
-- **Confirmation** → `/booking-confirmation/:id`
-- **Notifications** → `/notifications`
-- **My bookings** → `/my-bookings`
+### Notifications
+- Open `/notifications` to see important updates:
+  - Booking created/paid/confirmed/cancelled
+  - Commission reminders (owners)
+  - Reviews and other alerts
+- Tap a notification to jump to the related page.
 
-## Statuses & Notifications at a Glance
+---
 
-- **Statuses**: `pending`, `confirmed`, `cancelled`, `ended` (booking).
-- **Payment**: `unpaid`, `pending`, `paid`.
-- **Notifications**: `booking_created`, `booking_paid`, `booking_confirmed`, `booking_cancelled`, `commission_due`, `commission_paid`, `review_received`, plus account/admin events.
+## Property Owners (Host Mode)
 
-## Policies and Rules
+### Entering Owner Mode
+- If you already have a host account, you’ll see owner links in the top bar.
+- Desktop: a building icon with a dropdown lets you pick which property to manage.
+- Mobile: open the menu. Under “Owner Tools,” you’ll see a compact “Select Property” list.
 
-- **Owner self‑booking**: Owners cannot book their own properties.
-- **Cancellation**: By default, you cannot cancel after check‑in starts (owners/admins may have exceptions where allowed).
-- **Availability**: Booked dates and owner‑locked dates are enforced; overlapping bookings are rejected.
+### Owner Dashboard (`/my-bookings` or `/dashboard`)
+- Tabs: Dashboard, Reservations, Calendar, Finance, Analytics, Promotions, Reviews, Messages, Photos, Settings.
+- Only the active tab’s content is shown; Dashboard shows quick summary cards.
 
-If you need a deeper, developer‑oriented reference (endpoints, files), check the code comments and routes as needed. This guide is focused on how you interact with the system day‑to‑day.
+### Manage Properties
+- Add a new property at `/upload`.
+- Edit an existing property at `/upload?edit=<propertyId>`.
+- In edit mode, you’ll also see a Promotions summary with quick links:
+  - Create Deal, Manage Deals.
+
+### Promotions (Owner)
+- Create and manage your deals under Promotions (or via the links on the Edit Property page).
+- Active and published deals appear to guests and can be selected during booking.
+
+### Calendar and Reservations
+- Calendar shows availability by month. Use the property selector (desktop dropdown or mobile list) to switch properties.
+- Reservations shows all bookings with filters for paid/pending/unpaid/cancelled.
+
+### Finance & Analytics
+- Finance: totals, paid/pending amounts.
+- Analytics: trends (last 30/90 days, YTD).
+
+### Reviews & Messages
+- Reviews: read feedback and ratings from guests.
+- Messages: reply to guest inquiries in real time.
+
+### Cars & Attractions (Owner)
+- Cars: manage your rental fleet at `/owner/cars`.
+- Attractions: manage Rwanda‑based attractions you offer.
+
+---
+
+## Admins
+
+### Admin Dashboard (`/admin`)
+- View metrics (properties, bookings, users, revenue).
+- Manage users: deactivate/reactivate or delete accounts (with related data). Use the three‑dots menu → View to open user details.
+- Content and reports are accessible via admin links.
+
+### Deleting Users
+- Admin can delete a user account from the admin pages. The system also removes related data (properties, bookings, messages, etc.).
+
+---
+
+## Desktop vs Mobile Tips
+- Navbar
+  - Desktop: main menu across the top; owner property selector is a dropdown button.
+  - Mobile: open the menu (☰). Owner property selector appears inside “Owner Tools.”
+- Overflow safety: menus and cards scale to fit without overlapping.
+
+## Quick Links
+- Find stays: `/apartments`
+- Property details: `/apartment/:id`
+- Booking flow: `/booking/:id`
+- Booking confirmation: `/booking-confirmation/:id`
+- Notifications: `/notifications`
+- Owner dashboard: `/my-bookings`
+- Add/Edit property: `/upload` (or `/upload?edit=<id>`)
+- Manage cars: `/owner/cars`
+- Admin dashboard: `/admin`
+
+## Policies (Simple)
+- Owners cannot book their own properties.
+- You can usually cancel before check‑in starts. After that, cancellations may be limited.
+- Availability respects confirmed bookings and owner‑locked dates.
+
+Need help? Open `/support` or reach out via the contact options provided in your account area.

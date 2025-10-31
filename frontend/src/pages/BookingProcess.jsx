@@ -39,6 +39,8 @@ const BookingProcess = () => {
   const [discount, setDiscount] = useState(0);
   const [finalAmount, setFinalAmount] = useState(0);
   const [selectedDealId, setSelectedDealId] = useState('');
+  const [propertyDeals, setPropertyDeals] = useState([]);
+  const [dealsLoading, setDealsLoading] = useState(false);
   const [selectedRoomUnavailable, setSelectedRoomUnavailable] = useState(false);
 
   const budgetRanges = [
@@ -64,6 +66,26 @@ const BookingProcess = () => {
 
   useEffect(() => {
     fetchProperty();
+  }, [id]);
+
+  // Load available deals for this property (public endpoint)
+  useEffect(() => {
+    (async () => {
+      try {
+        setDealsLoading(true);
+        const res = await fetch(`${API_URL}/api/deals/property/${id}`);
+        const data = await res.json();
+        if (res.ok) {
+          setPropertyDeals(Array.isArray(data.deals) ? data.deals : []);
+        } else {
+          setPropertyDeals([]);
+        }
+      } catch (_) {
+        setPropertyDeals([]);
+      } finally {
+        setDealsLoading(false);
+      }
+    })();
   }, [id]);
 
   useEffect(() => {
@@ -630,12 +652,43 @@ const BookingProcess = () => {
                         await checkAvailability();
                         setCurrentStep(2);
                       }}
-                      className="w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+                      className="w-full btn-primary text-white px-6 py-3 rounded-xl font-semibold transition-colors"
                     >
                       Find available rooms
                     </button>
                   </div>
                 </div>
+                {/* Deals selector */}
+                {dealsLoading ? (
+                  <div className="mt-4 text-sm text-gray-500">Loading available promotions…</div>
+                ) : propertyDeals.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                    <div className="md:col-span-3">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Promotions</label>
+                      <div className="flex flex-wrap gap-2">
+                        {propertyDeals.map(d => (
+                          <button
+                            key={d._id}
+                            type="button"
+                            onClick={() => setSelectedDealId(prev => prev === d._id ? '' : d._id)}
+                            className={`px-3 py-2 rounded-full text-sm border transition-all ${selectedDealId === d._id ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
+                            title={d.title}
+                          >
+                            {d.badge ? (
+                              <span className="mr-2 inline-block px-2 py-0.5 rounded-full text-xs bg-yellow-100 text-yellow-800">{d.badge}</span>
+                            ) : null}
+                            {d.title || 'Deal'}
+                          </button>
+                        ))}
+                      </div>
+                      {selectedDealId && (
+                        <div className="mt-2 text-sm text-gray-700">
+                          Selected promotion will be applied to your total after you pick dates and a room.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : null}
               </div>
             )}
             
@@ -650,7 +703,7 @@ const BookingProcess = () => {
                     </p>
                     <button
                       onClick={() => setCurrentStep(1)}
-                      className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+                      className="btn-primary text-white px-6 py-3 rounded-xl font-semibold transition-colors"
                     >
                       Adjust Budget
                     </button>
@@ -671,15 +724,15 @@ const BookingProcess = () => {
                           {list.map((room, index) => (
                             <div
                               key={room._id || room.roomNumber || index}
-                              className={`group border rounded-xl p-5 cursor-pointer transition-all duration-300 ${
+                              className={`group modern-card-elevated p-4 md:p-5 cursor-pointer transition-all duration-300 ${
                                 isRoomSelected(room)
-                                  ? 'border-blue-500 bg-blue-50 shadow'
-                                  : 'border-gray-200 hover:border-blue-300 bg-white'
+                                  ? 'ring-1 ring-primary bg-[color-mix(in_srgb,_var(--ak-primary)_5%,_#fff)]'
+                                  : ''
                               }`}
                               onClick={() => handleRoomSelect(room)}
                             >
-                              <div className="flex items-start space-x-4">
-                                <div className="w-32 h-24 rounded-lg overflow-hidden relative">
+                              <div className="flex items-start gap-3 md:gap-4">
+                                <div className="w-28 h-24 md:w-32 md:h-24 rounded-xl overflow-hidden relative shrink-0">
                                   {room.images && room.images.length > 0 ? (
                                     <img
                                       src={room.images[0]}
@@ -704,21 +757,21 @@ const BookingProcess = () => {
                                   )}
                                 </div>
 
-                                <div className="flex-1">
-                                  <div className="flex items-start justify-between">
-                                    <div className="flex-1">
-                                      <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-700 transition-colors duration-300">
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-start justify-between gap-3">
+                                    <div className="flex-1 min-w-0">
+                                      <h3 className="text-base md:text-lg font-semibold text-gray-900 group-hover:text-primary transition-colors duration-300 truncate">
                                         {room.roomNumber || 'Room ' + (index + 1)}
                                       </h3>
-                                      <p className="text-sm text-gray-600 capitalize font-medium">
+                                      <p className="text-xs md:text-sm text-gray-600 capitalize font-medium">
                                         {(room.roomType || 'Standard')} Room
                                       </p>
-                                      <div className="flex items-center mt-3 space-x-4 text-sm text-gray-600">
-                                        <div className="flex items-center bg-gray-100 px-3 py-1 rounded-full">
-                                          <FaUsers className="mr-1 text-blue-600" />
+                                      <div className="flex items-center mt-2 md:mt-3 gap-2 md:gap-3 text-[11px] md:text-sm text-gray-600 flex-wrap">
+                                        <div className="flex items-center bg-gray-100 px-2.5 py-1 rounded-full">
+                                          <FaUsers className="mr-1 text-primary" />
                                           <span className="font-medium">{room.capacity || 1} guests</span>
                                         </div>
-                                        <div className={`px-3 py-1 rounded-full text-xs font-medium transition-all duration-300 ${
+                                        <div className={`px-2.5 py-1 rounded-full text-[11px] md:text-xs font-medium transition-all duration-300 ${
                                           room.isAvailable !== false 
                                             ? 'bg-green-100 text-green-800 hover:bg-green-200' 
                                             : 'bg-red-100 text-red-800 hover:bg-red-200'
@@ -726,36 +779,36 @@ const BookingProcess = () => {
                                           {room.isAvailable !== false ? '✓ Available' : '✗ Unavailable'}
                                         </div>
                                         {room.__outsideFilter && (
-                                          <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs">Outside current filter</span>
+                                          <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-[11px] md:text-xs rounded-full">Outside current filter</span>
                                         )}
                                       </div>
 
                                       {room.amenities && room.amenities.length > 0 && (
-                                        <div className="flex flex-wrap gap-2 mt-3">
+                                        <div className="flex flex-wrap gap-1.5 md:gap-2 mt-2 md:mt-3">
                                           {room.amenities.slice(0, 3).map((amenity, amenityIndex) => (
                                             <span 
                                               key={amenityIndex}
-                                              className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full font-medium"
+                                              className="px-2 py-0.5 bg-primary/10 text-primary text-[11px] md:text-xs rounded-full font-medium"
                                             >
                                               {amenity}
                                             </span>
                                           ))}
                                           {room.amenities.length > 3 && (
-                                            <span className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full font-medium">
+                                            <span className="px-2 py-0.5 bg-purple-100 text-purple-800 text-[11px] md:text-xs rounded-full font-medium">
                                               +{room.amenities.length - 3} more
                                             </span>
                                           )}
                                         </div>
                                       )}
                                     </div>
-                                    <div className="text-right">
-                                      <div className="text-xl font-bold text-blue-600 group-hover:text-blue-700 transition-colors duration-300">
+                                    <div className="text-right shrink-0">
+                                      <div className="text-lg md:text-xl font-bold text-primary group-hover:text-primary-600 transition-colors duration-300">
                                         RWF {(() => {
                                           const pricePerNight = room.pricePerNight || room.price || 0;
                                           return pricePerNight.toLocaleString();
                                         })()}
                                       </div>
-                                      <div className="text-sm text-gray-500">per night</div>
+                                      <div className="text-xs md:text-sm text-gray-500">per night</div>
                                       {isRoomSelected(room) && (
                                         <div className="mt-2 flex items-center justify-center">
                                           <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center animate-pulse">

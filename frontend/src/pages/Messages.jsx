@@ -1041,7 +1041,7 @@ export default function Messages() {
             </div>
             <button
               onClick={() => setShowUserSearch(true)}
-              className="mt-3 w-full flex items-center justify-center space-x-2 btn-primary text-white px-4 py-2 rounded-lg transition-colors"
+              className="mt-3 w-full hidden lg:flex items-center justify-center space-x-2 btn-primary text-white px-4 py-2 rounded-lg transition-colors"
             >
               <FaUser />
               <span>New Conversation</span>

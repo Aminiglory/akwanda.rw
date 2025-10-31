@@ -846,15 +846,17 @@ const AdminDashboard = () => {
             <div className="space-y-4">
               <div className="flex items-center gap-4">
                 {selectedUser.user?.avatar ? (
-                  <img src={selectedUser.user.avatar} alt={selectedUser.user.firstName} className="w-16 h-16 rounded-full object-cover border" />
+                  <img src={makeAbsolute(selectedUser.user.avatar)} alt={selectedUser.user.firstName} className="w-16 h-16 rounded-full object-cover border" />
                 ) : (
-                  <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center text-base font-semibold">{(selectedUser.user?.firstName || selectedUser.user?.email || 'U').charAt(0)}</div>
+                  <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center text-base font-semibold">{(selectedUser.user.firstName || selectedUser.user.email || 'U').charAt(0)}</div>
                 )}
                 <div className="text-sm text-gray-600">
-                  <div className="font-semibold text-gray-900">{selectedUser.user?.firstName} {selectedUser.user?.lastName}</div>
-                  <div>{selectedUser.user?.email}</div>
-                  <div>{selectedUser.user?.phone}</div>
-                  <div className="mt-1 inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">{selectedUser.user?.userType}</div>
+                  <div className="font-semibold text-gray-900">Profile</div>
+                  <div className="mt-1 flex items-center gap-2">
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${String(selectedUser.user.userType).toLowerCase()==='admin' ? 'bg-purple-100 text-purple-700' : String(selectedUser.user.userType).toLowerCase()==='host' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
+                      {selectedUser.user.userType}
+                    </span>
+                  </div>
                 </div>
               </div>
 

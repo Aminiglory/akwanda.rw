@@ -68,7 +68,7 @@ const Flights = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-16">
+      <div className="bg-gradient-to-r from-[var(--ak-primary)] to-[color-mix(in_srgb,_var(--ak-primary)_85%,_#000)] text-white py-16">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-8">
             <h1 className="text-4xl font-bold mb-4">Flights for Your Apartment Stay</h1>
@@ -79,7 +79,7 @@ const Flights = () => {
 
       {/* Flight Search */}
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="bg-white rounded-2xl shadow-xl p-8 mb-12">
+        <div className="modern-card-elevated p-8 mb-12">
           <form onSubmit={handleSearch} className="space-y-6">
             {/* Trip Type */}
             <div className="flex space-x-4 mb-6">
@@ -87,7 +87,7 @@ const Flights = () => {
                 type="button"
                 className={`px-6 py-3 rounded-lg font-semibold transition-all duration-300 ${
                   searchData.tripType === 'roundtrip'
-                    ? 'bg-blue-600 text-white'
+                    ? 'btn-primary text-white'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
                 onClick={() => handleInputChange('tripType', 'roundtrip')}
@@ -98,7 +98,7 @@ const Flights = () => {
                 type="button"
                 className={`px-6 py-3 rounded-lg font-semibold transition-all duration-300 ${
                   searchData.tripType === 'oneway'
-                    ? 'bg-blue-600 text-white'
+                    ? 'btn-primary text-white'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
                 onClick={() => handleInputChange('tripType', 'oneway')}
@@ -114,7 +114,7 @@ const Flights = () => {
                   From
                 </label>
                 <div className="relative">
-                  <FaMapMarkerAlt className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-600" />
+                  <FaMapMarkerAlt className="absolute left-3 top-1/2 transform -translate-y-1/2 text-primary" />
                   <input
                     type="text"
                     placeholder="City or Airport"
@@ -148,7 +148,7 @@ const Flights = () => {
                   Departure
                 </label>
                 <div className="relative">
-                  <FaCalendarAlt className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-600" />
+                  <FaCalendarAlt className="absolute left-3 top-1/2 transform -translate-y-1/2 text-primary" />
                   <input
                     type="date"
                     className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
@@ -165,7 +165,7 @@ const Flights = () => {
                     Return
                   </label>
                   <div className="relative">
-                    <FaCalendarAlt className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-600" />
+                    <FaCalendarAlt className="absolute left-3 top-1/2 transform -translate-y-1/2 text-primary" />
                     <input
                       type="date"
                       className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
@@ -182,7 +182,7 @@ const Flights = () => {
                   Passengers
                 </label>
                 <div className="relative">
-                  <FaUser className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-600" />
+                  <FaUser className="absolute left-3 top-1/2 transform -translate-y-1/2 text-primary" />
                   <select
                     className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 appearance-none bg-white"
                     value={searchData.passengers}
@@ -201,7 +201,7 @@ const Flights = () => {
             <div className="text-center">
               <button
                 type="submit"
-                className="bg-blue-600 hover:bg-blue-700 text-white px-12 py-4 rounded-xl font-semibold flex items-center gap-2 mx-auto transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl"
+                className="btn-primary text-white px-12 py-4 rounded-xl font-semibold flex items-center gap-2 mx-auto transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl"
               >
                 <FaSearch />
                 Search Flights
@@ -217,9 +217,9 @@ const Flights = () => {
             {popularDestinations.map((dest, index) => (
               <div
                 key={index}
-                className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 hover:scale-105 cursor-pointer"
+                className="modern-card-elevated overflow-hidden hover:shadow-xl transition-all duration-300 hover:scale-105 cursor-pointer"
               >
-                <div className="relative h-48">
+                <div className="relative h-48 overflow-hidden">
                   <img
                     src={dest.image}
                     alt={dest.city}
@@ -227,11 +227,11 @@ const Flights = () => {
                   />
                   <div className="absolute inset-0 bg-black bg-opacity-30"></div>
                   <div className="absolute bottom-4 left-4 text-white">
-                    <h3 className="text-xl font-bold">{dest.city}</h3>
-                    <p className="text-sm opacity-90">{dest.country}</p>
+                    <h3 className="text-lg md:text-xl font-bold">{dest.city}</h3>
+                    <p className="text-xs md:text-sm opacity-90">{dest.country}</p>
                   </div>
                   <div className="absolute top-4 right-4 bg-white rounded-full px-3 py-1">
-                    <span className="text-blue-600 font-bold">RWF {dest.price}</span>
+                    <span className="text-primary font-bold">RWF {dest.price}</span>
                   </div>
                 </div>
               </div>
@@ -246,16 +246,16 @@ const Flights = () => {
             {flightDeals.map((deal, index) => (
               <div
                 key={index}
-                className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all duration-300 hover:scale-[1.02] cursor-pointer"
+                className="modern-card-elevated p-6 hover:shadow-xl transition-all duration-300 hover:scale-[1.02] cursor-pointer"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-6">
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-blue-600">{deal.departure}</div>
+                      <div className="text-xl md:text-2xl font-bold text-primary">{deal.departure}</div>
                       <div className="text-sm text-gray-500">Kigali</div>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <FaPlane className="text-blue-600" />
+                      <FaPlane className="text-primary" />
                       <div className="text-sm text-gray-600">
                         <div>{deal.duration}</div>
                         <div>{deal.stops}</div>
@@ -263,7 +263,7 @@ const Flights = () => {
                       <FaArrowRight className="text-gray-400" />
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-blue-600">{deal.arrival}</div>
+                      <div className="text-xl md:text-2xl font-bold text-primary">{deal.arrival}</div>
                       <div className="text-sm text-gray-500">{deal.route.split(' → ')[1]}</div>
                     </div>
                     <div>
@@ -272,8 +272,8 @@ const Flights = () => {
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-2xl font-bold text-blue-600">RWF {deal.price}</div>
-                    <button className="mt-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-semibold transition-colors duration-300">
+                    <div className="text-xl md:text-2xl font-bold text-primary">RWF {deal.price}</div>
+                    <button className="mt-2 btn-primary text-white px-6 py-2 rounded-lg font-semibold transition-colors duration-300">
                       Book Now
                     </button>
                   </div>
