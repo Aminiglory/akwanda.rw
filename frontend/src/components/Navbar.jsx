@@ -430,12 +430,8 @@ const Navbar = () => {
       setShowOwnerSwitch(true);
       return;
     }
-    // Already host session: ensure owner dashboard context
-    if (!isInPropertyOwnerDashboard()) {
-      navigate('/dashboard');
-      return;
-    }
-    navigate('/upload');
+    // Navigate to new multi-step listing flow
+    navigate('/list-property');
   };
 
   const goToPropertyDashboard = () => {
