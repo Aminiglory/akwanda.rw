@@ -9,6 +9,8 @@ const AdminCommissionManager = () => {
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState(null);
   const [punishment, setPunishment] = useState({ durationDays: '', durationWeeks: '', until: '' });
+  const [showFineModal, setShowFineModal] = useState(false);
+  const [fineForm, setFineForm] = useState({ userId: '', reason: '', amount: '', dueMode: 'none', dueAt: '', dueInDays: '', dueInWeeks: '', block: false, blockMode: 'none', blockedUntil: '', durationDays: '', durationWeeks: '' });
 
   useEffect(() => {
     fetchUsersWithUnpaidCommissions();
@@ -47,24 +49,37 @@ const AdminCommissionManager = () => {
     }
   };
 
-  // Add a fine for a user
-  const handleAddFine = async (userId) => {
-    const reason = prompt('Fine reason (e.g., Unpaid commissions)');
-    if (!reason) return;
-    const amountStr = prompt('Fine amount (RWF)');
-    const amount = Number(amountStr || 0);
-    if (!amount || amount <= 0) return;
+  const openFineModal = (userId) => {
+    setFineForm({ userId, reason: '', amount: '', dueMode: 'none', dueAt: '', dueInDays: '', dueInWeeks: '', block: false, blockMode: 'none', blockedUntil: '', durationDays: '', durationWeeks: '' });
+    setShowFineModal(true);
+  };
+
+  const submitFine = async (e) => {
+    e.preventDefault();
+    const { userId, reason, amount, dueMode, dueAt, dueInDays, dueInWeeks, block, blockMode, blockedUntil, durationDays, durationWeeks } = fineForm;
+    const amt = Number(amount || 0);
+    if (!reason || !amt || amt <= 0) { toast.error('Enter reason and valid amount'); return; }
+    const payload = { reason, amount: amt, block: !!block };
+    if (dueMode === 'date' && dueAt) payload.dueAt = dueAt;
+    if (dueMode === 'days' && Number(dueInDays)) payload.dueInDays = Number(dueInDays);
+    if (dueMode === 'weeks' && Number(dueInWeeks)) payload.dueInWeeks = Number(dueInWeeks);
+    if (block) {
+      if (blockMode === 'date' && blockedUntil) payload.blockedUntil = blockedUntil;
+      if (blockMode === 'days' && Number(durationDays)) payload.durationDays = Number(durationDays);
+      if (blockMode === 'weeks' && Number(durationWeeks)) payload.durationWeeks = Number(durationWeeks);
+    }
     try {
       setProcessingId(userId);
       const res = await fetch(`${API_URL}/api/admin/users/${userId}/fines`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ reason, amount })
+        body: JSON.stringify(payload)
       });
       const data = await safeParseJson(res);
       if (!res.ok) throw new Error(data.message || (data && data.__raw ? data.__raw.slice(0,200) : 'Failed to add fine'));
-      toast.success('Fine added and owner will be notified');
+      toast.success('Fine added');
+      setShowFineModal(false);
       fetchUsersWithUnpaidCommissions();
     } catch (e) {
       toast.error(e.message);
@@ -201,7 +216,7 @@ const AdminCommissionManager = () => {
                   </button>
                 )}
                 <button
-                  onClick={() => handleAddFine(user._id)}
+                  onClick={() => openFineModal(user._id)}
                   className="px-3 py-2 rounded-lg border text-xs sm:text-sm hover:bg-gray-50"
                 >
                   Add Fine
@@ -226,8 +241,97 @@ const AdminCommissionManager = () => {
           </div>
         </div>
       </div>
+
+      {/* Fine modal */}
+      {showFineModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setShowFineModal(false)}></div>
+          <div className="relative bg-white rounded-xl shadow-2xl w-[92vw] max-w-xl p-5">
+            <h3 className="text-lg font-semibold text-gray-900 mb-3">Add Fine</h3>
+            <form onSubmit={submitFine} className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Reason</label>
+                <textarea
+                  className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  rows={3}
+                  value={fineForm.reason}
+                  onChange={(e) => setFineForm({ ...fineForm, reason: e.target.value })}
+                  placeholder="e.g., Unpaid commissions"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Amount (RWF)</label>
+                <input
+                  type="number"
+                  min={1}
+                  className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  value={fineForm.amount}
+                  onChange={(e) => setFineForm({ ...fineForm, amount: e.target.value })}
+                  placeholder="50000"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Due</label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <select
+                    className="border rounded-lg px-3 py-2"
+                    value={fineForm.dueMode}
+                    onChange={(e) => setFineForm({ ...fineForm, dueMode: e.target.value })}
+                  >
+                    <option value="none">No due</option>
+                    <option value="date">Specific date</option>
+                    <option value="days">In N days</option>
+                    <option value="weeks">In N weeks</option>
+                  </select>
+                  {fineForm.dueMode === 'date' && (
+                    <input type="datetime-local" className="border rounded-lg px-3 py-2" value={fineForm.dueAt} onChange={(e)=>setFineForm({ ...fineForm, dueAt: e.target.value })} />
+                  )}
+                  {fineForm.dueMode === 'days' && (
+                    <input type="number" min={1} className="border rounded-lg px-3 py-2" placeholder="Days" value={fineForm.dueInDays} onChange={(e)=>setFineForm({ ...fineForm, dueInDays: e.target.value })} />
+                  )}
+                  {fineForm.dueMode === 'weeks' && (
+                    <input type="number" min={1} className="border rounded-lg px-3 py-2" placeholder="Weeks" value={fineForm.dueInWeeks} onChange={(e)=>setFineForm({ ...fineForm, dueInWeeks: e.target.value })} />
+                  )}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Block user</label>
+                <div className="flex items-center gap-2 mb-2">
+                  <input id="blockUserToggle" type="checkbox" className="h-4 w-4" checked={fineForm.block} onChange={(e)=>setFineForm({ ...fineForm, block: e.target.checked })} />
+                  <label htmlFor="blockUserToggle" className="text-sm text-gray-700">Deactivate account immediately</label>
+                </div>
+                {fineForm.block && (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <select className="border rounded-lg px-3 py-2" value={fineForm.blockMode} onChange={(e)=>setFineForm({ ...fineForm, blockMode: e.target.value })}>
+                      <option value="none">Until cleared</option>
+                      <option value="date">Until date</option>
+                      <option value="days">For N days</option>
+                      <option value="weeks">For N weeks</option>
+                    </select>
+                    {fineForm.blockMode === 'date' && (
+                      <input type="datetime-local" className="border rounded-lg px-3 py-2" value={fineForm.blockedUntil} onChange={(e)=>setFineForm({ ...fineForm, blockedUntil: e.target.value })} />
+                    )}
+                    {fineForm.blockMode === 'days' && (
+                      <input type="number" min={1} className="border rounded-lg px-3 py-2" placeholder="Days" value={fineForm.durationDays} onChange={(e)=>setFineForm({ ...fineForm, durationDays: e.target.value })} />
+                    )}
+                    {fineForm.blockMode === 'weeks' && (
+                      <input type="number" min={1} className="border rounded-lg px-3 py-2" placeholder="Weeks" value={fineForm.durationWeeks} onChange={(e)=>setFineForm({ ...fineForm, durationWeeks: e.target.value })} />
+                    )}
+                  </div>
+                )}
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <button type="button" onClick={()=>setShowFineModal(false)} className="px-4 py-2 border rounded-lg">Cancel</button>
+                <button type="submit" className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg">Add Fine</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
-};
+}
 
 export default AdminCommissionManager;

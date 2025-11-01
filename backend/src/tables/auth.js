@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const User = require('../tables/user');
 
 const router = Router();
+const Notification = require('../tables/notification');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
 const TOKEN_COOKIE = 'akw_token';
@@ -89,23 +90,84 @@ router.post('/logout', (req, res) => {
 });
 
 router.get('/me', authMiddleware, async (req, res) => {
-    const user = await User.findById(req.user.id).select('_id firstName lastName email userType avatar phone bio');
-	if (!user) return res.status(404).json({ message: 'User not found' });
-	return res.json({
-		user: {
-			id: user._id,
-			name: `${user.firstName} ${user.lastName}`,
-			email: user.email,
-			userType: user.userType,
-            avatar: user.avatar,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            phone: user.phone,
-            bio: user.bio
-		}
-	});
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    // Overdue fines policy: apply 2% penalty and auto-block + commission notice once per overdue item
+    let updated = false;
+    const now = new Date();
+    if (user.fines && Array.isArray(user.fines.items)) {
+      for (const item of user.fines.items) {
+        if (item.paid) continue;
+        if (item.dueAt && item.dueAt < now) {
+          // Apply 2% late penalty once
+          if (!item.penaltyApplied) {
+            const add = Math.round(Number(item.amount || 0) * 0.02);
+            if (add > 0) {
+              item.amount = Number(item.amount || 0) + add;
+              user.fines.totalDue = Number(user.fines.totalDue || 0) + add;
+            }
+            item.penaltyApplied = true;
+            updated = true;
+            try {
+              await Notification.create({
+                type: 'fine_added',
+                title: 'Late penalty applied',
+                message: `A 2% late penalty has been added to your overdue fine. Please settle your dues to avoid further restrictions.`,
+                recipientUser: user._id
+              });
+            } catch (_) {}
+          }
+          // Enforce commission/blocked once after due
+          if (!item.commissionApplied) {
+            item.commissionApplied = true;
+            // Block the user if not already
+            if (!user.isBlocked) {
+              user.isBlocked = true;
+              user.blockedAt = new Date();
+              user.blockReason = item.reason || 'Unpaid fine overdue';
+              updated = true;
+              try {
+                await Notification.create({
+                  type: 'account_blocked',
+                  title: 'Account Deactivated',
+                  message: 'Your account has been deactivated due to overdue unpaid dues. Please pay to reactivate.',
+                  recipientUser: user._id
+                });
+              } catch (_) {}
+            }
+            try {
+              await Notification.create({
+                type: 'commission_due',
+                title: 'Commission/Fine due',
+                message: 'Your dues are overdue. Please pay to restore full account access.',
+                recipientUser: user._id
+              });
+            } catch (_) {}
+          }
+        }
+      }
+      if (updated) await user.save();
+    }
+
+    return res.json({
+      user: {
+        id: user._id,
+        name: `${user.firstName} ${user.lastName}`,
+        email: user.email,
+        userType: user.userType,
+        avatar: user.avatar,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        phone: user.phone,
+        bio: user.bio,
+        isBlocked: !!user.isBlocked
+      }
+    });
+  } catch (e) {
+    return res.status(500).json({ message: 'Server error' });
+  }
 });
 
 module.exports = router;
-
-

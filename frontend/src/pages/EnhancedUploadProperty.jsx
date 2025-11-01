@@ -35,6 +35,8 @@ const EnhancedUploadProperty = () => {
   const [images, setImages] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [deals, setDeals] = useState([]);
+  const [dealsLoading, setDealsLoading] = useState(false);
 
   const categories = [
     { value: 'hotel', label: 'Hotel' },
@@ -69,6 +71,21 @@ const EnhancedUploadProperty = () => {
     if (isEditing) {
       fetchPropertyData();
     }
+  }, [isEditing, editId]);
+
+  useEffect(() => {
+    const loadDeals = async () => {
+      if (!isEditing || !editId) return;
+      try {
+        setDealsLoading(true);
+        const res = await fetch(`${API_URL}/api/deals/property/${editId}`);
+        const data = await res.json();
+        if (res.ok) setDeals(Array.isArray(data.deals) ? data.deals : []);
+        else setDeals([]);
+      } catch (_) { setDeals([]); }
+      finally { setDealsLoading(false); }
+    };
+    loadDeals();
   }, [isEditing, editId]);
 
   const fetchPropertyData = async () => {
@@ -275,6 +292,40 @@ const EnhancedUploadProperty = () => {
                 {isEditing ? 'Update your property details' : 'Create a new property listing'}
               </p>
             </div>
+
+            {/* Deals summary (edit mode) */}
+            {isEditing && (
+              <div className="space-y-4">
+                <h2 className="text-xl font-semibold text-gray-900 border-b pb-2">Promotions & Deals</h2>
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-gray-600">
+                    {dealsLoading ? 'Loading deals…' : `${deals.length} active deal(s) available for this property`}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button type="button" onClick={() => window.location.href = `/owner/deals/create?property=${editId}`} className="px-3 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 text-sm">Create Deal</button>
+                    <button type="button" onClick={() => window.location.href = `/owner/deals?property=${editId}`} className="px-3 py-2 rounded-lg border text-sm">Manage Deals</button>
+                  </div>
+                </div>
+                {deals.length > 0 && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {deals.map(d => (
+                      <div key={d._id} className="modern-card-elevated p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="font-semibold text-gray-900 truncate">{d.title || 'Promotion'}</div>
+                            <div className="text-xs text-gray-600 mt-1">{d.dealType || d.type || 'deal'} • {d.discountType} {d.discountValue}{d.discountType==='percent' ? '%' : ''}</div>
+                            <div className="text-xs text-gray-500 mt-1">{d.isActive ? 'Active' : 'Inactive'} • {d.isPublished ? 'Published' : 'Unpublished'}</div>
+                          </div>
+                          {d.badge && (
+                            <span className="px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-800">{d.badge}</span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
             <button
               onClick={() => navigate('/dashboard')}
               className="p-2 text-gray-400 hover:text-gray-600 transition-colors"

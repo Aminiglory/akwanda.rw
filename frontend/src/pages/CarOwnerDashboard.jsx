@@ -17,6 +17,7 @@ export default function CarOwnerDashboard() {
   }), []);
   const [form, setForm] = useState(emptyCar);
   const [uploadingId, setUploadingId] = useState(null);
+  const [viewMode, setViewMode] = useState('cards'); // 'cards' | 'table'
 
   async function loadData() {
     try {
@@ -96,6 +97,17 @@ export default function CarOwnerDashboard() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-6">
+      {/* Owner tabs */}
+      <div className="mb-4 flex items-center justify-between gap-2">
+        <div className="inline-flex rounded-lg overflow-hidden border border-[#d4c4b0]">
+          <a href="/owner/cars" className={`px-3 py-2 text-sm ${location.pathname.startsWith('/owner/cars') ? 'bg-[#a06b42] text-white' : 'bg-[#f6e9d8] text-[#4b2a00] hover:bg-[#e8dcc8]'}`}>Cars</a>
+          <a href="/owner/attractions" className={`px-3 py-2 text-sm ${location.pathname.startsWith('/owner/attractions') ? 'bg-[#a06b42] text-white' : 'bg-[#f6e9d8] text-[#4b2a00] hover:bg-[#e8dcc8]'}`}>Attractions</a>
+        </div>
+        <div className="inline-flex rounded-lg overflow-hidden border">
+          <button onClick={()=>setViewMode('cards')} className={`px-3 py-2 text-sm ${viewMode==='cards' ? 'bg-[#a06b42] text-white' : 'bg-white text-gray-700'}`}>Cards</button>
+          <button onClick={()=>setViewMode('table')} className={`px-3 py-2 text-sm ${viewMode==='table' ? 'bg-[#a06b42] text-white' : 'bg-white text-gray-700'}`}>Table</button>
+        </div>
+      </div>
       {user?.isBlocked && (
         <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
           Your account is deactivated. Car management is disabled until reactivated.
@@ -127,45 +139,78 @@ export default function CarOwnerDashboard() {
           <input type="checkbox" checked={!!form.isAvailable} onChange={e => setForm({ ...form, isAvailable: !!e.target.checked })} />
         </div>
         <div className="md:col-span-3">
-          <button disabled={saving || user?.isBlocked} className="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50">{saving ? 'Saving...' : 'Add Car'}</button>
+          <button disabled={saving || user?.isBlocked} className="px-4 py-2 bg-[#a06b42] hover:bg-[#8f5a32] text-white rounded disabled:opacity-50">{saving ? 'Saving...' : 'Add Car'}</button>
         </div>
       </form>
 
       {/* Cars List */}
       {loading ? <div>Loading...</div> : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {cars.map(car => (
-            <div key={car._id} className="bg-white rounded-lg shadow p-4">
-              <div className="flex gap-4">
-                <div className="w-32 h-24 bg-gray-100 rounded overflow-hidden">
-                  {car.images?.[0] ? <img src={`${API_URL}${car.images[0]}`} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-400">No image</div>}
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-semibold">{car.vehicleName} • {car.brand} {car.model}</h3>
-                    <button onClick={() => updateCar(car._id, { isAvailable: !car.isAvailable })} className={`px-2 py-1 rounded text-sm ${car.isAvailable ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-700'}`}>{car.isAvailable ? 'Available' : 'Unavailable'}</button>
+        viewMode === 'cards' ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {cars.map(car => (
+              <div key={car._id} className="bg-white rounded-lg shadow p-4">
+                <div className="flex gap-4">
+                  <div className="w-32 h-24 bg-gray-100 rounded overflow-hidden">
+                    {car.images?.[0] ? <img src={`${API_URL}${car.images[0]}`} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-400">No image</div>}
                   </div>
-                  <p className="text-sm text-gray-600">{car.location} • {car.vehicleType} • {car.transmission}</p>
-                  <p className="text-sm font-medium mt-1">{car.pricePerDay} {car.currency}/day</p>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-semibold">{car.vehicleName} • {car.brand} {car.model}</h3>
+                      <button onClick={() => updateCar(car._id, { isAvailable: !car.isAvailable })} className={`px-2 py-1 rounded text-sm ${car.isAvailable ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-700'}`}>{car.isAvailable ? 'Available' : 'Unavailable'}</button>
+                    </div>
+                    <p className="text-sm text-gray-600">{car.location} • {car.vehicleType} • {car.transmission}</p>
+                    <p className="text-sm font-medium mt-1">{car.pricePerDay} {car.currency}/day</p>
+                  </div>
                 </div>
-              </div>
 
-              <div className="mt-3 flex items-center gap-2">
-                <label className="text-sm">Upload Images:</label>
-                <input type="file" multiple disabled={uploadingId === car._id} onChange={e => uploadImages(car._id, e.target.files)} />
-                <button onClick={() => deleteCar(car._id)} className="ml-auto px-3 py-1 bg-red-600 text-white rounded text-sm">Delete</button>
-              </div>
-
-              {car.images?.length > 0 && (
-                <div className="mt-3 grid grid-cols-4 gap-2">
-                  {car.images.map((img, i) => (
-                    <img key={i} src={`${API_URL}${img}`} className="w-full h-20 object-cover rounded" />
-                  ))}
+                <div className="mt-3 flex items-center gap-2">
+                  <label className="text-sm">Upload Images:</label>
+                  <input type="file" multiple disabled={uploadingId === car._id} onChange={e => uploadImages(car._id, e.target.files)} />
+                  <button onClick={() => deleteCar(car._id)} className="ml-auto px-3 py-1 bg-red-600 text-white rounded text-sm">Delete</button>
                 </div>
-              )}
-            </div>
-          ))}
-        </div>
+
+                {car.images?.length > 0 && (
+                  <div className="mt-3 grid grid-cols-4 gap-2">
+                    {car.images.map((img, i) => (
+                      <img key={i} src={`${API_URL}${img}`} className="w-full h-20 object-cover rounded" />
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="bg-white rounded-lg shadow overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50 text-left">
+                  <th className="p-3">Car</th>
+                  <th className="p-3">Type</th>
+                  <th className="p-3">Location</th>
+                  <th className="p-3">Price/Day</th>
+                  <th className="p-3">Status</th>
+                  <th className="p-3">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {cars.map(car => (
+                  <tr key={car._id} className="border-t">
+                    <td className="p-3 font-medium">{car.vehicleName} • {car.brand} {car.model}</td>
+                    <td className="p-3">{car.vehicleType}</td>
+                    <td className="p-3">{car.location}</td>
+                    <td className="p-3">{car.pricePerDay} {car.currency}</td>
+                    <td className="p-3">
+                      <button onClick={() => updateCar(car._id, { isAvailable: !car.isAvailable })} className={`px-2 py-1 rounded text-xs ${car.isAvailable ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-700'}`}>{car.isAvailable ? 'Available' : 'Unavailable'}</button>
+                    </td>
+                    <td className="p-3">
+                      <button onClick={() => deleteCar(car._id)} className="px-3 py-1 bg-red-600 text-white rounded text-xs">Delete</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )
       )}
 
       {/* Bookings */}

@@ -327,11 +327,32 @@ export default function Messages() {
       }));
       const sorted = mapped.sort((a, b) => new Date(b.lastMessageTime || 0) - new Date(a.lastMessageTime || 0));
       setThreads(sorted);
-      // Preselect thread via query: by userId or bookingId
+      // Preselect thread via query: by userId or bookingId. If not found and 'to' provided, auto-create a local thread.
       let preset = null;
-      if (prefillTo) preset = mapped.find(x => String(x.userId) === String(prefillTo)) || null;
-      if (!preset && prefillBookingId) preset = mapped.find(x => x.context?.bookingId && String(x.context.bookingId) === String(prefillBookingId)) || null;
-      if (preset) setActiveThread(preset);
+      if (prefillTo) preset = sorted.find(x => String(x.userId) === String(prefillTo)) || null;
+      if (!preset && prefillBookingId) preset = sorted.find(x => x.context?.bookingId && String(x.context.bookingId) === String(prefillBookingId)) || null;
+      if (preset) {
+        setActiveThread(preset);
+      } else if (prefillTo) {
+        try {
+          const resBasic = await fetch(`${API_URL}/api/user/basic?ids=${encodeURIComponent(prefillTo)}`, { credentials: 'include' });
+          const basic = await resBasic.json();
+          const u = Array.isArray(basic.users) && basic.users.length ? basic.users[0] : { id: prefillTo, name: 'User' };
+          const newThread = {
+            id: u.id,
+            userId: u.id,
+            userName: u.name || 'User',
+            userAvatar: u.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name || 'U')}&background=0D8ABC&color=fff&size=64`,
+            lastMessage: '',
+            lastMessageTime: null,
+            unreadCount: 0,
+            booking: null,
+            context: {}
+          };
+          setThreads(prev => [newThread, ...prev]);
+          setActiveThread(newThread);
+        } catch (_) {}
+      }
     } catch (error) {
       toast.error('Failed to load conversations');
     } finally {
@@ -355,16 +376,16 @@ export default function Messages() {
           text: m.replyTo.message
         } : null;
         return {
-        id: extractMessageId(m) || String(Math.random()),
-        senderId: extractSenderId(m.sender || m.senderId),
-        senderName: m.senderName || (extractSenderId(m.sender) === String(user?._id || user?.id || '') ? (user?.name || 'You') : thread.userName),
-        content: m.message || m.text || '',
-        attachments: m.attachments || [],
-        timestamp: m.createdAt,
-        type: (m.attachments && m.attachments.length) ? 'file' : 'text',
-        status: m.isRead ? 'read' : 'delivered',
-        reply: replied
-      };
+          id: extractMessageId(m) || String(Math.random()),
+          senderId: extractSenderId(m.sender || m.senderId),
+          senderName: m.senderName || (extractSenderId(m.sender) === String(user?._id || user?.id || '') ? (user?.name || 'You') : thread.userName),
+          content: m.message || m.text || '',
+          attachments: m.attachments || [],
+          timestamp: m.createdAt,
+          type: (m.attachments && m.attachments.length) ? 'file' : 'text',
+          status: m.isRead ? 'read' : 'delivered',
+          reply: replied
+        };
       });
       setMessages(mapped);
       // Join booking room for typing/real-time if applicable
@@ -373,7 +394,6 @@ export default function Messages() {
         // Mark as read
         try { await fetch(`${API_URL}/api/messages/booking/${thread.context.bookingId}/read`, { method: 'PATCH', credentials: 'include' }); } catch (_) {}
       }
-      
       // Mark all messages from this user as read
       try {
         await fetch(`${API_URL}/api/messages/mark-read`, {
@@ -383,9 +403,8 @@ export default function Messages() {
           body: JSON.stringify({ senderId: thread.userId })
         });
       } catch (_) {}
-      
       // Update thread unread count locally
-      setThreads(prev => prev.map(t => 
+      setThreads(prev => prev.map(t =>
         t.id === threadId ? { ...t, unreadCount: 0 } : t
       ));
     } catch (error) {
@@ -399,13 +418,11 @@ export default function Messages() {
     // Handle both generic payload from /send and booking payload from /messages booking route
     const thread = activeThread;
     const myId = String(user?._id || user?.id || '');
-    
     // Case 1: booking payload: { bookingId, message: {...} }
     if (payload && payload.message && payload.bookingId) {
       const m = payload.message;
       // Ignore own echoes
       if (extractSenderId(m.sender) === myId) return;
-      
       if (thread && thread.context?.bookingId && String(thread.context.bookingId) === String(payload.bookingId)) {
         // Resolve reply reference from existing messages if available
         const ref = payload.replyTo ? messages.find(x => String(x.id) === String(payload.replyTo)) : null;
@@ -425,7 +442,7 @@ export default function Messages() {
       } else {
         // Update unread count and bump thread to top for threads not currently active
         setThreads(prev => {
-          const updated = prev.map(t => 
+          const updated = prev.map(t =>
             t.context?.bookingId && String(t.context.bookingId) === String(payload.bookingId) && String(m.sender) !== myId
               ? { ...t, unreadCount: (t.unreadCount || 0) + 1, lastMessage: m.message, lastMessageTime: m.createdAt }
               : t
@@ -436,15 +453,12 @@ export default function Messages() {
       }
       return;
     }
-    
     // Case 2: flattened payload from /send
     if (payload && payload.from && payload.to) {
       const senderId = String(payload.from);
       const isMine = senderId === myId;
       const isForMe = String(payload.to) === myId;
-      
       if (!isMine && !isForMe) return; // Not relevant to current user
-      
       if (thread && (String(thread.userId) === senderId || String(thread.userId) === String(payload.to))) {
         // If this flattened payload is also scoped to the same booking as the active thread,
         // skip it because the booking-room handler above already handled it.
@@ -455,7 +469,7 @@ export default function Messages() {
         if (payload.senderId && String(payload.senderId) === myId) return;
         // bump unread and preview for this user thread and reorder
         setThreads(prev => {
-          const updated = prev.map(t => 
+          const updated = prev.map(t =>
             (String(t.userId) === senderId || String(t.userId) === String(payload.to))
               ? { ...t, unreadCount: (t.unreadCount || 0) + 1, lastMessage: payload.message || '', lastMessageTime: payload.createdAt || new Date().toISOString() }
               : t
@@ -465,7 +479,7 @@ export default function Messages() {
         });
       } else if (!isMine && isForMe) {
         // Update unread count for threads not currently active
-        setThreads(prev => prev.map(t => 
+        setThreads(prev => prev.map(t =>
           String(t.userId) === senderId
             ? { ...t, unreadCount: (t.unreadCount || 0) + 1, lastMessage: payload.text || '', lastMessageTime: payload.createdAt }
             : t
@@ -779,7 +793,6 @@ export default function Messages() {
     try {
       // Check if conversation already exists
       const existingThread = threads.find(t => String(t.userId) === String(selectedUser.id));
-      
       if (existingThread) {
         // Switch to existing conversation
         setActiveThread(existingThread);
@@ -807,12 +820,10 @@ export default function Messages() {
       setThreads(prev => [newThread, ...prev]);
       setActiveThread(newThread);
       setMessages([]);
-      
       // Close search modal
       setShowUserSearch(false);
       setUserSearchTerm('');
       setSearchResults([]);
-      
       toast.success(`Started conversation with ${selectedUser.name}`);
     } catch (error) {
       toast.error('Failed to start conversation');
@@ -835,7 +846,6 @@ export default function Messages() {
   const renderMessage = (message) => {
     const myId = String(user?._id || user?.id || '');
     const isOwn = String(message.senderId) === myId;
-    
     return (
       <div
         key={message.id}
@@ -862,8 +872,8 @@ export default function Messages() {
             </div>
           )}
           <div className={`rounded-2xl px-3 sm:px-4 py-2 ${
-            isOwn 
-              ? 'bg-blue-600 text-white' 
+            isOwn
+              ? 'bg-blue-600 text-white'
               : 'bg-white text-gray-800 border border-gray-200'
           }`}>
             {message.type === 'file' && message.attachments ? (
@@ -896,7 +906,6 @@ export default function Messages() {
               <p className="break-words">{message.content}</p>
             )}
           </div>
-          
           <div className={`flex items-center mt-1 ${isOwn ? 'justify-end' : 'justify-start'}`}>
             <span className="text-xs text-gray-500">{formatTime(message.timestamp)}</span>
             {isOwn && (
@@ -1016,7 +1025,7 @@ export default function Messages() {
       )}
       <div className="max-w-7xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Threads Sidebar */}
-        <div className={`lg:col-span-1 modern-card-elevated p-6 flex flex-col h-[60vh] md:h-[70vh] lg:h-[78vh] ${activeThread ? 'hidden lg:flex' : 'flex'}`}>
+        <div className={`lg:col-span-1 modern-card-elevated p-6 flex flex-col h-[calc(100vh-6rem)] md:h-[70vh] lg:h-[78vh] ${activeThread ? 'hidden lg:flex' : 'flex'}`}>
           <div className="mb-4">
             <h2 className="text-xl font-bold text-gray-900 mb-1">AKWANDA Chat</h2>
             <p className="text-sm text-gray-500 mb-3 animate-pulse">Fast, simple and reliable messaging</p>
@@ -1032,13 +1041,12 @@ export default function Messages() {
             </div>
             <button
               onClick={() => setShowUserSearch(true)}
-              className="mt-3 w-full flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
+              className="mt-3 w-full hidden lg:flex items-center justify-center space-x-2 btn-primary text-white px-4 py-2 rounded-lg transition-colors"
             >
               <FaUser />
               <span>New Conversation</span>
             </button>
           </div>
-          
           <div ref={sidebarRef} className="space-y-1 overflow-y-auto flex-1">
             {isRefreshing && (
               <div className="sticky top-0 z-10 flex items-center justify-center py-1 text-xs text-blue-600">Refreshing…</div>
@@ -1060,7 +1068,7 @@ export default function Messages() {
                     <div className="mb-3">No conversations yet</div>
                     <button
                       onClick={() => setShowUserSearch(true)}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                      className="px-4 py-2 btn-primary text-white rounded-lg"
                     >Start New Conversation</button>
                   </div>
                 );
@@ -1258,13 +1266,35 @@ export default function Messages() {
                 <div className="mt-4 lg:hidden">
                   <button
                     onClick={() => setShowUserSearch(true)}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                    className="px-4 py-2 btn-primary text-white rounded-lg"
                   >Start New Conversation</button>
                 </div>
               </div>
             </div>
           )}
         </div>
+      </div>
+
+      {/* Mobile floating actions: new chat and open thread list */}
+      <div className="lg:hidden fixed bottom-5 right-5 z-50 flex flex-col items-end gap-3">
+        <button
+          onClick={() => setShowUserSearch(true)}
+          className="btn-primary text-white rounded-full w-12 h-12 shadow-lg flex items-center justify-center"
+          title="New chat"
+          aria-label="New chat"
+        >
+          <FaUser />
+        </button>
+        {activeThread && (
+          <button
+            onClick={() => setActiveThread(null)}
+            className="bg-white text-primary rounded-full w-12 h-12 shadow-lg flex items-center justify-center border border-subtle"
+            title="All chats"
+            aria-label="All chats"
+          >
+            <FaComments />
+          </button>
+        )}
       </div>
 
       {/* User Search Modal */}

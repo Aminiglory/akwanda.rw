@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { FaMapMarkerAlt, FaCalendarAlt, FaHeart, FaClock } from 'react-icons/fa';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -11,15 +12,19 @@ export default function CarDetail() {
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(false);
   const [booking, setBooking] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('cash'); // 'cash' | 'mtn_mobile_money'
   const today = useMemo(() => new Date().toISOString().split('T')[0], []);
   const [form, setForm] = useState({
     pickupDate: '',
     returnDate: '',
     pickupLocation: '',
-    returnLocation: ''
+    returnLocation: '',
+    pickupTime: '',
+    returnTime: ''
   });
   const [available, setAvailable] = useState(null);
   const [otherCars, setOtherCars] = useState([]);
+  const [favIds, setFavIds] = useState([]);
 
   useEffect(() => {
     (async () => {
@@ -42,6 +47,23 @@ export default function CarDetail() {
     })();
   }, [id]);
 
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('car-favorites');
+      const list = raw ? JSON.parse(raw) : [];
+      setFavIds(Array.isArray(list) ? list : []);
+    } catch { setFavIds([]); }
+  }, []);
+
+  function toggleFavorite() {
+    const pid = String(id);
+    const set = new Set(favIds);
+    if (set.has(pid)) set.delete(pid); else set.add(pid);
+    const next = Array.from(set);
+    setFavIds(next);
+    localStorage.setItem('car-favorites', JSON.stringify(next));
+  }
+
   async function checkAvailability() {
     if (!form.pickupDate || !form.returnDate) return toast.error('Select pickup and return dates');
     try {
@@ -62,7 +84,7 @@ export default function CarDetail() {
       setBooking(true);
       const res = await fetch(`${API_URL}/api/car-bookings`, {
         method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ carId: id, ...form })
+        body: JSON.stringify({ carId: id, ...form, paymentMethod })
       });
       if (res.status === 401) {
         toast.error('Please login to book');
@@ -71,8 +93,22 @@ export default function CarDetail() {
       }
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Booking failed');
+      // If MTN selected, go to payment page
+      if (paymentMethod === 'mtn_mobile_money' && data?.booking?._id) {
+        toast.success('Redirecting to payment...');
+        navigate('/mtn-payment', {
+          state: {
+            bookingId: data.booking._id,
+            amount: Number(data.booking.totalAmount || 0),
+            description: `Car rental for ${car?.vehicleName || 'your trip'}`,
+            customerName: data.booking?.guestName || '',
+            customerEmail: data.booking?.guestEmail || '',
+            phoneNumber: data.booking?.guestPhone || ''
+          }
+        });
+        return;
+      }
       toast.success('Booking created');
-      // Open chat with the owner, passing booking context
       if (car?.owner && data?.booking?._id) {
         navigate(`/messages?to=${car.owner}&bookingId=${data.booking._id}`);
       } else {
@@ -92,7 +128,12 @@ export default function CarDetail() {
           <div className="grid grid-cols-3 gap-2">
             <div className="col-span-3 h-64 bg-gray-100 rounded overflow-hidden">
               {car.images?.[0] && (
-                <img src={`${API_URL}${car.images[0]}`} className="w-full h-full object-cover" />
+                <div className="relative w-full h-full">
+                  <img src={`${API_URL}${car.images[0]}`} className="w-full h-full object-cover" />
+                  <button onClick={toggleFavorite} title="Add to favorites" className={`absolute top-3 right-3 p-2 rounded-full shadow ${favIds.includes(String(id)) ? 'bg-red-600 text-white' : 'bg-white text-red-600'}`}>
+                    <FaHeart />
+                  </button>
+                </div>
               )}
             </div>
             {car.images?.slice(1, 7).map((img, i) => (
@@ -127,11 +168,33 @@ export default function CarDetail() {
             <div className="grid grid-cols-1 gap-3 mt-3">
               <div>
                 <label className="text-sm text-gray-700">Pickup date</label>
-                <input type="date" min={today} value={form.pickupDate} onChange={e => setForm({ ...form, pickupDate: e.target.value })} className="w-full px-3 py-2 border rounded" />
+                <div className="relative">
+                  <FaCalendarAlt className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input id="pickupDate" type="date" min={today} value={form.pickupDate} onChange={e => setForm({ ...form, pickupDate: e.target.value })} className="w-full pl-10 px-3 py-2 border rounded" />
+                </div>
               </div>
               <div>
                 <label className="text-sm text-gray-700">Return date</label>
-                <input type="date" min={form.pickupDate || today} value={form.returnDate} onChange={e => setForm({ ...form, returnDate: e.target.value })} className="w-full px-3 py-2 border rounded" />
+                <div className="relative">
+                  <FaCalendarAlt className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input id="returnDate" type="date" min={form.pickupDate || today} value={form.returnDate} onChange={e => setForm({ ...form, returnDate: e.target.value })} className="w-full pl-10 px-3 py-2 border rounded" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-sm text-gray-700">Pickup time</label>
+                  <div className="relative">
+                    <FaClock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input type="time" value={form.pickupTime} onChange={e => setForm({ ...form, pickupTime: e.target.value })} className="w-full pl-10 px-3 py-2 border rounded" />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm text-gray-700">Return time</label>
+                  <div className="relative">
+                    <FaClock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input type="time" value={form.returnTime} onChange={e => setForm({ ...form, returnTime: e.target.value })} className="w-full pl-10 px-3 py-2 border rounded" />
+                  </div>
+                </div>
               </div>
               <div>
                 <label className="text-sm text-gray-700">Pickup location</label>
@@ -142,12 +205,29 @@ export default function CarDetail() {
                 <input value={form.returnLocation} onChange={e => setForm({ ...form, returnLocation: e.target.value })} className="w-full px-3 py-2 border rounded" />
               </div>
               <div className="flex items-center gap-2">
-                <button disabled={checking} onClick={checkAvailability} className="px-3 py-2 bg-gray-800 text-white rounded">{checking ? 'Checking...' : 'Check availability'}</button>
+                <button disabled={checking} onClick={checkAvailability} className="px-3 py-2 bg-[#a06b42] hover:bg-[#8f5a32] text-white rounded">{checking ? 'Checking...' : 'Check availability'}</button>
                 {available !== null && (
                   <span className={`text-sm ${available ? 'text-green-600' : 'text-red-600'}`}>{available ? 'Available' : 'Not available'}</span>
                 )}
               </div>
-              <button disabled={booking} onClick={createBooking} className="px-4 py-2 bg-blue-600 text-white rounded">{booking ? 'Booking...' : 'Book now'}</button>
+              {/* Payment choice */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('cash')}
+                  className={`px-3 py-2 rounded border ${paymentMethod==='cash' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-[#f6e9d8] text-[#4b2a00] border-[#d4c4b0] hover:bg-[#e8dcc8]'}`}
+                >
+                  Pay on Pickup
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('mtn_mobile_money')}
+                  className={`px-3 py-2 rounded border ${paymentMethod==='mtn_mobile_money' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-[#f6e9d8] text-[#4b2a00] border-[#d4c4b0] hover:bg-[#e8dcc8]'}`}
+                >
+                  MTN Mobile Money
+                </button>
+              </div>
+              <button disabled={booking} onClick={createBooking} className="px-4 py-2 bg-[#a06b42] hover:bg-[#8f5a32] text-white rounded">{booking ? 'Booking...' : 'Book now'}</button>
             </div>
           </div>
         </div>

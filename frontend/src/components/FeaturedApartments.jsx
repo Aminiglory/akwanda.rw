@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FaStar, FaMapMarkerAlt, FaBed, FaBath } from 'react-icons/fa';
+import { FaStar } from 'react-icons/fa';
+import AkwandaCard from './AkwandaCard';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -34,6 +35,7 @@ const FeaturedApartments = () => {
             rating: avgRating ? Number(avgRating.toFixed(1)) : null,
             reviews: ratingsArr.length,
             image: p.images && p.images.length ? makeAbsolute(p.images[0]) : 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=500&h=300&fit=crop',
+            images: Array.isArray(p.images) ? p.images.map(makeAbsolute) : [],
             bedrooms: p.bedrooms ?? 2,
             bathrooms: p.bathrooms ?? 1,
             amenities: p.amenities || ["WiFi", "Parking", "Kitchen"],
@@ -77,111 +79,32 @@ const FeaturedApartments = () => {
 
         <div ref={gridRef} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {apartments.map((apartment, index) => (
-            <div
-              key={apartment.id}
-              className={`modern-card-elevated overflow-hidden hover:scale-105 transition-all duration-500 ${gridInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}
-              style={{ transitionDelay: `${index * 80}ms` }}
-            >
-              {/* Image */}
-              <div className="relative h-48 overflow-hidden">
-                <img
-                  src={apartment.image}
-                  alt={apartment.title}
-                  loading="lazy"
-                  decoding="async"
-                  sizes="(min-width:1024px) 25vw, (min-width:768px) 50vw, 100vw"
-                  className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
-                  onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=500&h=300&fit=crop'; }}
-                />
-                {!apartment.isAvailable && (
-                  <div className="absolute top-4 right-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
-                    Unavailable
-                  </div>
-                )}
-                <div className="absolute top-4 left-4 bg-black/60 text-white backdrop-blur-sm rounded-full px-3 py-1 text-xs font-semibold">
-                  From RWF {apartment.price.toLocaleString()}
-                </div>
-                {apartment.discountPercent > 0 && (
-                  <div className="absolute top-4 left-40 bg-green-600 text-white px-3 py-1 rounded-full text-xs font-semibold">
-                    {apartment.discountPercent}% OFF
-                  </div>
-                )}
-                {/* Removed gradient overlay */}
-              </div>
-
-              {/* Content */}
-              <div className="p-6">
-                <h3 className="text-lg font-bold text-gray-900 mb-1 line-clamp-2">
-                  {apartment.title}
-                </h3>
-                
-                <div className="flex items-center text-gray-600 mb-2">
-                  <FaMapMarkerAlt className="text-blue-600 mr-1" />
-                  <span className="text-sm truncate">{apartment.location}</span>
-                </div>
-
-                {/* Rating */}
-                <div className="flex items-center mb-3">
-                  <div className="flex items-center mr-2">
-                    {apartment.rating ? renderStars(apartment.rating) : <span className="text-gray-400">No ratings</span>}
-                  </div>
-                  <span className="text-sm text-gray-600">
-                    {apartment.rating ? `${apartment.rating} (${apartment.reviews} reviews)` : 'No ratings'}
-                  </span>
-                </div>
-
-                {/* Bedrooms & Bathrooms */}
-                <div className="flex items-center gap-4 mb-4 text-sm text-gray-600">
-                  <div className="flex items-center">
-                    <FaBed className="mr-1" />
-                    {apartment.bedrooms} BR
-                  </div>
-                  <div className="flex items-center">
-                    <FaBath className="mr-1" />
-                    {apartment.bathrooms} Bath
-                  </div>
-                </div>
-
-                {/* Amenities */}
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {apartment.amenities.slice(0, 3).map((amenity, idx) => (
-                    <span
-                      key={idx}
-                      className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full"
-                    >
-                      {amenity}
-                    </span>
-                  ))}
-                  {apartment.amenities.length > 3 && (
-                    <span className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-full">
-                      +{apartment.amenities.length - 3} more
-                    </span>
-                  )}
-                </div>
-
-                {/* Book Button */}
-                <Link
-                  to={`/apartment/${apartment.id}`}
-                  className={`w-full py-3 rounded-xl font-semibold transition-all duration-300 block text-center ${
-                    apartment.isAvailable
-                      ? 'bg-blue-600 hover:bg-blue-700 text-white hover:scale-[1.02]'
-                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  }`}
-                >
-                  {apartment.isAvailable ? 'View Details' : 'Unavailable'}
-                </Link>
-              </div>
+            <div key={apartment.id} className={`${gridInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`} style={{ transition: 'all 500ms', transitionDelay: `${index * 80}ms` }}>
+              <AkwandaCard
+                id={apartment.id}
+                title={apartment.title}
+                location={apartment.location}
+                images={apartment.images && apartment.images.length ? apartment.images : [apartment.image]}
+                pricePerMonth={Number(apartment.price || 0) * 30}
+                category={'Apartment'}
+                rating={Number(apartment.rating || 0)}
+                reviews={apartment.reviews}
+                amenities={apartment.amenities}
+                host={null}
+                isAvailable={apartment.isAvailable}
+                href={`/apartment/${apartment.id}`}
+              />
             </div>
           ))}
         </div>
 
         <div className="mt-12">
-          <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl p-8 flex flex-col md:flex-row items-center justify-between text-white shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.02]">
+          <div className="bg-primary rounded-2xl p-8 flex flex-col md:flex-row items-center justify-between text-white shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.02]">
             <div className="mb-4 md:mb-0">
               <h4 className="text-2xl font-bold mb-2">Looking for more options?</h4>
-              <p className="text-blue-100 text-lg">Browse all apartments and filter by location, price, and amenities.</p>
+              <p className="text-white/90 text-lg">Browse all apartments and filter by location, price, and amenities.</p>
             </div>
-            <Link to="/apartments" className="bg-white text-blue-700 px-8 py-4 rounded-xl font-bold hover:bg-blue-50 transition-all duration-300 shadow-lg hover:scale-105 transform">
+            <Link to="/apartments" className="bg-[#a06b42] text-white px-8 py-3 rounded-xl font-semibold hover:bg-[#8f5a32] transition-all duration-300 shadow-lg hover:scale-105 transform">
               View All Apartments
             </Link>
           </div>

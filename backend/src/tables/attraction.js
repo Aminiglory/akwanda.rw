@@ -2,10 +2,14 @@ const mongoose = require('mongoose');
 
 const attractionSchema = new mongoose.Schema(
   {
+    // Human-friendly unique code for referencing an attraction
+    attractionCode: { type: String, unique: true, index: true },
+    owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     name: { type: String, required: true },
     description: { type: String, required: true },
     location: { type: String, required: true },
     city: { type: String, required: true },
+    country: { type: String, default: 'Rwanda' },
     category: { type: String, enum: ['cultural', 'nature', 'adventure', 'historical', 'religious', 'entertainment'], required: true },
     images: [{ type: String }],
     price: { type: Number, required: true },
@@ -32,5 +36,26 @@ const attractionSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+async function generateUniqueAttractionCode(Model) {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const gen = () => Array.from({ length: 8 }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join('');
+  for (let i = 0; i < 10; i++) {
+    const code = gen();
+    const exists = await Model.findOne({ attractionCode: code }).select('_id').lean();
+    if (!exists) return code;
+  }
+  return `${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).slice(2,6).toUpperCase()}`;
+}
+
+attractionSchema.pre('save', async function(next) {
+  try {
+    if (!this.attractionCode) {
+      this.attractionCode = await generateUniqueAttractionCode(this.constructor);
+    }
+    if (!this.country) this.country = 'Rwanda';
+    next();
+  } catch (e) { next(e); }
+});
 
 module.exports = mongoose.model('Attraction', attractionSchema);

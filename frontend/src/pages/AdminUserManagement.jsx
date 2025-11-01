@@ -244,14 +244,14 @@ const AdminUserManagement = () => {
           <div className="flex items-center gap-2">
             <div className="inline-flex rounded-lg overflow-hidden border">
               <button
-                className={`px-3 py-2 text-sm ${viewMode==='table' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700'}`}
+                className={`px-3 py-2 text-sm ${viewMode==='table' ? 'bg-[#a06b42] text-white' : 'bg-white text-gray-700'}`}
                 onClick={() => setViewMode('table')}
                 title="Table view"
               >
                 Table
               </button>
               <button
-                className={`px-3 py-2 text-sm ${viewMode==='cards' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700'}`}
+                className={`px-3 py-2 text-sm ${viewMode==='cards' ? 'bg-[#a06b42] text-white' : 'bg-white text-gray-700'}`}
                 onClick={() => setViewMode('cards')}
                 title="Cards view"
               >
@@ -260,7 +260,7 @@ const AdminUserManagement = () => {
             </div>
             <button
               onClick={loadData}
-              className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              className="flex items-center space-x-2 px-4 py-2 bg-[#a06b42] text-white rounded-lg hover:bg-[#8f5a32]"
             >
               <FaSync />
               <span>Refresh</span>
@@ -357,6 +357,20 @@ const AdminUserManagement = () => {
             >
               Fix All Roles
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm Delete Modal */}
+      {confirmDeleteId && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-xl">
+            <div className="text-lg font-semibold text-gray-900 mb-2">Delete User</div>
+            <p className="text-sm text-gray-700 mb-4">Are you sure you want to permanently delete this user and related data?</p>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setConfirmDeleteId(null)} className="px-4 py-2 rounded-lg border">Cancel</button>
+              <button onClick={() => { deleteUser(confirmDeleteId); setConfirmDeleteId(null); }} className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700">Delete</button>
+            </div>
           </div>
         </div>
       )}
@@ -533,7 +547,7 @@ const AdminUserManagement = () => {
             <div className="flex items-center gap-2">
               <button disabled={page<=1} onClick={() => setPage(p => Math.max(1, p-1))} className="px-3 py-1.5 text-sm border rounded disabled:opacity-50">Prev</button>
               {Array.from({ length: totalPages }, (_, i) => (
-                <button key={i} onClick={() => setPage(i+1)} className={`px-3 py-1.5 text-sm border rounded ${page===i+1? 'bg-blue-600 text-white border-blue-600':'bg-white text-gray-700'}`}>{i+1}</button>
+                <button key={i} onClick={() => setPage(i+1)} className={`px-3 py-1.5 text-sm border rounded ${page===i+1? 'bg-[#a06b42] text-white border-[#a06b42]':'bg-white text-gray-700'}`}>{i+1}</button>
               ))}
               <button disabled={page>=totalPages} onClick={() => setPage(p => Math.min(totalPages, p+1))} className="px-3 py-1.5 text-sm border rounded disabled:opacity-50">Next</button>
             </div>

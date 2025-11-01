@@ -2,6 +2,7 @@ const { Router } = require('express');
 const jwt = require('jsonwebtoken');
 const Booking = require('../tables/booking');
 const Notification = require('../tables/notification');
+const User = require('../tables/user');
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
@@ -20,7 +21,7 @@ function requireAuth(req, res, next) {
 // MTN Mobile Money Payment
 router.post('/mtn-mobile-money', requireAuth, async (req, res) => {
     try {
-        const { phoneNumber, amount, description, bookingId, customerName, customerEmail } = req.body;
+        const { phoneNumber, amount, description, bookingId, customerName, customerEmail, settleFines } = req.body;
 
         // Validate required fields
         if (!phoneNumber || !amount || !description) {
@@ -93,6 +94,57 @@ router.post('/mtn-mobile-money', requireAuth, async (req, res) => {
                     });
                 }
             } catch (_) { /* ignore */ }
+        }
+
+        // Optional: settle outstanding fines for the authenticated user
+        let finesSettlement = null;
+        if (settleFines === true) {
+            try {
+                const user = await User.findById(req.user.id);
+                if (user && user.fines && Number(user.fines.totalDue) > 0) {
+                    let remaining = Number(amount);
+                    // Mark unpaid fine items as paid FIFO until amount is exhausted
+                    if (Array.isArray(user.fines.items)) {
+                        for (const item of user.fines.items) {
+                            if (remaining <= 0) break;
+                            if (!item.paid) {
+                                const payNow = Math.min(remaining, Number(item.amount || 0));
+                                if (payNow > 0) {
+                                    item.paid = true;
+                                    item.paidAt = new Date();
+                                    remaining -= payNow;
+                                }
+                            }
+                        }
+                    }
+                    const newTotal = Math.max(0, Number(user.fines.totalDue || 0) - Number(amount));
+                    user.fines.totalDue = newTotal;
+
+                    // Auto-unblock when fully cleared
+                    let reactivated = false;
+                    if (newTotal === 0 && user.isBlocked) {
+                        user.isBlocked = false;
+                        user.blockedAt = null;
+                        user.blockedUntil = null;
+                        user.blockReason = null;
+                        reactivated = true;
+                        try {
+                            await Notification.create({
+                                type: 'account_reactivated',
+                                title: 'Account Reactivated',
+                                message: 'Your account has been reactivated after settling all dues.',
+                                recipientUser: user._id
+                            });
+                        } catch (_) {}
+                    }
+                    await user.save();
+                    finesSettlement = { applied: true, remainingAmount: Math.max(0, remaining), reactivated, totalDue: user.fines.totalDue };
+                } else {
+                    finesSettlement = { applied: false, reason: 'No fines or user not found' };
+                }
+            } catch (e) {
+                finesSettlement = { applied: false, error: e?.message || String(e) };
+            }
         }
 
         // Mock successful payment response

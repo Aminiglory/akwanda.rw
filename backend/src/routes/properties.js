@@ -422,7 +422,9 @@ router.get('/', async (req, res) => {
         const visible = [];
         for (const p of properties) {
             const host = p.host;
+            // Always keep properties visible; annotate with flags so frontend can style/deprioritize
             if (host && host.isBlocked) {
+                // If block duration has passed, auto-clear
                 if (host.blockedUntil && new Date(host.blockedUntil) < now) {
                     try {
                         const u = await User.findById(host._id);
@@ -432,32 +434,23 @@ router.get('/', async (req, res) => {
                             await u.save();
                         }
                     } catch (e) { /* ignore */ }
-                    visible.push(p);
+                    p._doc.hostBlocked = false;
                 } else {
-                    continue;
+                    p._doc.hostBlocked = true;
                 }
-            } else {
-                // Check commission payment status for visibility
-                const hostId = String(host._id);
-                const unpaidInfo = unpaidCommissionMap.get(hostId);
-                
-                if (unpaidInfo && unpaidInfo.unpaidAmount > 0) {
-                    // Reduce visibility for properties with unpaid commissions
-                    // Only show if property has premium/featured visibility level
-                    if (p.visibilityLevel === 'standard') {
-                        continue; // Hide standard properties if commissions unpaid
-                    }
-                    // Premium and featured properties remain visible but with reduced priority
-                    
-                    // Add commission info to property for frontend display
-                    p._doc.unpaidCommission = {
-                        amount: unpaidInfo.unpaidAmount,
-                        count: unpaidInfo.count
-                    };
-                }
-                
-                visible.push(p);
             }
+
+            // Check commission payment status for annotation
+            const hostId = host?._id ? String(host._id) : null;
+            const unpaidInfo = hostId ? unpaidCommissionMap.get(hostId) : null;
+            if (unpaidInfo && unpaidInfo.unpaidAmount > 0) {
+                p._doc.unpaidCommission = {
+                    amount: unpaidInfo.unpaidAmount,
+                    count: unpaidInfo.count
+                };
+            }
+
+            visible.push(p);
         }
 
         // Optional availability filtering by date range

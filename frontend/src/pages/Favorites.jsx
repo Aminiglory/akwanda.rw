@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { safeApiGet } from '../utils/apiUtils';
 import { FaHeart, FaMapMarkerAlt, FaBed, FaBath, FaHome } from 'react-icons/fa';
 import { CardGridSkeleton } from '../components/Skeletons';
+import AkwandaCard from '../components/AkwandaCard';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -21,6 +22,7 @@ const Favorites = () => {
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [ids, setIds] = useState([]);
+  const [carIds, setCarIds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState([]);
 
@@ -37,47 +39,158 @@ const Favorites = () => {
     } catch (e) {
       setIds([]);
     }
+    try {
+      const rawCars = localStorage.getItem('car-favorites');
+      const listCars = rawCars ? JSON.parse(rawCars) : [];
+      setCarIds(Array.isArray(listCars) ? listCars : []);
+    } catch {
+      setCarIds([]);
+    }
   }, [storageKey]);
 
   useEffect(() => {
     const run = async () => {
       setLoading(true);
       try {
-        const results = await Promise.all(
-          ids.map(async (id) => {
-            const data = await safeApiGet(`/api/properties/${id}`, null);
-            if (!data) return null;
-            const p = data.property || data; // support either shape
-            return {
-              id: String(p._id || p.id || id),
-              title: p.title || p.name || 'Property',
-              location: p.location || p.city || p.address || '—',
-              type: p.type || 'Apartment',
-              price: p.basePrice || p.price || p.startingPrice || 0,
-              bedrooms: p.bedrooms ?? p.beds ?? 0,
-              bathrooms: p.bathrooms ?? p.baths ?? 0,
-              image: Array.isArray(p.images) && p.images.length
-                ? makeAbsolute(p.images[0])
-                : 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&h=600&fit=crop',
-            };
-          })
-        );
-        const filtered = results.filter(Boolean);
-        setItems(filtered);
+        if (isAuthenticated) {
+          // Merge any local favorites into server on first load
+          try {
+            const raw = localStorage.getItem(storageKey);
+            const localIds = raw ? JSON.parse(raw) : [];
+            if (Array.isArray(localIds) && localIds.length) {
+              await fetch(`${API_URL}/api/user/wishlist/merge`, {
+                method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ids: localIds })
+              }).catch(()=>{});
+              // Optional: clear local after merge
+              localStorage.removeItem(storageKey);
+            }
+          } catch {}
+          // Load server wishlist with populated property basics
+          const res = await fetch(`${API_URL}/api/user/wishlist`, { credentials: 'include' });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.message || 'Failed to load wishlist');
+          const props = Array.isArray(data.properties) ? data.properties : [];
+          const mapped = props.map(p => ({
+            id: String(p._id || p.id),
+            title: p.title || 'Property',
+            location: `${p.address || ''}${p.city ? (p.address ? ', ' : '') + p.city : ''}` || '—',
+            type: p.category || 'Apartment',
+            price: p.pricePerNight || 0,
+            bedrooms: p.bedrooms ?? 0,
+            bathrooms: p.bathrooms ?? 0,
+            image: Array.isArray(p.images) && p.images.length ? makeAbsolute(p.images[0]) : 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&h=600&fit=crop'
+          }));
+          // Load car favorites from local storage (server wishlist doesn't include cars yet)
+          const carResults = await Promise.all(
+            (carIds||[]).map(async (cid) => {
+              try {
+                const resC = await fetch(`${API_URL}/api/cars/${cid}`);
+                const dataC = await resC.json();
+                if (!resC.ok) return null;
+                const c = dataC.car || dataC;
+                return {
+                  id: String(c._id || cid),
+                  title: c.vehicleName || `${c.brand || ''} ${c.model || ''}`.trim() || 'Car',
+                  location: c.location || '—',
+                  type: 'cars',
+                  price: Number(c.pricePerDay || 0),
+                  bedrooms: 0,
+                  bathrooms: 0,
+                  image: (Array.isArray(c.images) && c.images[0]) ? makeAbsolute(c.images[0]) : 'https://images.unsplash.com/photo-1549317336-206569e8475c?w=800&h=600&fit=crop',
+                  href: `/cars/${c._id || cid}`
+                };
+              } catch { return null; }
+            })
+          );
+          setItems([...mapped, ...carResults.filter(Boolean)]);
+        } else {
+          // Guest mode: hydrate from local ids
+          const results = await Promise.all(
+            ids.map(async (id) => {
+              const data = await safeApiGet(`/api/properties/${id}`, null);
+              if (!data) return null;
+              const p = data.property || data; // support either shape
+              return {
+                id: String(p._id || p.id || id),
+                title: p.title || p.name || 'Property',
+                location: p.location || p.city || p.address || '—',
+                type: p.type || 'Apartment',
+                price: p.basePrice || p.price || p.startingPrice || 0,
+                bedrooms: p.bedrooms ?? p.beds ?? 0,
+                bathrooms: p.bathrooms ?? p.baths ?? 0,
+                image: Array.isArray(p.images) && p.images.length
+                  ? makeAbsolute(p.images[0])
+                  : 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&h=600&fit=crop',
+              };
+            })
+          );
+          const carResults = await Promise.all(
+            (carIds||[]).map(async (cid) => {
+              try {
+                const resC = await fetch(`${API_URL}/api/cars/${cid}`);
+                const dataC = await resC.json();
+                if (!resC.ok) return null;
+                const c = dataC.car || dataC;
+                return {
+                  id: String(c._id || cid),
+                  title: c.vehicleName || `${c.brand || ''} ${c.model || ''}`.trim() || 'Car',
+                  location: c.location || '—',
+                  type: 'cars',
+                  price: Number(c.pricePerDay || 0),
+                  bedrooms: 0,
+                  bathrooms: 0,
+                  image: (Array.isArray(c.images) && c.images[0]) ? makeAbsolute(c.images[0]) : 'https://images.unsplash.com/photo-1549317336-206569e8475c?w=800&h=600&fit=crop',
+                  href: `/cars/${c._id || cid}`
+                };
+              } catch { return null; }
+            })
+          );
+          const filtered = results.filter(Boolean);
+          setItems([...filtered, ...carResults.filter(Boolean)]);
+        }
       } catch (e) {
         setItems([]);
       } finally {
         setLoading(false);
       }
     };
-    if (ids.length) run(); else { setItems([]); setLoading(false); }
-  }, [ids]);
+    if (isAuthenticated || ids.length || carIds.length) run(); else { setItems([]); setLoading(false); }
+  }, [ids, carIds, isAuthenticated, storageKey]);
 
-  const removeFavorite = (removeId) => {
+  const removeFavorite = async (removeId) => {
     try {
-      const next = ids.filter((x) => String(x) !== String(removeId));
-      localStorage.setItem(storageKey, JSON.stringify(next));
-      setIds(next);
+      const pid = String(removeId);
+      if (isAuthenticated) {
+        await fetch(`${API_URL}/api/user/wishlist/${pid}`, { method: 'DELETE', credentials: 'include' }).catch(()=>{});
+        // Reload server wishlist
+        const res = await fetch(`${API_URL}/api/user/wishlist`, { credentials: 'include' });
+        const data = await res.json();
+        const props = Array.isArray(data.properties) ? data.properties : [];
+        const mapped = props.map(p => ({
+          id: String(p._id || p.id),
+          title: p.title || 'Property',
+          location: `${p.address || ''}${p.city ? (p.address ? ', ' : '') + p.city : ''}` || '—',
+          type: p.category || 'Apartment',
+          price: p.pricePerNight || 0,
+          bedrooms: p.bedrooms ?? 0,
+          bathrooms: p.bathrooms ?? 0,
+          image: Array.isArray(p.images) && p.images.length ? makeAbsolute(p.images[0]) : 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&h=600&fit=crop'
+        }));
+        setItems(mapped);
+      } else {
+        const next = ids.filter((x) => String(x) !== pid);
+        localStorage.setItem(storageKey, JSON.stringify(next));
+        setIds(next);
+      }
+      // Also remove from car favorites store
+      try {
+        const rawCars = localStorage.getItem('car-favorites');
+        const listCars = rawCars ? JSON.parse(rawCars) : [];
+        const nextCars = Array.isArray(listCars) ? listCars.filter((x) => String(x) !== pid) : [];
+        localStorage.setItem('car-favorites', JSON.stringify(nextCars));
+        setCarIds(nextCars);
+      } catch {}
     } catch {}
   };
 
@@ -89,7 +202,7 @@ const Favorites = () => {
         </h1>
         {!isAuthenticated && (
           <button
-            className="text-sm text-blue-600 hover:underline"
+            className="text-sm text-primary hover:underline"
             onClick={() => navigate('/login')}
           >
             Sign in to sync
@@ -106,42 +219,30 @@ const Favorites = () => {
           </div>
           <h2 className="text-lg font-semibold text-gray-800">No favorites yet</h2>
           <div className="mt-6">
-            <Link to="/apartments" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Browse Apartments</Link>
+            <Link to="/apartments" className="px-4 py-2 btn-primary text-white rounded-lg hover:bg-primary-600">Browse Apartments</Link>
           </div>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {items.map((p) => (
-            <div key={p.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
-              <Link to={`/apartment/${p.id}`}>
-                <div className="relative h-44 bg-gray-100">
-                  <img src={p.image} alt={p.title} className="w-full h-full object-cover" />
-                  <button
-                    onClick={(e) => { e.preventDefault(); removeFavorite(p.id); }}
-                    className="absolute top-3 right-3 bg-white/90 hover:bg-white text-red-500 rounded-full p-2 shadow"
-                    title="Remove from favorites"
-                  >
-                    <FaHeart />
-                  </button>
-                </div>
-              </Link>
-              <div className="p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <h3 className="font-semibold text-gray-900 line-clamp-1">{p.title}</h3>
-                  <div className="text-blue-700 font-bold whitespace-nowrap">RWF {Number(p.price || 0).toLocaleString()}</div>
-                </div>
-                <div className="mt-1 text-sm text-gray-600 flex items-center gap-2">
-                  <FaMapMarkerAlt className="text-gray-400" />
-                  <span className="line-clamp-1">{p.location}</span>
-                </div>
-                <div className="mt-3 text-xs text-gray-600 flex items-center gap-4">
-                  <span className="flex items-center gap-1"><FaBed /> {p.bedrooms}</span>
-                  <span className="flex items-center gap-1"><FaBath /> {p.bathrooms}</span>
-                </div>
-                <div className="mt-4 flex items-center justify-between">
-                  <Link to={`/apartment/${p.id}`} className="text-sm text-blue-600 hover:underline">View details</Link>
-                  <button onClick={() => removeFavorite(p.id)} className="text-xs text-red-600 hover:underline">Remove</button>
-                </div>
+            <div key={p.id}>
+              <AkwandaCard
+                id={p.id}
+                title={p.title}
+                location={p.location}
+                images={[p.image]}
+                pricePerMonth={Number(p.price || 0) * 30}
+                category={p.type || 'Apartment'}
+                rating={0}
+                reviews={0}
+                amenities={[]}
+                host={null}
+                isAvailable={true}
+                href={p.href || `/apartment/${p.id}`}
+              />
+              <div className="mt-2 flex items-center justify-between">
+                <Link to={`/apartment/${p.id}`} className="text-sm text-primary hover:underline">View details</Link>
+                <button onClick={() => removeFavorite(p.id)} className="text-xs text-red-600 hover:underline">Remove</button>
               </div>
             </div>
           ))}

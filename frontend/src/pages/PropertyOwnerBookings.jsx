@@ -62,6 +62,9 @@ const PropertyOwnerBookings = () => {
   });
   const [ownerView, setOwnerView] = useState('table'); // 'table' | 'calendar'
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'dashboard');
+  const [ownerReviews, setOwnerReviews] = useState([]);
+  const [ownerAvgRating, setOwnerAvgRating] = useState(0);
+  const [ownerReviewCount, setOwnerReviewCount] = useState(0);
   const [expandedSections, setExpandedSections] = useState({
     reservations: true,
     calendar: false,
@@ -89,6 +92,12 @@ const PropertyOwnerBookings = () => {
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    if (activeTab === 'reviews') {
+      loadOwnerReviews();
+    }
+  }, [activeTab]);
 
   const loadData = async () => {
     setLoading(true);
@@ -136,16 +145,35 @@ const PropertyOwnerBookings = () => {
     } catch (_) {}
   };
 
+  const loadOwnerReviews = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/bookings/owner/reviews`, { credentials: 'include' });
+      const data = await res.json();
+      if (res.ok) {
+        setOwnerReviews(data.reviews || []);
+        setOwnerAvgRating(Number(data.avgRating || 0));
+        setOwnerReviewCount(Number(data.count || 0));
+      }
+    } catch (_) {
+      setOwnerReviews([]);
+      setOwnerAvgRating(0);
+      setOwnerReviewCount(0);
+    }
+  };
+
   useEffect(() => { loadOwnerProperties(); }, []);
 
   // Respond to navbar dropdown links like /my-bookings?tab=properties
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const tab = params.get('tab');
+    const propParam = params.get('property');
     if (tab === 'properties' || tab === 'calendar') {
       setOwnerView('calendar');
       // Ensure a property is selected to render the calendar
-      if (properties.length && filters.property === 'all') {
+      if (propParam) {
+        setFilters(prev => ({ ...prev, property: propParam }));
+      } else if (properties.length && filters.property === 'all') {
         setFilters(prev => ({ ...prev, property: properties[0]._id }));
       }
       // Expand and scroll to calendar
@@ -265,16 +293,16 @@ const PropertyOwnerBookings = () => {
   });
 
   const renderBookingCard = (booking) => (
-    <div key={booking._id} className="modern-card p-6 hover:scale-105 transition-all duration-300">
+    <div key={booking._id} className="modern-card-elevated p-5 hover:scale-105 transition-all duration-300">
       <div className="flex justify-between items-start mb-4">
         <div>
-          <h3 className="text-lg font-semibold text-gray-900">{booking.property.name}</h3>
-          <p className="text-sm text-gray-600 flex items-center">
+          <h3 className="text-base md:text-lg font-semibold text-gray-900">{booking.property.name}</h3>
+          <p className="text-xs md:text-sm text-gray-600 flex items-center">
             <FaMapMarkerAlt className="mr-1" />
             {booking.property.location}
           </p>
         </div>
-        <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+        <span className={`px-3 py-1 rounded-full text-[11px] md:text-xs font-medium ${
           booking.status === 'paid' ? 'bg-green-100 text-green-800' :
           booking.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
           'bg-red-100 text-red-800'
@@ -283,9 +311,9 @@ const PropertyOwnerBookings = () => {
         </span>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 mb-4">
+      <div className="grid grid-cols-2 gap-3 md:gap-4 mb-4">
         <div>
-          <p className="text-sm text-gray-600">Guest</p>
+          <p className="text-xs md:text-sm text-gray-600">Guest</p>
           <div className="flex items-center gap-2">
             {booking.guest?.avatar ? (
               <img src={booking.guest.avatar.startsWith('http') ? booking.guest.avatar : `${API_URL}${booking.guest.avatar}`} alt={booking.guest.name} className="w-8 h-8 rounded-full object-cover border" />
@@ -295,15 +323,15 @@ const PropertyOwnerBookings = () => {
               </div>
             )}
             <div>
-              <p className="font-medium">{booking.guest.name}</p>
-              <p className="text-sm text-gray-500">{booking.guest.email}</p>
+              <p className="font-medium text-sm md:text-base">{booking.guest.name}</p>
+              <p className="text-xs md:text-sm text-gray-500">{booking.guest.email}</p>
             </div>
           </div>
         </div>
         <div>
-          <p className="text-sm text-gray-600">Dates</p>
-          <p className="font-medium">{booking.checkIn} - {booking.checkOut}</p>
-          <p className="text-sm text-gray-500">{booking.guests} guests</p>
+          <p className="text-xs md:text-sm text-gray-600">Dates</p>
+          <p className="font-medium text-sm md:text-base">{booking.checkIn} - {booking.checkOut}</p>
+          <p className="text-xs md:text-sm text-gray-500">{booking.guests} guests</p>
         </div>
       </div>
 
@@ -361,13 +389,13 @@ const PropertyOwnerBookings = () => {
 
       <div className="flex justify-between items-center mb-4">
         <div>
-          <p className="text-sm text-gray-600">Total Amount</p>
-          <p className="text-xl font-bold text-blue-600">RWF {booking.totalAmount.toLocaleString()}</p>
+          <p className="text-xs md:text-sm text-gray-600">Total Amount</p>
+          <p className="text-lg md:text-xl font-bold text-primary">RWF {booking.totalAmount.toLocaleString()}</p>
         </div>
         {booking.rating && (
           <div className="flex items-center">
             <FaStar className="text-yellow-400 mr-1" />
-            <span className="font-medium">{booking.rating}</span>
+            <span className="font-medium text-sm">{booking.rating}</span>
           </div>
         )}
       </div>
@@ -375,7 +403,7 @@ const PropertyOwnerBookings = () => {
       <div className="flex space-x-2">
         <button
           onClick={() => handleViewDetails(booking)}
-          className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center"
+          className="flex-1 btn-primary text-white px-4 py-2 rounded-lg transition-colors flex items-center justify-center"
         >
           <FaEye className="mr-2" />
           View Details
@@ -679,49 +707,48 @@ const PropertyOwnerBookings = () => {
           </div>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="neu-card p-6 hover:scale-105 transition-all duration-300">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Total Bookings</p>
-                <p className="text-2xl font-bold text-blue-600">{stats.total}</p>
-              </div>
-              <FaCalendarAlt className="text-3xl text-blue-600" />
-            </div>
-          </div>
-          <div className="neu-card p-6 hover:scale-105 transition-all duration-300">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Total Revenue</p>
-                <p className="text-2xl font-bold text-green-600">RWF {stats.totalRevenue.toLocaleString()}</p>
-              </div>
-              <FaMoneyBillWave className="text-3xl text-green-600" />
-            </div>
-          </div>
-          <div className="neu-card p-6 hover:scale-105 transition-all duration-300">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Properties</p>
-                <p className="text-2xl font-bold text-purple-600">{stats.totalProperties}</p>
-              </div>
-              <FaHome className="text-3xl text-purple-600" />
-            </div>
-          </div>
-          <div className="neu-card p-6 hover:scale-105 transition-all duration-300">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Occupancy Rate</p>
-                <p className="text-2xl font-bold text-orange-600">{stats.occupancyRate}%</p>
-              </div>
-              <FaChartLine className="text-3xl text-orange-600" />
-            </div>
-          </div>
-        </div>
-
         {/* Tab Content */}
         {activeTab === 'dashboard' && (
           <div className="space-y-8">
+            {/* Stats Cards (dashboard only) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              <div className="neu-card p-6 hover:scale-105 transition-all duration-300">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600">Total Bookings</p>
+                    <p className="text-2xl font-bold text-blue-600">{stats.total}</p>
+                  </div>
+                  <FaCalendarAlt className="text-3xl text-blue-600" />
+                </div>
+              </div>
+              <div className="neu-card p-6 hover:scale-105 transition-all duration-300">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600">Total Revenue</p>
+                    <p className="text-2xl font-bold text-green-600">RWF {stats.totalRevenue.toLocaleString()}</p>
+                  </div>
+                  <FaMoneyBillWave className="text-3xl text-green-600" />
+                </div>
+              </div>
+              <div className="neu-card p-6 hover:scale-105 transition-all duration-300">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600">Properties</p>
+                    <p className="text-2xl font-bold text-purple-600">{stats.totalProperties}</p>
+                  </div>
+                  <FaHome className="text-3xl text-purple-600" />
+                </div>
+              </div>
+              <div className="neu-card p-6 hover:scale-105 transition-all duration-300">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600">Occupancy Rate</p>
+                    <p className="text-2xl font-bold text-orange-600">{stats.occupancyRate}%</p>
+                  </div>
+                  <FaChartLine className="text-3xl text-orange-600" />
+                </div>
+              </div>
+            </div>
             {/* Revenue Management */}
             <div className="neu-card p-0">
               <div 
