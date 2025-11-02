@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaUser, FaChartLine, FaCalendarAlt, FaDollarSign, FaDownload, FaEdit, FaTrash, FaEye, FaCog, FaHome, FaStar, FaMapMarkerAlt, FaCamera, FaFileAlt, FaPrint, FaEnvelope, FaPhone, FaBed, FaUsers, FaWifi, FaCar, FaSwimmingPool, FaUtensils, FaShieldAlt, FaClock } from 'react-icons/fa';
+import { FaUser, FaChartLine, FaCalendarAlt, FaDollarSign, FaDownload, FaEdit, FaTrash, FaEye, FaCog, FaHome, FaStar, FaMapMarkerAlt, FaCamera, FaFileAlt, FaPrint, FaEnvelope, FaPhone, FaBed, FaUsers, FaWifi, FaCar, FaSwimmingPool, FaUtensils, FaShieldAlt, FaClock, FaComments } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { safeApiGet, apiGet, apiPost, apiPut, apiDelete, apiDownload } from '../utils/apiUtils';
 

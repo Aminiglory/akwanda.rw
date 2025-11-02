@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import './App.css'
 import { AuthProvider } from './contexts/AuthContext'
 import { SocketProvider } from './contexts/SocketContext'
@@ -144,7 +144,7 @@ function App() {
             <Route path="/user-dashboard" element={<HostRoute><div className="dashboard"><PropertyOwnerBookings /></div></HostRoute>} />
             <Route path="/profile" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-            <Route path="/list-property" element={<HostRoute><ListProperty /></HostRoute>} />
+            <Route path="/list-property" element={<Navigate to="/upload" replace />} />
             <Route path="/upload" element={<HostRoute><EnhancedUploadProperty /></HostRoute>} />
             <Route path="/upload-property" element={<HostRoute><EnhancedUploadProperty /></HostRoute>} />
             <Route path="/upload-legacy" element={<HostRoute><UploadProperty /></HostRoute>} />

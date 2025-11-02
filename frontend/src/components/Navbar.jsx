@@ -430,8 +430,8 @@ const Navbar = () => {
       setShowOwnerSwitch(true);
       return;
     }
-    // Navigate to new multi-step listing flow
-    navigate('/list-property');
+    // Navigate to step-based listing wizard
+    navigate('/upload');
   };
 
   const goToPropertyDashboard = () => {
