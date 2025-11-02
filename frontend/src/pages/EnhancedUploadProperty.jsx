@@ -307,6 +307,59 @@ const EnhancedUploadProperty = () => {
     })();
     return () => { cancelled = true; };
   }, [addrQuery, formData.country]);
+
+  const canProceed = () => {
+    if (currentStep === 1 || currentStep === 2) return true;
+    if (currentStep === 3) return !!formData.category;
+    if (currentStep === 4) return !!formData.address && !!formData.city;
+    if (currentStep === 5) return !!formData.title;
+    if (currentStep === 8) return images.length > 0 || uploading === false;
+    return true;
+  };
+
+  const nextStep = async () => {
+    if (!canProceed()) { toast.error('Complete required info'); return; }
+    try {
+      if (currentStep === 1) {
+        await ctxUpdateProfile({
+          firstName: partner.firstName,
+          lastName: partner.lastName,
+          phone: partner.phone,
+        });
+        await refreshUser();
+      }
+      setCurrentStep(s => Math.min(totalSteps, s + 1));
+    } catch (e) {
+      toast.error(e.message || 'Failed to save contact details');
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e?.preventDefault?.();
+    try {
+      setLoading(true);
+      const payload = { ...formData, images, rooms };
+      const url = isEditing ? `${API_URL}/api/properties/${editId}` : `${API_URL}/api/properties`;
+      const method = isEditing ? 'PUT' : 'POST';
+      const res = await fetch(url, {
+        method,
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const ct = res.headers.get('content-type') || '';
+      if (ct.includes('text/html')) throw new Error('Unexpected HTML response. Is the backend reachable?');
+      const data = await res.json().catch(()=>({}));
+      if (!res.ok) throw new Error(data.message || 'Failed to save property');
+      toast.success(isEditing ? 'Property updated' : 'Property created');
+      navigate('/dashboard');
+    } catch (err) {
+      toast.error(err.message || 'Failed to save');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const prevStep = () => setCurrentStep(s => Math.max(1, s - 1));
 
   const saveDraftLocal = () => {
