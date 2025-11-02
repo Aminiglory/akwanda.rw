@@ -373,7 +373,7 @@ const EnhancedUploadProperty = () => {
     e?.preventDefault?.();
     try {
       setLoading(true);
-      const payload = { ...formData, images, rooms };
+      const payload = { ...formData, imageUrls: images, rooms };
       const url = isEditing ? `${API_URL}/api/properties/${editId}` : `${API_URL}/api/properties`;
       const method = isEditing ? 'PUT' : 'POST';
       const res = await fetch(url, {
@@ -383,9 +383,15 @@ const EnhancedUploadProperty = () => {
         body: JSON.stringify(payload),
       });
       const ct = res.headers.get('content-type') || '';
-      if (ct.includes('text/html')) throw new Error(`Unexpected HTML response. Is the backend reachable at ${API_URL}?`);
+      if (!ct.includes('application/json')) {
+        const text = await res.text().catch(()=> '');
+        throw new Error(`Unexpected ${ct || 'response'} (status ${res.status}). ${text.slice(0,180)}`);
+      }
       const data = await res.json().catch(()=>({}));
-      if (!res.ok) throw new Error(data.message || 'Failed to save property');
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403) throw new Error('Authorization required. Please log in as a host and try again.');
+        throw new Error(data.message || 'Failed to save property');
+      }
       toast.success(isEditing ? 'Property updated' : 'Property created');
       navigate('/dashboard');
     } catch (err) {
