@@ -23,6 +23,7 @@ import OwnerLogin from './pages/OwnerLogin'
 import Dashboard from './pages/Dashboard'
 import UploadProperty from './pages/UploadProperty'
 import EnhancedUploadProperty from './pages/EnhancedUploadProperty'
+import ListProperty from './pages/ListProperty'
 import AdminDashboard from './pages/AdminDashboard'
 import AdminLanding from './pages/AdminLanding'
 import AdminAttractions from './pages/AdminAttractions'
@@ -143,6 +144,7 @@ function App() {
             <Route path="/user-dashboard" element={<HostRoute><div className="dashboard"><PropertyOwnerBookings /></div></HostRoute>} />
             <Route path="/profile" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+            <Route path="/list-property" element={<HostRoute><ListProperty /></HostRoute>} />
             <Route path="/upload" element={<HostRoute><EnhancedUploadProperty /></HostRoute>} />
             <Route path="/upload-property" element={<HostRoute><EnhancedUploadProperty /></HostRoute>} />
             <Route path="/upload-legacy" element={<HostRoute><UploadProperty /></HostRoute>} />
