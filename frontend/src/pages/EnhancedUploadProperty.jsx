@@ -373,14 +373,29 @@ const EnhancedUploadProperty = () => {
     e?.preventDefault?.();
     try {
       setLoading(true);
-      const payload = { ...formData, imageUrls: images, rooms };
       const url = isEditing ? `${API_URL}/api/properties/${editId}` : `${API_URL}/api/properties`;
       const method = isEditing ? 'PUT' : 'POST';
+
+      // Build multipart/form-data to satisfy backend multer
+      const fd = new FormData();
+      Object.entries(formData).forEach(([k, v]) => {
+        if (v === undefined || v === null) return;
+        if (Array.isArray(v)) {
+          // Append arrays as repeated fields
+          v.forEach(item => fd.append(k, String(item)));
+        } else {
+          fd.append(k, String(v));
+        }
+      });
+      // Rooms as JSON string (backend handles arrays under req.body.rooms elsewhere too)
+      fd.append('rooms', JSON.stringify(rooms || []));
+      // Provide imageUrls so backend merges them
+      (images || []).forEach(u => fd.append('imageUrls', u));
+
       const res = await fetch(url, {
         method,
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: fd,
       });
       const ct = res.headers.get('content-type') || '';
       if (!ct.includes('application/json')) {
