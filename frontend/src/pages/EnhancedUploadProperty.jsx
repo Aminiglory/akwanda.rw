@@ -311,7 +311,8 @@ const EnhancedUploadProperty = () => {
   const canProceed = () => {
     if (currentStep === 1 || currentStep === 2) return true;
     if (currentStep === 3) return !!formData.category;
-    if (currentStep === 4) return !!formData.address && !!formData.city;
+    // Step 4: allow proceed if address OR coordinates exist; city not required
+    if (currentStep === 4) return !!formData.address || (formData.latitude != null && formData.longitude != null);
     if (currentStep === 5) return !!formData.title;
     if (currentStep === 8) return images.length > 0 || uploading === false;
     return true;
