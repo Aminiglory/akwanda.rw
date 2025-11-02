@@ -56,7 +56,8 @@ const EnhancedUploadProperty = () => {
   const [deals, setDeals] = useState([]);
   const [dealsLoading, setDealsLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
-  const totalSteps = 16;
+  // Align with implemented steps (1..8)
+  const totalSteps = 8;
   const [addrQuery, setAddrQuery] = useState('');
   const [addrSuggestions, setAddrSuggestions] = useState([]);
   const [addrLoading, setAddrLoading] = useState(false);
@@ -298,40 +299,14 @@ const EnhancedUploadProperty = () => {
         const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
         const json = await res.json().catch(()=>[]);
         if (!cancelled) setAddrSuggestions(Array.isArray(json) ? json.slice(0,6) : []);
-      } catch (_) { if (!cancelled) setAddrSuggestions([]); }
-      finally { if (!cancelled) setAddrLoading(false); }
+      } catch (_) {
+        if (!cancelled) setAddrSuggestions([]);
+      } finally {
+        if (!cancelled) setAddrLoading(false);
+      }
     })();
     return () => { cancelled = true; };
   }, [addrQuery, formData.country]);
-
-  const canProceed = () => {
-    if (currentStep === 1 || currentStep === 2) return true;
-    if (currentStep === 3) return !!formData.category;
-    if (currentStep === 4) return !!formData.address && !!formData.city;
-    if (currentStep === 5) return !!formData.title;
-    if (currentStep === 8) return images.length > 0 || uploading === false;
-    if (currentStep === 9) return Number(formData.pricePerNight) >= 0;
-    return true;
-  };
-
-  const nextStep = async () => {
-    if (!canProceed()) { toast.error('Complete required info'); return; }
-    // Save partner contact to backend on step 1 continue
-    try {
-      if (currentStep === 1) {
-        await ctxUpdateProfile({
-          firstName: partner.firstName,
-          lastName: partner.lastName,
-          phone: partner.phone
-        });
-        await refreshUser();
-      }
-    } catch (e) {
-      toast.error(e.message || 'Failed to save contact details');
-      return;
-    }
-    setCurrentStep(s => Math.min(totalSteps, s + 1));
-  };
   const prevStep = () => setCurrentStep(s => Math.max(1, s - 1));
 
   const saveDraftLocal = () => {

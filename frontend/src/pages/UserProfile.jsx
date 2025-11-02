@@ -307,9 +307,9 @@ const UserProfile = () => {
             <div className="bg-white rounded-xl shadow-sm p-4">
               <div className="text-sm text-gray-600 mb-3">Payment info</div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <button className="p-3 border rounded-lg text-left hover:bg-gray-50" onClick={()=>toast('Coming soon')}>Rewards & Wallet</button>
-                <button className="p-3 border rounded-lg text-left hover:bg-gray-50" onClick={()=>toast('Coming soon')}>Payment methods</button>
-                <button className="p-3 border rounded-lg text-left hover:bg-gray-50" onClick={()=>toast('Coming soon')}>Transactions</button>
+                <button className="p-3 border rounded-lg text-left hover:bg-gray-50" onClick={()=>navigate('/account/rewards')}>Rewards & Wallet</button>
+                <button className="p-3 border rounded-lg text-left hover:bg-gray-50" onClick={()=>navigate('/account/payments')}>Payment methods</button>
+                <button className="p-3 border rounded-lg text-left hover:bg-gray-50" onClick={()=>navigate('/account/transactions')}>Transactions</button>
               </div>
             </div>
 
@@ -317,16 +317,16 @@ const UserProfile = () => {
               <div className="text-sm text-gray-600 mb-3">Manage account</div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <button className="p-3 border rounded-lg text-left hover:bg-gray-50" onClick={()=>setActiveTab('overview')}>Personal details</button>
-                <button className="p-3 border rounded-lg text-left hover:bg-gray-50" onClick={()=>toast('Coming soon')}>Security settings</button>
-                <button className="p-3 border rounded-lg text-left hover:bg-gray-50" onClick={()=>toast('Coming soon')}>Other travelers</button>
+                <button className="p-3 border rounded-lg text-left hover:bg-gray-50" onClick={()=>navigate('/account/security')}>Security settings</button>
+                <button className="p-3 border rounded-lg text-left hover:bg-gray-50" onClick={()=>navigate('/account/other-travelers')}>Other travelers</button>
               </div>
             </div>
 
             <div className="bg-white rounded-xl shadow-sm p-4">
               <div className="text-sm text-gray-600 mb-3">Preferences</div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <button className="p-3 border rounded-lg text-left hover:bg-gray-50" onClick={()=>toast('Coming soon')}>Customization preferences</button>
-                <button className="p-3 border rounded-lg text-left hover:bg-gray-50" onClick={()=>toast('Coming soon')}>Email preferences</button>
+                <button className="p-3 border rounded-lg text-left hover:bg-gray-50" onClick={()=>navigate('/account/customization')}>Customization preferences</button>
+                <button className="p-3 border rounded-lg text-left hover:bg-gray-50" onClick={()=>navigate('/account/email-preferences')}>Email preferences</button>
               </div>
             </div>
 
@@ -334,8 +334,8 @@ const UserProfile = () => {
               <div className="text-sm text-gray-600 mb-3">Travel activity</div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <button className="p-3 border rounded-lg text-left hover:bg-gray-50" onClick={()=>navigate('/bookings')}>Trips and bookings</button>
-                <button className="p-3 border rounded-lg text-left hover:bg-gray-50" onClick={()=>toast('Coming soon')}>Saved lists</button>
-                <button className="p-3 border rounded-lg text-left hover:bg-gray-50" onClick={()=>toast('Coming soon')}>My reviews</button>
+                <button className="p-3 border rounded-lg text-left hover:bg-gray-50" onClick={()=>navigate('/account/saved-lists')}>Saved lists</button>
+                <button className="p-3 border rounded-lg text-left hover:bg-gray-50" onClick={()=>navigate('/account/reviews')}>My reviews</button>
               </div>
             </div>
 
@@ -343,8 +343,8 @@ const UserProfile = () => {
               <div className="text-sm text-gray-600 mb-3">Help and support</div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <button className="p-3 border rounded-lg text-left hover:bg-gray-50" onClick={()=>navigate('/support')}>Contact Customer Service</button>
-                <button className="p-3 border rounded-lg text-left hover:bg-gray-50" onClick={()=>toast('Coming soon')}>Safety resource center</button>
-                <button className="p-3 border rounded-lg text-left hover:bg-gray-50" onClick={()=>toast('Coming soon')}>Dispute resolution</button>
+                <button className="p-3 border rounded-lg text-left hover:bg-gray-50" onClick={()=>navigate('/account/safety')}>Safety resource center</button>
+                <button className="p-3 border rounded-lg text-left hover:bg-gray-50" onClick={()=>navigate('/account/disputes')}>Dispute resolution</button>
               </div>
             </div>
 
