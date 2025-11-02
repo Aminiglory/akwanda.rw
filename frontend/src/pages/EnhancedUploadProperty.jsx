@@ -287,6 +287,40 @@ const EnhancedUploadProperty = () => {
     setImages(prev => prev.filter((_, i) => i !== index));
   };
 
+  // Room-level image upload handlers
+  const handleRoomImageUpload = async (roomIndex, e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      files.forEach(file => fd.append('images', file));
+      const res = await fetch(`${API_URL}/api/properties/upload/images`, {
+        method: 'POST',
+        body: fd,
+        credentials: 'include'
+      });
+      const contentType = res.headers.get('content-type') || '';
+      if (contentType.includes('text/html')) {
+        const htmlText = await res.text();
+        console.error('Received HTML instead of JSON (room upload):', htmlText.substring(0, 200));
+        throw new Error(`Server returned HTML instead of JSON. Check backend at ${API_URL}`);
+      }
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to upload room images');
+      setRooms(prev => prev.map((r, i) => i === roomIndex ? { ...r, images: [...(r.images||[]), ...data.imageUrls] } : r));
+      toast.success('Room images uploaded');
+    } catch (err) {
+      toast.error(err.message || 'Failed to upload room images');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removeRoomImage = (roomIndex, imgIndex) => {
+    setRooms(prev => prev.map((r, i) => i === roomIndex ? { ...r, images: (r.images||[]).filter((_, j) => j !== imgIndex) } : r));
+  };
+
   // Address autocomplete using Nominatim (no key)
   useEffect(() => {
     const q = addrQuery.trim();
@@ -349,7 +383,7 @@ const EnhancedUploadProperty = () => {
         body: JSON.stringify(payload),
       });
       const ct = res.headers.get('content-type') || '';
-      if (ct.includes('text/html')) throw new Error('Unexpected HTML response. Is the backend reachable?');
+      if (ct.includes('text/html')) throw new Error(`Unexpected HTML response. Is the backend reachable at ${API_URL}?`);
       const data = await res.json().catch(()=>({}));
       if (!res.ok) throw new Error(data.message || 'Failed to save property');
       toast.success(isEditing ? 'Property updated' : 'Property created');
@@ -612,6 +646,28 @@ const EnhancedUploadProperty = () => {
                             </div>
                           ))}
                         </div>
+                      </div>
+
+                      {/* Room Images */}
+                      <div className="mt-4">
+                        <div className="text-sm font-medium text-gray-700 mb-2">Room Images</div>
+                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-3 text-center">
+                          <input id={`room-image-upload-${index}`} type="file" multiple accept="image/*" className="hidden" onChange={(e)=>handleRoomImageUpload(index, e)} disabled={uploading} />
+                          <label htmlFor={`room-image-upload-${index}`} className="cursor-pointer inline-flex items-center gap-2 text-sm text-gray-700">
+                            <FaUpload className="text-gray-400" />
+                            <span>{uploading ? 'Uploading…' : 'Upload room images'}</span>
+                          </label>
+                        </div>
+                        {(room.images && room.images.length > 0) && (
+                          <div className="mt-3 grid grid-cols-2 md:grid-cols-3 gap-2">
+                            {room.images.map((img, rIdx) => (
+                              <div key={rIdx} className="relative group">
+                                <img src={img.startsWith('http') ? img : `${API_URL}${img}`} alt={`Room ${index+1} image ${rIdx+1}`} className="w-full h-24 object-cover rounded-lg" />
+                                <button type="button" onClick={()=>removeRoomImage(index, rIdx)} className="absolute top-1 right-1 bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"><FaTimes className="text-xs" /></button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
