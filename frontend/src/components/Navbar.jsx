@@ -38,6 +38,11 @@ import {
   FaMapMarkerAlt,
   FaUmbrellaBeach,
   FaChevronRight,
+  FaCalendarTimes,
+  FaImages,
+  FaComments,
+  FaCalendarCheck,
+  FaMoneyBillWave,
 } from "react-icons/fa";
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -122,6 +127,158 @@ const Navbar = () => {
       children: [
         { label: "Book airport taxi", href: "/airport-taxis", icon: FaCar },
         { label: "Taxi deals", href: "/airport-taxis?deals=true", icon: FaCar },
+      ]
+    }
+  ];
+
+  // Booking.com-style navigation for property owners
+  const bookingComNavItems = [
+    {
+      label: "Home",
+      icon: FaHome,
+      href: "/dashboard",
+      children: []
+    },
+    {
+      label: "Rates & Availability",
+      icon: FaCalendarAlt,
+      href: "/dashboard?tab=rates",
+      children: [
+        { label: "Calendar", href: "/dashboard?tab=rates&view=calendar", icon: FaCalendarAlt },
+        { label: "Open/close rooms", href: "/dashboard?tab=rates&view=open-close", icon: FaCalendarAlt },
+        { label: "Copy yearly rates", href: "/dashboard?tab=rates&view=copy-rates", icon: FaDollarSign },
+        { label: "Dynamic restriction rules", href: "/dashboard?tab=rates&view=restrictions", icon: FaCog },
+        { label: "Rate plans", href: "/dashboard?tab=rates&view=rate-plans", icon: FaDollarSign },
+        { label: "Value adds", href: "/dashboard?tab=rates&view=value-adds", icon: FaShoppingBag },
+        { label: "Availability planner", href: "/dashboard?tab=rates&view=availability", icon: FaCalendarAlt },
+        { label: "Pricing per guest", href: "/dashboard?tab=rates&view=pricing-guest", icon: FaDollarSign },
+        { label: "Country rates", href: "/dashboard?tab=rates&view=country-rates", icon: FaGlobe },
+        { label: "Mobile rates", href: "/dashboard?tab=rates&view=mobile-rates", icon: FaDollarSign },
+      ]
+    },
+    {
+      label: "Promotions",
+      icon: FaShoppingBag,
+      href: "/owner/promotions",
+      children: [
+        { label: "Choose new promotion", href: "/owner/promotions?action=new", icon: FaShoppingBag },
+        { label: "Simulate max discount", href: "/owner/promotions?action=simulate", icon: FaDollarSign },
+        { label: "Your active promotions", href: "/owner/promotions?filter=active", icon: FaShoppingBag },
+      ]
+    },
+    {
+      label: "Reservations",
+      icon: FaCalendarAlt,
+      href: "/my-bookings",
+      children: [
+        { label: "All reservations", href: "/my-bookings?tab=reservations&scope=all", icon: FaCalendarAlt },
+        { label: "Upcoming", href: "/my-bookings?tab=reservations&scope=upcoming", icon: FaCalendarAlt },
+        { label: "Checked in", href: "/my-bookings?tab=reservations&scope=checked-in", icon: FaCalendarAlt },
+        { label: "Checked out", href: "/my-bookings?tab=reservations&scope=checked-out", icon: FaCalendarAlt },
+        { label: "Cancelled", href: "/my-bookings?tab=reservations&scope=cancelled", icon: FaCalendarAlt },
+      ]
+    },
+    {
+      label: "Property",
+      icon: FaBuilding,
+      href: "/upload",
+      badge: 5,
+      children: [
+        { label: "Quality rating", href: "/upload?section=quality", icon: FaStar },
+        { label: "Property page score", href: "/upload?section=page-score", icon: FaChartLine },
+        { label: "General info & property status", href: "/upload?section=general", icon: FaBuilding },
+        { label: "VAT/tax/charges", href: "/upload?section=tax", icon: FaDollarSign },
+        { label: "Photos", href: "/upload?section=photos", icon: FaImages, badge: 2 },
+        { label: "Property policies", href: "/upload?section=policies", icon: FaFileAlt },
+        { label: "Reservation policies", href: "/upload?section=reservation-policies", icon: FaFileAlt },
+        { label: "Facilities & services", href: "/upload?section=facilities", icon: FaCog, badge: 1 },
+        { label: "Room details", href: "/upload?section=rooms", icon: FaBed },
+        { label: "Room amenities", href: "/upload?section=amenities", icon: FaCog, badge: 2 },
+        { label: "Your profile", href: "/upload?section=profile", icon: FaUser },
+        { label: "View your descriptions", href: "/upload?section=descriptions", icon: FaFileAlt },
+        { label: "Messaging preferences", href: "/upload?section=messaging", icon: FaEnvelope },
+        { label: "Sustainability", href: "/upload?section=sustainability", icon: FaGlobe },
+      ]
+    },
+    {
+      label: "Boost performance",
+      icon: FaChartLine,
+      href: "/dashboard?tab=boost",
+      badge: 3,
+      children: [
+        { label: "Opportunity Centre", href: "/dashboard?tab=boost&view=opportunity", icon: FaShoppingBag, badge: "3" },
+        { label: "Commission-free bookings", href: "/dashboard?tab=boost&view=commission-free", icon: FaDollarSign },
+        { label: "Genius partner programme", href: "/dashboard?tab=boost&view=genius", icon: FaStar },
+        { label: "Preferred Partner Programme", href: "/dashboard?tab=boost&view=preferred", icon: FaStar },
+        { label: "Long stays toolkit", href: "/dashboard?tab=boost&view=long-stays", icon: FaCalendarAlt },
+        { label: "Visibility booster", href: "/dashboard?tab=boost&view=visibility", icon: FaChartLine },
+        { label: "Work-Friendly Programme", href: "/dashboard?tab=boost&view=work-friendly", icon: FaBuilding },
+        { label: "Unit differentiation tool", href: "/dashboard?tab=boost&view=unit-diff", icon: FaCog },
+      ]
+    },
+    {
+      label: "Inbox",
+      icon: FaEnvelope,
+      href: "/messages",
+      badge: unreadMsgCount,
+      children: [
+        { label: "Reservation messages", href: "/messages?category=reservations", icon: FaEnvelope, badge: 1 },
+        { label: "Booking.com messages", href: "/messages?category=platform", icon: FaEnvelope, badge: 2 },
+        { label: "Guest Q&A", href: "/messages?category=qna", icon: FaQuestionCircle, badge: 2 },
+      ]
+    },
+    {
+      label: "Guest reviews",
+      icon: FaStar,
+      href: "/owner/reviews",
+      badge: 1,
+      children: [
+        { label: "Guest reviews", href: "/owner/reviews", icon: FaStar, badge: 1 },
+        { label: "Guest experience", href: "/owner/reviews?view=experience", icon: FaUsers },
+      ]
+    },
+    {
+      label: "Finance",
+      icon: FaDollarSign,
+      href: "/dashboard?tab=finance",
+      children: [
+        { label: "Invoices", href: "/dashboard?tab=finance&view=invoices", icon: FaFileAlt },
+        { label: "Reservations statement", href: "/dashboard?tab=finance&view=statement", icon: FaFileAlt },
+        { label: "Financial overview", href: "/dashboard?tab=finance&view=overview", icon: FaChartLine },
+        { label: "Finance settings", href: "/settings?tab=finance", icon: FaCog },
+      ]
+    },
+    {
+      label: "Analytics",
+      icon: FaChartLine,
+      href: "/dashboard?tab=analytics",
+      children: [
+        { label: "Analytics dashboard", href: "/dashboard?tab=analytics", icon: FaChartLine },
+        { label: "Demand for location", href: "/dashboard?tab=analytics&view=demand", icon: FaMapMarkerAlt },
+        { label: "Your pace of bookings", href: "/dashboard?tab=analytics&view=pace", icon: FaCalendarAlt },
+        { label: "Sales statistics", href: "/dashboard?tab=analytics&view=sales", icon: FaChartLine },
+        { label: "Booker insights", href: "/dashboard?tab=analytics&view=booker", icon: FaUsers },
+        { label: "Bookwindow information", href: "/dashboard?tab=analytics&view=bookwindow", icon: FaCalendarAlt },
+        { label: "Cancellation characteristics", href: "/dashboard?tab=analytics&view=cancellation", icon: FaCalendarTimes },
+        { label: "Manage your competitive set", href: "/dashboard?tab=analytics&view=competitive", icon: FaChartLine },
+        { label: "Genius report", href: "/dashboard?tab=analytics&view=genius", icon: FaStar },
+        { label: "Ranking dashboard", href: "/dashboard?tab=analytics&view=ranking", icon: FaChartLine, badge: "New" },
+        { label: "Performance dashboard", href: "/dashboard?tab=analytics&view=performance", icon: FaChartLine },
+      ]
+    },
+    {
+      label: "Boost performance",
+      icon: FaChartLine,
+      href: "/dashboard?tab=boost",
+      children: [
+        { label: "Opportunity Centre", href: "/dashboard?tab=boost&view=opportunity", icon: FaShoppingBag, badge: "3" },
+        { label: "Commission-free bookings", href: "/dashboard?tab=boost&view=commission-free", icon: FaDollarSign },
+        { label: "Genius partner programme", href: "/dashboard?tab=boost&view=genius", icon: FaStar },
+        { label: "Preferred Partner Programme", href: "/dashboard?tab=boost&view=preferred", icon: FaStar },
+        { label: "Long stays toolkit", href: "/dashboard?tab=boost&view=long-stays", icon: FaCalendarAlt },
+        { label: "Visibility booster", href: "/dashboard?tab=boost&view=visibility", icon: FaChartLine },
+        { label: "Work-Friendly Programme", href: "/dashboard?tab=boost&view=work-friendly", icon: FaBuilding },
+        { label: "Unit differentiation tool", href: "/dashboard?tab=boost&view=unit-diff", icon: FaCog },
       ]
     }
   ];
@@ -609,22 +766,81 @@ const Navbar = () => {
                 AKWANDA.rw
               </Link>
 
-              {/* Property Owner Mode Indicator */}
-              {user?.userType === 'host' && isInPropertyOwnerDashboard() && (
-                <div className="hidden lg:flex items-center space-x-4">
+              {/* Property Name and Code Display */}
+              {user?.userType === 'host' && isInPropertyOwnerDashboard() && myProperties.length > 0 && (
+                <div className="hidden lg:flex items-center space-x-3">
                   <div className="flex items-center space-x-2 px-3 py-2 bg-[#e8dcc8] rounded-lg border border-[#d0c4b0]">
                     <FaBuilding className="text-[#8b6f47] text-sm" />
-                    <span className="text-sm font-medium text-[#6b5744]">Property Owner Mode</span>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-semibold text-[#4b2a00]">{myProperties[0]?.title || myProperties[0]?.name || 'Property'}</span>
+                      <span className="text-xs text-[#8b6f47]">#{myProperties[0]?.propertyNumber || myProperties[0]?._id?.slice(-6) || 'N/A'}</span>
+                    </div>
                   </div>
-                  <div className="text-xs text-[#F5E6D3]">
-                    <span>To book as guest, </span>
-                    <button
-                      onClick={handleLogout}
-                      className="text-[#8b6f47] hover:text-[#4b2a00] underline font-medium"
-                    >
-                      logout and login as guest
-                    </button>
-                  </div>
+                </div>
+              )}
+
+              {/* Booking.com-style Navigation for Property Owners */}
+              {user?.userType === 'host' && isInPropertyOwnerDashboard() && (
+                <div className="hidden lg:flex items-center space-x-1">
+                  {bookingComNavItems.map((item, index) => {
+                    const Icon = item.icon;
+                    const isActive = isActiveRoute(item.href);
+                    const isDropdownOpen = activeDropdown === item.label;
+
+                    return (
+                      <div key={index} className="relative group">
+                        <button
+                          onClick={() => toggleDropdown(item.label)}
+                          className={`flex items-center space-x-1 px-3 py-2 rounded-lg transition-all duration-300 font-medium text-sm ${isActive
+                              ? "bg-[#a06b42] text-white shadow-md"
+                              : "text-[#6b5744] hover:text-[#4b2a00] hover:bg-[#e8dcc8]"
+                            }`}
+                        >
+                          <Icon className="text-sm" />
+                          <span>{item.label}</span>
+                          {item.badge && (
+                            <span className="ml-1 bg-red-600 text-white text-xs rounded-full px-2 py-0.5 min-w-[18px] text-center">
+                              {item.badge}
+                            </span>
+                          )}
+                          <FaCaretDown className={`text-xs transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                        </button>
+
+                        {/* Dropdown Menu - Your Color Scheme */}
+                        {isDropdownOpen && item.children.length > 0 && (
+                          <div className="absolute top-full left-0 mt-1 w-72 bg-[#f6e9d8] rounded-xl dropdown-shadow border border-[#d4c4b0] py-2 z-50 max-h-96 overflow-y-auto">
+                            {item.children.map((child, childIndex) => {
+                              const ChildIcon = child.icon;
+                              const isChildActive = isActiveRoute(child.href);
+                              return (
+                                <Link
+                                  key={childIndex}
+                                  to={child.href}
+                                  className={`flex items-center justify-between px-4 py-2.5 text-sm hover:bg-white transition-colors ${isChildActive ? 'bg-white text-[#4b2a00] font-medium' : 'text-[#4b2a00]'
+                                    }`}
+                                  onClick={() => setActiveDropdown(null)}
+                                >
+                                  <div className="flex items-center space-x-3">
+                                    {ChildIcon && <ChildIcon className="text-sm" />}
+                                    <span>{child.label}</span>
+                                  </div>
+                                  {child.badge && (
+                                    <span className={`text-xs px-2 py-0.5 rounded-full min-w-[20px] text-center ${
+                                      child.badge === 'New' ? 'bg-green-100 text-green-700' : 
+                                      typeof child.badge === 'number' || !isNaN(child.badge) ? 'bg-red-100 text-red-700' : 
+                                      'bg-blue-100 text-blue-700'
+                                    }`}>
+                                      {child.badge}
+                                    </span>
+                                  )}
+                                </Link>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
 
@@ -1048,8 +1264,8 @@ const Navbar = () => {
                               else { navigate('/dashboard'); }
                             }}
                           >
-                            <FaChartLine className="text-green-600" />
-                            <span className="font-medium">Dashboard</span>
+                            <FaHome className="text-green-600" />
+                            <span className="font-medium">Home</span>
                           </button>
                         )}
 
@@ -1164,15 +1380,15 @@ const Navbar = () => {
               </>
             )}
 
-            {/* Host-specific links (move outside guest-only block) */}
+            {/* Host-specific links */}
             {user?.userType === 'host' && isInPropertyOwnerDashboard() && userStats.properties > 0 && (
               <Link
                 to="/dashboard"
                 className="flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
                 onClick={() => setIsMenuOpen(false)}
               >
-                <FaChartLine className="text-lg" />
-                <span>Dashboard</span>
+                <FaHome className="text-lg" />
+                <span>Home</span>
               </Link>
             )}
             {/* List your property (mobile) - available in user mode; triggers owner guard */}
@@ -1188,9 +1404,92 @@ const Navbar = () => {
 
             {user?.userType === 'host' && (
               <>
+                {/* Property Owner Navigation - Mobile */}
+                {isInPropertyOwnerDashboard() && (
+                  <div className="border-t border-gray-200 pt-2 mt-2">
+                    {/* Property Info */}
+                    {myProperties.length > 0 && (
+                      <div className="px-4 py-2 mb-2 bg-[#e8dcc8] rounded-lg mx-2">
+                        <div className="flex items-center space-x-2">
+                          <FaBuilding className="text-[#8b6f47] text-sm" />
+                          <div className="flex flex-col">
+                            <span className="text-sm font-semibold text-[#4b2a00]">{myProperties[0]?.title || myProperties[0]?.name || 'Property'}</span>
+                            <span className="text-xs text-[#8b6f47]">#{myProperties[0]?.propertyNumber || myProperties[0]?._id?.slice(-6) || 'N/A'}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    {bookingComNavItems.map((item, index) => {
+                      const Icon = item.icon;
+                      const isActive = isActiveRoute(item.href);
+                      
+                      return (
+                        <div key={index} className="mb-1">
+                          <Link
+                            to={item.href}
+                            className={`flex items-center justify-between px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                              isActive ? 'bg-[#e8dcc8] text-[#4b2a00]' : 'text-gray-700 hover:bg-gray-50'
+                            }`}
+                            onClick={() => {
+                              if (item.children.length === 0) {
+                                setIsMenuOpen(false);
+                              }
+                            }}
+                          >
+                            <div className="flex items-center space-x-2">
+                              <Icon className="text-base" />
+                              <span>{item.label}</span>
+                            </div>
+                            {item.badge && (
+                              <span className="bg-red-600 text-white text-xs rounded-full px-1.5 py-0.5 min-w-[16px] text-center">
+                                {item.badge}
+                              </span>
+                            )}
+                          </Link>
+                          
+                          {/* Sub-items - show first 3 on mobile */}
+                          {item.children.length > 0 && (
+                            <div className="ml-6 mt-1 space-y-0.5">
+                              {item.children.slice(0, 3).map((child, childIndex) => {
+                                const ChildIcon = child.icon;
+                                return (
+                                  <Link
+                                    key={childIndex}
+                                    to={child.href}
+                                    className="flex items-center justify-between px-3 py-1.5 rounded text-xs text-gray-600 hover:bg-gray-50"
+                                    onClick={() => setIsMenuOpen(false)}
+                                  >
+                                    <div className="flex items-center space-x-2">
+                                      {ChildIcon && <ChildIcon className="text-xs" />}
+                                      <span>{child.label}</span>
+                                    </div>
+                                    {child.badge && (
+                                      <span className={`text-xs px-1 py-0.5 rounded ${
+                                        child.badge === 'New' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                                      }`}>
+                                        {child.badge}
+                                      </span>
+                                    )}
+                                  </Link>
+                                );
+                              })}
+                              {item.children.length > 3 && (
+                                <div className="px-3 py-1 text-xs text-gray-500">
+                                  +{item.children.length - 3} more
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                
                 <Link
                   to="/my-bookings"
                   className="flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  onClick={() => setIsMenuOpen(false)}
                 >
                   <FaCalendarAlt className="text-lg" />
                   <span>My Bookings</span>
@@ -1213,8 +1512,7 @@ const Navbar = () => {
                         <Link
                           key={p._id}
                           to={`/my-bookings?tab=calendar&property=${p._id}`}
-                          className="block px-6 py-2 text-sm text-gray-700 hover:bg-gray-50 truncate"
-                          title={p.title || p.name || p.propertyNumber}
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 truncate"
                           onClick={() => setIsMenuOpen(false)}
                         >
                           {p.title || p.name || p.propertyNumber}
@@ -1223,30 +1521,6 @@ const Navbar = () => {
                     </div>
                   </div>
                 )}
-
-                {/* Owner Tools (mobile) */}
-                <div className="mt-2 border-t border-gray-200 pt-2">
-                  <div className="text-xs font-semibold text-gray-500 px-4 mb-2">Owner Tools</div>
-                  <div className="px-2 grid grid-cols-1 gap-1">
-                    {ownerManagementLinks.map((category, idx) => (
-                      <div key={idx} className="mb-2">
-                        <div className="px-2 text-[11px] font-semibold text-gray-600 uppercase tracking-wide">{category.category}</div>
-                        <div className="mt-1">
-                          {category.links.map((link, linkIdx) => (
-                            <Link
-                              key={linkIdx}
-                              to={link.href}
-                              className="block px-4 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-50"
-                              onClick={() => setIsMenuOpen(false)}
-                            >
-                              {link.label}
-                            </Link>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
               </>
             )}
 

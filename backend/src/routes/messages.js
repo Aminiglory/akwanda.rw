@@ -392,4 +392,85 @@ router.patch('/mark-read', requireAuth, async (req, res) => {
     }
 });
 
+// Get messages by category
+router.get('/by-category', requireAuth, async (req, res) => {
+    try {
+        const { category } = req.query; // reservations, platform, qna
+        
+        let query = { $or: [{ sender: req.user.id }, { recipient: req.user.id }] };
+        
+        if (category === 'reservations') {
+            // Messages related to bookings
+            query.booking = { $exists: true, $ne: null };
+        } else if (category === 'platform') {
+            // System/platform messages (could be from admin or automated)
+            query.isSystemMessage = true;
+        } else if (category === 'qna') {
+            // Q&A messages (messages without booking context)
+            query.booking = { $exists: false };
+            query.carBooking = { $exists: false };
+            query.isSystemMessage = { $ne: true };
+        }
+        
+        const messages = await Message.find(query)
+            .sort({ createdAt: -1 })
+            .limit(50)
+            .populate('sender', 'firstName lastName email')
+            .populate('recipient', 'firstName lastName email')
+            .populate({ path: 'booking', populate: { path: 'property', select: 'title' } });
+        
+        // Count unread by category
+        const unreadQuery = { ...query, recipient: req.user.id, isRead: false };
+        const unreadCount = await Message.countDocuments(unreadQuery);
+        
+        res.json({ messages, unreadCount, category });
+    } catch (error) {
+        console.error('Get messages by category error:', error);
+        res.status(500).json({ message: 'Failed to get messages', error: error.message });
+    }
+});
+
+// Get message category counts
+router.get('/category-counts', requireAuth, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        
+        // Reservation messages
+        const reservationCount = await Message.countDocuments({
+            $or: [{ sender: userId }, { recipient: userId }],
+            booking: { $exists: true, $ne: null },
+            recipient: userId,
+            isRead: false
+        });
+        
+        // Platform messages
+        const platformCount = await Message.countDocuments({
+            $or: [{ sender: userId }, { recipient: userId }],
+            isSystemMessage: true,
+            recipient: userId,
+            isRead: false
+        });
+        
+        // Q&A messages
+        const qnaCount = await Message.countDocuments({
+            $or: [{ sender: userId }, { recipient: userId }],
+            booking: { $exists: false },
+            carBooking: { $exists: false },
+            isSystemMessage: { $ne: true },
+            recipient: userId,
+            isRead: false
+        });
+        
+        res.json({
+            reservations: reservationCount,
+            platform: platformCount,
+            qna: qnaCount,
+            total: reservationCount + platformCount + qnaCount
+        });
+    } catch (error) {
+        console.error('Get category counts error:', error);
+        res.status(500).json({ message: 'Failed to get counts', error: error.message });
+    }
+});
+
 module.exports = router;

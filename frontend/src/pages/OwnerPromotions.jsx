@@ -21,6 +21,11 @@ export default function OwnerPromotions() {
   const [form, setForm] = useState({ _id: '', type: '', title: '', description: '', discountPercent: '', startDate: '', endDate: '', lastMinuteWithinDays: '', minAdvanceDays: '', couponCode: '', active: true });
   const [dealForm, setDealForm] = useState(getEmptyDealForm());
   const [editingDeal, setEditingDeal] = useState(null);
+  const [templates, setTemplates] = useState([]);
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [showSimulator, setShowSimulator] = useState(false);
+  const [simulation, setSimulation] = useState(null);
+  const [simulatorForm, setSimulatorForm] = useState({ discountPercent: 10 });
 
   function getEmptyDealForm() {
     return {
@@ -49,6 +54,19 @@ export default function OwnerPromotions() {
       isPublished: false
     };
   }
+
+  // Load promotion templates
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/promotions/templates`, { credentials: 'include' });
+        if (res.ok) {
+          const data = await res.json();
+          setTemplates(data.templates || []);
+        }
+      } catch (_) {}
+    })();
+  }, []);
 
   // Load properties for owner
   useEffect(() => {
@@ -322,6 +340,52 @@ export default function OwnerPromotions() {
     } catch (e) {
       toast.error(e.message);
     }
+  };
+
+  // Simulate discount impact
+  const simulateDiscount = async () => {
+    if (!propertyId) return toast.error('Select a property');
+    if (!simulatorForm.discountPercent) return toast.error('Enter discount percentage');
+    
+    try {
+      const res = await fetch(`${API_URL}/api/promotions/simulate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          propertyId,
+          discountPercent: Number(simulatorForm.discountPercent)
+        })
+      });
+      
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to simulate');
+      
+      setSimulation(data.simulation);
+      toast.success('Simulation complete');
+    } catch (e) {
+      toast.error(e.message);
+    }
+  };
+
+  // Apply template to form
+  const applyTemplate = (template) => {
+    setForm({
+      _id: '',
+      type: template.type,
+      title: template.name,
+      description: template.description,
+      discountPercent: template.suggestedDiscount,
+      startDate: '',
+      endDate: '',
+      lastMinuteWithinDays: template.type === 'last-minute' ? 3 : '',
+      minAdvanceDays: template.type === 'early-bird' ? 14 : '',
+      couponCode: '',
+      active: true
+    });
+    setShowTemplates(false);
+    setShowForm(true);
+    toast.success(`Applied ${template.name} template`);
   };
 
   const dealTypes = [

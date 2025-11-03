@@ -63,8 +63,11 @@ const PropertyOwnerBookings = () => {
   const [ownerView, setOwnerView] = useState('table'); // 'table' | 'calendar'
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'dashboard');
   const [financeFilter, setFinanceFilter] = useState(searchParams.get('finance_status') || 'all'); // all|paid|pending|unpaid
-  const [financeView, setFinanceView] = useState(searchParams.get('view') || 'all'); // all|last30|mtd|ytd
+  const [financeView, setFinanceView] = useState(searchParams.get('view') || 'all'); // all|last30|mtd|ytd|invoices|statement|overview
   const [analyticsRange, setAnalyticsRange] = useState(searchParams.get('range') || '30'); // 30|90|ytd|custom
+  const [analyticsView, setAnalyticsView] = useState(searchParams.get('view') || 'dashboard'); // dashboard|demand|pace|sales|booker|bookwindow|cancellation|competitive|genius|ranking|performance
+  const [boostView, setBoostView] = useState(searchParams.get('view') || 'opportunity'); // opportunity|commission-free|genius|preferred|long-stays|visibility|work-friendly|unit-diff
+  const [ratesView, setRatesView] = useState(searchParams.get('view') || 'availability'); // availability|pricing
   const [ownerReviews, setOwnerReviews] = useState([]);
   const [ownerAvgRating, setOwnerAvgRating] = useState(0);
   const [ownerReviewCount, setOwnerReviewCount] = useState(0);
@@ -179,6 +182,8 @@ const PropertyOwnerBookings = () => {
     // Normalize tab mapping to our internal tabs
     if (tab) {
       if (tab === 'bookings') setActiveTab('reservations');
+      else if (tab === 'rates') setActiveTab('dashboard'); // Rates & Availability goes to dashboard
+      else if (tab === 'boost') setActiveTab('promotions'); // Boost performance goes to promotions for now
       else setActiveTab(tab);
     }
 
@@ -197,7 +202,10 @@ const PropertyOwnerBookings = () => {
 
     // Apply finance filters
     if (fstatus) setFinanceFilter(fstatus);
-    if (view) setFinanceView(view);
+    if (view && tab === 'finance') setFinanceView(view);
+    if (view && tab === 'analytics') setAnalyticsView(view);
+    if (view && tab === 'boost') setBoostView(view);
+    if (view && tab === 'rates') setRatesView(view);
 
     // Apply analytics range
     if (range) setAnalyticsRange(range);
@@ -1125,26 +1133,142 @@ const PropertyOwnerBookings = () => {
 
         {activeTab === 'finance' && (
           <div className="space-y-8">
-            <div className="neu-card p-6">
-              <h2 className="text-xl font-semibold mb-6">Financial Overview</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-green-50 border border-green-200 rounded-xl p-6">
-                  <h3 className="text-lg font-semibold text-green-900 mb-4">Total Revenue</h3>
-                  <div className="text-3xl font-bold text-green-600">RWF {stats.totalRevenue.toLocaleString()}</div>
-                  <p className="text-sm text-green-700 mt-2">All time earnings</p>
-                </div>
-                <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
-                  <h3 className="text-lg font-semibold text-blue-900 mb-4">Pending Revenue</h3>
-                  <div className="text-3xl font-bold text-blue-600">RWF {stats.pendingRevenue.toLocaleString()}</div>
-                  <p className="text-sm text-blue-700 mt-2">Awaiting payout</p>
-                </div>
-                <div className="bg-purple-50 border border-purple-200 rounded-xl p-6">
-                  <h3 className="text-lg font-semibold text-purple-900 mb-4">Commission Paid</h3>
-                  <div className="text-3xl font-bold text-purple-600">RWF {Math.round(stats.totalRevenue * 0.1).toLocaleString()}</div>
-                  <p className="text-sm text-purple-700 mt-2">Platform fees</p>
+            {/* Finance View Tabs */}
+            <div className="flex space-x-2 border-b border-gray-200 mb-6">
+              {['overview', 'invoices', 'statement'].map((view) => (
+                <button
+                  key={view}
+                  onClick={() => setFinanceView(view)}
+                  className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
+                    financeView === view
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  {view === 'overview' ? 'Financial Overview' : view === 'invoices' ? 'Invoices' : 'Reservations Statement'}
+                </button>
+              ))}
+            </div>
+
+            {financeView === 'overview' && (
+              <div className="neu-card p-6">
+                <h2 className="text-xl font-semibold mb-6">Financial Overview</h2>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="bg-green-50 border border-green-200 rounded-xl p-6">
+                    <h3 className="text-lg font-semibold text-green-900 mb-4">Total Revenue</h3>
+                    <div className="text-3xl font-bold text-green-600">RWF {stats.totalRevenue.toLocaleString()}</div>
+                    <p className="text-sm text-green-700 mt-2">All time earnings</p>
+                  </div>
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
+                    <h3 className="text-lg font-semibold text-blue-900 mb-4">Pending Revenue</h3>
+                    <div className="text-3xl font-bold text-blue-600">RWF {stats.pendingRevenue.toLocaleString()}</div>
+                    <p className="text-sm text-blue-700 mt-2">Awaiting payout</p>
+                  </div>
+                  <div className="bg-purple-50 border border-purple-200 rounded-xl p-6">
+                    <h3 className="text-lg font-semibold text-purple-900 mb-4">Commission Paid</h3>
+                    <div className="text-3xl font-bold text-purple-600">RWF {Math.round(stats.totalRevenue * 0.1).toLocaleString()}</div>
+                    <p className="text-sm text-purple-700 mt-2">Platform fees (10%)</p>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
+
+            {financeView === 'invoices' && (
+              <div className="neu-card p-6">
+                <h2 className="text-xl font-semibold mb-6">Invoices</h2>
+                <div className="space-y-4">
+                  {financeFiltered.map((booking) => (
+                    <div key={booking._id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <div className="font-semibold text-gray-900">Invoice #{booking.confirmationCode || booking._id.slice(-8)}</div>
+                          <div className="text-sm text-gray-600">{booking.property?.title || 'Property'}</div>
+                          <div className="text-sm text-gray-500">{new Date(booking.createdAt).toLocaleDateString()}</div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-lg font-bold text-gray-900">RWF {(booking.totalAmount || 0).toLocaleString()}</div>
+                          <span className={`inline-block px-2 py-1 text-xs rounded-full ${
+                            booking.paymentStatus === 'paid' ? 'bg-green-100 text-green-800' :
+                            booking.paymentStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-red-100 text-red-800'
+                          }`}>
+                            {booking.paymentStatus || booking.status}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="mt-3 flex space-x-2">
+                        <button
+                          onClick={() => navigate(`/invoice/${booking._id}`)}
+                          className="text-sm text-blue-600 hover:text-blue-800"
+                        >
+                          View Invoice
+                        </button>
+                        <button
+                          onClick={() => navigate(`/receipt/${booking._id}`)}
+                          className="text-sm text-green-600 hover:text-green-800"
+                        >
+                          View Receipt
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                  {financeFiltered.length === 0 && (
+                    <div className="text-center py-12 text-gray-500">No invoices found</div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {financeView === 'statement' && (
+              <div className="neu-card p-6">
+                <h2 className="text-xl font-semibold mb-6">Reservations Statement</h2>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Booking ID</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Property</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Guest</th>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Amount</th>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Commission</th>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Net</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {financeFiltered.map((booking) => {
+                        const commission = Math.round((booking.totalAmount || 0) * 0.1);
+                        const net = (booking.totalAmount || 0) - commission;
+                        return (
+                          <tr key={booking._id} className="hover:bg-gray-50">
+                            <td className="px-4 py-3 text-sm">{new Date(booking.createdAt).toLocaleDateString()}</td>
+                            <td className="px-4 py-3 text-sm font-medium">{booking.confirmationCode || booking._id.slice(-8)}</td>
+                            <td className="px-4 py-3 text-sm">{booking.property?.title || 'Property'}</td>
+                            <td className="px-4 py-3 text-sm">{`${booking.guest?.firstName || ''} ${booking.guest?.lastName || ''}`.trim() || 'Guest'}</td>
+                            <td className="px-4 py-3 text-sm text-right font-semibold">RWF {(booking.totalAmount || 0).toLocaleString()}</td>
+                            <td className="px-4 py-3 text-sm text-right text-red-600">-RWF {commission.toLocaleString()}</td>
+                            <td className="px-4 py-3 text-sm text-right font-bold text-green-600">RWF {net.toLocaleString()}</td>
+                            <td className="px-4 py-3 text-sm">
+                              <span className={`inline-block px-2 py-1 text-xs rounded-full ${
+                                booking.paymentStatus === 'paid' ? 'bg-green-100 text-green-800' :
+                                booking.paymentStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                'bg-red-100 text-red-800'
+                              }`}>
+                                {booking.paymentStatus || booking.status}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                  {financeFiltered.length === 0 && (
+                    <div className="text-center py-12 text-gray-500">No transactions found</div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
