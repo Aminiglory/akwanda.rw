@@ -360,15 +360,7 @@ export default function OwnerPromotions() {
         </div>
 
         <div className="bg-white rounded-xl shadow p-6">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="text-sm text-gray-700">Property:</div>
-            <select className="px-3 py-2 border rounded" value={propertyId} onChange={(e)=>{ setPropertyId(e.target.value); const next=new URLSearchParams(searchParams); next.set('propertyId', e.target.value); setSearchParams(next, { replace: true }); }}>
-              <option value="">Select property</option>
-              {properties.map(p => (<option key={p._id} value={p._id}>{p.title} • {p.city}</option>))}
-            </select>
-          </div>
-
-          {/* Tabs */}
+          {/* Tabs - Always visible */}
           <div className="flex border-b mb-6">
             <button
               onClick={() => setActiveTab('promotions')}
@@ -392,6 +384,25 @@ export default function OwnerPromotions() {
               <FaFire className="inline mr-2" />
               Deals ({deals.length})
             </button>
+          </div>
+
+          {/* Property Selector */}
+          <div className="flex items-center gap-4 mb-6 pb-4 border-b">
+            <div className="text-sm font-medium text-gray-700">Select Property:</div>
+            <select 
+              className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+              value={propertyId} 
+              onChange={(e)=>{ 
+                setPropertyId(e.target.value); 
+                const next=new URLSearchParams(searchParams); 
+                next.set('propertyId', e.target.value); 
+                setSearchParams(next, { replace: true }); 
+              }}
+            >
+              <option value="">Choose a property...</option>
+              {properties.map(p => (<option key={p._id} value={p._id}>{p.title} • {p.city}</option>))}
+            </select>
+            {!propertyId && <span className="text-sm text-orange-600">← Please select a property to view {activeTab}</span>}
           </div>
 
           {activeTab === 'promotions' && (
