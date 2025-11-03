@@ -47,6 +47,8 @@ import Messages from './pages/Messages'
 import OwnerPromotions from './pages/OwnerPromotions'
 import WorkersManagement from './pages/WorkersManagement'
 import OwnerReviews from './pages/OwnerReviews'
+import RatesAvailability from './pages/RatesAvailability'
+import PropertyManagement from './pages/PropertyManagement'
 import Homes from './pages/Homes'
 import Experiences from './pages/Experiences'
 import Deals from './pages/Deals'
@@ -170,6 +172,8 @@ function App() {
             <Route path="/owner/reviews" element={<HostRoute><div className="dashboard"><OwnerReviews /></div></HostRoute>} />
             <Route path="/owner/direct-booking" element={<HostRoute><DirectBooking /></HostRoute>} />
             <Route path="/owner/workers" element={<HostRoute><div className="dashboard"><WorkersManagement /></div></HostRoute>} />
+            <Route path="/owner/rates" element={<HostRoute><div className="dashboard"><RatesAvailability /></div></HostRoute>} />
+            <Route path="/owner/property" element={<HostRoute><div className="dashboard"><PropertyManagement /></div></HostRoute>} />
             <Route path="/invoice/:id" element={<ProtectedRoute><Invoice /></ProtectedRoute>} />
             <Route path="/receipt/:id" element={<ProtectedRoute><Receipt /></ProtectedRoute>} />
             <Route path="/test-upload" element={<TestUpload />} />

@@ -7,6 +7,7 @@ const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
+const { getAutoReply, shouldSendAutoReply } = require('../utils/autoReply');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
 
@@ -196,6 +197,70 @@ router.post('/send', requireAuth, async (req, res) => {
                 io.to(`user:${String(to)}`).emit('message:new', payload);
             }
         } catch (_) {}
+
+        // Auto-reply logic: Send automatic response if property owner is not active
+        try {
+            // Check if recipient is a property owner and if auto-reply should be sent
+            const User = require('../tables/user');
+            const Property = require('../tables/property');
+            const recipient = await User.findById(to).select('userType name firstName lastName email phone phoneNumber');
+            
+            if (recipient && recipient.userType === 'host' && context.booking) {
+                // Get the booking with property details
+                const booking = await Booking.findById(context.booking).populate('property');
+                
+                if (booking && booking.property) {
+                    // Get previous messages in this thread
+                    const previousMessages = await Message.find({ booking: context.booking })
+                        .sort({ createdAt: -1 })
+                        .limit(10);
+                    
+                    // Check if we should send auto-reply
+                    if (shouldSendAutoReply(previousMessages, req.user.id)) {
+                        // Pass actual property data AND owner contact info to generate personalized auto-reply
+                        const autoReplyText = getAutoReply(text, booking.property, recipient);
+                        
+                        if (autoReplyText) {
+                            // Send auto-reply after a short delay (simulate typing)
+                            setTimeout(async () => {
+                                try {
+                                    const autoReplyMessage = await Message.create({
+                                        booking: context.booking,
+                                        carBooking: context.carBooking,
+                                        sender: to, // From property owner
+                                        recipient: req.user.id, // To guest
+                                        message: autoReplyText,
+                                        isAutoReply: true,
+                                        metadata: { isAutoReply: true, generatedAt: new Date(), propertyId: booking.property._id }
+                                    });
+
+                                    // Emit auto-reply via socket
+                                    const io = req.app.get('io');
+                                    if (io) {
+                                        const autoPayload = {
+                                            from: String(to),
+                                            to: String(req.user.id),
+                                            text: autoReplyText,
+                                            attachments: [],
+                                            createdAt: autoReplyMessage.createdAt,
+                                            bookingId: context.booking ? String(context.booking) : undefined,
+                                            isAutoReply: true
+                                        };
+                                        if (context.booking) io.to(`booking:${String(context.booking)}`).emit('message:new', autoPayload);
+                                        io.to(`user:${String(req.user.id)}`).emit('message:new', autoPayload);
+                                    }
+                                } catch (autoReplyError) {
+                                    console.error('Auto-reply error:', autoReplyError);
+                                }
+                            }, 2000); // 2 second delay to simulate human response
+                        }
+                    }
+                }
+            }
+        } catch (autoReplyError) {
+            console.error('Auto-reply check error:', autoReplyError);
+            // Don't fail the main request if auto-reply fails
+        }
 
         res.status(201).json({ message: newMessage });
     } catch (e) {

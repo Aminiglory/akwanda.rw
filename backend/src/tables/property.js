@@ -32,9 +32,11 @@ const propertySchema = new mongoose.Schema(
     description: { type: String },
     address: { type: String, required: true },
     city: { type: String, required: true },
+    country: { type: String, default: 'Rwanda' },
     pricePerNight: { type: Number, required: true },
     bedrooms: { type: Number, default: 1, min: 0 },
     bathrooms: { type: Number, default: 1, min: 0 },
+    maxGuests: { type: Number, default: 2, min: 1 },
     amenities: [{ type: String }],
     images: [{ type: String }],
     host: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
@@ -43,6 +45,17 @@ const propertySchema = new mongoose.Schema(
     availability: { type: String, enum: ['available', 'in_use'], default: 'available' },
     category: { type: String, enum: ['hotel', 'apartment', 'villa', 'hostel', 'resort', 'guesthouse'], default: 'apartment' },
     rooms: [roomSchema],
+    // Check-in/Check-out times (set by property owner)
+    checkInTime: { type: String, default: '2:00 PM' },
+    checkOutTime: { type: String, default: '11:00 AM' },
+    flexibleCheckIn: { type: Boolean, default: false },
+    // House rules (set by property owner)
+    roomRules: [{ type: String }],
+    // Pet policy
+    petsAllowed: { type: Boolean, default: false },
+    petPolicy: { type: String },
+    // Cancellation policy
+    cancellationPolicy: { type: String, default: 'Free cancellation up to 48 hours before check-in' },
     groupBookingEnabled: { type: Boolean, default: false },
     groupBookingDiscount: { type: Number, default: 0 },
     commissionRate: { type: Number, default: 10, min: 8, max: 12 },
