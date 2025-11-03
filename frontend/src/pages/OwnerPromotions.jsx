@@ -17,7 +17,7 @@ export default function OwnerPromotions() {
   const [activeTab, setActiveTab] = useState('deals'); // 'promotions' or 'deals' - DEFAULT TO DEALS
 
   // Debug log
-  console.log('OwnerPromotions loaded - Version 2.0 with Deals Tab');
+  console.log('OwnerPromotions loaded - Version 2.1 with Deals Tab - Deployed to Vercel');
   const [form, setForm] = useState({ _id: '', type: '', title: '', description: '', discountPercent: '', startDate: '', endDate: '', lastMinuteWithinDays: '', minAdvanceDays: '', couponCode: '', active: true });
   const [dealForm, setDealForm] = useState(getEmptyDealForm());
   const [editingDeal, setEditingDeal] = useState(null);
