@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaUser, FaChartLine, FaCalendarAlt, FaDollarSign, FaDownload, FaEdit, FaTrash, FaEye, FaCog, FaHome, FaStar, FaMapMarkerAlt, FaCamera, FaFileAlt, FaPrint, FaEnvelope, FaPhone, FaBed, FaUsers, FaWifi, FaCar, FaSwimmingPool, FaUtensils, FaShieldAlt, FaClock } from 'react-icons/fa';
+import { FaUser, FaChartLine, FaCalendarAlt, FaDollarSign, FaDownload, FaEdit, FaTrash, FaEye, FaCog, FaHome, FaStar, FaMapMarkerAlt, FaCamera, FaFileAlt, FaPrint, FaEnvelope, FaPhone, FaBed, FaUsers, FaWifi, FaCar, FaSwimmingPool, FaUtensils, FaShieldAlt, FaClock, FaComments } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { safeApiGet, apiGet, apiPost, apiPut, apiDelete, apiDownload } from '../utils/apiUtils';
 
@@ -70,6 +70,7 @@ const UserProfile = () => {
   });
   const [avatarPreviewUrl, setAvatarPreviewUrl] = useState(null);
   const [avatarFile, setAvatarFile] = useState(null);
+  const [threadsUnread, setThreadsUnread] = useState(0);
 
   useEffect(() => {
     fetchProperties();
@@ -95,6 +96,21 @@ const UserProfile = () => {
       } catch (_) {
         setProfileData((prev) => ({ ...prev, avatar: makeAbsolute(user?.avatar) || prev.avatar }));
       }
+    })();
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/messages/threads`, { credentials: 'include' });
+        const data = await res.json();
+        if (res.ok && Array.isArray(data.threads)) {
+          const total = data.threads.reduce((sum, t) => sum + Number(t.unreadCount || 0), 0);
+          setThreadsUnread(total);
+        } else {
+          setThreadsUnread(0);
+        }
+      } catch (_) { setThreadsUnread(0); }
     })();
   }, []);
 
@@ -252,6 +268,120 @@ const UserProfile = () => {
     { id: 'reports', label: 'Reports', icon: FaChartLine },
     { id: 'settings', label: 'Settings', icon: FaCog }
   ];
+
+  const isHost = user?.userType === 'host';
+
+  if (!isHost) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="bg-[#a06b42] text-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  <img src={avatarPreviewUrl || profileData.avatar || '/default-avatar.png'} alt="Profile" className="w-12 h-12 md:w-16 md:h-16 rounded-full object-cover ring-4 ring-white/20" />
+                </div>
+                <div>
+                  <div className="text-xl md:text-2xl font-bold">Hi, {profileData.firstName || 'Traveler'}</div>
+                  <div className="text-sm opacity-90">Welcome back</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button onClick={() => navigate('/messages')} className="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white text-sm flex items-center gap-2">
+                  <FaComments /> Messages {threadsUnread > 0 ? <span className="ml-1 bg-white text-[#a06b42] px-2 py-0.5 rounded-full text-xs font-semibold">{threadsUnread}</span> : null}
+                </button>
+                <label className="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white text-sm cursor-pointer flex items-center gap-2">
+                  <FaCamera />
+                  <input type="file" accept="image/*" onChange={(e)=>{ const f=e.target.files?.[0]; if(f){ if(avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl); setAvatarPreviewUrl(URL.createObjectURL(f)); setAvatarFile(f);} }} className="hidden" />
+                </label>
+                {avatarFile && (
+                  <button onClick={uploadAvatar} className="px-3 py-2 rounded-lg bg-white text-[#a06b42] text-sm font-medium">Save</button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="bg-white rounded-xl shadow-sm p-4">
+              <div className="text-sm text-gray-600 mb-3">Payment info</div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <button className="p-3 border rounded-lg text-left hover:bg-gray-50" onClick={()=>navigate('/account/rewards')}>Rewards & Wallet</button>
+                <button className="p-3 border rounded-lg text-left hover:bg-gray-50" onClick={()=>navigate('/account/payments')}>Payment methods</button>
+                <button className="p-3 border rounded-lg text-left hover:bg-gray-50" onClick={()=>navigate('/account/transactions')}>Transactions</button>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-sm p-4">
+              <div className="text-sm text-gray-600 mb-3">Manage account</div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <button className="p-3 border rounded-lg text-left hover:bg-gray-50" onClick={()=>setActiveTab('overview')}>Personal details</button>
+                <button className="p-3 border rounded-lg text-left hover:bg-gray-50" onClick={()=>navigate('/account/security')}>Security settings</button>
+                <button className="p-3 border rounded-lg text-left hover:bg-gray-50" onClick={()=>navigate('/account/other-travelers')}>Other travelers</button>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-sm p-4">
+              <div className="text-sm text-gray-600 mb-3">Preferences</div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <button className="p-3 border rounded-lg text-left hover:bg-gray-50" onClick={()=>navigate('/account/customization')}>Customization preferences</button>
+                <button className="p-3 border rounded-lg text-left hover:bg-gray-50" onClick={()=>navigate('/account/email-preferences')}>Email preferences</button>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-sm p-4">
+              <div className="text-sm text-gray-600 mb-3">Travel activity</div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <button className="p-3 border rounded-lg text-left hover:bg-gray-50" onClick={()=>navigate('/bookings')}>Trips and bookings</button>
+                <button className="p-3 border rounded-lg text-left hover:bg-gray-50" onClick={()=>navigate('/account/saved-lists')}>Saved lists</button>
+                <button className="p-3 border rounded-lg text-left hover:bg-gray-50" onClick={()=>navigate('/account/reviews')}>My reviews</button>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-sm p-4">
+              <div className="text-sm text-gray-600 mb-3">Help and support</div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <button className="p-3 border rounded-lg text-left hover:bg-gray-50" onClick={()=>navigate('/support')}>Contact Customer Service</button>
+                <button className="p-3 border rounded-lg text-left hover:bg-gray-50" onClick={()=>navigate('/account/safety')}>Safety resource center</button>
+                <button className="p-3 border rounded-lg text-left hover:bg-gray-50" onClick={()=>navigate('/account/disputes')}>Dispute resolution</button>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-sm p-4">
+              <div className="text-sm text-gray-600 mb-3">Manage your property</div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <button className="p-3 border rounded-lg text-left hover:bg-gray-50" onClick={()=>navigate('/upload')}>List your property</button>
+                <button className="p-3 border rounded-lg text-left hover:bg-gray-50" onClick={()=>navigate('/messages')}>
+                  Messages {threadsUnread > 0 ? <span className="ml-2 inline-flex items-center justify-center w-6 h-6 text-xs font-semibold rounded-full bg-[#a06b42] text-white">{threadsUnread}</span> : null}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <div className="text-sm font-medium text-gray-700 mb-1">First Name</div>
+                <input type="text" value={profileData.firstName} onChange={(e)=> setProfileData(prev=>({...prev, firstName: e.target.value}))} className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+              </div>
+              <div>
+                <div className="text-sm font-medium text-gray-700 mb-1">Last Name</div>
+                <input type="text" value={profileData.lastName} onChange={(e)=> setProfileData(prev=>({...prev, lastName: e.target.value}))} className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+              </div>
+              <div>
+                <div className="text-sm font-medium text-gray-700 mb-1">Phone</div>
+                <input type="tel" value={profileData.phone} onChange={(e)=> setProfileData(prev=>({...prev, phone: e.target.value}))} className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+              </div>
+              <div className="flex items-end">
+                <button onClick={updateProfile} className="px-4 py-3 bg-[#a06b42] hover:bg-[#8f5a32] text-white rounded-lg">Save details</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

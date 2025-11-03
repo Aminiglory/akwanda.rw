@@ -17,7 +17,8 @@ export default function Receipt() {
         setLoading(true);
         // Use owner receipt endpoint; it includes pricing breakdown
         const res = await fetch(`${API_URL}/api/bookings/${id}/receipt`, { credentials: 'include' });
-        const json = await res.json();
+        const ctype = res.headers.get('content-type') || '';
+        const json = ctype.includes('application/json') ? await res.json() : { message: await res.text() };
         if (!res.ok) throw new Error(json.message || 'Failed to load receipt');
         setData(json.receipt);
       } catch (e) {

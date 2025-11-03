@@ -62,6 +62,9 @@ const PropertyOwnerBookings = () => {
   });
   const [ownerView, setOwnerView] = useState('table'); // 'table' | 'calendar'
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'dashboard');
+  const [financeFilter, setFinanceFilter] = useState(searchParams.get('finance_status') || 'all'); // all|paid|pending|unpaid
+  const [financeView, setFinanceView] = useState(searchParams.get('view') || 'all'); // all|last30|mtd|ytd
+  const [analyticsRange, setAnalyticsRange] = useState(searchParams.get('range') || '30'); // 30|90|ytd|custom
   const [ownerReviews, setOwnerReviews] = useState([]);
   const [ownerAvgRating, setOwnerAvgRating] = useState(0);
   const [ownerReviewCount, setOwnerReviewCount] = useState(0);
@@ -168,6 +171,38 @@ const PropertyOwnerBookings = () => {
     const params = new URLSearchParams(location.search);
     const tab = params.get('tab');
     const propParam = params.get('property');
+    const scope = params.get('scope'); // reservations scope
+    const fstatus = params.get('finance_status');
+    const view = params.get('view');
+    const range = params.get('range');
+
+    // Normalize tab mapping to our internal tabs
+    if (tab) {
+      if (tab === 'bookings') setActiveTab('reservations');
+      else setActiveTab(tab);
+    }
+
+    // Apply reservations scope filters
+    if (scope) {
+      const map = {
+        all: 'all',
+        paid: 'paid',
+        pending: 'pending',
+        unpaid: 'unpaid',
+        cancelled: 'cancelled'
+      };
+      const next = map[scope] || 'all';
+      setFilters(prev => ({ ...prev, status: next }));
+    }
+
+    // Apply finance filters
+    if (fstatus) setFinanceFilter(fstatus);
+    if (view) setFinanceView(view);
+
+    // Apply analytics range
+    if (range) setAnalyticsRange(range);
+
+    // Calendar deep-linking
     if (tab === 'properties' || tab === 'calendar') {
       setOwnerView('calendar');
       // Ensure a property is selected to render the calendar
@@ -289,6 +324,30 @@ const PropertyOwnerBookings = () => {
     if (filters.property !== 'all' && String(booking.property?._id) !== String(filters.property)) return false;
     const guestName = `${booking.guest?.firstName || ''} ${booking.guest?.lastName || ''}`.trim().toLowerCase();
     if (filters.search && !guestName.includes(filters.search.toLowerCase())) return false;
+    return true;
+  });
+
+  // Finance filters derived from query params
+  const financeFiltered = bookings.filter(b => {
+    // status filter
+    if (financeFilter && financeFilter !== 'all') {
+      if (!((b.paymentStatus || '').toLowerCase() === financeFilter || (financeFilter === 'paid' && (b.status === 'confirmed' || b.status === 'ended')))) return false;
+    }
+    // property filter alignment (use same property filter if set)
+    if (filters.property !== 'all' && String(b.property?._id) !== String(filters.property)) return false;
+    // date range filter
+    const created = new Date(b.createdAt);
+    const now = new Date();
+    if (financeView === 'last30') {
+      const d30 = new Date(); d30.setDate(now.getDate() - 30);
+      if (!(created >= d30 && created <= now)) return false;
+    } else if (financeView === 'mtd') {
+      const start = new Date(now.getFullYear(), now.getMonth(), 1);
+      if (!(created >= start && created <= now)) return false;
+    } else if (financeView === 'ytd') {
+      const start = new Date(now.getFullYear(), 0, 1);
+      if (!(created >= start && created <= now)) return false;
+    }
     return true;
   });
 

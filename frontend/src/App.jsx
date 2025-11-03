@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import './App.css'
 import { AuthProvider } from './contexts/AuthContext'
 import { SocketProvider } from './contexts/SocketContext'
@@ -10,6 +10,7 @@ import ErrorBoundary from './components/ErrorBoundary'
 import Footer from './components/Footer'
 import Home from './pages/Home'
 import ApartmentsListing from './pages/ApartmentsListing'
+import SettingsSection from './pages/SettingsSection'
 import Flights from './pages/Flights'
 import Attractions from './pages/Attractions'
 import AttractionDetail from './pages/AttractionDetail'
@@ -144,10 +145,10 @@ function App() {
             <Route path="/user-dashboard" element={<HostRoute><div className="dashboard"><PropertyOwnerBookings /></div></HostRoute>} />
             <Route path="/profile" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-            <Route path="/list-property" element={<HostRoute><ListProperty /></HostRoute>} />
-            <Route path="/upload" element={<HostRoute><ListProperty /></HostRoute>} />
-            <Route path="/upload-property" element={<HostRoute><ListProperty /></HostRoute>} />
-            <Route path="/upload-enhanced" element={<HostRoute><EnhancedUploadProperty /></HostRoute>} />
+            <Route path="/account/:section" element={<ProtectedRoute><SettingsSection /></ProtectedRoute>} />
+            <Route path="/list-property" element={<Navigate to="/upload" replace />} />
+            <Route path="/upload" element={<HostRoute><EnhancedUploadProperty /></HostRoute>} />
+            <Route path="/upload-property" element={<HostRoute><EnhancedUploadProperty /></HostRoute>} />
             <Route path="/upload-legacy" element={<HostRoute><UploadProperty /></HostRoute>} />
             <Route path="/admin" element={<AdminRoute><div className="dashboard"><AdminDashboard /></div></AdminRoute>} />
             <Route path="/admin/profile" element={<AdminRoute><div className="dashboard"><AdminProfile /></div></AdminRoute>} />

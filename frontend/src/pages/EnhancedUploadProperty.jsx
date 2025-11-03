@@ -8,7 +8,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const EnhancedUploadProperty = () => {
   const navigate = useNavigate();
-  const { refreshUser } = useAuth();
+  const { refreshUser, updateProfile: ctxUpdateProfile, user } = useAuth();
   const [searchParams] = useSearchParams();
   const editId = searchParams.get('edit');
   const isEditing = !!editId;
@@ -28,7 +28,25 @@ const EnhancedUploadProperty = () => {
     groupBookingDiscount: 0,
     commissionRate: 10,
     visibilityLevel: 'standard',
-    featuredUntil: ''
+    featuredUntil: '',
+    ratePlanNonRefundable: false,
+    ratePlanFreeCancellation: true,
+    minStayNights: 1,
+    cancellationWindowDays: 1,
+    prepaymentRequired: false,
+    depositPercent: 0,
+    checkinTime: '14:00',
+    checkoutTime: '11:00',
+    smokingAllowed: false,
+    petsAllowed: false,
+    localTaxPercent: 0,
+    cleaningFee: 0,
+    verificationMethod: 'later',
+    unitMode: 'one',
+    unitCount: 1,
+    country: 'Rwanda',
+    latitude: null,
+    longitude: null
   });
 
   const [rooms, setRooms] = useState([]);
@@ -37,6 +55,21 @@ const EnhancedUploadProperty = () => {
   const [loading, setLoading] = useState(false);
   const [deals, setDeals] = useState([]);
   const [dealsLoading, setDealsLoading] = useState(false);
+  const [currentStep, setCurrentStep] = useState(1);
+  // Align with implemented steps (1..8)
+  const totalSteps = 8;
+  const [addrQuery, setAddrQuery] = useState('');
+  const [addrSuggestions, setAddrSuggestions] = useState([]);
+  const [addrLoading, setAddrLoading] = useState(false);
+  const [partner, setPartner] = useState({
+    firstName: user?.firstName || '',
+    lastName: user?.lastName || '',
+    phone: user?.phone || '',
+    email: user?.email || ''
+  });
+
+  const primaryBtn = 'bg-[#a06b42] hover:bg-[#8f5a32] text-white';
+  const secondaryBtn = 'border border-gray-300 text-gray-700 hover:bg-gray-50';
 
   const categories = [
     { value: 'hotel', label: 'Hotel' },
@@ -72,6 +105,28 @@ const EnhancedUploadProperty = () => {
       fetchPropertyData();
     }
   }, [isEditing, editId]);
+
+  // Load draft from localStorage if present (autosave resume)
+  useEffect(() => {
+    if (isEditing) return;
+    try {
+      const raw = localStorage.getItem('listing_draft_v1');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed?.formData) setFormData(prev => ({ ...prev, ...parsed.formData }));
+        if (Array.isArray(parsed?.rooms)) setRooms(parsed.rooms);
+        if (Array.isArray(parsed?.images)) setImages(parsed.images);
+        if (Number.isInteger(parsed?.currentStep)) setCurrentStep(parsed.currentStep);
+      }
+    } catch (_) {}
+  }, [isEditing]);
+
+  // Autosave to localStorage on changes
+  useEffect(() => {
+    try {
+      localStorage.setItem('listing_draft_v1', JSON.stringify({ formData, rooms, images, currentStep }));
+    } catch (_) {}
+  }, [formData, rooms, images, currentStep]);
 
   useEffect(() => {
     const loadDeals = async () => {
@@ -115,7 +170,25 @@ const EnhancedUploadProperty = () => {
           return 8;
         })(),
         visibilityLevel: data.property.visibilityLevel || 'standard',
-        featuredUntil: data.property.featuredUntil ? new Date(data.property.featuredUntil).toISOString().split('T')[0] : ''
+        featuredUntil: data.property.featuredUntil ? new Date(data.property.featuredUntil).toISOString().split('T')[0] : '',
+        ratePlanNonRefundable: !!data.property.ratePlanNonRefundable,
+        ratePlanFreeCancellation: data.property.ratePlanFreeCancellation !== false,
+        minStayNights: Number(data.property.minStayNights || 1),
+        cancellationWindowDays: Number(data.property.cancellationWindowDays || 1),
+        prepaymentRequired: !!data.property.prepaymentRequired,
+        depositPercent: Number(data.property.depositPercent || 0),
+        checkinTime: data.property.checkinTime || '14:00',
+        checkoutTime: data.property.checkoutTime || '11:00',
+        smokingAllowed: !!data.property.smokingAllowed,
+        petsAllowed: !!data.property.petsAllowed,
+        localTaxPercent: Number(data.property.localTaxPercent || 0),
+        cleaningFee: Number(data.property.cleaningFee || 0),
+        verificationMethod: data.property.verificationMethod || 'later',
+        unitMode: data.property.unitMode || 'one',
+        unitCount: Number(data.property.unitCount || 1),
+        country: data.property.country || 'Rwanda',
+        latitude: data.property.latitude ?? null,
+        longitude: data.property.longitude ?? null
       });
 
       setRooms(data.property.rooms || []);
@@ -151,6 +224,7 @@ const EnhancedUploadProperty = () => {
       pricePerNight: formData.pricePerNight || 0,
       capacity: 1,
       amenities: [],
+      beds: { twin: 0, full: 0, queen: 0, king: 0, bunk: 0, sofa: 0, futon: 0 },
       images: [],
       isAvailable: true,
       closedDates: []
@@ -213,59 +287,142 @@ const EnhancedUploadProperty = () => {
     setImages(prev => prev.filter((_, i) => i !== index));
   };
 
+  // Room-level image upload handlers
+  const handleRoomImageUpload = async (roomIndex, e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      files.forEach(file => fd.append('images', file));
+      const res = await fetch(`${API_URL}/api/properties/upload/images`, {
+        method: 'POST',
+        body: fd,
+        credentials: 'include'
+      });
+      const contentType = res.headers.get('content-type') || '';
+      if (contentType.includes('text/html')) {
+        const htmlText = await res.text();
+        console.error('Received HTML instead of JSON (room upload):', htmlText.substring(0, 200));
+        throw new Error(`Server returned HTML instead of JSON. Check backend at ${API_URL}`);
+      }
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to upload room images');
+      setRooms(prev => prev.map((r, i) => i === roomIndex ? { ...r, images: [...(r.images||[]), ...data.imageUrls] } : r));
+      toast.success('Room images uploaded');
+    } catch (err) {
+      toast.error(err.message || 'Failed to upload room images');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removeRoomImage = (roomIndex, imgIndex) => {
+    setRooms(prev => prev.map((r, i) => i === roomIndex ? { ...r, images: (r.images||[]).filter((_, j) => j !== imgIndex) } : r));
+  };
+
+  // Address autocomplete using Nominatim (no key)
+  useEffect(() => {
+    const q = addrQuery.trim();
+    if (q.length < 3) { setAddrSuggestions([]); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        setAddrLoading(true);
+        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q + ' ' + (formData.country || ''))}`;
+        const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+        const json = await res.json().catch(()=>[]);
+        if (!cancelled) setAddrSuggestions(Array.isArray(json) ? json.slice(0,6) : []);
+      } catch (_) {
+        if (!cancelled) setAddrSuggestions([]);
+      } finally {
+        if (!cancelled) setAddrLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [addrQuery, formData.country]);
+
+  const canProceed = () => {
+    if (currentStep === 1 || currentStep === 2) return true;
+    if (currentStep === 3) return !!formData.category;
+    // Step 4: allow proceed if address OR coordinates exist; city not required
+    if (currentStep === 4) return !!formData.address || (formData.latitude != null && formData.longitude != null);
+    if (currentStep === 5) return !!formData.title;
+    if (currentStep === 8) return images.length > 0 || uploading === false;
+    return true;
+  };
+
+  const nextStep = async () => {
+    if (!canProceed()) { toast.error('Complete required info'); return; }
+    try {
+      if (currentStep === 1) {
+        await ctxUpdateProfile({
+          firstName: partner.firstName,
+          lastName: partner.lastName,
+          phone: partner.phone,
+        });
+        await refreshUser();
+      }
+      setCurrentStep(s => Math.min(totalSteps, s + 1));
+    } catch (e) {
+      toast.error(e.message || 'Failed to save contact details');
+    }
+  };
+
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!formData.title || !formData.address || !formData.city || !formData.pricePerNight) {
-      toast.error('Please fill in all required fields');
-      return;
-    }
-
-    if (images.length === 0) {
-      toast.error('Please upload at least one image');
-      return;
-    }
-
+    e?.preventDefault?.();
     try {
       setLoading(true);
-      const payload = {
-        ...formData,
-        pricePerNight: Number(formData.pricePerNight),
-        bedrooms: Number(formData.bedrooms),
-        bathrooms: Number(formData.bathrooms),
-        groupBookingDiscount: Number(formData.groupBookingDiscount),
-        commissionRate: Number(formData.commissionRate),
-        images,
-        rooms,
-        featuredUntil: formData.featuredUntil ? new Date(formData.featuredUntil).toISOString() : null
-      };
-
       const url = isEditing ? `${API_URL}/api/properties/${editId}` : `${API_URL}/api/properties`;
       const method = isEditing ? 'PUT' : 'POST';
 
+      // Build multipart/form-data to satisfy backend multer
+      const fd = new FormData();
+      Object.entries(formData).forEach(([k, v]) => {
+        if (v === undefined || v === null) return;
+        if (Array.isArray(v)) {
+          // Append arrays as repeated fields
+          v.forEach(item => fd.append(k, String(item)));
+        } else {
+          fd.append(k, String(v));
+        }
+      });
+      // Rooms as JSON string (backend handles arrays under req.body.rooms elsewhere too)
+      fd.append('rooms', JSON.stringify(rooms || []));
+      // Provide imageUrls so backend merges them
+      (images || []).forEach(u => fd.append('imageUrls', u));
+
       const res = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-        credentials: 'include'
+        credentials: 'include',
+        body: fd,
       });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed to save property');
-
-      toast.success(isEditing ? 'Property updated successfully' : 'Property created successfully');
-      
-      // Refresh user context to update role if needed (guest -> host promotion)
-      if (!isEditing) {
-        await refreshUser();
+      const ct = res.headers.get('content-type') || '';
+      if (!ct.includes('application/json')) {
+        const text = await res.text().catch(()=> '');
+        throw new Error(`Unexpected ${ct || 'response'} (status ${res.status}). ${text.slice(0,180)}`);
       }
-      
+      const data = await res.json().catch(()=>({}));
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403) throw new Error('Authorization required. Please log in as a host and try again.');
+        throw new Error(data.message || 'Failed to save property');
+      }
+      toast.success(isEditing ? 'Property updated' : 'Property created');
       navigate('/dashboard');
-    } catch (error) {
-      toast.error(error.message);
+    } catch (err) {
+      toast.error(err.message || 'Failed to save');
     } finally {
       setLoading(false);
     }
+  };
+
+  const prevStep = () => setCurrentStep(s => Math.max(1, s - 1));
+
+  const saveDraftLocal = () => {
+    try {
+      localStorage.setItem('listing_draft_v1', JSON.stringify({ formData, rooms, images, currentStep, partner }));
+      toast.success('Draft saved');
+    } catch (_) { toast.error('Could not save draft'); }
   };
 
   if (loading && isEditing) {
@@ -312,7 +469,7 @@ const EnhancedUploadProperty = () => {
                       <div key={d._id} className="modern-card-elevated p-4">
                         <div className="flex items-center justify-between">
                           <div>
-                            <div className="font-semibold text-gray-900 truncate">{d.title || 'Promotion'}</div>
+                            <div className="font-semibold text-gray-900">{d.title || 'Promotion'}</div>
                             <div className="text-xs text-gray-600 mt-1">{d.dealType || d.type || 'deal'} • {d.discountType} {d.discountValue}{d.discountType==='percent' ? '%' : ''}</div>
                             <div className="text-xs text-gray-500 mt-1">{d.isActive ? 'Active' : 'Inactive'} • {d.isPublished ? 'Published' : 'Unpublished'}</div>
                           </div>
@@ -334,355 +491,200 @@ const EnhancedUploadProperty = () => {
             </button>
           </div>
 
+          <div className="mb-6">
+            <div className="w-full bg-gray-100 rounded-full h-2">
+              <div className="bg-[#a06b42] h-2 rounded-full" style={{ width: `${Math.round((currentStep-1)/(totalSteps-1)*100)}%` }}></div>
+            </div>
+            <div className="mt-2 text-sm text-gray-600">Step {currentStep} of {totalSteps}</div>
+          </div>
+
           <form onSubmit={handleSubmit} className="space-y-8">
-            {/* Basic Information */}
-            <div className="space-y-6">
-              <h2 className="text-xl font-semibold text-gray-900 border-b pb-2">Basic Information</h2>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Property Title *
-                  </label>
-                  <input
-                    type="text"
-                    name="title"
-                    value={formData.title}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Enter property title"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Category *
-                  </label>
-                  <select
-                    name="category"
-                    value={formData.category}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    required
-                  >
-                    {categories.map(cat => (
-                      <option key={cat.value} value={cat.value}>{cat.label}</option>
-                    ))}
-                  </select>
+            {currentStep === 1 && (
+              <div className="space-y-6">
+                <h2 className="text-xl font-semibold text-gray-900 border-b pb-2">Contact details</h2>
+                <div className="text-gray-700 text-sm">Your full name and phone number are needed for your partner account.</div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">First name</label>
+                    <input value={partner.firstName} onChange={(e)=> setPartner(p=>({...p, firstName: e.target.value}))} className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Last name</label>
+                    <input value={partner.lastName} onChange={(e)=> setPartner(p=>({...p, lastName: e.target.value}))} className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Phone number</label>
+                    <input type="tel" value={partner.phone} onChange={(e)=> setPartner(p=>({...p, phone: e.target.value}))} placeholder="+250..." className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                  </div>
                 </div>
               </div>
+            )}
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Description
-                </label>
-                <textarea
-                  name="description"
-                  value={formData.description}
-                  onChange={handleInputChange}
-                  rows={4}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Describe your property..."
-                />
+            {currentStep === 2 && (
+              <div className="space-y-6">
+                <h2 className="text-xl font-semibold text-gray-900 border-b pb-2">Create your partner account</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Email address</label>
+                    <input value={partner.email} disabled className="w-full px-4 py-3 border rounded-lg bg-gray-50 text-gray-600" />
+                  </div>
+                </div>
+                <div className="text-gray-700 text-sm">We use your existing account. Continue to set up your listing.</div>
               </div>
+            )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {currentStep === 3 && (
+              <div className="space-y-6">
+                <h2 className="text-xl font-semibold text-gray-900 border-b pb-2">Property Type</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {categories.map(cat => (
+                    <button type="button" key={cat.value} onClick={() => setFormData(prev=>({...prev, category: cat.value }))} className={`text-left border rounded-xl p-4 hover:bg-gray-50 ${formData.category===cat.value?'border-[#a06b42] ring-1 ring-[#a06b42]':'border-gray-200'}`}>
+                    <div className="font-semibold text-gray-900">{cat.label}</div>
+                    <div className="text-xs text-gray-600">Select {cat.label.toLowerCase()}</div>
+                  </button>
+                ))}
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Address *
-                  </label>
-                  <input
-                    type="text"
-                    name="address"
-                    value={formData.address}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Enter full address"
-                    required
-                  />
+                  <label className="block text-sm font-medium text-gray-700 mb-2">How many units?</label>
+                  <div className="flex items-center gap-4">
+                    <label className="inline-flex items-center gap-2"><input type="radio" name="unitMode" checked={formData.unitMode==='one'} onChange={()=> setFormData(prev=>({...prev, unitMode:'one', unitCount:1}))} />One unit</label>
+                    <label className="inline-flex items-center gap-2"><input type="radio" name="unitMode" checked={formData.unitMode==='multiple'} onChange={()=> setFormData(prev=>({...prev, unitMode:'multiple'}))} />Multiple units</label>
+                  </div>
                 </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    City *
-                  </label>
-                  <input
-                    type="text"
-                    name="city"
-                    value={formData.city}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Enter city"
-                    required
-                  />
-                </div>
+                {formData.unitMode==='multiple' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Number of units</label>
+                    <input type="number" min={1} value={formData.unitCount} onChange={(e)=> setFormData(prev=>({...prev, unitCount: Math.max(1, Number(e.target.value)||1)}))} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                  </div>
+                )}
               </div>
             </div>
+          )}
 
-            {/* Pricing & Details */}
+          {currentStep === 4 && (
             <div className="space-y-6">
-              <h2 className="text-xl font-semibold text-gray-900 border-b pb-2">Pricing & Details</h2>
-              
+              <h2 className="text-xl font-semibold text-gray-900 border-b pb-2">Property Location</h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Price per Night (RWF) *
-                  </label>
-                  <input
-                    type="number"
-                    name="pricePerNight"
-                    value={formData.pricePerNight}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="0"
-                    min="0"
-                    required
-                  />
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Country</label>
+                  <select value={formData.country} onChange={(e)=> setFormData(prev=>({...prev, country: e.target.value }))} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    {['Rwanda','Kenya','Uganda','Tanzania','DR Congo','Burundi'].map(c=> (<option key={c} value={c}>{c}</option>))}
+                  </select>
                 </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Bedrooms
-                  </label>
-                  <input
-                    type="number"
-                    name="bedrooms"
-                    value={formData.bedrooms}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    min="0"
-                  />
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Find your address</label>
+                  <input value={addrQuery} onChange={(e)=> setAddrQuery(e.target.value)} placeholder="Start typing address" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                  {addrLoading && <div className="text-xs text-gray-500 mt-1">Searching…</div>}
+                  {addrSuggestions.length > 0 && (
+                    <div className="mt-1 border rounded-lg bg-white shadow max-h-48 overflow-auto">
+                      {addrSuggestions.map((sug, i)=> (
+                        <button type="button" key={i} onClick={()=>{
+                          setFormData(prev=> ({...prev, address: sug.display_name, city: prev.city || '', latitude: Number(sug.lat), longitude: Number(sug.lon)}));
+                          setAddrSuggestions([]);
+                          setAddrQuery(sug.display_name);
+                        }} className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm">
+                          {sug.display_name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {/* Mock map preview */}
+                  <div className="mt-3">
+                    <div className="w-full h-48 bg-gray-200 rounded-lg relative overflow-hidden">
+                      <div className="absolute inset-0 flex items-center justify-center text-gray-500 text-sm">Mock Map Preview</div>
+                      {formData.latitude && formData.longitude && (
+                        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+                          <div className="w-3 h-3 bg-red-600 rounded-full shadow" title={`${formData.latitude}, ${formData.longitude}`}></div>
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-xs text-gray-600 mt-1">Coords: {formData.latitude ?? '—'}, {formData.longitude ?? '—'}</div>
+                  </div>
                 </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Bathrooms
-                  </label>
-                  <input
-                    type="number"
-                    name="bathrooms"
-                    value={formData.bathrooms}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    min="0"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Size (sq ft)
-                </label>
-                <input
-                  type="text"
-                  name="size"
-                  value={formData.size}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="e.g., 1200 sq ft"
-                />
               </div>
             </div>
+          )}
 
-            {/* Room Management */}
+          {currentStep === 5 && (
+            <div className="space-y-6">
+              <h2 className="text-xl font-semibold text-gray-900 border-b pb-2">Property Name</h2>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Property Title *</label>
+                <input type="text" name="title" value={formData.title} onChange={handleInputChange} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Enter property title" required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                <textarea name="description" value={formData.description} onChange={handleInputChange} rows={4} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Describe your property..."></textarea>
+              </div>
+            </div>
+          )}
+
+          {currentStep === 6 && (
+            <div className="space-y-6">
+              <h2 className="text-xl font-semibold text-gray-900 border-b pb-2">Facilities & Amenities</h2>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                {commonAmenities.map(a => (
+                  <label key={a} className="flex items-center"><input type="checkbox" checked={formData.amenities.includes(a)} onChange={(e)=>{ setFormData(prev=> ({...prev, amenities: e.target.checked ? [...prev.amenities, a] : prev.amenities.filter(x=>x!==a)})); }} className="h-4 w-4 text-blue-600 border-gray-300 rounded" /><span className="ml-2 text-sm text-gray-700">{a}</span></label>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {currentStep === 7 && (
             <div className="space-y-6">
               <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold text-gray-900 border-b pb-2">Room Management</h2>
-                <button
-                  type="button"
-                  onClick={addRoom}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
-                >
-                  <FaPlus />
-                  Add Room
-                </button>
+                <h2 className="text-xl font-semibold text-gray-900 border-b pb-2">Room/Unit Types</h2>
+                <button type="button" onClick={addRoom} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium">Add Room</button>
               </div>
-
               {rooms.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <FaBed className="text-4xl mx-auto mb-4 text-gray-300" />
-                  <p>No rooms added yet. Click "Add Room" to get started.</p>
-                </div>
+                <div className="text-center py-8 text-gray-500"><FaBed className="text-4xl mx-auto mb-4 text-gray-300" /><p>No rooms added yet.</p></div>
               ) : (
                 <div className="space-y-4">
                   {rooms.map((room, index) => (
                     <div key={index} className="border border-gray-200 rounded-lg p-6">
                       <div className="flex items-center justify-between mb-4">
                         <h3 className="text-lg font-medium text-gray-900">Room {index + 1}</h3>
-                        <button
-                          type="button"
-                          onClick={() => removeRoom(index)}
-                          className="text-red-600 hover:text-red-800 transition-colors"
-                        >
-                          <FaTrash />
-                        </button>
+                        <button type="button" onClick={() => removeRoom(index)} className="text-red-600 hover:text-red-800"><FaTrash /></button>
                       </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Room Number
-                          </label>
-                          <input
-                            type="text"
-                            value={room.roomNumber}
-                            onChange={(e) => updateRoom(index, 'roomNumber', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Room Type
-                          </label>
-                          <select
-                            value={room.roomType}
-                            onChange={(e) => updateRoom(index, 'roomType', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          >
-                            {roomTypes.map(type => (
-                              <option key={type.value} value={type.value}>{type.label}</option>
-                            ))}
-                          </select>
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Price per Night (RWF)
-                          </label>
-                          <input
-                            type="number"
-                            value={room.pricePerNight}
-                            onChange={(e) => updateRoom(index, 'pricePerNight', Number(e.target.value))}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            min="0"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Capacity
-                          </label>
-                          <input
-                            type="number"
-                            value={room.capacity}
-                            onChange={(e) => updateRoom(index, 'capacity', Number(e.target.value))}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            min="1"
-                          />
-                        </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div><label className="block text-sm font-medium text-gray-700 mb-2">Room Number</label><input type="text" value={room.roomNumber} onChange={(e) => updateRoom(index, 'roomNumber', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" /></div>
+                        <div><label className="block text-sm font-medium text-gray-700 mb-2">Room Type</label><select value={room.roomType} onChange={(e) => updateRoom(index, 'roomType', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">{roomTypes.map(type => (<option key={type.value} value={type.value}>{type.label}</option>))}</select></div>
+                        <div><label className="block text-sm font-medium text-gray-700 mb-2">Price per Night (RWF)</label><input type="number" value={room.pricePerNight} onChange={(e) => updateRoom(index, 'pricePerNight', Number(e.target.value))} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" min="0" /></div>
+                        <div><label className="block text-sm font-medium text-gray-700 mb-2">Capacity</label><input type="number" value={room.capacity} onChange={(e) => updateRoom(index, 'capacity', Number(e.target.value))} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" min="1" /></div>
                       </div>
-
-                      {/* Room Amenities */}
                       <div className="mt-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Room Amenities
-                        </label>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                          {['WiFi', 'TV', 'Air Conditioning', 'Mini Bar', 'Safe', 'Balcony', 'Sea View', 'City View', 'Room Service', 'Coffee Machine'].map(amenity => (
-                            <label key={amenity} className="flex items-center">
-                              <input
-                                type="checkbox"
-                                checked={room.amenities?.includes(amenity) || false}
-                                onChange={(e) => {
-                                  const currentAmenities = room.amenities || [];
-                                  const newAmenities = e.target.checked 
-                                    ? [...currentAmenities, amenity]
-                                    : currentAmenities.filter(a => a !== amenity);
-                                  updateRoom(index, 'amenities', newAmenities);
-                                }}
-                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                              />
-                              <span className="ml-2 text-sm text-gray-700">{amenity}</span>
-                            </label>
+                        <div className="text-sm font-medium text-gray-700 mb-2">Beds</div>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                          {Object.entries(room.beds || {}).map(([type, count]) => (
+                            <div key={type} className="flex items-center justify-between border rounded-lg px-3 py-2">
+                              <span className="capitalize text-sm text-gray-700">{type} bed(s)</span>
+                              <div className="flex items-center gap-2">
+                                <button type="button" className="px-2 py-1 border rounded" onClick={()=> updateRoom(index, 'beds', { ...(room.beds||{}), [type]: Math.max(0, (room.beds?.[type]||0)-1) })}>-</button>
+                                <span className="w-6 text-center text-sm">{count}</span>
+                                <button type="button" className="px-2 py-1 border rounded" onClick={()=> updateRoom(index, 'beds', { ...(room.beds||{}), [type]: (room.beds?.[type]||0)+1 })}>+</button>
+                              </div>
+                            </div>
                           ))}
                         </div>
                       </div>
 
-                      {/* Room Images Upload */}
+                      {/* Room Images */}
                       <div className="mt-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Room Images
-                        </label>
-                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
-                          <input
-                            type="file"
-                            multiple
-                            accept="image/*"
-                            onChange={async (e) => {
-                              const files = Array.from(e.target.files);
-                              if (files.length === 0) return;
-
-                              try {
-                                setUploading(true);
-                                const formData = new FormData();
-                                files.forEach(file => formData.append('images', file));
-
-                                console.log('Uploading room images to:', `${API_URL}/api/properties/upload/images`);
-
-                                const res = await fetch(`${API_URL}/api/properties/upload/images`, {
-                                  method: 'POST',
-                                  body: formData,
-                                  credentials: 'include'
-                                });
-
-                                console.log('Room image upload response status:', res.status);
-
-                                // Check if response is HTML (error page)
-                                const contentType = res.headers.get('content-type');
-                                if (contentType && contentType.includes('text/html')) {
-                                  const htmlText = await res.text();
-                                  console.error('Received HTML instead of JSON:', htmlText.substring(0, 200));
-                                  throw new Error('Server returned HTML instead of JSON. Please check if the backend server is running.');
-                                }
-
-                                const data = await res.json();
-                                if (!res.ok) throw new Error(data.message || 'Failed to upload images');
-
-                                const currentImages = room.images || [];
-                                updateRoom(index, 'images', [...currentImages, ...data.imageUrls]);
-                                toast.success('Room images uploaded successfully');
-                              } catch (error) {
-                                console.error('Room image upload error:', error);
-                                toast.error(error.message || 'Failed to upload room images. Please try again.');
-                              } finally {
-                                setUploading(false);
-                              }
-                            }}
-                            className="hidden"
-                            id={`room-image-upload-${index}`}
-                            disabled={uploading}
-                          />
-                          <label htmlFor={`room-image-upload-${index}`} className="cursor-pointer">
-                            <FaUpload className="text-2xl text-gray-400 mx-auto mb-2" />
-                            <p className="text-sm font-medium text-gray-700 mb-1">
-                              {uploading ? 'Uploading...' : 'Upload Room Images'}
-                            </p>
-                            <p className="text-xs text-gray-500">Click to upload room-specific images</p>
+                        <div className="text-sm font-medium text-gray-700 mb-2">Room Images</div>
+                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-3 text-center">
+                          <input id={`room-image-upload-${index}`} type="file" multiple accept="image/*" className="hidden" onChange={(e)=>handleRoomImageUpload(index, e)} disabled={uploading} />
+                          <label htmlFor={`room-image-upload-${index}`} className="cursor-pointer inline-flex items-center gap-2 text-sm text-gray-700">
+                            <FaUpload className="text-gray-400" />
+                            <span>{uploading ? 'Uploading…' : 'Upload room images'}</span>
                           </label>
                         </div>
-
-                        {/* Display Room Images */}
-                        {room.images && room.images.length > 0 && (
+                        {(room.images && room.images.length > 0) && (
                           <div className="mt-3 grid grid-cols-2 md:grid-cols-3 gap-2">
-                            {room.images.map((image, imgIndex) => (
-                              <div key={imgIndex} className="relative group">
-                                <img
-                                  src={image.startsWith('http') ? image : `${API_URL}${image}`}
-                                  alt={`Room ${index + 1} - Image ${imgIndex + 1}`}
-                                  className="w-full h-24 object-cover rounded-lg"
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const updatedImages = room.images.filter((_, i) => i !== imgIndex);
-                                    updateRoom(index, 'images', updatedImages);
-                                  }}
-                                  className="absolute top-1 right-1 bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                                >
-                                  <FaTimes className="text-xs" />
-                                </button>
+                            {room.images.map((img, rIdx) => (
+                              <div key={rIdx} className="relative group">
+                                <img src={img.startsWith('http') ? img : `${API_URL}${img}`} alt={`Room ${index+1} image ${rIdx+1}`} className="w-full h-24 object-cover rounded-lg" />
+                                <button type="button" onClick={()=>removeRoomImage(index, rIdx)} className="absolute top-1 right-1 bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"><FaTimes className="text-xs" /></button>
                               </div>
                             ))}
                           </div>
@@ -693,198 +695,49 @@ const EnhancedUploadProperty = () => {
                 </div>
               )}
             </div>
+          )}
 
-            {/* Group Booking Options */}
+          {currentStep === 8 && (
             <div className="space-y-6">
-              <h2 className="text-xl font-semibold text-gray-900 border-b pb-2">Group Booking Options</h2>
-              
-              <div className="space-y-4">
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    name="groupBookingEnabled"
-                    checked={formData.groupBookingEnabled}
-                    onChange={handleInputChange}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <label className="ml-2 text-sm font-medium text-gray-700">
-                    Enable group bookings
-                  </label>
-                </div>
-
-                {formData.groupBookingEnabled && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Group Booking Discount (%)
-                    </label>
-                    <input
-                      type="number"
-                      name="groupBookingDiscount"
-                      value={formData.groupBookingDiscount}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      min="0"
-                      max="50"
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Visibility & Commission */}
-            <div className="space-y-6">
-              <h2 className="text-xl font-semibold text-gray-900 border-b pb-2">Visibility & Commission</h2>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Visibility Level
-                  </label>
-                  <select
-                    name="visibilityLevel"
-                    value={formData.visibilityLevel}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    {visibilityLevels.map(level => (
-                      <option key={level.value} value={level.value}>
-                        {level.label} - {level.description}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Commission Rate (%)
-                  </label>
-                  <select
-                    name="commissionRate"
-                    value={formData.commissionRate}
-                    onChange={(e)=> setFormData(prev => ({ ...prev, commissionRate: Number(e.target.value) }))}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value={8}>8%</option>
-                    <option value={10}>10%</option>
-                    <option value={12}>12%</option>
-                  </select>
-                </div>
-              </div>
-
-              {formData.visibilityLevel === 'featured' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Featured Until
-                  </label>
-                  <input
-                    type="date"
-                    name="featuredUntil"
-                    value={formData.featuredUntil}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-              )}
-            </div>
-
-            {/* Amenities */}
-            <div className="space-y-6">
-              <h2 className="text-xl font-semibold text-gray-900 border-b pb-2">Amenities</h2>
-              
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {commonAmenities.map(amenity => (
-                  <label key={amenity} className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={formData.amenities.includes(amenity)}
-                      onChange={() => handleAmenityToggle(amenity)}
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                    />
-                    <span className="ml-2 text-sm text-gray-700">{amenity}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {/* Image Upload */}
-            <div className="space-y-6">
-              <h2 className="text-xl font-semibold text-gray-900 border-b pb-2">Property Images</h2>
-              
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                <input
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  className="hidden"
-                  id="image-upload"
-                  disabled={uploading}
-                />
-                <label htmlFor="image-upload" className="cursor-pointer">
-                  <FaUpload className="text-4xl text-gray-400 mx-auto mb-4" />
-                  <p className="text-lg font-medium text-gray-700 mb-2">
-                    {uploading ? 'Uploading...' : 'Click to upload images'}
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    Upload multiple images (JPG, PNG, GIF)
-                  </p>
+              <h2 className="text-xl font-semibold text-gray-900 border-b pb-2">Upload Property Photos</h2>
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
+                <input type="file" multiple accept="image/*" onChange={handleImageUpload} className="hidden" id="property-image-upload" disabled={uploading} />
+                <label htmlFor="property-image-upload" className="cursor-pointer">
+                  <FaUpload className="text-2xl text-gray-400 mx-auto mb-2" />
+                  <p className="text-sm font-medium text-gray-700 mb-1">{uploading ? 'Uploading...' : 'Upload Property Images'}</p>
                 </label>
               </div>
-
-              {images.length > 0 && (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {images.map((image, index) => (
-                    <div key={index} className="relative group">
-                      <img
-                        src={image.startsWith('http') ? image : `${API_URL}${image}`}
-                        alt={`Property ${index + 1}`}
-                        className="w-full h-32 object-cover rounded-lg"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removeImage(index)}
-                        className="absolute top-2 right-2 bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <FaTimes className="text-xs" />
-                      </button>
+              {images && images.length > 0 && (
+                <div className="mt-3 grid grid-cols-2 md:grid-cols-3 gap-2">
+                  {images.map((image, idx) => (
+                    <div key={idx} className="relative group">
+                      <img src={image.startsWith('http') ? image : `${API_URL}${image}`} alt={`Property Image ${idx+1}`} className="w-full h-24 object-cover rounded-lg" />
+                      <button type="button" onClick={() => removeImage(idx)} className="absolute top-1 right-1 bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"><FaTimes className="text-xs" /></button>
                     </div>
                   ))}
                 </div>
               )}
             </div>
+          )}
 
-            {/* Submit Button */}
-            <div className="flex items-center justify-end space-x-4 pt-6 border-t">
-              <button
-                type="button"
-                onClick={() => navigate('/dashboard')}
-                className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={loading || uploading}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {loading ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    {isEditing ? 'Updating...' : 'Creating...'}
-                  </>
-                ) : (
-                  <>
-                    <FaSave />
-                    {isEditing ? 'Update Property' : 'Create Property'}
-                  </>
-                )}
-              </button>
+          {/* Footer Controls */}
+          <div className="flex items-center justify-between space-x-4 pt-6 border-t">
+            <div className="flex items-center gap-2">
+              <button type="button" onClick={prevStep} disabled={currentStep===1} className={`px-6 py-3 rounded-lg disabled:opacity-50 ${secondaryBtn}`}>Back</button>
+              <button type="button" onClick={saveDraftLocal} className={`px-6 py-3 rounded-lg ${secondaryBtn}`}>Save draft</button>
             </div>
-          </form>
-        </div>
+            {currentStep < totalSteps && (
+              <button type="button" onClick={nextStep} className={`px-6 py-3 rounded-lg ${primaryBtn}`}>Next</button>
+            )}
+            {currentStep === totalSteps && (
+              <button type="submit" disabled={loading || uploading} className={`px-6 py-3 rounded-lg ${primaryBtn} disabled:opacity-50`}>{loading ? (isEditing ? 'Saving…' : 'Publishing…') : (isEditing ? 'Save Changes' : 'Publish Property')}</button>
+            )}
+          </div>
+        </form>
       </div>
     </div>
-  );
+  </div>
+);
 };
 
 export default EnhancedUploadProperty;

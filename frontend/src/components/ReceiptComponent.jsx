@@ -18,7 +18,8 @@ const ReceiptComponent = ({ bookingId, userType }) => {
       const res = await fetch(`${API_URL}/api/bookings/${bookingId}/receipt`, {
         credentials: 'include'
       });
-      const data = await res.json();
+      const ctype = res.headers.get('content-type') || '';
+      const data = ctype.includes('application/json') ? await res.json() : { message: await res.text() };
       
       if (!res.ok) throw new Error(data.message || 'Failed to fetch receipt');
       // Normalize using API-provided amounts (inclusive tax model)

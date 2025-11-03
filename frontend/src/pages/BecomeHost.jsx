@@ -26,7 +26,7 @@ const BecomeHost = () => {
       if (response.ok) {
         toast.success('Congratulations! You are now a property owner!');
         await refreshUser(); // Refresh user data to get updated userType
-        navigate('/list-property'); // Redirect to multi-step property listing
+        navigate('/upload'); // Redirect to step-based property listing wizard
       } else {
         toast.error(data.message || 'Failed to upgrade account');
       }

@@ -430,8 +430,8 @@ const Navbar = () => {
       setShowOwnerSwitch(true);
       return;
     }
-    // Navigate to new multi-step listing flow
-    navigate('/list-property');
+    // Navigate to step-based listing wizard
+    navigate('/upload');
   };
 
   const goToPropertyDashboard = () => {
@@ -689,7 +689,7 @@ const Navbar = () => {
             {/* Right Side - Booking.com Style */}
             <div className="flex flex-nowrap items-center gap-2 lg:gap-3">
               {/* Property selector (desktop) */}
-              {isAuthenticated && user?.userType === 'host' && myProperties.length > 0 && (
+              {isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard() && myProperties.length > 0 && (
                 <div className="hidden lg:block relative">
                   <button
                     onClick={() => setPropDropdownOpen(v => !v)}
@@ -741,7 +741,7 @@ const Navbar = () => {
                 </button>
               )}
               {/* Analytics Dropdown - Booking.com Style */}
-              {isAuthenticated && user?.userType === 'host' && (
+              {isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard() && (
                 <div className="hidden lg:block relative">
                   <button
                     onClick={() => toggleDropdown('owner')}
@@ -1165,7 +1165,7 @@ const Navbar = () => {
             )}
 
             {/* Host-specific links (move outside guest-only block) */}
-            {user?.userType === 'host' && userStats.properties > 0 && (
+            {user?.userType === 'host' && isInPropertyOwnerDashboard() && userStats.properties > 0 && (
               <Link
                 to="/dashboard"
                 className="flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
@@ -1205,7 +1205,7 @@ const Navbar = () => {
                 </Link>
 
                 {/* Mobile property selector (compact, no overflow) */}
-                {myProperties.length > 0 && (
+                {isInPropertyOwnerDashboard() && myProperties.length > 0 && (
                   <div className="mt-2 border-t border-gray-200 pt-2">
                     <div className="text-xs font-semibold text-gray-500 px-4 mb-1">Select Property</div>
                     <div className="max-h-56 overflow-y-auto">
@@ -1223,6 +1223,30 @@ const Navbar = () => {
                     </div>
                   </div>
                 )}
+
+                {/* Owner Tools (mobile) */}
+                <div className="mt-2 border-t border-gray-200 pt-2">
+                  <div className="text-xs font-semibold text-gray-500 px-4 mb-2">Owner Tools</div>
+                  <div className="px-2 grid grid-cols-1 gap-1">
+                    {ownerManagementLinks.map((category, idx) => (
+                      <div key={idx} className="mb-2">
+                        <div className="px-2 text-[11px] font-semibold text-gray-600 uppercase tracking-wide">{category.category}</div>
+                        <div className="mt-1">
+                          {category.links.map((link, linkIdx) => (
+                            <Link
+                              key={linkIdx}
+                              to={link.href}
+                              className="block px-4 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-50"
+                              onClick={() => setIsMenuOpen(false)}
+                            >
+                              {link.label}
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </>
             )}
 

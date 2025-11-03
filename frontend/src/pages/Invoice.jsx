@@ -17,7 +17,8 @@ const Invoice = () => {
         setLoading(true);
         // Get detailed booking for header/basic info
         const bRes = await fetch(`${API_URL}/api/bookings/${id}`, { credentials: 'include' });
-        const bJson = await bRes.json();
+        const bType = bRes.headers.get('content-type') || '';
+        const bJson = bType.includes('application/json') ? await bRes.json() : { message: await bRes.text() };
         if (!bRes.ok) throw new Error(bJson.message || 'Failed to fetch booking');
 
         // Get receipt data (JSON variant) depending on direct or not
@@ -25,7 +26,8 @@ const Invoice = () => {
           ? `${API_URL}/api/bookings/${id}/direct-receipt`
           : `${API_URL}/api/bookings/${id}/receipt`;
         const rRes = await fetch(rUrl, { credentials: 'include' });
-        const rJson = await rRes.json();
+        const rType = rRes.headers.get('content-type') || '';
+        const rJson = rType.includes('application/json') ? await rRes.json() : { message: await rRes.text() };
         if (!rRes.ok) throw new Error(rJson.message || 'Failed to fetch receipt');
 
         setData({ booking: bJson.booking, receipt: rJson.receipt });

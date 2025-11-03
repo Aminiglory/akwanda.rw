@@ -18,7 +18,8 @@ const RRAReceiptComponent = ({ bookingId }) => {
       const res = await fetch(`${API_URL}/api/bookings/${bookingId}/rra-receipt`, {
         credentials: 'include'
       });
-      const data = await res.json();
+      const ctype = res.headers.get('content-type') || '';
+      const data = ctype.includes('application/json') ? await res.json() : { message: await res.text() };
       
       if (!res.ok) throw new Error(data.message || 'Failed to fetch RRA receipt');
       
