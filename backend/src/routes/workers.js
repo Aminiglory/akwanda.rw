@@ -748,4 +748,358 @@ router.get('/dashboard/summary', requireAuth, requirePropertyOwner, async (req, 
   }
 });
 
+// Worker login endpoint (separate from regular user login)
+router.post('/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Email and password required' });
+    }
+    
+    // Find user account with worker type
+    const user = await User.findOne({ 
+      email: email.toLowerCase(),
+      userType: 'worker'
+    });
+    
+    if (!user) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+    
+    // Find associated worker profile
+    const worker = await Worker.findOne({ 
+      userAccount: user._id,
+      isActive: true 
+    }).populate('employerId', 'firstName lastName email');
+    
+    if (!worker) {
+      return res.status(401).json({ message: 'Worker account not found or inactive' });
+    }
+    
+    // Check if account is locked
+    if (worker.isLocked()) {
+      return res.status(423).json({ 
+        message: 'Account is locked due to multiple failed login attempts. Please contact your employer.' 
+      });
+    }
+    
+    // Verify password
+    const isValid = await bcrypt.compare(password, user.passwordHash);
+    
+    if (!isValid) {
+      await worker.incLoginAttempts();
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+    
+    // Reset login attempts on successful login
+    await worker.resetLoginAttempts();
+    
+    // Generate JWT token
+    const token = jwt.sign(
+      { 
+        id: user._id, 
+        userType: 'worker',
+        workerId: worker._id,
+        employerId: worker.employerId._id
+      },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+    
+    // Set cookie
+    res.cookie('akw_token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    });
+    
+    // Log action
+    await logWorkerAction(
+      worker._id,
+      worker.employerId._id,
+      'worker_login',
+      'auth',
+      worker._id,
+      `Worker logged in: ${worker.fullName}`,
+      { loginTime: new Date() },
+      req
+    );
+    
+    res.json({
+      message: 'Login successful',
+      user: {
+        id: user._id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        userType: 'worker'
+      },
+      worker: {
+        id: worker._id,
+        fullName: worker.fullName,
+        position: worker.position,
+        employeeId: worker.employeeId,
+        privileges: worker.privileges,
+        assignedProperties: worker.assignedProperties,
+        employer: {
+          name: `${worker.employerId.firstName} ${worker.employerId.lastName}`,
+          email: worker.employerId.email
+        }
+      },
+      token
+    });
+  } catch (error) {
+    console.error('Worker login error:', error);
+    res.status(500).json({ message: 'Login failed' });
+  }
+});
+
+// Worker change password (first-time or reset)
+router.post('/change-password', requireAuth, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    
+    if (req.user.userType !== 'worker') {
+      return res.status(403).json({ message: 'Only workers can use this endpoint' });
+    }
+    
+    if (!newPassword || newPassword.length < 6) {
+      return res.status(400).json({ message: 'New password must be at least 6 characters' });
+    }
+    
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    // Verify current password
+    if (currentPassword) {
+      const isValid = await bcrypt.compare(currentPassword, user.passwordHash);
+      if (!isValid) {
+        return res.status(401).json({ message: 'Current password is incorrect' });
+      }
+    }
+    
+    // Hash and save new password
+    const hash = await bcrypt.hash(newPassword, 10);
+    user.passwordHash = hash;
+    await user.save();
+    
+    // Log action
+    const worker = await Worker.findOne({ userAccount: user._id });
+    if (worker) {
+      await logWorkerAction(
+        worker._id,
+        worker.employerId,
+        'password_changed',
+        'auth',
+        user._id,
+        'Worker changed password',
+        {},
+        req
+      );
+    }
+    
+    res.json({ message: 'Password changed successfully' });
+  } catch (error) {
+    console.error('Change password error:', error);
+    res.status(500).json({ message: 'Failed to change password' });
+  }
+});
+
+// Get worker profile (for logged-in worker)
+router.get('/my-profile', requireAuth, async (req, res) => {
+  try {
+    if (req.user.userType !== 'worker') {
+      return res.status(403).json({ message: 'Only workers can access this endpoint' });
+    }
+    
+    const worker = await Worker.findOne({ userAccount: req.user.id })
+      .populate('employerId', 'firstName lastName email phone')
+      .populate('assignedProperties', 'title city address');
+    
+    if (!worker) {
+      return res.status(404).json({ message: 'Worker profile not found' });
+    }
+    
+    res.json({ worker });
+  } catch (error) {
+    console.error('Get worker profile error:', error);
+    res.status(500).json({ message: 'Failed to fetch profile' });
+  }
+});
+
+// Print workers list (PDF/CSV)
+router.get('/print/:format', requireAuth, requirePropertyOwner, async (req, res) => {
+  try {
+    const { format } = req.params;
+    const employerId = req.user.id;
+    
+    const workers = await Worker.find({ employerId, isActive: true })
+      .populate('assignedProperties', 'title')
+      .sort({ createdAt: -1 });
+    
+    if (format === 'pdf') {
+      const PDFDocument = require('pdfkit');
+      const doc = new PDFDocument();
+      const filename = `workers-list-${Date.now()}.pdf`;
+      
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      doc.pipe(res);
+      
+      // PDF Header
+      doc.fontSize(20).text('Workers List', 50, 50);
+      doc.fontSize(12).text(`Generated: ${new Date().toLocaleDateString()}`, 50, 80);
+      doc.text('─'.repeat(90), 50, 100);
+      
+      let y = 120;
+      workers.forEach((worker, index) => {
+        if (y > 700) { doc.addPage(); y = 50; }
+        
+        doc.fontSize(14).text(`${index + 1}. ${worker.fullName}`, 50, y);
+        y += 20;
+        doc.fontSize(10).text(`Position: ${worker.position}`, 70, y);
+        y += 15;
+        doc.text(`Email: ${worker.email}`, 70, y);
+        y += 15;
+        doc.text(`Phone: ${worker.phone}`, 70, y);
+        y += 15;
+        doc.text(`Employee ID: ${worker.employeeId}`, 70, y);
+        y += 15;
+        doc.text(`Status: ${worker.status}`, 70, y);
+        y += 15;
+        const props = worker.assignedProperties.map(p => p.title).join(', ') || 'None';
+        doc.text(`Assigned Properties: ${props}`, 70, y);
+        y += 25;
+      });
+      
+      doc.end();
+    } else if (format === 'csv') {
+      const filename = `workers-list-${Date.now()}.csv`;
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      
+      let csv = 'Name,Position,Email,Phone,Employee ID,Status,Assigned Properties\n';
+      workers.forEach(worker => {
+        const props = worker.assignedProperties.map(p => p.title).join('; ') || 'None';
+        csv += `"${worker.fullName}","${worker.position}","${worker.email}","${worker.phone}","${worker.employeeId}","${worker.status}","${props}"\n`;
+      });
+      
+      res.send(csv);
+    } else {
+      res.status(400).json({ message: 'Invalid format. Use pdf or csv' });
+    }
+  } catch (error) {
+    console.error('Print workers error:', error);
+    res.status(500).json({ message: 'Failed to generate workers list' });
+  }
+});
+
+// Generate daily report for worker
+router.get('/daily-report/:workerId', requireAuth, async (req, res) => {
+  try {
+    const { workerId } = req.params;
+    const worker = await Worker.findById(workerId).populate('employerId', 'firstName lastName email');
+    
+    if (!worker) return res.status(404).json({ message: 'Worker not found' });
+    
+    // Check authorization
+    if (req.user.id !== String(worker.employerId._id) && req.user.userType !== 'admin') {
+      return res.status(403).json({ message: 'Unauthorized' });
+    }
+    
+    // Get today's activity
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    const todayActivity = await WorkerActionLog.find({
+      workerId: worker._id,
+      createdAt: { $gte: today, $lt: tomorrow }
+    }).sort({ createdAt: -1 });
+    
+    const report = {
+      worker: {
+        name: worker.fullName,
+        position: worker.position,
+        employeeId: worker.employeeId
+      },
+      date: today.toLocaleDateString(),
+      totalActions: todayActivity.length,
+      successfulActions: todayActivity.filter(a => a.success).length,
+      failedActions: todayActivity.filter(a => !a.success).length,
+      actionsByType: todayActivity.reduce((acc, action) => {
+        acc[action.actionType] = (acc[action.actionType] || 0) + 1;
+        return acc;
+      }, {}),
+      activities: todayActivity.map(a => ({
+        time: a.createdAt.toLocaleTimeString(),
+        action: a.actionType,
+        description: a.description,
+        success: a.success
+      }))
+    };
+    
+    res.json({ report });
+  } catch (error) {
+    console.error('Daily report error:', error);
+    res.status(500).json({ message: 'Failed to generate daily report' });
+  }
+});
+
+// Auto-generate and email daily report (to be called by cron job)
+router.post('/auto-daily-reports', requireAuth, async (req, res) => {
+  try {
+    if (req.user.userType !== 'admin') {
+      return res.status(403).json({ message: 'Admin only' });
+    }
+    
+    const workers = await Worker.find({ isActive: true }).populate('employerId', 'email firstName lastName');
+    
+    const reports = [];
+    for (const worker of workers) {
+      try {
+        // Generate report
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        
+        const todayActivity = await WorkerActionLog.find({
+          workerId: worker._id,
+          createdAt: { $gte: today, $lt: tomorrow }
+        });
+        
+        const report = {
+          workerName: worker.fullName,
+          employerEmail: worker.employerId.email,
+          totalActions: todayActivity.length,
+          successRate: todayActivity.length > 0 
+            ? (todayActivity.filter(a => a.success).length / todayActivity.length * 100).toFixed(1) 
+            : 0
+        };
+        
+        reports.push(report);
+        
+        // TODO: Send email to employer with report
+        // This would integrate with your email service
+      } catch (err) {
+        console.error(`Failed to generate report for worker ${worker._id}:`, err);
+      }
+    }
+    
+    res.json({ 
+      message: 'Daily reports generated',
+      reportsGenerated: reports.length,
+      reports
+    });
+  } catch (error) {
+    console.error('Auto daily reports error:', error);
+    res.status(500).json({ message: 'Failed to generate auto reports' });
+  }
+});
+
 module.exports = router;

@@ -40,6 +40,8 @@ const PropertyOwnerBookings = () => {
     averageRating: 0
   });
   const [showDirectBooking, setShowDirectBooking] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
   const [directForm, setDirectForm] = useState({
     propertyId: '',
     roomId: '',
@@ -334,6 +336,36 @@ const PropertyOwnerBookings = () => {
     if (filters.search && !guestName.includes(filters.search.toLowerCase())) return false;
     return true;
   });
+
+  // Pagination logic
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentBookings = filteredBookings.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredBookings.length / itemsPerPage);
+
+  const paginate = (pageNumber) => setCurrentPage(pageNumber);
+
+  // Download report function
+  const downloadReport = async (format) => {
+    try {
+      const propertyParam = filters.property !== 'all' ? `&property=${filters.property}` : '';
+      const url = `${API_URL}/api/reports/generate-${format}?type=bookings&period=monthly${propertyParam}`;
+      const res = await fetch(url, { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to generate report');
+      const blob = await res.blob();
+      const link = document.createElement('a');
+      const objUrl = window.URL.createObjectURL(blob);
+      link.href = objUrl;
+      link.download = `bookings-report-${Date.now()}.${format}`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(objUrl);
+      toast.success(`${format.toUpperCase()} report downloaded`);
+    } catch (error) {
+      toast.error('Failed to download report');
+    }
+  };
 
   // Finance filters derived from query params
   const financeFiltered = bookings.filter(b => {
@@ -897,7 +929,8 @@ const PropertyOwnerBookings = () => {
           <div>
             {/* Filters */}
         <div className="neu-card p-6 mb-8">
-          <div className="flex flex-wrap gap-4">
+          <div className="flex flex-wrap gap-4 items-center justify-between mb-4">
+            <div className="flex flex-wrap gap-4 flex-1">
             <select
               value={filters.status}
               onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
@@ -939,6 +972,24 @@ const PropertyOwnerBookings = () => {
                 />
               </div>
             </div>
+            </div>
+            {/* Export Buttons */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => downloadReport('pdf')}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
+              >
+                <FaFileAlt />
+                Export PDF
+              </button>
+              <button
+                onClick={() => downloadReport('csv')}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+              >
+                <FaDownload />
+                Export CSV
+              </button>
+            </div>
           </div>
         </div>
 
@@ -978,7 +1029,7 @@ const PropertyOwnerBookings = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredBookings.map(b => {
+              {currentBookings.map(b => {
                 const guestName = `${b.guest?.firstName || ''} ${b.guest?.lastName || ''}`.trim() || b.guest?.email || 'Guest';
                 const propertyTitle = b.property?.title || b.property?.name || 'Property';
                 const propertyLocation = b.property?.city || b.property?.address || '';
@@ -1050,6 +1101,44 @@ const PropertyOwnerBookings = () => {
               )}
             </tbody>
           </table>
+          )}
+
+          {/* Pagination Controls */}
+          {ownerView === 'table' && totalPages > 1 && (
+            <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200">
+              <div className="text-sm text-gray-700">
+                Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filteredBookings.length)} of {filteredBookings.length} reservations
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => paginate(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1 rounded bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Previous
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(number => (
+                  <button
+                    key={number}
+                    onClick={() => paginate(number)}
+                    className={`px-3 py-1 rounded ${
+                      currentPage === number
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 hover:bg-gray-200'
+                    }`}
+                  >
+                    {number}
+                  </button>
+                ))}
+                <button
+                  onClick={() => paginate(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-1 rounded bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
           )}
 
           {ownerView === 'calendar' && (

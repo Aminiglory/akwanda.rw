@@ -56,13 +56,15 @@ const propertySchema = new mongoose.Schema(
     petPolicy: { type: String },
     // Cancellation policy
     cancellationPolicy: { type: String, default: 'Free cancellation up to 48 hours before check-in' },
+    // Tax rate (Rwanda VAT)
+    taxRate: { type: Number, default: 3, min: 0, max: 100 },
     groupBookingEnabled: { type: Boolean, default: false },
     groupBookingDiscount: { type: Number, default: 0 },
     commissionRate: { type: Number, default: 10, min: 8, max: 12 },
     visibilityLevel: { type: String, enum: ['standard', 'premium', 'featured'], default: 'standard' },
     featuredUntil: { type: Date },
     // Booking.com-like globally unique property identifier (human-friendly)
-    propertyNumber: { type: String, unique: true, index: true },
+    propertyNumber: { type: String, unique: true, sparse: true, index: true },
     promotions: [{
       type: { type: String, enum: ['last_minute','advance_purchase','coupon','member_rate'], required: true },
       title: { type: String },
