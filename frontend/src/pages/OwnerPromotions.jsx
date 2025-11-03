@@ -14,7 +14,10 @@ export default function OwnerPromotions() {
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [showDealForm, setShowDealForm] = useState(false);
-  const [activeTab, setActiveTab] = useState('promotions'); // 'promotions' or 'deals'
+  const [activeTab, setActiveTab] = useState('deals'); // 'promotions' or 'deals' - DEFAULT TO DEALS
+
+  // Debug log
+  console.log('OwnerPromotions loaded - Version 2.0 with Deals Tab');
   const [form, setForm] = useState({ _id: '', type: '', title: '', description: '', discountPercent: '', startDate: '', endDate: '', lastMinuteWithinDays: '', minAdvanceDays: '', couponCode: '', active: true });
   const [dealForm, setDealForm] = useState(getEmptyDealForm());
   const [editingDeal, setEditingDeal] = useState(null);
@@ -345,6 +348,11 @@ export default function OwnerPromotions() {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-6xl mx-auto px-4">
+        {/* Version Banner - Remove after confirming */}
+        <div className="mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
+          <strong>✅ New Version Loaded!</strong> Deals tab is now available below.
+        </div>
+        
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <FaBullhorn className="text-blue-600" />
