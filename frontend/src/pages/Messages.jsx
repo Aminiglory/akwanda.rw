@@ -103,6 +103,40 @@ export default function Messages() {
     loadThreads();
   }, []);
 
+  // Handle recipient query parameter to initiate conversation
+  useEffect(() => {
+    const recipientId = searchParams.get('recipient');
+    const bookingId = searchParams.get('booking');
+    
+    if (recipientId && threads.length > 0) {
+      // Check if conversation already exists
+      const existingThread = threads.find(t => 
+        String(t.userId) === String(recipientId) || 
+        (bookingId && String(t.bookingId) === String(bookingId))
+      );
+      
+      if (existingThread) {
+        // Open existing conversation
+        setActiveThread(existingThread);
+      } else {
+        // Create new conversation thread
+        const newThread = {
+          id: `new-${recipientId}-${Date.now()}`,
+          userId: recipientId,
+          bookingId: bookingId || null,
+          userName: 'Guest',
+          userAvatar: placeholderAvatar,
+          lastMessage: '',
+          timestamp: new Date().toISOString(),
+          unread: 0,
+          isOnline: false
+        };
+        setThreads(prev => [newThread, ...prev]);
+        setActiveThread(newThread);
+      }
+    }
+  }, [searchParams, threads.length]);
+
   // Hydrate thread user avatars and names from backend basic info
   useEffect(() => {
     const hydrate = async () => {

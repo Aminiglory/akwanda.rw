@@ -1065,26 +1065,30 @@ const PropertyOwnerBookings = () => {
                     <td className="px-4 py-3 text-sm">{b.isDirect ? 'Yes' : 'No'}</td>
                     <td className="px-4 py-3 text-sm space-x-1">
                       <button
-                        onClick={() => navigate(`/receipt/${b._id}?direct=${b.isDirect ? 'true' : 'false'}`)}
+                        onClick={() => window.open(`${API_URL}/api/bookings/${b._id}/receipt`, '_blank')}
                         className="p-2 rounded bg-green-50 text-green-700 hover:bg-green-100"
                         aria-label="Receipt"
-                        title="Receipt"
+                        title="Download Receipt"
                       >
                         <FaFileInvoice />
                       </button>
                       <button
-                        onClick={() => navigate(`/invoice/${b._id}?direct=${b.isDirect ? 'true' : 'false'}`)}
+                        onClick={() => window.open(`${API_URL}/api/bookings/${b._id}/invoice`, '_blank')}
                         className="p-2 rounded bg-purple-50 text-purple-700 hover:bg-purple-100"
                         aria-label="Invoice"
-                        title="Invoice"
+                        title="Download Invoice"
                       >
                         <FaDownload />
                       </button>
                       <button
-                        onClick={() => navigate(`/messages?booking=${b._id}`)}
-                        className="p-2 rounded bg-gray-100 text-gray-700 hover:bg-gray-200"
+                        onClick={() => {
+                          const guestId = b.guest?._id || b.guest;
+                          const hostId = b.property?.host || req.user?.id;
+                          navigate(`/messages?recipient=${guestId}&booking=${b._id}`);
+                        }}
+                        className="p-2 rounded bg-[#003580] text-white hover:bg-[#002a66]"
                         aria-label="Chat"
-                        title="Chat"
+                        title="Message Guest"
                       >
                         <FaComments />
                       </button>
