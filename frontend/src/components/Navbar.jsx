@@ -1570,7 +1570,7 @@ const Navbar = () => {
 
       {/* Third Bar - Property Owner Dashboard Navigation (Separate Bar) */}
       {user?.userType === 'host' && isInPropertyOwnerDashboard() && (
-        <div className="w-full bg-white border-b border-gray-200 shadow-sm relative z-[998]">
+        <div className="w-full bg-white border-b border-gray-200 shadow-sm sticky top-0 z-[9998]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center space-x-1 overflow-x-auto py-2 scrollbar-hide">
               {bookingComNavItems.map((item, index) => {

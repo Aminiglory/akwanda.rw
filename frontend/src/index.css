@@ -429,3 +429,15 @@ nav {
   position: fixed !important;
   z-index: 9999 !important;
 }
+
+/* Ensure property owner navbar dropdowns float above content */
+.sticky {
+  position: -webkit-sticky;
+  position: sticky;
+}
+
+/* Override any conflicting z-index from body content */
+body > div {
+  position: relative;
+  z-index: 1;
+}
