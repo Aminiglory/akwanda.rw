@@ -86,6 +86,45 @@
   color: #2B1B0E; /* Espresso */
 }
 
+/* Ensure images display properly without color inheritance */
+img {
+  background-color: transparent !important;
+  color: initial !important;
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border: none !important;
+}
+
+/* Prevent background color on image containers */
+.property-image,
+.property-card img,
+.listing-image,
+[class*="image"] img,
+div[class*="image"],
+div[class*="Image"] {
+  background-color: transparent !important;
+  object-fit: cover;
+}
+
+/* Ensure image parent containers don't have chocolate background */
+.aspect-video,
+.aspect-square,
+.rounded-lg img,
+.rounded-xl img,
+.overflow-hidden img {
+  background-color: transparent !important;
+}
+
+/* Fix for lazy loaded images */
+img[loading="lazy"] {
+  background-color: #f3f4f6 !important; /* Light gray while loading */
+}
+
+img[loading="lazy"].loaded {
+  background-color: transparent !important;
+}
+
 /* Scrollbar styling - apply cocoa palette */
 /* Firefox */
 * {
@@ -425,47 +464,22 @@ nav {
 
 /* Ensure ALL dropdowns appear above content with absolute positioning */
 .notification-dropdown,
-.profile-dropdown {
-  position: fixed !important;
-  z-index: 999999 !important;
-  transform: translateZ(0);
-  will-change: transform;
-  isolation: isolate;
-}
-
-/* Property owner navigation dropdowns - break out of any stacking context */
-.owner-nav-dropdown {
-  position: fixed !important;
-  z-index: 999999 !important;
-  transform: translateZ(0);
-  will-change: transform;
-  isolation: isolate;
-  pointer-events: auto;
-}
-
-/* Main navigation dropdowns in second navbar */
-.main-nav-dropdown {
-  position: fixed !important;
-  z-index: 999999 !important;
-  transform: translateZ(0);
-  will-change: transform;
-  isolation: isolate;
-}
-
-/* Property selector dropdown */
+.profile-dropdown,
+.owner-nav-dropdown,
+.main-nav-dropdown,
 .property-selector-dropdown {
-  position: fixed !important;
-  z-index: 999999 !important;
+  position: absolute !important;
+  z-index: 99999 !important;
   transform: translateZ(0);
   will-change: transform;
   isolation: isolate;
 }
 
-/* Third navbar (property owner) should be sticky but below dropdowns */
+/* Third navbar (property owner) should be sticky and high enough for dropdowns to work */
 .owner-third-navbar {
   position: sticky;
   top: 0;
-  z-index: 998 !important;
+  z-index: 9999 !important;
   isolation: isolate;
 }
 

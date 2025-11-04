@@ -825,7 +825,7 @@ const Navbar = () => {
             {/* Logo */}
             <div className="flex items-center space-x-8">
               <Link
-                to="/"
+                to={user?.userType === 'host' && isInPropertyOwnerDashboard() ? "/dashboard" : "/"}
                 className="text-xl font-bold text-[#4b2a00] hover:text-[#6b3f1f]"
               >
                 AKWANDA.rw
@@ -1545,7 +1545,7 @@ const Navbar = () => {
 
       {/* Third Bar - Property Owner Dashboard Navigation (Separate Bar) */}
       {user?.userType === 'host' && isInPropertyOwnerDashboard() && (
-        <div className="owner-third-navbar w-full bg-white border-b border-gray-200 shadow-sm relative z-[998]">
+        <div className="owner-third-navbar w-full bg-white border-b border-gray-200 shadow-sm relative z-[9999]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center space-x-1 overflow-x-auto py-2 scrollbar-hide">
               {bookingComNavItems.map((item, index) => {
@@ -1578,15 +1578,7 @@ const Navbar = () => {
 
                     {/* Dropdown Menu */}
                     {isDropdownOpen && item.children.length > 0 && (
-                      <div 
-                        className="owner-nav-dropdown w-72 bg-white rounded-lg shadow-xl border border-gray-200 py-2 max-h-96 overflow-y-auto" 
-                        style={{
-                          position: 'fixed',
-                          top: `${dropdownPosition.top}px`,
-                          left: `${dropdownPosition.left}px`,
-                          zIndex: 999999
-                        }}
-                      >
+                      <div className="owner-nav-dropdown absolute top-full left-0 mt-1 w-72 bg-[#f6e9d8] rounded-xl shadow-2xl border border-[#d4c4b0] py-2 z-[99999] max-h-96 overflow-y-auto">
                         {item.children.map((child, childIndex) => {
                           const ChildIcon = child.icon;
                           const isChildActive = isActiveRoute(child.href);
@@ -1594,14 +1586,14 @@ const Navbar = () => {
                             <Link
                               key={childIndex}
                               to={child.href}
-                              className={`flex items-center justify-between px-4 py-2.5 text-sm hover:bg-[#f5f0e8] transition-colors ${
-                                isChildActive ? 'bg-[#f5f0e8] text-[#a06b42] font-medium' : 'text-gray-700'
+                              className={`flex items-center justify-between px-4 py-2 text-sm hover:bg-gray-100 hover:text-gray-800 transition-colors ${
+                                isChildActive ? 'bg-gray-100 text-[#a06b42] font-medium' : 'text-gray-700'
                               }`}
                               onClick={() => setActiveDropdown(null)}
                             >
                               <div className="flex items-center space-x-3">
-                                {ChildIcon && <ChildIcon className="text-sm flex-shrink-0" />}
-                                <span>{child.label}</span>
+                                {ChildIcon && <ChildIcon className="text-gray-700 flex-shrink-0" />}
+                                <span className="font-medium">{child.label}</span>
                               </div>
                               {child.badge && (
                                 <span className={`text-xs px-2 py-0.5 rounded-full min-w-[20px] text-center font-semibold ${
