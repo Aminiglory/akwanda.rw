@@ -12,6 +12,8 @@ const authRouter = require('./src/tables/auth');
 const propertiesRouter = require('./src/routes/properties');
 const bookingsRouter = require('./src/routes/bookings');
 const adminRouter = require('./src/routes/admin');
+const adminLandingRouter = require('./src/routes/adminLanding');
+const adminAttractionsRouter = require('./src/routes/adminAttractions');
 const userRouter = require('./src/routes/user');
 const paymentsRouter = require('./src/routes/payments');
 const ratesRouter = require('./src/routes/rates');
@@ -190,6 +192,8 @@ app.get('/api/metrics/landing', async (req, res) => {
 app.use('/api/auth', authRouter);
 app.use('/api/properties', propertiesRouter);
 app.use('/api/bookings', bookingsRouter);
+app.use('/api/admin', adminLandingRouter);
+app.use('/api/admin', adminAttractionsRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/user', userRouter);
 app.use('/api/payments', paymentsRouter);
