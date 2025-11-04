@@ -249,12 +249,12 @@ export default function AdminLanding() {
             <label className="block text-sm text-gray-700 mb-2">Hero Slideshow Images & Captions</label>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-3">
               {(content.heroSlides || []).map((slide, i) => (
-                <div key={i} className="flex gap-3 items-start">
-                  <div className="relative w-28 h-20 shrink-0 flex-none">
-                    <img src={(slide.image || '').startsWith('http') ? slide.image : `${API_URL}${slide.image}`} className="w-full h-full object-cover rounded" />
-                    <button onClick={() => removeImage(i)} className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full w-6 h-6">×</button>
+                <div key={i} className="flex gap-3 items-start min-w-0">
+                  <div className="relative w-28 h-20 shrink-0 flex-none min-w-[7rem] min-h-[5rem]">
+                    <img src={(slide.image || '').startsWith('http') ? slide.image : `${API_URL}${slide.image}`} className="w-full h-full object-cover rounded block" />
+                    <button onClick={() => removeImage(i)} className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center">×</button>
                   </div>
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <label className="block text-xs text-gray-600 mb-1">Caption</label>
                     <input
                       value={slide.caption || ''}
@@ -361,17 +361,17 @@ export default function AdminLanding() {
                 }}
               >
                 {howItWorks.image ? (
-                  <div className="relative w-28 h-20 shrink-0 flex-none">
-                    <img src={howItWorks.image.startsWith('http') ? howItWorks.image : `${API_URL}${howItWorks.image}`} className="w-full h-full object-cover rounded" />
+                  <div className="relative w-28 h-20 shrink-0 flex-none min-w-[7rem] min-h-[5rem]">
+                    <img src={howItWorks.image.startsWith('http') ? howItWorks.image : `${API_URL}${howItWorks.image}`} className="w-full h-full object-cover rounded block" />
                     <button
                       type="button"
-                      className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-white shadow text-gray-700"
+                      className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-white shadow text-gray-700 flex items-center justify-center"
                       onClick={() => setHowItWorks({ ...howItWorks, image: '' })}
                       title="Remove"
                     >×</button>
                   </div>
                 ) : (
-                  <div className="w-32 h-24 flex items-center justify-center text-gray-400 text-sm bg-white rounded">Drop image here</div>
+                  <div className="w-28 h-20 flex items-center justify-center text-gray-400 text-sm bg-white rounded">Drop image here</div>
                 )}
                 <div className="ml-auto">
                   <label className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-white shadow text-sm cursor-pointer">
@@ -468,12 +468,12 @@ export default function AdminLanding() {
                         }}
                       >
                         {s.image ? (
-                          <div className="relative w-28 h-20 shrink-0 flex-none">
-                            <img src={s.image.startsWith('http') ? s.image : `${API_URL}${s.image}`} className="w-full h-full object-cover rounded" />
-                            <button type="button" className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-white shadow text-gray-700" onClick={() => setHowItWorks({ ...howItWorks, guestSteps: howItWorks.guestSteps.map((x, idx)=> idx===i? { ...x, image: '' }: x) })}>×</button>
+                          <div className="relative w-28 h-20 shrink-0 flex-none min-w-[7rem] min-h-[5rem]">
+                            <img src={s.image.startsWith('http') ? s.image : `${API_URL}${s.image}`} className="w-full h-full object-cover rounded block" />
+                            <button type="button" className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-white shadow text-gray-700 flex items-center justify-center" onClick={() => setHowItWorks({ ...howItWorks, guestSteps: howItWorks.guestSteps.map((x, idx)=> idx===i? { ...x, image: '' }: x) })}>×</button>
                           </div>
                         ) : (
-                          <div className="w-24 h-16 flex items-center justify-center text-gray-400 text-xs bg-white rounded">Drop image</div>
+                          <div className="w-28 h-20 flex items-center justify-center text-gray-400 text-xs bg-white rounded">Drop image</div>
                         )}
                         <label className="ml-auto inline-flex items-center gap-2 px-3 py-1.5 rounded bg-white shadow-sm hover:shadow text-xs cursor-pointer">
                           <input type="file" className="hidden" accept="image/*" onChange={async e => {
