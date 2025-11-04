@@ -68,37 +68,57 @@ const Hero = () => {
   useEffect(() => {
     (async () => {
       try {
+        console.log('Fetching landing content from:', `${API_URL}/api/content/landing`);
         const res = await fetch(`${API_URL}/api/content/landing`);
+        console.log('Response status:', res.status, res.statusText);
+        
         if (!res.ok) { 
-          console.warn('Failed to fetch landing content, using default image');
+          console.warn('Failed to fetch landing content - Status:', res.status);
           setSlides([]); 
           return; 
         }
+        
         const data = await res.json();
-        console.log('Landing content loaded:', data);
+        console.log('Landing content loaded:', JSON.stringify(data, null, 2));
         
         if (data?.content) {
           const c = data.content;
+          console.log('Content object:', {
+            hasHeroSlides: Array.isArray(c.heroSlides),
+            heroSlidesLength: c.heroSlides?.length,
+            hasHeroImages: Array.isArray(c.heroImages),
+            heroImagesLength: c.heroImages?.length,
+            published: c.published
+          });
+          
           const fromSlides = Array.isArray(c.heroSlides) && c.heroSlides.length > 0
-            ? c.heroSlides.map(s => ({ 
-                image: makeAbsoluteUrl(s.image), 
-                caption: s.caption || '' 
-              }))
+            ? c.heroSlides.map(s => {
+                const absoluteUrl = makeAbsoluteUrl(s.image);
+                console.log('Processing slide:', s.image, '→', absoluteUrl);
+                return { 
+                  image: absoluteUrl, 
+                  caption: s.caption || '' 
+                };
+              })
             : (Array.isArray(c.heroImages) && c.heroImages.length > 0
-                ? c.heroImages.map(imgPath => ({ 
-                    image: makeAbsoluteUrl(imgPath), 
-                    caption: '' 
-                  })) 
+                ? c.heroImages.map(imgPath => {
+                    const absoluteUrl = makeAbsoluteUrl(imgPath);
+                    console.log('Processing image:', imgPath, '→', absoluteUrl);
+                    return { 
+                      image: absoluteUrl, 
+                      caption: '' 
+                    };
+                  }) 
                 : []);
           
-          console.log('Processed slides:', fromSlides);
+          console.log('Final processed slides:', fromSlides);
           setSlides(fromSlides);
           setIntervalMs(typeof c.heroIntervalMs === 'number' && c.heroIntervalMs >= 2000 ? c.heroIntervalMs : 5000);
           setTransition(c.heroTransition === 'slide' ? 'slide' : 'fade');
           setHeroTitle(c.heroTitle || '');
           setHeroSubtitle(c.heroSubtitle || '');
         } else {
-          console.warn('No content found in response');
+          console.warn('No content found in response. Data:', data);
           setSlides([]);
         }
       } catch (err) {
@@ -196,7 +216,10 @@ const Hero = () => {
           })
         ) : (
           <div className="absolute inset-0 bg-gradient-to-br from-[#8F633E] to-[#4B2E05] flex items-center justify-center">
-            <p className="text-white text-xl">No hero images configured</p>
+            <div className="text-center px-4">
+              <p className="text-white text-xl mb-2">No hero images configured</p>
+              <p className="text-white/70 text-sm">Admin: Upload and publish hero images in the Landing Page Content section</p>
+            </div>
           </div>
         )}
         {/* Dark overlay for readability */}
