@@ -327,13 +327,30 @@ const Navbar = () => {
       if (!event.target.closest('.profile-dropdown') && !event.target.closest('.profile-button')) {
         setIsProfileOpen(false);
       }
+      // Close owner dropdown when clicking outside
+      if (!event.target.closest('.owner-dropdown') && !event.target.closest('.owner-dropdown-button')) {
+        if (activeDropdown === 'owner') {
+          setActiveDropdown(null);
+        }
+      }
+      // Close property dropdown when clicking outside
+      if (!event.target.closest('.prop-dropdown') && !event.target.closest('.prop-dropdown-button')) {
+        setPropDropdownOpen(false);
+      }
+      // Close main nav dropdowns when clicking outside
+      if (!event.target.closest('.nav-dropdown') && !event.target.closest('.nav-dropdown-button')) {
+        const navDropdowns = mainNavItems.map(item => item.label);
+        if (navDropdowns.includes(activeDropdown)) {
+          setActiveDropdown(null);
+        }
+      }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, []);
+  }, [activeDropdown]);
 
   useEffect(() => {
     if (!isAuthenticated || !isProfileOpen) return;
@@ -597,7 +614,7 @@ const Navbar = () => {
       )}
 
       {/* Second Bar - Navigation Level */}
-      <nav className="w-full bg-[#f5f0e8] border-b border-[#e0d5c7] navbar-shadow">
+      <nav className="w-full bg-[#f5f0e8] border-b border-[#e0d5c7] shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
             {/* Logo */}
@@ -652,7 +669,7 @@ const Navbar = () => {
 
                         {/* Dropdown Menu - Booking.com Style */}
                         {isDropdownOpen && (
-                          <div className="absolute top-full left-0 mt-1 w-64 bg-[#f6e9d8] rounded-xl dropdown-shadow border border-[#d4c4b0] py-3 z-50">
+                          <div className="absolute top-full left-0 mt-1 w-64 bg-[#f6e9d8] rounded-xl shadow-lg border border-[#d4c4b0] py-3 z-50">
                             {item.children
                               .filter((child) => {
                                 const href = String(child.href || '');
@@ -703,7 +720,7 @@ const Navbar = () => {
                     <FaCaretDown className={`ml-2 text-xs transition-transform ${propDropdownOpen ? 'rotate-180' : ''}`} />
                   </button>
                   {propDropdownOpen && (
-                    <div className="absolute top-full right-0 mt-1 w-80 max-h-80 overflow-y-auto bg-[#f6e9d8] rounded-xl dropdown-shadow border border-[#d4c4b0] p-2 z-50">
+                    <div className="absolute top-full right-0 mt-1 w-80 max-h-80 overflow-y-auto bg-[#f6e9d8] rounded-xl shadow-lg border border-[#d4c4b0] p-2 z-50">
                       {myProperties.map((p) => (
                         <Link
                           key={p._id}
@@ -742,10 +759,10 @@ const Navbar = () => {
               )}
               {/* Analytics Dropdown - Booking.com Style */}
               {isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard() && (
-                <div className="hidden lg:block relative">
+                <div className="hidden lg:block relative owner-dropdown">
                   <button
                     onClick={() => toggleDropdown('owner')}
-                    className={`flex items-center px-3 py-2 rounded-lg transition-all duration-300 ${activeDropdown === 'owner'
+                    className={`owner-dropdown-button flex items-center px-3 py-2 rounded-lg transition-all duration-300 ${activeDropdown === 'owner'
                         ? "bg-[#a06b42] text-white shadow-md"
                         : "text-[#6b5744] hover:text-[#4b2a00] hover:bg-[#e8dcc8]"
                       }`}
@@ -756,7 +773,7 @@ const Navbar = () => {
 
                   {/* Owner Management Dropdown - Booking.com Style */}
                   {activeDropdown === 'owner' && (
-                    <div className="absolute top-full right-0 mt-1 w-[900px] bg-[#f6e9d8] rounded-xl dropdown-shadow border border-[#d4c4b0] p-6 z-50">
+                    <div className="absolute top-full right-0 mt-1 w-[900px] bg-[#f6e9d8] rounded-xl shadow-lg border border-[#d4c4b0] p-6 z-[9999]">
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-sm">
                         {ownerManagementLinks.map((category, index) => {
                           const CategoryIcon = category.icon;
@@ -863,7 +880,7 @@ const Navbar = () => {
                     )}
                   </button>
                   {isNotificationOpen && (
-                    <div className="notification-dropdown absolute top-full right-0 mt-2 w-80 bg-[#f6e9d8] rounded-xl dropdown-shadow border border-[#d4c4b0] py-2 z-50">
+                    <div className="notification-dropdown absolute top-full right-0 mt-2 w-80 bg-[#f6e9d8] rounded-xl shadow-lg border border-[#d4c4b0] py-2 z-50">
                       <div className="px-4 py-2 border-b border-gray-100 font-semibold text-sm flex items-center justify-between">
                         <span>Notifications</span>
                         <Link
@@ -935,7 +952,7 @@ const Navbar = () => {
                   </button>
 
                   {isProfileOpen && (
-                    <div className="profile-dropdown absolute top-full right-0 mt-2 w-64 bg-[#f6e9d8] rounded-xl dropdown-shadow border border-[#d4c4b0] py-3 z-50">
+                    <div className="profile-dropdown absolute top-full right-0 mt-2 w-64 bg-[#f6e9d8] rounded-xl shadow-lg border border-[#d4c4b0] py-3 z-50">
                       {/* Profile Header */}
                       <div className="px-4 pb-3 border-b border-gray-100">
                         <div className="flex items-center space-x-3">
