@@ -685,7 +685,7 @@ const Navbar = () => {
   return (
     <>
       {/* Top Bar - First Level */}
-      <div className="w-full bg-[#4b2a00] text-white py-2 px-4 border-b border-[#3a2000]">
+      <div className="w-full bg-[#4b2a00] text-white py-2 px-4 border-b border-[#3a2000] relative z-[1000]">
         <div className="max-w-7xl mx-auto flex justify-between items-center text-xs">
           <div className="flex items-center space-x-4 lg:space-x-6">
             {/* Property Owner Links - Show when authenticated as host (only show Dashboard label in owner context) */}
@@ -796,7 +796,7 @@ const Navbar = () => {
       )}
 
       {/* Second Bar - Navigation Level */}
-      <nav className="w-full bg-[#f5f0e8] border-b border-[#e0d5c7] navbar-shadow">
+      <nav className="w-full bg-[#f5f0e8] border-b border-[#e0d5c7] navbar-shadow relative z-[999]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
             {/* Logo */}
@@ -846,7 +846,7 @@ const Navbar = () => {
 
                         {/* Dropdown Menu - Booking.com Style */}
                         {isDropdownOpen && (
-                          <div className="absolute top-full left-0 mt-1 w-64 bg-[#f6e9d8] rounded-xl dropdown-shadow border border-[#d4c4b0] py-3 z-50">
+                          <div className="absolute top-full left-0 mt-1 w-64 bg-[#f6e9d8] rounded-xl shadow-2xl border border-[#d4c4b0] py-3 z-[9999]">
                             {item.children
                               .filter((child) => {
                                 const href = String(child.href || '');
@@ -897,7 +897,7 @@ const Navbar = () => {
                     <FaCaretDown className={`ml-2 text-xs transition-transform ${propDropdownOpen ? 'rotate-180' : ''}`} />
                   </button>
                   {propDropdownOpen && (
-                    <div className="absolute top-full right-0 mt-1 w-80 max-h-80 overflow-y-auto bg-[#f6e9d8] rounded-xl dropdown-shadow border border-[#d4c4b0] p-2 z-50">
+                    <div className="absolute top-full right-0 mt-1 w-80 max-h-80 overflow-y-auto bg-[#f6e9d8] rounded-xl shadow-2xl border border-[#d4c4b0] p-2 z-[9999]">
                       {myProperties.map((p) => (
                         <Link
                           key={p._id}
@@ -950,7 +950,7 @@ const Navbar = () => {
 
                   {/* Owner Management Dropdown - Booking.com Style */}
                   {activeDropdown === 'owner' && (
-                    <div className="absolute top-full right-0 mt-1 w-[900px] bg-[#f6e9d8] rounded-xl dropdown-shadow border border-[#d4c4b0] p-6 z-50">
+                    <div className="absolute top-full right-0 mt-1 w-[900px] bg-[#f6e9d8] rounded-xl shadow-2xl border border-[#d4c4b0] p-6 z-[9999]">
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-sm">
                         {ownerManagementLinks.map((category, index) => {
                           const CategoryIcon = category.icon;
@@ -1057,7 +1057,7 @@ const Navbar = () => {
                     )}
                   </button>
                   {isNotificationOpen && (
-                    <div className="notification-dropdown absolute top-full right-0 sm:right-0 left-0 sm:left-auto mt-2 w-full sm:w-80 max-w-md mx-auto sm:mx-0 bg-[#f6e9d8] rounded-xl dropdown-shadow border border-[#d4c4b0] py-2 z-50">
+                    <div className="notification-dropdown absolute top-full right-0 sm:right-0 left-0 sm:left-auto mt-2 w-full sm:w-80 max-w-md mx-auto sm:mx-0 bg-[#f6e9d8] rounded-xl shadow-2xl border border-[#d4c4b0] py-2 z-[9999]">
                       <div className="px-4 py-2 border-b border-gray-100 font-semibold text-sm flex items-center justify-between">
                         <span>Notifications</span>
                         <Link
@@ -1129,7 +1129,7 @@ const Navbar = () => {
                   </button>
 
                   {isProfileOpen && (
-                    <div className="profile-dropdown absolute top-full right-0 mt-2 w-64 bg-[#f6e9d8] rounded-xl dropdown-shadow border border-[#d4c4b0] py-3 z-50">
+                    <div className="profile-dropdown absolute top-full right-0 mt-2 w-64 bg-[#f6e9d8] rounded-xl shadow-2xl border border-[#d4c4b0] py-3 z-[9999]">
                       {/* Profile Header */}
                       <div className="px-4 pb-3 border-b border-gray-100">
                         <div className="flex items-center space-x-3">
@@ -1570,7 +1570,7 @@ const Navbar = () => {
 
       {/* Third Bar - Property Owner Dashboard Navigation (Separate Bar) */}
       {user?.userType === 'host' && isInPropertyOwnerDashboard() && (
-        <div className="w-full bg-white border-b border-gray-200 shadow-sm relative z-[100]">
+        <div className="w-full bg-white border-b border-gray-200 shadow-sm relative z-[998]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center space-x-1 overflow-x-auto py-2 scrollbar-hide">
               {bookingComNavItems.map((item, index) => {
@@ -1584,8 +1584,8 @@ const Navbar = () => {
                       onClick={() => toggleDropdown(item.label)}
                       className={`flex items-center space-x-1.5 px-3 py-2 rounded-lg transition-all duration-200 font-medium text-sm whitespace-nowrap ${
                         isActive
-                          ? "bg-[#003580] text-white shadow-md"
-                          : "text-gray-700 hover:text-[#003580] hover:bg-blue-50"
+                          ? "bg-[#a06b42] text-white shadow-md"
+                          : "text-gray-700 hover:text-[#a06b42] hover:bg-[#f5f0e8]"
                       }`}
                     >
                       <Icon className="text-sm flex-shrink-0" />
@@ -1610,8 +1610,8 @@ const Navbar = () => {
                             <Link
                               key={childIndex}
                               to={child.href}
-                              className={`flex items-center justify-between px-4 py-2.5 text-sm hover:bg-blue-50 transition-colors ${
-                                isChildActive ? 'bg-blue-50 text-[#003580] font-medium' : 'text-gray-700'
+                              className={`flex items-center justify-between px-4 py-2.5 text-sm hover:bg-[#f5f0e8] transition-colors ${
+                                isChildActive ? 'bg-[#f5f0e8] text-[#a06b42] font-medium' : 'text-gray-700'
                               }`}
                               onClick={() => setActiveDropdown(null)}
                             >

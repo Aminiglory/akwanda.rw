@@ -411,3 +411,21 @@ textarea::placeholder {
 .scrollbar-hide::-webkit-scrollbar {
   display: none;  /* Chrome, Safari and Opera */
 }
+
+/* Navbar shadow utility */
+.navbar-shadow {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+/* Ensure navbar and its dropdowns are always on top of page content */
+nav {
+  position: relative;
+  z-index: 999;
+}
+
+/* Force dropdowns to appear above all content including modals */
+.notification-dropdown,
+.profile-dropdown {
+  position: fixed !important;
+  z-index: 9999 !important;
+}
