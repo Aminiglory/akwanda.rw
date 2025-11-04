@@ -846,7 +846,7 @@ const Navbar = () => {
 
                         {/* Dropdown Menu - Booking.com Style */}
                         {isDropdownOpen && (
-                          <div className="absolute top-full left-0 mt-1 w-64 bg-[#f6e9d8] rounded-xl shadow-2xl border border-[#d4c4b0] py-3 z-[10001]">
+                          <div className="absolute top-full left-0 mt-1 w-64 bg-[#f6e9d8] rounded-xl shadow-2xl border border-[#d4c4b0] py-3 z-[9999]">
                             {item.children
                               .filter((child) => {
                                 const href = String(child.href || '');
@@ -897,7 +897,7 @@ const Navbar = () => {
                     <FaCaretDown className={`ml-2 text-xs transition-transform ${propDropdownOpen ? 'rotate-180' : ''}`} />
                   </button>
                   {propDropdownOpen && (
-                    <div className="absolute top-full right-0 mt-1 w-80 max-h-80 overflow-y-auto bg-[#f6e9d8] rounded-xl shadow-2xl border border-[#d4c4b0] p-2 z-[10001]">
+                    <div className="absolute top-full right-0 mt-1 w-80 max-h-80 overflow-y-auto bg-[#f6e9d8] rounded-xl shadow-2xl border border-[#d4c4b0] p-2 z-[9999]">
                       {myProperties.map((p) => (
                         <Link
                           key={p._id}
@@ -933,54 +933,6 @@ const Navbar = () => {
                   <span className="hidden lg:inline">Dashboard</span>
                   <span className="lg:hidden">Dash</span>
                 </button>
-              )}
-              {/* Analytics Dropdown - Booking.com Style */}
-              {isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard() && (
-                <div className="hidden lg:block relative">
-                  <button
-                    onClick={() => toggleDropdown('owner')}
-                    className={`flex items-center px-3 py-2 rounded-lg transition-all duration-300 ${activeDropdown === 'owner'
-                        ? "bg-[#a06b42] text-white shadow-md"
-                        : "text-[#6b5744] hover:text-[#4b2a00] hover:bg-[#e8dcc8]"
-                      }`}
-                    title="Analytics & Management"
-                  >
-                    <FaChartLine className="text-lg" />
-                  </button>
-
-                  {/* Owner Management Dropdown - Booking.com Style */}
-                  {activeDropdown === 'owner' && (
-                    <div className="absolute top-full right-0 mt-1 w-[900px] bg-[#f6e9d8] rounded-xl shadow-2xl border border-[#d4c4b0] p-6 z-[10001]">
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-sm">
-                        {ownerManagementLinks.map((category, index) => {
-                          const CategoryIcon = category.icon;
-                          return (
-                            <div key={index}>
-                              <div className="flex items-center space-x-2 mb-4">
-                                <CategoryIcon className="text-gray-700 text-lg" />
-                                <div className="text-sm font-semibold text-gray-700">
-                                  {category.category}
-                                </div>
-                              </div>
-                              <div className="space-y-1">
-                                {category.links.map((link, linkIndex) => (
-                                  <Link
-                                    key={linkIndex}
-                                    to={link.href}
-                                    className="block px-3 py-2 rounded hover:bg-gray-100 hover:text-gray-800 text-gray-600 transition-colors"
-                                    onClick={() => setActiveDropdown(null)}
-                                  >
-                                    {link.label}
-                                  </Link>
-                                ))}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-                </div>
               )}
 
               {/* Favorites */}
@@ -1057,7 +1009,7 @@ const Navbar = () => {
                     )}
                   </button>
                   {isNotificationOpen && (
-                    <div className="notification-dropdown absolute top-full right-0 sm:right-0 left-0 sm:left-auto mt-2 w-full sm:w-80 max-w-md mx-auto sm:mx-0 bg-[#f6e9d8] rounded-xl shadow-2xl border border-[#d4c4b0] py-2 z-[10001]">
+                    <div className="notification-dropdown absolute top-full right-0 sm:right-0 left-0 sm:left-auto mt-2 w-full sm:w-80 max-w-md mx-auto sm:mx-0 bg-[#f6e9d8] rounded-xl shadow-2xl border border-[#d4c4b0] py-2 z-[9999]">
                       <div className="px-4 py-2 border-b border-gray-100 font-semibold text-sm flex items-center justify-between">
                         <span>Notifications</span>
                         <Link
@@ -1129,7 +1081,7 @@ const Navbar = () => {
                   </button>
 
                   {isProfileOpen && (
-                    <div className="profile-dropdown absolute top-full right-0 mt-2 w-64 bg-[#f6e9d8] rounded-xl shadow-2xl border border-[#d4c4b0] py-3 z-[10001]">
+                    <div className="profile-dropdown absolute top-full right-0 mt-2 w-64 bg-[#f6e9d8] rounded-xl shadow-2xl border border-[#d4c4b0] py-3 z-[9999]">
                       {/* Profile Header */}
                       <div className="px-4 pb-3 border-b border-gray-100">
                         <div className="flex items-center space-x-3">
@@ -1570,7 +1522,7 @@ const Navbar = () => {
 
       {/* Third Bar - Property Owner Dashboard Navigation (Separate Bar) */}
       {user?.userType === 'host' && isInPropertyOwnerDashboard() && (
-        <div className="w-full bg-white border-b border-gray-200 shadow-sm sticky top-0 z-[1001]">
+        <div className="w-full bg-white border-b border-gray-200 shadow-sm sticky top-0 z-[998]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center space-x-1 overflow-x-auto py-2 scrollbar-hide">
               {bookingComNavItems.map((item, index) => {
@@ -1602,7 +1554,7 @@ const Navbar = () => {
 
                     {/* Dropdown Menu */}
                     {isDropdownOpen && item.children.length > 0 && (
-                      <div className="absolute top-full left-0 mt-1 w-72 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-[10001] max-h-96 overflow-y-auto">
+                      <div className="absolute top-full left-0 mt-1 w-72 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-[9999] max-h-96 overflow-y-auto">
                         {item.children.map((child, childIndex) => {
                           const ChildIcon = child.icon;
                           const isChildActive = isActiveRoute(child.href);
