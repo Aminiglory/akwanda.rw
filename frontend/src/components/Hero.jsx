@@ -175,7 +175,7 @@ const Hero = () => {
   }, [metrics.activeListings, metrics.happyGuests, metrics.satisfactionRate]);
 
   return (
-    <div className="relative w-full min-h-[600px] overflow-hidden">
+    <div className="relative w-full h-[450px] sm:h-[500px] md:h-[550px] lg:h-[600px] overflow-hidden">
       {/* Slides */}
       <div
         className="absolute inset-0"
@@ -205,7 +205,7 @@ const Hero = () => {
                 key={i}
                 src={url}
                 alt={s.caption || `Slide ${i+1}`}
-                className={`absolute inset-0 w-full h-full object-cover ${transition === 'fade' ? 'transition-opacity duration-700' : 'transition-transform duration-700'} ${active ? (transition === 'fade' ? 'opacity-100' : 'translate-x-0') : (transition === 'fade' ? 'opacity-0' : 'translate-x-full')}`}
+                className={`absolute inset-0 w-full h-full object-cover object-center ${transition === 'fade' ? 'transition-opacity duration-700' : 'transition-transform duration-700'} ${active ? (transition === 'fade' ? 'opacity-100' : 'translate-x-0') : (transition === 'fade' ? 'opacity-0' : 'translate-x-full')}`}
                 loading={i === 0 ? 'eager' : 'lazy'}
                 onError={(e) => {
                   console.error('Failed to load hero image:', url);
