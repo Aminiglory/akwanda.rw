@@ -55,8 +55,8 @@ export default function AdminLanding() {
     try {
       setLoading(true);
       const res = await fetch(`${API_URL}/api/admin/landing-content`, { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch landing content');
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed to fetch');
       const c = data.content || {};
       // Merge top-level howItWorks into sections if backend returns it separately
       const existingSections = Array.isArray(c.sections) ? c.sections : [];
@@ -87,8 +87,8 @@ export default function AdminLanding() {
       credentials: 'include',
       body: form,
     });
+    if (!res.ok) throw new Error('Upload failed');
     const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Upload failed');
     const arr = Array.isArray(data.images) ? data.images : [];
     // Normalize to array of string paths
     const paths = arr
@@ -148,12 +148,15 @@ export default function AdminLanding() {
         credentials: 'include',
         body: JSON.stringify(payload),
       });
-      const data = await res.json();
       if (!res.ok) {
         // Surface server details for debugging
         // eslint-disable-next-line no-console
-        console.error('Save landing content failed', { status: res.status, data });
-        throw new Error(data.message || `Failed to save (status ${res.status})`);
+        console.error('Save landing content failed', { status: res.status });
+        throw new Error(`Failed to save (status ${res.status})`);
+      }
+      const data = await res.json();
+      if (!data.content) {
+        throw new Error('Invalid response from server');
       }
       setContent(data.content || payload);
       toast.success('Landing content saved');
@@ -161,6 +164,7 @@ export default function AdminLanding() {
       try {
         const fetchPublic = async () => {
           const verifyRes = await fetch(`${API_URL}/api/content/landing?t=${Date.now()}`);
+          if (!verifyRes.ok) return;
           const verifyData = await verifyRes.json();
           const sections = Array.isArray(verifyData?.content?.sections) ? verifyData.content.sections : [];
           const guestSec = sections.find(s => s?.key === 'howItWorksGuests');

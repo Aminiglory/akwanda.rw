@@ -22,8 +22,12 @@ const Testimonials = () => {
       try {
         setLoading(true);
         const res = await fetch(`${API_URL}/api/testimonials`);
+        if (!res.ok) {
+          if (!ignore) setItems([]);
+          return;
+        }
         const data = await res.json();
-        if (!ignore && res.ok) {
+        if (!ignore) {
           const list = Array.isArray(data.testimonials) ? data.testimonials : [];
           // Map to UI shape with fallbacks
           const normalized = list.map((t, i) => ({

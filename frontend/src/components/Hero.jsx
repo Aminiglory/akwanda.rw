@@ -37,8 +37,8 @@ const Hero = () => {
     (async () => {
       try {
         const res = await fetch(`${API_URL}/api/metrics/landing`);
-        const data = await res.json();
         if (!res.ok) return;
+        const data = await res.json();
         if (data.metrics) setMetrics(data.metrics);
         else {
           const m = {
@@ -57,8 +57,9 @@ const Hero = () => {
     (async () => {
       try {
         const res = await fetch(`${API_URL}/api/content/landing`);
+        if (!res.ok) { setSlides([]); return; }
         const data = await res.json();
-        if (res.ok && data?.content) {
+        if (data?.content) {
           const c = data.content;
           const fromSlides = Array.isArray(c.heroSlides) && c.heroSlides.length > 0
             ? c.heroSlides.map(s => ({ image: s.image, caption: s.caption || '' }))

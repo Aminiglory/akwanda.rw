@@ -37,9 +37,10 @@ const HowItWorks = () => {
   useEffect(() => {
     (async () => {
       try {
-  const res = await fetch(`${API_URL}/api/metrics/landing`);
-  const data = await res.json();
-  if (res.ok && data.metrics) setMetrics(data.metrics);
+        const res = await fetch(`${API_URL}/api/metrics/landing`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.metrics) setMetrics(data.metrics);
       } catch (_) {}
     })();
   }, []);
@@ -50,7 +51,7 @@ const HowItWorks = () => {
       try {
         const audience = activeTab === 'hosts' ? 'hosts' : 'guests';
         const res = await fetch(`${API_URL}/api/how-it-works?audience=${audience}`);
-        if (!res.ok) { setHowMedia([]); return; }
+        if (!res.ok) return;
         const data = await res.json();
         const items = Array.isArray(data.items) ? data.items : [];
         setHowMedia(items);
@@ -88,8 +89,8 @@ const HowItWorks = () => {
     (async () => {
       try {
         const res = await fetch(`${API_URL}/api/content/landing?t=${Date.now()}`);
-        const raw = await res.json();
         if (!res.ok) return;
+        const raw = await res.json();
         const data = raw?.content || raw || {};
         const sections = Array.isArray(data?.sections) ? data.sections : [];
         const found = sections.find(s => s?.type === 'howItWorks' || s?.key === 'howItWorks') || data?.howItWorks;
