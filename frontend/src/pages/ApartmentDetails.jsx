@@ -247,7 +247,6 @@ const ApartmentDetails = () => {
             return {
               ...room,
               pricePerNight: roomPricePerNight,
-              pricePerMonth: room.pricePerMonth || roomPricePerNight * 30,
               images: Array.isArray(room.images) ? room.images.map(makeAbsolute) : []
             };
           }) : [],
@@ -644,16 +643,9 @@ const ApartmentDetails = () => {
                         </div>
                         <div className="text-right">
                           <div className="text-xl font-bold text-primary group-hover:text-primary-700 transition-colors duration-300">
-                            RWF {(() => {
-                              const roomPricePerNight = room.pricePerNight || room.price || 0;
-                              const monthlyPrice = room.pricePerMonth || (roomPricePerNight * 30);
-                              return monthlyPrice.toLocaleString();
-                            })()}
+                            RWF {(room.pricePerNight || room.price || 0).toLocaleString()}
                           </div>
-                          <div className="text-sm text-gray-500">per month</div>
-                          <div className="text-xs text-gray-400">
-                            RWF {(room.pricePerNight || room.price || 0).toLocaleString()}/night
-                          </div>
+                          <div className="text-sm text-gray-500">per night</div>
                         </div>
                       </button>
                       {/* Quick actions: open modals (calendar/details) */}
@@ -1046,13 +1038,9 @@ const ApartmentDetails = () => {
                   <span className="text-gray-600">Capacity</span>
                   <span className="font-medium text-gray-800">{detailsRoom.capacity} guests</span>
                 </div>
-                <div className="bg-blue-50 rounded-xl p-3 flex items-center justify-between shadow-sm">
-                  <span className="text-gray-600">Price / month</span>
-                  <span className="font-bold text-blue-700">RWF {(detailsRoom.pricePerMonth || (detailsRoom.pricePerNight||0)*30).toLocaleString()}</span>
-                </div>
-                <div className="bg-gray-50 rounded-xl p-3 flex items-center justify-between shadow-sm">
+                <div className="bg-blue-50 rounded-xl p-3 flex items-center justify-between shadow-sm col-span-2">
                   <span className="text-gray-600">Price / night</span>
-                  <span className="font-medium text-gray-800">RWF {(detailsRoom.pricePerNight||0).toLocaleString()}</span>
+                  <span className="font-bold text-blue-700">RWF {(detailsRoom.pricePerNight||0).toLocaleString()}</span>
                 </div>
               </div>
               {Array.isArray(detailsRoom.amenities) && detailsRoom.amenities.length > 0 && (

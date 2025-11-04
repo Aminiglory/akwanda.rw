@@ -583,7 +583,7 @@ const Navbar = () => {
 
   // Check if user is in property owner dashboard context
   const isInPropertyOwnerDashboard = () => {
-    const ownerRoutes = ['/dashboard', '/user-dashboard', '/my-bookings', '/upload', '/owner'];
+    const ownerRoutes = ['/dashboard', '/user-dashboard', '/my-bookings', '/upload', '/owner', '/messages'];
     return ownerRoutes.some(route => location.pathname.startsWith(route));
   };
 
@@ -846,7 +846,7 @@ const Navbar = () => {
 
                         {/* Dropdown Menu - Booking.com Style */}
                         {isDropdownOpen && (
-                          <div className="absolute top-full left-0 mt-1 w-64 bg-[#f6e9d8] rounded-xl shadow-2xl border border-[#d4c4b0] py-3 z-[9999]">
+                          <div className="main-nav-dropdown absolute top-full left-0 mt-1 w-64 bg-[#f6e9d8] rounded-xl shadow-2xl border border-[#d4c4b0] py-3 z-[99999]">
                             {item.children
                               .filter((child) => {
                                 const href = String(child.href || '');
@@ -897,7 +897,7 @@ const Navbar = () => {
                     <FaCaretDown className={`ml-2 text-xs transition-transform ${propDropdownOpen ? 'rotate-180' : ''}`} />
                   </button>
                   {propDropdownOpen && (
-                    <div className="absolute top-full right-0 mt-1 w-80 max-h-80 overflow-y-auto bg-[#f6e9d8] rounded-xl shadow-2xl border border-[#d4c4b0] p-2 z-[9999]">
+                    <div className="property-selector-dropdown absolute top-full right-0 mt-1 w-80 max-h-80 overflow-y-auto bg-[#f6e9d8] rounded-xl shadow-2xl border border-[#d4c4b0] p-2 z-[99999]">
                       {myProperties.map((p) => (
                         <Link
                           key={p._id}
@@ -1009,7 +1009,7 @@ const Navbar = () => {
                     )}
                   </button>
                   {isNotificationOpen && (
-                    <div className="notification-dropdown absolute top-full right-0 sm:right-0 left-0 sm:left-auto mt-2 w-full sm:w-80 max-w-md mx-auto sm:mx-0 bg-[#f6e9d8] rounded-xl shadow-2xl border border-[#d4c4b0] py-2 z-[9999]">
+                    <div className="notification-dropdown absolute top-full right-0 sm:right-0 left-0 sm:left-auto mt-2 w-full sm:w-80 max-w-md mx-auto sm:mx-0 bg-[#f6e9d8] rounded-xl shadow-2xl border border-[#d4c4b0] py-2 z-[99999]">
                       <div className="px-4 py-2 border-b border-gray-100 font-semibold text-sm flex items-center justify-between">
                         <span>Notifications</span>
                         <Link
@@ -1081,7 +1081,7 @@ const Navbar = () => {
                   </button>
 
                   {isProfileOpen && (
-                    <div className="profile-dropdown absolute top-full right-0 mt-2 w-64 bg-[#f6e9d8] rounded-xl shadow-2xl border border-[#d4c4b0] py-3 z-[9999]">
+                    <div className="profile-dropdown absolute top-full right-0 mt-2 w-64 bg-[#f6e9d8] rounded-xl shadow-2xl border border-[#d4c4b0] py-3 z-[99999]">
                       {/* Profile Header */}
                       <div className="px-4 pb-3 border-b border-gray-100">
                         <div className="flex items-center space-x-3">
@@ -1522,7 +1522,7 @@ const Navbar = () => {
 
       {/* Third Bar - Property Owner Dashboard Navigation (Separate Bar) */}
       {user?.userType === 'host' && isInPropertyOwnerDashboard() && (
-        <div className="w-full bg-white border-b border-gray-200 shadow-sm sticky top-0 z-[998]">
+        <div className="owner-third-navbar w-full bg-white border-b border-gray-200 shadow-sm">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center space-x-1 overflow-x-auto py-2 scrollbar-hide">
               {bookingComNavItems.map((item, index) => {
@@ -1554,7 +1554,7 @@ const Navbar = () => {
 
                     {/* Dropdown Menu */}
                     {isDropdownOpen && item.children.length > 0 && (
-                      <div className="absolute top-full left-0 mt-1 w-72 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-[9999] max-h-96 overflow-y-auto">
+                      <div className="owner-nav-dropdown absolute top-full left-0 mt-1 w-72 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-[99999] max-h-96 overflow-y-auto">
                         {item.children.map((child, childIndex) => {
                           const ChildIcon = child.icon;
                           const isChildActive = isActiveRoute(child.href);

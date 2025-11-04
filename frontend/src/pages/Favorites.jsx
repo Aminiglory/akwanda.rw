@@ -231,7 +231,7 @@ const Favorites = () => {
                 title={p.title}
                 location={p.location}
                 images={[p.image]}
-                pricePerMonth={Number(p.price || 0) * 30}
+                pricePerNight={Number(p.price || 0)}
                 category={p.type || 'Apartment'}
                 rating={0}
                 reviews={0}

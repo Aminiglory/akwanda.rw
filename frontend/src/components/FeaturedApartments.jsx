@@ -85,7 +85,7 @@ const FeaturedApartments = () => {
                 title={apartment.title}
                 location={apartment.location}
                 images={apartment.images && apartment.images.length ? apartment.images : [apartment.image]}
-                pricePerMonth={Number(apartment.price || 0) * 30}
+                pricePerNight={Number(apartment.price || 0)}
                 category={'Apartment'}
                 rating={Number(apartment.rating || 0)}
                 reviews={apartment.reviews}

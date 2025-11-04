@@ -423,11 +423,43 @@ nav {
   z-index: 999;
 }
 
-/* Force ALL dropdowns to use fixed positioning to break out of stacking context */
+/* Ensure ALL dropdowns appear above content with absolute positioning */
 .notification-dropdown,
 .profile-dropdown {
-  position: fixed !important;
-  z-index: 10000 !important;
+  position: absolute !important;
+  z-index: 99999 !important;
+}
+
+/* Property owner navigation dropdowns - break out of any stacking context */
+.owner-nav-dropdown {
+  position: absolute !important;
+  z-index: 99999 !important;
+  transform: translateZ(0);
+  will-change: transform;
+  isolation: isolate;
+}
+
+/* Main navigation dropdowns in second navbar */
+.main-nav-dropdown {
+  position: absolute !important;
+  z-index: 99999 !important;
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* Property selector dropdown */
+.property-selector-dropdown {
+  position: absolute !important;
+  z-index: 99999 !important;
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* Third navbar (property owner) should be sticky but below dropdowns */
+.owner-third-navbar {
+  position: sticky;
+  top: 0;
+  z-index: 998 !important;
 }
 
 /* Ensure property owner navbar dropdowns float above content */

@@ -118,7 +118,7 @@ const ApartmentsListing = () => {
         bestDeal: p.bestDeal || null,
         activeDealsCount: p.activeDealsCount || 0,
         price: pricePerNight,
-        pricePerMonth: pricePerNight * 30,
+        pricePerNight: pricePerNight,
         category: p.category || 'apartment',
         rating: p.ratings?.length ? (p.ratings.reduce((s, r) => s + r.rating, 0) / p.ratings.length).toFixed(1) : 0,
         reviews: p.ratings?.length || 0,
@@ -149,7 +149,7 @@ const ApartmentsListing = () => {
           bestDeal: null,
           activeDealsCount: 0,
           price: Number(c.pricePerDay || 0),
-          pricePerMonth: Number(c.pricePerDay || 0) * 30,
+          pricePerNight: Number(c.pricePerDay || 0),
           category: 'cars',
           rating: Number(c.rating || 0),
           reviews: Number(c.reviews || 0),
@@ -639,7 +639,7 @@ const ApartmentsListing = () => {
                             title={apartment.title}
                             location={apartment.location}
                             images={apartment.images && apartment.images.length ? apartment.images : [apartment.image]}
-                            pricePerMonth={apartment.pricePerMonth}
+                            pricePerNight={apartment.pricePerNight || apartment.price}
                             category={apartment.category}
                             rating={Number(apartment.rating) || 0}
                             reviews={apartment.reviews}

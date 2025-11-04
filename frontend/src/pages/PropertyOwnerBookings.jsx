@@ -771,7 +771,7 @@ const PropertyOwnerBookings = () => {
           <div className="border-b border-gray-200">
             <nav className="-mb-px flex space-x-4 sm:space-x-8 overflow-x-auto scrollbar-hide">
               {[
-                { id: 'dashboard', label: 'Dashboard', icon: FaHome },
+                { id: 'dashboard', label: 'Home', icon: FaHome },
                 { id: 'reservations', label: 'Reservations', icon: FaCalendarAlt },
                 { id: 'reviews', label: 'Reviews', icon: FaStar },
                 { id: 'messages', label: 'Messages', icon: FaComments },
