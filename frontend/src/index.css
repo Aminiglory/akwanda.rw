@@ -423,21 +423,15 @@ nav {
   z-index: 999;
 }
 
-/* Force dropdowns to appear above all content including modals */
+/* Force ALL dropdowns to use fixed positioning to break out of stacking context */
 .notification-dropdown,
 .profile-dropdown {
   position: fixed !important;
-  z-index: 9999 !important;
+  z-index: 10000 !important;
 }
 
 /* Ensure property owner navbar dropdowns float above content */
 .sticky {
   position: -webkit-sticky;
   position: sticky;
-}
-
-/* Override any conflicting z-index from body content */
-body > div {
-  position: relative;
-  z-index: 1;
 }
