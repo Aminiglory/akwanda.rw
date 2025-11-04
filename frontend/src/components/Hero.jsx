@@ -1,8 +1,20 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { FaBuilding, FaSmile, FaThumbsUp } from 'react-icons/fa';
-import img from "../assets/images/home.jpg"
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+// Helper function to construct absolute image URLs
+const makeAbsoluteUrl = (imagePath) => {
+  if (!imagePath) return null;
+  const path = String(imagePath).replace(/\\/g, '/');
+  if (path.startsWith('http://') || path.startsWith('https://')) {
+    return path;
+  }
+  if (path.startsWith('/')) {
+    return `${API_URL}${path}`;
+  }
+  return `${API_URL}/${path}`;
+};
 
 const Hero = () => {
   const [isVisible, setIsVisible] = useState(false);
@@ -57,20 +69,40 @@ const Hero = () => {
     (async () => {
       try {
         const res = await fetch(`${API_URL}/api/content/landing`);
-        if (!res.ok) { setSlides([]); return; }
+        if (!res.ok) { 
+          console.warn('Failed to fetch landing content, using default image');
+          setSlides([]); 
+          return; 
+        }
         const data = await res.json();
+        console.log('Landing content loaded:', data);
+        
         if (data?.content) {
           const c = data.content;
           const fromSlides = Array.isArray(c.heroSlides) && c.heroSlides.length > 0
-            ? c.heroSlides.map(s => ({ image: s.image, caption: s.caption || '' }))
-            : (Array.isArray(c.heroImages) ? c.heroImages.map(img => ({ image: img, caption: '' })) : []);
+            ? c.heroSlides.map(s => ({ 
+                image: makeAbsoluteUrl(s.image), 
+                caption: s.caption || '' 
+              }))
+            : (Array.isArray(c.heroImages) && c.heroImages.length > 0
+                ? c.heroImages.map(imgPath => ({ 
+                    image: makeAbsoluteUrl(imgPath), 
+                    caption: '' 
+                  })) 
+                : []);
+          
+          console.log('Processed slides:', fromSlides);
           setSlides(fromSlides);
           setIntervalMs(typeof c.heroIntervalMs === 'number' && c.heroIntervalMs >= 2000 ? c.heroIntervalMs : 5000);
           setTransition(c.heroTransition === 'slide' ? 'slide' : 'fade');
           setHeroTitle(c.heroTitle || '');
           setHeroSubtitle(c.heroSubtitle || '');
-        } else setSlides([]);
-      } catch (_) {
+        } else {
+          console.warn('No content found in response');
+          setSlides([]);
+        }
+      } catch (err) {
+        console.error('Error loading landing content:', err);
         setSlides([]);
       }
     })();
@@ -143,22 +175,32 @@ const Hero = () => {
           touchStartX.current = null;
         }}
       >
-        {(slides.length ? slides : [{ image: img, caption: '' }]).map((s, i) => {
-          const src = s.image;
-          const url = typeof src === 'string' && src.startsWith('http') ? src : `${API_URL}${src}`;
-          const active = i === index;
-          return (
-            <img
-              key={i}
-              src={slides.length ? url : src}
-              alt={`slide-${i+1}`}
-              className={`absolute inset-0 w-full h-full object-cover ${transition === 'fade' ? 'transition-opacity duration-700' : 'transition-transform duration-700'} ${active ? (transition === 'fade' ? 'opacity-100' : 'translate-x-0') : (transition === 'fade' ? 'opacity-0' : 'translate-x-full')}`}
-              loading={i === 0 ? 'eager' : 'lazy'}
-            />
-          );
-        })}
+        {slides.length > 0 ? (
+          slides.map((s, i) => {
+            const url = s.image;
+            const active = i === index;
+            
+            return (
+              <img
+                key={i}
+                src={url}
+                alt={s.caption || `Slide ${i+1}`}
+                className={`absolute inset-0 w-full h-full object-cover ${transition === 'fade' ? 'transition-opacity duration-700' : 'transition-transform duration-700'} ${active ? (transition === 'fade' ? 'opacity-100' : 'translate-x-0') : (transition === 'fade' ? 'opacity-0' : 'translate-x-full')}`}
+                loading={i === 0 ? 'eager' : 'lazy'}
+                onError={(e) => {
+                  console.error('Failed to load hero image:', url);
+                  e.target.style.display = 'none'; // Hide broken image
+                }}
+              />
+            );
+          })
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-br from-[#8F633E] to-[#4B2E05] flex items-center justify-center">
+            <p className="text-white text-xl">No hero images configured</p>
+          </div>
+        )}
         {/* Dark overlay for readability */}
-        <div className="absolute inset-0 bg-black/40"></div>
+        {slides.length > 0 && <div className="absolute inset-0 bg-black/40"></div>}
       </div>
 
       {/* Overlay content */}
