@@ -7,6 +7,7 @@ const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
+const { getAutoReply, shouldSendAutoReply } = require('../utils/autoReply');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
 
@@ -196,6 +197,70 @@ router.post('/send', requireAuth, async (req, res) => {
                 io.to(`user:${String(to)}`).emit('message:new', payload);
             }
         } catch (_) {}
+
+        // Auto-reply logic: Send automatic response if property owner is not active
+        try {
+            // Check if recipient is a property owner and if auto-reply should be sent
+            const User = require('../tables/user');
+            const Property = require('../tables/property');
+            const recipient = await User.findById(to).select('userType name firstName lastName email phone phoneNumber');
+            
+            if (recipient && recipient.userType === 'host' && context.booking) {
+                // Get the booking with property details
+                const booking = await Booking.findById(context.booking).populate('property');
+                
+                if (booking && booking.property) {
+                    // Get previous messages in this thread
+                    const previousMessages = await Message.find({ booking: context.booking })
+                        .sort({ createdAt: -1 })
+                        .limit(10);
+                    
+                    // Check if we should send auto-reply
+                    if (shouldSendAutoReply(previousMessages, req.user.id)) {
+                        // Pass actual property data AND owner contact info to generate personalized auto-reply
+                        const autoReplyText = getAutoReply(text, booking.property, recipient);
+                        
+                        if (autoReplyText) {
+                            // Send auto-reply after a short delay (simulate typing)
+                            setTimeout(async () => {
+                                try {
+                                    const autoReplyMessage = await Message.create({
+                                        booking: context.booking,
+                                        carBooking: context.carBooking,
+                                        sender: to, // From property owner
+                                        recipient: req.user.id, // To guest
+                                        message: autoReplyText,
+                                        isAutoReply: true,
+                                        metadata: { isAutoReply: true, generatedAt: new Date(), propertyId: booking.property._id }
+                                    });
+
+                                    // Emit auto-reply via socket
+                                    const io = req.app.get('io');
+                                    if (io) {
+                                        const autoPayload = {
+                                            from: String(to),
+                                            to: String(req.user.id),
+                                            text: autoReplyText,
+                                            attachments: [],
+                                            createdAt: autoReplyMessage.createdAt,
+                                            bookingId: context.booking ? String(context.booking) : undefined,
+                                            isAutoReply: true
+                                        };
+                                        if (context.booking) io.to(`booking:${String(context.booking)}`).emit('message:new', autoPayload);
+                                        io.to(`user:${String(req.user.id)}`).emit('message:new', autoPayload);
+                                    }
+                                } catch (autoReplyError) {
+                                    console.error('Auto-reply error:', autoReplyError);
+                                }
+                            }, 2000); // 2 second delay to simulate human response
+                        }
+                    }
+                }
+            }
+        } catch (autoReplyError) {
+            console.error('Auto-reply check error:', autoReplyError);
+            // Don't fail the main request if auto-reply fails
+        }
 
         res.status(201).json({ message: newMessage });
     } catch (e) {
@@ -389,6 +454,87 @@ router.patch('/mark-read', requireAuth, async (req, res) => {
     } catch (error) {
         console.error('Mark messages read error:', error);
         res.status(500).json({ message: 'Failed to mark messages as read', error: error.message });
+    }
+});
+
+// Get messages by category
+router.get('/by-category', requireAuth, async (req, res) => {
+    try {
+        const { category } = req.query; // reservations, platform, qna
+        
+        let query = { $or: [{ sender: req.user.id }, { recipient: req.user.id }] };
+        
+        if (category === 'reservations') {
+            // Messages related to bookings
+            query.booking = { $exists: true, $ne: null };
+        } else if (category === 'platform') {
+            // System/platform messages (could be from admin or automated)
+            query.isSystemMessage = true;
+        } else if (category === 'qna') {
+            // Q&A messages (messages without booking context)
+            query.booking = { $exists: false };
+            query.carBooking = { $exists: false };
+            query.isSystemMessage = { $ne: true };
+        }
+        
+        const messages = await Message.find(query)
+            .sort({ createdAt: -1 })
+            .limit(50)
+            .populate('sender', 'firstName lastName email')
+            .populate('recipient', 'firstName lastName email')
+            .populate({ path: 'booking', populate: { path: 'property', select: 'title' } });
+        
+        // Count unread by category
+        const unreadQuery = { ...query, recipient: req.user.id, isRead: false };
+        const unreadCount = await Message.countDocuments(unreadQuery);
+        
+        res.json({ messages, unreadCount, category });
+    } catch (error) {
+        console.error('Get messages by category error:', error);
+        res.status(500).json({ message: 'Failed to get messages', error: error.message });
+    }
+});
+
+// Get message category counts
+router.get('/category-counts', requireAuth, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        
+        // Reservation messages
+        const reservationCount = await Message.countDocuments({
+            $or: [{ sender: userId }, { recipient: userId }],
+            booking: { $exists: true, $ne: null },
+            recipient: userId,
+            isRead: false
+        });
+        
+        // Platform messages
+        const platformCount = await Message.countDocuments({
+            $or: [{ sender: userId }, { recipient: userId }],
+            isSystemMessage: true,
+            recipient: userId,
+            isRead: false
+        });
+        
+        // Q&A messages
+        const qnaCount = await Message.countDocuments({
+            $or: [{ sender: userId }, { recipient: userId }],
+            booking: { $exists: false },
+            carBooking: { $exists: false },
+            isSystemMessage: { $ne: true },
+            recipient: userId,
+            isRead: false
+        });
+        
+        res.json({
+            reservations: reservationCount,
+            platform: platformCount,
+            qna: qnaCount,
+            total: reservationCount + platformCount + qnaCount
+        });
+    } catch (error) {
+        console.error('Get category counts error:', error);
+        res.status(500).json({ message: 'Failed to get counts', error: error.message });
     }
 });
 

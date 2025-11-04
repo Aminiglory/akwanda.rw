@@ -58,4 +58,74 @@ router.delete('/:id', requireAuth, async (req, res) => {
   } catch (e) { res.status(500).json({ message: 'Failed to delete promotion' }); }
 });
 
+// Get promotion templates
+router.get('/templates', requireAuth, async (req, res) => {
+  try {
+    const templates = [
+      { id: 'early-bird', name: 'Early Bird Discount', description: 'Reward guests who book in advance', suggestedDiscount: 15, type: 'early-bird' },
+      { id: 'last-minute', name: 'Last Minute Deal', description: 'Fill empty rooms with last-minute bookings', suggestedDiscount: 20, type: 'last-minute' },
+      { id: 'long-stay', name: 'Long Stay Discount', description: 'Encourage longer stays', suggestedDiscount: 25, type: 'long-stay', minNights: 7 },
+      { id: 'weekend', name: 'Weekend Special', description: 'Boost weekend occupancy', suggestedDiscount: 10, type: 'weekend' },
+      { id: 'seasonal', name: 'Seasonal Promotion', description: 'Seasonal discounts', suggestedDiscount: 15, type: 'seasonal' },
+      { id: 'mobile', name: 'Mobile App Exclusive', description: 'Mobile booking discount', suggestedDiscount: 12, type: 'mobile' },
+    ];
+    res.json({ templates });
+  } catch (e) { res.status(500).json({ message: 'Failed to load templates' }); }
+});
+
+// Simulate max discount impact
+router.post('/simulate', requireAuth, async (req, res) => {
+  try {
+    const { propertyId, discountPercent, startDate, endDate } = req.body;
+    const property = await Property.findById(propertyId).select('host pricePerNight title');
+    if (!property) return res.status(404).json({ message: 'Property not found' });
+    const isOwner = String(property.host) === String(req.user.id);
+    const isAdmin = req.user.userType === 'admin';
+    if (!isOwner && !isAdmin) return res.status(403).json({ message: 'Forbidden' });
+
+    const discount = Number(discountPercent) || 0;
+    const originalPrice = property.pricePerNight || 0;
+    const discountedPrice = originalPrice * (1 - discount / 100);
+    const savings = originalPrice - discountedPrice;
+
+    // Estimate potential bookings increase (simple heuristic)
+    const bookingIncrease = Math.min(discount * 2, 50); // Up to 50% increase
+    const estimatedBookings = Math.round(10 * (1 + bookingIncrease / 100)); // Assume 10 base bookings
+
+    const simulation = {
+      propertyTitle: property.title,
+      originalPrice,
+      discountPercent: discount,
+      discountedPrice: Math.round(discountedPrice),
+      savingsPerNight: Math.round(savings),
+      estimatedBookingIncrease: `${bookingIncrease}%`,
+      estimatedBookings,
+      estimatedRevenue: Math.round(discountedPrice * estimatedBookings),
+      potentialLoss: Math.round(savings * estimatedBookings),
+      netImpact: Math.round((discountedPrice * estimatedBookings) - (originalPrice * 10)),
+    };
+
+    res.json({ simulation });
+  } catch (e) { res.status(500).json({ message: 'Failed to simulate discount' }); }
+});
+
+// Update promotion status (activate/deactivate)
+router.patch('/:id/status', requireAuth, async (req, res) => {
+  try {
+    const { propertyId, active } = req.body;
+    const p = await Property.findById(propertyId).select('host promotions');
+    if (!p) return res.status(404).json({ message: 'Property not found' });
+    const isOwner = String(p.host) === String(req.user.id);
+    const isAdmin = req.user.userType === 'admin';
+    if (!isOwner && !isAdmin) return res.status(403).json({ message: 'Forbidden' });
+    
+    const promo = p.promotions.id(req.params.id);
+    if (!promo) return res.status(404).json({ message: 'Promotion not found' });
+    
+    promo.active = active;
+    await p.save();
+    res.json({ success: true, promotion: promo });
+  } catch (e) { res.status(500).json({ message: 'Failed to update promotion' }); }
+});
+
 module.exports = router;

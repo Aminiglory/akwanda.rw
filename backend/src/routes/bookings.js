@@ -8,6 +8,7 @@ const Notification = require('../tables/notification');
 const User = require('../tables/user');
 const bcrypt = require('bcryptjs');
 const Invoice = require('../tables/invoice');
+const Message = require('../tables/message');
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
@@ -399,6 +400,74 @@ router.post('/', requireAuth, async (req, res) => {
       recipientUser: guestId
     });
 
+    // Auto-send booking confirmation message with property details
+    try {
+      const checkInTime = property.checkInTime || '2:00 PM';
+      const checkOutTime = property.checkOutTime || '11:00 AM';
+      const flexibleText = property.flexibleCheckIn ? ' Flexible timing is available!' : '';
+      
+      const rules = property.roomRules && property.roomRules.length > 0 
+        ? property.roomRules.slice(0, 5).join(', ')
+        : 'Standard house rules apply';
+      
+      const petPolicy = property.petsAllowed 
+        ? `Yes, pets are welcome! 🐾 ${property.petPolicy || ''}` 
+        : 'Pets are not allowed at this property.';
+      
+      const cancellationPolicy = property.cancellationPolicy || 'Free cancellation up to 48 hours before check-in';
+      
+      const hostUser = await User.findById(property.host).select('name firstName lastName email phone phoneNumber');
+      const hostName = hostUser?.name || `${hostUser?.firstName || ''} ${hostUser?.lastName || ''}`.trim() || 'Property Owner';
+      
+      const confirmationMessage = `🎉 Booking Confirmed!
+
+Thank you for booking ${property.title}!
+
+📅 BOOKING DETAILS:
+• Check-in: ${new Date(booking.checkIn).toLocaleDateString()} from ${checkInTime}${flexibleText}
+• Check-out: ${new Date(booking.checkOut).toLocaleDateString()} by ${checkOutTime}
+• Guests: ${booking.numberOfGuests}
+• Confirmation Code: ${booking.confirmationCode || booking._id}
+
+💰 PAYMENT:
+• Total Amount: RWF ${booking.totalAmount.toLocaleString()}
+• Payment Method: ${booking.paymentMethod}
+• Status: ${booking.paymentStatus}
+
+📍 LOCATION:
+${property.address}, ${property.city}, ${property.country || 'Rwanda'}
+
+📋 HOUSE RULES:
+${rules}
+
+🐾 PET POLICY:
+${petPolicy}
+
+❌ CANCELLATION POLICY:
+${cancellationPolicy}
+
+📞 HOST CONTACT:
+👤 ${hostName}
+${hostUser?.email ? `📧 Email: ${hostUser.email}` : ''}
+${hostUser?.phone || hostUser?.phoneNumber ? `📱 Phone: ${hostUser.phone || hostUser.phoneNumber}` : ''}
+
+If you have any questions, feel free to reach out to your host directly or through this chat!
+
+Have a wonderful stay! 🏠✨`;
+
+      await Message.create({
+        booking: booking._id,
+        sender: property.host,
+        recipient: guestId,
+        text: confirmationMessage,
+        isAutoReply: true,
+        createdAt: new Date()
+      });
+    } catch (msgError) {
+      console.error('Failed to send booking confirmation message:', msgError);
+      // Don't fail the booking if message fails
+    }
+
     return res.status(201).json({ booking });
   } catch (error) {
     console.error('Booking creation error:', error);
@@ -469,6 +538,62 @@ router.get('/:id/invoice', requireAuth, async (req, res) => {
     return res.send(content);
   } catch (_) {
     return res.status(500).json({ message: 'Failed to generate invoice' });
+  }
+});
+
+// Receipt endpoint
+router.get('/:id/receipt', requireAuth, async (req, res) => {
+  try {
+    const b = await Booking.findById(req.params.id).populate('property').populate('guest');
+    if (!b) return res.status(404).json({ message: 'Booking not found' });
+    const isOwner = b.property && String(b.property.host) === String(req.user.id);
+    const isGuest = String(b.guest?._id || b.guest) === String(req.user.id);
+    const isAdmin = req.user.userType === 'admin';
+    if (!isOwner && !isGuest && !isAdmin) return res.status(403).json({ message: 'Unauthorized' });
+
+    const subtotal = Number(b.totalAmount || 0);
+    const tax = subtotal * 0.03; // 3% tax
+    const total = subtotal + tax;
+
+    const content = [
+      '=================================',
+      '         PAYMENT RECEIPT         ',
+      '=================================',
+      '',
+      `Receipt #: ${b.confirmationCode || b._id}`,
+      `Date: ${new Date(b.createdAt).toLocaleDateString()}`,
+      '',
+      '=================================',
+      'BOOKING DETAILS',
+      '=================================',
+      `Property: ${b.property?.title || ''}`,
+      `Guest: ${(b.guest?.firstName || '')} ${(b.guest?.lastName || '')}`,
+      `Check-in: ${new Date(b.checkIn).toLocaleDateString()}`,
+      `Check-out: ${new Date(b.checkOut).toLocaleDateString()}`,
+      `Guests: ${b.numberOfGuests || 1}`,
+      '',
+      '=================================',
+      'PAYMENT BREAKDOWN',
+      '=================================',
+      `Subtotal:        RWF ${subtotal.toLocaleString()}`,
+      `Tax (3%):        RWF ${tax.toLocaleString()}`,
+      `Total:           RWF ${total.toLocaleString()}`,
+      '',
+      `Payment Method:  ${b.paymentMethod || 'N/A'}`,
+      `Payment Status:  ${b.paymentStatus || 'pending'}`,
+      '',
+      '=================================',
+      'Thank you for your booking!',
+      'AKWANDA.rw',
+      '================================='
+    ].join('\n');
+
+    res.setHeader('Content-Type', 'text/plain');
+    res.setHeader('Content-Disposition', `attachment; filename=receipt-${b.confirmationCode || b._id}.txt`);
+    return res.send(content);
+  } catch (error) {
+    console.error('Receipt generation error:', error);
+    return res.status(500).json({ message: 'Failed to generate receipt' });
   }
 });
 

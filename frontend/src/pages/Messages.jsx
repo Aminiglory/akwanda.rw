@@ -103,6 +103,40 @@ export default function Messages() {
     loadThreads();
   }, []);
 
+  // Handle recipient query parameter to initiate conversation
+  useEffect(() => {
+    const recipientId = searchParams.get('recipient');
+    const bookingId = searchParams.get('booking');
+    
+    if (recipientId && threads.length > 0) {
+      // Check if conversation already exists
+      const existingThread = threads.find(t => 
+        String(t.userId) === String(recipientId) || 
+        (bookingId && String(t.bookingId) === String(bookingId))
+      );
+      
+      if (existingThread) {
+        // Open existing conversation
+        setActiveThread(existingThread);
+      } else {
+        // Create new conversation thread
+        const newThread = {
+          id: `new-${recipientId}-${Date.now()}`,
+          userId: recipientId,
+          bookingId: bookingId || null,
+          userName: 'Guest',
+          userAvatar: placeholderAvatar,
+          lastMessage: '',
+          timestamp: new Date().toISOString(),
+          unread: 0,
+          isOnline: false
+        };
+        setThreads(prev => [newThread, ...prev]);
+        setActiveThread(newThread);
+      }
+    }
+  }, [searchParams, threads.length]);
+
   // Hydrate thread user avatars and names from backend basic info
   useEffect(() => {
     const hydrate = async () => {
@@ -1140,9 +1174,13 @@ export default function Messages() {
                   messages.map(renderMessage)
                 )}
                 {otherTyping && (
-                  <div className="flex justify-start mb-4">
-                    <div className="bg-white border border-gray-200 rounded-2xl px-4 py-2">
-                      <span className="text-sm text-gray-600 italic">typing...</span>
+                  <div className="flex justify-start mb-4 animate-fade-in">
+                    <div className="bg-white border border-gray-200 rounded-2xl px-4 py-3 shadow-sm">
+                      <div className="flex items-center space-x-1">
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -1277,14 +1315,18 @@ export default function Messages() {
 
       {/* Mobile floating actions: new chat and open thread list */}
       <div className="lg:hidden fixed bottom-5 right-5 z-50 flex flex-col items-end gap-3">
-        <button
-          onClick={() => setShowUserSearch(true)}
-          className="btn-primary text-white rounded-full w-12 h-12 shadow-lg flex items-center justify-center"
-          title="New chat"
-          aria-label="New chat"
-        >
-          <FaUser />
-        </button>
+        {/* Show 'New chat' button only when NOT in a conversation (like WhatsApp) */}
+        {!activeThread && (
+          <button
+            onClick={() => setShowUserSearch(true)}
+            className="btn-primary text-white rounded-full w-12 h-12 shadow-lg flex items-center justify-center"
+            title="New chat"
+            aria-label="New chat"
+          >
+            <FaUser />
+          </button>
+        )}
+        {/* Show 'All chats' button only when IN a conversation */}
         {activeThread && (
           <button
             onClick={() => setActiveThread(null)}

@@ -74,7 +74,8 @@ export const HostRoute = ({ children }) => {
     );
   }
   if (!isAuthenticated) return <Navigate to="/login" replace />;
-  if (user?.userType !== 'host') return <Navigate to="/dashboard" replace />;
+  // Allow both hosts and admins to access host routes
+  if (user?.userType !== 'host' && user?.userType !== 'admin') return <Navigate to="/" replace />;
   if (user?.isBlocked) {
     const allowed = [
       '/notifications',

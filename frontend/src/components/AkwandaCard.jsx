@@ -21,7 +21,7 @@ export default function AkwandaCard({
   title,
   location,
   images = [],
-  pricePerMonth,
+  pricePerNight,
   category,
   rating = 0,
   reviews = 0,
@@ -116,7 +116,7 @@ export default function AkwandaCard({
           </div>
         )}
         <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1 text-sm font-semibold text-gray-800">
-          RWF {Number(pricePerMonth || 0).toLocaleString()}/month
+          RWF {Number(pricePerNight || 0).toLocaleString()}/night
         </div>
         <div className="absolute top-4 right-4 flex items-center gap-2">
           {ownerId && (

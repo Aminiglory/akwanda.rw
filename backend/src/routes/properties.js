@@ -988,123 +988,188 @@ router.post('/upload/images', requireAuth, upload.array('images', 10), async (re
 });
 
 router.post('/', requireAuth, upload.array('images', 10), async (req, res) => {
-    // Allow any authenticated user; auto-promote to host on first upload
-    if (req.user.userType !== 'host' && req.user.userType !== 'admin') {
-        const acct = await User.findById(req.user.id);
-        if (acct) {
-            acct.userType = 'host';
-            await acct.save();
-            req.user.userType = 'host';
+    try {
+        // Allow any authenticated user; auto-promote to host on first upload
+        if (req.user.userType !== 'host' && req.user.userType !== 'admin') {
+            const acct = await User.findById(req.user.id);
+            if (acct) {
+                acct.userType = 'host';
+                await acct.save();
+                req.user.userType = 'host';
+            }
         }
-    }
-	const imagePaths = (req.files || []).map(f => `/uploads/${path.basename(f.path)}`);
-    // Merge any images provided in JSON body (images, imageUrls) with uploaded file paths
-    let mergedImages = [...imagePaths];
-    const bodyImages = req.body.images ? (Array.isArray(req.body.images) ? req.body.images : [req.body.images]) : [];
-    const bodyImageUrls = req.body.imageUrls ? (Array.isArray(req.body.imageUrls) ? req.body.imageUrls : [req.body.imageUrls]) : [];
-    mergedImages.push(
-        ...bodyImages.map(u => String(u).replace(/\\+/g, '/')),
-        ...bodyImageUrls.map(u => String(u).replace(/\\+/g, '/'))
-    );
-    // Deduplicate & normalize
-    mergedImages = Array.from(new Set(mergedImages.filter(Boolean).map(u => String(u).replace(/\\+/g, '/'))));
-    const payload = { ...req.body, images: mergedImages, host: req.user.id };
-    // Ensure commissionRate stays within [8,12] regardless of visibility level
-    if (payload.commissionRate != null) {
-        const cr = Number(payload.commissionRate);
-        payload.commissionRate = Math.min(12, Math.max(8, isNaN(cr) ? 10 : cr));
-    } else {
-        // Set default commission rate based on visibility level within allowed range
-        if (payload.visibilityLevel === 'featured') {
-            payload.commissionRate = 12; // Maximum allowed rate for featured properties
-        } else if (payload.visibilityLevel === 'premium') {
-            payload.commissionRate = 10; // Medium rate for premium properties
+        const imagePaths = (req.files || []).map(f => `/uploads/${path.basename(f.path)}`);
+        // Merge any images provided in JSON body (images, imageUrls) with uploaded file paths
+        let mergedImages = [...imagePaths];
+        const bodyImages = req.body.images ? (Array.isArray(req.body.images) ? req.body.images : [req.body.images]) : [];
+        const bodyImageUrls = req.body.imageUrls ? (Array.isArray(req.body.imageUrls) ? req.body.imageUrls : [req.body.imageUrls]) : [];
+        mergedImages.push(
+            ...bodyImages.map(u => String(u).replace(/\\+/g, '/')),
+            ...bodyImageUrls.map(u => String(u).replace(/\\+/g, '/'))
+        );
+        // Deduplicate & normalize
+        mergedImages = Array.from(new Set(mergedImages.filter(Boolean).map(u => String(u).replace(/\\+/g, '/'))));
+        const payload = { ...req.body, images: mergedImages, host: req.user.id };
+        
+        // Coerce numeric fields
+        ['pricePerNight', 'bedrooms', 'bathrooms', 'maxGuests'].forEach(field => {
+            if (payload[field] !== undefined && payload[field] !== null && payload[field] !== '') {
+                payload[field] = Number(payload[field]);
+            }
+        });
+        
+        // Ensure commissionRate stays within [8,12] regardless of visibility level
+        if (payload.commissionRate != null) {
+            const cr = Number(payload.commissionRate);
+            payload.commissionRate = Math.min(12, Math.max(8, isNaN(cr) ? 10 : cr));
         } else {
-            payload.commissionRate = 8; // Minimum rate for standard properties
+            // Set default commission rate based on visibility level within allowed range
+            if (payload.visibilityLevel === 'featured') {
+                payload.commissionRate = 12; // Maximum allowed rate for featured properties
+            } else if (payload.visibilityLevel === 'premium') {
+                payload.commissionRate = 10; // Medium rate for premium properties
+            } else {
+                payload.commissionRate = 8; // Minimum rate for standard properties
+            }
         }
+        
+        // Coerce roomRules to array if provided
+        if (payload.roomRules && !Array.isArray(payload.roomRules)) {
+            payload.roomRules = [payload.roomRules];
+        }
+        
+        // Coerce amenities to array if provided
+        if (payload.amenities && !Array.isArray(payload.amenities)) {
+            payload.amenities = [payload.amenities];
+        }
+        
+        // Parse rooms if it's a JSON string
+        if (payload.rooms && typeof payload.rooms === 'string') {
+            try {
+                payload.rooms = JSON.parse(payload.rooms);
+            } catch (e) {
+                console.error('Failed to parse rooms JSON:', e);
+            }
+        }
+        
+        const created = await Property.create(payload);
+        
+        // Notify admin of new property upload
+        try {
+            await Notification.create({
+                type: 'booking_created', // reuse type bucket with message context
+                title: 'New property uploaded',
+                message: `A new property "${created.title}" was uploaded`,
+                property: created._id
+            });
+        } catch (notifError) {
+            console.error('Failed to create notification:', notifError);
+            // Don't fail the request if notification fails
+        }
+        
+        res.status(201).json({ property: created });
+    } catch (error) {
+        console.error('Property creation error:', error);
+        res.status(500).json({ 
+            message: 'Failed to create property', 
+            error: error.message,
+            details: error.errors ? Object.keys(error.errors).map(key => ({
+                field: key,
+                message: error.errors[key].message
+            })) : undefined
+        });
     }
-    // Coerce roomRules to array if provided
-    if (payload.roomRules && !Array.isArray(payload.roomRules)) {
-        payload.roomRules = [payload.roomRules];
-    }
-    const created = await Property.create(payload);
-    // Notify admin of new property upload
-    await Notification.create({
-        type: 'booking_created', // reuse type bucket with message context
-        title: 'New property uploaded',
-        message: `A new property "${created.title}" was uploaded`,
-        property: created._id
-    });
-	res.status(201).json({ property: created });
 });
 
 // Update a property (owner or admin)
 router.put('/:id', requireAuth, requireWorkerPrivilege('canEditProperties'), upload.array('images', 10), async (req, res) => {
-    const property = await Property.findById(req.params.id);
-    if (!property) return res.status(404).json({ message: 'Property not found' });
-    if (String(property.host) !== req.user.id && req.user.userType !== 'admin') {
-        return res.status(403).json({ message: 'Not allowed' });
-    }
-    const updates = { ...req.body };
-    // Coerce number fields
-    ['pricePerNight','bedrooms','bathrooms','discountPercent','commissionRate'].forEach(k => {
-        if (updates[k] != null) updates[k] = Number(updates[k]);
-    });
-    // Ensure commissionRate stays within [8,12] regardless of visibility level
-    if (updates.commissionRate != null) {
-        updates.commissionRate = Math.min(12, Math.max(8, Number(updates.commissionRate)));
-    } else if (updates.visibilityLevel) {
-        // Set commission rate based on visibility level within allowed range
-        if (updates.visibilityLevel === 'featured') {
-            updates.commissionRate = 12; // Maximum allowed rate for featured properties
-        } else if (updates.visibilityLevel === 'premium') {
-            updates.commissionRate = 10; // Medium rate for premium properties
-        } else {
-            updates.commissionRate = 8; // Minimum rate for standard properties
+    try {
+        const property = await Property.findById(req.params.id);
+        if (!property) return res.status(404).json({ message: 'Property not found' });
+        if (String(property.host) !== req.user.id && req.user.userType !== 'admin') {
+            return res.status(403).json({ message: 'Not allowed' });
         }
+        const updates = { ...req.body };
+        // Coerce number fields
+        ['pricePerNight','bedrooms','bathrooms','discountPercent','commissionRate','maxGuests'].forEach(k => {
+            if (updates[k] != null && updates[k] !== '') updates[k] = Number(updates[k]);
+        });
+        // Ensure commissionRate stays within [8,12] regardless of visibility level
+        if (updates.commissionRate != null) {
+            updates.commissionRate = Math.min(12, Math.max(8, Number(updates.commissionRate)));
+        } else if (updates.visibilityLevel) {
+            // Set commission rate based on visibility level within allowed range
+            if (updates.visibilityLevel === 'featured') {
+                updates.commissionRate = 12; // Maximum allowed rate for featured properties
+            } else if (updates.visibilityLevel === 'premium') {
+                updates.commissionRate = 10; // Medium rate for premium properties
+            } else {
+                updates.commissionRate = 8; // Minimum rate for standard properties
+            }
+        }
+        // Amenities (multer form arrays come as string or array)
+        if (updates.amenities && !Array.isArray(updates.amenities)) {
+            updates.amenities = [updates.amenities];
+        }
+        // Room rules: coerce to array if provided
+        if (updates.roomRules && !Array.isArray(updates.roomRules)) {
+            updates.roomRules = [updates.roomRules];
+        }
+        
+        // Parse rooms if it's a JSON string
+        if (updates.rooms && typeof updates.rooms === 'string') {
+            try {
+                updates.rooms = JSON.parse(updates.rooms);
+            } catch (e) {
+                console.error('Failed to parse rooms JSON:', e);
+            }
+        }
+        
+        // Merge or replace images if new files provided
+        if (req.files && req.files.length) {
+            const uploaded = await Promise.all(req.files.map(f => uploadBuffer(f.buffer, f.originalname, 'properties')));
+            const urls = uploaded.map(u => u.secure_url || u.url);
+            updates.images = urls;
+        }
+        // Merge explicit imageUrls if provided
+        if (req.body.imageUrls) {
+            const urls = Array.isArray(req.body.imageUrls) ? req.body.imageUrls : [req.body.imageUrls];
+            const normalized = urls.map(u => String(u).replace(/\\+/g, '/'));
+            updates.images = (updates.images && updates.images.length)
+                ? [...updates.images, ...normalized]
+                : normalized;
+        }
+        // Merge body images if provided as JSON array (frontend sends `images`)
+        if (req.body.images) {
+            const arr = Array.isArray(req.body.images) ? req.body.images : [req.body.images];
+            const normalized = arr.map(u => String(u).replace(/\\+/g, '/'));
+            updates.images = (updates.images && updates.images.length)
+                ? [...updates.images, ...normalized]
+                : normalized;
+        }
+        // Allow clearing images explicitly
+        if (String(req.body.clearImages).toLowerCase() === 'true') {
+            updates.images = [];
+        }
+        // Deduplicate if images present
+        if (updates.images) {
+            updates.images = Array.from(new Set(updates.images.map(u => String(u).replace(/\\+/g, '/'))));
+        }
+        Object.assign(property, updates);
+        clampCommission(property);
+        await property.save();
+        res.json({ property });
+    } catch (error) {
+        console.error('Property update error:', error);
+        res.status(500).json({ 
+            message: 'Failed to update property', 
+            error: error.message,
+            details: error.errors ? Object.keys(error.errors).map(key => ({
+                field: key,
+                message: error.errors[key].message
+            })) : undefined
+        });
     }
-    // Amenities (multer form arrays come as string or array)
-    if (updates.amenities && !Array.isArray(updates.amenities)) {
-        updates.amenities = [updates.amenities];
-    }
-    // Room rules: coerce to array if provided
-    if (updates.roomRules && !Array.isArray(updates.roomRules)) {
-        updates.roomRules = [updates.roomRules];
-    }
-    // Merge or replace images if new files provided
-    if (req.files && req.files.length) {
-        const uploaded = await Promise.all(req.files.map(f => uploadBuffer(f.buffer, f.originalname, 'properties')));
-        const urls = uploaded.map(u => u.secure_url || u.url);
-        updates.images = urls;
-    }
-    // Merge explicit imageUrls if provided
-    if (req.body.imageUrls) {
-        const urls = Array.isArray(req.body.imageUrls) ? req.body.imageUrls : [req.body.imageUrls];
-        const normalized = urls.map(u => String(u).replace(/\\+/g, '/'));
-        updates.images = (updates.images && updates.images.length)
-            ? [...updates.images, ...normalized]
-            : normalized;
-    }
-    // Merge body images if provided as JSON array (frontend sends `images`)
-    if (req.body.images) {
-        const arr = Array.isArray(req.body.images) ? req.body.images : [req.body.images];
-        const normalized = arr.map(u => String(u).replace(/\\+/g, '/'));
-        updates.images = (updates.images && updates.images.length)
-            ? [...updates.images, ...normalized]
-            : normalized;
-    }
-    // Allow clearing images explicitly
-    if (String(req.body.clearImages).toLowerCase() === 'true') {
-        updates.images = [];
-    }
-    // Deduplicate if images present
-    if (updates.images) {
-        updates.images = Array.from(new Set(updates.images.map(u => String(u).replace(/\\+/g, '/'))));
-    }
-    Object.assign(property, updates);
-    clampCommission(property);
-    await property.save();
-    res.json({ property });
 });
 
 // Admin-only: normalize stored image URLs for all properties and rooms

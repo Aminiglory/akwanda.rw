@@ -109,7 +109,7 @@ const Homes = () => {
                 title={home.title}
                 location={home.location}
                 images={[home.image]}
-                pricePerMonth={Number(home.price || 0) * 30}
+                pricePerNight={Number(home.price || 0)}
                 category={'Home'}
                 rating={Number(home.rating || 0)}
                 reviews={home.reviews}
