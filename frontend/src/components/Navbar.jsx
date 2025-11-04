@@ -527,7 +527,7 @@ const Navbar = () => {
         setIsProfileOpen(false);
       }
       // Close third nav bar dropdowns when clicking outside
-      if (!event.target.closest('.owner-nav-dropdown') && !event.target.closest('.owner-third-navbar button')) {
+      if (!event.target.closest('.owner-nav-dropdown') && !event.target.closest('.owner-nav-dropdown-button')) {
         const thirdNavDropdowns = bookingComNavItems.map(item => item.label);
         if (thirdNavDropdowns.includes(activeDropdown)) {
           setActiveDropdown(null);
@@ -614,6 +614,7 @@ const Navbar = () => {
   };
 
   const toggleDropdown = (dropdownName) => {
+    console.log('Toggle dropdown:', dropdownName, 'Current:', activeDropdown);
     setActiveDropdown(activeDropdown === dropdownName ? null : dropdownName);
   };
 
@@ -1541,7 +1542,7 @@ const Navbar = () => {
                   <div key={index} className="relative group flex-shrink-0">
                     <button
                       onClick={() => toggleDropdown(item.label)}
-                      className={`flex items-center space-x-1.5 px-3 py-2 rounded-lg transition-all duration-200 font-medium text-sm whitespace-nowrap ${
+                      className={`owner-nav-dropdown-button flex items-center space-x-1.5 px-3 py-2 rounded-lg transition-all duration-200 font-medium text-sm whitespace-nowrap ${
                         isActive
                           ? "bg-[#a06b42] text-white shadow-md"
                           : "text-gray-700 hover:text-[#a06b42] hover:bg-[#f5f0e8]"
@@ -1549,7 +1550,7 @@ const Navbar = () => {
                     >
                       <Icon className="text-sm flex-shrink-0" />
                       <span>{item.label}</span>
-                      {item.badge && (
+                      {item.badge > 0 && (
                         <span className="bg-red-600 text-white text-[10px] rounded-full px-1.5 py-0.5 min-w-[18px] text-center font-semibold">
                           {item.badge}
                         </span>
@@ -1561,7 +1562,7 @@ const Navbar = () => {
 
                     {/* Dropdown Menu */}
                     {isDropdownOpen && item.children.length > 0 && (
-                      <div className="owner-nav-dropdown absolute top-full left-0 mt-1 w-72 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-[99999] max-h-96 overflow-y-auto">
+                      <div className="owner-nav-dropdown absolute top-full left-0 mt-1 w-72 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-[99999] max-h-96 overflow-y-auto" style={{display: 'block'}}>
                         {item.children.map((child, childIndex) => {
                           const ChildIcon = child.icon;
                           const isChildActive = isActiveRoute(child.href);
