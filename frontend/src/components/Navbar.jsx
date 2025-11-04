@@ -526,13 +526,20 @@ const Navbar = () => {
       if (!event.target.closest('.profile-dropdown') && !event.target.closest('.profile-button')) {
         setIsProfileOpen(false);
       }
+      // Close third nav bar dropdowns when clicking outside
+      if (!event.target.closest('.owner-nav-dropdown') && !event.target.closest('.owner-third-navbar button')) {
+        const thirdNavDropdowns = bookingComNavItems.map(item => item.label);
+        if (thirdNavDropdowns.includes(activeDropdown)) {
+          setActiveDropdown(null);
+        }
+      }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, []);
+  }, [activeDropdown]);
 
   useEffect(() => {
     if (!isAuthenticated || !isProfileOpen) return;
@@ -1522,7 +1529,7 @@ const Navbar = () => {
 
       {/* Third Bar - Property Owner Dashboard Navigation (Separate Bar) */}
       {user?.userType === 'host' && isInPropertyOwnerDashboard() && (
-        <div className="owner-third-navbar w-full bg-white border-b border-gray-200 shadow-sm">
+        <div className="owner-third-navbar w-full bg-white border-b border-gray-200 shadow-sm relative z-[998]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center space-x-1 overflow-x-auto py-2 scrollbar-hide">
               {bookingComNavItems.map((item, index) => {
