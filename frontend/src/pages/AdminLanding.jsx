@@ -361,8 +361,8 @@ export default function AdminLanding() {
                 }}
               >
                 {howItWorks.image ? (
-                  <div className="relative">
-                    <img src={howItWorks.image.startsWith('http') ? howItWorks.image : `${API_URL}${howItWorks.image}`} className="w-32 h-24 object-cover rounded" />
+                  <div className="relative w-28 h-20 shrink-0">
+                    <img src={howItWorks.image.startsWith('http') ? howItWorks.image : `${API_URL}${howItWorks.image}`} className="w-28 h-20 object-cover rounded" />
                     <button
                       type="button"
                       className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-white shadow text-gray-700"
@@ -468,8 +468,8 @@ export default function AdminLanding() {
                         }}
                       >
                         {s.image ? (
-                          <div className="relative">
-                            <img src={s.image.startsWith('http') ? s.image : `${API_URL}${s.image}`} className="w-24 h-16 object-cover rounded" />
+                          <div className="relative w-28 h-20 shrink-0">
+                            <img src={s.image.startsWith('http') ? s.image : `${API_URL}${s.image}`} className="w-28 h-20 object-cover rounded" />
                             <button type="button" className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-white shadow text-gray-700" onClick={() => setHowItWorks({ ...howItWorks, guestSteps: howItWorks.guestSteps.map((x, idx)=> idx===i? { ...x, image: '' }: x) })}>×</button>
                           </div>
                         ) : (
@@ -550,8 +550,8 @@ export default function AdminLanding() {
                         }}
                       >
                         {s.image ? (
-                          <div className="relative">
-                            <img src={s.image.startsWith('http') ? s.image : `${API_URL}${s.image}`} className="w-24 h-16 object-cover rounded" />
+                          <div className="relative w-28 h-20 shrink-0">
+                            <img src={s.image.startsWith('http') ? s.image : `${API_URL}${s.image}`} className="w-28 h-20 object-cover rounded" />
                             <button type="button" className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-white shadow text-gray-700" onClick={() => setHowItWorks({ ...howItWorks, hostSteps: howItWorks.hostSteps.map((x, idx)=> idx===i? { ...x, image: '' }: x) })}>×</button>
                           </div>
                         ) : (
