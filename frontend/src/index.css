@@ -426,33 +426,39 @@ nav {
 /* Ensure ALL dropdowns appear above content with absolute positioning */
 .notification-dropdown,
 .profile-dropdown {
-  position: absolute !important;
-  z-index: 99999 !important;
-}
-
-/* Property owner navigation dropdowns - break out of any stacking context */
-.owner-nav-dropdown {
-  position: absolute !important;
-  z-index: 99999 !important;
+  position: fixed !important;
+  z-index: 999999 !important;
   transform: translateZ(0);
   will-change: transform;
   isolation: isolate;
 }
 
-/* Main navigation dropdowns in second navbar */
-.main-nav-dropdown {
-  position: absolute !important;
-  z-index: 99999 !important;
+/* Property owner navigation dropdowns - break out of any stacking context */
+.owner-nav-dropdown {
+  position: fixed !important;
+  z-index: 999999 !important;
   transform: translateZ(0);
   will-change: transform;
+  isolation: isolate;
+  pointer-events: auto;
+}
+
+/* Main navigation dropdowns in second navbar */
+.main-nav-dropdown {
+  position: fixed !important;
+  z-index: 999999 !important;
+  transform: translateZ(0);
+  will-change: transform;
+  isolation: isolate;
 }
 
 /* Property selector dropdown */
 .property-selector-dropdown {
-  position: absolute !important;
-  z-index: 99999 !important;
+  position: fixed !important;
+  z-index: 999999 !important;
   transform: translateZ(0);
   will-change: transform;
+  isolation: isolate;
 }
 
 /* Third navbar (property owner) should be sticky but below dropdowns */
@@ -460,6 +466,7 @@ nav {
   position: sticky;
   top: 0;
   z-index: 998 !important;
+  isolation: isolate;
 }
 
 /* Ensure property owner navbar dropdowns float above content */

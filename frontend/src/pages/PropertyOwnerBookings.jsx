@@ -193,10 +193,13 @@ const PropertyOwnerBookings = () => {
     if (scope) {
       const map = {
         all: 'all',
+        upcoming: 'upcoming',
+        'checked-in': 'checked-in',
+        'checked-out': 'checked-out',
+        cancelled: 'cancelled',
         paid: 'paid',
         pending: 'pending',
-        unpaid: 'unpaid',
-        cancelled: 'cancelled'
+        unpaid: 'unpaid'
       };
       const next = map[scope] || 'all';
       setFilters(prev => ({ ...prev, status: next }));
@@ -330,7 +333,30 @@ const PropertyOwnerBookings = () => {
   };
 
   const filteredBookings = bookings.filter(booking => {
-    if (filters.status !== 'all' && booking.status !== filters.status && booking.paymentStatus !== filters.status) return false;
+    // Handle status filtering with new navigation scopes
+    if (filters.status !== 'all') {
+      const now = new Date();
+      const checkIn = new Date(booking.checkIn);
+      const checkOut = new Date(booking.checkOut);
+      
+      if (filters.status === 'upcoming') {
+        // Upcoming: check-in date is in the future
+        if (checkIn <= now || booking.status === 'cancelled') return false;
+      } else if (filters.status === 'checked-in') {
+        // Checked-in: currently staying (between check-in and check-out)
+        if (now < checkIn || now > checkOut || booking.status === 'cancelled') return false;
+      } else if (filters.status === 'checked-out') {
+        // Checked-out: check-out date has passed
+        if (checkOut >= now || booking.status === 'cancelled') return false;
+      } else if (filters.status === 'cancelled') {
+        // Cancelled bookings
+        if (booking.status !== 'cancelled') return false;
+      } else {
+        // Original status filtering (paid, pending, unpaid, etc.)
+        if (booking.status !== filters.status && booking.paymentStatus !== filters.status) return false;
+      }
+    }
+    
     if (filters.property !== 'all' && String(booking.property?._id) !== String(filters.property)) return false;
     const guestName = `${booking.guest?.firstName || ''} ${booking.guest?.lastName || ''}`.trim().toLowerCase();
     if (filters.search && !guestName.includes(filters.search.toLowerCase())) return false;

@@ -21,6 +21,30 @@ const Testimonials = () => {
     (async () => {
       try {
         setLoading(true);
+        // First try to fetch real reviews
+        const reviewsRes = await fetch(`${API_URL}/api/reviews/landing?limit=12`);
+        if (reviewsRes.ok) {
+          const reviewsData = await reviewsRes.json();
+          if (reviewsData.reviews && reviewsData.reviews.length > 0) {
+            // Map reviews to testimonial format
+            const mappedReviews = reviewsData.reviews.map(review => ({
+              _id: review._id,
+              name: review.guest?.fullName || 'Anonymous',
+              role: `Guest at ${review.property?.title || 'Property'}`,
+              content: review.comment,
+              rating: review.rating,
+              image: review.guest?.profilePicture || '',
+              createdAt: review.createdAt
+            }));
+            if (!ignore) {
+              setItems(mappedReviews);
+              setLoading(false);
+              return;
+            }
+          }
+        }
+        
+        // Fallback to testimonials if no reviews
         const res = await fetch(`${API_URL}/api/testimonials`);
         if (!res.ok) {
           if (!ignore) setItems([]);

@@ -255,6 +255,112 @@ export default function BoostPerformance() {
     </div>
   );
 
+  const renderPreferred = () => (
+    <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+      <div className="flex items-center space-x-3 mb-6">
+        <FaStar className="text-3xl text-blue-600" />
+        <h3 className="text-2xl font-bold">Preferred Partner Programme</h3>
+      </div>
+      <div className="space-y-6">
+        <div className="bg-blue-50 p-4 rounded-lg">
+          <p className="text-gray-700 mb-4">
+            Join our elite Preferred Partner Programme and unlock exclusive benefits, priority support, and enhanced visibility.
+          </p>
+          <ul className="space-y-2 text-sm text-gray-600">
+            <li>✓ Priority customer support</li>
+            <li>✓ Featured placement in search results</li>
+            <li>✓ Exclusive marketing opportunities</li>
+            <li>✓ Advanced analytics and insights</li>
+            <li>✓ Dedicated account manager</li>
+          </ul>
+        </div>
+        <div className="border-t pt-4">
+          <h4 className="font-semibold mb-2">Eligibility Requirements:</h4>
+          <ul className="text-sm text-gray-600 space-y-1">
+            <li>• Minimum 4.5 star rating</li>
+            <li>• At least 50 completed bookings</li>
+            <li>• Less than 5% cancellation rate</li>
+            <li>• Active for at least 6 months</li>
+          </ul>
+        </div>
+        <button className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold">
+          Apply for Preferred Partner Status
+        </button>
+      </div>
+    </div>
+  );
+
+  const renderWorkFriendly = () => (
+    <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+      <div className="flex items-center space-x-3 mb-6">
+        <FaBriefcase className="text-3xl text-purple-600" />
+        <h3 className="text-2xl font-bold">Work-Friendly Programme</h3>
+      </div>
+      <div className="space-y-6">
+        <div className="bg-purple-50 p-4 rounded-lg">
+          <p className="text-gray-700 mb-4">
+            Attract remote workers and digital nomads by highlighting your work-friendly amenities and features.
+          </p>
+          <ul className="space-y-2 text-sm text-gray-600">
+            <li>✓ High-speed WiFi certification</li>
+            <li>✓ Dedicated workspace areas</li>
+            <li>✓ Business center access</li>
+            <li>✓ Extended stay discounts</li>
+            <li>✓ Flexible check-in/out times</li>
+          </ul>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="p-4 border rounded">
+            <p className="text-sm text-gray-600">WiFi Speed</p>
+            <p className="text-2xl font-bold text-purple-600">100+ Mbps</p>
+          </div>
+          <div className="p-4 border rounded">
+            <p className="text-sm text-gray-600">Workspace Rating</p>
+            <p className="text-2xl font-bold text-purple-600">4.8/5</p>
+          </div>
+        </div>
+        <button className="w-full px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-semibold">
+          Enable Work-Friendly Badge
+        </button>
+      </div>
+    </div>
+  );
+
+  const renderUnitDiff = () => (
+    <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+      <div className="flex items-center space-x-3 mb-6">
+        <FaLightbulb className="text-3xl text-orange-500" />
+        <h3 className="text-2xl font-bold">Unit Differentiation Tool</h3>
+      </div>
+      <div className="space-y-6">
+        <div className="bg-orange-50 p-4 rounded-lg">
+          <p className="text-gray-700 mb-4">
+            Highlight unique features of each room or unit to help guests make informed decisions and increase bookings.
+          </p>
+        </div>
+        <div className="space-y-4">
+          {[
+            { name: 'Ocean View Suite', unique: 'Panoramic sea views, Private balcony', bookings: 45 },
+            { name: 'Garden Room', unique: 'Ground floor access, Pet-friendly', bookings: 32 },
+            { name: 'Executive Suite', unique: 'King bed, Workspace, Premium amenities', bookings: 38 }
+          ].map((unit, idx) => (
+            <div key={idx} className="p-4 border rounded-lg hover:shadow-md transition-shadow">
+              <div className="flex justify-between items-start mb-2">
+                <h4 className="font-semibold">{unit.name}</h4>
+                <span className="text-sm text-gray-500">{unit.bookings} bookings</span>
+              </div>
+              <p className="text-sm text-gray-600 mb-2">Unique Features: {unit.unique}</p>
+              <button className="text-sm text-blue-600 hover:text-blue-700">Edit Differentiation</button>
+            </div>
+          ))}
+        </div>
+        <button className="w-full px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 font-semibold">
+          Add New Unit Features
+        </button>
+      </div>
+    </div>
+  );
+
   const renderVisibility = () => (
     <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
       <h3 className="text-2xl font-bold mb-6">Visibility Booster</h3>
@@ -321,8 +427,11 @@ export default function BoostPerformance() {
               { key: 'opportunity', label: 'Opportunity Centre' },
               { key: 'commission-free', label: 'Commission-Free' },
               { key: 'genius', label: 'Genius Programme' },
+              { key: 'preferred', label: 'Preferred Partner' },
               { key: 'long-stays', label: 'Long Stays' },
-              { key: 'visibility', label: 'Visibility Booster' }
+              { key: 'visibility', label: 'Visibility Booster' },
+              { key: 'work-friendly', label: 'Work-Friendly' },
+              { key: 'unit-diff', label: 'Unit Differentiation' }
             ].map((tab) => (
               <a
                 key={tab.key}
@@ -350,8 +459,11 @@ export default function BoostPerformance() {
             {view === 'opportunity' && renderOpportunity()}
             {view === 'commission-free' && renderCommissionFree()}
             {view === 'genius' && renderGenius()}
+            {view === 'preferred' && renderPreferred()}
             {view === 'long-stays' && renderLongStays()}
             {view === 'visibility' && renderVisibility()}
+            {view === 'work-friendly' && renderWorkFriendly()}
+            {view === 'unit-diff' && renderUnitDiff()}
           </>
         )}
       </div>

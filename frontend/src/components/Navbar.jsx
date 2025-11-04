@@ -72,6 +72,8 @@ const Navbar = () => {
   const [switchLoading, setSwitchLoading] = useState(false);
   const [myProperties, setMyProperties] = useState([]);
   const [propDropdownOpen, setPropDropdownOpen] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
+  const dropdownButtonRefs = useRef({});
 
   const makeAbsolute = (u) => {
     if (!u) return u;
@@ -615,6 +617,19 @@ const Navbar = () => {
 
   const toggleDropdown = (dropdownName) => {
     console.log('Toggle dropdown:', dropdownName, 'Current:', activeDropdown);
+    
+    // Calculate position if opening dropdown
+    if (activeDropdown !== dropdownName) {
+      const buttonElement = dropdownButtonRefs.current[dropdownName];
+      if (buttonElement) {
+        const rect = buttonElement.getBoundingClientRect();
+        setDropdownPosition({
+          top: rect.bottom + window.scrollY,
+          left: rect.left + window.scrollX
+        });
+      }
+    }
+    
     setActiveDropdown(activeDropdown === dropdownName ? null : dropdownName);
   };
 
@@ -1541,6 +1556,7 @@ const Navbar = () => {
                 return (
                   <div key={index} className="relative group flex-shrink-0">
                     <button
+                      ref={el => dropdownButtonRefs.current[item.label] = el}
                       onClick={() => toggleDropdown(item.label)}
                       className={`owner-nav-dropdown-button flex items-center space-x-1.5 px-3 py-2 rounded-lg transition-all duration-200 font-medium text-sm whitespace-nowrap ${
                         isActive
@@ -1562,7 +1578,15 @@ const Navbar = () => {
 
                     {/* Dropdown Menu */}
                     {isDropdownOpen && item.children.length > 0 && (
-                      <div className="owner-nav-dropdown absolute top-full left-0 mt-1 w-72 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-[99999] max-h-96 overflow-y-auto" style={{display: 'block'}}>
+                      <div 
+                        className="owner-nav-dropdown w-72 bg-white rounded-lg shadow-xl border border-gray-200 py-2 max-h-96 overflow-y-auto" 
+                        style={{
+                          position: 'fixed',
+                          top: `${dropdownPosition.top}px`,
+                          left: `${dropdownPosition.left}px`,
+                          zIndex: 999999
+                        }}
+                      >
                         {item.children.map((child, childIndex) => {
                           const ChildIcon = child.icon;
                           const isChildActive = isActiveRoute(child.href);
