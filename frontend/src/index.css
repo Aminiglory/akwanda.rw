@@ -457,19 +457,25 @@ textarea::placeholder {
 }
 
 /* Z-index hierarchy for navbar system */
-/* Layer 1: Base navbar - z-index 1000 */
+/* Layer 1: Base navbar - no sticky positioning */
 nav {
   position: relative;
   z-index: 1000;
 }
 
-/* Layer 2: Third navbar (property owner) - sticky positioning above content */
+/* Layer 2: Third navbar (property owner) - relative positioning, hidden on mobile */
 .owner-third-navbar {
-  position: sticky;
-  top: 0;
-  z-index: 999 !important;
+  position: relative;
+  z-index: 999;
   background: white;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Hide third navbar on mobile screens */
+@media (max-width: 1023px) {
+  .owner-third-navbar {
+    display: none;
+  }
 }
 
 /* Layer 3: All dropdowns - z-index 99999 (above all content and navbars) */

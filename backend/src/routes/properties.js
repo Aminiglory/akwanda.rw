@@ -339,17 +339,6 @@ router.sanitizeCommissionRates = async () => {
     }
 };
 
-function requireAuth(req, res, next) {
-	const token = req.cookies.akw_token || (req.headers.authorization || '').replace('Bearer ', '');
-	if (!token) return res.status(401).json({ message: 'Unauthorized' });
-	try {
-		req.user = jwt.verify(token, JWT_SECRET);
-		return next();
-	} catch (e) {
-		return res.status(401).json({ message: 'Invalid token' });
-	}
-}
-
 router.get('/', async (req, res) => {
     try {
         const { q, city, minPrice, maxPrice, bedrooms, amenities, startDate, endDate, category } = req.query;
