@@ -463,12 +463,13 @@ nav {
   z-index: 1000;
 }
 
-/* Layer 2: Third navbar (property owner) - z-index 998 */
+/* Layer 2: Third navbar (property owner) - z-index 1002 (above all content) */
 .owner-third-navbar {
   position: sticky;
   top: 0;
-  z-index: 998 !important;
+  z-index: 1002 !important;
   background: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 
 /* Layer 3: All dropdowns - z-index 9999 (above all content and navbars) */
