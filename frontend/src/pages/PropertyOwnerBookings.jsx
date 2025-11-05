@@ -183,43 +183,96 @@ const PropertyOwnerBookings = () => {
 
     // Normalize tab mapping to our internal tabs
     if (tab) {
-      if (tab === 'bookings') setActiveTab('reservations');
-      else if (tab === 'rates') setActiveTab('dashboard'); // Rates & Availability goes to dashboard
-      else if (tab === 'boost') setActiveTab('promotions'); // Boost performance goes to promotions for now
-      else setActiveTab(tab);
+      if (tab === 'bookings' || tab === 'reservations') {
+        setActiveTab('reservations');
+        // Expand reservations section
+        setExpandedSections(prev => ({ ...prev, reservations: true }));
+      } else if (tab === 'rates') {
+        setActiveTab('dashboard');
+        // Rates & Availability goes to dashboard
+      } else if (tab === 'boost') {
+        setActiveTab('promotions');
+        // Boost performance goes to promotions
+        setExpandedSections(prev => ({ ...prev, promotions: true }));
+      } else if (tab === 'finance') {
+        setActiveTab('finance');
+        setExpandedSections(prev => ({ ...prev, finance: true }));
+      } else if (tab === 'analytics') {
+        setActiveTab('analytics');
+        setExpandedSections(prev => ({ ...prev, analytics: true }));
+      } else {
+        setActiveTab(tab);
+      }
     }
 
-    // Apply reservations scope filters
+    // Apply reservations scope filters with enhanced mapping
     if (scope) {
       const map = {
         all: 'all',
         paid: 'paid',
         pending: 'pending',
         unpaid: 'unpaid',
-        cancelled: 'cancelled'
+        cancelled: 'cancelled',
+        upcoming: 'confirmed', // Upcoming bookings are confirmed ones with future dates
+        'checked-in': 'confirmed', // Currently checked in
+        'checked-out': 'ended' // Already checked out
       };
       const next = map[scope] || 'all';
       setFilters(prev => ({ ...prev, status: next }));
+      
+      // For upcoming, checked-in, checked-out, we'll need date-based filtering
+      // This will be handled in the filtering logic
+      if (scope === 'upcoming' || scope === 'checked-in' || scope === 'checked-out') {
+        setFilters(prev => ({ ...prev, dateRange: scope }));
+      }
     }
 
     // Apply finance filters
-    if (fstatus) setFinanceFilter(fstatus);
-    if (view && tab === 'finance') setFinanceView(view);
-    if (view && tab === 'analytics') setAnalyticsView(view);
-    if (view && tab === 'boost') setBoostView(view);
-    if (view && tab === 'rates') setRatesView(view);
+    if (fstatus) {
+      setFinanceFilter(fstatus);
+      setExpandedSections(prev => ({ ...prev, finance: true }));
+    }
+    
+    if (view && tab === 'finance') {
+      setFinanceView(view);
+      setExpandedSections(prev => ({ ...prev, finance: true }));
+    }
+    
+    if (view && tab === 'analytics') {
+      setAnalyticsView(view);
+      setExpandedSections(prev => ({ ...prev, analytics: true }));
+    }
+    
+    if (view && tab === 'boost') {
+      setBoostView(view);
+      setExpandedSections(prev => ({ ...prev, promotions: true }));
+    }
+    
+    if (view && tab === 'rates') {
+      setRatesView(view);
+    }
 
     // Apply analytics range
-    if (range) setAnalyticsRange(range);
+    if (range) {
+      setAnalyticsRange(range);
+      setExpandedSections(prev => ({ ...prev, analytics: true }));
+    }
 
     // Calendar deep-linking
     if (tab === 'properties' || tab === 'calendar') {
       setOwnerView('calendar');
+      setActiveTab('calendar'); // Set to calendar tab instead of dashboard
       // Ensure a property is selected to render the calendar
       if (propParam) {
         setFilters(prev => ({ ...prev, property: propParam }));
       } else if (properties.length && filters.property === 'all') {
         setFilters(prev => ({ ...prev, property: properties[0]._id }));
+      }
+      // Handle monthOffset for calendar navigation
+      const monthOffset = params.get('monthOffset');
+      if (monthOffset !== null) {
+        // The monthOffset will be used by the BookingCalendar component
+        // We just need to ensure the calendar section is visible
       }
       // Expand and scroll to calendar
       setExpandedSections(prev => ({ ...prev, calendar: true }));
@@ -330,10 +383,34 @@ const PropertyOwnerBookings = () => {
   };
 
   const filteredBookings = bookings.filter(booking => {
+    // Status filter
     if (filters.status !== 'all' && booking.status !== filters.status && booking.paymentStatus !== filters.status) return false;
+    
+    // Property filter
     if (filters.property !== 'all' && String(booking.property?._id) !== String(filters.property)) return false;
+    
+    // Search filter
     const guestName = `${booking.guest?.firstName || ''} ${booking.guest?.lastName || ''}`.trim().toLowerCase();
     if (filters.search && !guestName.includes(filters.search.toLowerCase())) return false;
+    
+    // Date-based scope filtering for upcoming, checked-in, checked-out
+    if (filters.dateRange && filters.dateRange !== 'all') {
+      const now = new Date();
+      const checkIn = new Date(booking.checkIn);
+      const checkOut = new Date(booking.checkOut);
+      
+      if (filters.dateRange === 'upcoming') {
+        // Upcoming: confirmed bookings with check-in date in the future
+        if (booking.status !== 'confirmed' || checkIn <= now) return false;
+      } else if (filters.dateRange === 'checked-in') {
+        // Checked in: confirmed bookings where check-in has passed but check-out hasn't
+        if (booking.status !== 'confirmed' || checkIn > now || checkOut < now) return false;
+      } else if (filters.dateRange === 'checked-out') {
+        // Checked out: ended bookings or confirmed bookings past check-out date
+        if (booking.status !== 'ended' && (booking.status !== 'confirmed' || checkOut >= now)) return false;
+      }
+    }
+    
     return true;
   });
 
@@ -964,6 +1041,23 @@ const PropertyOwnerBookings = () => {
               </div>
             </div>
             </div>
+            {/* Active Filter Indicator */}
+            {filters.dateRange && filters.dateRange !== 'all' && (
+              <div className="flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                <FaFilter className="text-xs" />
+                <span>
+                  {filters.dateRange === 'upcoming' && 'Upcoming Bookings'}
+                  {filters.dateRange === 'checked-in' && 'Currently Checked In'}
+                  {filters.dateRange === 'checked-out' && 'Checked Out'}
+                </span>
+                <button
+                  onClick={() => setFilters(prev => ({ ...prev, dateRange: 'all' }))}
+                  className="ml-1 hover:text-blue-900"
+                >
+                  ×
+                </button>
+              </div>
+            )}
             {/* Export Buttons */}
             <div className="flex gap-2">
               <button
