@@ -457,24 +457,29 @@ textarea::placeholder {
 }
 
 /* Z-index hierarchy for navbar system */
-/* Layer 1: Base navbar (includes second and third navbar) - z-index 1000 */
+/* Layer 1: Base navbar - z-index 1000 */
 nav {
   position: relative;
+  z-index: 1000;
 }
 
-/* Third navbar styling (now inside nav element, no z-index needed) */
+/* Layer 2: Third navbar (property owner) - z-index 1002 (above all content) */
 .owner-third-navbar {
-  position: relative;
+  position: sticky;
+  top: 0;
+  z-index: -1002 !important;
   background: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 
-/* All dropdowns - z-index 10000 (above everything) */
+/* Layer 3: All dropdowns - z-index 9999 (above all content and navbars) */
 .main-nav-dropdown,
 .property-selector-dropdown,
 .owner-nav-dropdown,
 .notification-dropdown,
 .profile-dropdown {
   position: absolute !important;
+  z-index: -9999 !important;
   transform: translateZ(0);
   will-change: transform;
   isolation: isolate;
