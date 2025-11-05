@@ -1271,6 +1271,80 @@ const Navbar = () => {
             </div>
           </div>
         </div>
+
+        {/* Third Bar - Property Owner Dashboard Navigation (Inside Second Navbar) */}
+        {user?.userType === 'host' && isInPropertyOwnerDashboard() && (
+          <div className="owner-third-navbar w-full bg-white border-t border-gray-200">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex items-center space-x-1 overflow-x-auto py-2 scrollbar-hide">
+                {bookingComNavItems.map((item, index) => {
+                  const Icon = item.icon;
+                  const isActive = isActiveRoute(item.href);
+                  const isDropdownOpen = activeDropdown === item.label;
+
+                  return (
+                    <div key={index} className="relative group flex-shrink-0">
+                      <button
+                        ref={el => dropdownButtonRefs.current[item.label] = el}
+                        onClick={() => toggleDropdown(item.label)}
+                        className={`owner-nav-dropdown-button flex items-center space-x-1.5 px-3 py-2 rounded-lg transition-all duration-200 font-medium text-sm whitespace-nowrap ${
+                          isActive
+                            ? "bg-[#a06b42] text-white shadow-md"
+                            : "text-gray-700 hover:text-[#a06b42] hover:bg-[#f5f0e8]"
+                        }`}
+                      >
+                        <Icon className="text-sm flex-shrink-0" />
+                        <span>{item.label}</span>
+                        {item.badge > 0 && (
+                          <span className="bg-red-600 text-white text-[10px] rounded-full px-1.5 py-0.5 min-w-[18px] text-center font-semibold">
+                            {item.badge}
+                          </span>
+                        )}
+                        {item.children.length > 0 && (
+                          <FaCaretDown className={`text-xs transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                        )}
+                      </button>
+
+                      {/* Dropdown Menu */}
+                      {isDropdownOpen && item.children.length > 0 && (
+                        <div className="owner-nav-dropdown absolute top-full left-0 mt-1 w-72 bg-[#f6e9d8] rounded-xl shadow-2xl border border-[#d4c4b0] py-2 max-h-96 overflow-y-auto">
+                          {item.children.map((child, childIndex) => {
+                            const ChildIcon = child.icon;
+                            const isChildActive = isActiveRoute(child.href);
+                            return (
+                              <Link
+                                key={childIndex}
+                                to={child.href}
+                                className={`flex items-center justify-between px-4 py-2 text-sm hover:bg-gray-100 hover:text-gray-800 transition-colors ${
+                                  isChildActive ? 'bg-gray-100 text-[#a06b42] font-medium' : 'text-gray-700'
+                                }`}
+                                onClick={() => setActiveDropdown(null)}
+                              >
+                                <div className="flex items-center space-x-3">
+                                  {ChildIcon && <ChildIcon className="text-gray-700 flex-shrink-0" />}
+                                  <span className="font-medium">{child.label}</span>
+                                </div>
+                                {child.badge && (
+                                  <span className={`text-xs px-2 py-0.5 rounded-full min-w-[20px] text-center font-semibold ${
+                                    child.badge === 'New' ? 'bg-green-100 text-green-700' : 
+                                    typeof child.badge === 'number' || !isNaN(child.badge) ? 'bg-red-100 text-red-700' : 
+                                    'bg-blue-100 text-blue-700'
+                                  }`}>
+                                    {child.badge}
+                                  </span>
+                                )}
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
       </nav>
 
       {/* Mobile Menu - booking.com Style */}
@@ -1539,80 +1613,6 @@ const Navbar = () => {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
-
-      {/* Third Bar - Property Owner Dashboard Navigation (Separate Bar) */}
-      {user?.userType === 'host' && isInPropertyOwnerDashboard() && (
-        <div className="owner-third-navbar w-full bg-white border-b border-gray-200 shadow-sm">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center space-x-1 overflow-x-auto py-2 scrollbar-hide">
-              {bookingComNavItems.map((item, index) => {
-                const Icon = item.icon;
-                const isActive = isActiveRoute(item.href);
-                const isDropdownOpen = activeDropdown === item.label;
-
-                return (
-                  <div key={index} className="relative group flex-shrink-0">
-                    <button
-                      ref={el => dropdownButtonRefs.current[item.label] = el}
-                      onClick={() => toggleDropdown(item.label)}
-                      className={`owner-nav-dropdown-button flex items-center space-x-1.5 px-3 py-2 rounded-lg transition-all duration-200 font-medium text-sm whitespace-nowrap ${
-                        isActive
-                          ? "bg-[#a06b42] text-white shadow-md"
-                          : "text-gray-700 hover:text-[#a06b42] hover:bg-[#f5f0e8]"
-                      }`}
-                    >
-                      <Icon className="text-sm flex-shrink-0" />
-                      <span>{item.label}</span>
-                      {item.badge > 0 && (
-                        <span className="bg-red-600 text-white text-[10px] rounded-full px-1.5 py-0.5 min-w-[18px] text-center font-semibold">
-                          {item.badge}
-                        </span>
-                      )}
-                      {item.children.length > 0 && (
-                        <FaCaretDown className={`text-xs transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
-                      )}
-                    </button>
-
-                    {/* Dropdown Menu */}
-                    {isDropdownOpen && item.children.length > 0 && (
-                      <div className="owner-nav-dropdown absolute top-full left-0 mt-1 w-72 bg-[#f6e9d8] rounded-xl shadow-2xl border border-[#d4c4b0] py-2 max-h-96 overflow-y-auto">
-                        {item.children.map((child, childIndex) => {
-                          const ChildIcon = child.icon;
-                          const isChildActive = isActiveRoute(child.href);
-                          return (
-                            <Link
-                              key={childIndex}
-                              to={child.href}
-                              className={`flex items-center justify-between px-4 py-2 text-sm hover:bg-gray-100 hover:text-gray-800 transition-colors ${
-                                isChildActive ? 'bg-gray-100 text-[#a06b42] font-medium' : 'text-gray-700'
-                              }`}
-                              onClick={() => setActiveDropdown(null)}
-                            >
-                              <div className="flex items-center space-x-3">
-                                {ChildIcon && <ChildIcon className="text-gray-700 flex-shrink-0" />}
-                                <span className="font-medium">{child.label}</span>
-                              </div>
-                              {child.badge && (
-                                <span className={`text-xs px-2 py-0.5 rounded-full min-w-[20px] text-center font-semibold ${
-                                  child.badge === 'New' ? 'bg-green-100 text-green-700' : 
-                                  typeof child.badge === 'number' || !isNaN(child.badge) ? 'bg-red-100 text-red-700' : 
-                                  'bg-blue-100 text-blue-700'
-                                }`}>
-                                  {child.badge}
-                                </span>
-                              )}
-                            </Link>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
           </div>
         </div>
       )}
