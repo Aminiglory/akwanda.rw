@@ -74,6 +74,7 @@ const Navbar = () => {
   const [propDropdownOpen, setPropDropdownOpen] = useState(false);
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
   const dropdownButtonRefs = useRef({});
+  const [expandedMobileItems, setExpandedMobileItems] = useState({});
 
   const makeAbsolute = (u) => {
     if (!u) return u;
@@ -1449,7 +1450,7 @@ const Navbar = () => {
                     {bookingComNavItems.map((item, index) => {
                       const Icon = item.icon;
                       const isActive = isActiveRoute(item.href);
-                      const [isExpanded, setIsExpanded] = React.useState(false);
+                      const isExpanded = expandedMobileItems[item.label] || false;
                       
                       return (
                         <div key={index} className="mb-1">
@@ -1475,7 +1476,10 @@ const Navbar = () => {
                             </Link>
                             {item.children.length > 0 && (
                               <button
-                                onClick={() => setIsExpanded(!isExpanded)}
+                                onClick={() => setExpandedMobileItems(prev => ({
+                                  ...prev,
+                                  [item.label]: !prev[item.label]
+                                }))}
                                 className="px-3 py-2.5 text-gray-600 hover:text-gray-900"
                               >
                                 {isExpanded ? <FaChevronUp className="text-xs" /> : <FaChevronDown className="text-xs" />}

@@ -6,10 +6,10 @@ import {
   FaEdit, FaTrash, FaStar, FaPhone, FaEnvelope, FaDollarSign,
   FaMapMarkerAlt, FaBed, FaBath, FaWifi, FaCar, FaSwimmingPool,
   FaUtensils, FaTv, FaSnowflake, FaPaw, FaSmokingBan,
-  FaExclamationTriangle, FaTimes, FaCheck, FaArrowRight,
+  FaExclamationTriangle, FaTimes, FaCheck, FaArrowRight, FaArrowLeft,
   FaCalendarCheck, FaCalendarTimes, FaUserCheck, FaUserTimes,
   FaShoppingBag, FaCog, FaFileAlt, FaImages, FaQuestionCircle,
-  FaPercent, FaCalendar, FaRulerCombined, FaUpload, FaBook
+  FaPercent, FaCalendar, FaRulerCombined, FaUpload, FaBook, FaBuilding
 } from 'react-icons/fa';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -186,7 +186,9 @@ const PropertyOwnerBookings = () => {
     if (tab) {
       if (tab === 'bookings') setActiveTab('reservations');
       else if (tab === 'rates') setActiveTab('dashboard'); // Rates & Availability goes to dashboard
-      else if (tab === 'boost') setActiveTab('promotions'); // Boost performance goes to promotions for now
+      else if (tab === 'boost') setActiveTab('boost'); // Boost performance tab
+      else if (tab === 'finance') setActiveTab('finance'); // Finance tab
+      else if (tab === 'analytics') setActiveTab('analytics'); // Analytics tab
       else setActiveTab(tab);
     }
 
@@ -920,6 +922,17 @@ const PropertyOwnerBookings = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 py-6">
+        {/* Back Button */}
+        <div className="mb-4">
+          <button
+            onClick={() => navigate(-1)}
+            className="flex items-center gap-2 text-gray-600 hover:text-[#a06b42] transition-colors"
+          >
+            <FaArrowLeft className="text-sm" />
+            <span className="text-sm font-medium">Back</span>
+          </button>
+        </div>
+
         {/* Property Owner Navigation - Desktop Only */}
         <div className="hidden lg:block mb-6">
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
@@ -1515,7 +1528,9 @@ const PropertyOwnerBookings = () => {
                           View Invoice
                         </button>
                         <button
-                          onClick={() => navigate(`/receipt/${booking._id}`)}
+                          onClick={() => {
+                            window.open(`${API_URL}/api/bookings/${booking._id}/receipt`, '_blank');
+                          }}
                           className="text-sm text-green-600 hover:text-green-800"
                         >
                           View Receipt
@@ -1603,6 +1618,56 @@ const PropertyOwnerBookings = () => {
                 <div className="bg-pink-50 border border-pink-200 rounded-xl p-6">
                   <h3 className="text-lg font-semibold text-pink-900 mb-2">Properties</h3>
                   <div className="text-2xl font-bold text-pink-600">{stats.totalProperties}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'boost' && (
+          <div className="space-y-8">
+            <div className="neu-card p-6">
+              <h2 className="text-xl font-semibold mb-6">Boost Performance</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="border border-blue-200 rounded-xl p-6 hover:shadow-lg transition-shadow">
+                  <div className="flex items-center mb-4">
+                    <FaChartLine className="text-3xl text-blue-600 mr-3" />
+                    <h3 className="text-lg font-semibold text-gray-900">Opportunity Centre</h3>
+                  </div>
+                  <p className="text-gray-600 mb-4">Discover ways to improve your property performance and increase bookings</p>
+                  <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                    View Opportunities
+                  </button>
+                </div>
+                <div className="border border-green-200 rounded-xl p-6 hover:shadow-lg transition-shadow">
+                  <div className="flex items-center mb-4">
+                    <FaDollarSign className="text-3xl text-green-600 mr-3" />
+                    <h3 className="text-lg font-semibold text-gray-900">Commission-free Bookings</h3>
+                  </div>
+                  <p className="text-gray-600 mb-4">Learn how to get direct bookings without platform commission</p>
+                  <button className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
+                    Learn More
+                  </button>
+                </div>
+                <div className="border border-purple-200 rounded-xl p-6 hover:shadow-lg transition-shadow">
+                  <div className="flex items-center mb-4">
+                    <FaStar className="text-3xl text-purple-600 mr-3" />
+                    <h3 className="text-lg font-semibold text-gray-900">Visibility Booster</h3>
+                  </div>
+                  <p className="text-gray-600 mb-4">Increase your property's visibility in search results</p>
+                  <button className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors">
+                    Boost Visibility
+                  </button>
+                </div>
+                <div className="border border-orange-200 rounded-xl p-6 hover:shadow-lg transition-shadow">
+                  <div className="flex items-center mb-4">
+                    <FaCalendarAlt className="text-3xl text-orange-600 mr-3" />
+                    <h3 className="text-lg font-semibold text-gray-900">Long Stays Toolkit</h3>
+                  </div>
+                  <p className="text-gray-600 mb-4">Attract guests looking for extended stays</p>
+                  <button className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors">
+                    Enable Long Stays
+                  </button>
                 </div>
               </div>
             </div>
