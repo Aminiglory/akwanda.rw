@@ -1271,12 +1271,13 @@ const Navbar = () => {
             </div>
           </div>
         </div>
+      </nav>
 
-        {/* Third Bar - Property Owner Dashboard Navigation (Inside Second Navbar) */}
-        {user?.userType === 'host' && isInPropertyOwnerDashboard() && (
-          <div className="owner-third-navbar w-full bg-white border-t border-gray-200 overflow-visible z-[1001] relative">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="flex items-center space-x-1 overflow-x-auto overflow-y-visible py-2 scrollbar-hide">
+      {/* Third Bar - Property Owner Dashboard Navigation */}
+      {user?.userType === 'host' && isInPropertyOwnerDashboard() && (
+        <div className="owner-third-navbar w-full bg-white border-b border-gray-200 sticky top-0 z-[999]">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center gap-2 overflow-x-auto overflow-y-visible py-3 scrollbar-hide">
                 {bookingComNavItems.map((item, index) => {
                   const Icon = item.icon;
                   const isActive = isActiveRoute(item.href);
@@ -1345,7 +1346,6 @@ const Navbar = () => {
             </div>
           </div>
         )}
-      </nav>
 
       {/* Mobile Menu - booking.com Style */}
       {isMenuOpen && (

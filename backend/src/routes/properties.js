@@ -18,6 +18,7 @@ const mongoose = require('mongoose');
 const router = Router();
 const Notification = require('../tables/notification');
 const User = require('../tables/user');
+const { authenticate: requireAuth } = require('../middleware/auth');
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
 
 // Ensure commissionRate stays within [8,12] before any save (handles legacy docs)
