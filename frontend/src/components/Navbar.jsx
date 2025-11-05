@@ -1274,9 +1274,9 @@ const Navbar = () => {
 
         {/* Third Bar - Property Owner Dashboard Navigation (Inside Second Navbar) */}
         {user?.userType === 'host' && isInPropertyOwnerDashboard() && (
-          <div className="owner-third-navbar w-full bg-white border-t border-gray-200">
+          <div className="owner-third-navbar w-full bg-white border-t border-gray-200 overflow-visible">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="flex items-center space-x-1 overflow-x-auto py-2 scrollbar-hide">
+              <div className="flex items-center space-x-1 overflow-x-auto overflow-y-visible py-2 scrollbar-hide">
                 {bookingComNavItems.map((item, index) => {
                   const Icon = item.icon;
                   const isActive = isActiveRoute(item.href);
