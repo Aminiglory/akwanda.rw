@@ -624,8 +624,8 @@ const Navbar = () => {
       if (buttonElement) {
         const rect = buttonElement.getBoundingClientRect();
         setDropdownPosition({
-          top: rect.bottom + window.scrollY,
-          left: rect.left + window.scrollX
+          top: rect.bottom,
+          left: rect.left
         });
       }
     }
@@ -867,9 +867,9 @@ const Navbar = () => {
                           <FaCaretDown className={`text-xs transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
                         </button>
 
-                        {/* Dropdown Menu - Booking.com Style */}
+                        {/* Dropdown Menu */}
                         {isDropdownOpen && (
-                          <div className="main-nav-dropdown absolute top-full left-0 mt-1 w-64 bg-[#f6e9d8] rounded-xl shadow-2xl border border-[#d4c4b0] py-3 z-[99999]">
+                          <div className="main-nav-dropdown absolute top-full left-0 mt-1 w-64 bg-[#f6e9d8] rounded-xl shadow-2xl border border-[#d4c4b0] py-3">
                             {item.children
                               .filter((child) => {
                                 const href = String(child.href || '');
@@ -920,7 +920,7 @@ const Navbar = () => {
                     <FaCaretDown className={`ml-2 text-xs transition-transform ${propDropdownOpen ? 'rotate-180' : ''}`} />
                   </button>
                   {propDropdownOpen && (
-                    <div className="property-selector-dropdown absolute top-full right-0 mt-1 w-80 max-h-80 overflow-y-auto bg-[#f6e9d8] rounded-xl shadow-2xl border border-[#d4c4b0] p-2 z-[99999]">
+                    <div className="property-selector-dropdown absolute top-full right-0 mt-1 w-80 max-h-80 overflow-y-auto bg-[#f6e9d8] rounded-xl shadow-2xl border border-[#d4c4b0] p-2">
                       {myProperties.map((p) => (
                         <Link
                           key={p._id}
@@ -1032,7 +1032,7 @@ const Navbar = () => {
                     )}
                   </button>
                   {isNotificationOpen && (
-                    <div className="notification-dropdown absolute top-full right-0 sm:right-0 left-0 sm:left-auto mt-2 w-full sm:w-80 max-w-md mx-auto sm:mx-0 bg-[#f6e9d8] rounded-xl shadow-2xl border border-[#d4c4b0] py-2 z-[99999]">
+                    <div className="notification-dropdown absolute top-full right-0 sm:right-0 left-0 sm:left-auto mt-2 w-full sm:w-80 max-w-md mx-auto sm:mx-0 bg-[#f6e9d8] rounded-xl shadow-2xl border border-[#d4c4b0] py-2">
                       <div className="px-4 py-2 border-b border-gray-100 font-semibold text-sm flex items-center justify-between">
                         <span>Notifications</span>
                         <Link
@@ -1104,7 +1104,7 @@ const Navbar = () => {
                   </button>
 
                   {isProfileOpen && (
-                    <div className="profile-dropdown absolute top-full right-0 mt-2 w-64 bg-[#f6e9d8] rounded-xl shadow-2xl border border-[#d4c4b0] py-3 z-[99999]">
+                    <div className="profile-dropdown absolute top-full right-0 mt-2 w-64 bg-[#f6e9d8] rounded-xl shadow-2xl border border-[#d4c4b0] py-3">
                       {/* Profile Header */}
                       <div className="px-4 pb-3 border-b border-gray-100">
                         <div className="flex items-center space-x-3">
@@ -1578,7 +1578,7 @@ const Navbar = () => {
 
                     {/* Dropdown Menu */}
                     {isDropdownOpen && item.children.length > 0 && (
-                      <div className="owner-nav-dropdown absolute top-full left-0 mt-1 w-72 bg-[#f6e9d8] rounded-xl shadow-2xl border border-[#d4c4b0] py-2 z-[99999] max-h-96 overflow-y-auto">
+                      <div className="owner-nav-dropdown absolute top-full left-0 mt-1 w-72 bg-[#f6e9d8] rounded-xl shadow-2xl border border-[#d4c4b0] py-2 max-h-96 overflow-y-auto">
                         {item.children.map((child, childIndex) => {
                           const ChildIcon = child.icon;
                           const isChildActive = isActiveRoute(child.href);

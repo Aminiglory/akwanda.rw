@@ -456,34 +456,48 @@ textarea::placeholder {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 
-/* Ensure navbar and its dropdowns are always on top of page content */
+/* Z-index hierarchy for navbar system */
+/* Layer 1: Base navbar - z-index 1000 */
 nav {
   position: relative;
-  z-index: 999;
+  z-index: 1000;
 }
 
-/* Ensure ALL dropdowns appear above content with absolute positioning */
-.notification-dropdown,
-.profile-dropdown,
-.owner-nav-dropdown,
-.main-nav-dropdown,
-.property-selector-dropdown {
-  position: absolute !important;
-  z-index: 99999 !important;
-  transform: translateZ(0);
-  will-change: transform;
-  isolation: isolate;
-}
-
-/* Third navbar (property owner) should be sticky and high enough for dropdowns to work */
+/* Layer 2: Third navbar (property owner) - z-index 1001 */
 .owner-third-navbar {
   position: sticky;
   top: 0;
-  z-index: 9999 !important;
-  isolation: isolate;
+  z-index: 1001 !important;
+  background: white;
 }
 
-/* Ensure property owner navbar dropdowns float above content */
+/* Layer 3: Main navigation dropdowns - z-index 10000 */
+.main-nav-dropdown,
+.property-selector-dropdown {
+  position: fixed !important;
+  z-index: 10000 !important;
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* Layer 4: Third navbar dropdowns - z-index 10001 */
+.owner-nav-dropdown {
+  position: fixed !important;
+  z-index: 10001 !important;
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* Layer 5: Notification and Profile dropdowns (highest) - z-index 10002 */
+.notification-dropdown,
+.profile-dropdown {
+  position: fixed !important;
+  z-index: 10002 !important;
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* Ensure sticky positioning works */
 .sticky {
   position: -webkit-sticky;
   position: sticky;

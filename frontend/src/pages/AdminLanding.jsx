@@ -210,11 +210,15 @@ export default function AdminLanding() {
   }
 
   function removeImage(idx) {
-    setContent(c => ({
-      ...c,
-      heroImages: c.heroImages.filter((_, i) => i !== idx),
-      heroSlides: (c.heroSlides || []).filter((_, i) => i !== idx)
-    }));
+    setContent(c => {
+      const newHeroImages = (c.heroImages || []).filter((_, i) => i !== idx);
+      const newHeroSlides = (c.heroSlides || []).filter((_, i) => i !== idx);
+      return {
+        ...c,
+        heroImages: newHeroImages,
+        heroSlides: newHeroSlides
+      };
+    });
   }
 
   return (
@@ -250,9 +254,9 @@ export default function AdminLanding() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-3">
               {(content.heroSlides || []).map((slide, i) => (
                 <div key={i} className="flex gap-3 items-start min-w-0">
-                  <div className="relative w-28 h-20 shrink-0 flex-none min-w-[7rem] min-h-[5rem]">
-                    <img src={(slide.image || '').startsWith('http') ? slide.image : `${API_URL}${slide.image}`} className="w-full h-full object-cover rounded block" />
-                    <button onClick={() => removeImage(i)} className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center">×</button>
+                  <div className="relative w-28 h-20 shrink-0 flex-none min-w-[7rem] min-h-[5rem] bg-gray-100">
+                    <img src={(slide.image || '').startsWith('http') ? slide.image : `${API_URL}${slide.image}`} className="w-full h-full object-cover rounded block bg-transparent" alt="Hero slide" />
+                    <button onClick={() => removeImage(i)} className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-700 transition-colors" type="button">×</button>
                   </div>
                   <div className="flex-1 min-w-0">
                     <label className="block text-xs text-gray-600 mb-1">Caption</label>
