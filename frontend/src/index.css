@@ -479,7 +479,7 @@ nav {
 .notification-dropdown,
 .profile-dropdown {
   position: absolute !important;
-  z-index: -9999 !important;
+  z-index: 9999 !important;
   transform: translateZ(0);
   will-change: transform;
   isolation: isolate;
