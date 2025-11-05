@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FaStar } from 'react-icons/fa';
 import AkwandaCard from './AkwandaCard';
+import { safeApiGet } from '../utils/apiUtils';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -19,11 +20,9 @@ const FeaturedApartments = () => {
 
   useEffect(() => {
     (async () => {
-      try {
-        const res = await fetch(`${API_URL}/api/properties`);
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || 'Failed to load properties');
-        setApartments((data.properties || []).slice(0, 4).map(p => {
+      const data = await safeApiGet('/api/properties', { properties: [] });
+      if (data && data.properties) {
+        setApartments(data.properties.slice(0, 4).map(p => {
           // Calculate average rating and review count from ratings array
           const ratingsArr = p.ratings || [];
           const avgRating = ratingsArr.length > 0 ? (ratingsArr.reduce((sum, r) => sum + r.rating, 0) / ratingsArr.length) : null;
@@ -43,7 +42,7 @@ const FeaturedApartments = () => {
             discountPercent: p.discountPercent || 0
           };
         }));
-      } catch (_) {}
+      }
     })();
   }, []);
 

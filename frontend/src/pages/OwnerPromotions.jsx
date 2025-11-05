@@ -7,12 +7,14 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 export default function OwnerPromotions() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const action = searchParams.get('action');
+  const filter = searchParams.get('filter');
   const [properties, setProperties] = useState([]);
   const [propertyId, setPropertyId] = useState(searchParams.get('propertyId') || '');
   const [promos, setPromos] = useState([]);
   const [deals, setDeals] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [showForm, setShowForm] = useState(false);
+  const [showForm, setShowForm] = useState(action === 'new');
   const [showDealForm, setShowDealForm] = useState(false);
   const [activeTab, setActiveTab] = useState('deals'); // 'promotions' or 'deals' - DEFAULT TO DEALS
 
@@ -23,9 +25,20 @@ export default function OwnerPromotions() {
   const [editingDeal, setEditingDeal] = useState(null);
   const [templates, setTemplates] = useState([]);
   const [showTemplates, setShowTemplates] = useState(false);
-  const [showSimulator, setShowSimulator] = useState(false);
+  const [showSimulator, setShowSimulator] = useState(action === 'simulate');
   const [simulation, setSimulation] = useState(null);
   const [simulatorForm, setSimulatorForm] = useState({ discountPercent: 10 });
+
+  // Handle action parameter changes
+  useEffect(() => {
+    if (action === 'new') {
+      setShowForm(true);
+      setShowSimulator(false);
+    } else if (action === 'simulate') {
+      setShowSimulator(true);
+      setShowForm(false);
+    }
+  }, [action]);
 
   function getEmptyDealForm() {
     return {
@@ -485,7 +498,11 @@ export default function OwnerPromotions() {
             <div className="py-10 text-center text-gray-500">Loading…</div>
           ) : (
             <div className="space-y-3">
-              {promos.map(p => (
+              {promos.filter(p => {
+                // Apply filter from navigation
+                if (filter === 'active') return p.active === true;
+                return true; // Show all by default
+              }).map(p => (
                 <div key={p._id} className="border rounded-lg p-4 flex items-center justify-between">
                   <div>
                     <div className="font-semibold text-gray-900">{p.title || p.type}</div>

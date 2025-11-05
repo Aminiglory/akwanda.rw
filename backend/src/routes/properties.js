@@ -18,6 +18,7 @@ const mongoose = require('mongoose');
 const router = Router();
 const Notification = require('../tables/notification');
 const User = require('../tables/user');
+const { authenticate: requireAuth } = require('../middleware/auth');
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
 
 // Ensure commissionRate stays within [8,12] before any save (handles legacy docs)
@@ -337,17 +338,6 @@ router.sanitizeCommissionRates = async () => {
         console.warn('Commission sanitize skipped:', e?.message || e);
     }
 };
-
-function requireAuth(req, res, next) {
-	const token = req.cookies.akw_token || (req.headers.authorization || '').replace('Bearer ', '');
-	if (!token) return res.status(401).json({ message: 'Unauthorized' });
-	try {
-		req.user = jwt.verify(token, JWT_SECRET);
-		return next();
-	} catch (e) {
-		return res.status(401).json({ message: 'Invalid token' });
-	}
-}
 
 router.get('/', async (req, res) => {
     try {

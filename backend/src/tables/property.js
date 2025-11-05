@@ -85,6 +85,8 @@ const propertySchema = new mongoose.Schema(
       guest: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
       rating: { type: Number, min: 1, max: 5 },
       comment: { type: String },
+      reply: { type: String },
+      replyDate: { type: Date },
       createdAt: { type: Date, default: Date.now }
     }]
   }, { timestamps: true }

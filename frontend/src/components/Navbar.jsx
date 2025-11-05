@@ -72,6 +72,9 @@ const Navbar = () => {
   const [switchLoading, setSwitchLoading] = useState(false);
   const [myProperties, setMyProperties] = useState([]);
   const [propDropdownOpen, setPropDropdownOpen] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
+  const dropdownButtonRefs = useRef({});
+  const [expandedMobileItems, setExpandedMobileItems] = useState({});
 
   const makeAbsolute = (u) => {
     if (!u) return u;
@@ -803,13 +806,13 @@ const Navbar = () => {
       )}
 
       {/* Second Bar - Navigation Level */}
-      <nav className="w-full bg-[#f5f0e8] border-b border-[#e0d5c7] navbar-shadow relative z-[999]">
+      <nav className="w-full bg-[#f5f0e8] border-b border-[#e0d5c7] navbar-shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
             {/* Logo */}
             <div className="flex items-center space-x-8">
               <Link
-                to="/"
+                to={user?.userType === 'host' && isInPropertyOwnerDashboard() ? "/dashboard" : "/"}
                 className="text-xl font-bold text-[#4b2a00] hover:text-[#6b3f1f]"
               >
                 AKWANDA.rw
@@ -851,9 +854,9 @@ const Navbar = () => {
                           <FaCaretDown className={`text-xs transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
                         </button>
 
-                        {/* Dropdown Menu - Booking.com Style */}
+                        {/* Dropdown Menu */}
                         {isDropdownOpen && (
-                          <div className="main-nav-dropdown absolute top-full left-0 mt-1 w-64 bg-[#f6e9d8] rounded-xl shadow-2xl border border-[#d4c4b0] py-3 z-[99999]">
+                          <div className="main-nav-dropdown absolute top-full left-0 mt-1 w-64 bg-[#f6e9d8] rounded-xl shadow-2xl border border-[#d4c4b0] py-3">
                             {item.children
                               .filter((child) => {
                                 const href = String(child.href || '');
@@ -904,12 +907,12 @@ const Navbar = () => {
                     <FaCaretDown className={`ml-2 text-xs transition-transform ${propDropdownOpen ? 'rotate-180' : ''}`} />
                   </button>
                   {propDropdownOpen && (
-                    <div className="property-selector-dropdown absolute top-full right-0 mt-1 w-80 max-h-80 overflow-y-auto bg-[#f6e9d8] rounded-xl shadow-2xl border border-[#d4c4b0] p-2 z-[99999]">
+                    <div className="property-selector-dropdown absolute top-full right-0 mt-1 w-80 max-h-80 overflow-y-auto bg-[#f6e9d8] rounded-xl shadow-2xl border border-[#d4c4b0] p-2">
                       {myProperties.map((p) => (
                         <Link
                           key={p._id}
                           to={`/my-bookings?tab=calendar&property=${p._id}`}
-                          className="block px-3 py-2 rounded hover:bg-white text-sm text-[#4b2a00] truncate"
+                          className="block px-3 py-2 text-sm text-[#4b2a00] hover:bg-white truncate"
                           onClick={() => setPropDropdownOpen(false)}
                           title={p.title}
                         >
@@ -1016,7 +1019,7 @@ const Navbar = () => {
                     )}
                   </button>
                   {isNotificationOpen && (
-                    <div className="notification-dropdown absolute top-full right-0 sm:right-0 left-0 sm:left-auto mt-2 w-full sm:w-80 max-w-md mx-auto sm:mx-0 bg-[#f6e9d8] rounded-xl shadow-2xl border border-[#d4c4b0] py-2 z-[99999]">
+                    <div className="notification-dropdown absolute top-full right-0 sm:right-0 left-0 sm:left-auto mt-2 w-full sm:w-80 max-w-md mx-auto sm:mx-0 bg-[#f6e9d8] rounded-xl shadow-2xl border border-[#d4c4b0] py-2">
                       <div className="px-4 py-2 border-b border-gray-100 font-semibold text-sm flex items-center justify-between">
                         <span>Notifications</span>
                         <Link
@@ -1088,7 +1091,7 @@ const Navbar = () => {
                   </button>
 
                   {isProfileOpen && (
-                    <div className="profile-dropdown absolute top-full right-0 mt-2 w-64 bg-[#f6e9d8] rounded-xl shadow-2xl border border-[#d4c4b0] py-3 z-[99999]">
+                    <div className="profile-dropdown absolute top-full right-0 mt-2 w-64 bg-[#f6e9d8] rounded-xl shadow-2xl border border-[#d4c4b0] py-3">
                       {/* Profile Header */}
                       <div className="px-4 pb-3 border-b border-gray-100">
                         <div className="flex items-center space-x-3">
@@ -1257,344 +1260,75 @@ const Navbar = () => {
         </div>
       </nav>
 
-      {/* Mobile Menu - booking.com Style */}
-      {isMenuOpen && (
-        <div className="lg:hidden bg-white border-t border-gray-200 mobile-menu">
-          <div className="px-4 py-2 space-y-1">
-            {/* Main Navigation Items - Show for guests and property owners not in dashboard */}
-            {isAuthenticated && user?.userType !== "admin" && (user?.userType !== 'host' || !isInPropertyOwnerDashboard()) && (
-              <>
-                {mainNavItems.map((item, index) => {
+      {/* Third Bar - Property Owner Dashboard Navigation - HIDDEN (moved to dashboard page) */}
+      {false && user?.userType === 'host' && isInPropertyOwnerDashboard() && (
+        <div className="owner-third-navbar w-full bg-white border-b border-gray-200 hidden">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center gap-2 overflow-x-auto overflow-y-visible py-3 scrollbar-hide">
+                {bookingComNavItems.map((item, index) => {
                   const Icon = item.icon;
                   const isActive = isActiveRoute(item.href);
+                  const isDropdownOpen = activeDropdown === item.label;
+
                   return (
-                    <Link
-                      key={index}
-                      to={item.href}
-                      className={`flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${isActive ? 'bg-gray-100 text-gray-800' : 'text-gray-700 hover:bg-gray-50'}`}
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      <Icon className="text-lg" />
-                      <span>{item.label}</span>
-                    </Link>
+                    <div key={index} className="relative group flex-shrink-0">
+                      <button
+                        onClick={() => toggleDropdown(item.label)}
+                        className={`owner-nav-dropdown-button flex items-center space-x-1.5 px-3 py-2 rounded-lg transition-all duration-200 font-medium text-sm whitespace-nowrap ${
+                          isActive
+                            ? "bg-[#a06b42] text-white shadow-md"
+                            : "text-gray-700 hover:text-[#a06b42] hover:bg-[#f5f0e8]"
+                        }`}
+                      >
+                        <Icon className="text-sm flex-shrink-0" />
+                        <span>{item.label}</span>
+                        {item.badge > 0 && (
+                          <span className="bg-red-600 text-white text-[10px] rounded-full px-1.5 py-0.5 min-w-[18px] text-center font-semibold">
+                            {item.badge}
+                          </span>
+                        )}
+                        {item.children.length > 0 && (
+                          <FaCaretDown className={`text-xs transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                        )}
+                      </button>
+
+                      {/* Dropdown Menu */}
+                      {isDropdownOpen && item.children.length > 0 && (
+                        <div className="owner-nav-dropdown absolute top-full left-0 mt-1 w-72 bg-[#f6e9d8] rounded-xl shadow-2xl border border-[#d4c4b0] py-2 max-h-96 overflow-y-auto">
+                          {item.children.map((child, childIndex) => {
+                            const ChildIcon = child.icon;
+                            const isChildActive = isActiveRoute(child.href);
+                            return (
+                              <Link
+                                key={childIndex}
+                                to={child.href}
+                                className={`flex items-center justify-between px-4 py-2.5 text-sm hover:bg-gray-100 hover:text-gray-800 transition-colors ${
+                                  isChildActive ? 'bg-gray-100 text-[#a06b42] font-medium' : 'text-gray-700'
+                                }`}
+                                onClick={() => setActiveDropdown(null)}
+                              >
+                                <div className="flex items-center space-x-3">
+                                  {ChildIcon && <ChildIcon className="text-gray-700 flex-shrink-0" />}
+                                  <span>{child.label}</span>
+                                </div>
+                                {child.badge && (
+                                  <span className={`text-xs px-2 py-0.5 rounded-full min-w-[20px] text-center font-semibold ${
+                                    child.badge === 'New' ? 'bg-green-100 text-green-700' : 
+                                    typeof child.badge === 'number' || !isNaN(child.badge) ? 'bg-red-100 text-red-700' : 
+                                    'bg-blue-100 text-blue-700'
+                                  }`}>
+                                    {child.badge}
+                                  </span>
+                                )}
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
                   );
                 })}
-              </>
-            )}
-
-            {/* Guest actions - only for non-property owners */}
-            {isAuthenticated && user?.userType !== 'admin' && user?.userType !== 'host' && (
-              <>
-                <Link
-                  to="/notifications"
-                  className="flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 relative"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  <FaBell className="text-lg" />
-                  <span>Notifications</span>
-                  {unreadNotifCount > 0 && (
-                    <span className="absolute right-4 bg-green-600 text-white text-[10px] rounded-full px-1.5 py-0.5 min-w-[16px] text-center">{unreadNotifCount}</span>
-                  )}
-                </Link>
-                <Link
-                  to="/favorites"
-                  className="flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  <FaHeart className="text-lg" />
-                  <span>Favorites</span>
-                </Link>
-                {(user?.userType !== 'worker' ? true : !!user?.privileges?.canMessageGuests) && (
-                  <Link
-                    to="/messages"
-                    className="flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    <FaEnvelope className="text-lg" />
-                    <span>Messages</span>
-                  </Link>
-                )}
-              </>
-            )}
-
-            {/* Host-specific links */}
-            {user?.userType === 'host' && isInPropertyOwnerDashboard() && userStats.properties > 0 && (
-              <Link
-                to="/dashboard"
-                className="flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                <FaHome className="text-lg" />
-                <span>Home</span>
-              </Link>
-            )}
-            {/* List your property (mobile) - available in user mode; triggers owner guard */}
-            <button
-              type="button"
-              className="flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
-              onClick={() => { setIsMenuOpen(false); handleListProperty(); }}
-              title="List your property"
-            >
-              <FaBuilding className="text-lg" />
-              <span>List your property</span>
-            </button>
-
-            {user?.userType === 'host' && (
-              <>
-                {/* Property Owner Navigation - Mobile */}
-                {isInPropertyOwnerDashboard() && (
-                  <div className="border-t border-gray-200 pt-2 mt-2">
-                    {/* Property Info */}
-                    {myProperties.length > 0 && (
-                      <div className="px-4 py-2 mb-2 bg-[#e8dcc8] rounded-lg mx-2">
-                        <div className="flex items-center space-x-2">
-                          <FaBuilding className="text-[#8b6f47] text-sm" />
-                          <div className="flex flex-col">
-                            <span className="text-sm font-semibold text-[#4b2a00]">{myProperties[0]?.title || myProperties[0]?.name || 'Property'}</span>
-                            <span className="text-xs text-[#8b6f47]">#{myProperties[0]?.propertyNumber || myProperties[0]?._id?.slice(-6) || 'N/A'}</span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                    {bookingComNavItems.map((item, index) => {
-                      const Icon = item.icon;
-                      const isActive = isActiveRoute(item.href);
-                      const [isExpanded, setIsExpanded] = React.useState(false);
-                      
-                      return (
-                        <div key={index} className="mb-1">
-                          <div className="flex items-center">
-                            <Link
-                              to={item.href}
-                              className={`flex-1 flex items-center space-x-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                                isActive ? 'bg-[#e8dcc8] text-[#4b2a00]' : 'text-gray-700 hover:bg-gray-50'
-                              }`}
-                              onClick={() => {
-                                if (item.children.length === 0) {
-                                  setIsMenuOpen(false);
-                                }
-                              }}
-                            >
-                              <Icon className="text-base" />
-                              <span>{item.label}</span>
-                              {item.badge && (
-                                <span className="bg-red-600 text-white text-xs rounded-full px-1.5 py-0.5 min-w-[16px] text-center">
-                                  {item.badge}
-                                </span>
-                              )}
-                            </Link>
-                            {item.children.length > 0 && (
-                              <button
-                                onClick={() => setIsExpanded(!isExpanded)}
-                                className="px-3 py-2.5 text-gray-600 hover:text-gray-900"
-                              >
-                                {isExpanded ? <FaChevronUp className="text-xs" /> : <FaChevronDown className="text-xs" />}
-                              </button>
-                            )}
-                          </div>
-                          
-                          {/* Sub-items - expandable, show all */}
-                          {item.children.length > 0 && isExpanded && (
-                            <div className="ml-6 mt-1 space-y-0.5 max-h-64 overflow-y-auto">
-                              {item.children.map((child, childIndex) => {
-                                const ChildIcon = child.icon;
-                                return (
-                                  <Link
-                                    key={childIndex}
-                                    to={child.href}
-                                    className="flex items-center justify-between px-3 py-1.5 rounded text-xs text-gray-600 hover:bg-gray-50"
-                                    onClick={() => setIsMenuOpen(false)}
-                                  >
-                                    <div className="flex items-center space-x-2">
-                                      {ChildIcon && <ChildIcon className="text-xs" />}
-                                      <span>{child.label}</span>
-                                    </div>
-                                    {child.badge && (
-                                      <span className={`text-xs px-1 py-0.5 rounded ${
-                                        child.badge === 'New' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                                      }`}>
-                                        {child.badge}
-                                      </span>
-                                    )}
-                                  </Link>
-                                );
-                              })}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-                
-                <Link
-                  to="/my-bookings"
-                  className="flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  <FaCalendarAlt className="text-lg" />
-                  <span>My Bookings</span>
-                </Link>
-                <Link
-                  to="/owner/cars"
-                  className="flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  <FaCar className="text-lg" />
-                  <span>My Cars</span>
-                </Link>
-
-                {/* Mobile property selector (compact, no overflow) */}
-                {isInPropertyOwnerDashboard() && myProperties.length > 0 && (
-                  <div className="mt-2 border-t border-gray-200 pt-2">
-                    <div className="text-xs font-semibold text-gray-500 px-4 mb-1">Select Property</div>
-                    <div className="max-h-56 overflow-y-auto">
-                      {myProperties.map((p) => (
-                        <Link
-                          key={p._id}
-                          to={`/my-bookings?tab=calendar&property=${p._id}`}
-                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 truncate"
-                          onClick={() => setIsMenuOpen(false)}
-                        >
-                          {p.title || p.name || p.propertyNumber}
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-
-            {isAuthenticated && user?.userType === 'admin' && (
-              <Link
-                to="/admin"
-                className="flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                <FaChartLine className="text-lg" />
-                <span>Admin Dashboard</span>
-              </Link>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Global banner for deactivated owners - visible on all screens */}
-      {isAuthenticated && user?.userType === 'host' && user?.isBlocked && (
-        <div className="w-full bg-red-50 border-b border-red-200">
-          <div className="max-w-7xl mx-auto px-4 py-2 text-sm text-red-700">
-            Your account is currently deactivated due to unpaid commissions. Actions are limited until reactivated.
-          </div>
-        </div>
-      )}
-      {/* Owner switch modal (enter owner credentials) */}
-      {showOwnerSwitch && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-xl">
-            <div className="mb-3 text-lg font-semibold text-gray-900">Switch to Property Owner Mode</div>
-            <p className="text-sm text-gray-600 mb-4">Enter your Property Owner account credentials. We'll log you out of user mode and sign you in as owner.</p>
-            <form onSubmit={submitOwnerSwitch} className="space-y-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Owner Email</label>
-                <input
-                  type="email"
-                  value={ownerEmail}
-                  onChange={(e) => setOwnerEmail(e.target.value)}
-                  placeholder="owner@example.com"
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#a06b42]"
-                  required
-                />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                <input
-                  type="password"
-                  value={ownerPassword}
-                  onChange={(e) => setOwnerPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#a06b42]"
-                  required
-                />
-              </div>
-              <div className="flex flex-col sm:flex-row gap-2 justify-end pt-1">
-                <button type="button" className="px-4 py-2 rounded-lg border" onClick={() => setShowOwnerSwitch(false)}>Cancel</button>
-                <button type="submit" disabled={switchLoading} className="px-4 py-2 rounded-lg bg-[#a06b42] text-white hover:bg-[#8f5a32] disabled:opacity-50">
-                  {switchLoading ? 'Switching…' : 'Switch to Owner'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Third Bar - Property Owner Dashboard Navigation (Separate Bar) */}
-      {user?.userType === 'host' && isInPropertyOwnerDashboard() && (
-        <div className="owner-third-navbar w-full bg-white border-b border-gray-200 shadow-sm relative z-[1001]">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center space-x-1 overflow-x-auto py-2 scrollbar-hide">
-              {bookingComNavItems.map((item, index) => {
-                const Icon = item.icon;
-                const isActive = isActiveRoute(item.href);
-                const isDropdownOpen = activeDropdown === item.label;
-
-                return (
-                  <div key={index} className="relative group flex-shrink-0 z-[1002]">
-                    <button
-                      onClick={() => toggleDropdown(item.label)}
-                      className={`owner-nav-dropdown-button flex items-center space-x-1.5 px-3 py-2 rounded-lg transition-all duration-200 font-medium text-sm whitespace-nowrap ${
-                        isActive
-                          ? "bg-[#a06b42] text-white shadow-md"
-                          : "text-gray-700 hover:text-[#a06b42] hover:bg-[#f5f0e8]"
-                      }`}
-                    >
-                      <Icon className="text-sm flex-shrink-0" />
-                      <span>{item.label}</span>
-                      {item.badge > 0 && (
-                        <span className="bg-red-600 text-white text-[10px] rounded-full px-1.5 py-0.5 min-w-[18px] text-center font-semibold">
-                          {item.badge}
-                        </span>
-                      )}
-                      {item.children.length > 0 && (
-                        <FaCaretDown className={`text-xs transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
-                      )}
-                    </button>
-
-                    {/* Dropdown Menu */}
-                    {isDropdownOpen && item.children.length > 0 && (
-                      <div className="owner-nav-dropdown absolute top-full left-0 mt-1 w-72 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-[99999] max-h-96 overflow-y-auto">
-                        {item.children.map((child, childIndex) => {
-                          const ChildIcon = child.icon;
-                          const isChildActive = isActiveRoute(child.href);
-                          return (
-                            <Link
-                              key={childIndex}
-                              to={child.href}
-                              className={`flex items-center justify-between px-4 py-2.5 text-sm hover:bg-[#f5f0e8] transition-colors ${
-                                isChildActive ? 'bg-[#f5f0e8] text-[#a06b42] font-medium' : 'text-gray-700'
-                              }`}
-                              onClick={() => setActiveDropdown(null)}
-                            >
-                              <div className="flex items-center space-x-3">
-                                {ChildIcon && <ChildIcon className="text-sm flex-shrink-0" />}
-                                <span>{child.label}</span>
-                              </div>
-                              {child.badge && (
-                                <span className={`text-xs px-2 py-0.5 rounded-full min-w-[20px] text-center font-semibold ${
-                                  child.badge === 'New' ? 'bg-green-100 text-green-700' : 
-                                  typeof child.badge === 'number' || !isNaN(child.badge) ? 'bg-red-100 text-red-700' : 
-                                  'bg-blue-100 text-blue-700'
-                                }`}>
-                                  {child.badge}
-                                </span>
-                              )}
-                            </Link>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
             </div>
           </div>
         </div>

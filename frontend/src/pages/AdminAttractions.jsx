@@ -19,8 +19,8 @@ export default function AdminAttractions() {
     try {
       setLoading(true);
       const res = await fetch(`${API_URL}/api/admin/attractions-content`, { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch attractions content');
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed to fetch');
       setContent(data.content || { pageTitle: '', introText: '', heroImages: [], attractions: [], published: false });
     } catch (e) { toast.error(e.message); } finally { setLoading(false); }
   }
@@ -35,8 +35,8 @@ export default function AdminAttractions() {
         credentials: 'include',
         body: JSON.stringify(content),
       });
+      if (!res.ok) throw new Error('Failed to save attractions content');
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed to save');
       setContent(data.content || content);
       toast.success('Attractions content saved');
     } catch (e) { toast.error(e.message); } finally { setSaving(false); }
@@ -51,8 +51,8 @@ export default function AdminAttractions() {
       const res = await fetch(`${API_URL}/api/admin/attractions-content/images`, {
         method: 'POST', credentials: 'include', body: form
       });
+      if (!res.ok) throw new Error('Upload failed');
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Upload failed');
       setContent(c => ({ ...c, heroImages: [...(c.heroImages || []), ...data.images] }));
       toast.success('Images uploaded');
     } catch (e) { toast.error(e.message); } finally { setUploading(false); }

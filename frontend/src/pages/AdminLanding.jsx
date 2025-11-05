@@ -55,8 +55,8 @@ export default function AdminLanding() {
     try {
       setLoading(true);
       const res = await fetch(`${API_URL}/api/admin/landing-content`, { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch landing content');
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed to fetch');
       const c = data.content || {};
       // Merge top-level howItWorks into sections if backend returns it separately
       const existingSections = Array.isArray(c.sections) ? c.sections : [];
@@ -87,8 +87,8 @@ export default function AdminLanding() {
       credentials: 'include',
       body: form,
     });
+    if (!res.ok) throw new Error('Upload failed');
     const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Upload failed');
     const arr = Array.isArray(data.images) ? data.images : [];
     // Normalize to array of string paths
     const paths = arr
@@ -148,12 +148,15 @@ export default function AdminLanding() {
         credentials: 'include',
         body: JSON.stringify(payload),
       });
-      const data = await res.json();
       if (!res.ok) {
         // Surface server details for debugging
         // eslint-disable-next-line no-console
-        console.error('Save landing content failed', { status: res.status, data });
-        throw new Error(data.message || `Failed to save (status ${res.status})`);
+        console.error('Save landing content failed', { status: res.status });
+        throw new Error(`Failed to save (status ${res.status})`);
+      }
+      const data = await res.json();
+      if (!data.content) {
+        throw new Error('Invalid response from server');
       }
       setContent(data.content || payload);
       toast.success('Landing content saved');
@@ -161,6 +164,7 @@ export default function AdminLanding() {
       try {
         const fetchPublic = async () => {
           const verifyRes = await fetch(`${API_URL}/api/content/landing?t=${Date.now()}`);
+          if (!verifyRes.ok) return;
           const verifyData = await verifyRes.json();
           const sections = Array.isArray(verifyData?.content?.sections) ? verifyData.content.sections : [];
           const guestSec = sections.find(s => s?.key === 'howItWorksGuests');
@@ -206,11 +210,15 @@ export default function AdminLanding() {
   }
 
   function removeImage(idx) {
-    setContent(c => ({
-      ...c,
-      heroImages: c.heroImages.filter((_, i) => i !== idx),
-      heroSlides: (c.heroSlides || []).filter((_, i) => i !== idx)
-    }));
+    setContent(c => {
+      const newHeroImages = (c.heroImages || []).filter((_, i) => i !== idx);
+      const newHeroSlides = (c.heroSlides || []).filter((_, i) => i !== idx);
+      return {
+        ...c,
+        heroImages: newHeroImages,
+        heroSlides: newHeroSlides
+      };
+    });
   }
 
   return (
@@ -242,23 +250,23 @@ export default function AdminLanding() {
           </div>
 
           <div>
-            <label className="block text-sm text-gray-700 mb-2">Hero Slideshow Images & Captions</label>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-3">
+            <label className="block text-sm text-gray-700 mb-3">Hero Slideshow Images & Captions</label>
+            <div className="grid grid-cols-1 gap-4 mb-4">
               {(content.heroSlides || []).map((slide, i) => (
-                <div key={i} className="flex gap-3 items-start">
-                  <div className="relative w-28 h-20 shrink-0">
-                    <img src={(slide.image || '').startsWith('http') ? slide.image : `${API_URL}${slide.image}`} className="w-28 h-20 object-cover rounded" />
-                    <button onClick={() => removeImage(i)} className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full w-6 h-6">×</button>
+                <div key={i} className="flex gap-4 items-start p-4 bg-white rounded-lg shadow-sm border border-gray-200">
+                  <div className="relative w-32 h-24 shrink-0 flex-none bg-gray-100 rounded-lg overflow-hidden">
+                    <img src={(slide.image || '').startsWith('http') ? slide.image : `${API_URL}${slide.image}`} className="w-full h-full object-cover bg-transparent" alt="Hero slide" />
+                    <button onClick={() => removeImage(i)} className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full w-7 h-7 flex items-center justify-center hover:bg-red-700 transition-colors shadow-md" type="button">×</button>
                   </div>
-                  <div className="flex-1">
-                    <label className="block text-xs text-gray-600 mb-1">Caption</label>
+                  <div className="flex-1 min-w-0">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Caption for Slide {i + 1}</label>
                     <input
                       value={slide.caption || ''}
                       onChange={e => setContent(c => ({
                         ...c,
                         heroSlides: c.heroSlides.map((s, idx) => idx === i ? { ...s, caption: e.target.value } : s)
                       }))}
-                      className="w-full px-3 py-2 rounded-lg bg-white shadow-sm ring-0 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-2.5 rounded-lg bg-white shadow-sm border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       placeholder="Optional caption for this slide"
                     />
                   </div>
@@ -357,17 +365,17 @@ export default function AdminLanding() {
                 }}
               >
                 {howItWorks.image ? (
-                  <div className="relative">
-                    <img src={howItWorks.image.startsWith('http') ? howItWorks.image : `${API_URL}${howItWorks.image}`} className="w-32 h-24 object-cover rounded" />
+                  <div className="relative w-28 h-20 shrink-0 flex-none min-w-[7rem] min-h-[5rem]">
+                    <img src={howItWorks.image.startsWith('http') ? howItWorks.image : `${API_URL}${howItWorks.image}`} className="w-full h-full object-cover rounded block" />
                     <button
                       type="button"
-                      className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-white shadow text-gray-700"
+                      className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-white shadow text-gray-700 flex items-center justify-center"
                       onClick={() => setHowItWorks({ ...howItWorks, image: '' })}
                       title="Remove"
                     >×</button>
                   </div>
                 ) : (
-                  <div className="w-32 h-24 flex items-center justify-center text-gray-400 text-sm bg-white rounded">Drop image here</div>
+                  <div className="w-28 h-20 flex items-center justify-center text-gray-400 text-sm bg-white rounded">Drop image here</div>
                 )}
                 <div className="ml-auto">
                   <label className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-white shadow text-sm cursor-pointer">
@@ -464,12 +472,12 @@ export default function AdminLanding() {
                         }}
                       >
                         {s.image ? (
-                          <div className="relative">
-                            <img src={s.image.startsWith('http') ? s.image : `${API_URL}${s.image}`} className="w-24 h-16 object-cover rounded" />
-                            <button type="button" className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-white shadow text-gray-700" onClick={() => setHowItWorks({ ...howItWorks, guestSteps: howItWorks.guestSteps.map((x, idx)=> idx===i? { ...x, image: '' }: x) })}>×</button>
+                          <div className="relative w-28 h-20 shrink-0 flex-none min-w-[7rem] min-h-[5rem]">
+                            <img src={s.image.startsWith('http') ? s.image : `${API_URL}${s.image}`} className="w-full h-full object-cover rounded block" />
+                            <button type="button" className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-white shadow text-gray-700 flex items-center justify-center" onClick={() => setHowItWorks({ ...howItWorks, guestSteps: howItWorks.guestSteps.map((x, idx)=> idx===i? { ...x, image: '' }: x) })}>×</button>
                           </div>
                         ) : (
-                          <div className="w-24 h-16 flex items-center justify-center text-gray-400 text-xs bg-white rounded">Drop image</div>
+                          <div className="w-28 h-20 flex items-center justify-center text-gray-400 text-xs bg-white rounded">Drop image</div>
                         )}
                         <label className="ml-auto inline-flex items-center gap-2 px-3 py-1.5 rounded bg-white shadow-sm hover:shadow text-xs cursor-pointer">
                           <input type="file" className="hidden" accept="image/*" onChange={async e => {
@@ -546,8 +554,8 @@ export default function AdminLanding() {
                         }}
                       >
                         {s.image ? (
-                          <div className="relative">
-                            <img src={s.image.startsWith('http') ? s.image : `${API_URL}${s.image}`} className="w-24 h-16 object-cover rounded" />
+                          <div className="relative w-28 h-20 shrink-0 flex-none">
+                            <img src={s.image.startsWith('http') ? s.image : `${API_URL}${s.image}`} className="w-full h-full object-cover rounded" />
                             <button type="button" className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-white shadow text-gray-700" onClick={() => setHowItWorks({ ...howItWorks, hostSteps: howItWorks.hostSteps.map((x, idx)=> idx===i? { ...x, image: '' }: x) })}>×</button>
                           </div>
                         ) : (

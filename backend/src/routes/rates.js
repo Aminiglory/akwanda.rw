@@ -220,4 +220,38 @@ router.post('/mobile-rates', requireAuth, async (req, res) => {
   } catch (e) { res.status(e.status || 500).json({ message: e.message || 'Failed to set mobile rates' }); }
 });
 
+// Get availability planner data
+router.get('/availability-planner/:propertyId', requireAuth, async (req, res) => {
+  try {
+    await assertOwnerOrAdmin(req.params.propertyId, req.user);
+    
+    const property = await Property.findById(req.params.propertyId)
+      .select('availabilityStrategy seasonalRates rooms title');
+    
+    if (!property) return res.status(404).json({ message: 'Property not found' });
+    
+    res.json({ 
+      strategy: property.availabilityStrategy || {},
+      seasonalRates: property.seasonalRates || [],
+      propertyTitle: property.title 
+    });
+  } catch (e) { res.status(e.status || 500).json({ message: e.message || 'Failed to get availability planner' }); }
+});
+
+// Save availability planner strategy
+router.post('/availability-planner', requireAuth, async (req, res) => {
+  try {
+    const { propertyId, strategy, seasonalRates } = req.body;
+    await assertOwnerOrAdmin(propertyId, req.user);
+    
+    const update = {};
+    if (strategy) update.availabilityStrategy = strategy;
+    if (seasonalRates) update.seasonalRates = seasonalRates;
+    
+    await Property.updateOne({ _id: propertyId }, { $set: update });
+    
+    res.json({ success: true, message: 'Availability strategy saved' });
+  } catch (e) { res.status(e.status || 500).json({ message: e.message || 'Failed to save availability strategy' }); }
+});
+
 module.exports = router;

@@ -6,10 +6,10 @@ import {
   FaEdit, FaTrash, FaStar, FaPhone, FaEnvelope, FaDollarSign,
   FaMapMarkerAlt, FaBed, FaBath, FaWifi, FaCar, FaSwimmingPool,
   FaUtensils, FaTv, FaSnowflake, FaPaw, FaSmokingBan,
-  FaExclamationTriangle, FaTimes, FaCheck, FaArrowRight,
+  FaExclamationTriangle, FaTimes, FaCheck, FaArrowRight, FaArrowLeft,
   FaCalendarCheck, FaCalendarTimes, FaUserCheck, FaUserTimes,
   FaShoppingBag, FaCog, FaFileAlt, FaImages, FaQuestionCircle,
-  FaPercent, FaCalendar, FaRulerCombined, FaUpload, FaBook
+  FaPercent, FaCalendar, FaRulerCombined, FaUpload, FaBook, FaBuilding
 } from 'react-icons/fa';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -64,6 +64,7 @@ const PropertyOwnerBookings = () => {
   });
   const [ownerView, setOwnerView] = useState('table'); // 'table' | 'calendar'
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'dashboard');
+  const [activeNavDropdown, setActiveNavDropdown] = useState(null);
   const [financeFilter, setFinanceFilter] = useState(searchParams.get('finance_status') || 'all'); // all|paid|pending|unpaid
   const [financeView, setFinanceView] = useState(searchParams.get('view') || 'all'); // all|last30|mtd|ytd|invoices|statement|overview
   const [analyticsRange, setAnalyticsRange] = useState(searchParams.get('range') || '30'); // 30|90|ytd|custom
@@ -209,13 +210,13 @@ const PropertyOwnerBookings = () => {
     if (scope) {
       const map = {
         all: 'all',
+        upcoming: 'confirmed',
+        'checked-in': 'confirmed',
+        'checked-out': 'ended',
+        cancelled: 'cancelled',
         paid: 'paid',
         pending: 'pending',
-        unpaid: 'unpaid',
-        cancelled: 'cancelled',
-        upcoming: 'confirmed', // Upcoming bookings are confirmed ones with future dates
-        'checked-in': 'confirmed', // Currently checked in
-        'checked-out': 'ended' // Already checked out
+        unpaid: 'unpaid'
       };
       const next = map[scope] || 'all';
       setFilters(prev => ({ ...prev, status: next }));
@@ -360,6 +361,17 @@ const PropertyOwnerBookings = () => {
     }));
   };
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (activeNavDropdown && !event.target.closest('.relative')) {
+        setActiveNavDropdown(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [activeNavDropdown]);
+
   const handleViewDetails = (booking) => {
     setSelectedBooking(booking);
     setShowBookingDetails(true);
@@ -387,6 +399,7 @@ const PropertyOwnerBookings = () => {
     if (filters.status !== 'all' && booking.status !== filters.status && booking.paymentStatus !== filters.status) return false;
     
     // Property filter
+
     if (filters.property !== 'all' && String(booking.property?._id) !== String(filters.property)) return false;
     
     // Search filter
@@ -828,11 +841,211 @@ const PropertyOwnerBookings = () => {
     );
   }
 
+  // Navigation items with dropdowns - COMPLETE LIST matching mobile menu (60+ sub-links)
+  const navItems = [
+    { label: 'Home', icon: FaHome, href: '/dashboard', children: [] },
+    {
+      label: 'Rates & Availability',
+      icon: FaCalendarAlt,
+      href: '/owner/rates',
+      children: [
+        { label: 'Calendar', href: '/owner/rates?view=calendar' },
+        { label: 'Open/close rooms', href: '/owner/rates?view=open-close' },
+        { label: 'Copy yearly rates', href: '/owner/rates?view=copy-yearly' },
+        { label: 'Dynamic restriction rules', href: '/owner/rates?view=restrictions' },
+        { label: 'Rate plans', href: '/owner/rates?view=rate-plans' },
+        { label: 'Value adds', href: '/owner/rates?view=value-adds' },
+        { label: 'Availability planner', href: '/owner/rates?view=availability-planner' },
+        { label: 'Pricing per guest', href: '/owner/rates?view=pricing-per-guest' },
+        { label: 'Country rates', href: '/owner/rates?view=country-rates' },
+        { label: 'Mobile rates', href: '/owner/rates?view=mobile-rates' },
+      ]
+    },
+    {
+      label: 'Promotions',
+      icon: FaShoppingBag,
+      href: '/owner/promotions',
+      children: [
+        { label: 'Choose new promotion', href: '/owner/promotions?action=new' },
+        { label: 'Simulate max discount', href: '/owner/promotions?action=simulate' },
+        { label: 'Your active promotions', href: '/owner/promotions?filter=active' },
+      ]
+    },
+    {
+      label: 'Reservations',
+      icon: FaCalendarCheck,
+      href: '/my-bookings',
+      children: [
+        { label: 'All reservations', href: '/my-bookings?tab=reservations&scope=all' },
+        { label: 'Upcoming', href: '/my-bookings?tab=reservations&scope=upcoming' },
+        { label: 'Checked in', href: '/my-bookings?tab=reservations&scope=checked-in' },
+        { label: 'Checked out', href: '/my-bookings?tab=reservations&scope=checked-out' },
+        { label: 'Cancelled', href: '/my-bookings?tab=reservations&scope=cancelled' },
+      ]
+    },
+    {
+      label: 'Property',
+      icon: FaBed,
+      href: '/owner/property',
+      children: [
+        { label: 'Quality rating', href: '/owner/property?view=quality-rating' },
+        { label: 'Property page score', href: '/owner/property?view=page-score' },
+        { label: 'General info & property status', href: '/owner/property?view=general-info' },
+        { label: 'VAT/tax/charges', href: '/owner/property?view=vat-tax' },
+        { label: 'Photos', href: '/owner/property?view=photos' },
+        { label: 'Property policies', href: '/owner/property?view=policies' },
+        { label: 'Reservation policies', href: '/owner/property?view=policies' },
+        { label: 'Facilities & services', href: '/owner/property?view=facilities' },
+        { label: 'Room details', href: '/owner/property?view=room-details' },
+        { label: 'Room amenities', href: '/owner/property?view=facilities' },
+        { label: 'Your profile', href: '/owner/property?view=profile' },
+        { label: 'View your descriptions', href: '/owner/property?view=general-info' },
+        { label: 'Messaging preferences', href: '/settings?tab=messaging' },
+        { label: 'Sustainability', href: '/owner/property?view=sustainability' },
+      ]
+    },
+    {
+      label: 'Boost performance',
+      icon: FaChartLine,
+      href: '/dashboard?tab=boost',
+      children: [
+        { label: 'Opportunity Centre', href: '/dashboard?tab=boost&view=opportunity' },
+        { label: 'Commission-free bookings', href: '/dashboard?tab=boost&view=commission-free' },
+        { label: 'Genius partner programme', href: '/dashboard?tab=boost&view=genius' },
+        { label: 'Preferred Partner Programme', href: '/dashboard?tab=boost&view=preferred' },
+        { label: 'Long stays toolkit', href: '/dashboard?tab=boost&view=long-stays' },
+        { label: 'Visibility booster', href: '/dashboard?tab=boost&view=visibility' },
+        { label: 'Work-Friendly Programme', href: '/dashboard?tab=boost&view=work-friendly' },
+        { label: 'Unit differentiation tool', href: '/dashboard?tab=boost&view=unit-diff' },
+      ]
+    },
+    {
+      label: 'Inbox',
+      icon: FaEnvelope,
+      href: '/messages',
+      children: [
+        { label: 'Reservation messages', href: '/messages?category=reservations' },
+        { label: 'Booking.com messages', href: '/messages?category=platform' },
+        { label: 'Guest Q&A', href: '/messages?category=qna' },
+      ]
+    },
+    {
+      label: 'Guest reviews',
+      icon: FaStar,
+      href: '/owner/reviews',
+      children: [
+        { label: 'Guest reviews', href: '/owner/reviews' },
+        { label: 'Guest experience', href: '/owner/reviews?view=experience' },
+      ]
+    },
+    {
+      label: 'Finance',
+      icon: FaDollarSign,
+      href: '/dashboard?tab=finance',
+      children: [
+        { label: 'Invoices', href: '/dashboard?tab=finance&view=invoices' },
+        { label: 'Reservations statement', href: '/dashboard?tab=finance&view=statement' },
+        { label: 'Financial overview', href: '/dashboard?tab=finance&view=overview' },
+        { label: 'Finance settings', href: '/settings?tab=finance' },
+      ]
+    },
+    {
+      label: 'Analytics',
+      icon: FaChartLine,
+      href: '/dashboard?tab=analytics',
+      children: [
+        { label: 'Analytics dashboard', href: '/dashboard?tab=analytics' },
+        { label: 'Demand for location', href: '/dashboard?tab=analytics&view=demand' },
+        { label: 'Your pace of bookings', href: '/dashboard?tab=analytics&view=pace' },
+        { label: 'Sales statistics', href: '/dashboard?tab=analytics&view=sales' },
+        { label: 'Booker insights', href: '/dashboard?tab=analytics&view=booker' },
+        { label: 'Bookwindow information', href: '/dashboard?tab=analytics&view=bookwindow' },
+        { label: 'Cancellation characteristics', href: '/dashboard?tab=analytics&view=cancellation' },
+        { label: 'Manage your competitive set', href: '/dashboard?tab=analytics&view=competitive' },
+        { label: 'Genius report', href: '/dashboard?tab=analytics&view=genius' },
+        { label: 'Ranking dashboard', href: '/dashboard?tab=analytics&view=ranking' },
+        { label: 'Performance dashboard', href: '/dashboard?tab=analytics&view=performance' },
+      ]
+    },
+  ];
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 py-6">
-        {/* Header with New Booking Button */}
-        <div className="mb-6 flex justify-end">
+        {/* Back Button */}
+        <div className="mb-4">
+          <button
+            onClick={() => navigate(-1)}
+            className="flex items-center gap-2 text-gray-600 hover:text-[#a06b42] transition-colors"
+          >
+            <FaArrowLeft className="text-sm" />
+            <span className="text-sm font-medium">Back</span>
+          </button>
+        </div>
+
+        {/* Property Owner Navigation - Desktop Only */}
+        <div className="hidden lg:block mb-6">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              {/* Navigation Links */}
+              <div className="flex items-center gap-2 flex-wrap">
+                {navItems.map((item, index) => (
+                  <div key={index} className="relative">
+                    <button
+                      onClick={() => {
+                        if (item.children.length === 0) {
+                          if (item.href) navigate(item.href);
+                          if (item.action) item.action();
+                          setActiveNavDropdown(null);
+                        } else {
+                          setActiveNavDropdown(activeNavDropdown === item.label ? null : item.label);
+                        }
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:text-[#a06b42] hover:bg-[#f5f0e8] transition-colors"
+                    >
+                      <item.icon className="text-sm" />
+                      <span>{item.label}</span>
+                      {item.children.length > 0 && (
+                        <FaChevronDown className={`text-xs transition-transform ${activeNavDropdown === item.label ? 'rotate-180' : ''}`} />
+                      )}
+                    </button>
+                    
+                    {/* Dropdown Menu */}
+                    {item.children.length > 0 && activeNavDropdown === item.label && (
+                      <div className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-lg border border-gray-200 py-2 min-w-[200px] z-[99999]">
+                        {item.children.map((child, childIndex) => (
+                          <button
+                            key={childIndex}
+                            onClick={() => {
+                              if (child.href) navigate(child.href);
+                              if (child.action) child.action();
+                              setActiveNavDropdown(null);
+                            }}
+                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-[#f5f0e8] hover:text-[#a06b42] transition-colors"
+                          >
+                            {child.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+              
+              {/* New Booking Button */}
+              <button
+                onClick={() => setShowDirectBooking(true)}
+                className="bg-[#a06b42] hover:bg-[#8f5a32] text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-md transition-colors"
+              >
+                <FaPlus />
+                <span>New Booking</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Mobile: New Booking Button Only */}
+        <div className="lg:hidden mb-6 flex justify-end">
           <button
             onClick={() => setShowDirectBooking(true)}
             className="bg-[#a06b42] hover:bg-[#8f5a32] text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-md transition-colors"
@@ -1382,7 +1595,9 @@ const PropertyOwnerBookings = () => {
                           View Invoice
                         </button>
                         <button
-                          onClick={() => navigate(`/receipt/${booking._id}`)}
+                          onClick={() => {
+                            window.open(`${API_URL}/api/bookings/${booking._id}/receipt`, '_blank');
+                          }}
                           className="text-sm text-green-600 hover:text-green-800"
                         >
                           View Receipt
@@ -1470,6 +1685,56 @@ const PropertyOwnerBookings = () => {
                 <div className="bg-pink-50 border border-pink-200 rounded-xl p-6">
                   <h3 className="text-lg font-semibold text-pink-900 mb-2">Properties</h3>
                   <div className="text-2xl font-bold text-pink-600">{stats.totalProperties}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'boost' && (
+          <div className="space-y-8">
+            <div className="neu-card p-6">
+              <h2 className="text-xl font-semibold mb-6">Boost Performance</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="border border-blue-200 rounded-xl p-6 hover:shadow-lg transition-shadow">
+                  <div className="flex items-center mb-4">
+                    <FaChartLine className="text-3xl text-blue-600 mr-3" />
+                    <h3 className="text-lg font-semibold text-gray-900">Opportunity Centre</h3>
+                  </div>
+                  <p className="text-gray-600 mb-4">Discover ways to improve your property performance and increase bookings</p>
+                  <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                    View Opportunities
+                  </button>
+                </div>
+                <div className="border border-green-200 rounded-xl p-6 hover:shadow-lg transition-shadow">
+                  <div className="flex items-center mb-4">
+                    <FaDollarSign className="text-3xl text-green-600 mr-3" />
+                    <h3 className="text-lg font-semibold text-gray-900">Commission-free Bookings</h3>
+                  </div>
+                  <p className="text-gray-600 mb-4">Learn how to get direct bookings without platform commission</p>
+                  <button className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
+                    Learn More
+                  </button>
+                </div>
+                <div className="border border-purple-200 rounded-xl p-6 hover:shadow-lg transition-shadow">
+                  <div className="flex items-center mb-4">
+                    <FaStar className="text-3xl text-purple-600 mr-3" />
+                    <h3 className="text-lg font-semibold text-gray-900">Visibility Booster</h3>
+                  </div>
+                  <p className="text-gray-600 mb-4">Increase your property's visibility in search results</p>
+                  <button className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors">
+                    Boost Visibility
+                  </button>
+                </div>
+                <div className="border border-orange-200 rounded-xl p-6 hover:shadow-lg transition-shadow">
+                  <div className="flex items-center mb-4">
+                    <FaCalendarAlt className="text-3xl text-orange-600 mr-3" />
+                    <h3 className="text-lg font-semibold text-gray-900">Long Stays Toolkit</h3>
+                  </div>
+                  <p className="text-gray-600 mb-4">Attract guests looking for extended stays</p>
+                  <button className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors">
+                    Enable Long Stays
+                  </button>
                 </div>
               </div>
             </div>

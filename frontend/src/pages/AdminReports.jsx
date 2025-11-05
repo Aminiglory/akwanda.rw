@@ -14,8 +14,8 @@ export default function AdminReports() {
       setLoading(true);
       const qs = new URLSearchParams({ type, period }).toString();
       const res = await fetch(`${API_URL}/api/reports/generate?${qs}`, { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to generate report');
       const json = await res.json();
-      if (!res.ok) throw new Error(json.message || 'Failed to generate report');
       setData(json.data || {});
     } catch (e) {
       toast.error(e.message || 'Failed to load report');
