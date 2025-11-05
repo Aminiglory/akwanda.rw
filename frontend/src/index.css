@@ -460,7 +460,6 @@ textarea::placeholder {
 /* Layer 1: Base navbar (includes second and third navbar) - z-index 1000 */
 nav {
   position: relative;
-  z-index: 1000;
 }
 
 /* Third navbar styling (now inside nav element, no z-index needed) */
@@ -476,7 +475,6 @@ nav {
 .notification-dropdown,
 .profile-dropdown {
   position: absolute !important;
-  z-index: 10000 !important;
   transform: translateZ(0);
   will-change: transform;
   isolation: isolate;
