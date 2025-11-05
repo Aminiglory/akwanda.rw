@@ -819,7 +819,7 @@ const Navbar = () => {
       )}
 
       {/* Second Bar - Navigation Level */}
-      <nav className="w-full bg-[#f5f0e8] border-b border-[#e0d5c7] navbar-shadow relative z-[999]">
+      <nav className="w-full bg-[#f5f0e8] border-b border-[#e0d5c7] navbar-shadow sticky top-0 z-[1000]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
             {/* Logo */}
@@ -1274,7 +1274,7 @@ const Navbar = () => {
 
         {/* Third Bar - Property Owner Dashboard Navigation (Inside Second Navbar) */}
         {user?.userType === 'host' && isInPropertyOwnerDashboard() && (
-          <div className="owner-third-navbar w-full bg-white border-t border-gray-200 overflow-visible">
+          <div className="owner-third-navbar w-full bg-white border-t border-gray-200 overflow-visible z-[1001] relative">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="flex items-center space-x-1 overflow-x-auto overflow-y-visible py-2 scrollbar-hide">
                 {bookingComNavItems.map((item, index) => {
