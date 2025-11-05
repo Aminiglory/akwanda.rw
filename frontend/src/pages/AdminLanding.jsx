@@ -250,23 +250,23 @@ export default function AdminLanding() {
           </div>
 
           <div>
-            <label className="block text-sm text-gray-700 mb-2">Hero Slideshow Images & Captions</label>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-3">
+            <label className="block text-sm text-gray-700 mb-3">Hero Slideshow Images & Captions</label>
+            <div className="grid grid-cols-1 gap-4 mb-4">
               {(content.heroSlides || []).map((slide, i) => (
-                <div key={i} className="flex gap-3 items-start min-w-0">
-                  <div className="relative w-28 h-20 shrink-0 flex-none min-w-[7rem] min-h-[5rem] bg-gray-100">
-                    <img src={(slide.image || '').startsWith('http') ? slide.image : `${API_URL}${slide.image}`} className="w-full h-full object-cover rounded block bg-transparent" alt="Hero slide" />
-                    <button onClick={() => removeImage(i)} className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-700 transition-colors" type="button">×</button>
+                <div key={i} className="flex gap-4 items-start p-4 bg-white rounded-lg shadow-sm border border-gray-200">
+                  <div className="relative w-32 h-24 shrink-0 flex-none bg-gray-100 rounded-lg overflow-hidden">
+                    <img src={(slide.image || '').startsWith('http') ? slide.image : `${API_URL}${slide.image}`} className="w-full h-full object-cover bg-transparent" alt="Hero slide" />
+                    <button onClick={() => removeImage(i)} className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full w-7 h-7 flex items-center justify-center hover:bg-red-700 transition-colors shadow-md" type="button">×</button>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <label className="block text-xs text-gray-600 mb-1">Caption</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Caption for Slide {i + 1}</label>
                     <input
                       value={slide.caption || ''}
                       onChange={e => setContent(c => ({
                         ...c,
                         heroSlides: c.heroSlides.map((s, idx) => idx === i ? { ...s, caption: e.target.value } : s)
                       }))}
-                      className="w-full px-3 py-2 rounded-lg bg-white shadow-sm ring-0 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-2.5 rounded-lg bg-white shadow-sm border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       placeholder="Optional caption for this slide"
                     />
                   </div>

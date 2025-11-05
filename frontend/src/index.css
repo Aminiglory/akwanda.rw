@@ -463,38 +463,25 @@ nav {
   z-index: 1000;
 }
 
-/* Layer 2: Third navbar (property owner) - z-index 1001 */
+/* Layer 2: Third navbar (property owner) - z-index 998 */
 .owner-third-navbar {
   position: sticky;
   top: 0;
-  z-index: 1001 !important;
+  z-index: 998 !important;
   background: white;
 }
 
-/* Layer 3: Main navigation dropdowns - z-index 10000 */
+/* Layer 3: All dropdowns - z-index 9999 (above all content and navbars) */
 .main-nav-dropdown,
-.property-selector-dropdown {
-  position: fixed !important;
-  z-index: 10000 !important;
-  transform: translateZ(0);
-  will-change: transform;
-}
-
-/* Layer 4: Third navbar dropdowns - z-index 10001 */
-.owner-nav-dropdown {
-  position: fixed !important;
-  z-index: 10001 !important;
-  transform: translateZ(0);
-  will-change: transform;
-}
-
-/* Layer 5: Notification and Profile dropdowns (highest) - z-index 10002 */
+.property-selector-dropdown,
+.owner-nav-dropdown,
 .notification-dropdown,
 .profile-dropdown {
-  position: fixed !important;
-  z-index: 10002 !important;
+  position: absolute !important;
+  z-index: 9999 !important;
   transform: translateZ(0);
   will-change: transform;
+  isolation: isolate;
 }
 
 /* Ensure sticky positioning works */
