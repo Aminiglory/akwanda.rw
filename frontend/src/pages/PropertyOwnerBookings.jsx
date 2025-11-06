@@ -3,7 +3,7 @@ import {
   FaCalendarAlt, FaUsers, FaMoneyBillWave, FaCheckCircle, FaClock, 
   FaEye, FaFileInvoice, FaFilter, FaDownload, FaComments, FaHome, 
   FaChartLine, FaPlus, FaSearch, FaChevronDown, FaChevronUp, 
-  FaEdit, FaTrash, FaStar, FaPhone, FaEnvelope, FaDollarSign,
+  FaEdit, FaTrash, FaStar, FaPhone, FaEnvelope, FaDollarSign, FaUser,
   FaMapMarkerAlt, FaBed, FaBath, FaWifi, FaCar, FaSwimmingPool,
   FaUtensils, FaTv, FaSnowflake, FaPaw, FaSmokingBan,
   FaExclamationTriangle, FaTimes, FaCheck, FaArrowRight, FaArrowLeft,
@@ -1380,7 +1380,6 @@ const PropertyOwnerBookings = () => {
                       <button
                         onClick={() => {
                           const guestId = b.guest?._id || b.guest;
-                          const hostId = b.property?.host || req.user?.id;
                           navigate(`/messages?recipient=${guestId}&booking=${b._id}`);
                         }}
                         className="p-2 rounded bg-[#003580] text-white hover:bg-[#002a66]"
