@@ -162,8 +162,8 @@ const Testimonials = () => {
                   <div className="inline-grid w-full align-top grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pr-0 md:pr-8" key={pIdx} style={{ width: '100%' }}>
                     {page.map((testimonial, idx) => (
                       <div
-                        key={testimonial.id}
-                        className={`modern-card-elevated p-6 hover:scale-105 transition-all duration-500 relative ${pIdx === index ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}
+                        key={testimonial._id || testimonial.id}
+                        className={`bg-white rounded-xl shadow-lg p-6 hover:scale-105 hover:shadow-xl transition-all duration-500 relative ${pIdx === index ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}
                         style={{ transitionDelay: `${idx * 80}ms` }}
                       >
                         {/* Quote Icon */}
@@ -178,16 +178,25 @@ const Testimonials = () => {
 
                         {/* Testimonial Text */}
                         <p className="text-gray-700 mb-6 leading-relaxed">
-                          "{testimonial.text}"
+                          "{testimonial.content || testimonial.text}"
                         </p>
 
                         {/* User Info */}
                         <div className="flex items-center">
-                          <img
-                            src={testimonial.avatar}
-                            alt={testimonial.name}
-                            className="w-12 h-12 rounded-full object-cover mr-4"
-                          />
+                          {testimonial.image || testimonial.avatar ? (
+                            <img
+                              src={testimonial.image || testimonial.avatar}
+                              alt={testimonial.name}
+                              className="w-12 h-12 rounded-full object-cover mr-4"
+                              onError={(e) => {
+                                e.target.style.display = 'none';
+                                e.target.nextSibling.style.display = 'flex';
+                              }}
+                            />
+                          ) : null}
+                          <div className={`w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-lg font-semibold mr-4 ${testimonial.image || testimonial.avatar ? 'hidden' : ''}`}>
+                            {testimonial.name.charAt(0).toUpperCase()}
+                          </div>
                           <div>
                             <h4 className="font-semibold text-gray-800">
                               {testimonial.name}
@@ -216,9 +225,9 @@ const Testimonials = () => {
               <button
                 aria-label="Previous testimonials"
                 onClick={() => setIndex(i => (i - 1 + pages.length) % pages.length)}
-                className="group inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-gray-200 shadow-lg hover:shadow-xl hover:bg-gray-50 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                className="group inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white shadow-lg hover:shadow-xl hover:bg-gray-50 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
               >
-                <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-50 text-blue-700 border border-blue-100">
+                <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-50 text-blue-700">
                   <FaChevronLeft />
                 </span>
                 <span className="text-sm font-semibold text-gray-800 hidden sm:inline">Prev</span>
@@ -237,10 +246,10 @@ const Testimonials = () => {
               <button
                 aria-label="Next testimonials"
                 onClick={() => setIndex(i => (i + 1) % pages.length)}
-                className="group inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-gray-200 shadow-lg hover:shadow-xl hover:bg-gray-50 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                className="group inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white shadow-lg hover:shadow-xl hover:bg-gray-50 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
               >
                 <span className="text-sm font-semibold text-gray-800 hidden sm:inline">Next</span>
-                <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-50 text-blue-700 border border-blue-100">
+                <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-50 text-blue-700">
                   <FaChevronRight />
                 </span>
               </button>
@@ -263,7 +272,7 @@ const Testimonials = () => {
               </Link>
               <Link 
                 to={user ? "/upload-property" : "/register"} 
-                className="border-2 border-gray-600 high-contrast-text px-8 py-3 rounded-xl font-semibold hover:bg-gray-600 hover:text-white transition-all duration-300 text-center"
+                className="bg-white high-contrast-text px-8 py-3 rounded-xl font-semibold hover:bg-gray-100 shadow-md hover:shadow-lg transition-all duration-300 text-center"
               >
                 {user ? "List Your Property" : "Sign Up to Host"}
               </Link>
