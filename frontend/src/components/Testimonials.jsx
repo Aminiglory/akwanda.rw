@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-const Testimonials = () => {
+export default function Testimonials() {
   const { user } = useAuth();
   const [index, setIndex] = useState(0);
   const timerRef = useRef(null);
@@ -232,6 +232,7 @@ const Testimonials = () => {
               )}
             </div>
           </div>
+        </div>
         {/* Call to Action */}
         <div className="text-center mt-12">
           <div className="chocolate-gradient rounded-2xl p-8 shadow-lg">
@@ -248,6 +249,4 @@ const Testimonials = () => {
       </div>
     </div>
   );
-};
-
-export default Testimonials;
+}
