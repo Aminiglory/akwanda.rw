@@ -35,6 +35,20 @@ function requireOwnerOrAdmin(getOwnerId) {
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
+// Check availability for a given date and tickets (simple acceptance for now)
+router.post('/:id/availability', async (req, res) => {
+  try {
+    const { visitDate, tickets } = req.body || {};
+    if (!visitDate) return res.status(400).json({ message: 'visitDate required' });
+    const a = await Attraction.findById(req.params.id).select('isActive');
+    if (!a || !a.isActive) return res.json({ available: false });
+    // For MVP: always available when active (capacity logic can be added later)
+    return res.json({ available: true });
+  } catch (e) {
+    return res.status(500).json({ message: 'Failed to check availability' });
+  }
+});
+
 // Public: list attractions (Rwanda by default)
 router.get('/', async (req, res) => {
   try {

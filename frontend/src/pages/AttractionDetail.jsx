@@ -4,6 +4,13 @@ import toast from 'react-hot-toast';
 import { FaMapMarkerAlt, FaCalendarAlt } from 'react-icons/fa';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const makeAbsolute = (u) => {
+  if (!u) return null;
+  let s = String(u).trim().replace(/\\+/g, '/');
+  if (/^https?:\/\//i.test(s)) return s;
+  if (!s.startsWith('/')) s = `/${s}`;
+  return `${API_URL}${s}`;
+};
 
 export default function AttractionDetail() {
   const { id } = useParams();
@@ -74,14 +81,18 @@ export default function AttractionDetail() {
         return;
       }
       toast.success('Booking created');
-      navigate('/user-dashboard');
+      if (item?.owner && data?.booking?._id) {
+        navigate(`/messages?to=${item.owner}&bookingId=${data.booking._id}`);
+      } else {
+        navigate('/user-dashboard');
+      }
     } catch (e) { toast.error(e.message); } finally { setBooking(false); }
   }
 
   if (loading) return <div className="max-w-6xl mx-auto px-4 py-6">Loading...</div>;
   if (!item) return <div className="max-w-6xl mx-auto px-4 py-6">Not found</div>;
 
-  const imgUrl = (u) => !u ? '' : (String(u).startsWith('http') ? u : `${API_URL}${u}`);
+  const imgUrl = (u) => makeAbsolute(u) || '';
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-6">
@@ -114,8 +125,8 @@ export default function AttractionDetail() {
 
         <div>
           <div className="bg-white rounded-lg shadow p-4">
-            {item.price && (
-              <div className="text-xl font-semibold">{typeof item.price==='string' ? item.price : `RWF ${item.price}`}</div>
+            {item.price != null && (
+              <div className="text-xl font-semibold">RWF {Number(item.price || 0).toLocaleString()}</div>
             )}
             <div className="grid grid-cols-1 gap-3 mt-3">
               <div>
@@ -142,6 +153,9 @@ export default function AttractionDetail() {
                 <button type="button" onClick={()=>setPaymentMethod('mtn_mobile_money')} className={`px-3 py-2 rounded border ${paymentMethod==='mtn_mobile_money' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-[#f6e9d8] text-[#4b2a00] border-[#d4c4b0] hover:bg-[#e8dcc8]'}`}>MTN Mobile Money</button>
               </div>
               <button onClick={createBooking} disabled={booking} className="px-4 py-2 bg-[#a06b42] hover:bg-[#8f5a32] text-white rounded">{booking?'Booking...':'Book now'}</button>
+              {item?.owner && (
+                <button type="button" onClick={() => navigate(`/messages?to=${item.owner}`)} className="px-4 py-2 bg-gray-100 text-gray-800 rounded border">Message host</button>
+              )}
             </div>
           </div>
         </div>

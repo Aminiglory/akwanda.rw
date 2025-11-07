@@ -22,6 +22,12 @@ export default function RatesAvailability() {
   const [dateRanges, setDateRanges] = useState({}); // Store date ranges per room
   const [availabilityStrategy, setAvailabilityStrategy] = useState({});
   const [seasonalRates, setSeasonalRates] = useState([]);
+  const [activeMonth, setActiveMonth] = useState(() => {
+    const d = new Date();
+    return new Date(d.getFullYear(), d.getMonth(), 1);
+  });
+  const [roomRanges, setRoomRanges] = useState({}); // { [roomId]: { start: 'YYYY-MM-DD', end: 'YYYY-MM-DD' } }
+  const [dayModal, setDayModal] = useState(null); // { roomId, date: 'YYYY-MM-DD', events: [] }
 
   useEffect(() => {
     fetchProperties();
@@ -49,6 +55,52 @@ export default function RatesAvailability() {
     } catch (e) {
       console.error('Failed to load property details:', e);
     }
+  };
+
+  const fmt = (d) => new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().slice(0,10);
+  const daysInMonth = (base) => {
+    const year = base.getFullYear();
+    const month = base.getMonth();
+    const first = new Date(year, month, 1);
+    const startWeekday = (first.getDay() + 6) % 7; // Mon=0
+    const days = new Date(year, month + 1, 0).getDate();
+    const cells = [];
+    for (let i=0;i<startWeekday;i++) cells.push(null);
+    for (let d=1; d<=days; d++) cells.push(new Date(year, month, d));
+    // pad to multiple of 7
+    while (cells.length % 7 !== 0) cells.push(null);
+    return cells;
+  };
+
+  const isClosed = (room, dateStr) => {
+    const closed = room.closedDates || [];
+    return closed.some(c => c === dateStr || (c.date && c.date.startsWith(dateStr)));
+  };
+
+  const onDayClick = (room, dayDate) => {
+    if (!dayDate) return;
+    const dateStr = fmt(dayDate);
+    // range selection: first click -> start, second -> end then open modal for actions
+    const cur = roomRanges[room._id] || {};
+    if (!cur.start || (cur.start && cur.end)) {
+      setRoomRanges(prev => ({ ...prev, [room._id]: { start: dateStr, end: '' } }));
+      setDateRanges(prev => ({ ...prev, [room._id]: { startDate: dateStr, endDate: '' } }));
+      setDayModal({ roomId: room._id, date: dateStr, events: [] });
+    } else if (!cur.end) {
+      const start = cur.start <= dateStr ? cur.start : dateStr;
+      const end = cur.start <= dateStr ? dateStr : cur.start;
+      setRoomRanges(prev => ({ ...prev, [room._id]: { start, end } }));
+      setDateRanges(prev => ({ ...prev, [room._id]: { startDate: start, endDate: end } }));
+      setDayModal({ roomId: room._id, date: start, events: [], rangeEnd: end });
+    }
+  };
+
+  const applyRangeAction = async (roomId, action) => {
+    const range = roomRanges[roomId];
+    if (!range?.start || !range?.end) { toast.error('Select start and end'); return; }
+    if (action === 'open') await handleOpenDates(roomId);
+    if (action === 'close') await handleCloseDates(roomId);
+    setDayModal(null);
   };
 
   const fetchProperties = async () => {
@@ -113,6 +165,9 @@ export default function RatesAvailability() {
       if (!res.ok) throw new Error('Failed to close dates');
       toast.success('Dates closed successfully');
       fetchPropertyDetails();
+      try {
+        window.dispatchEvent(new CustomEvent('calendar:updated', { detail: { propertyId: selectedProperty, roomId } }));
+      } catch (_) {}
     } catch (e) {
       toast.error(e.message);
     }
@@ -138,6 +193,9 @@ export default function RatesAvailability() {
       if (!res.ok) throw new Error('Failed to open dates');
       toast.success('Dates opened successfully');
       fetchPropertyDetails();
+      try {
+        window.dispatchEvent(new CustomEvent('calendar:updated', { detail: { propertyId: selectedProperty, roomId } }));
+      } catch (_) {}
     } catch (e) {
       toast.error(e.message);
     }
@@ -285,17 +343,95 @@ export default function RatesAvailability() {
             {loading ? (
               <div className="text-center py-8">Loading...</div>
             ) : (
-              <div className="space-y-4">
-                {calendarData.map((room, idx) => (
-                  <div key={idx} className="border rounded-lg p-4">
-                    <h3 className="font-semibold">{room.roomType}</h3>
-                    <p className="text-sm text-gray-600">Rate: RWF {room.rate?.toLocaleString()}/night</p>
-                    <p className="text-sm text-gray-600">Min Stay: {room.minStay} nights | Max Stay: {room.maxStay} nights</p>
-                    <p className="text-sm text-gray-600">Closed Dates: {room.closedDates?.length || 0}</p>
-                  </div>
-                ))}
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <button onClick={() => setActiveMonth(m => new Date(m.getFullYear(), m.getMonth()-1, 1))} className="px-3 py-1 border rounded text-sm">Prev</button>
+                  <div className="font-semibold">{activeMonth.toLocaleString(undefined, { month: 'long', year: 'numeric' })}</div>
+                  <button onClick={() => setActiveMonth(m => new Date(m.getFullYear(), m.getMonth()+1, 1))} className="px-3 py-1 border rounded text-sm">Next</button>
+                </div>
+                {calendarData.map((room, idx) => {
+                  const cells = daysInMonth(activeMonth);
+                  const sel = roomRanges[room._id] || {};
+                  return (
+                    <div key={idx} className="border rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="font-semibold">{room.roomType} <span className="text-sm text-gray-500">• RWF {room.rate?.toLocaleString()}/night</span></h3>
+                        <div className="text-xs text-gray-600">Min {room.minStay} • Max {room.maxStay} • Closed {room.closedDates?.length || 0}</div>
+                      </div>
+                      <div className="grid grid-cols-7 gap-1 text-xs text-gray-600 mb-1">
+                        {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d => <div key={d} className="text-center py-1">{d}</div>)}
+                      </div>
+                      <div className="grid grid-cols-7 gap-1">
+                        {cells.map((d, i) => {
+                          const dateStr = d ? fmt(d) : '';
+                          const closed = d && isClosed(room, dateStr);
+                          const inSel = d && sel.start && sel.end && dateStr >= sel.start && dateStr <= sel.end;
+                          return (
+                            <button
+                              key={i}
+                              disabled={!d}
+                              onClick={() => onDayClick(room, d)}
+                              className={`h-9 md:h-8 rounded border text-xs flex items-center justify-center ${!d ? 'bg-transparent border-transparent' : closed ? 'bg-red-50 border-red-200 text-red-700' : 'bg-white border-gray-200 hover:bg-gray-50'} ${inSel ? 'ring-2 ring-[#a06b42]' : ''}`}
+                            >
+                              {d ? d.getDate() : ''}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <div className="mt-2 flex items-center gap-2 text-xs">
+                        <span className="inline-flex items-center gap-1"><span className="w-3 h-3 inline-block bg-red-200 rounded border border-red-300"></span>Closed</span>
+                        <span className="inline-flex items-center gap-1"><span className="w-3 h-3 inline-block bg-[#e8dcc8] rounded border border-[#d4c4b0]"></span>Selected range</span>
+                        <div className="ml-auto flex gap-2">
+                          <button onClick={() => handleOpenDates(room._id)} className="px-2 py-1 bg-green-600 text-white rounded">Open</button>
+                          <button onClick={() => handleCloseDates(room._id)} className="px-2 py-1 bg-red-600 text-white rounded">Close</button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
+
+            {dayModal && (
+              <div className="fixed inset-0 bg-black/40 z-[9999] flex items-center justify-center" role="dialog" aria-modal="true">
+                <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="font-semibold">{new Date(dayModal.date).toLocaleDateString()}</div>
+                    <button onClick={() => setDayModal(null)} className="text-gray-600 hover:text-gray-900">Close</button>
+                  </div>
+                  <div className="text-sm text-gray-700 space-y-2">
+                    <div className="text-xs text-gray-500">Room: {calendarData.find(r => r._id === dayModal.roomId)?.roomType || ''}</div>
+                    {dayModal.events?.length ? (
+                      dayModal.events.map((ev, i) => <div key={i} className="p-2 rounded bg-gray-50 border">{ev.title}</div>)
+                    ) : (
+                      <div className="p-2 rounded bg-gray-50 border text-gray-600 text-xs">No specific activities recorded for this day.</div>
+                    )}
+                  </div>
+                  {roomRanges[dayModal.roomId]?.start && roomRanges[dayModal.roomId]?.end && (
+                    <div className="mt-3 grid grid-cols-2 gap-2">
+                      <button onClick={() => applyRangeAction(dayModal.roomId, 'open')} className="px-3 py-2 bg-green-600 text-white rounded">Open Selected</button>
+                      <button onClick={() => applyRangeAction(dayModal.roomId, 'close')} className="px-3 py-2 bg-red-600 text-white rounded">Close Selected</button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        );
+
+      case 'mobile-rates':
+        const [mobileDiscount, setMobileDiscount] = React.useState(Number(mobileRates?.discount || 10));
+        return (
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+              <FaMobileAlt /> Mobile Rates
+            </h2>
+            <p className="text-gray-600 mb-4">Offer a special discount for guests booking via mobile devices to boost conversions.</p>
+            <div className="max-w-md p-4 border rounded">
+              <label className="block text-sm font-medium mb-2">Mobile Discount (%)</label>
+              <input type="number" min="0" max="90" value={mobileDiscount} onChange={(e)=> setMobileDiscount(Number(e.target.value))} className="w-full px-3 py-2 border rounded" />
+              <button onClick={()=> handleSaveMobileRates(mobileDiscount)} className="mt-3 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Save</button>
+            </div>
           </div>
         );
 

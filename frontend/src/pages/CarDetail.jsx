@@ -4,6 +4,13 @@ import toast from 'react-hot-toast';
 import { FaMapMarkerAlt, FaCalendarAlt, FaHeart, FaClock } from 'react-icons/fa';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const makeAbsolute = (u) => {
+  if (!u) return null;
+  let s = String(u).trim().replace(/\\+/g, '/');
+  if (/^https?:\/\//i.test(s)) return s;
+  if (!s.startsWith('/')) s = `/${s}`;
+  return `${API_URL}${s}`;
+};
 
 export default function CarDetail() {
   const { id } = useParams();
@@ -129,7 +136,7 @@ export default function CarDetail() {
             <div className="col-span-3 h-64 bg-gray-100 rounded overflow-hidden">
               {car.images?.[0] && (
                 <div className="relative w-full h-full">
-                  <img src={`${API_URL}${car.images[0]}`} className="w-full h-full object-cover" />
+                  <img src={makeAbsolute(car.images[0])} className="w-full h-full object-cover" />
                   <button onClick={toggleFavorite} title="Add to favorites" className={`absolute top-3 right-3 p-2 rounded-full shadow ${favIds.includes(String(id)) ? 'bg-red-600 text-white' : 'bg-white text-red-600'}`}>
                     <FaHeart />
                   </button>
@@ -138,7 +145,7 @@ export default function CarDetail() {
             </div>
             {car.images?.slice(1, 7).map((img, i) => (
               <div key={i} className="h-28 bg-gray-100 rounded overflow-hidden">
-                <img src={`${API_URL}${img}`} className="w-full h-full object-cover" />
+                <img src={makeAbsolute(img)} className="w-full h-full object-cover" />
               </div>
             ))}
           </div>
@@ -164,7 +171,7 @@ export default function CarDetail() {
         {/* Booking card */}
         <div>
           <div className="bg-white rounded-lg shadow p-4">
-            <div className="text-xl font-semibold">{car.pricePerDay} {car.currency}/day</div>
+            <div className="text-xl font-semibold">RWF {Number(car.pricePerDay || 0).toLocaleString()} / day</div>
             <div className="grid grid-cols-1 gap-3 mt-3">
               <div>
                 <label className="text-sm text-gray-700">Pickup date</label>
@@ -241,7 +248,7 @@ export default function CarDetail() {
             {otherCars.map(c => (
               <a key={c._id} href={`/cars/${c._id}`} className="bg-white rounded-lg shadow p-3">
                 <div className="w-full h-28 bg-gray-100 rounded overflow-hidden">
-                  {c.images?.[0] ? <img src={`${API_URL}${c.images[0]}`} className="w-full h-full object-cover" /> : null}
+                  {c.images?.[0] ? <img src={makeAbsolute(c.images[0])} className="w-full h-full object-cover" /> : null}
                 </div>
                 <div className="mt-2 text-sm font-medium">{c.vehicleName}</div>
                 <div className="text-xs text-gray-600">{c.location} • {c.vehicleType}</div>

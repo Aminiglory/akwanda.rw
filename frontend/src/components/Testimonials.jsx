@@ -16,26 +16,42 @@ const Testimonials = () => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const makeAbsolute = (u) => {
+    if (!u) return '';
+    let s = String(u).trim();
+    if (/^https?:\/\//i.test(s)) return s;
+    if (!s.startsWith('/')) s = `/${s}`;
+    return `${API_URL}${s}`;
+  };
+
   useEffect(() => {
     let ignore = false;
     (async () => {
       try {
         setLoading(true);
         // First try to fetch real reviews
-        const reviewsRes = await fetch(`${API_URL}/api/reviews/landing?limit=12`);
+        const reviewsRes = await fetch(`${API_URL}/api/reviews/landing?limit=30`);
         if (reviewsRes.ok) {
           const reviewsData = await reviewsRes.json();
           if (reviewsData.reviews && reviewsData.reviews.length > 0) {
             // Map reviews to testimonial format
-            const mappedReviews = reviewsData.reviews.map(review => ({
+            const mappedReviewsRaw = reviewsData.reviews.map(review => ({
               _id: review._id,
               name: review.guest?.fullName || 'Anonymous',
               role: `Guest at ${review.property?.title || 'Property'}`,
               content: review.comment,
               rating: review.rating,
-              image: review.guest?.profilePicture || '',
+              image: makeAbsolute(review.guest?.profilePicture || ''),
               createdAt: review.createdAt
             }));
+            const mappedReviews = mappedReviewsRaw
+              .filter(r => (Number(r.rating) || 0) >= 4)
+              .sort((a, b) => {
+                const r = (b.rating || 0) - (a.rating || 0);
+                if (r !== 0) return r;
+                return new Date(b.createdAt) - new Date(a.createdAt);
+              })
+              .slice(0, 12);
             if (!ignore) {
               setItems(mappedReviews);
               setLoading(false);
@@ -63,7 +79,8 @@ const Testimonials = () => {
             avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face',
             location: ''
           }));
-          setItems(normalized);
+          const top = normalized.filter(r => r.rating >= 4).slice(0, 12);
+          setItems(top);
         }
       } catch (_) {
         setItems([]);
@@ -166,8 +183,11 @@ const Testimonials = () => {
                         className={`bg-white rounded-xl shadow-lg p-6 hover:scale-105 hover:shadow-xl transition-all duration-500 relative ${pIdx === index ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}
                         style={{ transitionDelay: `${idx * 80}ms` }}
                       >
-                        {/* Quote Icon */}
-                        <div className="absolute top-4 right-4 text-blue-200">
+                        <div className="absolute inset-0 -z-10">
+                          <div className="absolute inset-0 translate-x-2 translate-y-2 rounded-xl bg-[#f3ede6]"></div>
+                          <div className="absolute inset-0 translate-x-4 translate-y-4 rounded-xl bg-[#e9dfd5]"></div>
+                        </div>
+                        <div className="absolute top-4 right-4 text-[#a06b42]/30">
                           <FaQuoteLeft className="text-2xl" />
                         </div>
 
@@ -198,16 +218,10 @@ const Testimonials = () => {
                             {testimonial.name.charAt(0).toUpperCase()}
                           </div>
                           <div>
-                            <h4 className="font-semibold text-gray-800">
-                              {testimonial.name}
-                            </h4>
-                            <p className="text-sm text-gray-600">
-                              {testimonial.role}
-                            </p>
+                            <h4 className="font-semibold text-gray-800">{testimonial.name}</h4>
+                            <p className="text-sm text-gray-600">{testimonial.role}</p>
                             {testimonial.location && (
-                              <p className="text-sm text-blue-600">
-                                📍 {testimonial.location}
-                              </p>
+                              <p className="text-sm text-[#a06b42]">📍 {testimonial.location}</p>
                             )}
                           </div>
                         </div>
@@ -218,62 +232,14 @@ const Testimonials = () => {
               )}
             </div>
           </div>
-
-          {/* Controls */}
-          {items.length > 3 && (
-            <div className="flex items-center justify-between mt-6">
-              <button
-                aria-label="Previous testimonials"
-                onClick={() => setIndex(i => (i - 1 + pages.length) % pages.length)}
-                className="group inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white shadow-lg hover:shadow-xl hover:bg-gray-50 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-              >
-                <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-50 text-blue-700">
-                  <FaChevronLeft />
-                </span>
-                <span className="text-sm font-semibold text-gray-800 hidden sm:inline">Prev</span>
-              </button>
-              <div className="flex items-center gap-3">
-                {pages.map((_, i) => (
-                  <button
-                    key={i}
-                    aria-label={`Go to testimonials page ${i + 1}`}
-                    aria-pressed={i === index}
-                    onClick={() => setIndex(i)}
-                    className={`rounded-full transition-all ${i === index ? 'bg-blue-600' : 'bg-gray-300'} w-3 h-3 md:w-2.5 md:h-2.5`}
-                  />
-                ))}
-              </div>
-              <button
-                aria-label="Next testimonials"
-                onClick={() => setIndex(i => (i + 1) % pages.length)}
-                className="group inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white shadow-lg hover:shadow-xl hover:bg-gray-50 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-              >
-                <span className="text-sm font-semibold text-gray-800 hidden sm:inline">Next</span>
-                <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-50 text-blue-700">
-                  <FaChevronRight />
-                </span>
-              </button>
-            </div>
-          )}
-        </div>
-
         {/* Call to Action */}
         <div className="text-center mt-12">
           <div className="chocolate-gradient rounded-2xl p-8 shadow-lg">
-            <h3 className="text-2xl font-bold mb-4 high-contrast-text">
-              Ready to Join Our Community?
-            </h3>
-            <p className="medium-contrast-text mb-6 text-base">
-              Whether you're looking for a place to stay or want to earn from your space, AKWANDA.rw is here for you.
-            </p>
+            <h3 className="text-2xl font-bold mb-4 high-contrast-text">Ready to Join Our Community?</h3>
+            <p className="medium-contrast-text mb-6 text-base">Whether you're looking for a place to stay or want to earn from your space, AKWANDA.rw is here for you.</p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link to="/apartments" className="modern-btn text-center">
-                Find an Apartment
-              </Link>
-              <Link 
-                to={user ? "/upload-property" : "/register"} 
-                className="bg-white high-contrast-text px-8 py-3 rounded-xl font-semibold hover:bg-gray-100 shadow-md hover:shadow-lg transition-all duration-300 text-center"
-              >
+              <Link to="/apartments" className="modern-btn text-center">Find an Apartment</Link>
+              <Link to={user ? "/upload-property" : "/register"} className="bg-white high-contrast-text px-8 py-3 rounded-xl font-semibold hover:bg-gray-100 shadow-md hover:shadow-lg transition-all duration-300 text-center">
                 {user ? "List Your Property" : "Sign Up to Host"}
               </Link>
             </div>

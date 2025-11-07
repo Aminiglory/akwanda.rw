@@ -77,13 +77,18 @@ const OwnerLogin = () => {
                   type="email"
                   autoComplete="email"
                   required
-                  className="peer block w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-gray-900 placeholder-transparent focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                  className="peer block w-full rounded-lg border border-gray-300 bg-white pl-3 pr-10 py-2.5 text-gray-900 placeholder-transparent focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-100"
                   placeholder="Email address"
                   value={formData.email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
                   aria-label="Email address"
                 />
-                <span className="pointer-events-none absolute left-3 top-2.5 text-gray-500 text-sm transition-all peer-placeholder-shown:top-2.5 peer-placeholder-shown:text-sm peer-focus:-top-2 peer-focus:text-xs peer-focus:text-blue-700 bg-white px-1">Email address</span>
+                <span className="pointer-events-none absolute left-3 top-2.5 text-gray-500 text-sm transition-all bg-white px-1
+                  peer-placeholder-shown:top-2.5 peer-placeholder-shown:text-sm
+                  peer-focus:-top-2 peer-focus:text-xs peer-focus:text-blue-700
+                  peer-[:not(:placeholder-shown)]:-top-2 peer-[:not(:placeholder-shown)]:text-xs">
+                  Email address
+                </span>
                 <FaEnvelope className="absolute right-3 top-3.5 text-gray-400" />
               </div>
 
@@ -95,13 +100,18 @@ const OwnerLogin = () => {
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="current-password"
                   required
-                  className="peer block w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-gray-900 placeholder-transparent focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                  className="peer block w-full rounded-lg border border-gray-300 bg-white pl-3 pr-16 py-2.5 text-gray-900 placeholder-transparent focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-100"
                   placeholder="Password"
                   value={formData.password}
                   onChange={(e) => handleInputChange('password', e.target.value)}
                   aria-label="Password"
                 />
-                <span className="pointer-events-none absolute left-3 top-2.5 text-gray-500 text-sm transition-all peer-placeholder-shown:top-2.5 peer-placeholder-shown:text-sm peer-focus:-top-2 peer-focus:text-xs peer-focus:text-blue-700 bg-white px-1">Password</span>
+                <span className="pointer-events-none absolute left-3 top-2.5 text-gray-500 text-sm transition-all bg-white px-1
+                  peer-placeholder-shown:top-2.5 peer-placeholder-shown:text-sm
+                  peer-focus:-top-2 peer-focus:text-xs peer-focus:text-blue-700
+                  peer-[:not(:placeholder-shown)]:-top-2 peer-[:not(:placeholder-shown)]:text-xs">
+                  Password
+                </span>
                 {showPassword ? (
                   <FaEyeSlash className="absolute right-3 top-3.5 text-gray-400 cursor-pointer" onClick={() => setShowPassword(false)} />
                 ) : (

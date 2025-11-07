@@ -219,7 +219,7 @@ const Hero = () => {
           <div className="absolute inset-0 bg-gradient-to-br from-gray-200 via-gray-100 to-white animate-pulse" />
         )}
         {/* Dark overlay for readability */}
-        {slides.length > 0 && <div className="absolute inset-0 bg-black/40"></div>}
+        {slides.length > 0 && <div className="absolute inset-0 bg-[#4b2a00]/40"></div>}
       </div>
 
       {/* Overlay content */}

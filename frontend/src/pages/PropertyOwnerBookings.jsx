@@ -945,6 +945,7 @@ const PropertyOwnerBookings = () => {
         { label: 'Invoices', href: '/dashboard?tab=finance&view=invoices' },
         { label: 'Reservations statement', href: '/dashboard?tab=finance&view=statement' },
         { label: 'Financial overview', href: '/dashboard?tab=finance&view=overview' },
+        { label: 'Transactions', href: '/transactions' },
         { label: 'Finance settings', href: '/settings?tab=finance' },
       ]
     },
@@ -1197,7 +1198,7 @@ const PropertyOwnerBookings = () => {
             >
               <option value="all">All Properties</option>
               {properties.map(prop => (
-                <option key={prop._id} value={prop._id}>{prop.name}</option>
+                <option key={prop._id} value={prop._id}>{prop.title || prop.name || `Property ${prop._id?.slice(-4)}`}</option>
               ))}
             </select>
             <select

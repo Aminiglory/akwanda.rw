@@ -49,7 +49,13 @@ const PropertyCard = ({
           {status === 'active' && (
             <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-orange-500 text-white shadow">Hot</span>
           )}
-          <button type="button" className="absolute top-3 right-3 w-9 h-9 rounded-full bg-white/90 hover:bg-white text-gray-600 hover:text-red-500 flex items-center justify-center shadow" aria-label="Wishlist">
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation?.(); onToggleWishlist && onToggleWishlist(); }}
+            className={`absolute top-3 right-3 w-9 h-9 rounded-full bg-white/90 hover:bg-white flex items-center justify-center shadow ${listing?.wishlisted || wishlisted ? 'text-red-500' : 'text-gray-600 hover:text-red-500'}`}
+            aria-label="Wishlist"
+            aria-pressed={!!(listing?.wishlisted || wishlisted)}
+          >
             <FaHeart />
           </button>
         </div>
