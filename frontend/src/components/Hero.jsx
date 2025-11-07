@@ -3,17 +3,18 @@ import { FaBuilding, FaSmile, FaThumbsUp } from 'react-icons/fa';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-// Helper function to construct absolute image URLs
+// Helper function to construct absolute image URLs (robust against various stored formats)
 const makeAbsoluteUrl = (imagePath) => {
   if (!imagePath) return null;
-  const path = String(imagePath).replace(/\\/g, '/');
-  if (path.startsWith('http://') || path.startsWith('https://')) {
-    return path;
-  }
-  if (path.startsWith('/')) {
-    return `${API_URL}${path}`;
-  }
-  return `${API_URL}/${path}`;
+  let path = String(imagePath).trim().replace(/\\/g, '/');
+  // Normalize accidental double slashes (but keep protocol double slash)
+  path = path.replace(/^\/+/, '/');
+  if (/^https?:\/\//i.test(path)) return path;
+  // If path already begins with the API host, return as-is
+  if (API_URL && path.startsWith(API_URL)) return path;
+  // Ensure leading slash for server-served assets
+  if (!path.startsWith('/')) path = `/${path}`;
+  return `${API_URL}${path}`;
 };
 
 const Hero = () => {
@@ -91,25 +92,20 @@ const Hero = () => {
             published: c.published
           });
           
-          const fromSlides = Array.isArray(c.heroSlides) && c.heroSlides.length > 0
+          const fromSlides = (Array.isArray(c.heroSlides) && c.heroSlides.length > 0
             ? c.heroSlides.map(s => {
-                const absoluteUrl = makeAbsoluteUrl(s.image);
-                console.log('Processing slide:', s.image, '→', absoluteUrl);
-                return { 
-                  image: absoluteUrl, 
-                  caption: s.caption || '' 
-                };
+                const absoluteUrl = makeAbsoluteUrl(s?.image);
+                console.log('Processing slide:', s?.image, '→', absoluteUrl);
+                return absoluteUrl ? { image: absoluteUrl, caption: s?.caption || '' } : null;
               })
             : (Array.isArray(c.heroImages) && c.heroImages.length > 0
                 ? c.heroImages.map(imgPath => {
                     const absoluteUrl = makeAbsoluteUrl(imgPath);
                     console.log('Processing image:', imgPath, '→', absoluteUrl);
-                    return { 
-                      image: absoluteUrl, 
-                      caption: '' 
-                    };
-                  }) 
-                : []);
+                    return absoluteUrl ? { image: absoluteUrl, caption: '' } : null;
+                  })
+                : [])
+          ).filter(Boolean);
           
           console.log('Final processed slides:', fromSlides);
           setSlides(fromSlides);
@@ -206,7 +202,12 @@ const Hero = () => {
                 src={url}
                 alt={s.caption || `Slide ${i+1}`}
                 className={`absolute inset-0 w-full h-full object-cover object-center ${transition === 'fade' ? 'transition-opacity duration-700' : 'transition-transform duration-700'} ${active ? (transition === 'fade' ? 'opacity-100' : 'translate-x-0') : (transition === 'fade' ? 'opacity-0' : 'translate-x-full')}`}
+                width={1920}
+                height={1080}
+                sizes="100vw"
                 loading={i === 0 ? 'eager' : 'lazy'}
+                decoding={i === 0 ? 'sync' : 'async'}
+                fetchpriority={i === 0 ? 'high' : 'auto'}
                 onError={(e) => {
                   console.error('Failed to load hero image:', url);
                   e.target.style.display = 'none'; // Hide broken image
