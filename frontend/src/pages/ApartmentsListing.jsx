@@ -15,7 +15,7 @@ import toast from "react-hot-toast";
 import { useAuth } from "../contexts/AuthContext";
 import { safeApiGet, apiGet } from "../utils/apiUtils";
 import PropertyDealBadge from "../components/PropertyDealBadge";
-import AkwandaCard from "../components/AkwandaCard";
+import PropertyCard from "../components/PropertyCard";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -132,7 +132,7 @@ const ApartmentsListing = () => {
             ? p.amenities
             : ["WiFi", "Parking", "Kitchen"],
         isAvailable: p.isActive && (!p.rooms || p.rooms.length === 0 || p.rooms.some(room => room.isAvailable !== false)),
-        host: p.host ? `${p.host.firstName} ${p.host.lastName}` : "—",
+        host: p.host ? `${p.host.firstName || ''} ${p.host.lastName || ''}`.trim() : "—",
         hostId: p.host?._id || p.host?.id || null,
       });
       });
@@ -634,20 +634,21 @@ const ApartmentsListing = () => {
                               <PropertyDealBadge deal={apartment.bestDeal} size="sm" />
                             </div>
                           )}
-                          <AkwandaCard
-                            id={apartment.id}
-                            title={apartment.title}
-                            location={apartment.location}
-                            images={apartment.images && apartment.images.length ? apartment.images : [apartment.image]}
-                            pricePerNight={apartment.pricePerNight || apartment.price}
-                            category={apartment.category}
-                            rating={Number(apartment.rating) || 0}
-                            reviews={apartment.reviews}
-                            amenities={apartment.amenities}
-                            host={apartment.host}
-                            ownerId={apartment.hostId}
-                            isAvailable={apartment.isAvailable}
-                            href={apartment.href || `/apartment/${apartment.id}`}
+                          <PropertyCard
+                            listing={{
+                              id: apartment.id,
+                              title: apartment.title,
+                              location: apartment.location,
+                              image: (apartment.images && apartment.images.length ? apartment.images[0] : apartment.image),
+                              price: apartment.pricePerNight || apartment.price,
+                              bedrooms: apartment.bedrooms,
+                              bathrooms: apartment.bathrooms,
+                              area: apartment.size,
+                              status: apartment.isAvailable ? 'active' : 'inactive',
+                              bookings: apartment.reviews,
+                              host: apartment.host
+                            }}
+                            onView={() => (window.location.href = apartment.href || `/apartment/${apartment.id}`)}
                           />
                         </div>
                       ))}

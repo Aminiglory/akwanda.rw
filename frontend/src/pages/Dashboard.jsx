@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
 
-import { FaBed, FaMapMarkerAlt, FaCheckCircle, FaCalendarAlt, FaStar, FaHeart, FaEdit, FaTrash, FaPlus, FaFilter, FaSearch } from 'react-icons/fa';
+import { FaBed, FaMapMarkerAlt, FaCheckCircle, FaCalendarAlt, FaStar, FaHeart, FaEdit, FaTrash, FaPlus, FaFilter, FaSearch, FaBath, FaRulerCombined } from 'react-icons/fa';
+import PropertyCard from '../components/PropertyCard';
+
 import { useAuth } from '../contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 // ReadMore component for notification messages
 function ReadMore({ text, maxLength }) {
@@ -20,15 +23,14 @@ function ReadMore({ text, maxLength }) {
     </div>
   );
 }
+
 // Interactive star rating form for booking rating
 function StarRatingForm({ booking, setBookings, bookings }) {
   const [starRating, setStarRating] = useState(0);
   const [comment, setComment] = useState("");
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      // Send rating and comment, and notify apartment owner
       const res = await fetch(`${API_URL}/api/bookings/${booking.id}/rate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -46,11 +48,7 @@ function StarRatingForm({ booking, setBookings, bookings }) {
     <form onSubmit={handleSubmit} className="flex items-center space-x-2">
       <span className="flex items-center">
         {[1, 2, 3, 4, 5].map(n => (
-          <span
-            key={n}
-            style={{ cursor: 'pointer' }}
-            onClick={() => setStarRating(n)}
-          >
+          <span key={n} style={{ cursor: 'pointer' }} onClick={() => setStarRating(n)}>
             <FaStar className={(starRating >= n ? 'text-yellow-400' : 'text-gray-300') + ' text-xl'} />
           </span>
         ))}
@@ -60,8 +58,6 @@ function StarRatingForm({ booking, setBookings, bookings }) {
     </form>
   );
 }
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const Dashboard = () => {
   const [notifications, setNotifications] = useState([]);
@@ -166,7 +162,7 @@ const Dashboard = () => {
           title: p.title,
           location: `${p.address}, ${p.city}`,
           price: p.pricePerNight,
-          image: (p.images && p.images.length ? makeAbsolute(p.images[0]) : 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=300&h=200&fit=crop'),
+          image: (Array.isArray(p.images) && p.images.length ? makeAbsolute(p.images[0]) : null),
           status: p.isActive ? 'active' : 'inactive',
           bookings: 0,
           rating: null
@@ -612,64 +608,22 @@ const Dashboard = () => {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {listings.map((listing) => (
-                      <div key={listing.id} className="neu-card-sm overflow-hidden transition-all">
-                        <img
-                          loading="lazy"
-                          src={listing.image}
-                          alt={listing.title}
-                          className="w-full h-48 object-cover"
-                          onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=300&h=200&fit=crop'; }}
-                        />
-                        <div className="p-4">
-                          <div className="flex items-start justify-between mb-2">
-                            <h4 className="font-semibold text-gray-900">{listing.title}</h4>
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(listing.status)}`}>
-                              {listing.status}
-                            </span>
-                          </div>
-                          <div className="flex items-center text-gray-600 mb-2">
-                            <FaMapMarkerAlt className="mr-1" />
-                            <span className="text-sm">{listing.location}</span>
-                          </div>
-                          <div className="flex items-center justify-between mb-4">
-                            <span className="text-lg font-bold text-blue-600">RWF {listing.price.toLocaleString()}/night</span>
-                            <div className="flex items-center">
-                              {/* Show real average rating for property */}
-                              {listing.ratings && listing.ratings.length > 0 ? (
-                                <>
-                                  {renderStars(Math.round(listing.ratings.reduce((sum, r) => sum + r.rating, 0) / listing.ratings.length))}
-                                  <span className="ml-1 text-sm text-gray-600">{(listing.ratings.reduce((sum, r) => sum + r.rating, 0) / listing.ratings.length).toFixed(1)}</span>
-                                </>
-                              ) : (
-                                <span className="text-gray-400">No ratings</span>
-                              )}
-                            </div>
-                          </div>
-                          <div className="flex items-center justify-between text-sm text-gray-600 mb-4">
-                            <span>{listing.bookings} bookings</span>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <button className="flex-1 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
-                              View Details
-                            </button>
-                            <Link to={`/upload?edit=${listing.id}`} className="p-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
-                              <FaEdit />
-                            </Link>
-                            <button onClick={async () => {
-                              if (!window.confirm('Are you sure you want to delete this listing? This cannot be undone.')) return;
-                              try {
-                                const res = await fetch(`${API_URL}/api/properties/${listing.id}`, { method: 'DELETE', credentials: 'include' });
-                                const data = await res.json();
-                                if (!res.ok) throw new Error(data.message || 'Failed to delete');
-                                toast.success('Listing deleted');
-                                setListings(listings.filter(x => x.id !== listing.id));
-                              } catch (e) { toast.error(e.message); }
-                            }} className="p-2 border border-gray-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors">
-                              <FaTrash />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
+                      <PropertyCard
+                        key={listing.id}
+                        listing={listing}
+                        onView={() => {}}
+                        onEditHref={`/upload?edit=${listing.id}`}
+                        onDelete={async () => {
+                          if (!window.confirm('Are you sure you want to delete this listing? This cannot be undone.')) return;
+                          try {
+                            const res = await fetch(`${API_URL}/api/properties/${listing.id}`, { method: 'DELETE', credentials: 'include' });
+                            const data = await res.json();
+                            if (!res.ok) throw new Error(data.message || 'Failed to delete');
+                            toast.success('Listing deleted');
+                            setListings(listings.filter(x => x.id !== listing.id));
+                          } catch (e) { toast.error(e.message); }
+                        }}
+                      />
                     ))}
                   </div>
                 </div>

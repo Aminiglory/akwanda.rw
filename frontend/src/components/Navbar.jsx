@@ -75,6 +75,8 @@ const Navbar = () => {
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
   const dropdownButtonRefs = useRef({});
   const [expandedMobileItems, setExpandedMobileItems] = useState({});
+  const [commissionDue, setCommissionDue] = useState(0);
+  const [payingCommission, setPayingCommission] = useState(false);
 
   const makeAbsolute = (u) => {
     if (!u) return u;
@@ -519,6 +521,42 @@ const Navbar = () => {
     return () => clearInterval(interval);
   }, [isAuthenticated, user?.userType]);
 
+  // Load unpaid commission amount when user is blocked
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        if (!isAuthenticated || !user?.isBlocked) return;
+        const res = await fetch(`${API_URL}/api/billing/commission-due`, { credentials: 'include' });
+        if (!res.ok) return;
+        const data = await res.json().catch(() => ({}));
+        if (!cancelled) setCommissionDue(Number(data?.amountDue || 0));
+      } catch (_) {}
+    })();
+    return () => { cancelled = true; };
+  }, [isAuthenticated, user?.isBlocked]);
+
+  const handlePayCommission = async () => {
+    try {
+      setPayingCommission(true);
+      const res = await fetch(`${API_URL}/api/billing/pay-commission`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: commissionDue })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.message || 'Payment failed');
+      toast.success('Commission paid. Your account is reactivated.');
+      // Reload to refresh auth state and remove banner
+      window.location.reload();
+    } catch (e) {
+      toast.error(e.message || 'Could not process payment');
+    } finally {
+      setPayingCommission(false);
+    }
+  };
+
   // Refresh counts/stats when opening the profile dropdown to ensure fresh DB values
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -792,14 +830,27 @@ const Navbar = () => {
 
       {/* Blocked account banner */}
       {isAuthenticated && user?.isBlocked && (
-        <div className="w-full bg-yellow-50 text-yellow-800 px-4 py-3 text-sm border-b border-yellow-200" role="region" aria-live="polite">
-          <div className="max-w-7xl mx-auto grid gap-2 sm:gap-3 sm:flex sm:flex-row sm:items-center sm:justify-between">
-            <div className="font-medium leading-relaxed">
-              Your account is temporarily deactivated due to outstanding dues. Some features are restricted.
+        <div className="w-full bg-[#f5f0e8] text-[#4b2a00] px-4 py-3 border-b border-[#e1d5c3]" role="region" aria-live="polite">
+          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div className="flex-1">
+              <div className="font-semibold">Account deactivated</div>
+              <div className="text-sm opacity-90">Please clear outstanding commission to restore full access.</div>
             </div>
-            <div className="flex flex-col sm:flex-row w-full sm:w-auto gap-2">
-              <Link to="/billing/pay-commission" className="inline-flex justify-center px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 w-full sm:w-auto">Pay commission</Link>
-              <Link to="/notifications" className="inline-flex justify-center px-3 py-2 bg-white text-yellow-800 border border-yellow-300 rounded-md hover:bg-yellow-100 w-full sm:w-auto">View notice</Link>
+            <div className="flex items-center gap-2">
+              <div className="text-sm px-3 py-1 rounded-full bg-white/70 border border-[#e1d5c3]">
+                Due: <span className="font-bold">RWF {Number(commissionDue || 0).toLocaleString()}</span>
+              </div>
+              <button
+                type="button"
+                onClick={handlePayCommission}
+                disabled={payingCommission}
+                className={`inline-flex items-center justify-center px-3 py-2 rounded-md text-white shadow-sm transition-colors ${payingCommission ? 'bg-[#b58a66] opacity-80' : 'bg-[#a06b42] hover:bg-[#8f5a32]'}`}
+              >
+                {payingCommission ? 'Processing…' : 'Pay commission'}
+              </button>
+              <Link to="/notifications" className="hidden sm:inline-flex justify-center px-3 py-2 rounded-md border border-[#e1d5c3] text-[#4b2a00] hover:bg-white">
+                View notice
+              </Link>
             </div>
           </div>
         </div>

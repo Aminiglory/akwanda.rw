@@ -216,12 +216,7 @@ const Hero = () => {
             );
           })
         ) : (
-          <div className="absolute inset-0 bg-gradient-to-br from-[#8F633E] to-[#4B2E05] flex items-center justify-center">
-            <div className="text-center px-4">
-              <p className="text-white text-xl mb-2">No hero images configured</p>
-              <p className="text-white/70 text-sm">Admin: Upload and publish hero images in the Landing Page Content section</p>
-            </div>
-          </div>
+          <div className="absolute inset-0 bg-gradient-to-br from-gray-200 via-gray-100 to-white animate-pulse" />
         )}
         {/* Dark overlay for readability */}
         {slides.length > 0 && <div className="absolute inset-0 bg-black/40"></div>}
