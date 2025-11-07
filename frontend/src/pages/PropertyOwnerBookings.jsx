@@ -1055,37 +1055,6 @@ const PropertyOwnerBookings = () => {
           </button>
         </div>
 
-        {/* Tab Navigation - Only unique tabs not in navbar */}
-        <div className="mb-6">
-          <div className="shadow-sm pb-1">
-            <nav className="-mb-px flex space-x-4 sm:space-x-8 overflow-x-auto scrollbar-hide">
-              {[
-                { id: 'dashboard', label: 'Home', icon: FaHome },
-                { id: 'reservations', label: 'Reservations', icon: FaCalendarAlt },
-                { id: 'reviews', label: 'Reviews', icon: FaStar },
-                { id: 'messages', label: 'Messages', icon: FaComments },
-                { id: 'photos', label: 'Photos', icon: FaImages },
-                { id: 'settings', label: 'Settings', icon: FaCog }
-              ].map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`group inline-flex items-center py-3 sm:py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
-                    activeTab === tab.id
-                      ? 'border-[#a06b42] text-[#a06b42]'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
-                >
-                  <tab.icon className={`mr-2 text-sm ${
-                    activeTab === tab.id ? 'text-[#a06b42]' : 'text-gray-400 group-hover:text-gray-500'
-                  }`} />
-                  {tab.label}
-                </button>
-              ))}
-            </nav>
-          </div>
-        </div>
-
         {/* Tab Content */}
         {activeTab === 'dashboard' && (
           <div className="space-y-8">
