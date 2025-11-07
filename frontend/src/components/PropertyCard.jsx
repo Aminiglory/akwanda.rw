@@ -21,7 +21,8 @@ const PropertyCard = ({
   listing,
   onDelete,
   onView,
-  onEditHref
+  onEditHref,
+  onToggleWishlist
 }) => {
   const {
     title,
@@ -34,6 +35,8 @@ const PropertyCard = ({
     bathrooms,
     area
   } = listing || {};
+
+  const isWishlisted = !!(listing && listing.wishlisted);
 
   return (
     <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all border border-gray-100 overflow-hidden">
@@ -52,9 +55,9 @@ const PropertyCard = ({
           <button
             type="button"
             onClick={(e) => { e.stopPropagation?.(); onToggleWishlist && onToggleWishlist(); }}
-            className={`absolute top-3 right-3 w-9 h-9 rounded-full bg-white/90 hover:bg-white flex items-center justify-center shadow ${listing?.wishlisted || wishlisted ? 'text-red-500' : 'text-gray-600 hover:text-red-500'}`}
+            className={`absolute top-3 right-3 w-9 h-9 rounded-full bg-white/90 hover:bg-white flex items-center justify-center shadow ${isWishlisted ? 'text-red-500' : 'text-gray-600 hover:text-red-500'}`}
             aria-label="Wishlist"
-            aria-pressed={!!(listing?.wishlisted || wishlisted)}
+            aria-pressed={isWishlisted}
           >
             <FaHeart />
           </button>
