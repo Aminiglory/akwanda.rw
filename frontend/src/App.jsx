@@ -140,7 +140,7 @@ function App() {
             <Route path="/payment-success" element={<PaymentSuccess />} />
             <Route path="/billing/pay-commission" element={<ProtectedRoute><PayCommission /></ProtectedRoute>} />
             <Route path="/edit-property/:id" element={<ProtectedRoute><EditProperty /></ProtectedRoute>} />
-            <Route path="/booking/:id" element={<BookingProcess />} />
+            <Route path="/booking/:id" element={<ProtectedRoute><BookingProcess /></ProtectedRoute>} />
             <Route path="/booking-confirmation/:id" element={<BookingConfirmation />} />
             <Route path="/login" element={<Login />} />
             <Route path="/owner-login" element={<OwnerLogin />} />

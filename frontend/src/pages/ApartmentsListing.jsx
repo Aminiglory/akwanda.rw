@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Link, Navigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import {
   FaBed,
   FaBath,
@@ -12,7 +12,7 @@ import {
   FaSortAmountDown,
 } from "react-icons/fa";
 import toast from "react-hot-toast";
-import { useAuth } from "../contexts/AuthContext";
+// Auth not required to view listings
 import { safeApiGet, apiGet } from "../utils/apiUtils";
 import PropertyDealBadge from "../components/PropertyDealBadge";
 import PropertyCard from "../components/PropertyCard";
@@ -20,7 +20,7 @@ import PropertyCard from "../components/PropertyCard";
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 const ApartmentsListing = () => {
-  const { isAuthenticated, isLoading } = useAuth();
+  // Viewing listings is public; booking will require login on the booking flow
   const [filters, setFilters] = useState({
     location: "",
     priceMin: 0,
@@ -275,8 +275,7 @@ const ApartmentsListing = () => {
     ));
   };
 
-  if (isLoading) return null;
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  // Do not gate this page by authentication; allow guest browsing
 
   return (
     <div className="min-h-screen bg-gray-50">
