@@ -144,10 +144,21 @@ export default function AdminLanding() {
         body: (how.subtitle || '') + (how.hostsTagline ? `\n${how.hostsTagline}` : ''),
         images: hostImages
       };
-      // Pass through other sections only if they already match schema {key,title,body,images}
+      // Pass through sections that match schema; provide defaults for known keys
       const otherSections = (Array.isArray(content.sections) ? content.sections : [])
-        .filter(s => s && s.key && s.title)
-        .map(s => ({ key: s.key, title: s.title, body: s.body || '', images: Array.isArray(s.images) ? s.images : [] }));
+        .filter(s => s && s.key)
+        .map(s => {
+          const key = s.key;
+          const title = s.title || (key === 'ourMission' ? 'Our Mission' : key === 'landingAttractions' ? 'Top Attractions' : '');
+          if (!title) return null; // keep backend schema happy (title is required)
+          return {
+            key,
+            title,
+            body: s.body || '',
+            images: Array.isArray(s.images) ? s.images : []
+          };
+        })
+        .filter(Boolean);
       const sanitizedSections = [howGuestSection, howHostSection, ...otherSections];
       const payload = {
         heroTitle: content.heroTitle || '',
