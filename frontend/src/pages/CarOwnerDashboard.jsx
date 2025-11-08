@@ -28,6 +28,7 @@ export default function CarOwnerDashboard() {
   const [form, setForm] = useState(emptyCar);
   const [uploadingId, setUploadingId] = useState(null);
   const [viewMode, setViewMode] = useState('cards'); // 'cards' | 'table'
+  const [createImages, setCreateImages] = useState([]);
 
   async function loadData() {
     try {
@@ -86,6 +87,7 @@ export default function CarOwnerDashboard() {
     e.preventDefault();
     try {
       if (user?.isBlocked) { toast.error('Your account is deactivated. Creating cars is disabled.'); return; }
+      if (!createImages || createImages.length === 0) { toast.error('Please add at least one image'); return; }
       setSaving(true);
       const res = await fetch(`${API_URL}/api/cars`, {
         method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form)
@@ -94,7 +96,9 @@ export default function CarOwnerDashboard() {
       if (!res.ok) throw new Error(data.message || 'Failed to create');
       setCars(c => [data.car, ...c]);
       toast.success('Car created');
+      await uploadImages(data.car._id, createImages);
       resetForm();
+      setCreateImages([]);
     } catch (e) { toast.error(e.message); } finally { setSaving(false); }
   }
 
@@ -180,6 +184,9 @@ export default function CarOwnerDashboard() {
         <div className="flex items-center gap-2">
           <label className="text-sm">Available</label>
           <input type="checkbox" checked={!!form.isAvailable} onChange={e => setForm({ ...form, isAvailable: !!e.target.checked })} />
+        </div>
+        <div className="md:col-span-3">
+          <input type="file" multiple accept="image/*" onChange={e => setCreateImages(Array.from(e.target.files || []))} className="w-full px-3 py-2 border rounded" />
         </div>
         <div className="md:col-span-3">
           <button disabled={saving || user?.isBlocked} className="px-4 py-2 bg-[#a06b42] hover:bg-[#8f5a32] text-white rounded disabled:opacity-50">{saving ? 'Saving...' : 'Add Car'}</button>

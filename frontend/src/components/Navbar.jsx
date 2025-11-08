@@ -500,11 +500,12 @@ const Navbar = () => {
           setPropertyAlerts(alerts);
         }
 
-        // Fetch unreplied reviews count
-        const reviewRes = await fetch(`${API_URL}/api/bookings/owner?hasReview=true&reviewReplied=false`, { credentials: 'include' });
+        // Fetch unreplied reviews count (use existing owner reviews endpoint)
+        const reviewRes = await fetch(`${API_URL}/api/bookings/owner/reviews`, { credentials: 'include' });
         if (reviewRes.ok) {
-          const reviewData = await reviewRes.json();
-          setUnrepliedReviews(reviewData.bookings?.length || 0);
+          const reviewData = await reviewRes.json().catch(() => ({}));
+          const count = Number(reviewData.countUnreplied || 0) || (Array.isArray(reviewData.reviews) ? reviewData.reviews.filter(r => !r?.reply && !r?.replied).length : 0);
+          setUnrepliedReviews(count);
         }
 
         // Fetch opportunity count (properties that can be improved)

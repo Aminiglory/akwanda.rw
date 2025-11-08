@@ -20,6 +20,7 @@ export default function OwnerAttractionsDashboard() {
   const [saving, setSaving] = useState(false);
   const [uploadingId, setUploadingId] = useState(null);
   const [viewMode, setViewMode] = useState('cards'); // 'cards' | 'table'
+  const [createImages, setCreateImages] = useState([]);
 
   const empty = useMemo(() => ({
     name: '',
@@ -86,6 +87,7 @@ export default function OwnerAttractionsDashboard() {
   async function createItem(e) {
     e.preventDefault();
     try {
+      if (!createImages || createImages.length === 0) { toast.error('Please add at least one image'); return; }
       setSaving(true);
       const payload = {
         ...form,
@@ -99,7 +101,9 @@ export default function OwnerAttractionsDashboard() {
       if (!res.ok) throw new Error(data.message || 'Failed to create');
       setItems(list => [data.attraction, ...list]);
       toast.success('Attraction created');
+      await uploadImages(data.attraction._id, createImages);
       reset();
+      setCreateImages([]);
     } catch (e) { toast.error(e.message); } finally { setSaving(false); }
   }
 
@@ -171,6 +175,9 @@ export default function OwnerAttractionsDashboard() {
         </div>
         <div className="md:col-span-3">
           <input className="w-full px-3 py-2 border rounded" placeholder="Highlights (comma-separated)" value={form.highlights} onChange={e=>setForm({ ...form, highlights: e.target.value })} />
+        </div>
+        <div className="md:col-span-3">
+          <input type="file" multiple accept="image/*" onChange={e=>setCreateImages(Array.from(e.target.files || []))} className="w-full px-3 py-2 border rounded" />
         </div>
         <div className="md:col-span-3"><button disabled={saving} className="px-4 py-2 bg-[#a06b42] hover:bg-[#8f5a32] text-white rounded disabled:opacity-50">{saving ? 'Saving...' : 'Add Attraction'}</button></div>
       </form>

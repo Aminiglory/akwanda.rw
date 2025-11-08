@@ -8,6 +8,22 @@ const Notification = require('../tables/notification');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
 const TOKEN_COOKIE = 'akw_token';
+const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN || undefined; // e.g. '.onrender.com' or your apex domain
+
+function buildCookieOptions() {
+  const isProd = process.env.NODE_ENV === 'production';
+  const opts = {
+    httpOnly: true,
+    sameSite: 'none',
+    secure: true,
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  };
+  // Only set domain when explicitly configured to avoid local dev issues
+  if (COOKIE_DOMAIN) {
+    opts.domain = COOKIE_DOMAIN;
+  }
+  return opts;
+}
 
 function signToken(payload) {
 	return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
@@ -43,7 +59,7 @@ router.post('/register', async (req, res) => {
 			userType: userType || 'guest'
 		});
 		const token = signToken({ id: user._id, email: user.email, userType: user.userType, name: `${user.firstName} ${user.lastName}` });
-		res.cookie(TOKEN_COOKIE, token, { httpOnly: true, sameSite: 'none', secure: true });
+		res.cookie(TOKEN_COOKIE, token, buildCookieOptions());
 		return res.status(201).json({
 			user: {
 				id: user._id,
@@ -68,7 +84,7 @@ router.post('/login', async (req, res) => {
 		const ok = await bcrypt.compare(password, user.passwordHash);
 		if (!ok) return res.status(401).json({ message: 'Invalid credentials' });
 		const token = signToken({ id: user._id, email: user.email, userType: user.userType, name: `${user.firstName} ${user.lastName}` });
-		res.cookie(TOKEN_COOKIE, token, { httpOnly: true, sameSite: 'none', secure: true });
+		res.cookie(TOKEN_COOKIE, token, buildCookieOptions());
 		return res.json({
 			user: {
 				id: user._id,
@@ -85,8 +101,9 @@ router.post('/login', async (req, res) => {
 });
 
 router.post('/logout', (req, res) => {
-	res.clearCookie(TOKEN_COOKIE, { httpOnly: true, sameSite: 'none', secure: true });
-	return res.json({ message: 'Logged out' });
+  const opts = buildCookieOptions();
+  res.clearCookie(TOKEN_COOKIE, opts);
+  return res.json({ message: 'Logged out' });
 });
 
 router.get('/me', authMiddleware, async (req, res) => {
