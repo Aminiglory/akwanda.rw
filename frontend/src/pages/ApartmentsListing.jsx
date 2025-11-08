@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import {
   FaBed,
@@ -24,7 +24,7 @@ const ApartmentsListing = () => {
   const [filters, setFilters] = useState({
     location: "",
     priceMin: 0,
-    priceMax: 5000000,
+    priceMax: null,
     bedrooms: "",
     amenities: [],
     sortBy: "price-asc",
@@ -43,6 +43,7 @@ const ApartmentsListing = () => {
   const [loading, setLoading] = useState(true);
   const [fetchTimer, setFetchTimer] = useState(null);
   const [budgetBounds, setBudgetBounds] = useState({ min: 0, max: 5000000 });
+  const autoInitPricesRef = useRef(true);
 
   // Initialize filters from URL query params (q, startDate, endDate, guests)
   useEffect(() => {
@@ -52,15 +53,17 @@ const ApartmentsListing = () => {
       const startDate = sp.get('startDate') || '';
       const endDate = sp.get('endDate') || '';
       const guests = sp.get('guests');
-      if (q || startDate || endDate || guests) {
-        setFilters(prev => ({
-          ...prev,
-          location: q || prev.location,
-          checkIn: startDate || prev.checkIn,
-          checkOut: endDate || prev.checkOut,
-          guests: guests ? Number(guests) || prev.guests : prev.guests,
-        }));
-      }
+      const minPrice = sp.get('minPrice');
+      const maxPrice = sp.get('maxPrice');
+      setFilters(prev => ({
+        ...prev,
+        location: q || prev.location,
+        checkIn: startDate || prev.checkIn,
+        checkOut: endDate || prev.checkOut,
+        guests: guests ? Number(guests) || prev.guests : prev.guests,
+        priceMin: minPrice != null ? Math.max(0, Number(minPrice) || 0) : prev.priceMin,
+        priceMax: maxPrice != null ? (isNaN(Number(maxPrice)) ? null : Number(maxPrice)) : prev.priceMax,
+      }));
     } catch (_) {}
   }, []);
 
@@ -86,6 +89,7 @@ const ApartmentsListing = () => {
       const params = new URLSearchParams();
       if (filters.location) params.set('q', filters.location);
       if (filters.priceMin != null) params.set('minPrice', String(filters.priceMin));
+      // Only send maxPrice if a maximum is selected
       if (filters.priceMax != null) params.set('maxPrice', String(filters.priceMax));
       if (filters.bedrooms) params.set('bedrooms', filters.bedrooms);
       if (filters.amenities.length) params.set('amenities', filters.amenities.join(','));
@@ -177,12 +181,27 @@ const ApartmentsListing = () => {
           const min = Math.max(0, Math.min(...prices));
           const max = Math.max(...prices);
           setBudgetBounds({ min: 0, max: Math.max(max, 5000000) });
-          // Keep selected range within new bounds but not force to 0 if user selected higher lower-bound
-          setFilters(prev => ({
-            ...prev,
-            priceMin: Math.max(Math.min(prev.priceMin, Math.max(max, 5000000)), 0),
-            priceMax: Math.min(Math.max(prev.priceMax, prev.priceMin + 5000), Math.max(max, 5000000))
-          }));
+          // Initialize handles to data-derived min and max only once (unless URL provided values)
+          setFilters(prev => {
+            if (autoInitPricesRef.current) {
+              autoInitPricesRef.current = false;
+              const useMin = prev.priceMin === 0 ? min : Math.max(0, prev.priceMin);
+              const useMax = prev.priceMax == null ? Math.max(max, 5000000) : prev.priceMax;
+              return {
+                ...prev,
+                priceMin: Math.max(Math.min(useMin, Math.max(max, 5000000) - 5000), 0),
+                priceMax: Math.min(Math.max(useMax, useMin + 5000), Math.max(max, 5000000))
+              };
+            }
+            // Keep selected range within new bounds. If no max selected (null), keep it null.
+            return {
+              ...prev,
+              priceMin: Math.max(Math.min(prev.priceMin, Math.max(max, 5000000)), 0),
+              priceMax: prev.priceMax == null
+                ? null
+                : Math.min(Math.max(prev.priceMax, prev.priceMin + 5000), Math.max(max, 5000000))
+            };
+          });
         }
       }
     } catch (e) {
@@ -366,7 +385,7 @@ const ApartmentsListing = () => {
                 <div className="px-1">
                   <div className="flex items-center justify-between text-xs text-gray-600 mb-1">
                     <span>RWF {filters.priceMin.toLocaleString()}</span>
-                    <span>RWF {filters.priceMax.toLocaleString()}</span>
+                    <span>{filters.priceMax == null ? 'No max' : `RWF ${Number(filters.priceMax).toLocaleString()}`}</span>
                   </div>
                   <div className="relative h-6">
                     <input
@@ -375,7 +394,10 @@ const ApartmentsListing = () => {
                       max={budgetBounds.max}
                       step="5000"
                       value={filters.priceMin}
-                      onChange={(e) => handleFilterChange('priceMin', Math.min(Number(e.target.value), filters.priceMax - 5000))}
+                      onChange={(e) => {
+                        const upper = (filters.priceMax ?? budgetBounds.max) - 5000;
+                        handleFilterChange('priceMin', Math.min(Number(e.target.value), Math.max(upper, budgetBounds.min)));
+                      }}
                       className="absolute w-full pointer-events-auto appearance-none bg-transparent"
                       style={{ top: 12 }}
                     />
@@ -384,13 +406,31 @@ const ApartmentsListing = () => {
                       min={budgetBounds.min}
                       max={budgetBounds.max}
                       step="5000"
-                      value={filters.priceMax}
+                      value={filters.priceMax == null ? budgetBounds.max : filters.priceMax}
                       onChange={(e) => handleFilterChange('priceMax', Math.max(Number(e.target.value), filters.priceMin + 5000))}
-                      className="absolute w-full pointer-events-auto appearance-none bg-transparent"
+                      disabled={filters.priceMax == null}
+                      className="absolute w-full pointer-events-auto appearance-none bg-transparent disabled:opacity-40"
                       style={{ top: 12 }}
                     />
                   </div>
-                  {/* Slider auto-scales bounds based on results; no extra inputs required */}
+                  {/* Unlimited max toggle */}
+                  <div className="mt-2 flex items-center gap-2 text-sm">
+                    <input
+                      id="no-max-price"
+                      type="checkbox"
+                      className="h-4 w-4"
+                      checked={filters.priceMax == null}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          handleFilterChange('priceMax', null);
+                        } else {
+                          // Restore to current upper bound when toggled off
+                          handleFilterChange('priceMax', Math.max(filters.priceMin + 5000, budgetBounds.max));
+                        }
+                      }}
+                    />
+                    <label htmlFor="no-max-price" className="text-gray-700">No maximum price</label>
+                  </div>
                 </div>
               </div>
 
@@ -491,7 +531,7 @@ const ApartmentsListing = () => {
                   setFilters({
                     location: "",
                     priceMin: 0,
-                    priceMax: 500000,
+                    priceMax: null,
                     bedrooms: "",
                     amenities: [],
                     sortBy: "price-asc",
