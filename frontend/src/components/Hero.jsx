@@ -2,19 +2,46 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { FaBuilding, FaSmile, FaThumbsUp } from 'react-icons/fa';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+// Normalize API base to avoid mixed content on HTTPS (notably strict on mobile)
+const API_BASE = (() => {
+  let base = API_URL;
+  if (typeof window !== 'undefined' && window.location.protocol === 'https:' && /^http:\/\//i.test(base)) {
+    base = base.replace(/^http:\/\//i, 'https://');
+  }
+  return base;
+})();
 
 // Helper function to construct absolute image URLs (robust against various stored formats)
 const makeAbsoluteUrl = (imagePath) => {
   if (!imagePath) return null;
   let path = String(imagePath).trim().replace(/\\/g, '/');
-  // Normalize accidental double slashes (but keep protocol double slash)
+  // Normalize accidental leading slashes (but keep protocol double slash)
   path = path.replace(/^\/+/, '/');
-  if (/^https?:\/\//i.test(path)) return path;
-  // If path already begins with the API host, return as-is
-  if (API_URL && path.startsWith(API_URL)) return path;
+
+  // If already absolute URL
+  if (/^https?:\/\//i.test(path)) {
+    // Upgrade to https when current page is https to prevent mixed content (common on mobile)
+    if (typeof window !== 'undefined' && window.location.protocol === 'https:' && /^http:\/\//i.test(path)) {
+      return path.replace(/^http:\/\//i, 'https://');
+    }
+    return path;
+  }
+
   // Ensure leading slash for server-served assets
   if (!path.startsWith('/')) path = `/${path}`;
-  return `${API_URL}${path}`;
+
+  // Build from configured API_URL, upgrading to https if needed
+  if (API_URL) {
+    let base = API_URL;
+    if (typeof window !== 'undefined' && window.location.protocol === 'https:' && /^http:\/\//i.test(base)) {
+      base = base.replace(/^http:\/\//i, 'https://');
+    }
+    return `${base}${path}`;
+  }
+
+  // Fallback to same-origin if API_URL is not set
+  const origin = (typeof window !== 'undefined' && window.location?.origin) ? window.location.origin : '';
+  return `${origin}${path}`;
 };
 
 const Hero = () => {
@@ -49,7 +76,7 @@ const Hero = () => {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch(`${API_URL}/api/metrics/landing`);
+        const res = await fetch(`${API_BASE}/api/metrics/landing`);
         if (!res.ok) return;
         const data = await res.json();
         if (data.metrics) setMetrics(data.metrics);
@@ -69,8 +96,8 @@ const Hero = () => {
   useEffect(() => {
     (async () => {
       try {
-        console.log('Fetching landing content from:', `${API_URL}/api/content/landing`);
-        const res = await fetch(`${API_URL}/api/content/landing`);
+        console.log('Fetching landing content from:', `${API_BASE}/api/content/landing`);
+        const res = await fetch(`${API_BASE}/api/content/landing`);
         console.log('Response status:', res.status, res.statusText);
         
         if (!res.ok) { 

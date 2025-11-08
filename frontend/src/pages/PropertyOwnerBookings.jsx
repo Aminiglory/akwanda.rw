@@ -1056,6 +1056,25 @@ const PropertyOwnerBookings = () => {
           </button>
         </div>
 
+        <div className="mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div onClick={() => navigate('/owner/cars')} className="cursor-pointer neu-card p-5 flex items-center justify-between hover:shadow-lg transition-shadow">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Manage Cars</h3>
+                <p className="text-sm text-gray-600">Create, edit and view car bookings</p>
+              </div>
+              <FaCar className="text-3xl text-blue-600" />
+            </div>
+            <div onClick={() => navigate('/owner/attractions')} className="cursor-pointer neu-card p-5 flex items-center justify-between hover:shadow-lg transition-shadow">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Manage Attractions</h3>
+                <p className="text-sm text-gray-600">Create, edit and view attraction bookings</p>
+              </div>
+              <FaShoppingBag className="text-3xl text-pink-600" />
+            </div>
+          </div>
+        </div>
+
         {/* Tab Content */}
         {activeTab === 'dashboard' && (
           <div className="space-y-8">

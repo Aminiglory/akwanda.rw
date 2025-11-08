@@ -474,6 +474,7 @@ const Navbar = () => {
     
     const fetchDynamicCounts = async () => {
       try {
+        let alerts = 0; // accumulate property alerts across fetches
         // Fetch message counts by category
         const msgRes = await fetch(`${API_URL}/api/messages/category-counts`, { credentials: 'include' });
         if (msgRes.ok) {
@@ -491,7 +492,6 @@ const Navbar = () => {
         if (propRes.ok) {
           const propData = await propRes.json();
           const properties = propData.properties || [];
-          let alerts = 0;
           properties.forEach(prop => {
             if (!prop.images || prop.images.length < 5) alerts++;
             if (!prop.description || prop.description.length < 50) alerts++;

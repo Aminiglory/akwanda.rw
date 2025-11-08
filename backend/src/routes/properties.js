@@ -988,9 +988,20 @@ router.post('/', requireAuth, upload.array('images', 10), async (req, res) => {
                 req.user.userType = 'host';
             }
         }
-        const imagePaths = (req.files || []).map(f => `/uploads/${path.basename(f.path)}`);
-        // Merge any images provided in JSON body (images, imageUrls) with uploaded file paths
-        let mergedImages = [...imagePaths];
+        // Upload in-memory files to cloud and collect URLs (memoryStorage has no f.path)
+        let uploadedUrls = [];
+        if (req.files && req.files.length) {
+            try {
+                const uploaded = await Promise.all(
+                    req.files.map(f => uploadBuffer(f.buffer, f.originalname, 'properties'))
+                );
+                uploadedUrls = uploaded.map(u => u.secure_url || u.url).filter(Boolean);
+            } catch (e) {
+                console.error('Upload buffer failed:', e);
+            }
+        }
+        // Merge any images provided in JSON body (images, imageUrls) with uploaded file URLs
+        let mergedImages = [...uploadedUrls];
         const bodyImages = req.body.images ? (Array.isArray(req.body.images) ? req.body.images : [req.body.images]) : [];
         const bodyImageUrls = req.body.imageUrls ? (Array.isArray(req.body.imageUrls) ? req.body.imageUrls : [req.body.imageUrls]) : [];
         mergedImages.push(
