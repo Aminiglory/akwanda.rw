@@ -96,11 +96,11 @@ const ApartmentsListing = () => {
       }
       
       // Use enhanced API utilities with retry logic and error handling
-      const data = await safeApiGet(`/api/properties?${params.toString()}`, {
-        fallback: { properties: [] },
-        signal,
-        timeout: 15000
-      });
+      const data = await safeApiGet(
+        `/api/properties?${params.toString()}`,
+        { properties: [] },
+        { signal, timeout: 15000 }
+      );
       
       const list = (data.properties || []);
       const mapped = list.map((p) => {
