@@ -110,7 +110,7 @@ const Navbar = () => {
       ]
     },
     {
-      label: "Car Rentals",
+      label: "Rentals",
       icon: FaCar,
       href: "/cars",
       children: [

@@ -20,6 +20,8 @@ import PropertyCard from "../components/PropertyCard";
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 const ApartmentsListing = () => {
+  const PRICE_STEP = 5000;
+  const snapToStep = (v) => Math.max(0, Math.round(Number(v || 0) / PRICE_STEP) * PRICE_STEP);
   // Viewing listings is public; booking will require login on the booking flow
   const [filters, setFilters] = useState({
     location: "",
@@ -61,8 +63,8 @@ const ApartmentsListing = () => {
         checkIn: startDate || prev.checkIn,
         checkOut: endDate || prev.checkOut,
         guests: guests ? Number(guests) || prev.guests : prev.guests,
-        priceMin: minPrice != null ? Math.max(0, Number(minPrice) || 0) : prev.priceMin,
-        priceMax: maxPrice != null ? (isNaN(Number(maxPrice)) ? null : Number(maxPrice)) : prev.priceMax,
+        priceMin: minPrice != null ? snapToStep(minPrice) : prev.priceMin,
+        priceMax: maxPrice != null ? (isNaN(Number(maxPrice)) ? null : snapToStep(maxPrice)) : prev.priceMax,
       }));
     } catch (_) {}
   }, []);
@@ -178,19 +180,19 @@ const ApartmentsListing = () => {
       if (mapped.length) {
         const prices = mapped.map(m => m.price).filter(n => typeof n === 'number' && !isNaN(n));
         if (prices.length) {
-          const min = Math.max(0, Math.min(...prices));
+          const min = Math.max(0, snapToStep(Math.min(...prices)));
           const max = 2500000; // Fixed upper bound
           setBudgetBounds({ min: 0, max });
           // Initialize handles only once: start min at 0 by default (unless URL provided values), max at data max
           setFilters(prev => {
             if (autoInitPricesRef.current) {
               autoInitPricesRef.current = false;
-              const useMin = Math.max(0, prev.priceMin); // keep 0 as default starting point
-              const useMax = prev.priceMax == null ? max : prev.priceMax;
+              const useMin = snapToStep(Math.max(0, prev.priceMin)); // keep 0 as default starting point
+              const useMax = prev.priceMax == null ? max : snapToStep(prev.priceMax);
               return {
                 ...prev,
-                priceMin: Math.max(Math.min(useMin, max - 5000), 0),
-                priceMax: Math.min(Math.max(useMax, useMin + 5000), max)
+                priceMin: Math.max(Math.min(useMin, max - PRICE_STEP), 0),
+                priceMax: Math.min(Math.max(useMax, useMin + PRICE_STEP), max)
               };
             }
             // Keep selected range within new bounds. If no max selected (null), keep it null.
@@ -199,7 +201,7 @@ const ApartmentsListing = () => {
               priceMin: Math.max(Math.min(prev.priceMin, max), 0),
               priceMax: prev.priceMax == null
                 ? null
-                : Math.min(Math.max(prev.priceMax, prev.priceMin + 5000), max)
+                : Math.min(Math.max(snapToStep(prev.priceMax), snapToStep(prev.priceMin) + PRICE_STEP), max)
             };
           });
         }
@@ -401,11 +403,13 @@ const ApartmentsListing = () => {
                       type="range"
                       min={budgetBounds.min}
                       max={budgetBounds.max}
-                      step="5000"
+                      step={PRICE_STEP}
+                      list="budget-ticks"
                       value={filters.priceMin}
                       onChange={(e) => {
-                        const upper = (filters.priceMax ?? budgetBounds.max) - 5000;
-                        handleFilterChange('priceMin', Math.min(Number(e.target.value), Math.max(upper, budgetBounds.min)));
+                        const val = snapToStep(e.target.value);
+                        const upper = (filters.priceMax ?? budgetBounds.max) - PRICE_STEP;
+                        handleFilterChange('priceMin', Math.min(val, Math.max(upper, budgetBounds.min)));
                       }}
                       className="absolute w-full pointer-events-auto appearance-none bg-transparent z-20 range-thumb-sm"
                       style={{ top: 10 }}
@@ -414,13 +418,72 @@ const ApartmentsListing = () => {
                       type="range"
                       min={budgetBounds.min}
                       max={budgetBounds.max}
-                      step="5000"
+                      step={PRICE_STEP}
+                      list="budget-ticks"
                       value={filters.priceMax == null ? budgetBounds.max : filters.priceMax}
-                      onChange={(e) => handleFilterChange('priceMax', Math.max(Number(e.target.value), filters.priceMin + 5000))}
+                      onChange={(e) => {
+                        const val = snapToStep(e.target.value);
+                        handleFilterChange('priceMax', Math.max(val, snapToStep(filters.priceMin) + PRICE_STEP));
+                      }}
                       disabled={filters.priceMax == null}
                       className="absolute w-full pointer-events-auto appearance-none bg-transparent disabled:opacity-40 z-10 range-thumb-sm"
                       style={{ top: 16 }}
                     />
+                  </div>
+                  {/* Tick marks (may not be supported in all browsers) */}
+                  <datalist id="budget-ticks">
+                    {Array.from({ length: Math.floor(budgetBounds.max / 50000) + 1 }, (_, i) => (
+                      <option key={i} value={i * 50000} />
+                    ))}
+                  </datalist>
+                  {/* Fine controls */}
+                  <div className="mt-2 flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        className="px-2 py-1 bg-gray-100 rounded hover:bg-gray-200"
+                        onClick={() => {
+                          const next = snapToStep(filters.priceMin - PRICE_STEP);
+                          handleFilterChange('priceMin', Math.max(0, next));
+                        }}
+                        aria-label="Decrease minimum budget"
+                      >−</button>
+                      <button
+                        type="button"
+                        className="px-2 py-1 bg-gray-100 rounded hover:bg-gray-200"
+                        onClick={() => {
+                          const upper = (filters.priceMax ?? budgetBounds.max) - PRICE_STEP;
+                          const next = snapToStep(filters.priceMin + PRICE_STEP);
+                          handleFilterChange('priceMin', Math.min(next, Math.max(upper, budgetBounds.min)));
+                        }}
+                        aria-label="Increase minimum budget"
+                      >+</button>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        className="px-2 py-1 bg-gray-100 rounded hover:bg-gray-200"
+                        disabled={filters.priceMax == null}
+                        onClick={() => {
+                          if (filters.priceMax == null) return;
+                          const lower = snapToStep(filters.priceMin) + PRICE_STEP;
+                          const next = snapToStep((filters.priceMax || budgetBounds.max) - PRICE_STEP);
+                          handleFilterChange('priceMax', Math.max(next, lower));
+                        }}
+                        aria-label="Decrease maximum budget"
+                      >−</button>
+                      <button
+                        type="button"
+                        className="px-2 py-1 bg-gray-100 rounded hover:bg-gray-200"
+                        disabled={filters.priceMax == null}
+                        onClick={() => {
+                          if (filters.priceMax == null) return;
+                          const next = snapToStep((filters.priceMax || budgetBounds.max) + PRICE_STEP);
+                          handleFilterChange('priceMax', Math.min(next, budgetBounds.max));
+                        }}
+                        aria-label="Increase maximum budget"
+                      >+</button>
+                    </div>
                   </div>
                   {/* Unlimited max toggle */}
                   <div className="mt-2 flex items-center gap-2 text-sm">
