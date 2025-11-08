@@ -387,7 +387,16 @@ const ApartmentsListing = () => {
                     <span>RWF {filters.priceMin.toLocaleString()}</span>
                     <span>{filters.priceMax == null ? 'No max' : `RWF ${Number(filters.priceMax).toLocaleString()}`}</span>
                   </div>
-                  <div className="relative h-6">
+                  <div className="relative h-8">
+                    {/* Selected range track */}
+                    <div
+                      className="absolute h-1 bg-blue-500 rounded"
+                      style={{
+                        top: 14,
+                        left: `${((filters.priceMin - budgetBounds.min) / (budgetBounds.max - budgetBounds.min)) * 100}%`,
+                        width: `${(((filters.priceMax == null ? budgetBounds.max : filters.priceMax) - filters.priceMin) / (budgetBounds.max - budgetBounds.min)) * 100}%`
+                      }}
+                    />
                     <input
                       type="range"
                       min={budgetBounds.min}
@@ -398,8 +407,8 @@ const ApartmentsListing = () => {
                         const upper = (filters.priceMax ?? budgetBounds.max) - 5000;
                         handleFilterChange('priceMin', Math.min(Number(e.target.value), Math.max(upper, budgetBounds.min)));
                       }}
-                      className="absolute w-full pointer-events-auto appearance-none bg-transparent"
-                      style={{ top: 12 }}
+                      className="absolute w-full pointer-events-auto appearance-none bg-transparent z-20 range-thumb-sm"
+                      style={{ top: 10 }}
                     />
                     <input
                       type="range"
@@ -409,8 +418,8 @@ const ApartmentsListing = () => {
                       value={filters.priceMax == null ? budgetBounds.max : filters.priceMax}
                       onChange={(e) => handleFilterChange('priceMax', Math.max(Number(e.target.value), filters.priceMin + 5000))}
                       disabled={filters.priceMax == null}
-                      className="absolute w-full pointer-events-auto appearance-none bg-transparent disabled:opacity-40"
-                      style={{ top: 12 }}
+                      className="absolute w-full pointer-events-auto appearance-none bg-transparent disabled:opacity-40 z-10 range-thumb-sm"
+                      style={{ top: 16 }}
                     />
                   </div>
                   {/* Unlimited max toggle */}
