@@ -2,6 +2,8 @@ import React from 'react';
 import Hero from '../components/Hero';
 import SearchSection from '../components/SearchSection';
 import FeaturedApartments from '../components/FeaturedApartments';
+import LandingAttractions from '../components/LandingAttractions';
+import OurMission from '../components/OurMission';
 import HowItWorks from '../components/HowItWorks';
 import Testimonials from '../components/Testimonials';
 
@@ -17,7 +19,9 @@ const Home = () => {
       <div className="bg-white">
         <SearchSection />
         <FeaturedApartments />
+        <LandingAttractions />
         <HowItWorks />
+        <OurMission />
 
         {/* Featured Destinations (static content) */}
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
