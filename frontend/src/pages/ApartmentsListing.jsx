@@ -42,7 +42,7 @@ const ApartmentsListing = () => {
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'table'
   const [loading, setLoading] = useState(true);
   const [fetchTimer, setFetchTimer] = useState(null);
-  const [budgetBounds, setBudgetBounds] = useState({ min: 0, max: 5000000 });
+  const [budgetBounds, setBudgetBounds] = useState({ min: 0, max: 2500000 });
   const autoInitPricesRef = useRef(true);
 
   // Initialize filters from URL query params (q, startDate, endDate, guests)
@@ -179,27 +179,27 @@ const ApartmentsListing = () => {
         const prices = mapped.map(m => m.price).filter(n => typeof n === 'number' && !isNaN(n));
         if (prices.length) {
           const min = Math.max(0, Math.min(...prices));
-          const max = Math.max(...prices);
-          setBudgetBounds({ min: 0, max: Math.max(max, 5000000) });
+          const max = 2500000; // Fixed upper bound
+          setBudgetBounds({ min: 0, max });
           // Initialize handles only once: start min at 0 by default (unless URL provided values), max at data max
           setFilters(prev => {
             if (autoInitPricesRef.current) {
               autoInitPricesRef.current = false;
               const useMin = Math.max(0, prev.priceMin); // keep 0 as default starting point
-              const useMax = prev.priceMax == null ? Math.max(max, 5000000) : prev.priceMax;
+              const useMax = prev.priceMax == null ? max : prev.priceMax;
               return {
                 ...prev,
-                priceMin: Math.max(Math.min(useMin, Math.max(max, 5000000) - 5000), 0),
-                priceMax: Math.min(Math.max(useMax, useMin + 5000), Math.max(max, 5000000))
+                priceMin: Math.max(Math.min(useMin, max - 5000), 0),
+                priceMax: Math.min(Math.max(useMax, useMin + 5000), max)
               };
             }
             // Keep selected range within new bounds. If no max selected (null), keep it null.
             return {
               ...prev,
-              priceMin: Math.max(Math.min(prev.priceMin, Math.max(max, 5000000)), 0),
+              priceMin: Math.max(Math.min(prev.priceMin, max), 0),
               priceMax: prev.priceMax == null
                 ? null
-                : Math.min(Math.max(prev.priceMax, prev.priceMin + 5000), Math.max(max, 5000000))
+                : Math.min(Math.max(prev.priceMax, prev.priceMin + 5000), max)
             };
           });
         }
