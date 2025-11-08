@@ -181,11 +181,11 @@ const ApartmentsListing = () => {
           const min = Math.max(0, Math.min(...prices));
           const max = Math.max(...prices);
           setBudgetBounds({ min: 0, max: Math.max(max, 5000000) });
-          // Initialize handles to data-derived min and max only once (unless URL provided values)
+          // Initialize handles only once: start min at 0 by default (unless URL provided values), max at data max
           setFilters(prev => {
             if (autoInitPricesRef.current) {
               autoInitPricesRef.current = false;
-              const useMin = prev.priceMin === 0 ? min : Math.max(0, prev.priceMin);
+              const useMin = Math.max(0, prev.priceMin); // keep 0 as default starting point
               const useMax = prev.priceMax == null ? Math.max(max, 5000000) : prev.priceMax;
               return {
                 ...prev,
