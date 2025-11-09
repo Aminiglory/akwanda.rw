@@ -752,8 +752,9 @@ const Navbar = () => {
   };
 
   return (
-    <>
-      {/* Top Bar - First Level */}
+    <> 
+      {/* Top Bar - First Level (hidden on landing page) */}
+      {location.pathname !== '/' && (
       <div className="w-full bg-[#4b2a00] text-white py-2 px-4 border-b border-[#3a2000] relative z-[1000]">
         <div className="max-w-7xl mx-auto flex justify-between items-center text-xs">
           <div className="flex items-center space-x-4 lg:space-x-6">
@@ -849,6 +850,7 @@ const Navbar = () => {
           </div>
         </div>
       </div>
+      )}
 
       {/* Friendly error banner */}
       {uiError && (
@@ -981,7 +983,7 @@ const Navbar = () => {
                                   <Link
                                     key={childIndex}
                                     to={child.href}
-                                    className={`flex items-center space-x-3 px-4 py-3 text-sm hover:bg-white transition-colors ${isChildActive ? 'bg-white text-[#4b2a00]' : 'text-[#4b2a00]'
+                                    className={`flex items-center space-x-3 px-4 py-3 text-sm text-[#4b2a00] hover:bg-white transition-colors ${isChildActive ? 'bg-white text-[#4b2a00]' : 'text-[#4b2a00]'
                                       }`}
                                     onClick={() => setActiveDropdown(null)}
                                   >
@@ -1182,185 +1184,39 @@ const Navbar = () => {
                 </div>
               )}
 
-              {/* Profile Menu */}
-              {isAuthenticated && (
-                <div className="relative inline-flex items-center">
-                  <button
-                    onClick={toggleProfile}
-                    className="profile-button flex items-center space-x-2 px-3 py-2 rounded-lg text-[#6b5744] hover:text-[#4b2a00] hover:bg-[#e8dcc8] transition-colors"
-                  >
-                    <FaUserCircle className="text-lg" />
-                    <span className="hidden sm:inline font-medium text-sm">
-                      {user?.firstName || user?.name || user?.email}
-                    </span>
-                    {isProfileOpen ? (
-                      <FaChevronUp className="text-xs" />
-                    ) : (
-                      <FaChevronDown className="text-xs" />
-                    )}
+              {/* Language & Currency selectors (always available in second navbar; also present in top bar for non-landing pages) */}
+              <div className="hidden lg:flex items-center space-x-4 ml-2">
+                {/* Language selector */}
+                <div className="relative group">
+                  <button type="button" className="flex items-center space-x-2 hover:text-[#4b2a00] cursor-pointer">
+                    <FaGlobe className="text-sm" />
+                    <span className="hidden sm:inline">{(language || 'en').toUpperCase()}</span>
+                    <FaCaretDown className="text-[10px] hidden sm:inline" />
                   </button>
-
-                  {isProfileOpen && (
-                    <div className="profile-dropdown absolute top-full right-0 mt-2 w-64 bg-[#f6e9d8] rounded-xl shadow-2xl border border-[#d4c4b0] py-3">
-                      {/* Profile Header */}
-                      <div className="px-4 pb-3 border-b border-gray-100">
-                        <div className="flex items-center space-x-3">
-                          {user?.avatar && avatarOk ? (
-                            <img
-                              src={avatarUrl}
-                              alt="Profile"
-                              className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
-                              onError={() => setAvatarOk(false)}
-                            />
-                          ) : (
-                            <div className="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center border-2 border-gray-200">
-                              <span className="text-white font-bold text-lg">
-                                {((user?.firstName || '').charAt(0) + (user?.lastName || '').charAt(0)) || user?.email?.charAt(0) || 'U'}
-                              </span>
-                            </div>
-                          )}
-                          <div className="flex-1">
-                            <div className="font-semibold text-gray-900">
-                              {user?.firstName} {user?.lastName}
-                            </div>
-                            <div className="text-sm text-gray-500">{user?.email}</div>
-                            <div className="text-xs text-gray-700 font-medium">
-                              {user?.userType === 'host' ? 'Property Owner' : user?.userType === 'worker' ? 'Worker' : 'Guest'}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Quick Stats for Hosts */}
-                      {user?.userType === 'host' && (
-                        <div className="px-4 py-2 border-b border-gray-100">
-                          <div className="grid grid-cols-3 gap-2 text-center">
-                            <div>
-                              <div className="text-sm font-bold text-gray-700">{userStats.properties}</div>
-                              <div className="text-xs text-gray-500">{t ? t('nav.properties') : 'Properties'}</div>
-                            </div>
-                            <div>
-                              <div className="text-sm font-bold text-green-600">{userStats.bookings}</div>
-                              <div className="text-xs text-gray-500">{t ? t('nav.bookings') : 'Bookings'}</div>
-                            </div>
-                            <div>
-                              <div className="text-sm font-bold text-orange-600">{userStats.rating}</div>
-                              <div className="text-xs text-gray-500">{t ? t('nav.rating') : 'Rating'}</div>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {user?.userType === 'worker' && (
-                        <div className="px-4 py-2 border-b border-gray-100">
-                          <div className="text-xs font-semibold text-gray-500 mb-1">{t ? t('nav.abilities') : 'Abilities'}</div>
-                          <div className="flex flex-wrap gap-2">
-                            {(() => {
-                              const enabled = Object.entries(user?.privileges || {}).filter(([k, v]) => v);
-                              if (enabled.length === 0) {
-                                return <span className="text-xs text-gray-500">{t ? t('nav.noAbilities') : 'No abilities assigned'}</span>;
-                              }
-                              return enabled.slice(0, 12).map(([k]) => (
-                                <span key={k} className="px-2 py-1 text-xs rounded bg-emerald-50 text-emerald-700 border border-emerald-200">{k}</span>
-                              ));
-                            })()}
-                          </div>
-                          {Array.isArray(user?.assignedProperties) && (
-                            <div className="mt-2 text-xs text-gray-600">
-                              {t ? t('nav.assignedProperties') : 'Assigned properties'}: <span className="font-semibold">{user.assignedProperties.length}</span>
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Menu Items */}
-                      <div className="py-1">
-                        <Link
-                          to="/profile"
-                          className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-800 transition-colors"
-                          onClick={() => setIsProfileOpen(false)}
-                        >
-                          <FaUser className="text-gray-700" />
-                          <span className="font-medium">{t ? t('nav.myProfile') : 'My Profile'}</span>
-                        </Link>
-                        {user?.userType === 'admin' && (
-                          <Link
-                            to="/admin/reports"
-                            className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-800 transition-colors"
-                            onClick={() => setIsProfileOpen(false)}
-                          >
-                            <FaFileAlt className="text-gray-700" />
-                            <span className="font-medium">{t ? t('nav.adminReports') : 'Admin Reports'}</span>
-                          </Link>
-                        )}
-                        {user?.userType === 'admin' && (
-                          <Link
-                            to="/admin/landing"
-                            className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-800 transition-colors"
-                            onClick={() => setIsProfileOpen(false)}
-                          >
-                            <FaFileAlt className="text-gray-700" />
-                            <span className="font-medium">{t ? t('nav.landingContent') : 'Landing Content'}</span>
-                          </Link>
-                        )}
-
-                        {user?.userType === 'host' && (
-                          <button
-                            type="button"
-                            className="w-full text-left flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors"
-                            onClick={() => {
-                              setIsProfileOpen(false);
-                              if (!isInPropertyOwnerDashboard()) { setOwnerEmail(user?.email || ''); setOwnerPassword(''); setShowOwnerSwitch(true); }
-                              else { navigate('/dashboard'); }
-                            }}
-                          >
-                            <FaHome className="text-green-600" />
-                            <span className="font-medium">{t ? t('nav.dashboard') : 'Home'}</span>
-                          </button>
-                        )}
-
-                        <Link
-                          to="/settings"
-                          className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                          onClick={() => setIsProfileOpen(false)}
-                        >
-                          <FaCog className="text-gray-600" />
-                          <span className="font-medium">{t ? t('nav.settings') : 'Settings'}</span>
-                        </Link>
-
-                        {user?.userType === 'host' && (
-                          <Link
-                            to="/support"
-                            className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-700 transition-colors"
-                            onClick={() => setIsProfileOpen(false)}
-                          >
-                            <FaQuestionCircle className="text-purple-600" />
-                            <span className="font-medium">{t ? t('nav.help') : 'Help'}</span>
-                          </Link>
-                        )}
-                      </div>
-
-                      <hr className="my-2" />
-
-                      <div className="px-4 py-1">
-                        <button
-                          onClick={handleLogout}
-                          className="flex items-center space-x-3 w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        >
-                          <FaSignOutAlt className="text-red-600" />
-                          <span className="font-medium">{t ? t('nav.signOut') : 'Sign Out'}</span>
-                        </button>
-                      </div>
-                    </div>
-                  )}
+                  <div className="main-nav-dropdown absolute right-0 mt-2 hidden group-hover:block bg-white text-[#4b2a00] rounded-md shadow-lg border border-[#e0d5c7]">
+                    <button onClick={() => setLanguage && setLanguage('en')} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">English</button>
+                    <button onClick={() => setLanguage && setLanguage('fr')} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">Français</button>
+                  </div>
                 </div>
-              )}
+                {/* Currency selector */}
+                <div className="relative group">
+                  <button type="button" className="flex items-center space-x-2 hover:text-[#4b2a00] cursor-pointer">
+                    <span className="font-semibold">{(currency || 'RWF').toUpperCase()}</span>
+                    <FaCaretDown className="text-[10px]" />
+                  </button>
+                  <div className="main-nav-dropdown absolute right-0 mt-2 hidden group-hover:block bg-white text-[#4b2a00] rounded-md shadow-lg border border-[#e0d5c7] min-w-[120px]">
+                    <button onClick={() => setCurrency && setCurrency('RWF')} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">RWF</button>
+                    <button onClick={() => setCurrency && setCurrency('USD')} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">USD</button>
+                    <button onClick={() => setCurrency && setCurrency('EUR')} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">EUR</button>
+                  </div>
+                </div>
+              </div>
 
-              {/* Mobile Menu Button - only for authenticated users */}
-              {isAuthenticated && (
-                <button
-                  onClick={toggleMenu}
-                  className="lg:hidden p-2 text-[#6b5744] hover:text-[#4b2a00]"
+            {/* Mobile Menu Button - only for authenticated users */}
+            {isAuthenticated && (
+              <button
+                onClick={toggleMenu}
+                className="lg:hidden p-2 text-[#6b5744] hover:text-[#4b2a00]"
                 >
                   {isMenuOpen ? <FaTimes className="text-xl" /> : <FaBars className="text-xl" />}
                 </button>
