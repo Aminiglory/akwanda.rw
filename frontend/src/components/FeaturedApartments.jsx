@@ -2,11 +2,13 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FaStar } from 'react-icons/fa';
 import PropertyCard from './PropertyCard';
+import { useLocale } from '../contexts/LocaleContext';
 import { safeApiGet } from '../utils/apiUtils';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const FeaturedApartments = () => {
+  const { t } = useLocale() || {};
   const [apartments, setApartments] = useState([]);
   const makeAbsolute = (u) => {
     if (!u) return u;
