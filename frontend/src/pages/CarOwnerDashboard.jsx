@@ -1,13 +1,23 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import ReceiptPreview from '../components/ReceiptPreview';
 import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const makeAbsolute = (u) => {
+  if (!u) return null;
+  let s = String(u).trim().replace(/\\+/g, '/');
+  if (/^https?:\/\//i.test(s)) return s;
+  if (!s.startsWith('/')) s = `/${s}`;
+  return `${API_URL}${s}`;
+};
 
 export default function CarOwnerDashboard() {
   const { user } = useAuth();
   const [cars, setCars] = useState([]);
   const [bookings, setBookings] = useState([]);
+  const [bookingFilters, setBookingFilters] = useState({ status: '', from: '', to: '' });
+  const [receiptBooking, setReceiptBooking] = useState(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const emptyCar = useMemo(() => ({
@@ -18,6 +28,7 @@ export default function CarOwnerDashboard() {
   const [form, setForm] = useState(emptyCar);
   const [uploadingId, setUploadingId] = useState(null);
   const [viewMode, setViewMode] = useState('cards'); // 'cards' | 'table'
+  const [createImages, setCreateImages] = useState([]);
 
   async function loadData() {
     try {
@@ -35,6 +46,39 @@ export default function CarOwnerDashboard() {
     } catch (e) { toast.error(e.message); } finally { setLoading(false); }
   }
 
+  function exportBookingsCsv() {
+    const rows = [['Car','Renter','Pickup','Return','Days','Amount','Status']];
+    const filtered = bookings.filter(b => {
+      if (bookingFilters.status && b.status !== bookingFilters.status) return false;
+      if (bookingFilters.from) {
+        const from = new Date(bookingFilters.from);
+        if (new Date(b.pickupDate) < from) return false;
+      }
+      if (bookingFilters.to) {
+        const to = new Date(bookingFilters.to);
+        if (new Date(b.returnDate) > to) return false;
+      }
+      return true;
+    });
+    filtered.forEach(b => {
+      rows.push([
+        (b.car?.vehicleName || '').replace(/,/g,' '),
+        `${b.guest?.firstName || ''} ${b.guest?.lastName || ''}`.trim().replace(/,/g,' '),
+        new Date(b.pickupDate).toLocaleDateString(),
+        new Date(b.returnDate).toLocaleDateString(),
+        String(b.numberOfDays || ''),
+        String(b.totalAmount || ''),
+        b.status || ''
+      ]);
+    });
+    const csv = rows.map(r => r.join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'car-bookings.csv'; a.click();
+    URL.revokeObjectURL(url);
+  }
+
   useEffect(() => { loadData(); }, []);
 
   function resetForm() { setForm(emptyCar); }
@@ -43,6 +87,7 @@ export default function CarOwnerDashboard() {
     e.preventDefault();
     try {
       if (user?.isBlocked) { toast.error('Your account is deactivated. Creating cars is disabled.'); return; }
+      if (!createImages || createImages.length === 0) { toast.error('Please add at least one image'); return; }
       setSaving(true);
       const res = await fetch(`${API_URL}/api/cars`, {
         method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form)
@@ -51,7 +96,9 @@ export default function CarOwnerDashboard() {
       if (!res.ok) throw new Error(data.message || 'Failed to create');
       setCars(c => [data.car, ...c]);
       toast.success('Car created');
+      await uploadImages(data.car._id, createImages);
       resetForm();
+      setCreateImages([]);
     } catch (e) { toast.error(e.message); } finally { setSaving(false); }
   }
 
@@ -139,6 +186,9 @@ export default function CarOwnerDashboard() {
           <input type="checkbox" checked={!!form.isAvailable} onChange={e => setForm({ ...form, isAvailable: !!e.target.checked })} />
         </div>
         <div className="md:col-span-3">
+          <input type="file" multiple accept="image/*" onChange={e => setCreateImages(Array.from(e.target.files || []))} className="w-full px-3 py-2 border rounded" />
+        </div>
+        <div className="md:col-span-3">
           <button disabled={saving || user?.isBlocked} className="px-4 py-2 bg-[#a06b42] hover:bg-[#8f5a32] text-white rounded disabled:opacity-50">{saving ? 'Saving...' : 'Add Car'}</button>
         </div>
       </form>
@@ -151,7 +201,7 @@ export default function CarOwnerDashboard() {
               <div key={car._id} className="bg-white rounded-lg shadow p-4">
                 <div className="flex gap-4">
                   <div className="w-32 h-24 bg-gray-100 rounded overflow-hidden">
-                    {car.images?.[0] ? <img src={`${API_URL}${car.images[0]}`} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-400">No image</div>}
+                    {car.images?.[0] ? <img src={makeAbsolute(car.images[0])} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-400">No image</div>}
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center justify-between">
@@ -159,7 +209,7 @@ export default function CarOwnerDashboard() {
                       <button onClick={() => updateCar(car._id, { isAvailable: !car.isAvailable })} className={`px-2 py-1 rounded text-sm ${car.isAvailable ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-700'}`}>{car.isAvailable ? 'Available' : 'Unavailable'}</button>
                     </div>
                     <p className="text-sm text-gray-600">{car.location} • {car.vehicleType} • {car.transmission}</p>
-                    <p className="text-sm font-medium mt-1">{car.pricePerDay} {car.currency}/day</p>
+                    <p className="text-sm font-medium mt-1">RWF {Number(car.pricePerDay || 0).toLocaleString()} / day</p>
                   </div>
                 </div>
 
@@ -172,7 +222,7 @@ export default function CarOwnerDashboard() {
                 {car.images?.length > 0 && (
                   <div className="mt-3 grid grid-cols-4 gap-2">
                     {car.images.map((img, i) => (
-                      <img key={i} src={`${API_URL}${img}`} className="w-full h-20 object-cover rounded" />
+                      <img key={i} src={makeAbsolute(img)} className="w-full h-20 object-cover rounded" />
                     ))}
                   </div>
                 )}
@@ -198,7 +248,7 @@ export default function CarOwnerDashboard() {
                     <td className="p-3 font-medium">{car.vehicleName} • {car.brand} {car.model}</td>
                     <td className="p-3">{car.vehicleType}</td>
                     <td className="p-3">{car.location}</td>
-                    <td className="p-3">{car.pricePerDay} {car.currency}</td>
+                    <td className="p-3">RWF {Number(car.pricePerDay || 0).toLocaleString()}</td>
                     <td className="p-3">
                       <button onClick={() => updateCar(car._id, { isAvailable: !car.isAvailable })} className={`px-2 py-1 rounded text-xs ${car.isAvailable ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-700'}`}>{car.isAvailable ? 'Available' : 'Unavailable'}</button>
                     </td>
@@ -216,6 +266,25 @@ export default function CarOwnerDashboard() {
       {/* Bookings */}
       <div className="mt-8">
         <h2 className="text-xl font-semibold mb-2">Bookings</h2>
+        {/* Filters */}
+        <div className="mb-3 flex flex-wrap items-end gap-2">
+          <div>
+            <label className="block text-xs text-gray-600">Status</label>
+            <select value={bookingFilters.status} onChange={e => setBookingFilters({ ...bookingFilters, status: e.target.value })} className="px-3 py-2 border rounded">
+              <option value="">All</option>
+              {['pending','confirmed','active','completed','cancelled'].map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs text-gray-600">From</label>
+            <input type="date" value={bookingFilters.from} onChange={e => setBookingFilters({ ...bookingFilters, from: e.target.value })} className="px-3 py-2 border rounded" />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-600">To</label>
+            <input type="date" value={bookingFilters.to} onChange={e => setBookingFilters({ ...bookingFilters, to: e.target.value })} className="px-3 py-2 border rounded" />
+          </div>
+          <button onClick={exportBookingsCsv} className="ml-auto px-3 py-2 bg-[#a06b42] hover:bg-[#8f5a32] text-white rounded">Export CSV</button>
+        </div>
         <div className="bg-white rounded-lg shadow overflow-x-auto">
           <table className="min-w-full text-sm">
             <thead>
@@ -229,15 +298,26 @@ export default function CarOwnerDashboard() {
               </tr>
             </thead>
             <tbody>
-              {bookings.map(b => (
+              {bookings.filter(b => {
+                if (bookingFilters.status && b.status !== bookingFilters.status) return false;
+                if (bookingFilters.from) {
+                  const from = new Date(bookingFilters.from);
+                  if (new Date(b.pickupDate) < from) return false;
+                }
+                if (bookingFilters.to) {
+                  const to = new Date(bookingFilters.to);
+                  if (new Date(b.returnDate) > to) return false;
+                }
+                return true;
+              }).map(b => (
                 <tr key={b._id} className="border-t">
                   <td className="p-3">{b.car?.vehicleName}</td>
                   <td className="p-3">{b.guest?.firstName} {b.guest?.lastName}</td>
                   <td className="p-3">{new Date(b.pickupDate).toLocaleDateString()} → {new Date(b.returnDate).toLocaleDateString()}</td>
-                  <td className="p-3">{b.totalAmount}</td>
+                  <td className="p-3">RWF {Number(b.totalAmount || 0).toLocaleString()}</td>
                   <td className="p-3"><span className="px-2 py-1 rounded bg-gray-100">{b.status}</span></td>
                   <td className="p-3 flex items-center gap-2">
-                    {['pending','confirmed','active'].map(s => (
+                    {['pending','confirmed','active','completed','cancelled'].map(s => (
                       <button key={s} onClick={async () => {
                         const res = await fetch(`${API_URL}/api/car-bookings/${b._id}/status`, { method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: s }) });
                         const data = await res.json();
@@ -246,6 +326,7 @@ export default function CarOwnerDashboard() {
                         toast.success('Status updated');
                       }} className="px-2 py-1 bg-blue-600 text-white rounded text-xs">{s}</button>
                     ))}
+                    <button onClick={() => setReceiptBooking(b)} className="px-2 py-1 bg-green-600 text-white rounded text-xs">Receipt</button>
                     <a
                       href={`/messages?to=${b.guest?._id || ''}&bookingId=${b._id}`}
                       className="px-2 py-1 bg-gray-800 text-white rounded text-xs"
@@ -259,6 +340,26 @@ export default function CarOwnerDashboard() {
           </table>
         </div>
       </div>
+
+      {receiptBooking && (
+        <ReceiptPreview
+          title="Car Rental Receipt"
+          lines={[
+            { label: 'Receipt', value: `#${String(receiptBooking._id).slice(-8)}` },
+            { label: 'Date', value: new Date().toLocaleString() },
+            '---',
+            { label: 'Car', value: receiptBooking.car?.vehicleName || '' },
+            { label: 'Renter', value: `${receiptBooking.guest?.firstName || ''} ${receiptBooking.guest?.lastName || ''}`.trim() },
+            { label: 'Pickup', value: new Date(receiptBooking.pickupDate).toLocaleDateString() },
+            { label: 'Return', value: new Date(receiptBooking.returnDate).toLocaleDateString() },
+            { label: 'Days', value: String(receiptBooking.numberOfDays || 0) },
+            { label: 'Amount', value: `RWF ${Number(receiptBooking.totalAmount || 0).toLocaleString()}` },
+            { label: 'Status', value: receiptBooking.status || '' },
+          ]}
+          onPrint={() => window.print()}
+          onClose={() => setReceiptBooking(null)}
+        />
+      )}
     </div>
   );
 }

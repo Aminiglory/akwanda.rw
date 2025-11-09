@@ -51,16 +51,17 @@
 /* Card lift effect (applies to existing modern-card-elevated) */
 .modern-card-elevated {
   background: var(--ak-card);
-  border: 1px solid var(--ak-border);
+  border: none;
   border-radius: 1rem;
-  box-shadow: 0 1px 2px rgba(0,0,0,.04);
+  box-shadow: 0 2px 8px rgba(0,0,0,.08);
 }
-.modern-card-elevated:hover { box-shadow: 0 8px 24px rgba(0,0,0,.12); }
+.modern-card-elevated:hover { box-shadow: 0 8px 24px rgba(0,0,0,.15); }
 
 /* Bordered card helper */
 .card-bordered {
-  border: 1px solid var(--ak-border);
+  border: none;
   border-radius: 0.875rem;
+  box-shadow: 0 1px 4px rgba(0,0,0,.06);
 }
 
 /* Subtle secondary surfaces */

@@ -67,37 +67,7 @@ const DealsPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Hero Section */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-16">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">
-              <FaFire className="inline-block mr-3 text-yellow-400" />
-              Hot Deals & Special Offers
-            </h1>
-            <p className="text-xl text-blue-100 mb-8">
-              Save big on your next stay with our exclusive deals
-            </p>
-            
-            {/* Category Filter */}
-            <div className="flex flex-wrap justify-center gap-3">
-              {categories.map(cat => (
-                <button
-                  key={cat.value}
-                  onClick={() => setSelectedCategory(cat.value)}
-                  className={`px-6 py-2 rounded-full font-semibold transition-all ${
-                    selectedCategory === cat.value
-                      ? 'bg-white text-blue-600 shadow-lg'
-                      : 'bg-blue-700 text-white hover:bg-blue-600'
-                  }`}
-                >
-                  {cat.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Removed hero banner */}
 
       {/* Deals Stats Bar */}
       <div className="bg-white border-b border-gray-200 py-4">

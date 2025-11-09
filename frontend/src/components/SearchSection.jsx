@@ -116,14 +116,14 @@ const SearchSection = () => {
                   <FaUser className="icon-left" />
                   <select
                     className="w-full pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 appearance-none bg-white"
-                    value={searchData.guests}
-                    onChange={(e) => handleInputChange('guests', e.target.value)}
+                    value={Number(searchData.guests) || 1}
+                    onChange={(e) => handleInputChange('guests', Number(e.target.value))}
                   >
                     <option value="1">1 Guest</option>
                     <option value="2">2 Guests</option>
                     <option value="3">3 Guests</option>
                     <option value="4">4 Guests</option>
-                    <option value="5+">5+ Guests</option>
+                    <option value="5">5+ Guests</option>
                   </select>
                 </div>
               </div>

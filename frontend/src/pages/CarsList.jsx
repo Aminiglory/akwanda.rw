@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { FaCar, FaMapMarkerAlt, FaUsers, FaGasPump, FaCog, FaStar } from 'react-icons/fa';
+import PropertyCard from '../components/PropertyCard';
+import { useAuth } from '../contexts/AuthContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -9,6 +11,59 @@ export default function CarsList() {
   const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState({ location: '', type: '', q: '' });
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'table'
+  const navigate = useNavigate();
+  const [favIds, setFavIds] = useState([]);
+  const { isAuthenticated } = useAuth();
+
+  const makeAbsolute = (u) => {
+    if (!u) return null;
+    let s = String(u).trim().replace(/\\+/g, '/');
+    if (/^https?:\/\//i.test(s)) return s;
+    if (!s.startsWith('/')) s = `/${s}`;
+    return `${API_URL}${s}`;
+  };
+
+  // Load favorites from server if authenticated, else localStorage
+  useEffect(() => {
+    (async () => {
+      try {
+        if (isAuthenticated) {
+          const res = await fetch(`${API_URL}/api/user/wishlist-cars`, { credentials: 'include' });
+          const data = await res.json();
+          if (res.ok) { setFavIds((data.wishlist || []).map(String)); return; }
+        }
+        const raw = localStorage.getItem('car-favorites');
+        const list = raw ? JSON.parse(raw) : [];
+        setFavIds(Array.isArray(list) ? list : []);
+      } catch { setFavIds([]); }
+    })();
+  }, [isAuthenticated]);
+
+  const toggleWishlist = async (id) => {
+    const sid = String(id);
+    const set = new Set(favIds.map(String));
+    const exists = set.has(sid);
+    // Optimistic update
+    if (exists) set.delete(sid); else set.add(sid);
+    const next = Array.from(set);
+    setFavIds(next);
+    try {
+      if (isAuthenticated) {
+        const res = await fetch(`${API_URL}/api/user/wishlist-cars/${encodeURIComponent(sid)}`, {
+          method: exists ? 'DELETE' : 'POST',
+          credentials: 'include'
+        });
+        if (!res.ok) throw new Error('Wishlist update failed');
+      } else {
+        localStorage.setItem('car-favorites', JSON.stringify(next));
+      }
+    } catch (_) {
+      // revert on failure
+      const revert = new Set(next);
+      if (exists) revert.add(sid); else revert.delete(sid);
+      setFavIds(Array.from(revert));
+    }
+  };
 
   // Mock data for demonstration
   const mockCars = [
@@ -245,65 +300,32 @@ export default function CarsList() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {cars.map(c => (
-                <Link key={c._id} to={`/cars/${c._id}`} className="modern-card-elevated overflow-hidden hover:scale-105 transition-all duration-300">
-                  {/* Image */}
-                  <div className="relative h-48 overflow-hidden">
-                    <img 
-                      src={c.images?.[0] || 'https://images.unsplash.com/photo-1549317336-206569e8475c?w=500&h=300&fit=crop'} 
-                      className="w-full h-full object-cover transition-transform duration-300 hover:scale-110" 
-                      alt={c.vehicleName}
-                    />
-                    <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1 text-sm font-semibold text-gray-800">
-                      RWF {c.pricePerDay?.toLocaleString()}/day
-                    </div>
-                    <div className="absolute top-4 right-4 bg-primary text-white px-3 py-1 rounded-full text-sm font-semibold">
-                      {c.type?.charAt(0).toUpperCase() + c.type?.slice(1)}
-                    </div>
-                  </div>
-
-                  {/* Content */}
-                  <div className="p-6">
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">{c.vehicleName}</h3>
-                    <p className="text-gray-600 mb-3">{c.brand} {c.model}</p>
-                    
-                    {/* Rating */}
-                    <div className="flex items-center mb-4">
-                      <div className="flex items-center mr-2">
-                        {renderStars(c.rating)}
-                      </div>
-                      <span className="text-sm text-gray-600">
-                        {c.rating} ({c.reviews} reviews)
-                      </span>
-                    </div>
-
-                    {/* Features */}
-                    <div className="grid grid-cols-2 gap-3 mb-4 text-sm text-gray-600">
-                      <div className="flex items-center">
-                        <FaUsers className="mr-2 text-primary" />
-                        {c.capacity} seats
-                      </div>
-                      <div className="flex items-center">
-                        <FaCog className="mr-2 text-primary" />
-                        {c.transmission}
-                      </div>
-                      <div className="flex items-center">
-                        <FaGasPump className="mr-2 text-primary" />
-                        {c.fuelType}
-                      </div>
-                      <div className="flex items-center">
-                        <FaMapMarkerAlt className="mr-2 text-primary" />
-                        {c.location}
-                      </div>
-                    </div>
-
-                    {/* Book Button */}
-                    <button className="w-full btn-primary text-white py-3 rounded-xl font-semibold transition-all duration-300 hover:scale-105 shadow-lg">
-                      View Details & Book
-                    </button>
-                  </div>
-                </Link>
-              ))}
+              {cars.map(c => {
+                const firstImg = Array.isArray(c.images) && c.images.length ? makeAbsolute(c.images[0]) : null;
+                const title = c.vehicleName || `${c.brand || ''} ${c.model || ''}`.trim();
+                const wishlisted = favIds.some(x => String(x) === String(c._id));
+                return (
+                  <PropertyCard
+                    key={c._id}
+                    listing={{
+                      id: c._id,
+                      title,
+                      location: c.location || '',
+                      image: firstImg,
+                      price: Number(c.pricePerDay || 0),
+                      bedrooms: c.capacity, // repurpose as capacity
+                      bathrooms: null,
+                      area: `${(c.vehicleType || c.type || '').toString()}`,
+                      status: 'active',
+                      bookings: Number(c.reviews || 0),
+                      host: c.ownerName || '',
+                      wishlisted
+                    }}
+                    onView={() => navigate(`/cars/${c._id}`)}
+                    onToggleWishlist={() => toggleWishlist(c._id)}
+                  />
+                );
+              })}
             </div>
           ))
         )}

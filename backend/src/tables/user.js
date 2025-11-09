@@ -12,6 +12,10 @@ const mongoose = require('mongoose');
       bio: { type: String, maxlength: 1000 },
       // Wishlist of property IDs (server-synced favorites)
       wishlist: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Property' }],
+      // Wishlist of cars
+      wishlistCars: [{ type: mongoose.Schema.Types.ObjectId, ref: 'CarRental' }],
+      // Wishlist of attractions
+      wishlistAttractions: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Attraction' }],
       // Admin control fields
       isBlocked: { type: Boolean, default: false },
       blockReason: { type: String, maxlength: 500 },

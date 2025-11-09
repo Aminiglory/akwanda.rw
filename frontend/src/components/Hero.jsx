@@ -2,18 +2,46 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { FaBuilding, FaSmile, FaThumbsUp } from 'react-icons/fa';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+// Normalize API base to avoid mixed content on HTTPS (notably strict on mobile)
+const API_BASE = (() => {
+  let base = API_URL;
+  if (typeof window !== 'undefined' && window.location.protocol === 'https:' && /^http:\/\//i.test(base)) {
+    base = base.replace(/^http:\/\//i, 'https://');
+  }
+  return base;
+})();
 
-// Helper function to construct absolute image URLs
+// Helper function to construct absolute image URLs (robust against various stored formats)
 const makeAbsoluteUrl = (imagePath) => {
   if (!imagePath) return null;
-  const path = String(imagePath).replace(/\\/g, '/');
-  if (path.startsWith('http://') || path.startsWith('https://')) {
+  let path = String(imagePath).trim().replace(/\\/g, '/');
+  // Normalize accidental leading slashes (but keep protocol double slash)
+  path = path.replace(/^\/+/, '/');
+
+  // If already absolute URL
+  if (/^https?:\/\//i.test(path)) {
+    // Upgrade to https when current page is https to prevent mixed content (common on mobile)
+    if (typeof window !== 'undefined' && window.location.protocol === 'https:' && /^http:\/\//i.test(path)) {
+      return path.replace(/^http:\/\//i, 'https://');
+    }
     return path;
   }
-  if (path.startsWith('/')) {
-    return `${API_URL}${path}`;
+
+  // Ensure leading slash for server-served assets
+  if (!path.startsWith('/')) path = `/${path}`;
+
+  // Build from configured API_URL, upgrading to https if needed
+  if (API_URL) {
+    let base = API_URL;
+    if (typeof window !== 'undefined' && window.location.protocol === 'https:' && /^http:\/\//i.test(base)) {
+      base = base.replace(/^http:\/\//i, 'https://');
+    }
+    return `${base}${path}`;
   }
-  return `${API_URL}/${path}`;
+
+  // Fallback to same-origin if API_URL is not set
+  const origin = (typeof window !== 'undefined' && window.location?.origin) ? window.location.origin : '';
+  return `${origin}${path}`;
 };
 
 const Hero = () => {
@@ -48,7 +76,7 @@ const Hero = () => {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch(`${API_URL}/api/metrics/landing`);
+        const res = await fetch(`${API_BASE}/api/metrics/landing`);
         if (!res.ok) return;
         const data = await res.json();
         if (data.metrics) setMetrics(data.metrics);
@@ -68,8 +96,8 @@ const Hero = () => {
   useEffect(() => {
     (async () => {
       try {
-        console.log('Fetching landing content from:', `${API_URL}/api/content/landing`);
-        const res = await fetch(`${API_URL}/api/content/landing`);
+        console.log('Fetching landing content from:', `${API_BASE}/api/content/landing`);
+        const res = await fetch(`${API_BASE}/api/content/landing`);
         console.log('Response status:', res.status, res.statusText);
         
         if (!res.ok) { 
@@ -91,25 +119,20 @@ const Hero = () => {
             published: c.published
           });
           
-          const fromSlides = Array.isArray(c.heroSlides) && c.heroSlides.length > 0
+          const fromSlides = (Array.isArray(c.heroSlides) && c.heroSlides.length > 0
             ? c.heroSlides.map(s => {
-                const absoluteUrl = makeAbsoluteUrl(s.image);
-                console.log('Processing slide:', s.image, '→', absoluteUrl);
-                return { 
-                  image: absoluteUrl, 
-                  caption: s.caption || '' 
-                };
+                const absoluteUrl = makeAbsoluteUrl(s?.image);
+                console.log('Processing slide:', s?.image, '→', absoluteUrl);
+                return absoluteUrl ? { image: absoluteUrl, caption: s?.caption || '' } : null;
               })
             : (Array.isArray(c.heroImages) && c.heroImages.length > 0
                 ? c.heroImages.map(imgPath => {
                     const absoluteUrl = makeAbsoluteUrl(imgPath);
                     console.log('Processing image:', imgPath, '→', absoluteUrl);
-                    return { 
-                      image: absoluteUrl, 
-                      caption: '' 
-                    };
-                  }) 
-                : []);
+                    return absoluteUrl ? { image: absoluteUrl, caption: '' } : null;
+                  })
+                : [])
+          ).filter(Boolean);
           
           console.log('Final processed slides:', fromSlides);
           setSlides(fromSlides);
@@ -206,7 +229,12 @@ const Hero = () => {
                 src={url}
                 alt={s.caption || `Slide ${i+1}`}
                 className={`absolute inset-0 w-full h-full object-cover object-center ${transition === 'fade' ? 'transition-opacity duration-700' : 'transition-transform duration-700'} ${active ? (transition === 'fade' ? 'opacity-100' : 'translate-x-0') : (transition === 'fade' ? 'opacity-0' : 'translate-x-full')}`}
+                width={1920}
+                height={1080}
+                sizes="100vw"
                 loading={i === 0 ? 'eager' : 'lazy'}
+                decoding={i === 0 ? 'sync' : 'async'}
+                fetchpriority={i === 0 ? 'high' : 'auto'}
                 onError={(e) => {
                   console.error('Failed to load hero image:', url);
                   e.target.style.display = 'none'; // Hide broken image
@@ -215,15 +243,10 @@ const Hero = () => {
             );
           })
         ) : (
-          <div className="absolute inset-0 bg-gradient-to-br from-[#8F633E] to-[#4B2E05] flex items-center justify-center">
-            <div className="text-center px-4">
-              <p className="text-white text-xl mb-2">No hero images configured</p>
-              <p className="text-white/70 text-sm">Admin: Upload and publish hero images in the Landing Page Content section</p>
-            </div>
-          </div>
+          <div className="absolute inset-0 bg-gradient-to-br from-gray-200 via-gray-100 to-white animate-pulse" />
         )}
         {/* Dark overlay for readability */}
-        {slides.length > 0 && <div className="absolute inset-0 bg-black/40"></div>}
+        {slides.length > 0 && <div className="absolute inset-0 bg-[#4b2a00]/40"></div>}
       </div>
 
       {/* Overlay content */}

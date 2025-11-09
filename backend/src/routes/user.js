@@ -47,6 +47,104 @@ router.get('/basic', requireAuth, async (req, res) => {
     }
 });
 
+// Wishlist (Cars)
+// GET /api/user/wishlist-cars
+router.get('/wishlist-cars', requireAuth, async (req, res) => {
+  try {
+    const CarRental = require('../tables/carRental');
+    const user = await User.findById(req.user.id).select('wishlistCars');
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    const cars = await CarRental.find({ _id: { $in: user.wishlistCars || [] } })
+      .select('_id vehicleName brand model vehicleType pricePerDay images location capacity transmission fuelType');
+    return res.json({ wishlist: (user.wishlistCars || []).map(String), cars });
+  } catch (e) {
+    return res.status(500).json({ message: 'Failed to load car wishlist' });
+  }
+});
+
+// POST /api/user/wishlist-cars/:carId
+router.post('/wishlist-cars/:carId', requireAuth, async (req, res) => {
+  try {
+    const CarRental = require('../tables/carRental');
+    const cid = String(req.params.carId || '').trim();
+    if (!cid) return res.status(400).json({ message: 'Car ID required' });
+    const exists = await CarRental.findById(cid).select('_id');
+    if (!exists) return res.status(404).json({ message: 'Car not found' });
+    const user = await User.findById(req.user.id).select('wishlistCars');
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    const set = new Set((user.wishlistCars || []).map(x => String(x)));
+    set.add(cid);
+    user.wishlistCars = Array.from(set);
+    await user.save();
+    return res.json({ wishlist: user.wishlistCars.map(String) });
+  } catch (e) {
+    return res.status(500).json({ message: 'Failed to add car to wishlist' });
+  }
+});
+
+// DELETE /api/user/wishlist-cars/:carId
+router.delete('/wishlist-cars/:carId', requireAuth, async (req, res) => {
+  try {
+    const cid = String(req.params.carId || '').trim();
+    const user = await User.findById(req.user.id).select('wishlistCars');
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    user.wishlistCars = (user.wishlistCars || []).filter(x => String(x) !== cid);
+    await user.save();
+    return res.json({ wishlist: user.wishlistCars.map(String) });
+  } catch (e) {
+    return res.status(500).json({ message: 'Failed to remove car from wishlist' });
+  }
+});
+
+// Wishlist (Attractions)
+// GET /api/user/wishlist-attractions
+router.get('/wishlist-attractions', requireAuth, async (req, res) => {
+  try {
+    const Attraction = require('../tables/attraction');
+    const user = await User.findById(req.user.id).select('wishlistAttractions');
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    const attrs = await Attraction.find({ _id: { $in: user.wishlistAttractions || [] } })
+      .select('_id name category city location price images');
+    return res.json({ wishlist: (user.wishlistAttractions || []).map(String), attractions: attrs });
+  } catch (e) {
+    return res.status(500).json({ message: 'Failed to load attraction wishlist' });
+  }
+});
+
+// POST /api/user/wishlist-attractions/:attractionId
+router.post('/wishlist-attractions/:attractionId', requireAuth, async (req, res) => {
+  try {
+    const Attraction = require('../tables/attraction');
+    const aid = String(req.params.attractionId || '').trim();
+    if (!aid) return res.status(400).json({ message: 'Attraction ID required' });
+    const exists = await Attraction.findById(aid).select('_id');
+    if (!exists) return res.status(404).json({ message: 'Attraction not found' });
+    const user = await User.findById(req.user.id).select('wishlistAttractions');
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    const set = new Set((user.wishlistAttractions || []).map(x => String(x)));
+    set.add(aid);
+    user.wishlistAttractions = Array.from(set);
+    await user.save();
+    return res.json({ wishlist: user.wishlistAttractions.map(String) });
+  } catch (e) {
+    return res.status(500).json({ message: 'Failed to add attraction to wishlist' });
+  }
+});
+
+// DELETE /api/user/wishlist-attractions/:attractionId
+router.delete('/wishlist-attractions/:attractionId', requireAuth, async (req, res) => {
+  try {
+    const aid = String(req.params.attractionId || '').trim();
+    const user = await User.findById(req.user.id).select('wishlistAttractions');
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    user.wishlistAttractions = (user.wishlistAttractions || []).filter(x => String(x) !== aid);
+    await user.save();
+    return res.json({ wishlist: user.wishlistAttractions.map(String) });
+  } catch (e) {
+    return res.status(500).json({ message: 'Failed to remove attraction from wishlist' });
+  }
+});
+
 // Become host endpoint
 router.post('/become-host', requireAuth, async (req, res) => {
     try {

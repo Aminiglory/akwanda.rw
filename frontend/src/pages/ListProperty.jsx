@@ -221,7 +221,7 @@ const ListProperty = () => {
                     <h3 className="text-lg font-semibold">Unit {idx + 1}</h3>
                     {units.length > 1 && <button onClick={() => setUnits(prev => prev.filter((_, i) => i !== idx))} className="text-red-600 text-sm">Delete</button>}
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium mb-2">Room Number <span className="text-red-500">*</span></label>
                       <input type="text" value={unit.roomNumber} onChange={(e) => setUnits(prev => prev.map((u, i) => i === idx ? { ...u, roomNumber: e.target.value } : u))}
@@ -244,7 +244,7 @@ const ListProperty = () => {
               <input type="file" multiple accept="image/*" onChange={(e) => setPropertyImages(prev => [...prev, ...Array.from(e.target.files)])}
                 className="w-full px-4 py-2 border rounded-lg" />
               {propertyImages.length > 0 && (
-                <div className="grid grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                   {propertyImages.map((img, idx) => (
                     <div key={idx} className="relative">
                       <img src={URL.createObjectURL(img)} alt="" className="w-full h-32 object-cover rounded-lg" />

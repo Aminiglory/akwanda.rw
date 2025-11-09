@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { Link, Navigate } from "react-router-dom";
+import React, { useEffect, useState, useRef } from "react";
+import { Link } from "react-router-dom";
 import {
   FaBed,
   FaBath,
@@ -12,19 +12,21 @@ import {
   FaSortAmountDown,
 } from "react-icons/fa";
 import toast from "react-hot-toast";
-import { useAuth } from "../contexts/AuthContext";
+// Auth not required to view listings
 import { safeApiGet, apiGet } from "../utils/apiUtils";
 import PropertyDealBadge from "../components/PropertyDealBadge";
-import AkwandaCard from "../components/AkwandaCard";
+import PropertyCard from "../components/PropertyCard";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 const ApartmentsListing = () => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const PRICE_STEP = 5000;
+  const snapToStep = (v) => Math.max(0, Math.round(Number(v || 0) / PRICE_STEP) * PRICE_STEP);
+  // Viewing listings is public; booking will require login on the booking flow
   const [filters, setFilters] = useState({
     location: "",
     priceMin: 0,
-    priceMax: 5000000,
+    priceMax: null,
     bedrooms: "",
     amenities: [],
     sortBy: "price-asc",
@@ -42,7 +44,8 @@ const ApartmentsListing = () => {
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'table'
   const [loading, setLoading] = useState(true);
   const [fetchTimer, setFetchTimer] = useState(null);
-  const [budgetBounds, setBudgetBounds] = useState({ min: 0, max: 5000000 });
+  const [budgetBounds, setBudgetBounds] = useState({ min: 0, max: 2500000 });
+  const autoInitPricesRef = useRef(true);
 
   // Initialize filters from URL query params (q, startDate, endDate, guests)
   useEffect(() => {
@@ -52,15 +55,17 @@ const ApartmentsListing = () => {
       const startDate = sp.get('startDate') || '';
       const endDate = sp.get('endDate') || '';
       const guests = sp.get('guests');
-      if (q || startDate || endDate || guests) {
-        setFilters(prev => ({
-          ...prev,
-          location: q || prev.location,
-          checkIn: startDate || prev.checkIn,
-          checkOut: endDate || prev.checkOut,
-          guests: guests ? Number(guests) || prev.guests : prev.guests,
-        }));
-      }
+      const minPrice = sp.get('minPrice');
+      const maxPrice = sp.get('maxPrice');
+      setFilters(prev => ({
+        ...prev,
+        location: q || prev.location,
+        checkIn: startDate || prev.checkIn,
+        checkOut: endDate || prev.checkOut,
+        guests: guests ? Number(guests) || prev.guests : prev.guests,
+        priceMin: minPrice != null ? snapToStep(minPrice) : prev.priceMin,
+        priceMax: maxPrice != null ? (isNaN(Number(maxPrice)) ? null : snapToStep(maxPrice)) : prev.priceMax,
+      }));
     } catch (_) {}
   }, []);
 
@@ -86,6 +91,7 @@ const ApartmentsListing = () => {
       const params = new URLSearchParams();
       if (filters.location) params.set('q', filters.location);
       if (filters.priceMin != null) params.set('minPrice', String(filters.priceMin));
+      // Only send maxPrice if a maximum is selected
       if (filters.priceMax != null) params.set('maxPrice', String(filters.priceMax));
       if (filters.bedrooms) params.set('bedrooms', filters.bedrooms);
       if (filters.amenities.length) params.set('amenities', filters.amenities.join(','));
@@ -96,11 +102,11 @@ const ApartmentsListing = () => {
       }
       
       // Use enhanced API utilities with retry logic and error handling
-      const data = await safeApiGet(`/api/properties?${params.toString()}`, {
-        fallback: { properties: [] },
-        signal,
-        timeout: 15000
-      });
+      const data = await safeApiGet(
+        `/api/properties?${params.toString()}`,
+        { properties: [] },
+        { signal, timeout: 15000 }
+      );
       
       const list = (data.properties || []);
       const mapped = list.map((p) => {
@@ -132,7 +138,7 @@ const ApartmentsListing = () => {
             ? p.amenities
             : ["WiFi", "Parking", "Kitchen"],
         isAvailable: p.isActive && (!p.rooms || p.rooms.length === 0 || p.rooms.some(room => room.isAvailable !== false)),
-        host: p.host ? `${p.host.firstName} ${p.host.lastName}` : "—",
+        host: p.host ? `${p.host.firstName || ''} ${p.host.lastName || ''}`.trim() : "—",
         hostId: p.host?._id || p.host?.id || null,
       });
       });
@@ -174,15 +180,30 @@ const ApartmentsListing = () => {
       if (mapped.length) {
         const prices = mapped.map(m => m.price).filter(n => typeof n === 'number' && !isNaN(n));
         if (prices.length) {
-          const min = Math.max(0, Math.min(...prices));
-          const max = Math.max(...prices);
-          setBudgetBounds({ min: 0, max: Math.max(max, 5000000) });
-          // Keep selected range within new bounds but not force to 0 if user selected higher lower-bound
-          setFilters(prev => ({
-            ...prev,
-            priceMin: Math.max(Math.min(prev.priceMin, Math.max(max, 5000000)), 0),
-            priceMax: Math.min(Math.max(prev.priceMax, prev.priceMin + 5000), Math.max(max, 5000000))
-          }));
+          const min = Math.max(0, snapToStep(Math.min(...prices)));
+          const max = 2500000; // Fixed upper bound
+          setBudgetBounds({ min: 0, max });
+          // Initialize handles only once: start min at 0 by default (unless URL provided values), max at data max
+          setFilters(prev => {
+            if (autoInitPricesRef.current) {
+              autoInitPricesRef.current = false;
+              const useMin = snapToStep(Math.max(0, prev.priceMin)); // keep 0 as default starting point
+              const useMax = prev.priceMax == null ? max : snapToStep(prev.priceMax);
+              return {
+                ...prev,
+                priceMin: Math.max(Math.min(useMin, max - PRICE_STEP), 0),
+                priceMax: Math.min(Math.max(useMax, useMin + PRICE_STEP), max)
+              };
+            }
+            // Keep selected range within new bounds. If no max selected (null), keep it null.
+            return {
+              ...prev,
+              priceMin: Math.max(Math.min(prev.priceMin, max), 0),
+              priceMax: prev.priceMax == null
+                ? null
+                : Math.min(Math.max(snapToStep(prev.priceMax), snapToStep(prev.priceMin) + PRICE_STEP), max)
+            };
+          });
         }
       }
     } catch (e) {
@@ -275,8 +296,7 @@ const ApartmentsListing = () => {
     ));
   };
 
-  if (isLoading) return null;
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  // Do not gate this page by authentication; allow guest browsing
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -367,31 +387,122 @@ const ApartmentsListing = () => {
                 <div className="px-1">
                   <div className="flex items-center justify-between text-xs text-gray-600 mb-1">
                     <span>RWF {filters.priceMin.toLocaleString()}</span>
-                    <span>RWF {filters.priceMax.toLocaleString()}</span>
+                    <span>{filters.priceMax == null ? 'No max' : `RWF ${Number(filters.priceMax).toLocaleString()}`}</span>
                   </div>
-                  <div className="relative h-6">
+                  <div className="relative h-8">
+                    {/* Selected range track */}
+                    <div
+                      className="absolute h-1 bg-blue-500 rounded"
+                      style={{
+                        top: 14,
+                        left: `${((filters.priceMin - budgetBounds.min) / (budgetBounds.max - budgetBounds.min)) * 100}%`,
+                        width: `${(((filters.priceMax == null ? budgetBounds.max : filters.priceMax) - filters.priceMin) / (budgetBounds.max - budgetBounds.min)) * 100}%`
+                      }}
+                    />
                     <input
                       type="range"
                       min={budgetBounds.min}
                       max={budgetBounds.max}
-                      step="5000"
+                      step={PRICE_STEP}
+                      list="budget-ticks"
                       value={filters.priceMin}
-                      onChange={(e) => handleFilterChange('priceMin', Math.min(Number(e.target.value), filters.priceMax - 5000))}
-                      className="absolute w-full pointer-events-auto appearance-none bg-transparent"
-                      style={{ top: 12 }}
+                      onChange={(e) => {
+                        const val = snapToStep(e.target.value);
+                        const upper = (filters.priceMax ?? budgetBounds.max) - PRICE_STEP;
+                        handleFilterChange('priceMin', Math.min(val, Math.max(upper, budgetBounds.min)));
+                      }}
+                      className="absolute w-full pointer-events-auto appearance-none bg-transparent z-20 range-thumb-sm"
+                      style={{ top: 10 }}
                     />
                     <input
                       type="range"
                       min={budgetBounds.min}
                       max={budgetBounds.max}
-                      step="5000"
-                      value={filters.priceMax}
-                      onChange={(e) => handleFilterChange('priceMax', Math.max(Number(e.target.value), filters.priceMin + 5000))}
-                      className="absolute w-full pointer-events-auto appearance-none bg-transparent"
-                      style={{ top: 12 }}
+                      step={PRICE_STEP}
+                      list="budget-ticks"
+                      value={filters.priceMax == null ? budgetBounds.max : filters.priceMax}
+                      onChange={(e) => {
+                        const val = snapToStep(e.target.value);
+                        handleFilterChange('priceMax', Math.max(val, snapToStep(filters.priceMin) + PRICE_STEP));
+                      }}
+                      disabled={filters.priceMax == null}
+                      className="absolute w-full pointer-events-auto appearance-none bg-transparent disabled:opacity-40 z-10 range-thumb-sm"
+                      style={{ top: 16 }}
                     />
                   </div>
-                  {/* Slider auto-scales bounds based on results; no extra inputs required */}
+                  {/* Tick marks (may not be supported in all browsers) */}
+                  <datalist id="budget-ticks">
+                    {Array.from({ length: Math.floor(budgetBounds.max / 50000) + 1 }, (_, i) => (
+                      <option key={i} value={i * 50000} />
+                    ))}
+                  </datalist>
+                  {/* Fine controls */}
+                  <div className="mt-2 flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        className="px-2 py-1 bg-gray-100 rounded hover:bg-gray-200"
+                        onClick={() => {
+                          const next = snapToStep(filters.priceMin - PRICE_STEP);
+                          handleFilterChange('priceMin', Math.max(0, next));
+                        }}
+                        aria-label="Decrease minimum budget"
+                      >−</button>
+                      <button
+                        type="button"
+                        className="px-2 py-1 bg-gray-100 rounded hover:bg-gray-200"
+                        onClick={() => {
+                          const upper = (filters.priceMax ?? budgetBounds.max) - PRICE_STEP;
+                          const next = snapToStep(filters.priceMin + PRICE_STEP);
+                          handleFilterChange('priceMin', Math.min(next, Math.max(upper, budgetBounds.min)));
+                        }}
+                        aria-label="Increase minimum budget"
+                      >+</button>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        className="px-2 py-1 bg-gray-100 rounded hover:bg-gray-200"
+                        disabled={filters.priceMax == null}
+                        onClick={() => {
+                          if (filters.priceMax == null) return;
+                          const lower = snapToStep(filters.priceMin) + PRICE_STEP;
+                          const next = snapToStep((filters.priceMax || budgetBounds.max) - PRICE_STEP);
+                          handleFilterChange('priceMax', Math.max(next, lower));
+                        }}
+                        aria-label="Decrease maximum budget"
+                      >−</button>
+                      <button
+                        type="button"
+                        className="px-2 py-1 bg-gray-100 rounded hover:bg-gray-200"
+                        disabled={filters.priceMax == null}
+                        onClick={() => {
+                          if (filters.priceMax == null) return;
+                          const next = snapToStep((filters.priceMax || budgetBounds.max) + PRICE_STEP);
+                          handleFilterChange('priceMax', Math.min(next, budgetBounds.max));
+                        }}
+                        aria-label="Increase maximum budget"
+                      >+</button>
+                    </div>
+                  </div>
+                  {/* Unlimited max toggle */}
+                  <div className="mt-2 flex items-center gap-2 text-sm">
+                    <input
+                      id="no-max-price"
+                      type="checkbox"
+                      className="h-4 w-4"
+                      checked={filters.priceMax == null}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          handleFilterChange('priceMax', null);
+                        } else {
+                          // Restore to current upper bound when toggled off
+                          handleFilterChange('priceMax', Math.max(filters.priceMin + 5000, budgetBounds.max));
+                        }
+                      }}
+                    />
+                    <label htmlFor="no-max-price" className="text-gray-700">No maximum price</label>
+                  </div>
                 </div>
               </div>
 
@@ -492,7 +603,7 @@ const ApartmentsListing = () => {
                   setFilters({
                     location: "",
                     priceMin: 0,
-                    priceMax: 500000,
+                    priceMax: null,
                     bedrooms: "",
                     amenities: [],
                     sortBy: "price-asc",
@@ -634,20 +745,21 @@ const ApartmentsListing = () => {
                               <PropertyDealBadge deal={apartment.bestDeal} size="sm" />
                             </div>
                           )}
-                          <AkwandaCard
-                            id={apartment.id}
-                            title={apartment.title}
-                            location={apartment.location}
-                            images={apartment.images && apartment.images.length ? apartment.images : [apartment.image]}
-                            pricePerNight={apartment.pricePerNight || apartment.price}
-                            category={apartment.category}
-                            rating={Number(apartment.rating) || 0}
-                            reviews={apartment.reviews}
-                            amenities={apartment.amenities}
-                            host={apartment.host}
-                            ownerId={apartment.hostId}
-                            isAvailable={apartment.isAvailable}
-                            href={apartment.href || `/apartment/${apartment.id}`}
+                          <PropertyCard
+                            listing={{
+                              id: apartment.id,
+                              title: apartment.title,
+                              location: apartment.location,
+                              image: (apartment.images && apartment.images.length ? apartment.images[0] : apartment.image),
+                              price: apartment.pricePerNight || apartment.price,
+                              bedrooms: apartment.bedrooms,
+                              bathrooms: apartment.bathrooms,
+                              area: apartment.size,
+                              status: apartment.isAvailable ? 'active' : 'inactive',
+                              bookings: apartment.reviews,
+                              host: apartment.host
+                            }}
+                            onView={() => (window.location.href = apartment.href || `/apartment/${apartment.id}`)}
                           />
                         </div>
                       ))}

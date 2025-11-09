@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FaStar } from 'react-icons/fa';
-import AkwandaCard from './AkwandaCard';
+import PropertyCard from './PropertyCard';
 import { safeApiGet } from '../utils/apiUtils';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -39,7 +39,8 @@ const FeaturedApartments = () => {
             bathrooms: p.bathrooms ?? 1,
             amenities: p.amenities || ["WiFi", "Parking", "Kitchen"],
             isAvailable: p.isActive,
-            discountPercent: p.discountPercent || 0
+            discountPercent: p.discountPercent || 0,
+            host: p.host ? `${p.host.firstName || ''} ${p.host.lastName || ''}`.trim() : '—'
           };
         }));
       }
@@ -79,19 +80,21 @@ const FeaturedApartments = () => {
         <div ref={gridRef} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {apartments.map((apartment, index) => (
             <div key={apartment.id} className={`${gridInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`} style={{ transition: 'all 500ms', transitionDelay: `${index * 80}ms` }}>
-              <AkwandaCard
-                id={apartment.id}
-                title={apartment.title}
-                location={apartment.location}
-                images={apartment.images && apartment.images.length ? apartment.images : [apartment.image]}
-                pricePerNight={Number(apartment.price || 0)}
-                category={'Apartment'}
-                rating={Number(apartment.rating || 0)}
-                reviews={apartment.reviews}
-                amenities={apartment.amenities}
-                host={null}
-                isAvailable={apartment.isAvailable}
-                href={`/apartment/${apartment.id}`}
+              <PropertyCard
+                listing={{
+                  id: apartment.id,
+                  title: apartment.title,
+                  location: apartment.location,
+                  image: (apartment.images && apartment.images.length ? apartment.images[0] : apartment.image),
+                  price: Number(apartment.price || 0),
+                  bedrooms: apartment.bedrooms,
+                  bathrooms: apartment.bathrooms,
+                  area: apartment.size,
+                  status: apartment.isAvailable ? 'active' : 'inactive',
+                  bookings: apartment.reviews,
+                  host: apartment.host
+                }}
+                onView={() => (window.location.href = `/apartment/${apartment.id}`)}
               />
             </div>
           ))}

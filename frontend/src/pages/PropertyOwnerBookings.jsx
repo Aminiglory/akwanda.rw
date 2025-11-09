@@ -3,7 +3,7 @@ import {
   FaCalendarAlt, FaUsers, FaMoneyBillWave, FaCheckCircle, FaClock, 
   FaEye, FaFileInvoice, FaFilter, FaDownload, FaComments, FaHome, 
   FaChartLine, FaPlus, FaSearch, FaChevronDown, FaChevronUp, 
-  FaEdit, FaTrash, FaStar, FaPhone, FaEnvelope, FaDollarSign,
+  FaEdit, FaTrash, FaStar, FaPhone, FaEnvelope, FaDollarSign, FaUser,
   FaMapMarkerAlt, FaBed, FaBath, FaWifi, FaCar, FaSwimmingPool,
   FaUtensils, FaTv, FaSnowflake, FaPaw, FaSmokingBan,
   FaExclamationTriangle, FaTimes, FaCheck, FaArrowRight, FaArrowLeft,
@@ -858,7 +858,6 @@ const PropertyOwnerBookings = () => {
         { label: 'Availability planner', href: '/owner/rates?view=availability-planner' },
         { label: 'Pricing per guest', href: '/owner/rates?view=pricing-per-guest' },
         { label: 'Country rates', href: '/owner/rates?view=country-rates' },
-        { label: 'Mobile rates', href: '/owner/rates?view=mobile-rates' },
       ]
     },
     {
@@ -946,6 +945,7 @@ const PropertyOwnerBookings = () => {
         { label: 'Invoices', href: '/dashboard?tab=finance&view=invoices' },
         { label: 'Reservations statement', href: '/dashboard?tab=finance&view=statement' },
         { label: 'Financial overview', href: '/dashboard?tab=finance&view=overview' },
+        { label: 'Transactions', href: '/transactions' },
         { label: 'Finance settings', href: '/settings?tab=finance' },
       ]
     },
@@ -985,7 +985,7 @@ const PropertyOwnerBookings = () => {
 
         {/* Property Owner Navigation - Desktop Only */}
         <div className="hidden lg:block mb-6">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+          <div className="bg-white rounded-lg shadow-md p-4">
             <div className="flex items-center justify-between flex-wrap gap-2">
               {/* Navigation Links */}
               <div className="flex items-center gap-2 flex-wrap">
@@ -1012,7 +1012,7 @@ const PropertyOwnerBookings = () => {
                     
                     {/* Dropdown Menu */}
                     {item.children.length > 0 && activeNavDropdown === item.label && (
-                      <div className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-lg border border-gray-200 py-2 min-w-[200px] z-[99999]">
+                      <div className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-xl py-2 min-w-[200px] z-[99999]">
                         {item.children.map((child, childIndex) => (
                           <button
                             key={childIndex}
@@ -1056,34 +1056,22 @@ const PropertyOwnerBookings = () => {
           </button>
         </div>
 
-        {/* Tab Navigation - Only unique tabs not in navbar */}
         <div className="mb-6">
-          <div className="border-b border-gray-200">
-            <nav className="-mb-px flex space-x-4 sm:space-x-8 overflow-x-auto scrollbar-hide">
-              {[
-                { id: 'dashboard', label: 'Home', icon: FaHome },
-                { id: 'reservations', label: 'Reservations', icon: FaCalendarAlt },
-                { id: 'reviews', label: 'Reviews', icon: FaStar },
-                { id: 'messages', label: 'Messages', icon: FaComments },
-                { id: 'photos', label: 'Photos', icon: FaImages },
-                { id: 'settings', label: 'Settings', icon: FaCog }
-              ].map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`group inline-flex items-center py-3 sm:py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
-                    activeTab === tab.id
-                      ? 'border-[#a06b42] text-[#a06b42]'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
-                >
-                  <tab.icon className={`mr-2 text-sm ${
-                    activeTab === tab.id ? 'text-[#a06b42]' : 'text-gray-400 group-hover:text-gray-500'
-                  }`} />
-                  {tab.label}
-                </button>
-              ))}
-            </nav>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div onClick={() => navigate('/owner/cars')} className="cursor-pointer neu-card p-5 flex items-center justify-between hover:shadow-lg transition-shadow">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Manage Cars</h3>
+                <p className="text-sm text-gray-600">Create, edit and view car bookings</p>
+              </div>
+              <FaCar className="text-3xl text-blue-600" />
+            </div>
+            <div onClick={() => navigate('/owner/attractions')} className="cursor-pointer neu-card p-5 flex items-center justify-between hover:shadow-lg transition-shadow">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Manage Attractions</h3>
+                <p className="text-sm text-gray-600">Create, edit and view attraction bookings</p>
+              </div>
+              <FaShoppingBag className="text-3xl text-pink-600" />
+            </div>
           </div>
         </div>
 
@@ -1229,7 +1217,7 @@ const PropertyOwnerBookings = () => {
             >
               <option value="all">All Properties</option>
               {properties.map(prop => (
-                <option key={prop._id} value={prop._id}>{prop.name}</option>
+                <option key={prop._id} value={prop._id}>{prop.title || prop.name || `Property ${prop._id?.slice(-4)}`}</option>
               ))}
             </select>
             <select
@@ -1381,7 +1369,6 @@ const PropertyOwnerBookings = () => {
                       <button
                         onClick={() => {
                           const guestId = b.guest?._id || b.guest;
-                          const hostId = b.property?.host || req.user?.id;
                           navigate(`/messages?recipient=${guestId}&booking=${b._id}`);
                         }}
                         className="p-2 rounded bg-[#003580] text-white hover:bg-[#002a66]"
@@ -1668,25 +1655,171 @@ const PropertyOwnerBookings = () => {
         {activeTab === 'analytics' && (
           <div className="space-y-8">
             <div className="neu-card p-6">
-              <h2 className="text-xl font-semibold mb-6">Performance Analytics</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-6">
-                  <h3 className="text-lg font-semibold text-indigo-900 mb-2">Occupancy Rate</h3>
-                  <div className="text-2xl font-bold text-indigo-600">{stats.occupancyRate}%</div>
+              <h2 className="text-xl font-semibold mb-6">
+                {analyticsView === 'dashboard' && 'Performance Analytics'}
+                {analyticsView === 'demand' && 'Demand for Location'}
+                {analyticsView === 'pace' && 'Your Pace of Bookings'}
+                {analyticsView === 'sales' && 'Sales Statistics'}
+                {analyticsView === 'booker' && 'Booker Insights'}
+                {analyticsView === 'bookwindow' && 'Booking Window Information'}
+                {analyticsView === 'cancellation' && 'Cancellation Characteristics'}
+                {analyticsView === 'competitive' && 'Competitive Set'}
+                {analyticsView === 'genius' && 'Genius Report'}
+                {analyticsView === 'ranking' && 'Ranking Dashboard'}
+                {analyticsView === 'performance' && 'Performance Dashboard'}
+              </h2>
+              
+              {analyticsView === 'dashboard' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <div className="bg-indigo-50 rounded-xl p-6 shadow-md">
+                    <h3 className="text-lg font-semibold text-indigo-900 mb-2">Occupancy Rate</h3>
+                    <div className="text-2xl font-bold text-indigo-600">{stats.occupancyRate}%</div>
+                  </div>
+                  <div className="bg-orange-50 rounded-xl p-6 shadow-md">
+                    <h3 className="text-lg font-semibold text-orange-900 mb-2">Avg Rating</h3>
+                    <div className="text-2xl font-bold text-orange-600">{stats.averageRating}</div>
+                  </div>
+                  <div className="bg-teal-50 rounded-xl p-6 shadow-md">
+                    <h3 className="text-lg font-semibold text-teal-900 mb-2">Total Bookings</h3>
+                    <div className="text-2xl font-bold text-teal-600">{stats.total}</div>
+                  </div>
+                  <div className="bg-pink-50 rounded-xl p-6 shadow-md">
+                    <h3 className="text-lg font-semibold text-pink-900 mb-2">Properties</h3>
+                    <div className="text-2xl font-bold text-pink-600">{stats.totalProperties}</div>
+                  </div>
                 </div>
-                <div className="bg-orange-50 border border-orange-200 rounded-xl p-6">
-                  <h3 className="text-lg font-semibold text-orange-900 mb-2">Avg Rating</h3>
-                  <div className="text-2xl font-bold text-orange-600">{stats.averageRating}</div>
+              )}
+
+              {analyticsView === 'demand' && (
+                <div className="space-y-4">
+                  <p className="text-gray-600">Analyze demand trends for your location and property type.</p>
+                  <div className="bg-blue-50 p-6 rounded-lg">
+                    <h4 className="font-semibold mb-3">Location Demand Index</h4>
+                    <div className="text-3xl font-bold text-blue-600 mb-2">High</div>
+                    <p className="text-sm text-gray-600">Your location is experiencing high demand this season</p>
+                  </div>
                 </div>
-                <div className="bg-teal-50 border border-teal-200 rounded-xl p-6">
-                  <h3 className="text-lg font-semibold text-teal-900 mb-2">Total Bookings</h3>
-                  <div className="text-2xl font-bold text-teal-600">{stats.total}</div>
+              )}
+
+              {analyticsView === 'pace' && (
+                <div className="space-y-4">
+                  <p className="text-gray-600">Track how quickly your properties are getting booked.</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-green-50 p-4 rounded-lg">
+                      <p className="text-sm text-gray-600">Avg Days to Book</p>
+                      <p className="text-2xl font-bold text-green-600">12 days</p>
+                    </div>
+                    <div className="bg-purple-50 p-4 rounded-lg">
+                      <p className="text-sm text-gray-600">Booking Velocity</p>
+                      <p className="text-2xl font-bold text-purple-600">Fast</p>
+                    </div>
+                  </div>
                 </div>
-                <div className="bg-pink-50 border border-pink-200 rounded-xl p-6">
-                  <h3 className="text-lg font-semibold text-pink-900 mb-2">Properties</h3>
-                  <div className="text-2xl font-bold text-pink-600">{stats.totalProperties}</div>
+              )}
+
+              {analyticsView === 'sales' && (
+                <div className="space-y-4">
+                  <p className="text-gray-600">Detailed sales statistics and revenue breakdown.</p>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <p className="text-sm text-gray-600">Total Revenue</p>
+                      <p className="text-xl font-bold">RWF {stats.totalRevenue?.toLocaleString()}</p>
+                    </div>
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <p className="text-sm text-gray-600">Avg Booking Value</p>
+                      <p className="text-xl font-bold">RWF {Math.round(stats.totalRevenue / (stats.total || 1)).toLocaleString()}</p>
+                    </div>
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <p className="text-sm text-gray-600">Total Bookings</p>
+                      <p className="text-xl font-bold">{stats.total}</p>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {analyticsView === 'booker' && (
+                <div className="space-y-4">
+                  <p className="text-gray-600">Understand who is booking your properties.</p>
+                  <div className="bg-indigo-50 p-6 rounded-lg">
+                    <h4 className="font-semibold mb-3">Guest Demographics</h4>
+                    <p className="text-sm text-gray-600">Most bookings from business travelers and families</p>
+                  </div>
+                </div>
+              )}
+
+              {analyticsView === 'bookwindow' && (
+                <div className="space-y-4">
+                  <p className="text-gray-600">Analyze how far in advance guests book.</p>
+                  <div className="bg-yellow-50 p-6 rounded-lg">
+                    <h4 className="font-semibold mb-3">Average Booking Window</h4>
+                    <p className="text-3xl font-bold text-yellow-600">21 days</p>
+                    <p className="text-sm text-gray-600 mt-2">Guests typically book 3 weeks in advance</p>
+                  </div>
+                </div>
+              )}
+
+              {analyticsView === 'cancellation' && (
+                <div className="space-y-4">
+                  <p className="text-gray-600">Track cancellation patterns and reasons.</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-red-50 p-4 rounded-lg">
+                      <p className="text-sm text-gray-600">Cancellation Rate</p>
+                      <p className="text-2xl font-bold text-red-600">8%</p>
+                    </div>
+                    <div className="bg-green-50 p-4 rounded-lg">
+                      <p className="text-sm text-gray-600">Completion Rate</p>
+                      <p className="text-2xl font-bold text-green-600">92%</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {analyticsView === 'competitive' && (
+                <div className="space-y-4">
+                  <p className="text-gray-600">Compare your performance with similar properties.</p>
+                  <div className="bg-blue-50 p-6 rounded-lg">
+                    <h4 className="font-semibold mb-3">Market Position</h4>
+                    <p className="text-sm text-gray-600">Your properties rank in the top 25% for your area</p>
+                  </div>
+                </div>
+              )}
+
+              {analyticsView === 'genius' && (
+                <div className="space-y-4">
+                  <p className="text-gray-600">Performance metrics for Genius program participants.</p>
+                  <div className="bg-purple-50 p-6 rounded-lg">
+                    <h4 className="font-semibold mb-3">Genius Status</h4>
+                    <p className="text-sm text-gray-600">Not enrolled in Genius program</p>
+                  </div>
+                </div>
+              )}
+
+              {analyticsView === 'ranking' && (
+                <div className="space-y-4">
+                  <p className="text-gray-600">See how your property ranks in search results.</p>
+                  <div className="bg-green-50 p-6 rounded-lg">
+                    <h4 className="font-semibold mb-3">Search Ranking</h4>
+                    <p className="text-3xl font-bold text-green-600">#8</p>
+                    <p className="text-sm text-gray-600 mt-2">Average position in search results</p>
+                  </div>
+                </div>
+              )}
+
+              {analyticsView === 'performance' && (
+                <div className="space-y-4">
+                  <p className="text-gray-600">Comprehensive performance overview.</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-blue-50 p-4 rounded-lg">
+                      <p className="text-sm text-gray-600">Performance Score</p>
+                      <p className="text-2xl font-bold text-blue-600">8.5/10</p>
+                    </div>
+                    <div className="bg-green-50 p-4 rounded-lg">
+                      <p className="text-sm text-gray-600">Guest Satisfaction</p>
+                      <p className="text-2xl font-bold text-green-600">{stats.averageRating}/5</p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -1694,49 +1827,168 @@ const PropertyOwnerBookings = () => {
         {activeTab === 'boost' && (
           <div className="space-y-8">
             <div className="neu-card p-6">
-              <h2 className="text-xl font-semibold mb-6">Boost Performance</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="border border-blue-200 rounded-xl p-6 hover:shadow-lg transition-shadow">
-                  <div className="flex items-center mb-4">
-                    <FaChartLine className="text-3xl text-blue-600 mr-3" />
-                    <h3 className="text-lg font-semibold text-gray-900">Opportunity Centre</h3>
+              <h2 className="text-xl font-semibold mb-6">
+                {boostView === 'opportunity' && 'Opportunity Centre'}
+                {boostView === 'commission-free' && 'Commission-free Bookings'}
+                {boostView === 'genius' && 'Genius Partner Programme'}
+                {boostView === 'preferred' && 'Preferred Partner Programme'}
+                {boostView === 'long-stays' && 'Long Stays Toolkit'}
+                {boostView === 'visibility' && 'Visibility Booster'}
+                {boostView === 'work-friendly' && 'Work-Friendly Programme'}
+                {boostView === 'unit-diff' && 'Unit Differentiation Tool'}
+                {!boostView && 'Boost Performance'}
+              </h2>
+
+              {(!boostView || boostView === 'opportunity') && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="bg-blue-50 rounded-xl p-6 shadow-md hover:shadow-lg transition-shadow">
+                    <div className="flex items-center mb-4">
+                      <FaChartLine className="text-3xl text-blue-600 mr-3" />
+                      <h3 className="text-lg font-semibold text-gray-900">Opportunity Centre</h3>
+                    </div>
+                    <p className="text-gray-600 mb-4">Discover ways to improve your property performance and increase bookings</p>
+                    <div className="space-y-2">
+                      <div className="p-3 bg-white rounded">
+                        <p className="font-semibold text-sm">✓ Update your photos</p>
+                        <p className="text-xs text-gray-600">Properties with recent photos get 30% more bookings</p>
+                      </div>
+                      <div className="p-3 bg-white rounded">
+                        <p className="font-semibold text-sm">✓ Enable instant booking</p>
+                        <p className="text-xs text-gray-600">Increase bookings by up to 40%</p>
+                      </div>
+                      <div className="p-3 bg-white rounded">
+                        <p className="font-semibold text-sm">✓ Respond faster to inquiries</p>
+                        <p className="text-xs text-gray-600">Aim for under 1 hour response time</p>
+                      </div>
+                    </div>
                   </div>
-                  <p className="text-gray-600 mb-4">Discover ways to improve your property performance and increase bookings</p>
-                  <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-                    View Opportunities
-                  </button>
-                </div>
-                <div className="border border-green-200 rounded-xl p-6 hover:shadow-lg transition-shadow">
-                  <div className="flex items-center mb-4">
-                    <FaDollarSign className="text-3xl text-green-600 mr-3" />
-                    <h3 className="text-lg font-semibold text-gray-900">Commission-free Bookings</h3>
+                  <div className="bg-green-50 rounded-xl p-6 shadow-md hover:shadow-lg transition-shadow">
+                    <div className="flex items-center mb-4">
+                      <FaDollarSign className="text-3xl text-green-600 mr-3" />
+                      <h3 className="text-lg font-semibold text-gray-900">Commission-free Bookings</h3>
+                    </div>
+                    <p className="text-gray-600 mb-4">Learn how to get direct bookings without platform commission</p>
+                    <button onClick={() => navigate('/dashboard?tab=boost&view=commission-free')} className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
+                      Learn More
+                    </button>
                   </div>
-                  <p className="text-gray-600 mb-4">Learn how to get direct bookings without platform commission</p>
-                  <button className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
-                    Learn More
-                  </button>
-                </div>
-                <div className="border border-purple-200 rounded-xl p-6 hover:shadow-lg transition-shadow">
-                  <div className="flex items-center mb-4">
-                    <FaStar className="text-3xl text-purple-600 mr-3" />
-                    <h3 className="text-lg font-semibold text-gray-900">Visibility Booster</h3>
+                  <div className="bg-purple-50 rounded-xl p-6 shadow-md hover:shadow-lg transition-shadow">
+                    <div className="flex items-center mb-4">
+                      <FaStar className="text-3xl text-purple-600 mr-3" />
+                      <h3 className="text-lg font-semibold text-gray-900">Visibility Booster</h3>
+                    </div>
+                    <p className="text-gray-600 mb-4">Increase your property's visibility in search results</p>
+                    <button onClick={() => navigate('/dashboard?tab=boost&view=visibility')} className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors">
+                      Boost Visibility
+                    </button>
                   </div>
-                  <p className="text-gray-600 mb-4">Increase your property's visibility in search results</p>
-                  <button className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors">
-                    Boost Visibility
-                  </button>
-                </div>
-                <div className="border border-orange-200 rounded-xl p-6 hover:shadow-lg transition-shadow">
-                  <div className="flex items-center mb-4">
-                    <FaCalendarAlt className="text-3xl text-orange-600 mr-3" />
-                    <h3 className="text-lg font-semibold text-gray-900">Long Stays Toolkit</h3>
+                  <div className="bg-orange-50 rounded-xl p-6 shadow-md hover:shadow-lg transition-shadow">
+                    <div className="flex items-center mb-4">
+                      <FaCalendarAlt className="text-3xl text-orange-600 mr-3" />
+                      <h3 className="text-lg font-semibold text-gray-900">Long Stays Toolkit</h3>
+                    </div>
+                    <p className="text-gray-600 mb-4">Attract guests looking for extended stays</p>
+                    <button onClick={() => navigate('/dashboard?tab=boost&view=long-stays')} className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors">
+                      Enable Long Stays
+                    </button>
                   </div>
-                  <p className="text-gray-600 mb-4">Attract guests looking for extended stays</p>
-                  <button className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors">
-                    Enable Long Stays
-                  </button>
                 </div>
-              </div>
+              )}
+
+              {boostView === 'commission-free' && (
+                <div className="space-y-4">
+                  <p className="text-gray-600">Enable direct bookings to save on commission fees.</p>
+                  <div className="bg-green-50 p-6 rounded-lg">
+                    <h4 className="font-semibold mb-3">Direct Booking Benefits</h4>
+                    <ul className="space-y-2 text-sm text-gray-700">
+                      <li>✓ Save up to 15% on commission fees</li>
+                      <li>✓ Build direct relationships with guests</li>
+                      <li>✓ Full control over pricing and policies</li>
+                      <li>✓ Access to guest contact information</li>
+                    </ul>
+                    <button onClick={() => navigate('/owner/direct-booking')} className="mt-4 bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700">
+                      Set Up Direct Booking
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {boostView === 'genius' && (
+                <div className="space-y-4">
+                  <p className="text-gray-600">Join the Genius programme to attract more bookings from loyal travelers.</p>
+                  <div className="bg-purple-50 p-6 rounded-lg">
+                    <h4 className="font-semibold mb-3">Genius Programme Benefits</h4>
+                    <p className="text-sm text-gray-600">Offer exclusive discounts to Genius members and increase your visibility</p>
+                  </div>
+                </div>
+              )}
+
+              {boostView === 'preferred' && (
+                <div className="space-y-4">
+                  <p className="text-gray-600">Become a Preferred Partner to unlock premium features and higher visibility.</p>
+                  <div className="bg-blue-50 p-6 rounded-lg">
+                    <h4 className="font-semibold mb-3">Preferred Partner Status</h4>
+                    <p className="text-sm text-gray-600">Get priority placement in search results and access to exclusive tools</p>
+                  </div>
+                </div>
+              )}
+
+              {boostView === 'long-stays' && (
+                <div className="space-y-4">
+                  <p className="text-gray-600">Optimize your property for guests looking for extended stays (28+ nights).</p>
+                  <div className="bg-orange-50 p-6 rounded-lg">
+                    <h4 className="font-semibold mb-3">Long Stay Features</h4>
+                    <ul className="space-y-2 text-sm text-gray-700">
+                      <li>✓ Offer weekly and monthly discounts</li>
+                      <li>✓ Highlight amenities for long-term guests</li>
+                      <li>✓ Flexible check-in/out dates</li>
+                      <li>✓ Workspace and kitchen facilities</li>
+                    </ul>
+                  </div>
+                </div>
+              )}
+
+              {boostView === 'visibility' && (
+                <div className="space-y-4">
+                  <p className="text-gray-600">Increase your property's visibility in search results with these strategies.</p>
+                  <div className="bg-purple-50 p-6 rounded-lg">
+                    <h4 className="font-semibold mb-3">Visibility Tips</h4>
+                    <ul className="space-y-2 text-sm text-gray-700">
+                      <li>✓ Maintain high response rates (90%+)</li>
+                      <li>✓ Keep your calendar updated</li>
+                      <li>✓ Earn positive reviews (4.5+ rating)</li>
+                      <li>✓ Offer competitive pricing</li>
+                      <li>✓ Enable instant booking</li>
+                    </ul>
+                  </div>
+                </div>
+              )}
+
+              {boostView === 'work-friendly' && (
+                <div className="space-y-4">
+                  <p className="text-gray-600">Attract remote workers and business travelers with work-friendly amenities.</p>
+                  <div className="bg-indigo-50 p-6 rounded-lg">
+                    <h4 className="font-semibold mb-3">Work-Friendly Checklist</h4>
+                    <ul className="space-y-2 text-sm text-gray-700">
+                      <li>✓ High-speed WiFi (50+ Mbps)</li>
+                      <li>✓ Dedicated workspace with desk</li>
+                      <li>✓ Comfortable office chair</li>
+                      <li>✓ Good lighting</li>
+                      <li>✓ Quiet environment</li>
+                    </ul>
+                  </div>
+                </div>
+              )}
+
+              {boostView === 'unit-diff' && (
+                <div className="space-y-4">
+                  <p className="text-gray-600">Differentiate your units to appeal to different guest segments.</p>
+                  <div className="bg-teal-50 p-6 rounded-lg">
+                    <h4 className="font-semibold mb-3">Unit Differentiation Strategy</h4>
+                    <p className="text-sm text-gray-600">Create unique listings for different room types, amenities, and guest preferences</p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -1760,12 +2012,61 @@ const PropertyOwnerBookings = () => {
         {activeTab === 'reviews' && (
           <div className="space-y-8">
             <div className="neu-card p-6">
-              <h2 className="text-xl font-semibold mb-6">Guest Reviews</h2>
-              <div className="text-center py-12">
-                <FaStar className="text-6xl text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No Reviews Yet</h3>
-                <p className="text-gray-600">Reviews from guests will appear here</p>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-semibold">Guest Reviews</h2>
+                <div className="flex items-center gap-2">
+                  <FaStar className="text-yellow-400" />
+                  <span className="text-2xl font-bold text-gray-900">{ownerAvgRating.toFixed(1)}</span>
+                  <span className="text-gray-500">({ownerReviewCount} reviews)</span>
+                </div>
               </div>
+              {ownerReviews.length > 0 ? (
+                <div className="space-y-4">
+                  {ownerReviews.map((review) => (
+                    <div key={review._id} className="bg-white rounded-lg shadow-md p-5 hover:shadow-lg transition-shadow">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          {review.guest?.profilePicture ? (
+                            <img 
+                              src={review.guest.profilePicture.startsWith('http') ? review.guest.profilePicture : `${API_URL}${review.guest.profilePicture}`} 
+                              alt={review.guest.fullName} 
+                              className="w-12 h-12 rounded-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-lg font-semibold">
+                              {(review.guest?.fullName || 'G').charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                          <div>
+                            <h4 className="font-semibold text-gray-900">{review.guest?.fullName || 'Guest'}</h4>
+                            <p className="text-sm text-gray-500">{new Date(review.createdAt).toLocaleDateString()}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          {Array.from({ length: 5 }, (_, i) => (
+                            <FaStar
+                              key={i}
+                              className={i < review.rating ? 'text-yellow-400' : 'text-gray-300'}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                      <p className="text-gray-700 leading-relaxed">{review.comment}</p>
+                      <div className="mt-3 pt-3 border-t border-gray-100">
+                        <p className="text-sm text-gray-500">
+                          <span className="font-medium">Property:</span> {review.property?.title || 'N/A'}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <FaStar className="text-6xl text-gray-300 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No Reviews Yet</h3>
+                  <p className="text-gray-600">Reviews from guests will appear here</p>
+                </div>
+              )}
             </div>
           </div>
         )}

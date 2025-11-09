@@ -51,6 +51,23 @@ export default function AdminLanding() {
     });
   }
 
+  // Generic section helpers (for ourMission and landingAttractions)
+  function getSectionByKey(key) {
+    const sections = Array.isArray(content.sections) ? content.sections : [];
+    return sections.find(s => s?.key === key) || null;
+  }
+
+  function setSectionByKey(key, updater) {
+    setContent(c => {
+      const sections = Array.isArray(c.sections) ? [...c.sections] : [];
+      const idx = sections.findIndex(s => s?.key === key);
+      const current = idx >= 0 ? sections[idx] : { key, title: '', body: '', images: [] };
+      const next = typeof updater === 'function' ? updater(current) : updater;
+      if (idx >= 0) sections[idx] = next; else sections.push(next);
+      return { ...c, sections };
+    });
+  }
+
   async function loadContent() {
     try {
       setLoading(true);
@@ -127,10 +144,21 @@ export default function AdminLanding() {
         body: (how.subtitle || '') + (how.hostsTagline ? `\n${how.hostsTagline}` : ''),
         images: hostImages
       };
-      // Pass through other sections only if they already match schema {key,title,body,images}
+      // Pass through sections that match schema; provide defaults for known keys
       const otherSections = (Array.isArray(content.sections) ? content.sections : [])
-        .filter(s => s && s.key && s.title)
-        .map(s => ({ key: s.key, title: s.title, body: s.body || '', images: Array.isArray(s.images) ? s.images : [] }));
+        .filter(s => s && s.key)
+        .map(s => {
+          const key = s.key;
+          const title = s.title || (key === 'ourMission' ? 'Our Mission' : key === 'landingAttractions' ? 'Top Attractions' : '');
+          if (!title) return null; // keep backend schema happy (title is required)
+          return {
+            key,
+            title,
+            body: s.body || '',
+            images: Array.isArray(s.images) ? s.images : []
+          };
+        })
+        .filter(Boolean);
       const sanitizedSections = [howGuestSection, howHostSection, ...otherSections];
       const payload = {
         heroTitle: content.heroTitle || '',
@@ -228,6 +256,115 @@ export default function AdminLanding() {
         <div className="text-gray-600">Loading...</div>
       ) : (
         <div className="space-y-6">
+          {/* Our Mission CMS */}
+          <div className="bg-white rounded-xl shadow p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-semibold text-gray-900">Our Mission</h2>
+              <span className="text-xs text-gray-500">Key: ourMission</span>
+            </div>
+            {(() => {
+              const sec = getSectionByKey('ourMission') || { key: 'ourMission', title: '', body: '', images: [] };
+              return (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div>
+                      <label className="block text-sm text-gray-700 mb-1">Title</label>
+                      <input
+                        value={sec.title || ''}
+                        onChange={e => setSectionByKey('ourMission', { ...sec, title: e.target.value })}
+                        className="w-full px-3 py-2 rounded-lg bg-white shadow-sm ring-0 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Our Mission"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-700 mb-1">Body</label>
+                      <textarea
+                        value={sec.body || ''}
+                        onChange={e => setSectionByKey('ourMission', { ...sec, body: e.target.value })}
+                        className="w-full px-3 py-2 h-[92px] rounded-lg bg-white shadow-sm ring-1 ring-gray-200 ring-inset focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Describe your mission"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-700 mb-1">Slideshow Images</label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                      {(sec.images || []).map((img, i) => (
+                        <div key={i} className="relative w-full aspect-video rounded-lg overflow-hidden bg-gray-100">
+                          <img src={(img||'').startsWith('http') ? img : `${API_URL}${img}`} className="w-full h-full object-cover" />
+                          <button type="button" className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-red-600 text-white shadow flex items-center justify-center" onClick={() => setSectionByKey('ourMission', { ...sec, images: (sec.images||[]).filter((_, idx)=> idx!==i) })}>×</button>
+                        </div>
+                      ))}
+                      <label className="flex items-center justify-center border-2 border-dashed border-gray-300 rounded-lg h-28 cursor-pointer bg-white">
+                        <input type="file" className="hidden" accept="image/*" multiple onChange={async e => {
+                          try {
+                            const paths = await uploadAssets(e.target.files);
+                            setSectionByKey('ourMission', { ...sec, images: [...(sec.images||[]), ...paths] });
+                          } catch (err) { toast.error(err.message); }
+                        }} />
+                        <span className="text-sm text-gray-600">Add images</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+
+          {/* Landing Attractions CMS */}
+          <div className="bg-white rounded-xl shadow p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-semibold text-gray-900">Landing Attractions</h2>
+              <span className="text-xs text-gray-500">Key: landingAttractions</span>
+            </div>
+            {(() => {
+              const sec = getSectionByKey('landingAttractions') || { key: 'landingAttractions', title: '', body: '', images: [] };
+              return (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div>
+                      <label className="block text-sm text-gray-700 mb-1">Section Title</label>
+                      <input
+                        value={sec.title || ''}
+                        onChange={e => setSectionByKey('landingAttractions', { ...sec, title: e.target.value })}
+                        className="w-full px-3 py-2 rounded-lg bg-white shadow-sm ring-0 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Top Attractions"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-700 mb-1">Captions (one per line; aligns to images)</label>
+                      <textarea
+                        value={sec.body || ''}
+                        onChange={e => setSectionByKey('landingAttractions', { ...sec, body: e.target.value })}
+                        className="w-full px-3 py-2 h-[92px] rounded-lg bg-white shadow-sm ring-1 ring-gray-200 ring-inset focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder={"Kigali Genocide Memorial\nVolcanoes National Park\nLake Kivu"}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-700 mb-1">Attraction Images</label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                      {(sec.images || []).map((img, i) => (
+                        <div key={i} className="relative w-full aspect-video rounded-lg overflow-hidden bg-gray-100">
+                          <img src={(img||'').startsWith('http') ? img : `${API_URL}${img}`} className="w-full h-full object-cover" />
+                          <button type="button" className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-red-600 text-white shadow flex items-center justify-center" onClick={() => setSectionByKey('landingAttractions', { ...sec, images: (sec.images||[]).filter((_, idx)=> idx!==i) })}>×</button>
+                        </div>
+                      ))}
+                      <label className="flex items-center justify-center border-2 border-dashed border-gray-300 rounded-lg h-28 cursor-pointer bg-white">
+                        <input type="file" className="hidden" accept="image/*" multiple onChange={async e => {
+                          try {
+                            const paths = await uploadAssets(e.target.files);
+                            setSectionByKey('landingAttractions', { ...sec, images: [...(sec.images||[]), ...paths] });
+                          } catch (err) { toast.error(err.message); }
+                        }} />
+                        <span className="text-sm text-gray-600">Add images</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
               <label className="block text-sm text-gray-700 mb-1">Hero Title</label>

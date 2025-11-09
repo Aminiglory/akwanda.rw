@@ -75,6 +75,8 @@ const Navbar = () => {
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
   const dropdownButtonRefs = useRef({});
   const [expandedMobileItems, setExpandedMobileItems] = useState({});
+  const [billing, setBilling] = useState({ commissionsDue: 0, finesDue: 0, totalDue: 0, minimumPartial: 0, limitedAccess: false });
+  const [payingCommission, setPayingCommission] = useState(false);
 
   const makeAbsolute = (u) => {
     if (!u) return u;
@@ -108,7 +110,7 @@ const Navbar = () => {
       ]
     },
     {
-      label: "Car Rentals",
+      label: "Rentals",
       icon: FaCar,
       href: "/cars",
       children: [
@@ -472,6 +474,7 @@ const Navbar = () => {
     
     const fetchDynamicCounts = async () => {
       try {
+        let alerts = 0; // accumulate property alerts across fetches
         // Fetch message counts by category
         const msgRes = await fetch(`${API_URL}/api/messages/category-counts`, { credentials: 'include' });
         if (msgRes.ok) {
@@ -489,7 +492,6 @@ const Navbar = () => {
         if (propRes.ok) {
           const propData = await propRes.json();
           const properties = propData.properties || [];
-          let alerts = 0;
           properties.forEach(prop => {
             if (!prop.images || prop.images.length < 5) alerts++;
             if (!prop.description || prop.description.length < 50) alerts++;
@@ -498,11 +500,12 @@ const Navbar = () => {
           setPropertyAlerts(alerts);
         }
 
-        // Fetch unreplied reviews count
-        const reviewRes = await fetch(`${API_URL}/api/bookings/owner?hasReview=true&reviewReplied=false`, { credentials: 'include' });
+        // Fetch unreplied reviews count (use existing owner reviews endpoint)
+        const reviewRes = await fetch(`${API_URL}/api/bookings/owner/reviews`, { credentials: 'include' });
         if (reviewRes.ok) {
-          const reviewData = await reviewRes.json();
-          setUnrepliedReviews(reviewData.bookings?.length || 0);
+          const reviewData = await reviewRes.json().catch(() => ({}));
+          const count = Number(reviewData.countUnreplied || 0) || (Array.isArray(reviewData.reviews) ? reviewData.reviews.filter(r => !r?.reply && !r?.replied).length : 0);
+          setUnrepliedReviews(count);
         }
 
         // Fetch opportunity count (properties that can be improved)
@@ -518,6 +521,65 @@ const Navbar = () => {
     const interval = setInterval(fetchDynamicCounts, 120000);
     return () => clearInterval(interval);
   }, [isAuthenticated, user?.userType]);
+
+  // Load billing summary when user is blocked (or limited access)
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        if (!isAuthenticated || !user?.isBlocked) return;
+        const res = await fetch(`${API_URL}/api/billing/summary`, { credentials: 'include' });
+        if (!res.ok) return;
+        const data = await res.json().catch(() => ({}));
+        if (!cancelled) setBilling({
+          commissionsDue: Number(data?.commissionsDue || 0),
+          finesDue: Number(data?.finesDue || 0),
+          totalDue: Number(data?.totalDue || 0),
+          minimumPartial: Number(data?.minimumPartial || 0),
+          limitedAccess: !!data?.limitedAccess
+        });
+      } catch (_) {}
+    })();
+    return () => { cancelled = true; };
+  }, [isAuthenticated, user?.isBlocked]);
+
+  const handlePayCommission = async (amount) => {
+    try {
+      setPayingCommission(true);
+      const res = await fetch(`${API_URL}/api/billing/pay-commission`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.message || 'Payment failed');
+      if (data?.fullyCleared) {
+        toast.success('All dues cleared. Your account is reactivated.');
+        window.location.reload();
+      } else if (data?.partialUnlock) {
+        toast.success('Partial payment accepted. Limited features are now unlocked.');
+        // Refresh summary
+        try {
+          const r = await fetch(`${API_URL}/api/billing/summary`, { credentials: 'include' });
+          const s = await r.json().catch(()=>({}));
+          setBilling({
+            commissionsDue: Number(s?.commissionsDue || 0),
+            finesDue: Number(s?.finesDue || 0),
+            totalDue: Number(s?.totalDue || 0),
+            minimumPartial: Number(s?.minimumPartial || 0),
+            limitedAccess: !!s?.limitedAccess
+          });
+        } catch (_) {}
+      } else {
+        toast.success('Payment processed');
+      }
+    } catch (e) {
+      toast.error(e.message || 'Could not process payment');
+    } finally {
+      setPayingCommission(false);
+    }
+  };
 
   // Refresh counts/stats when opening the profile dropdown to ensure fresh DB values
   // Close dropdowns when clicking outside
@@ -790,16 +852,56 @@ const Navbar = () => {
         </div>
       )}
 
-      {/* Blocked account banner */}
+      {/* Blocked account banner with payments */}
       {isAuthenticated && user?.isBlocked && (
-        <div className="w-full bg-yellow-50 text-yellow-800 px-4 py-3 text-sm border-b border-yellow-200" role="region" aria-live="polite">
-          <div className="max-w-7xl mx-auto grid gap-2 sm:gap-3 sm:flex sm:flex-row sm:items-center sm:justify-between">
-            <div className="font-medium leading-relaxed">
-              Your account is temporarily deactivated due to outstanding dues. Some features are restricted.
+        <div className="w-full bg-[#f4ebe1] text-[#3a240e] px-4 py-3 border-b border-[#e1d5c3]" role="region" aria-live="polite">
+          <div className="max-w-7xl mx-auto flex flex-col gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <div className="flex-1">
+                <div className="font-semibold flex items-center gap-2">
+                  <span className="inline-block w-2 h-2 rounded-full bg-[#a06b42]"></span>
+                  Account deactivated
+                </div>
+                <div className="text-sm opacity-90">
+                  {billing.limitedAccess ? 'Limited features are unlocked due to a partial payment. Complete your payment to restore full visibility.' : 'Clear outstanding dues to restore full access and visibility.'}
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-2 sm:gap-3 text-sm">
+                <div className="px-3 py-2 rounded-lg bg-white/80 border border-[#e1d5c3]">
+                  <div className="text-xs opacity-70">Commission due</div>
+                  <div className="font-bold">RWF {Number(billing.commissionsDue||0).toLocaleString()}</div>
+                </div>
+                <div className="px-3 py-2 rounded-lg bg-white/80 border border-[#e1d5c3]">
+                  <div className="text-xs opacity-70">Fines due</div>
+                  <div className="font-bold">RWF {Number(billing.finesDue||0).toLocaleString()}</div>
+                </div>
+                <div className="px-3 py-2 rounded-lg bg-white/80 border border-[#e1d5c3]">
+                  <div className="text-xs opacity-70">Total due</div>
+                  <div className="font-bold">RWF {Number(billing.totalDue||0).toLocaleString()}</div>
+                </div>
+              </div>
             </div>
-            <div className="flex flex-col sm:flex-row w-full sm:w-auto gap-2">
-              <Link to="/billing/pay-commission" className="inline-flex justify-center px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 w-full sm:w-auto">Pay commission</Link>
-              <Link to="/notifications" className="inline-flex justify-center px-3 py-2 bg-white text-yellow-800 border border-yellow-300 rounded-md hover:bg-yellow-100 w-full sm:w-auto">View notice</Link>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => handlePayCommission(billing.minimumPartial || Math.ceil((billing.totalDue||0)/2))}
+                disabled={payingCommission || (billing.totalDue||0) <= 0}
+                className={`inline-flex items-center justify-center px-3 py-2 rounded-md text-white shadow-sm transition-colors ${payingCommission ? 'bg-[#b58a66] opacity-80' : 'bg-[#a06b42] hover:bg-[#8f5a32]'}`}
+                title={`Pay at least RWF ${Number(billing.minimumPartial||0).toLocaleString()} to unlock limited features`}
+              >
+                {payingCommission ? 'Processing…' : `Pay Half (RWF ${Number(billing.minimumPartial||0).toLocaleString()})`}
+              </button>
+              <button
+                type="button"
+                onClick={() => handlePayCommission(billing.totalDue || 0)}
+                disabled={payingCommission || (billing.totalDue||0) <= 0}
+                className={`inline-flex items-center justify-center px-3 py-2 rounded-md text-[#3a240e] border border-[#e1d5c3] bg-white/90 hover:bg-white`}
+              >
+                Pay Full (RWF {Number(billing.totalDue||0).toLocaleString()})
+              </button>
+              <Link to="/notifications" className="inline-flex justify-center px-3 py-2 rounded-md border border-[#e1d5c3] text-[#3a240e] hover:bg-white">
+                View notice
+              </Link>
             </div>
           </div>
         </div>
@@ -1019,7 +1121,7 @@ const Navbar = () => {
                     )}
                   </button>
                   {isNotificationOpen && (
-                    <div className="notification-dropdown absolute top-full right-0 sm:right-0 left-0 sm:left-auto mt-2 w-full sm:w-80 max-w-md mx-auto sm:mx-0 bg-[#f6e9d8] rounded-xl shadow-2xl border border-[#d4c4b0] py-2">
+                    <div className="notification-dropdown absolute top-full right-0 sm:right-0 left-0 sm:left-auto mt-2 w-[calc(100vw-1rem)] sm:w-80 max-w-md mx-2 sm:mx-0 bg-[#f6e9d8] rounded-xl shadow-2xl border border-[#d4c4b0] py-2 z-[99999]">
                       <div className="px-4 py-2 border-b border-gray-100 font-semibold text-sm flex items-center justify-between">
                         <span>Notifications</span>
                         <Link
@@ -1259,80 +1361,89 @@ const Navbar = () => {
           </div>
         </div>
       </nav>
-
-      {/* Third Bar - Property Owner Dashboard Navigation - HIDDEN (moved to dashboard page) */}
-      {false && user?.userType === 'host' && isInPropertyOwnerDashboard() && (
-        <div className="owner-third-navbar w-full bg-white border-b border-gray-200 hidden">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center gap-2 overflow-x-auto overflow-y-visible py-3 scrollbar-hide">
-                {bookingComNavItems.map((item, index) => {
-                  const Icon = item.icon;
-                  const isActive = isActiveRoute(item.href);
-                  const isDropdownOpen = activeDropdown === item.label;
-
-                  return (
-                    <div key={index} className="relative group flex-shrink-0">
-                      <button
-                        onClick={() => toggleDropdown(item.label)}
-                        className={`owner-nav-dropdown-button flex items-center space-x-1.5 px-3 py-2 rounded-lg transition-all duration-200 font-medium text-sm whitespace-nowrap ${
-                          isActive
-                            ? "bg-[#a06b42] text-white shadow-md"
-                            : "text-gray-700 hover:text-[#a06b42] hover:bg-[#f5f0e8]"
-                        }`}
-                      >
-                        <Icon className="text-sm flex-shrink-0" />
-                        <span>{item.label}</span>
-                        {item.badge > 0 && (
-                          <span className="bg-red-600 text-white text-[10px] rounded-full px-1.5 py-0.5 min-w-[18px] text-center font-semibold">
-                            {item.badge}
-                          </span>
-                        )}
-                        {item.children.length > 0 && (
-                          <FaCaretDown className={`text-xs transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
-                        )}
-                      </button>
-
-                      {/* Dropdown Menu */}
-                      {isDropdownOpen && item.children.length > 0 && (
-                        <div className="owner-nav-dropdown absolute top-full left-0 mt-1 w-72 bg-[#f6e9d8] rounded-xl shadow-2xl border border-[#d4c4b0] py-2 max-h-96 overflow-y-auto">
-                          {item.children.map((child, childIndex) => {
-                            const ChildIcon = child.icon;
-                            const isChildActive = isActiveRoute(child.href);
-                            return (
-                              <Link
-                                key={childIndex}
-                                to={child.href}
-                                className={`flex items-center justify-between px-4 py-2.5 text-sm hover:bg-gray-100 hover:text-gray-800 transition-colors ${
-                                  isChildActive ? 'bg-gray-100 text-[#a06b42] font-medium' : 'text-gray-700'
-                                }`}
-                                onClick={() => setActiveDropdown(null)}
-                              >
-                                <div className="flex items-center space-x-3">
-                                  {ChildIcon && <ChildIcon className="text-gray-700 flex-shrink-0" />}
-                                  <span>{child.label}</span>
-                                </div>
-                                {child.badge && (
-                                  <span className={`text-xs px-2 py-0.5 rounded-full min-w-[20px] text-center font-semibold ${
-                                    child.badge === 'New' ? 'bg-green-100 text-green-700' : 
-                                    typeof child.badge === 'number' || !isNaN(child.badge) ? 'bg-red-100 text-red-700' : 
-                                    'bg-blue-100 text-blue-700'
-                                  }`}>
-                                    {child.badge}
-                                  </span>
-                                )}
-                              </Link>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+      {/* Mobile Menu - mirrors desktop owner navigation */}
+      {isAuthenticated && isMenuOpen && (
+        <div className="lg:hidden border-t border-[#e0d5c7] bg-[#f9f4ee]">
+          {/* Mobile property selector */}
+          {user?.userType === 'host' && isInPropertyOwnerDashboard() && myProperties.length > 0 && (
+            <div className="px-4 py-3">
+              <div className="text-xs font-semibold text-[#6b5744] mb-2">Manage property</div>
+              <div className="grid grid-cols-1 gap-2">
+                {myProperties.map((p) => (
+                  <Link
+                    key={p._id}
+                    to={`/my-bookings?tab=calendar&property=${p._id}`}
+                    className="block px-3 py-2 rounded-lg bg-white border border-[#e0d5c7] text-[#4b2a00] hover:bg-[#fffaf5]"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    {p.title || p.name || p.propertyNumber}
+                  </Link>
+                ))}
               </div>
             </div>
-          </div>
+          )}
+
+          {/* Owner navigation (Booking.com style) */}
+          {user?.userType === 'host' && (
+            <div className="px-2 pb-2">
+              {bookingComNavItems.map((item, idx) => {
+                const Icon = item.icon;
+                const open = !!expandedMobileItems[item.label];
+                return (
+                  <div key={idx} className="mb-2">
+                    <button
+                      type="button"
+                      onClick={() => setExpandedMobileItems((s) => ({ ...s, [item.label]: !open }))}
+                      className="w-full flex items-center justify-between px-4 py-3 rounded-lg bg-white border border-[#e0d5c7] text-[#4b2a00]"
+                    >
+                      <span className="flex items-center gap-3"><Icon className="text-sm" />{item.label}</span>
+                      <FaCaretDown className={`text-xs transition-transform ${open ? 'rotate-180' : ''}`} />
+                    </button>
+                    {open && (
+                      <div className="mt-1 rounded-lg bg-[#fff8f1] border border-[#e0d5c7] overflow-hidden">
+                        {(item.children && item.children.length > 0 ? item.children : [{ label: item.label, href: item.href, icon: item.icon }]).map((child, cidx) => {
+                          const ChildIcon = child.icon;
+                          return (
+                            <Link
+                              key={cidx}
+                              to={child.href}
+                              className="flex items-center gap-3 px-4 py-3 text-sm text-[#4b2a00] hover:bg-white border-t border-[#f0e6d9] first:border-t-0"
+                              onClick={() => setIsMenuOpen(false)}
+                            >
+                              <ChildIcon className="text-sm" />
+                              <span className="flex-1">{child.label}</span>
+                              {child.badge ? (
+                                <span className="ml-auto inline-flex items-center justify-center text-[10px] px-2 py-0.5 rounded-full bg-[#a06b42] text-white">{child.badge}</span>
+                              ) : null}
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Guest/General quick links (subset for mobile) */}
+          {!isInPropertyOwnerDashboard() && (
+            <div className="px-2 pb-4">
+              {mainNavItems.map((m, i) => (
+                <Link
+                  key={i}
+                  to={m.href}
+                  className="block px-4 py-3 rounded-lg bg-white border border-[#e0d5c7] text-[#4b2a00] mb-2"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  {m.label}
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       )}
+
     </>
   );
 };

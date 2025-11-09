@@ -456,6 +456,42 @@ textarea::placeholder {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 
+/* Small slider thumbs */
+.range-thumb-sm {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 2px;
+}
+.range-thumb-sm::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 9999px;
+  background: #a06b42; /* brand chocolate */
+  border: 2px solid #ffffff;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  cursor: pointer;
+}
+.range-thumb-sm::-moz-range-thumb {
+  width: 10px;
+  height: 10px;
+  border-radius: 9999px;
+  background: #a06b42;
+  border: 2px solid #ffffff;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  cursor: pointer;
+}
+.range-thumb-sm::-ms-thumb {
+  width: 10px;
+  height: 10px;
+  border-radius: 9999px;
+  background: #a06b42;
+  border: 2px solid #ffffff;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  cursor: pointer;
+}
+
 /* Z-index hierarchy for navbar system */
 /* Layer 1: Base navbar - no sticky positioning */
 nav {
