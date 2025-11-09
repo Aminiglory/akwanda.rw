@@ -1184,6 +1184,49 @@ const Navbar = () => {
                 </div>
               )}
 
+              {/* Profile menu */}
+              {isAuthenticated && (
+                <div className="relative inline-flex items-center">
+                  <button
+                    onClick={toggleProfile}
+                    className={`profile-button flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${isProfileOpen
+                        ? 'bg-[#a06b42] text-white'
+                        : 'text-[#6b5744] hover:text-[#4b2a00] hover:bg-[#e8dcc8]'
+                      }`}
+                    title={user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : 'Account'}
+                  >
+                    {avatarUrl ? (
+                      <img
+                        src={avatarUrl}
+                        alt="avatar"
+                        className="w-6 h-6 rounded-full object-cover"
+                        onError={() => setAvatarOk(false)}
+                        style={{ display: avatarOk ? 'block' : 'none' }}
+                      />
+                    ) : null}
+                    {!avatarOk || !avatarUrl ? <FaUserCircle className="text-xl" /> : null}
+                    <FaCaretDown className="text-[10px]" />
+                  </button>
+                  {isProfileOpen && (
+                    <div className="profile-dropdown absolute top-full right-0 mt-2 w-56 bg-[#f6e9d8] rounded-xl shadow-2xl border border-[#d4c4b0] py-2 z-[99999]">
+                      <div className="px-4 py-2 border-b border-gray-100 text-sm">
+                        <div className="font-semibold text-[#4b2a00] truncate">{user?.firstName || user?.email}</div>
+                        <div className="text-xs text-gray-600 truncate">{user?.email}</div>
+                      </div>
+                      <Link to="/profile" className="block px-4 py-2 text-sm text-[#4b2a00] hover:bg-white">{t ? t('nav.profile') : 'Profile'}</Link>
+                      <Link to="/settings" className="block px-4 py-2 text-sm text-[#4b2a00] hover:bg-white">{t ? t('nav.accountSettings') : 'Account settings'}</Link>
+                      <Link to="/my-bookings" className="block px-4 py-2 text-sm text-[#4b2a00] hover:bg-white">{t ? t('nav.reservations') : 'My bookings'}</Link>
+                      {user?.userType === 'host' && (
+                        <Link to="/dashboard" className="block px-4 py-2 text-sm text-[#4b2a00] hover:bg-white">{t ? t('nav.dashboard') : 'Owner dashboard'}</Link>
+                      )}
+                      <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-sm text-red-700 hover:bg-white flex items-center gap-2">
+                        <FaSignOutAlt /> <span>{t ? t('nav.logout') : 'Log out'}</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Language & Currency selectors (always available in second navbar; also present in top bar for non-landing pages) */}
               <div className="hidden lg:flex items-center space-x-4 ml-2">
                 {/* Language selector */}
