@@ -62,7 +62,16 @@ const UploadProperty = () => {
 
   const onSubmit = async (e) => {
     e.preventDefault();
-    if (!user) return toast.error('Please login');
+    if (!user) {
+      toast.error('Please login to list a property');
+      navigate('/owner-login');
+      return;
+    }
+    if (user.userType !== 'host' && user.userType !== 'admin') {
+      toast.error('Only property owners can list properties. Please use Owner Login.');
+      navigate('/owner-login');
+      return;
+    }
     if (!form.title || !form.address || !form.city || !form.pricePerNight) {
       return toast.error('Please fill all required fields');
     }
@@ -149,6 +158,21 @@ const UploadProperty = () => {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-3xl mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-6">Upload Apartment</h1>
+        
+        {!user && (
+          <div className="mb-4 rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-yellow-800">
+            <p className="font-semibold">⚠️ You are not logged in</p>
+            <p className="text-sm mt-1">Please <a href="/owner-login" className="underline font-medium">login as a property owner</a> to list your property.</p>
+          </div>
+        )}
+        
+        {user && user.userType !== 'host' && user.userType !== 'admin' && (
+          <div className="mb-4 rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-yellow-800">
+            <p className="font-semibold">⚠️ Wrong account type</p>
+            <p className="text-sm mt-1">You are logged in as a guest. Please <a href="/owner-login" className="underline font-medium">login as a property owner</a> to list properties.</p>
+          </div>
+        )}
+        
         {user?.isBlocked && (
           <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
             Your account is currently deactivated. You cannot create or edit listings until reactivated.
