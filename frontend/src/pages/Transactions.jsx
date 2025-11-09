@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useLocale } from '../contexts/LocaleContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -7,6 +8,7 @@ export default function Transactions() {
   const [attrBookings, setAttrBookings] = useState([]);
   const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState({ type: 'all', from: '', to: '' });
+  const { t, formatCurrencyRWF } = useLocale() || {};
 
   useEffect(() => {
     (async () => {
@@ -77,33 +79,33 @@ export default function Transactions() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold text-gray-900 mb-4">Transactions</h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-4">{t ? t('transactions.title') : 'Transactions'}</h1>
 
       <div className="bg-white rounded-lg shadow p-4 mb-4 grid grid-cols-1 md:grid-cols-4 gap-3">
         <div>
-          <label className="block text-xs text-gray-600">Type</label>
+          <label className="block text-xs text-gray-600">{t ? t('transactions.type') : 'Type'}</label>
           <select value={filters.type} onChange={e=>setFilters({ ...filters, type: e.target.value })} className="px-3 py-2 border rounded w-full">
-            <option value="all">All</option>
-            <option value="car">Car bookings</option>
-            <option value="attraction">Attraction bookings</option>
+            <option value="all">{t ? t('transactions.all') : 'All'}</option>
+            <option value="car">{t ? t('transactions.carBookings') : 'Car bookings'}</option>
+            <option value="attraction">{t ? t('transactions.attractionBookings') : 'Attraction bookings'}</option>
           </select>
         </div>
         <div>
-          <label className="block text-xs text-gray-600">From</label>
+          <label className="block text-xs text-gray-600">{t ? t('transactions.date') : 'Date'}</label>
           <input type="date" value={filters.from} onChange={e=>setFilters({ ...filters, from: e.target.value })} className="px-3 py-2 border rounded w-full" />
         </div>
         <div>
-          <label className="block text-xs text-gray-600">To</label>
+          <label className="block text-xs text-gray-600">{t ? t('transactions.date') : 'Date'}</label>
           <input type="date" value={filters.to} onChange={e=>setFilters({ ...filters, to: e.target.value })} className="px-3 py-2 border rounded w-full" />
         </div>
         <div className="flex items-end gap-2">
-          <button onClick={exportCsv} className="px-3 py-2 bg-[#a06b42] hover:bg-[#8f5a32] text-white rounded">Export CSV</button>
-          <button onClick={() => window.print()} className="px-3 py-2 bg-gray-100 rounded border">Print</button>
+          <button onClick={exportCsv} className="px-3 py-2 bg-[#a06b42] hover:bg-[#8f5a32] text-white rounded">{t ? t('transactions.exportCsv') : 'Export CSV'}</button>
+          <button onClick={() => window.print()} className="px-3 py-2 bg-gray-100 rounded border">{t ? t('transactions.print') : 'Print'}</button>
         </div>
       </div>
 
       <div className="bg-white rounded-lg shadow p-4 mb-4">
-        <div className="text-sm text-gray-700">Total amount: <span className="font-semibold">RWF {totals.sum.toLocaleString()}</span></div>
+        <div className="text-sm text-gray-700">{t ? t('transactions.totalAmount') : 'Total amount'}: <span className="font-semibold">{formatCurrencyRWF ? formatCurrencyRWF(totals.sum) : `RWF ${totals.sum.toLocaleString()}`}</span></div>
         <div className="mt-2 text-xs text-gray-500">Tip: Keep confirmations on schedule to maintain high visibility and avoid fines.</div>
       </div>
 
@@ -114,12 +116,12 @@ export default function Transactions() {
           <table className="min-w-full text-sm">
             <thead>
               <tr className="bg-gray-50 text-left">
-                <th className="p-3">Type</th>
-                <th className="p-3">Date</th>
-                <th className="p-3">Code</th>
+                <th className="p-3">{t ? t('transactions.type') : 'Type'}</th>
+                <th className="p-3">{t ? t('transactions.date') : 'Date'}</th>
+                <th className="p-3">{t ? t('transactions.code') : 'Code'}</th>
                 <th className="p-3">Title</th>
-                <th className="p-3">Amount</th>
-                <th className="p-3">Status</th>
+                <th className="p-3">{t ? t('transactions.amount') : 'Amount'}</th>
+                <th className="p-3">{t ? t('transactions.status') : 'Status'}</th>
               </tr>
             </thead>
             <tbody>
@@ -129,7 +131,7 @@ export default function Transactions() {
                   <td className="p-3">{r.date.toLocaleDateString()}</td>
                   <td className="p-3">{r.code}</td>
                   <td className="p-3">{r.title}</td>
-                  <td className="p-3">RWF {r.amount.toLocaleString()}</td>
+                  <td className="p-3">{formatCurrencyRWF ? formatCurrencyRWF(r.amount) : `RWF ${r.amount.toLocaleString()}`}</td>
                   <td className="p-3">{r.status}</td>
                 </tr>
               ))}

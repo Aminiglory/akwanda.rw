@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+
 import { 
   FaCalendarAlt, FaUsers, FaMoneyBillWave, FaCheckCircle, FaClock, 
   FaEye, FaFileInvoice, FaFilter, FaDownload, FaComments, FaHome, 
@@ -14,12 +15,15 @@ import {
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import BookingCalendar from '../components/BookingCalendar';
+import { useLocale } from '../contexts/LocaleContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const PropertyOwnerBookings = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { t, formatCurrencyRWF } = useLocale() || {};
+
   const [searchParams, setSearchParams] = useSearchParams();
   const [bookings, setBookings] = useState([]);
   const [properties, setProperties] = useState([]);
@@ -527,7 +531,7 @@ const PropertyOwnerBookings = () => {
       {/* Finance History */}
       <div className="max-w-7xl mx-auto px-4 pb-10">
         <div className="mt-10">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Finance History</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">{t ? t('dashboard.financeHistory') : 'Finance History'}</h2>
           <div ref={calendarRef} className="neu-card p-0 overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
@@ -559,14 +563,14 @@ const PropertyOwnerBookings = () => {
                         <span>{`${tr.guest?.firstName || ''} ${tr.guest?.lastName || ''}`.trim() || tr.guest?.email || 'Guest'}</span>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-right font-semibold">RWF {(tr.totalAmount || 0).toLocaleString()}</td>
+                    <td className="px-4 py-3 text-right font-semibold">{formatCurrencyRWF ? formatCurrencyRWF(tr.totalAmount || 0) : `RWF ${(tr.totalAmount || 0).toLocaleString()}`}</td>
                     <td className="px-4 py-3 text-sm">{tr.paymentMethod}</td>
                     <td className="px-4 py-3 text-sm">{tr.paymentStatus || tr.status}</td>
                   </tr>
                 ))}
                 {bookings.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-4 py-12 text-center text-gray-500">No finance history yet.</td>
+                    <td colSpan={7} className="px-4 py-12 text-center text-gray-500">{t ? t('dashboard.noFinanceHistory') : 'No finance history yet.'}</td>
                   </tr>
                 )}
               </tbody>
@@ -578,8 +582,8 @@ const PropertyOwnerBookings = () => {
 
       <div className="flex justify-between items-center mb-4">
         <div>
-          <p className="text-xs md:text-sm text-gray-600">Total Amount</p>
-          <p className="text-lg md:text-xl font-bold text-primary">RWF {booking.totalAmount.toLocaleString()}</p>
+          <p className="text-xs md:text-sm text-gray-600">{t ? t('dashboard.totalAmount') : 'Total Amount'}</p>
+          <p className="text-lg md:text-xl font-bold text-primary">{formatCurrencyRWF ? formatCurrencyRWF(booking.totalAmount || 0) : `RWF ${booking.totalAmount.toLocaleString()}`}</p>
         </div>
         {booking.rating && (
           <div className="flex items-center">
@@ -690,8 +694,8 @@ const PropertyOwnerBookings = () => {
                     <p className="font-medium">{selectedBooking.guests} guests</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">Total Amount</p>
-                    <p className="text-xl font-bold text-blue-600">RWF {selectedBooking.totalAmount.toLocaleString()}</p>
+                    <p className="text-sm text-gray-600">{t ? t('dashboard.totalAmount') : 'Total Amount'}</p>
+                    <p className="text-xl font-bold text-blue-600">{formatCurrencyRWF ? formatCurrencyRWF(selectedBooking.totalAmount || 0) : `RWF ${selectedBooking.totalAmount.toLocaleString()}`}</p>
                   </div>
                 </div>
               </div>
@@ -724,28 +728,28 @@ const PropertyOwnerBookings = () => {
 
               {/* Actions */}
               <div className="modern-card p-6">
-                <h3 className="text-lg font-semibold mb-4">Actions</h3>
+                <h3 className="text-lg font-semibold mb-4">{t ? t('dashboard.actions') : 'Actions'}</h3>
                 <div className="space-y-2">
                   <button
                     onClick={() => handleStatusChange(selectedBooking._id, 'paid')}
                     className="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center"
                   >
                     <FaCheck className="mr-2" />
-                    Mark as Paid
+                    {t ? t('dashboard.markAsPaid') : 'Mark as Paid'}
                   </button>
                   <button
                     onClick={() => handleStatusChange(selectedBooking._id, 'pending')}
                     className="w-full bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700 transition-colors flex items-center justify-center"
                   >
                     <FaClock className="mr-2" />
-                    Mark as Pending
+                    {t ? t('dashboard.markAsPending') : 'Mark as Pending'}
                   </button>
                   <button
                     onClick={() => navigate(`/messages?booking=${selectedBooking._id}`)}
                     className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center"
                   >
                     <FaComments className="mr-2" />
-                    Send Message
+                    {t ? t('dashboard.sendMessage') : 'Send Message'}
                   </button>
                 </div>
               </div>
@@ -761,7 +765,7 @@ const PropertyOwnerBookings = () => {
       <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6 border-b border-gray-200">
           <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-bold">Booking Receipt</h2>
+            <h2 className="text-2xl font-bold">{t ? t('dashboard.bookingReceipt') : 'Booking Receipt'}</h2>
             <button
               onClick={() => setShowReceipt(false)}
               className="text-gray-500 hover:text-gray-700"
@@ -775,7 +779,7 @@ const PropertyOwnerBookings = () => {
           <div className="p-6">
             <div className="text-center mb-6">
               <h3 className="text-xl font-bold">AKWANDA.rw</h3>
-              <p className="text-gray-600">Booking Receipt</p>
+              <p className="text-gray-600">{t ? t('dashboard.bookingReceipt') : 'Booking Receipt'}</p>
             </div>
 
             <div className="space-y-4">
@@ -805,8 +809,8 @@ const PropertyOwnerBookings = () => {
               </div>
               <hr />
               <div className="flex justify-between text-lg font-bold">
-                <span>Total Amount:</span>
-                <span className="text-blue-600">RWF {selectedBooking.totalAmount.toLocaleString()}</span>
+                <span>{t ? t('dashboard.totalAmount') : 'Total Amount'}:</span>
+                <span className="text-blue-600">{formatCurrencyRWF ? formatCurrencyRWF(selectedBooking.totalAmount || 0) : `RWF ${selectedBooking.totalAmount.toLocaleString()}`}</span>
               </div>
             </div>
 
@@ -815,13 +819,13 @@ const PropertyOwnerBookings = () => {
                 onClick={() => window.print()}
                 className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
               >
-                Print Receipt
+                {t ? t('dashboard.printReceipt') : 'Print Receipt'}
               </button>
               <button
                 onClick={() => setShowReceipt(false)}
                 className="flex-1 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
               >
-                Close
+                {t ? t('dashboard.close') : 'Close'}
               </button>
             </div>
           </div>

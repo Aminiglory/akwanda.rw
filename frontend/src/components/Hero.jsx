@@ -134,8 +134,24 @@ const Hero = () => {
                 : [])
           ).filter(Boolean);
           
-          console.log('Final processed slides:', fromSlides);
-          setSlides(fromSlides);
+          console.log('Final processed slides (pre-validate):', fromSlides);
+          // Preload images and filter out any that fail to load to avoid console errors
+          const preloadOne = (u) => new Promise((resolve) => {
+            try {
+              const img = new Image();
+              img.onload = () => resolve(true);
+              img.onerror = () => resolve(false);
+              img.src = u;
+            } catch { resolve(false); }
+          });
+          const validated = [];
+          for (const s of fromSlides) {
+            // eslint-disable-next-line no-await-in-loop
+            const ok = await preloadOne(s.image);
+            if (ok) validated.push(s);
+          }
+          console.log('Validated slides:', validated);
+          setSlides(validated);
           setIntervalMs(typeof c.heroIntervalMs === 'number' && c.heroIntervalMs >= 2000 ? c.heroIntervalMs : 5000);
           setTransition(c.heroTransition === 'slide' ? 'slide' : 'fade');
           setHeroTitle(c.heroTitle || '');
@@ -236,8 +252,8 @@ const Hero = () => {
                 decoding={i === 0 ? 'sync' : 'async'}
                 fetchpriority={i === 0 ? 'high' : 'auto'}
                 onError={(e) => {
-                  console.error('Failed to load hero image:', url);
-                  e.target.style.display = 'none'; // Hide broken image
+                  // Avoid spamming console; hide element
+                  e.target.style.display = 'none';
                 }}
               />
             );

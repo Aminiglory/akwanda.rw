@@ -3,8 +3,10 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { FaEnvelope, FaLock, FaEye, FaEyeSlash } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
+import { useLocale } from '../contexts/LocaleContext';
 
 const Login = () => {
+  const { t } = useLocale() || {};
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -67,10 +69,10 @@ const Login = () => {
             <span className="text-white text-xl font-bold">A</span>
           </div>
           <h2 className="mt-6 text-3xl font-bold text-gray-900">
-            Welcome back
+            {t ? t('auth.loginTitle') : 'Welcome back'}
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            Sign in to your AKWANDA.rw account
+            {t ? t('auth.loginSubtitle') : 'Sign in to your AKWANDA.rw account'}
           </p>
         </div>
 
@@ -79,9 +81,7 @@ const Login = () => {
           <form className="space-y-6" onSubmit={handleSubmit}>
             {/* Email Field */}
             <div>
-              <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-2">
-                Email address
-              </label>
+              <label htmlFor="email-address" className="sr-only">{t ? t('auth.email') : 'Email address'}</label>
               <div className="field">
                 <FaEnvelope className="icon-left" />
                 <input
@@ -91,7 +91,7 @@ const Login = () => {
                   autoComplete="email"
                   required
                   className="w-full pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
-                  placeholder="Enter your email"
+                  placeholder={t ? t('auth.email') : 'Email address'}
                   value={formData.email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
                 />
@@ -100,9 +100,7 @@ const Login = () => {
 
             {/* Password Field */}
             <div>
-              <label htmlFor="password" className="block text-sm font-semibold text-gray-700 mb-2">
-                Password
-              </label>
+              <label htmlFor="password" className="sr-only">{t ? t('auth.password') : 'Password'}</label>
               <div className="field has-right">
                 <FaLock className="icon-left" />
                 <input
@@ -112,7 +110,7 @@ const Login = () => {
                   autoComplete="current-password"
                   required
                   className="w-full pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
-                  placeholder="Enter your password"
+                  placeholder={t ? t('auth.password') : 'Password'}
                   value={formData.password}
                   onChange={(e) => handleInputChange('password', e.target.value)}
                 />
@@ -127,23 +125,12 @@ const Login = () => {
             </div>
 
             {/* Remember Me & Forgot Password */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <input
-                  id="remember-me"
-                  name="remember-me"
-                  type="checkbox"
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                />
-                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
-                  Remember me
-                </label>
-              </div>
-              <div className="text-sm">
-                <a href="#" className="font-medium text-blue-600 hover:text-blue-500 transition-colors">
-                  Forgot your password?
-                </a>
-              </div>
+            <div className="flex items-center justify-between text-sm">
+              <label className="flex items-center gap-2">
+                <input type="checkbox" className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                <span className="text-gray-700">{t ? t('auth.rememberMe') : 'Remember me'}</span>
+              </label>
+              <Link to="/support" className="text-blue-700 hover:text-blue-900">{t ? t('auth.forgotPassword') : 'Forgot password?'}</Link>
             </div>
 
             {/* Error Message */}
@@ -158,21 +145,24 @@ const Login = () => {
               type="submit"
               className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-xl font-semibold transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl"
             >
-              Sign in
+              {t ? t('auth.signIn') : 'Sign in'}
             </button>
+
+            {/* Owner Login shortcut */}
+            <div className="text-center text-sm text-gray-600">
+              <span className="mr-1">{t ? t('auth.ownerPrompt') : 'Are you a property owner?'}</span>
+              <Link to="/owner-login" className="text-blue-700 hover:text-blue-900 font-medium">
+                {t ? t('nav.ownerLogin') : 'Owner Login'}
+              </Link>
+            </div>
 
             {/* Social Logins removed */}
           </form>
         </div>
 
         {/* Sign Up Link */}
-        <div className="text-center">
-          <p className="text-sm text-gray-600">
-            Don't have an account?{' '}
-            <Link to="/register" className="font-medium text-blue-600 hover:text-blue-500 transition-colors">
-              Sign up here
-            </Link>
-          </p>
+        <div className="text-center text-sm text-gray-600">
+          {t ? t('auth.notHostYet') : 'Not a host yet?'} <Link to="/register" className="text-blue-700 hover:text-blue-900 font-medium">{t ? t('auth.createAccount') : 'Create an account'}</Link>
         </div>
       </div>
     </div>

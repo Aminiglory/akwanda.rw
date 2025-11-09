@@ -2,11 +2,13 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FaStar } from 'react-icons/fa';
 import PropertyCard from './PropertyCard';
+import { useLocale } from '../contexts/LocaleContext';
 import { safeApiGet } from '../utils/apiUtils';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const FeaturedApartments = () => {
+  const { t } = useLocale() || {};
   const [apartments, setApartments] = useState([]);
   const makeAbsolute = (u) => {
     if (!u) return u;
@@ -73,8 +75,8 @@ const FeaturedApartments = () => {
     <div className="bg-white py-16 px-4">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-2 text-gray-900">Featured Apartments</h2>
-          <p className="text-gray-600 text-lg">Discover our most popular and highly-rated stays</p>
+          <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-2 text-gray-900">{t ? t('featured.title') : 'Featured Apartments'}</h2>
+          <p className="text-gray-600 text-lg">{t ? t('featured.subtitle') : 'Discover our most popular and highly-rated stays'}</p>
         </div>
 
         <div ref={gridRef} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -103,11 +105,11 @@ const FeaturedApartments = () => {
         <div className="mt-12">
           <div className="bg-primary rounded-2xl p-8 flex flex-col md:flex-row items-center justify-between text-white shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.02]">
             <div className="mb-4 md:mb-0">
-              <h4 className="text-2xl font-bold mb-2">Looking for more options?</h4>
-              <p className="text-white/90 text-lg">Browse all apartments and filter by location, price, and amenities.</p>
+              <h4 className="text-2xl font-bold mb-2">{t ? t('featured.moreOptionsTitle') : 'Looking for more options?'}</h4>
+              <p className="text-white/90 text-lg">{t ? t('featured.moreOptionsSubtitle') : 'Browse all apartments and filter by location, price, and amenities.'}</p>
             </div>
             <Link to="/apartments" className="bg-[#a06b42] text-white px-8 py-3 rounded-xl font-semibold hover:bg-[#8f5a32] transition-all duration-300 shadow-lg hover:scale-105 transform">
-              View All Apartments
+              {t ? t('featured.viewAll') : 'View All Apartments'}
             </Link>
           </div>
         </div>

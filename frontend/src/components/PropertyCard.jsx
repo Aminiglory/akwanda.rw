@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { FaHeart, FaMapMarkerAlt, FaBed, FaBath, FaRulerCombined, FaEdit, FaTrash } from 'react-icons/fa';
+import { useLocale } from '../contexts/LocaleContext';
 
 const getStatusColor = (status) => {
   switch (status) {
@@ -24,6 +25,7 @@ const PropertyCard = ({
   onEditHref,
   onToggleWishlist
 }) => {
+  const { formatCurrencyRWF } = useLocale() || {};
   const {
     title,
     image,
@@ -100,7 +102,7 @@ const PropertyCard = ({
           </div>
         </div>
         <div className="mt-4 flex items-center justify-between">
-          <div className="text-teal-600 font-extrabold text-xl">RWF {(price ?? 0).toLocaleString()}</div>
+          <div className="text-teal-600 font-extrabold text-xl">{formatCurrencyRWF ? formatCurrencyRWF(price ?? 0) : `RWF ${(price ?? 0).toLocaleString()}`}</div>
           <div className="flex items-center gap-2">
             <button type="button" onClick={onView} className="px-3 py-2 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors text-sm">
               View Details

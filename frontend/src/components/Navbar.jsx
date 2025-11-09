@@ -43,12 +43,16 @@ import {
   FaComments,
   FaCalendarCheck,
   FaMoneyBillWave,
+  FaMotorcycle,
+  FaBicycle,
 } from "react-icons/fa";
+import { useLocale } from "../contexts/LocaleContext";
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const Navbar = () => {
   const { user, logout, isAuthenticated } = useAuth();
+  const { language, setLanguage, currency, setCurrency, t, formatCurrencyRWF } = useLocale() || {};
   const location = useLocation();
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -104,38 +108,31 @@ const Navbar = () => {
       icon: FaPlane,
       href: "/flights",
       children: [
-        { label: "Search flights", href: "/flights", icon: FaPlane },
-        { label: "Flight deals", href: "/flights?deals=true", icon: FaPlane },
-        { label: "Multi-city", href: "/flights?multi=true", icon: FaPlane },
+        { label: t ? t('nav.searchFlights') : "Search flights", href: "/flights", icon: FaPlane },
+        { label: t ? t('nav.flightDeals') : "Flight deals", href: "/flights?deals=true", icon: FaPlane },
+        { label: t ? t('nav.multiCity') : "Multi-city", href: "/flights?multi=true", icon: FaPlane },
       ]
     },
     {
-      label: "Rentals",
+      label: t ? t('nav.rentals') : "Rentals",
       icon: FaCar,
       href: "/cars",
       children: [
-        { label: "Rent a car", href: "/cars", icon: FaCar },
-        { label: "My Cars", href: "/owner/cars", icon: FaCar },
-        { label: "Car deals", href: "/cars?deals=true", icon: FaCar },
+        { label: t ? t('nav.rentCar') : "Rent a car", href: "/cars", icon: FaCar },
+        { label: t ? t('nav.rentMotorcycle') : "Rent a motorcycle", href: "/cars?type=motorcycle", icon: FaMotorcycle },
+        { label: t ? t('nav.rentBicycle') : "Rent a bicycle", href: "/cars?type=bicycle", icon: FaBicycle },
+        { label: t ? t('nav.myCars') : "My Cars", href: "/owner/cars", icon: FaCar },
+        { label: t ? t('nav.carDeals') : "Car deals", href: "/cars?deals=true", icon: FaCar },
       ]
     },
     {
-      label: "Attractions",
+      label: t ? t('nav.attractions') : "Attractions",
       icon: FaUmbrellaBeach,
       href: "/experiences",
       children: [
-        { label: "Tours & Activities", href: "/experiences", icon: FaUmbrellaBeach },
-        { label: "Restaurants", href: "/restaurants", icon: FaUtensils },
-        { label: "Deals", href: "/deals", icon: FaShoppingBag },
-      ]
-    },
-    {
-      label: "Airport taxis",
-      icon: FaCar,
-      href: "/airport-taxis",
-      children: [
-        { label: "Book airport taxi", href: "/airport-taxis", icon: FaCar },
-        { label: "Taxi deals", href: "/airport-taxis?deals=true", icon: FaCar },
+        { label: t ? t('nav.tours') : "Tours & Activities", href: "/experiences", icon: FaUmbrellaBeach },
+        { label: t ? t('nav.restaurants') : "Restaurants", href: "/restaurants", icon: FaUtensils },
+        { label: t ? t('nav.deals') : "Deals", href: "/deals", icon: FaShoppingBag },
       ]
     }
   ];
@@ -143,136 +140,136 @@ const Navbar = () => {
   // Booking.com-style navigation for property owners
   const bookingComNavItems = [
     {
-      label: "Home",
+      label: t ? t('nav.home') : "Home",
       icon: FaHome,
       href: "/dashboard",
       children: []
     },
     {
-      label: "Rates & Availability",
+      label: t ? t('nav.ratesAvailability') : "Rates & Availability",
       icon: FaCalendarAlt,
       href: "/owner/rates",
       children: [
-        { label: "Calendar", href: "/owner/rates?view=calendar", icon: FaCalendarAlt },
-        { label: "Open/close rooms", href: "/owner/rates?view=open-close", icon: FaCalendarAlt },
-        { label: "Copy yearly rates", href: "/owner/rates?view=copy-yearly", icon: FaDollarSign },
-        { label: "Dynamic restriction rules", href: "/owner/rates?view=restrictions", icon: FaCog },
-        { label: "Rate plans", href: "/owner/rates?view=rate-plans", icon: FaDollarSign },
-        { label: "Value adds", href: "/owner/rates?view=value-adds", icon: FaShoppingBag },
-        { label: "Availability planner", href: "/owner/rates?view=availability-planner", icon: FaCalendarAlt },
-        { label: "Pricing per guest", href: "/owner/rates?view=pricing-per-guest", icon: FaDollarSign },
-        { label: "Country rates", href: "/owner/rates?view=country-rates", icon: FaGlobe },
-        { label: "Mobile rates", href: "/owner/rates?view=mobile-rates", icon: FaDollarSign },
+        { label: t ? t('nav.calendar') : "Calendar", href: "/owner/rates?view=calendar", icon: FaCalendarAlt },
+        { label: t ? t('nav.openCloseRooms') : "Open/close rooms", href: "/owner/rates?view=open-close", icon: FaCalendarAlt },
+        { label: t ? t('nav.copyYearlyRates') : "Copy yearly rates", href: "/owner/rates?view=copy-yearly", icon: FaDollarSign },
+        { label: t ? t('nav.dynamicRestrictionRules') : "Dynamic restriction rules", href: "/owner/rates?view=restrictions", icon: FaCog },
+        { label: t ? t('nav.ratePlans') : "Rate plans", href: "/owner/rates?view=rate-plans", icon: FaDollarSign },
+        { label: t ? t('nav.valueAdds') : "Value adds", href: "/owner/rates?view=value-adds", icon: FaShoppingBag },
+        { label: t ? t('nav.availabilityPlanner') : "Availability planner", href: "/owner/rates?view=availability-planner", icon: FaCalendarAlt },
+        { label: t ? t('nav.pricingPerGuest') : "Pricing per guest", href: "/owner/rates?view=pricing-per-guest", icon: FaDollarSign },
+        { label: t ? t('nav.countryRates') : "Country rates", href: "/owner/rates?view=country-rates", icon: FaGlobe },
+        { label: t ? t('nav.mobileRates') : "Mobile rates", href: "/owner/rates?view=mobile-rates", icon: FaDollarSign },
       ]
     },
     {
-      label: "Promotions",
+      label: t ? t('nav.promotions') : "Promotions",
       icon: FaShoppingBag,
       href: "/owner/promotions",
       children: [
-        { label: "Choose new promotion", href: "/owner/promotions?action=new", icon: FaShoppingBag },
-        { label: "Simulate max discount", href: "/owner/promotions?action=simulate", icon: FaDollarSign },
-        { label: "Your active promotions", href: "/owner/promotions?filter=active", icon: FaShoppingBag },
+        { label: t ? t('nav.chooseNewPromotion') : "Choose new promotion", href: "/owner/promotions?action=new", icon: FaShoppingBag },
+        { label: t ? t('nav.simulateMaxDiscount') : "Simulate max discount", href: "/owner/promotions?action=simulate", icon: FaDollarSign },
+        { label: t ? t('nav.yourActivePromotions') : "Your active promotions", href: "/owner/promotions?filter=active", icon: FaShoppingBag },
       ]
     },
     {
-      label: "Reservations",
+      label: t ? t('nav.reservations') : "Reservations",
       icon: FaCalendarAlt,
       href: "/my-bookings",
       children: [
-        { label: "All reservations", href: "/my-bookings?tab=reservations&scope=all", icon: FaCalendarAlt },
-        { label: "Upcoming", href: "/my-bookings?tab=reservations&scope=upcoming", icon: FaCalendarAlt },
-        { label: "Checked in", href: "/my-bookings?tab=reservations&scope=checked-in", icon: FaCalendarAlt },
-        { label: "Checked out", href: "/my-bookings?tab=reservations&scope=checked-out", icon: FaCalendarAlt },
-        { label: "Cancelled", href: "/my-bookings?tab=reservations&scope=cancelled", icon: FaCalendarAlt },
+        { label: t ? t('nav.allReservations') : "All reservations", href: "/my-bookings?tab=reservations&scope=all", icon: FaCalendarAlt },
+        { label: t ? t('nav.upcoming') : "Upcoming", href: "/my-bookings?tab=reservations&scope=upcoming", icon: FaCalendarAlt },
+        { label: t ? t('nav.checkedIn') : "Checked in", href: "/my-bookings?tab=reservations&scope=checked-in", icon: FaCalendarAlt },
+        { label: t ? t('nav.checkedOut') : "Checked out", href: "/my-bookings?tab=reservations&scope=checked-out", icon: FaCalendarAlt },
+        { label: t ? t('nav.cancelled') : "Cancelled", href: "/my-bookings?tab=reservations&scope=cancelled", icon: FaCalendarAlt },
       ]
     },
     {
-      label: "Property",
+      label: t ? t('nav.property') : "Property",
       icon: FaBuilding,
       href: "/owner/property",
       badge: propertyAlerts,
       children: [
-        { label: "Quality rating", href: "/owner/property?view=quality-rating", icon: FaStar },
-        { label: "Property page score", href: "/owner/property?view=page-score", icon: FaChartLine },
-        { label: "General info & property status", href: "/owner/property?view=general-info", icon: FaBuilding },
-        { label: "VAT/tax/charges", href: "/owner/property?view=vat-tax", icon: FaDollarSign },
-        { label: "Photos", href: "/owner/property?view=photos", icon: FaImages },
-        { label: "Property policies", href: "/owner/property?view=policies", icon: FaFileAlt },
-        { label: "Reservation policies", href: "/owner/property?view=policies", icon: FaFileAlt },
-        { label: "Facilities & services", href: "/owner/property?view=facilities", icon: FaCog },
-        { label: "Room details", href: "/owner/property?view=room-details", icon: FaBed },
-        { label: "Room amenities", href: "/owner/property?view=facilities", icon: FaCog },
-        { label: "Your profile", href: "/owner/property?view=profile", icon: FaUser },
-        { label: "View your descriptions", href: "/owner/property?view=general-info", icon: FaFileAlt },
-        { label: "Messaging preferences", href: "/settings?tab=messaging", icon: FaEnvelope },
-        { label: "Sustainability", href: "/owner/property?view=sustainability", icon: FaGlobe },
+        { label: t ? t('nav.qualityRating') : "Quality rating", href: "/owner/property?view=quality-rating", icon: FaStar },
+        { label: t ? t('nav.propertyPageScore') : "Property page score", href: "/owner/property?view=page-score", icon: FaChartLine },
+        { label: t ? t('nav.generalInfo') : "General info & property status", href: "/owner/property?view=general-info", icon: FaBuilding },
+        { label: t ? t('nav.vatTax') : "VAT/tax/charges", href: "/owner/property?view=vat-tax", icon: FaDollarSign },
+        { label: t ? t('nav.photos') : "Photos", href: "/owner/property?view=photos", icon: FaImages },
+        { label: t ? t('nav.propertyPolicies') : "Property policies", href: "/owner/property?view=policies", icon: FaFileAlt },
+        { label: t ? t('nav.reservationPolicies') : "Reservation policies", href: "/owner/property?view=policies", icon: FaFileAlt },
+        { label: t ? t('nav.facilitiesServices') : "Facilities & services", href: "/owner/property?view=facilities", icon: FaCog },
+        { label: t ? t('nav.roomDetails') : "Room details", href: "/owner/property?view=room-details", icon: FaBed },
+        { label: t ? t('nav.roomAmenities') : "Room amenities", href: "/owner/property?view=facilities", icon: FaCog },
+        { label: t ? t('nav.yourProfile') : "Your profile", href: "/owner/property?view=profile", icon: FaUser },
+        { label: t ? t('nav.viewDescriptions') : "View your descriptions", href: "/owner/property?view=general-info", icon: FaFileAlt },
+        { label: t ? t('nav.messagingPreferences') : "Messaging preferences", href: "/settings?tab=messaging", icon: FaEnvelope },
+        { label: t ? t('nav.sustainability') : "Sustainability", href: "/owner/property?view=sustainability", icon: FaGlobe },
       ]
     },
     {
-      label: "Boost performance",
+      label: t ? t('nav.boostPerformance') : "Boost performance",
       icon: FaChartLine,
       href: "/dashboard?tab=boost",
       badge: opportunityCount,
       children: [
-        { label: "Opportunity Centre", href: "/dashboard?tab=boost&view=opportunity", icon: FaShoppingBag, badge: opportunityCount },
-        { label: "Commission-free bookings", href: "/dashboard?tab=boost&view=commission-free", icon: FaDollarSign },
-        { label: "Genius partner programme", href: "/dashboard?tab=boost&view=genius", icon: FaStar },
-        { label: "Preferred Partner Programme", href: "/dashboard?tab=boost&view=preferred", icon: FaStar },
-        { label: "Long stays toolkit", href: "/dashboard?tab=boost&view=long-stays", icon: FaCalendarAlt },
-        { label: "Visibility booster", href: "/dashboard?tab=boost&view=visibility", icon: FaChartLine },
-        { label: "Work-Friendly Programme", href: "/dashboard?tab=boost&view=work-friendly", icon: FaBuilding },
-        { label: "Unit differentiation tool", href: "/dashboard?tab=boost&view=unit-diff", icon: FaCog },
+        { label: t ? t('nav.opportunityCentre') : "Opportunity Centre", href: "/dashboard?tab=boost&view=opportunity", icon: FaShoppingBag, badge: opportunityCount },
+        { label: t ? t('nav.commissionFreeBookings') : "Commission-free bookings", href: "/dashboard?tab=boost&view=commission-free", icon: FaDollarSign },
+        { label: t ? t('nav.geniusPartnerProgramme') : "Genius partner programme", href: "/dashboard?tab=boost&view=genius", icon: FaStar },
+        { label: t ? t('nav.preferredPartnerProgramme') : "Preferred Partner Programme", href: "/dashboard?tab=boost&view=preferred", icon: FaStar },
+        { label: t ? t('nav.longStaysToolkit') : "Long stays toolkit", href: "/dashboard?tab=boost&view=long-stays", icon: FaCalendarAlt },
+        { label: t ? t('nav.visibilityBooster') : "Visibility booster", href: "/dashboard?tab=boost&view=visibility", icon: FaChartLine },
+        { label: t ? t('nav.workFriendlyProgramme') : "Work-Friendly Programme", href: "/dashboard?tab=boost&view=work-friendly", icon: FaBuilding },
+        { label: t ? t('nav.unitDifferentiationTool') : "Unit differentiation tool", href: "/dashboard?tab=boost&view=unit-diff", icon: FaCog },
       ]
     },
     {
-      label: "Inbox",
+      label: t ? t('nav.inbox') : "Inbox",
       icon: FaEnvelope,
       href: "/messages",
       badge: unreadMsgCount,
       children: [
-        { label: "Reservation messages", href: "/messages?category=reservations", icon: FaEnvelope, badge: messageCounts.reservations },
-        { label: "Booking.com messages", href: "/messages?category=platform", icon: FaEnvelope, badge: messageCounts.platform },
-        { label: "Guest Q&A", href: "/messages?category=qna", icon: FaQuestionCircle, badge: messageCounts.qna },
+        { label: t ? t('nav.reservationMessages') : "Reservation messages", href: "/messages?category=reservations", icon: FaEnvelope, badge: messageCounts.reservations },
+        { label: t ? t('nav.bookingComMessages') : "Booking.com messages", href: "/messages?category=platform", icon: FaEnvelope, badge: messageCounts.platform },
+        { label: t ? t('nav.guestQandA') : "Guest Q&A", href: "/messages?category=qna", icon: FaQuestionCircle, badge: messageCounts.qna },
       ]
     },
     {
-      label: "Guest reviews",
+      label: t ? t('nav.guestReviews') : "Guest reviews",
       icon: FaStar,
       href: "/owner/reviews",
       badge: unrepliedReviews,
       children: [
-        { label: "Guest reviews", href: "/owner/reviews", icon: FaStar, badge: unrepliedReviews },
-        { label: "Guest experience", href: "/owner/reviews?view=experience", icon: FaUsers },
+        { label: t ? t('nav.guestReviews') : "Guest reviews", href: "/owner/reviews", icon: FaStar, badge: unrepliedReviews },
+        { label: t ? t('nav.guestExperience') : "Guest experience", href: "/owner/reviews?view=experience", icon: FaUsers },
       ]
     },
     {
-      label: "Finance",
+      label: t ? t('nav.finance') : "Finance",
       icon: FaDollarSign,
       href: "/dashboard?tab=finance",
       children: [
-        { label: "Invoices", href: "/dashboard?tab=finance&view=invoices", icon: FaFileAlt },
-        { label: "Reservations statement", href: "/dashboard?tab=finance&view=statement", icon: FaFileAlt },
-        { label: "Financial overview", href: "/dashboard?tab=finance&view=overview", icon: FaChartLine },
-        { label: "Finance settings", href: "/settings?tab=finance", icon: FaCog },
+        { label: t ? t('nav.invoices') : "Invoices", href: "/dashboard?tab=finance&view=invoices", icon: FaFileAlt },
+        { label: t ? t('nav.reservationsStatement') : "Reservations statement", href: "/dashboard?tab=finance&view=statement", icon: FaFileAlt },
+        { label: t ? t('nav.financialOverview') : "Financial overview", href: "/dashboard?tab=finance&view=overview", icon: FaChartLine },
+        { label: t ? t('nav.financeSettings') : "Finance settings", href: "/settings?tab=finance", icon: FaCog },
       ]
     },
     {
-      label: "Analytics",
+      label: t ? t('nav.analytics') : "Analytics",
       icon: FaChartLine,
       href: "/dashboard?tab=analytics",
       children: [
-        { label: "Analytics dashboard", href: "/dashboard?tab=analytics", icon: FaChartLine },
-        { label: "Demand for location", href: "/dashboard?tab=analytics&view=demand", icon: FaMapMarkerAlt },
-        { label: "Your pace of bookings", href: "/dashboard?tab=analytics&view=pace", icon: FaCalendarAlt },
-        { label: "Sales statistics", href: "/dashboard?tab=analytics&view=sales", icon: FaChartLine },
-        { label: "Booker insights", href: "/dashboard?tab=analytics&view=booker", icon: FaUsers },
-        { label: "Bookwindow information", href: "/dashboard?tab=analytics&view=bookwindow", icon: FaCalendarAlt },
-        { label: "Cancellation characteristics", href: "/dashboard?tab=analytics&view=cancellation", icon: FaCalendarTimes },
-        { label: "Manage your competitive set", href: "/dashboard?tab=analytics&view=competitive", icon: FaChartLine },
-        { label: "Genius report", href: "/dashboard?tab=analytics&view=genius", icon: FaStar },
-        { label: "Ranking dashboard", href: "/dashboard?tab=analytics&view=ranking", icon: FaChartLine, badge: "New" },
-        { label: "Performance dashboard", href: "/dashboard?tab=analytics&view=performance", icon: FaChartLine },
+        { label: t ? t('nav.analyticsDashboard') : "Analytics dashboard", href: "/dashboard?tab=analytics", icon: FaChartLine },
+        { label: t ? t('nav.demandForLocation') : "Demand for location", href: "/dashboard?tab=analytics&view=demand", icon: FaMapMarkerAlt },
+        { label: t ? t('nav.yourPaceOfBookings') : "Your pace of bookings", href: "/dashboard?tab=analytics&view=pace", icon: FaCalendarAlt },
+        { label: t ? t('nav.salesStatistics') : "Sales statistics", href: "/dashboard?tab=analytics&view=sales", icon: FaChartLine },
+        { label: t ? t('nav.bookerInsights') : "Booker insights", href: "/dashboard?tab=analytics&view=booker", icon: FaUsers },
+        { label: t ? t('nav.bookwindowInformation') : "Bookwindow information", href: "/dashboard?tab=analytics&view=bookwindow", icon: FaCalendarAlt },
+        { label: t ? t('nav.cancellationCharacteristics') : "Cancellation characteristics", href: "/dashboard?tab=analytics&view=cancellation", icon: FaCalendarTimes },
+        { label: t ? t('nav.manageYourCompetitiveSet') : "Manage your competitive set", href: "/dashboard?tab=analytics&view=competitive", icon: FaChartLine },
+        { label: t ? t('nav.geniusReport') : "Genius report", href: "/dashboard?tab=analytics&view=genius", icon: FaStar },
+        { label: t ? t('nav.rankingDashboard') : "Ranking dashboard", href: "/dashboard?tab=analytics&view=ranking", icon: FaChartLine, badge: "New" },
+        { label: t ? t('nav.performanceDashboard') : "Performance dashboard", href: "/dashboard?tab=analytics&view=performance", icon: FaChartLine },
       ]
     }
   ];
@@ -280,86 +277,86 @@ const Navbar = () => {
   // Owner management links organized exactly like Booking.com
   const ownerManagementLinks = [
     {
-      category: "Reservations",
+      category: t ? t('nav.reservations') : "Reservations",
       icon: FaCalendarAlt,
       links: [
-        { label: "All reservations", href: "/my-bookings?tab=bookings&scope=all" },
-        { label: "Paid reservations", href: "/my-bookings?tab=bookings&scope=paid" },
-        { label: "Pending reservations", href: "/my-bookings?tab=bookings&scope=pending" },
-        { label: "Unpaid reservations", href: "/my-bookings?tab=bookings&scope=unpaid" },
-        { label: "Cancelled reservations", href: "/my-bookings?tab=bookings&scope=cancelled" },
+        { label: t ? t('nav.allReservations') : "All reservations", href: "/my-bookings?tab=bookings&scope=all" },
+        { label: t ? t('nav.paidReservations') : "Paid reservations", href: "/my-bookings?tab=bookings&scope=paid" },
+        { label: t ? t('nav.pendingReservations') : "Pending reservations", href: "/my-bookings?tab=bookings&scope=pending" },
+        { label: t ? t('nav.unpaidReservations') : "Unpaid reservations", href: "/my-bookings?tab=bookings&scope=unpaid" },
+        { label: t ? t('nav.cancelledReservations') : "Cancelled reservations", href: "/my-bookings?tab=bookings&scope=cancelled" },
       ]
     },
     {
-      category: "Calendar",
+      category: t ? t('nav.calendar') : "Calendar",
       icon: FaCalendarAlt,
       links: [
-        { label: "This month", href: "/my-bookings?tab=calendar&monthOffset=0" },
-        { label: "Next month", href: "/my-bookings?tab=calendar&monthOffset=1" },
-        { label: "This year", href: "/my-bookings?tab=calendar" },
+        { label: t ? t('nav.thisMonth') : "This month", href: "/my-bookings?tab=calendar&monthOffset=0" },
+        { label: t ? t('nav.nextMonth') : "Next month", href: "/my-bookings?tab=calendar&monthOffset=1" },
+        { label: t ? t('nav.thisYear') : "This year", href: "/my-bookings?tab=calendar" },
       ]
     },
     {
-      category: "Finance",
+      category: t ? t('nav.finance') : "Finance",
       icon: FaDollarSign,
       links: [
-        { label: "All payments", href: "/my-bookings?tab=finance&finance_status=all" },
-        { label: "Paid", href: "/my-bookings?tab=finance&finance_status=paid" },
-        { label: "Pending", href: "/my-bookings?tab=finance&finance_status=pending" },
-        { label: "Unpaid", href: "/my-bookings?tab=finance&finance_status=unpaid" },
-        { label: "Last 30 days", href: "/my-bookings?tab=finance&view=last30" },
-        { label: "Month to date", href: "/my-bookings?tab=finance&view=mtd" },
-        { label: "Year to date", href: "/my-bookings?tab=finance&view=ytd" },
+        { label: t ? t('nav.allPayments') : "All payments", href: "/my-bookings?tab=finance&finance_status=all" },
+        { label: t ? t('nav.paid') : "Paid", href: "/my-bookings?tab=finance&finance_status=paid" },
+        { label: t ? t('nav.pending') : "Pending", href: "/my-bookings?tab=finance&finance_status=pending" },
+        { label: t ? t('nav.unpaid') : "Unpaid", href: "/my-bookings?tab=finance&finance_status=unpaid" },
+        { label: t ? t('nav.last30Days') : "Last 30 days", href: "/my-bookings?tab=finance&view=last30" },
+        { label: t ? t('nav.monthToDate') : "Month to date", href: "/my-bookings?tab=finance&view=mtd" },
+        { label: t ? t('nav.yearToDate') : "Year to date", href: "/my-bookings?tab=finance&view=ytd" },
       ]
     },
     {
-      category: "Analytics",
+      category: t ? t('nav.analytics') : "Analytics",
       icon: FaChartLine,
       links: [
-        { label: "Last 30 days", href: "/my-bookings?tab=analytics&range=30" },
-        { label: "Last 90 days", href: "/my-bookings?tab=analytics&range=90" },
-        { label: "Year to date", href: "/my-bookings?tab=analytics&range=ytd" },
-        { label: "Custom range", href: "/my-bookings?tab=analytics&range=custom" },
+        { label: t ? t('nav.last30Days') : "Last 30 days", href: "/my-bookings?tab=analytics&range=30" },
+        { label: t ? t('nav.last90Days') : "Last 90 days", href: "/my-bookings?tab=analytics&range=90" },
+        { label: t ? t('nav.yearToDate') : "Year to date", href: "/my-bookings?tab=analytics&range=ytd" },
+        { label: t ? t('nav.customRange') : "Custom range", href: "/my-bookings?tab=analytics&range=custom" },
       ]
     },
     {
-      category: "Promotions",
+      category: t ? t('nav.promotions') : "Promotions",
       icon: FaShoppingBag,
       links: [
-        { label: "Manage promotions", href: "/owner/promotions" },
-        { label: "Create new promotion", href: "/owner/promotions?mode=new" },
-        { label: "Active promotions", href: "/owner/promotions?status=active" },
-        { label: "Expired promotions", href: "/owner/promotions?status=expired" },
+        { label: t ? t('nav.managePromotions') : "Manage promotions", href: "/owner/promotions" },
+        { label: t ? t('nav.createNewPromotion') : "Create new promotion", href: "/owner/promotions?mode=new" },
+        { label: t ? t('nav.activePromotions') : "Active promotions", href: "/owner/promotions?status=active" },
+        { label: t ? t('nav.expiredPromotions') : "Expired promotions", href: "/owner/promotions?status=expired" },
       ]
     },
     {
-      category: "Reviews",
+      category: t ? t('nav.reviews') : "Reviews",
       icon: FaStar,
       links: [
-        { label: "All reviews", href: "/owner/reviews" },
-        { label: "Unreplied reviews", href: "/owner/reviews?filter=unreplied" },
-        { label: "5-star reviews", href: "/owner/reviews?filter=5star" },
-        { label: "Low ratings", href: "/owner/reviews?filter=low" },
+        { label: t ? t('nav.allReviews') : "All reviews", href: "/owner/reviews" },
+        { label: t ? t('nav.unrepliedReviews') : "Unreplied reviews", href: "/owner/reviews?filter=unreplied" },
+        { label: t ? t('nav.fiveStarReviews') : "5-star reviews", href: "/owner/reviews?filter=5star" },
+        { label: t ? t('nav.lowRatings') : "Low ratings", href: "/owner/reviews?filter=low" },
       ]
     },
     {
-      category: "Messages",
+      category: t ? t('nav.messages') : "Messages",
       icon: FaEnvelope,
       links: [
-        { label: "Inbox", href: "/messages" },
-        { label: "Unread messages", href: "/messages?filter=unread" },
-        { label: "Archived messages", href: "/messages?filter=archived" },
+        { label: t ? t('nav.inbox') : "Inbox", href: "/messages" },
+        { label: t ? t('nav.unreadMessages') : "Unread messages", href: "/messages?filter=unread" },
+        { label: t ? t('nav.archivedMessages') : "Archived messages", href: "/messages?filter=archived" },
       ]
     },
     {
-      category: "Settings",
+      category: t ? t('nav.settings') : "Settings",
       icon: FaSettings,
       links: [
-        { label: "Property settings", href: "/upload" },
-        { label: "Account settings", href: "/settings" },
-        { label: "Payment settings", href: "/settings?tab=payment" },
-        { label: "Notification settings", href: "/settings?tab=notifications" },
-        { label: "Workers", href: "/owner/workers" },
+        { label: t ? t('nav.propertySettings') : "Property settings", href: "/upload" },
+        { label: t ? t('nav.accountSettings') : "Account settings", href: "/settings" },
+        { label: t ? t('nav.paymentSettings') : "Payment settings", href: "/settings?tab=payment" },
+        { label: t ? t('nav.notificationSettings') : "Notification settings", href: "/settings?tab=notifications" },
+        { label: t ? t('nav.workers') : "Workers", href: "/owner/workers" },
       ]
     }
   ];
@@ -755,8 +752,9 @@ const Navbar = () => {
   };
 
   return (
-    <>
-      {/* Top Bar - First Level */}
+    <> 
+      {/* Top Bar - First Level (hidden on landing page) */}
+      {location.pathname !== '/' && (
       <div className="w-full bg-[#4b2a00] text-white py-2 px-4 border-b border-[#3a2000] relative z-[1000]">
         <div className="max-w-7xl mx-auto flex justify-between items-center text-xs">
           <div className="flex items-center space-x-4 lg:space-x-6">
@@ -765,20 +763,20 @@ const Navbar = () => {
               <>
                 {userStats.properties > 0 && isInPropertyOwnerDashboard() && (
                   <Link to="/dashboard" className="hidden sm:inline hover:text-white font-medium">
-                    Dashboard
+                    {t ? t('nav.dashboard') : 'Dashboard'}
                   </Link>
                 )}
                 <Link
                   to="/my-bookings"
                   className="hidden sm:inline hover:text-white font-medium"
                 >
-                  My Bookings
+                  {t ? t('nav.myBookings') : 'My Bookings'}
                 </Link>
                 <Link
                   to="/owner/cars"
                   className="hidden sm:inline hover:text-white font-medium"
                 >
-                  My Cars
+                  {t ? t('nav.myCars') : 'My Cars'}
                 </Link>
               </>
             )}
@@ -790,57 +788,69 @@ const Navbar = () => {
                   to="/admin"
                   className="hidden sm:inline hover:text-white font-medium"
                 >
-                  Admin Dashboard
+                  {t ? t('nav.adminDashboard') : 'Admin Dashboard'}
                 </Link>
                 <Link
                   to="/admin/reports"
                   className="hidden sm:inline hover:text-white font-medium"
                 >
-                  Reports
+                  {t ? t('nav.adminReports') : 'Reports'}
                 </Link>
                 <Link
                   to="/admin/landing"
                   className="hidden sm:inline hover:text-white font-medium"
                 >
-                  Content
+                  {t ? t('nav.landingContent') : 'Content'}
                 </Link>
               </>
             )}
 
             {/* Universal Links - Show to all users */}
-            <Link
-              to="/support"
-              className="hover:text-white font-medium"
-            >
-              Customer Support
-            </Link>
+            {/* Customer Support moved to footer */}
 
             {/* Hide guest-specific links when in property owner dashboard */}
             {!isInPropertyOwnerDashboard() && (
               <>
-                <Link
-                  to="/notifications"
-                  className="hidden sm:inline hover:text-white font-medium"
-                >
-                  Notifications
-                </Link>
-                <span className="hidden lg:inline hover:text-white cursor-pointer font-medium">
-                  Partner Portal
-                </span>
+                {isAuthenticated && (
+                  <Link
+                    to="/notifications"
+                    className="hidden sm:inline hover:text-white font-medium"
+                  >
+                    {t ? t('nav.notifications') : 'Notifications'}
+                  </Link>
+                )}
               </>
             )}
           </div>
           <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2 hover:text-white cursor-pointer">
-              <FaGlobe className="text-sm" />
-              <span className="hidden sm:inline">English</span>
+            {/* Language selector */}
+            <div className="relative group">
+              <button type="button" className="flex items-center space-x-2 hover:text-white cursor-pointer">
+                <FaGlobe className="text-sm" />
+                <span className="hidden sm:inline">{(language || 'en').toUpperCase()}</span>
+                <FaCaretDown className="text-[10px] hidden sm:inline" />
+              </button>
+              <div className="main-nav-dropdown absolute right-0 mt-2 hidden group-hover:block bg-white text-[#4b2a00] rounded-md shadow-lg border border-[#e0d5c7]">
+                <button onClick={() => setLanguage && setLanguage('en')} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">English</button>
+                <button onClick={() => setLanguage && setLanguage('fr')} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">Français</button>
+              </div>
             </div>
-            <div className="flex items-center space-x-2 hover:text-white cursor-pointer">
-              <span className="font-semibold">RWF</span>
+            {/* Currency selector */}
+            <div className="relative group">
+              <button type="button" className="flex items-center space-x-2 hover:text-white cursor-pointer">
+                <span className="font-semibold">{(currency || 'RWF').toUpperCase()}</span>
+                <FaCaretDown className="text-[10px]" />
+              </button>
+              <div className="main-nav-dropdown absolute right-0 mt-2 hidden group-hover:block bg-white text-[#4b2a00] rounded-md shadow-lg border border-[#e0d5c7] min-w-[120px]">
+                <button onClick={() => setCurrency && setCurrency('RWF')} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">RWF</button>
+                <button onClick={() => setCurrency && setCurrency('USD')} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">USD</button>
+                <button onClick={() => setCurrency && setCurrency('EUR')} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">EUR</button>
+              </div>
             </div>
           </div>
         </div>
       </div>
+      )}
 
       {/* Friendly error banner */}
       {uiError && (
@@ -869,15 +879,15 @@ const Navbar = () => {
               <div className="grid grid-cols-3 gap-2 sm:gap-3 text-sm">
                 <div className="px-3 py-2 rounded-lg bg-white/80 border border-[#e1d5c3]">
                   <div className="text-xs opacity-70">Commission due</div>
-                  <div className="font-bold">RWF {Number(billing.commissionsDue||0).toLocaleString()}</div>
+                  <div className="font-bold">{formatCurrencyRWF ? formatCurrencyRWF(billing.commissionsDue) : `RWF ${Number(billing.commissionsDue||0).toLocaleString()}`}</div>
                 </div>
                 <div className="px-3 py-2 rounded-lg bg-white/80 border border-[#e1d5c3]">
                   <div className="text-xs opacity-70">Fines due</div>
-                  <div className="font-bold">RWF {Number(billing.finesDue||0).toLocaleString()}</div>
+                  <div className="font-bold">{formatCurrencyRWF ? formatCurrencyRWF(billing.finesDue) : `RWF ${Number(billing.finesDue||0).toLocaleString()}`}</div>
                 </div>
                 <div className="px-3 py-2 rounded-lg bg-white/80 border border-[#e1d5c3]">
                   <div className="text-xs opacity-70">Total due</div>
-                  <div className="font-bold">RWF {Number(billing.totalDue||0).toLocaleString()}</div>
+                  <div className="font-bold">{formatCurrencyRWF ? formatCurrencyRWF(billing.totalDue) : `RWF ${Number(billing.totalDue||0).toLocaleString()}`}</div>
                 </div>
               </div>
             </div>
@@ -887,9 +897,9 @@ const Navbar = () => {
                 onClick={() => handlePayCommission(billing.minimumPartial || Math.ceil((billing.totalDue||0)/2))}
                 disabled={payingCommission || (billing.totalDue||0) <= 0}
                 className={`inline-flex items-center justify-center px-3 py-2 rounded-md text-white shadow-sm transition-colors ${payingCommission ? 'bg-[#b58a66] opacity-80' : 'bg-[#a06b42] hover:bg-[#8f5a32]'}`}
-                title={`Pay at least RWF ${Number(billing.minimumPartial||0).toLocaleString()} to unlock limited features`}
+                title={`Pay at least ${formatCurrencyRWF ? formatCurrencyRWF(billing.minimumPartial||0) : `RWF ${Number(billing.minimumPartial||0).toLocaleString()}`} to unlock limited features`}
               >
-                {payingCommission ? 'Processing…' : `Pay Half (RWF ${Number(billing.minimumPartial||0).toLocaleString()})`}
+                {payingCommission ? 'Processing…' : `Pay Half (${formatCurrencyRWF ? formatCurrencyRWF(billing.minimumPartial||0) : `RWF ${Number(billing.minimumPartial||0).toLocaleString()}`})`}
               </button>
               <button
                 type="button"
@@ -897,7 +907,7 @@ const Navbar = () => {
                 disabled={payingCommission || (billing.totalDue||0) <= 0}
                 className={`inline-flex items-center justify-center px-3 py-2 rounded-md text-[#3a240e] border border-[#e1d5c3] bg-white/90 hover:bg-white`}
               >
-                Pay Full (RWF {Number(billing.totalDue||0).toLocaleString()})
+                Pay Full ({formatCurrencyRWF ? formatCurrencyRWF(billing.totalDue||0) : `RWF ${Number(billing.totalDue||0).toLocaleString()}`})
               </button>
               <Link to="/notifications" className="inline-flex justify-center px-3 py-2 rounded-md border border-[#e1d5c3] text-[#3a240e] hover:bg-white">
                 View notice
@@ -973,7 +983,7 @@ const Navbar = () => {
                                   <Link
                                     key={childIndex}
                                     to={child.href}
-                                    className={`flex items-center space-x-3 px-4 py-3 text-sm hover:bg-white transition-colors ${isChildActive ? 'bg-white text-[#4b2a00]' : 'text-[#4b2a00]'
+                                    className={`flex items-center space-x-3 px-4 py-3 text-sm text-[#4b2a00] hover:bg-white transition-colors ${isChildActive ? 'bg-white text-[#4b2a00]' : 'text-[#4b2a00]'
                                       }`}
                                     onClick={() => setActiveDropdown(null)}
                                   >
@@ -1031,8 +1041,8 @@ const Navbar = () => {
                 className="hidden lg:inline-flex items-center px-2 lg:px-3 py-2 rounded-lg bg-[#a06b42] text-white text-xs lg:text-sm font-medium hover:bg-[#8f5a32] transition-colors whitespace-nowrap shadow-md"
                 title="List your property"
               >
-                <span className="hidden lg:inline">List your property</span>
-                <span className="lg:hidden">List Property</span>
+                <span className="hidden lg:inline">{t ? t('nav.listProperty') : 'List your property'}</span>
+                <span className="lg:hidden">{t ? t('nav.listProperty') : 'List Property'}</span>
               </button>
 
               {/* Property Dashboard - hidden in user mode to reduce overflow; visible only in owner dashboard context */}
@@ -1042,8 +1052,8 @@ const Navbar = () => {
                   className="hidden lg:inline-flex items-center px-2 lg:px-3 py-2 rounded-lg bg-green-600 text-white text-xs lg:text-sm font-medium hover:bg-green-700 transition-colors whitespace-nowrap"
                   title="Property Owner Dashboard"
                 >
-                  <span className="hidden lg:inline">Dashboard</span>
-                  <span className="lg:hidden">Dash</span>
+                  <span className="hidden lg:inline">{t ? t('nav.dashboard') : 'Dashboard'}</span>
+                  <span className="lg:hidden">{t ? t('nav.dashboard') : 'Dash'}</span>
                 </button>
               )}
 
@@ -1052,7 +1062,7 @@ const Navbar = () => {
                 <Link
                   to="/favorites"
                   className="hidden lg:flex items-center px-3 py-2 rounded-lg text-[#6b5744] hover:text-[#4b2a00] hover:bg-[#e8dcc8] transition-colors"
-                  title="Favorites"
+                  title={t ? t('nav.favorites') : 'Favorites'}
                 >
                   <FaHeart className="text-lg" />
                 </Link>
@@ -1063,7 +1073,7 @@ const Navbar = () => {
                 <Link
                   to="/messages"
                   className="flex items-center px-3 py-2 rounded-lg text-[#6b5744] hover:text-[#4b2a00] hover:bg-[#e8dcc8] relative transition-colors"
-                  title="Messages"
+                  title={t ? t('nav.messages') : 'Messages'}
                 >
                   <FaEnvelope className="text-lg" />
                   {unreadMsgCount > 0 && (
@@ -1081,7 +1091,7 @@ const Navbar = () => {
                     to="/login"
                     className="px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium text-[#6b5744] hover:text-[#4b2a00] whitespace-nowrap"
                   >
-                    Login
+                    {t ? t('nav.login') : 'Login'}
                   </Link>
                   {/* Property Owner Login - visible on all screens with icon on mobile */}
                   <Link
@@ -1090,15 +1100,15 @@ const Navbar = () => {
                     title="Property Owner Login"
                   >
                     <FaBuilding className="sm:hidden text-base" />
-                    <span className="hidden sm:inline md:hidden">Owner</span>
-                    <span className="hidden md:inline">Owner Login</span>
+                    <span className="hidden sm:inline md:hidden">{t ? t('nav.ownerLogin') : 'Owner'}</span>
+                    <span className="hidden md:inline">{t ? t('nav.ownerLogin') : 'Owner Login'}</span>
                   </Link>
                   <Link
                     to="/register"
                     className="px-2 lg:px-3 py-2 bg-[#a06b42] text-white text-xs lg:text-sm font-medium rounded-lg hover:bg-[#8f5a32] transition-colors whitespace-nowrap shadow-md"
                   >
-                    <span className="hidden sm:inline">Sign Up</span>
-                    <span className="sm:hidden">Join</span>
+                    <span className="hidden sm:inline">{t ? t('nav.signUp') : 'Sign Up'}</span>
+                    <span className="sm:hidden">{t ? t('nav.signUp') : 'Join'}</span>
                   </Link>
                 </div>
               )}
@@ -1123,13 +1133,13 @@ const Navbar = () => {
                   {isNotificationOpen && (
                     <div className="notification-dropdown absolute top-full right-0 sm:right-0 left-0 sm:left-auto mt-2 w-[calc(100vw-1rem)] sm:w-80 max-w-md mx-2 sm:mx-0 bg-[#f6e9d8] rounded-xl shadow-2xl border border-[#d4c4b0] py-2 z-[99999]">
                       <div className="px-4 py-2 border-b border-gray-100 font-semibold text-sm flex items-center justify-between">
-                        <span>Notifications</span>
+                        <span>{t ? t('nav.notifications') : 'Notifications'}</span>
                         <Link
                           to="/notifications"
                           className="text-xs text-gray-700 hover:text-gray-900"
                           onClick={() => setIsNotificationOpen(false)}
                         >
-                          View All
+                          {t ? t('nav.viewAll') : 'View All'}
                         </Link>
                       </div>
                       <div className="max-h-80 overflow-y-auto">
@@ -1174,185 +1184,82 @@ const Navbar = () => {
                 </div>
               )}
 
-              {/* Profile Menu */}
+              {/* Profile menu */}
               {isAuthenticated && (
                 <div className="relative inline-flex items-center">
                   <button
                     onClick={toggleProfile}
-                    className="profile-button flex items-center space-x-2 px-3 py-2 rounded-lg text-[#6b5744] hover:text-[#4b2a00] hover:bg-[#e8dcc8] transition-colors"
+                    className={`profile-button flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${isProfileOpen
+                        ? 'bg-[#a06b42] text-white'
+                        : 'text-[#6b5744] hover:text-[#4b2a00] hover:bg-[#e8dcc8]'
+                      }`}
+                    title={user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : 'Account'}
                   >
-                    <FaUserCircle className="text-lg" />
-                    <span className="hidden sm:inline font-medium text-sm">
-                      {user?.firstName || user?.name || user?.email}
-                    </span>
-                    {isProfileOpen ? (
-                      <FaChevronUp className="text-xs" />
-                    ) : (
-                      <FaChevronDown className="text-xs" />
-                    )}
+                    {avatarUrl ? (
+                      <img
+                        src={avatarUrl}
+                        alt="avatar"
+                        className="w-6 h-6 rounded-full object-cover"
+                        onError={() => setAvatarOk(false)}
+                        style={{ display: avatarOk ? 'block' : 'none' }}
+                      />
+                    ) : null}
+                    {!avatarOk || !avatarUrl ? <FaUserCircle className="text-xl" /> : null}
+                    <FaCaretDown className="text-[10px]" />
                   </button>
-
                   {isProfileOpen && (
-                    <div className="profile-dropdown absolute top-full right-0 mt-2 w-64 bg-[#f6e9d8] rounded-xl shadow-2xl border border-[#d4c4b0] py-3">
-                      {/* Profile Header */}
-                      <div className="px-4 pb-3 border-b border-gray-100">
-                        <div className="flex items-center space-x-3">
-                          {user?.avatar && avatarOk ? (
-                            <img
-                              src={avatarUrl}
-                              alt="Profile"
-                              className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
-                              onError={() => setAvatarOk(false)}
-                            />
-                          ) : (
-                            <div className="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center border-2 border-gray-200">
-                              <span className="text-white font-bold text-lg">
-                                {((user?.firstName || '').charAt(0) + (user?.lastName || '').charAt(0)) || user?.email?.charAt(0) || 'U'}
-                              </span>
-                            </div>
-                          )}
-                          <div className="flex-1">
-                            <div className="font-semibold text-gray-900">
-                              {user?.firstName} {user?.lastName}
-                            </div>
-                            <div className="text-sm text-gray-500">{user?.email}</div>
-                            <div className="text-xs text-gray-700 font-medium">
-                              {user?.userType === 'host' ? 'Property Owner' : user?.userType === 'worker' ? 'Worker' : 'Guest'}
-                            </div>
-                          </div>
-                        </div>
+                    <div className="profile-dropdown absolute top-full right-0 mt-2 w-56 bg-[#f6e9d8] rounded-xl shadow-2xl border border-[#d4c4b0] py-2 z-[99999]">
+                      <div className="px-4 py-2 border-b border-gray-100 text-sm">
+                        <div className="font-semibold text-[#4b2a00] truncate">{user?.firstName || user?.email}</div>
+                        <div className="text-xs text-gray-600 truncate">{user?.email}</div>
                       </div>
-
-                      {/* Quick Stats for Hosts */}
+                      <Link to="/profile" className="block px-4 py-2 text-sm text-[#4b2a00] hover:bg-white">{t ? t('nav.profile') : 'Profile'}</Link>
+                      <Link to="/settings" className="block px-4 py-2 text-sm text-[#4b2a00] hover:bg-white">{t ? t('nav.accountSettings') : 'Account settings'}</Link>
+                      <Link to="/my-bookings" className="block px-4 py-2 text-sm text-[#4b2a00] hover:bg-white">{t ? t('nav.reservations') : 'My bookings'}</Link>
                       {user?.userType === 'host' && (
-                        <div className="px-4 py-2 border-b border-gray-100">
-                          <div className="grid grid-cols-3 gap-2 text-center">
-                            <div>
-                              <div className="text-sm font-bold text-gray-700">{userStats.properties}</div>
-                              <div className="text-xs text-gray-500">Properties</div>
-                            </div>
-                            <div>
-                              <div className="text-sm font-bold text-green-600">{userStats.bookings}</div>
-                              <div className="text-xs text-gray-500">Bookings</div>
-                            </div>
-                            <div>
-                              <div className="text-sm font-bold text-orange-600">{userStats.rating}</div>
-                              <div className="text-xs text-gray-500">Rating</div>
-                            </div>
-                          </div>
-                        </div>
+                        <Link to="/dashboard" className="block px-4 py-2 text-sm text-[#4b2a00] hover:bg-white">{t ? t('nav.dashboard') : 'Owner dashboard'}</Link>
                       )}
-
-                      {user?.userType === 'worker' && (
-                        <div className="px-4 py-2 border-b border-gray-100">
-                          <div className="text-xs font-semibold text-gray-500 mb-1">Abilities</div>
-                          <div className="flex flex-wrap gap-2">
-                            {(() => {
-                              const enabled = Object.entries(user?.privileges || {}).filter(([k, v]) => v);
-                              if (enabled.length === 0) {
-                                return <span className="text-xs text-gray-500">No abilities assigned</span>;
-                              }
-                              return enabled.slice(0, 12).map(([k]) => (
-                                <span key={k} className="px-2 py-1 text-xs rounded bg-emerald-50 text-emerald-700 border border-emerald-200">{k}</span>
-                              ));
-                            })()}
-                          </div>
-                          {Array.isArray(user?.assignedProperties) && (
-                            <div className="mt-2 text-xs text-gray-600">
-                              Assigned properties: <span className="font-semibold">{user.assignedProperties.length}</span>
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Menu Items */}
-                      <div className="py-1">
-                        <Link
-                          to="/profile"
-                          className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-800 transition-colors"
-                          onClick={() => setIsProfileOpen(false)}
-                        >
-                          <FaUser className="text-gray-700" />
-                          <span className="font-medium">My Profile</span>
-                        </Link>
-                        {user?.userType === 'admin' && (
-                          <Link
-                            to="/admin/reports"
-                            className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-800 transition-colors"
-                            onClick={() => setIsProfileOpen(false)}
-                          >
-                            <FaFileAlt className="text-gray-700" />
-                            <span className="font-medium">Admin Reports</span>
-                          </Link>
-                        )}
-                        {user?.userType === 'admin' && (
-                          <Link
-                            to="/admin/landing"
-                            className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-800 transition-colors"
-                            onClick={() => setIsProfileOpen(false)}
-                          >
-                            <FaFileAlt className="text-gray-700" />
-                            <span className="font-medium">Landing Content</span>
-                          </Link>
-                        )}
-
-                        {user?.userType === 'host' && (
-                          <button
-                            type="button"
-                            className="w-full text-left flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors"
-                            onClick={() => {
-                              setIsProfileOpen(false);
-                              if (!isInPropertyOwnerDashboard()) { setOwnerEmail(user?.email || ''); setOwnerPassword(''); setShowOwnerSwitch(true); }
-                              else { navigate('/dashboard'); }
-                            }}
-                          >
-                            <FaHome className="text-green-600" />
-                            <span className="font-medium">Home</span>
-                          </button>
-                        )}
-
-                        <Link
-                          to="/settings"
-                          className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                          onClick={() => setIsProfileOpen(false)}
-                        >
-                          <FaCog className="text-gray-600" />
-                          <span className="font-medium">Settings</span>
-                        </Link>
-
-                        {user?.userType === 'host' && (
-                          <Link
-                            to="/support"
-                            className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-700 transition-colors"
-                            onClick={() => setIsProfileOpen(false)}
-                          >
-                            <FaQuestionCircle className="text-purple-600" />
-                            <span className="font-medium">Help</span>
-                          </Link>
-                        )}
-                      </div>
-
-                      <hr className="my-2" />
-
-                      <div className="px-4 py-1">
-                        <button
-                          onClick={handleLogout}
-                          className="flex items-center space-x-3 w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        >
-                          <FaSignOutAlt className="text-red-600" />
-                          <span className="font-medium">Sign Out</span>
-                        </button>
-                      </div>
+                      <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-sm text-red-700 hover:bg-white flex items-center gap-2">
+                        <FaSignOutAlt /> <span>{t ? t('nav.logout') : 'Log out'}</span>
+                      </button>
                     </div>
                   )}
                 </div>
               )}
 
-              {/* Mobile Menu Button - only for authenticated users */}
-              {isAuthenticated && (
-                <button
-                  onClick={toggleMenu}
-                  className="lg:hidden p-2 text-[#6b5744] hover:text-[#4b2a00]"
+              {/* Language & Currency selectors (always available in second navbar; also present in top bar for non-landing pages) */}
+              <div className="hidden lg:flex items-center space-x-4 ml-2">
+                {/* Language selector */}
+                <div className="relative group">
+                  <button type="button" className="flex items-center space-x-2 hover:text-[#4b2a00] cursor-pointer">
+                    <FaGlobe className="text-sm" />
+                    <span className="hidden sm:inline">{(language || 'en').toUpperCase()}</span>
+                    <FaCaretDown className="text-[10px] hidden sm:inline" />
+                  </button>
+                  <div className="main-nav-dropdown absolute right-0 mt-2 hidden group-hover:block bg-white text-[#4b2a00] rounded-md shadow-lg border border-[#e0d5c7]">
+                    <button onClick={() => setLanguage && setLanguage('en')} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">English</button>
+                    <button onClick={() => setLanguage && setLanguage('fr')} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">Français</button>
+                  </div>
+                </div>
+                {/* Currency selector */}
+                <div className="relative group">
+                  <button type="button" className="flex items-center space-x-2 hover:text-[#4b2a00] cursor-pointer">
+                    <span className="font-semibold">{(currency || 'RWF').toUpperCase()}</span>
+                    <FaCaretDown className="text-[10px]" />
+                  </button>
+                  <div className="main-nav-dropdown absolute right-0 mt-2 hidden group-hover:block bg-white text-[#4b2a00] rounded-md shadow-lg border border-[#e0d5c7] min-w-[120px]">
+                    <button onClick={() => setCurrency && setCurrency('RWF')} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">RWF</button>
+                    <button onClick={() => setCurrency && setCurrency('USD')} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">USD</button>
+                    <button onClick={() => setCurrency && setCurrency('EUR')} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">EUR</button>
+                  </div>
+                </div>
+              </div>
+
+            {/* Mobile Menu Button - only for authenticated users */}
+            {isAuthenticated && (
+              <button
+                onClick={toggleMenu}
+                className="lg:hidden p-2 text-[#6b5744] hover:text-[#4b2a00]"
                 >
                   {isMenuOpen ? <FaTimes className="text-xl" /> : <FaBars className="text-xl" />}
                 </button>
