@@ -51,7 +51,7 @@ export default function RatesAvailability() {
       const res = await fetch(`${API_URL}/api/properties/${selectedProperty}`, { credentials: 'include' });
       if (!res.ok) return;
       const data = await res.json();
-      setPropertyData(data);
+      setPropertyData(data.property || data);
     } catch (e) {
       console.error('Failed to load property details:', e);
     }
