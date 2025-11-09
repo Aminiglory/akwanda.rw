@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { FaMapMarkerAlt, FaCalendarAlt, FaHeart, FaClock } from 'react-icons/fa';
+import { useLocale } from '../contexts/LocaleContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 const makeAbsolute = (u) => {
@@ -15,6 +16,7 @@ const makeAbsolute = (u) => {
 export default function CarDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { t, formatCurrencyRWF } = useLocale() || {};
   const [car, setCar] = useState(null);
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(false);
@@ -81,7 +83,7 @@ export default function CarDetail() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to check');
       setAvailable(!!data.available);
-      if (data.available) toast.success('Available for selected dates'); else toast.error('Not available');
+      if (data.available) toast.success(t ? t('vehicleDetail.available') : 'Available'); else toast.error(t ? t('vehicleDetail.notAvailable') : 'Not available');
     } catch (e) { toast.error(e.message); } finally { setChecking(false); }
   }
 
@@ -171,17 +173,17 @@ export default function CarDetail() {
         {/* Booking card */}
         <div>
           <div className="bg-white rounded-lg shadow p-4">
-            <div className="text-xl font-semibold">RWF {Number(car.pricePerDay || 0).toLocaleString()} / day</div>
+            <div className="text-xl font-semibold">{formatCurrencyRWF ? formatCurrencyRWF(car.pricePerDay) : `RWF ${Number(car.pricePerDay || 0).toLocaleString()}`} / {t ? t('vehicleDetail.pricePerDay') : 'per day'}</div>
             <div className="grid grid-cols-1 gap-3 mt-3">
               <div>
-                <label className="text-sm text-gray-700">Pickup date</label>
+                <label className="text-sm text-gray-700">{t ? t('vehicleDetail.pickupDate') : 'Pickup date'}</label>
                 <div className="relative">
                   <FaCalendarAlt className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                   <input id="pickupDate" type="date" min={today} value={form.pickupDate} onChange={e => setForm({ ...form, pickupDate: e.target.value })} className="w-full pl-10 px-3 py-2 border rounded" />
                 </div>
               </div>
               <div>
-                <label className="text-sm text-gray-700">Return date</label>
+                <label className="text-sm text-gray-700">{t ? t('vehicleDetail.returnDate') : 'Return date'}</label>
                 <div className="relative">
                   <FaCalendarAlt className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                   <input id="returnDate" type="date" min={form.pickupDate || today} value={form.returnDate} onChange={e => setForm({ ...form, returnDate: e.target.value })} className="w-full pl-10 px-3 py-2 border rounded" />
@@ -189,14 +191,14 @@ export default function CarDetail() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-sm text-gray-700">Pickup time</label>
+                  <label className="text-sm text-gray-700">{t ? t('vehicleDetail.pickupTime') : 'Pickup time'}</label>
                   <div className="relative">
                     <FaClock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                     <input type="time" value={form.pickupTime} onChange={e => setForm({ ...form, pickupTime: e.target.value })} className="w-full pl-10 px-3 py-2 border rounded" />
                   </div>
                 </div>
                 <div>
-                  <label className="text-sm text-gray-700">Return time</label>
+                  <label className="text-sm text-gray-700">{t ? t('vehicleDetail.returnTime') : 'Return time'}</label>
                   <div className="relative">
                     <FaClock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                     <input type="time" value={form.returnTime} onChange={e => setForm({ ...form, returnTime: e.target.value })} className="w-full pl-10 px-3 py-2 border rounded" />
@@ -204,17 +206,17 @@ export default function CarDetail() {
                 </div>
               </div>
               <div>
-                <label className="text-sm text-gray-700">Pickup location</label>
+                <label className="text-sm text-gray-700">{t ? t('vehicleDetail.pickupLocation') : 'Pickup location'}</label>
                 <input value={form.pickupLocation} onChange={e => setForm({ ...form, pickupLocation: e.target.value })} className="w-full px-3 py-2 border rounded" />
               </div>
               <div>
-                <label className="text-sm text-gray-700">Return location</label>
+                <label className="text-sm text-gray-700">{t ? t('vehicleDetail.returnLocation') : 'Return location'}</label>
                 <input value={form.returnLocation} onChange={e => setForm({ ...form, returnLocation: e.target.value })} className="w-full px-3 py-2 border rounded" />
               </div>
               <div className="flex items-center gap-2">
-                <button disabled={checking} onClick={checkAvailability} className="px-3 py-2 bg-[#a06b42] hover:bg-[#8f5a32] text-white rounded">{checking ? 'Checking...' : 'Check availability'}</button>
+                <button disabled={checking} onClick={checkAvailability} className="px-3 py-2 bg-[#a06b42] hover:bg-[#8f5a32] text-white rounded">{checking ? 'Checking...' : (t ? t('vehicleDetail.checkAvailability') : 'Check availability')}</button>
                 {available !== null && (
-                  <span className={`text-sm ${available ? 'text-green-600' : 'text-red-600'}`}>{available ? 'Available' : 'Not available'}</span>
+                  <span className={`text-sm ${available ? 'text-green-600' : 'text-red-600'}`}>{available ? (t ? t('vehicleDetail.available') : 'Available') : (t ? t('vehicleDetail.notAvailable') : 'Not available')}</span>
                 )}
               </div>
               {/* Payment choice */}
@@ -224,17 +226,17 @@ export default function CarDetail() {
                   onClick={() => setPaymentMethod('cash')}
                   className={`px-3 py-2 rounded border ${paymentMethod==='cash' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-[#f6e9d8] text-[#4b2a00] border-[#d4c4b0] hover:bg-[#e8dcc8]'}`}
                 >
-                  Pay on Pickup
+                  {t ? t('vehicleDetail.payOnPickup') : 'Pay on Pickup'}
                 </button>
                 <button
                   type="button"
                   onClick={() => setPaymentMethod('mtn_mobile_money')}
                   className={`px-3 py-2 rounded border ${paymentMethod==='mtn_mobile_money' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-[#f6e9d8] text-[#4b2a00] border-[#d4c4b0] hover:bg-[#e8dcc8]'}`}
                 >
-                  MTN Mobile Money
+                  {t ? t('vehicleDetail.payWithMTN') : 'MTN Mobile Money'}
                 </button>
               </div>
-              <button disabled={booking} onClick={createBooking} className="px-4 py-2 bg-[#a06b42] hover:bg-[#8f5a32] text-white rounded">{booking ? 'Booking...' : 'Book now'}</button>
+              <button disabled={booking} onClick={createBooking} className="px-4 py-2 bg-[#a06b42] hover:bg-[#8f5a32] text-white rounded">{booking ? 'Booking...' : (t ? t('vehicleDetail.bookNow') : 'Book now')}</button>
             </div>
           </div>
         </div>
@@ -243,7 +245,7 @@ export default function CarDetail() {
       {/* Other cars */}
       {otherCars.length > 0 && (
         <div className="mt-8">
-          <h2 className="text-xl font-semibold mb-3">Other cars you might like</h2>
+          <h2 className="text-xl font-semibold mb-3">{t ? t('vehicleDetail.otherYouMightLike') : 'Other vehicles you might like'}</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {otherCars.map(c => (
               <a key={c._id} href={`/cars/${c._id}`} className="bg-white rounded-lg shadow p-3">

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { FaFacebook, FaTwitter, FaInstagram, FaLinkedin, FaPhone, FaEnvelope, FaMapMarkerAlt, FaBed, FaBuffer } from 'react-icons/fa';
+import { useLocale } from '../contexts/LocaleContext';
 
 const Footer = () => {
   const [site, setSite] = useState(() => {
@@ -10,6 +11,7 @@ const Footer = () => {
       return null;
     }
   });
+  const { t } = useLocale() || {};
 
   useEffect(() => {
     const handler = (e) => {
@@ -32,41 +34,42 @@ const Footer = () => {
   };
   const footerSections = [
     {
-      title: "For Guests",
+      title: t ? t('footer.forGuests') : "For Guests",
       links: [
-        { name: "Search Apartments", href: "/apartments" },
-        { name: "How to Book", href: "/support#faq" },
-        { name: "Guest Reviews", href: "/support#reviews" }
+        { name: t ? t('footer.searchApartments') : "Search Apartments", href: "/apartments" },
+        { name: t ? t('footer.howToBook') : "How to Book", href: "/support#faq" },
+        { name: t ? t('footer.guestReviews') : "Guest Reviews", href: "/support#reviews" }
       ]
     },
     {
-      title: "For Hosts",
+      title: t ? t('footer.forHosts') : "For Hosts",
       links: [
-        { name: "List Your Property", href: "/upload-property" },
-        { name: "Host Guidelines", href: "/support" },
-        { name: "Host Support", href: "/support" }
+        { name: t ? t('footer.listProperty') : "List Your Property", href: "/upload-property" },
+        { name: t ? t('footer.hostGuidelines') : "Host Guidelines", href: "/support" },
+        { name: t ? t('footer.hostSupport') : "Host Support", href: "/support" }
       ]
     },
     {
-      title: "Company",
+      title: t ? t('footer.company') : "Company",
       links: [
-        { name: "About Us", href: "/support" },
-        { name: "Contact Us", href: "/support#contact" }
+        { name: t ? t('footer.aboutUs') : "About Us", href: "/support" },
+        { name: t ? t('footer.contactUs') : "Contact Us", href: "/support#contact" }
       ]
     },
     {
-      title: "Support",
+      title: t ? t('footer.support') : "Support",
       links: [
-        { name: "Help Center", href: "/support" },
-        { name: "Safety Center", href: "/support" },
-        { name: "Terms of Service", href: "/support" }
+        { name: t ? t('footer.helpCenter') : "Help Center", href: "/support" },
+        { name: t ? t('footer.safetyCenter') : "Safety Center", href: "/support" },
+        { name: "Customer Support", href: "/support#contact" },
+        { name: t ? t('footer.terms') : "Terms of Service", href: "/support" }
       ]
     }
   ];
 
   const quickLinks = [
     { icon: FaBed, name: "Apartments", href: "/apartments" },
-    { icon: FaBuffer, name: "List Property", href: "/upload-property" }
+    { icon: FaBuffer, name: t ? t('footer.listProperty') : "List Property", href: "/upload-property" }
   ];
 
   return (
@@ -150,7 +153,7 @@ const Footer = () => {
 
         {/* Quick Links */}
         <div className="border-t border-gray-800 mt-12 pt-8">
-          <h3 className="text-lg font-semibold mb-6 text-center">Quick Links</h3>
+          <h3 className="text-lg font-semibold mb-6 text-center">{t ? t('footer.quickLinks') : 'Quick Links'}</h3>
           <div className="flex flex-wrap justify-center gap-3 sm:gap-4">
             {quickLinks.map((link, index) => {
               const IconComponent = link.icon;
@@ -174,14 +177,14 @@ const Footer = () => {
         <div className="max-w-6xl mx-auto px-4 py-6">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="text-gray-300 text-sm mb-4 md:mb-0">
-              © {year} AKWANDA.rw. All rights reserved.
+              {t ? t('footer.bottomCopyright', year) : `© ${year} AKWANDA.rw. All rights reserved.`}
             </div>
             <div className="flex flex-wrap gap-6 text-sm">
               <a href="/support" className="text-gray-300 hover:text-white transition-colors duration-300">
-                Privacy Policy
+                {t ? t('footer.privacy') : 'Privacy Policy'}
               </a>
               <a href="/support" className="text-gray-300 hover:text-white transition-colors duration-300">
-                Terms of Service
+                {t ? t('footer.terms') : 'Terms of Service'}
               </a>
             </div>
           </div>

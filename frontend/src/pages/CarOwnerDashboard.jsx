@@ -166,7 +166,7 @@ export default function CarOwnerDashboard() {
       <form onSubmit={createCar} className="bg-white rounded-lg shadow p-4 mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
         <input className="px-3 py-2 border rounded" placeholder="Vehicle Name" value={form.vehicleName} onChange={e => setForm({ ...form, vehicleName: e.target.value })} />
         <select className="px-3 py-2 border rounded" value={form.vehicleType} onChange={e => setForm({ ...form, vehicleType: e.target.value })}>
-          {['economy','compact','mid-size','full-size','luxury','suv','minivan'].map(x => <option key={x} value={x}>{x}</option>)}
+          {['economy','compact','mid-size','full-size','luxury','suv','minivan','motorcycle','bicycle'].map(x => <option key={x} value={x}>{x}</option>)}
         </select>
         <input className="px-3 py-2 border rounded" placeholder="Brand" value={form.brand} onChange={e => setForm({ ...form, brand: e.target.value })} />
         <input className="px-3 py-2 border rounded" placeholder="Model" value={form.model} onChange={e => setForm({ ...form, model: e.target.value })} />

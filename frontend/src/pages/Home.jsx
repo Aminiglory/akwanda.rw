@@ -6,8 +6,10 @@ import LandingAttractions from '../components/LandingAttractions';
 import OurMission from '../components/OurMission';
 import HowItWorks from '../components/HowItWorks';
 import Testimonials from '../components/Testimonials';
+import { useLocale } from '../contexts/LocaleContext';
 
 const Home = () => {
+  const { t } = useLocale() || {};
   return (
     <div>
       {/* Hero Section with chocolate theme background */}
@@ -25,7 +27,7 @@ const Home = () => {
 
         {/* Featured Destinations (static content) */}
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <h2 className="text-2xl md:text-3xl font-bold text-[#4b2a00] mb-6">Featured destinations</h2>
+          <h2 className="text-2xl md:text-3xl font-bold text-[#4b2a00] mb-6">{t ? t('home.featuredDestinations') : 'Featured destinations'}</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
             {[{
               name: 'Kigali', img: 'https://images.unsplash.com/photo-1542038382126-77ae2819338e?q=80&w=1200&auto=format&fit=crop'
@@ -42,7 +44,7 @@ const Home = () => {
                 </div>
                 <div className="p-3 flex items-center justify-between">
                   <div className="font-semibold text-[#4b2a00]">{d.name}</div>
-                  <a href="/apartments" className="text-sm theme-chocolate-text hover:underline">Explore</a>
+                  <a href="/apartments" className="text-sm theme-chocolate-text hover:underline">{t ? t('home.explore') : 'Explore'}</a>
                 </div>
               </div>
             ))}
@@ -52,7 +54,7 @@ const Home = () => {
         {/* Partners strip (static logos) */}
         <section className="bg-[#fff7ee] border-y theme-chocolate-border">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <h3 className="text-lg md:text-xl font-semibold text-[#4b2a00] mb-4">Trusted by partners</h3>
+            <h3 className="text-lg md:text-xl font-semibold text-[#4b2a00] mb-4">{t ? t('home.trustedByPartners') : 'Trusted by partners'}</h3>
             <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-6 gap-4 items-center">
               {Array.from({ length: 6 }).map((_, i) => (
                 <div key={i} className="h-10 sm:h-12 bg-white rounded-lg border theme-chocolate-border flex items-center justify-center">
@@ -70,11 +72,11 @@ const Home = () => {
         <section className="bg-[#a06b42] text-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-              <h3 className="text-2xl font-bold">List your property with AKWANDA.rw</h3>
-              <p className="opacity-90">Reach guests faster with our owner tools and promotions.</p>
+              <h3 className="text-2xl font-bold">{t ? t('home.listCtaTitle') : 'List your property with AKWANDA.rw'}</h3>
+              <p className="opacity-90">{t ? t('home.listCtaSubtitle') : 'Reach guests faster with our owner tools and promotions.'}</p>
             </div>
             <a href="/upload" className="inline-flex items-center px-5 py-3 rounded-lg bg-white text-[#4b2a00] font-semibold hover:bg-[#fff3ea] transition-colors w-full sm:w-auto text-center">
-              Get started
+              {t ? t('home.getStarted') : 'Get started'}
             </a>
           </div>
         </section>

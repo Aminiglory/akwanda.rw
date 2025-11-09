@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { FaCar, FaMapMarkerAlt, FaUsers, FaGasPump, FaCog, FaStar } from 'react-icons/fa';
 import PropertyCard from '../components/PropertyCard';
 import { useAuth } from '../contexts/AuthContext';
+import { useLocale } from '../contexts/LocaleContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -14,6 +15,7 @@ export default function CarsList() {
   const navigate = useNavigate();
   const [favIds, setFavIds] = useState([]);
   const { isAuthenticated } = useAuth();
+  const { t, formatCurrencyRWF } = useLocale() || {};
 
   const makeAbsolute = (u) => {
     if (!u) return null;
@@ -177,7 +179,17 @@ export default function CarsList() {
     finally { setLoading(false); }
   }
 
-  useEffect(() => { loadCars(); }, []);
+  useEffect(() => {
+    // Initialize type from URL (e.g., ?type=motorcycle or ?type=bicycle)
+    try {
+      const usp = new URLSearchParams(window.location.search);
+      const t = usp.get('type');
+      if (t && ['motorcycle','bicycle','economy','compact','mid-size','full-size','luxury','suv','minivan'].includes(t)) {
+        setFilters(prev => ({ ...prev, type: t }));
+      }
+    } catch {}
+    loadCars();
+  }, []);
 
   const renderStars = (rating) => {
     return Array.from({ length: 5 }, (_, i) => (
@@ -193,8 +205,8 @@ export default function CarsList() {
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">Car Rentals</h1>
-          <p className="text-gray-600 text-lg">Find the perfect vehicle for your journey</p>
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">{t ? t('vehicles.title') : 'Vehicle Rentals'}</h1>
+          <p className="text-gray-600 text-lg">{t ? t('vehicles.subtitle') : 'Find the perfect car, motorcycle, or bicycle'}</p>
         </div>
 
         {/* Search Filters */}
@@ -204,7 +216,7 @@ export default function CarsList() {
               <FaMapMarkerAlt className="absolute left-3 top-1/2 transform -translate-y-1/2 text-primary" />
               <input 
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 ring-primary focus:border-transparent transition-all duration-300" 
-                placeholder="Location" 
+                placeholder={t ? t('vehicles.location') : 'Location'} 
                 value={filters.location} 
                 onChange={e => setFilters({ ...filters, location: e.target.value })} 
               />
@@ -214,14 +226,14 @@ export default function CarsList() {
               value={filters.type} 
               onChange={e => setFilters({ ...filters, type: e.target.value })}
             >
-              <option value="">All types</option>
-              {['economy','compact','mid-size','full-size','luxury','suv','minivan'].map(x => (
+              <option value="">{t ? t('vehicles.allTypes') : 'All types'}</option>
+              {['economy','compact','mid-size','full-size','luxury','suv','minivan','motorcycle','bicycle'].map(x => (
                 <option key={x} value={x}>{x.charAt(0).toUpperCase() + x.slice(1)}</option>
               ))}
             </select>
             <input 
               className="px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 ring-primary focus:border-transparent transition-all duration-300" 
-              placeholder="Search brand/model" 
+              placeholder={t ? t('vehicles.searchBrandModel') : 'Search brand/model'} 
               value={filters.q} 
               onChange={e => setFilters({ ...filters, q: e.target.value })} 
             />
@@ -229,7 +241,7 @@ export default function CarsList() {
               onClick={loadCars} 
               className="px-6 py-3 btn-primary text-white rounded-xl font-semibold transition-all duration-300 hover:scale-105 shadow-lg"
             >
-              Search Cars
+              {t ? t('vehicles.searchVehicles') : 'Search Vehicles'}
             </button>
           </div>
           {/* View mode toggle (large screens) */}
@@ -263,15 +275,15 @@ export default function CarsList() {
               <table className="min-w-full text-sm">
                 <thead className="bg-[var(--ak-secondary-200)] text-gray-700">
                   <tr>
-                    <th className="text-left px-4 py-3">Vehicle</th>
-                    <th className="text-left px-4 py-3">Brand/Model</th>
-                    <th className="text-left px-4 py-3">Type</th>
-                    <th className="text-left px-4 py-3">Location</th>
-                    <th className="text-left px-4 py-3">Price/day</th>
-                    <th className="text-left px-4 py-3">Rating</th>
-                    <th className="text-left px-4 py-3">Capacity</th>
-                    <th className="text-left px-4 py-3">Fuel</th>
-                    <th className="text-left px-4 py-3">Action</th>
+                    <th className="text-left px-4 py-3">{t ? t('vehicles.vehicle') : 'Vehicle'}</th>
+                    <th className="text-left px-4 py-3">{t ? t('vehicles.brandModel') : 'Brand/Model'}</th>
+                    <th className="text-left px-4 py-3">{t ? t('vehicles.type') : 'Type'}</th>
+                    <th className="text-left px-4 py-3">{t ? t('vehicles.location') : 'Location'}</th>
+                    <th className="text-left px-4 py-3">{t ? t('vehicles.pricePerDay') : 'Price/day'}</th>
+                    <th className="text-left px-4 py-3">{t ? t('vehicles.rating') : 'Rating'}</th>
+                    <th className="text-left px-4 py-3">{t ? t('vehicles.capacity') : 'Capacity'}</th>
+                    <th className="text-left px-4 py-3">{t ? t('vehicles.fuel') : 'Fuel'}</th>
+                    <th className="text-left px-4 py-3">{t ? t('vehicles.action') : 'Action'}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -286,12 +298,12 @@ export default function CarsList() {
                       <td className="px-4 py-3 text-gray-700">{c.brand} {c.model}</td>
                       <td className="px-4 py-3 capitalize text-gray-700">{c.type}</td>
                       <td className="px-4 py-3 text-gray-700">{c.location}</td>
-                      <td className="px-4 py-3 font-semibold text-primary-700">RWF {Number(c.pricePerDay || 0).toLocaleString()}</td>
+                      <td className="px-4 py-3 font-semibold text-primary-700">{formatCurrencyRWF ? formatCurrencyRWF(c.pricePerDay) : `RWF ${Number(c.pricePerDay || 0).toLocaleString()}`}</td>
                       <td className="px-4 py-3 text-gray-700">{Number(c.rating || 0).toFixed(1)} ({c.reviews})</td>
                       <td className="px-4 py-3 text-gray-700">{c.capacity}</td>
                       <td className="px-4 py-3 text-gray-700">{c.fuelType}</td>
                       <td className="px-4 py-3">
-                        <Link to={`/cars/${c._id}`} className="btn-primary text-white px-3 py-1.5 rounded-lg">View</Link>
+                        <Link to={`/cars/${c._id}`} className="btn-primary text-white px-3 py-1.5 rounded-lg">{t ? t('vehicles.view') : 'View'}</Link>
                       </td>
                     </tr>
                   ))}

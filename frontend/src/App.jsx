@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import './App.css'
 import { AuthProvider } from './contexts/AuthContext'
+import { LocaleProvider } from './contexts/LocaleContext'
 import { SocketProvider } from './contexts/SocketContext'
 import { Toaster } from 'react-hot-toast'
 import { ProtectedRoute, AdminRoute, HostRoute } from './components/ProtectedRoute'
@@ -109,11 +110,12 @@ function App() {
   }
 
   return (
-    <AuthProvider>
-      <SocketProvider>
-        <Router>
-          <ErrorBoundary>
-            <div className="min-h-screen bg-gray-50">
+    <LocaleProvider>
+      <AuthProvider>
+        <SocketProvider>
+          <Router>
+            <ErrorBoundary>
+              <div className="min-h-screen bg-gray-50">
               <Toaster position="top-right" />
               {/* Header */}
               <Navbar />
@@ -198,11 +200,12 @@ function App() {
               <Route path="/quick-login" element={null} />
               <Route path="*" element={<Footer />} />
             </Routes>
-            </div>
-          </ErrorBoundary>
-        </Router>
-      </SocketProvider>
-    </AuthProvider>
+              </div>
+            </ErrorBoundary>
+          </Router>
+        </SocketProvider>
+      </AuthProvider>
+    </LocaleProvider>
   )
 }
 

@@ -3,8 +3,10 @@ import { Link, useNavigate } from 'react-router-dom';
 import { FaEnvelope, FaLock, FaEye, FaEyeSlash, FaUser, FaPhone, FaMapMarkerAlt } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
+import { useLocale } from '../contexts/LocaleContext';
 
 const Register = () => {
+  const { t } = useLocale() || {};
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -62,10 +64,10 @@ const Register = () => {
             <span className="text-white text-xl font-bold">A</span>
           </div>
           <h2 className="mt-6 text-3xl font-bold text-gray-900">
-            Create your account
+            {t ? t('auth.registerTitle') : 'Create your account'}
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            Join AKWANDA.rw and start your apartment journey
+            {t ? t('auth.registerSubtitle') : 'Join AKWANDA.rw and start your apartment journey'}
           </p>
         </div>
 
@@ -75,7 +77,7 @@ const Register = () => {
             {/* User Type Selection */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-3">
-                I want to
+                {t ? t('auth.iWantTo') : 'I want to'}
               </label>
               <div className="grid grid-cols-2 gap-3">
                 <button
@@ -89,7 +91,7 @@ const Register = () => {
                 >
                   <div className="text-center">
                     <div className="text-2xl mb-1">🏠</div>
-                    <div className="font-medium">Find Apartments</div>
+                    <div className="font-medium">{t ? t('auth.findApartments') : 'Find Apartments'}</div>
                   </div>
                 </button>
                 <button
@@ -102,8 +104,8 @@ const Register = () => {
                   }`}
                 >
                   <div className="text-center">
-                    <div className="text-2xl mb-1">💰</div>
-                    <div className="font-medium">List Apartments</div>
+                    <div className="text-2xl mb-1">🏨</div>
+                    <div className="font-medium">{t ? t('auth.becomeHost') : 'Become a Host'}</div>
                   </div>
                 </button>
               </div>

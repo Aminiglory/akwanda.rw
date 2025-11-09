@@ -16,10 +16,12 @@ import toast from "react-hot-toast";
 import { safeApiGet, apiGet } from "../utils/apiUtils";
 import PropertyDealBadge from "../components/PropertyDealBadge";
 import PropertyCard from "../components/PropertyCard";
+import { useLocale } from "../contexts/LocaleContext";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 const ApartmentsListing = () => {
+  const { formatCurrencyRWF } = useLocale() || {};
   const PRICE_STEP = 5000;
   const snapToStep = (v) => Math.max(0, Math.round(Number(v || 0) / PRICE_STEP) * PRICE_STEP);
   // Viewing listings is public; booking will require login on the booking flow
@@ -719,7 +721,7 @@ const ApartmentsListing = () => {
                               </td>
                               <td className="px-4 py-3 text-gray-700">{a.location}</td>
                               <td className="px-4 py-3 capitalize text-gray-700">{a.category}</td>
-                              <td className="px-4 py-3 font-semibold text-primary-700">RWF {Number(a.price || 0).toLocaleString()}</td>
+                              <td className="px-4 py-3 font-semibold text-primary-700">{formatCurrencyRWF ? formatCurrencyRWF(a.price || 0) : `RWF ${Number(a.price || 0).toLocaleString()}`}</td>
                               <td className="px-4 py-3 text-gray-700">{Number(a.rating || 0).toFixed(1)} ({a.reviews})</td>
                               <td className="px-4 py-3 text-gray-700">{a.bedrooms}</td>
                               <td className="px-4 py-3 text-gray-700">{a.bathrooms}</td>
