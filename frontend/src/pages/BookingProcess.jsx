@@ -636,6 +636,19 @@ const BookingProcess = () => {
             
             {currentStep === 2 && (
               <div>
+                {/* Info Banner */}
+                <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-start gap-3">
+                    <FaCalendarAlt className="text-blue-600 text-lg mt-0.5 flex-shrink-0" />
+                    <div>
+                      <h4 className="font-semibold text-blue-900 mb-1">Select a Room First</h4>
+                      <p className="text-sm text-blue-700">
+                        Choose your preferred room below. After selection, you'll be able to pick your dates and we'll check real-time availability for that specific room.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                 {filteredRooms.length === 0 ? (
                   <div className="text-center py-12">
                     <FaBed className="text-4xl text-gray-300 mx-auto mb-4" />
@@ -808,10 +821,23 @@ const BookingProcess = () => {
                 <h2 className="text-2xl font-bold text-gray-900 mb-6">Select Your Dates</h2>
                 
                 {selectedRoom && (
-                  <div className="mb-6 p-4 bg-blue-50 rounded-lg">
-                    <p className="text-sm text-gray-700">
-                      <strong>Selected Room:</strong> {selectedRoom.roomNumber} - {selectedRoom.roomType}
-                    </p>
+                  <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-gray-700">
+                          <strong>Selected Room:</strong> {selectedRoom.roomNumber} - {selectedRoom.roomType}
+                        </p>
+                        <p className="text-xs text-gray-600 mt-1">
+                          RWF {(selectedRoom.pricePerNight || 0).toLocaleString()} per night
+                        </p>
+                      </div>
+                      {selectedRoomUnavailable && bookingData.checkIn && bookingData.checkOut && (
+                        <div className="flex items-center gap-2 px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm">
+                          <span className="w-2 h-2 bg-red-500 rounded-full"></span>
+                          Not Available
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
 
@@ -859,6 +885,78 @@ const BookingProcess = () => {
                   </div>
                 </div>
 
+                {/* Check Availability Button */}
+                {bookingData.checkIn && bookingData.checkOut && (
+                  <div className="mb-6">
+                    <button
+                      onClick={async () => {
+                        await checkAvailability();
+                        if (!selectedRoomUnavailable) {
+                          toast.success('Room is available for your selected dates!');
+                        }
+                      }}
+                      disabled={loadingRooms}
+                      className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {loadingRooms ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          Checking Availability...
+                        </>
+                      ) : (
+                        <>
+                          <FaCheck />
+                          Check Room Availability
+                        </>
+                      )}
+                    </button>
+                    <p className="text-xs text-gray-500 text-center mt-2">
+                      Click to verify if this room is available for your selected dates
+                    </p>
+                  </div>
+                )}
+
+                {/* Availability Status Message */}
+                {bookingData.checkIn && bookingData.checkOut && !loadingRooms && (
+                  <div className="mb-6">
+                    {selectedRoomUnavailable ? (
+                      <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                        <div className="flex items-start gap-3">
+                          <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <span className="text-white text-xs">✕</span>
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-red-900 mb-1">Room Not Available</h4>
+                            <p className="text-sm text-red-700">
+                              {selectedRoom?.roomNumber} is already booked for {new Date(bookingData.checkIn).toLocaleDateString()} to {new Date(bookingData.checkOut).toLocaleDateString()}.
+                            </p>
+                            <button
+                              onClick={() => setCurrentStep(2)}
+                              className="mt-3 text-sm text-red-700 underline hover:text-red-900"
+                            >
+                              ← Choose a different room
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                        <div className="flex items-start gap-3">
+                          <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <FaCheck className="text-white text-xs" />
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-green-900 mb-1">Room Available!</h4>
+                            <p className="text-sm text-green-700">
+                              {selectedRoom?.roomNumber} is available for your selected dates. You can proceed with booking.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <div className="flex justify-between mt-6">
                   <button
                     onClick={() => setCurrentStep(2)}
@@ -872,9 +970,18 @@ const BookingProcess = () => {
                         toast.error('Please select check-in and check-out dates');
                         return;
                       }
+                      if (selectedRoomUnavailable) {
+                        toast.error('This room is not available for your selected dates. Please choose different dates or another room.');
+                        return;
+                      }
                       setCurrentStep(4);
                     }}
-                    className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                    disabled={selectedRoomUnavailable}
+                    className={`px-8 py-3 rounded-lg font-medium transition-colors ${
+                      selectedRoomUnavailable
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        : 'bg-blue-600 hover:bg-blue-700 text-white'
+                    }`}
                   >
                     Continue to Contact Info
                   </button>
