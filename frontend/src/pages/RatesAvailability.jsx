@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { FaCalendar, FaDoorOpen, FaCopy, FaRuler, FaMoneyBillWave, FaGift, FaChartLine, FaUsers, FaGlobe, FaMobileAlt } from 'react-icons/fa';
+import { FaCalendar, FaDoorOpen, FaCopy, FaRuler, FaMoneyBillWave, FaGift, FaChartLine, FaUsers, FaGlobe, FaMobileAlt, FaCalendarTimes } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -300,56 +300,218 @@ export default function RatesAvailability() {
         );
 
       case 'open-close':
+        const [selectedRoomForCalendar, setSelectedRoomForCalendar] = React.useState(null);
+        const [currentMonth, setCurrentMonth] = React.useState(new Date());
+        
+        // Generate calendar days for the current month
+        const generateCalendarDays = () => {
+          const year = currentMonth.getFullYear();
+          const month = currentMonth.getMonth();
+          const firstDay = new Date(year, month, 1);
+          const lastDay = new Date(year, month + 1, 0);
+          const daysInMonth = lastDay.getDate();
+          const startingDayOfWeek = firstDay.getDay();
+          
+          const days = [];
+          // Add empty cells for days before the first day of the month
+          for (let i = 0; i < startingDayOfWeek; i++) {
+            days.push(null);
+          }
+          // Add all days of the month
+          for (let day = 1; day <= daysInMonth; day++) {
+            days.push(new Date(year, month, day));
+          }
+          return days;
+        };
+        
+        const isDateClosed = (date, room) => {
+          if (!date || !room?.closedDates) return false;
+          const dateStr = date.toISOString().split('T')[0];
+          return room.closedDates.some(closedDate => {
+            const closed = new Date(closedDate).toISOString().split('T')[0];
+            return closed === dateStr;
+          });
+        };
+        
+        const goToPreviousMonth = () => {
+          setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1));
+        };
+        
+        const goToNextMonth = () => {
+          setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1));
+        };
+        
+        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+        const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        
         return (
           <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+            <h2 className="text-xl font-bold mb-2 flex items-center gap-2">
               <FaDoorOpen /> Open/Close Rooms
             </h2>
-            <p className="text-gray-600 mb-4">Manage room availability by opening or closing specific dates.</p>
-            {propertyData?.rooms?.map((room, idx) => (
-              <div key={idx} className="border rounded-lg p-4 mb-3">
-                <h3 className="font-semibold mb-2">{room.roomType} - {room.roomNumber}</h3>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs text-gray-600">Start Date</label>
-                    <input 
-                      type="date" 
-                      className="w-full px-2 py-1 border rounded text-sm"
-                      onChange={(e) => setDateRanges(prev => ({
-                        ...prev,
-                        [room._id]: { ...prev[room._id], startDate: e.target.value }
-                      }))}
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-600">End Date</label>
-                    <input 
-                      type="date" 
-                      className="w-full px-2 py-1 border rounded text-sm"
-                      onChange={(e) => setDateRanges(prev => ({
-                        ...prev,
-                        [room._id]: { ...prev[room._id], endDate: e.target.value }
-                      }))}
-                    />
-                  </div>
-                </div>
-                <div className="mt-2 flex gap-2">
-                  <button 
-                    onClick={() => handleOpenDates(room._id)}
-                    className="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700"
-                  >
-                    Open Dates
-                  </button>
-                  <button 
-                    onClick={() => handleCloseDates(room._id)}
-                    className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700"
-                  >
-                    Close Dates
-                  </button>
-                </div>
-                <p className="text-xs text-gray-500 mt-2">Closed dates: {room.closedDates?.length || 0}</p>
+            <p className="text-gray-600 mb-6">Manage room availability by opening or closing specific dates.</p>
+            
+            {!propertyData?.rooms || propertyData.rooms.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <p>No rooms available. Please add rooms to your property first.</p>
               </div>
-            ))}
+            ) : (
+              <div className="space-y-6">
+                {/* Date Range Selection for Bulk Operations */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h3 className="font-semibold text-blue-900 mb-3">📅 Bulk Date Management</h3>
+                  <p className="text-sm text-blue-700 mb-3">Select date ranges to open or close multiple dates at once</p>
+                  
+                  {propertyData.rooms.map((room, idx) => (
+                    <div key={idx} className="bg-white border rounded-lg p-4 mb-3">
+                      <h4 className="font-semibold mb-2 text-gray-800">{room.roomType} - {room.roomNumber}</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                        <div>
+                          <label className="text-xs text-gray-600 block mb-1">Start Date</label>
+                          <input 
+                            type="date" 
+                            className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            min={new Date().toISOString().split('T')[0]}
+                            onChange={(e) => setDateRanges(prev => ({
+                              ...prev,
+                              [room._id]: { ...prev[room._id], startDate: e.target.value }
+                            }))}
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-600 block mb-1">End Date</label>
+                          <input 
+                            type="date" 
+                            className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            min={dateRanges[room._id]?.startDate || new Date().toISOString().split('T')[0]}
+                            onChange={(e) => setDateRanges(prev => ({
+                              ...prev,
+                              [room._id]: { ...prev[room._id], endDate: e.target.value }
+                            }))}
+                          />
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={() => handleOpenDates(room._id)}
+                          className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+                        >
+                          <FaDoorOpen /> Open Dates
+                        </button>
+                        <button 
+                          onClick={() => handleCloseDates(room._id)}
+                          className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
+                        >
+                          <FaCalendarTimes /> Close Dates
+                        </button>
+                      </div>
+                      <div className="mt-2 flex items-center justify-between text-xs">
+                        <span className="text-gray-500">
+                          Currently closed dates: <span className="font-semibold text-red-600">{room.closedDates?.length || 0}</span>
+                        </span>
+                        <button 
+                          onClick={() => setSelectedRoomForCalendar(selectedRoomForCalendar === room._id ? null : room._id)}
+                          className="text-blue-600 hover:text-blue-800 font-medium"
+                        >
+                          {selectedRoomForCalendar === room._id ? 'Hide Calendar' : 'View Calendar'}
+                        </button>
+                      </div>
+                      
+                      {/* Calendar View */}
+                      {selectedRoomForCalendar === room._id && (
+                        <div className="mt-4 border-t pt-4">
+                          <div className="flex items-center justify-between mb-4">
+                            <button 
+                              onClick={goToPreviousMonth}
+                              className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm"
+                            >
+                              ← Prev
+                            </button>
+                            <h4 className="font-semibold text-gray-800">
+                              {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
+                            </h4>
+                            <button 
+                              onClick={goToNextMonth}
+                              className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm"
+                            >
+                              Next →
+                            </button>
+                          </div>
+                          
+                          {/* Calendar Grid */}
+                          <div className="grid grid-cols-7 gap-1">
+                            {/* Day headers */}
+                            {dayNames.map(day => (
+                              <div key={day} className="text-center text-xs font-semibold text-gray-600 py-2">
+                                {day}
+                              </div>
+                            ))}
+                            
+                            {/* Calendar days */}
+                            {generateCalendarDays().map((date, idx) => {
+                              if (!date) {
+                                return <div key={`empty-${idx}`} className="aspect-square" />;
+                              }
+                              
+                              const isClosed = isDateClosed(date, room);
+                              const isPast = date < new Date(new Date().setHours(0, 0, 0, 0));
+                              const isToday = date.toDateString() === new Date().toDateString();
+                              
+                              return (
+                                <div
+                                  key={idx}
+                                  className={`
+                                    aspect-square flex items-center justify-center text-sm rounded-lg cursor-pointer
+                                    ${isPast ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : ''}
+                                    ${isClosed && !isPast ? 'bg-red-100 text-red-700 font-semibold' : ''}
+                                    ${!isClosed && !isPast ? 'bg-green-50 text-green-700 hover:bg-green-100' : ''}
+                                    ${isToday ? 'ring-2 ring-blue-500' : ''}
+                                  `}
+                                  title={isClosed ? 'Closed' : 'Available'}
+                                >
+                                  {date.getDate()}
+                                </div>
+                              );
+                            })}
+                          </div>
+                          
+                          {/* Legend */}
+                          <div className="mt-4 flex items-center gap-4 text-xs">
+                            <div className="flex items-center gap-1">
+                              <div className="w-4 h-4 bg-green-50 border border-green-200 rounded"></div>
+                              <span>Available</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <div className="w-4 h-4 bg-red-100 border border-red-200 rounded"></div>
+                              <span>Closed</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <div className="w-4 h-4 bg-gray-100 border border-gray-200 rounded"></div>
+                              <span>Past</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <div className="w-4 h-4 border-2 border-blue-500 rounded"></div>
+                              <span>Today</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Quick Actions */}
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-900 mb-2">💡 Quick Tips</h3>
+                  <ul className="text-sm text-gray-600 space-y-1">
+                    <li>• Use date ranges to quickly close multiple dates for maintenance or holidays</li>
+                    <li>• View the calendar to see which dates are currently closed</li>
+                    <li>• Green dates are available for booking, red dates are closed</li>
+                    <li>• You can reopen closed dates anytime by selecting the date range and clicking "Open Dates"</li>
+                  </ul>
+                </div>
+              </div>
+            )}
           </div>
         );
 
