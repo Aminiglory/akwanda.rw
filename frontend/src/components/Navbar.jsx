@@ -829,7 +829,7 @@ const Navbar = () => {
                 <span className="hidden sm:inline">{(language || 'en').toUpperCase()}</span>
                 <FaCaretDown className="text-[10px] hidden sm:inline" />
               </button>
-              <div className="absolute right-0 mt-2 hidden group-hover:block bg-white text-[#4b2a00] rounded-md shadow-lg border border-[#e0d5c7] z-[10000]">
+              <div className="main-nav-dropdown absolute right-0 mt-2 hidden group-hover:block bg-white text-[#4b2a00] rounded-md shadow-lg border border-[#e0d5c7]">
                 <button onClick={() => setLanguage && setLanguage('en')} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">English</button>
                 <button onClick={() => setLanguage && setLanguage('fr')} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">Français</button>
               </div>
@@ -840,7 +840,7 @@ const Navbar = () => {
                 <span className="font-semibold">{(currency || 'RWF').toUpperCase()}</span>
                 <FaCaretDown className="text-[10px]" />
               </button>
-              <div className="absolute right-0 mt-2 hidden group-hover:block bg-white text-[#4b2a00] rounded-md shadow-lg border border-[#e0d5c7] z-[10000] min-w-[120px]">
+              <div className="main-nav-dropdown absolute right-0 mt-2 hidden group-hover:block bg-white text-[#4b2a00] rounded-md shadow-lg border border-[#e0d5c7] min-w-[120px]">
                 <button onClick={() => setCurrency && setCurrency('RWF')} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">RWF</button>
                 <button onClick={() => setCurrency && setCurrency('USD')} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">USD</button>
                 <button onClick={() => setCurrency && setCurrency('EUR')} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">EUR</button>
