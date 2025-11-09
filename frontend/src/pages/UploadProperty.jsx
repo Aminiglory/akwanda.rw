@@ -79,6 +79,19 @@ const UploadProperty = () => {
       details.amenities.split(',').map(a => a.trim()).filter(Boolean).forEach(a => body.append('amenities', a));
     }
     Array.from(files).forEach(f => body.append('images', f));
+    
+    // Log form data for debugging
+    console.log('Submitting property with data:', {
+      title: form.title,
+      address: form.address,
+      city: form.city,
+      pricePerNight: form.pricePerNight,
+      commissionRate,
+      bedrooms: details.bedrooms,
+      bathrooms: details.bathrooms,
+      filesCount: files.length
+    });
+    
     try {
       setSubmitting(true);
   let res, data;
@@ -98,7 +111,14 @@ const UploadProperty = () => {
           credentials: 'include'
         });
         data = await res.json();
-        if (!res.ok) throw new Error(data.message || 'Failed to create property');
+        console.log('Backend response:', data);
+        if (!res.ok) {
+          // Show detailed error from backend
+          const errorMsg = data.details 
+            ? `${data.message}: ${data.details.map(d => `${d.field} - ${d.message}`).join(', ')}`
+            : data.message || 'Failed to create property';
+          throw new Error(errorMsg);
+        }
         toast.success('Property created');
       }
       setForm({ title: '', description: '', address: '', city: '', pricePerNight: '', discountPercent: '', commissionChoice: 'standard' });
@@ -116,7 +136,10 @@ const UploadProperty = () => {
       } catch (_) {}
       if (data.property?._id) navigate(`/apartment/${data.property._id}`);
     } catch (e) {
-      toast.error(e.message);
+      console.error('Property creation error:', e);
+      // Show detailed error message
+      const errorMessage = e.message || 'Failed to create property';
+      toast.error(errorMessage, { duration: 5000 });
     } finally {
       setSubmitting(false);
     }

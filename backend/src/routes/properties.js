@@ -992,12 +992,16 @@ router.post('/', requireAuth, upload.array('images', 10), async (req, res) => {
         let uploadedUrls = [];
         if (req.files && req.files.length) {
             try {
+                console.log(`Uploading ${req.files.length} images to Cloudinary...`);
                 const uploaded = await Promise.all(
                     req.files.map(f => uploadBuffer(f.buffer, f.originalname, 'properties'))
                 );
                 uploadedUrls = uploaded.map(u => u.secure_url || u.url).filter(Boolean);
+                console.log(`Successfully uploaded ${uploadedUrls.length} images`);
             } catch (e) {
-                console.error('Upload buffer failed:', e);
+                console.error('Cloudinary upload failed:', e);
+                // Don't fail the entire request if image upload fails
+                // Property can be created without images and images can be added later
             }
         }
         // Merge any images provided in JSON body (images, imageUrls) with uploaded file URLs
@@ -1050,10 +1054,34 @@ router.post('/', requireAuth, upload.array('images', 10), async (req, res) => {
                 payload.rooms = JSON.parse(payload.rooms);
             } catch (e) {
                 console.error('Failed to parse rooms JSON:', e);
+                delete payload.rooms; // Remove invalid rooms data
             }
         }
         
+        // Remove rooms if it's an empty array or invalid
+        if (Array.isArray(payload.rooms) && payload.rooms.length === 0) {
+            delete payload.rooms;
+        }
+        
+        console.log('Creating property with payload:', {
+            title: payload.title,
+            address: payload.address,
+            city: payload.city,
+            pricePerNight: payload.pricePerNight,
+            commissionRate: payload.commissionRate,
+            host: payload.host,
+            imagesCount: payload.images?.length || 0,
+            bedrooms: payload.bedrooms,
+            bathrooms: payload.bathrooms,
+            hasRooms: !!payload.rooms,
+            roomsCount: payload.rooms?.length
+        });
+        
+        // Log full payload for debugging (remove in production)
+        console.log('Full payload:', JSON.stringify(payload, null, 2));
+        
         const created = await Property.create(payload);
+        console.log('Property created successfully:', created._id);
         
         // Notify admin of new property upload
         try {
@@ -1071,6 +1099,8 @@ router.post('/', requireAuth, upload.array('images', 10), async (req, res) => {
         res.status(201).json({ property: created });
     } catch (error) {
         console.error('Property creation error:', error);
+        console.error('Error stack:', error.stack);
+        console.error('Validation errors:', error.errors);
         res.status(500).json({ 
             message: 'Failed to create property', 
             error: error.message,

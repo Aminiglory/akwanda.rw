@@ -114,14 +114,23 @@ async function generateUniquePropertyNumber(Model) {
   };
 
   const tryOnce = async () => {
-    const code = generatePropertyNumber();
-    const exists = await Model.findOne({ propertyNumber: code }).select('_id').lean();
-    return exists ? null : code;
+    try {
+      const code = generatePropertyNumber();
+      const exists = await Model.findOne({ propertyNumber: code }).select('_id').lean();
+      return exists ? null : code;
+    } catch (err) {
+      console.error('Error checking property number uniqueness:', err);
+      return null;
+    }
   };
   
+  // Try 10 times to generate unique number
   for (let i = 0; i < 10; i++) {
     const code = await tryOnce();
-    if (code) return code;
+    if (code) {
+      console.log(`Generated unique property number: ${code}`);
+      return code;
+    }
   }
   
   // Fallback with timestamp component if rare collision persists
@@ -131,6 +140,7 @@ async function generateUniquePropertyNumber(Model) {
   for (let i = 0; i < 6; i++) {
     fallback += letters.charAt(Math.floor(Math.random() * letters.length));
   }
+  console.log(`Using fallback property number: ${fallback}`);
   return fallback;
 }
 
@@ -138,10 +148,13 @@ async function generateUniquePropertyNumber(Model) {
 propertySchema.pre('save', async function(next) {
   try {
     if (!this.propertyNumber) {
-      this.propertyNumber = await generateUniquePropertyNumber(this.constructor);
+      // Use mongoose.model to get the Property model reliably
+      const Property = mongoose.model('Property');
+      this.propertyNumber = await generateUniquePropertyNumber(Property);
     }
     next();
   } catch (e) {
+    console.error('Error generating property number:', e);
     next(e);
   }
 });
