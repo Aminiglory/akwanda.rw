@@ -121,21 +121,21 @@ const BookingProcess = () => {
     prefillContact();
   }, []);
 
-  // Restore date/budget from localStorage on first mount
-  useEffect(() => {
-    try {
-      const cached = JSON.parse(localStorage.getItem('akw_booking_pref') || '{}');
-      if (cached && (cached.checkIn || cached.checkOut || cached.budget || cached.guests)) {
-        setBookingData(prev => ({
-          ...prev,
-          checkIn: cached.checkIn || prev.checkIn,
-          checkOut: cached.checkOut || prev.checkOut,
-          budget: cached.budget || prev.budget,
-          guests: cached.guests || prev.guests
-        }));
-      }
-    } catch (_) {}
-  }, []);
+  // DISABLED: Start fresh each booking to avoid confusion
+  // useEffect(() => {
+  //   try {
+  //     const cached = JSON.parse(localStorage.getItem('akw_booking_pref') || '{}');
+  //     if (cached && (cached.checkIn || cached.checkOut || cached.budget || cached.guests)) {
+  //       setBookingData(prev => ({
+  //         ...prev,
+  //         checkIn: cached.checkIn || prev.checkIn,
+  //         checkOut: cached.checkOut || prev.checkOut,
+  //         budget: cached.budget || prev.budget,
+  //         guests: cached.guests || prev.guests
+  //       }));
+  //     }
+  //   } catch (_) {}
+  // }, []);
 
   // Persist date/budget whenever they change
   useEffect(() => {
@@ -783,7 +783,7 @@ const BookingProcess = () => {
                     <button
                       onClick={() => {
                         if (selectedRoom) {
-                          setCurrentStep(4);
+                          setCurrentStep(3);
                         } else {
                           toast.error('Please select a room to continue');
                         }
@@ -795,10 +795,90 @@ const BookingProcess = () => {
                           : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                       }`}
                     >
-                      Continue to Contact Info
+                      Continue to Select Dates
                     </button>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Step 3: Select Dates */}
+            {currentStep === 3 && (
+              <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">Select Your Dates</h2>
+                
+                {selectedRoom && (
+                  <div className="mb-6 p-4 bg-blue-50 rounded-lg">
+                    <p className="text-sm text-gray-700">
+                      <strong>Selected Room:</strong> {selectedRoom.roomNumber} - {selectedRoom.roomType}
+                    </p>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Check-in *</label>
+                    <div className="relative">
+                      <FaCalendarAlt className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                      <input
+                        type="date"
+                        value={bookingData.checkIn}
+                        onChange={(e) => handleInputChange('checkIn', e.target.value)}
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Check-out *</label>
+                    <div className="relative">
+                      <FaCalendarAlt className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                      <input
+                        type="date"
+                        value={bookingData.checkOut}
+                        onChange={(e) => handleInputChange('checkOut', e.target.value)}
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Guests</label>
+                    <div className="relative">
+                      <FaUsers className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                      <input
+                        type="number"
+                        min={1}
+                        value={bookingData.guests}
+                        onChange={(e) => handleInputChange('guests', Number(e.target.value) || 1)}
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-between mt-6">
+                  <button
+                    onClick={() => setCurrentStep(2)}
+                    className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    Back to Rooms
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (!bookingData.checkIn || !bookingData.checkOut) {
+                        toast.error('Please select check-in and check-out dates');
+                        return;
+                      }
+                      setCurrentStep(4);
+                    }}
+                    className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                  >
+                    Continue to Contact Info
+                  </button>
+                </div>
               </div>
             )}
 
@@ -1003,7 +1083,13 @@ const BookingProcess = () => {
           <div className="lg:col-span-1">
             <div className="bg-white rounded-2xl shadow-lg p-6 sticky top-24">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Booking Summary</h3>
-              {selectedRoom ? (
+              
+              {!selectedRoom ? (
+                <div className="text-center py-8">
+                  <FaBed className="text-4xl text-gray-300 mx-auto mb-3" />
+                  <p className="text-gray-500 text-sm">Select a room to see booking details</p>
+                </div>
+              ) : selectedRoom ? (
                 <div>
                   <div className="flex items-center gap-3 mb-4">
                     <img
