@@ -1093,16 +1093,6 @@ const Navbar = () => {
                   >
                     {t ? t('nav.login') : 'Login'}
                   </Link>
-                  {/* Property Owner Login - visible on all screens with icon on mobile */}
-                  <Link
-                    to="/owner-login"
-                    className="flex items-center px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium text-[#6b5744] hover:text-[#4b2a00] whitespace-nowrap"
-                    title="Property Owner Login"
-                  >
-                    <FaBuilding className="sm:hidden text-base" />
-                    <span className="hidden sm:inline md:hidden">{t ? t('nav.ownerLogin') : 'Owner'}</span>
-                    <span className="hidden md:inline">{t ? t('nav.ownerLogin') : 'Owner Login'}</span>
-                  </Link>
                   <Link
                     to="/register"
                     className="px-2 lg:px-3 py-2 bg-[#a06b42] text-white text-xs lg:text-sm font-medium rounded-lg hover:bg-[#8f5a32] transition-colors whitespace-nowrap shadow-md"
