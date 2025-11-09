@@ -586,81 +586,19 @@ const BookingProcess = () => {
           <div className="lg:col-span-2">
             {currentStep === 1 && (
               <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">Plan your stay</h2>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Check-in</label>
-                    <div className="relative">
-                      <FaCalendarAlt className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                      <input
-                        type="date"
-                        value={bookingData.checkIn}
-                        onChange={(e) => handleInputChange('checkIn', e.target.value)}
-                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Check-out</label>
-                    <div className="relative">
-                      <FaCalendarAlt className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                      <input
-                        type="date"
-                        value={bookingData.checkOut}
-                        onChange={(e) => handleInputChange('checkOut', e.target.value)}
-                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Guests</label>
-                    <div className="relative">
-                      <FaUsers className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                      <input
-                        type="number"
-                        min={1}
-                        value={bookingData.guests}
-                        onChange={(e) => handleInputChange('guests', Number(e.target.value) || 1)}
-                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Budget</label>
-                    <div className="relative">
-                      <FaDollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                      <select
-                        value={bookingData.budget}
-                        onChange={(e) => handleInputChange('budget', e.target.value)}
-                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      >
-                        <option value="">Any</option>
-                        {budgetRanges.map(b => (
-                          <option key={b.label} value={b.label}>{b.label}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                  <div className="flex items-end">
-                    <button
-                      onClick={async () => {
-                        if (!bookingData.checkIn || !bookingData.checkOut) {
-                          toast.error('Please select check-in and check-out dates');
-                          return;
-                        }
-                        await checkAvailability();
-                        setCurrentStep(2);
-                      }}
-                      className="w-full btn-primary text-white px-6 py-3 rounded-xl font-semibold transition-colors"
-                    >
-                      Find available rooms
-                    </button>
-                  </div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">Start Your Booking</h2>
+                <p className="text-gray-600 mb-6">Select a room first, then choose your dates</p>
+                
+                <div className="flex justify-center">
+                  <button
+                    onClick={() => {
+                      // Go directly to room selection
+                      setCurrentStep(2);
+                    }}
+                    className="btn-primary text-white px-8 py-4 rounded-xl font-semibold transition-colors text-lg"
+                  >
+                    View Available Rooms
+                  </button>
                 </div>
                 {/* Deals selector */}
                 {dealsLoading ? (
