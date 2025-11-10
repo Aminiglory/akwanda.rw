@@ -1,3 +1,14 @@
+  const category = (searchParams.get('category') || 'all').toLowerCase();
+  const categoryLabel = category === 'platform' ? 'Akwanda.rw messages' : category === 'reservations' ? 'Reservation messages' : category === 'qna' ? 'Guest Q&A' : 'All messages';
+
+  const filteredThreads = useMemo(() => {
+    if (!Array.isArray(threads)) return [];
+    if (category === 'reservations') return threads.filter(t => !!t.context?.bookingId);
+    if (category === 'platform') return threads.filter(t => !t.context?.bookingId);
+    if (category === 'qna') return threads.filter(t => (t.context?.type || '').toLowerCase() === 'qna');
+    return threads;
+  }, [threads, category]);
+
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useSocket } from '../contexts/SocketContext';
@@ -1062,7 +1073,8 @@ export default function Messages() {
         <div className={`lg:col-span-1 modern-card-elevated p-6 flex flex-col h-[calc(100vh-6rem)] md:h-[70vh] lg:h-[78vh] ${activeThread ? 'hidden lg:flex' : 'flex'}`}>
           <div className="mb-4">
             <h2 className="text-xl font-bold text-gray-900 mb-1">AKWANDA Chat</h2>
-            <p className="text-sm text-gray-500 mb-3 animate-pulse">Fast, simple and reliable messaging</p>
+            <p className="text-sm text-gray-500 mb-1 animate-pulse">Fast, simple and reliable messaging</p>
+            <div className="text-xs text-[#4b2a00] bg-[#f5f0e8] border border-[#e0d5c7] rounded px-2 py-1 inline-block mb-3">{categoryLabel}</div>
             <div className="relative">
               <FaSearch className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
@@ -1088,7 +1100,7 @@ export default function Messages() {
             {loading ? (
               <ListItemSkeleton rows={8} />
             ) : (() => {
-              const filtered = threads
+              const filtered = filteredThreads
                 .filter(thread => {
                   const name = (thread.userName || '').toLowerCase();
                   const last = (thread.lastMessage || '').toLowerCase();

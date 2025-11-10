@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
+import { useLocale } from '../contexts/LocaleContext';
 import { useParams, useSearchParams } from 'react-router-dom';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const Invoice = () => {
   const { id } = useParams();
+  const { formatCurrencyRWF } = useLocale() || {};
   const [searchParams] = useSearchParams();
   const isDirect = searchParams.get('direct') === 'true';
   const [data, setData] = useState(null);
@@ -123,23 +125,23 @@ const Invoice = () => {
           <div className="border rounded">
             <div className="flex justify-between p-3">
               <span>Discount</span>
-              <span>RWF {(pricing.discountApplied || 0).toLocaleString()}</span>
+              <span>{formatCurrencyRWF ? formatCurrencyRWF(pricing.discountApplied || 0) : `RWF ${(pricing.discountApplied || 0).toLocaleString()}`}</span>
             </div>
             {!isDirect && (
               <>
                 <div className="flex justify-between p-3 border-t">
                   <span>Tax ({booking?.taxRate || 3}%)</span>
-                  <span>RWF {(booking?.taxAmount || 0).toLocaleString()}</span>
+                  <span>{formatCurrencyRWF ? formatCurrencyRWF(booking?.taxAmount || 0) : `RWF ${(booking?.taxAmount || 0).toLocaleString()}`}</span>
                 </div>
                 <div className="flex justify-between p-3 border-t">
                   <span>Commission</span>
-                  <span>RWF {(booking?.commissionAmount || 0).toLocaleString()}</span>
+                  <span>{formatCurrencyRWF ? formatCurrencyRWF(booking?.commissionAmount || 0) : `RWF ${(booking?.commissionAmount || 0).toLocaleString()}`}</span>
                 </div>
               </>
             )}
             <div className="flex justify-between p-3 border-t font-semibold">
               <span>Total</span>
-              <span>RWF {(pricing.totalAmount || booking?.totalAmount || 0).toLocaleString()}</span>
+              <span>{formatCurrencyRWF ? formatCurrencyRWF(pricing.totalAmount || booking?.totalAmount || 0) : `RWF ${(pricing.totalAmount || booking?.totalAmount || 0).toLocaleString()}`}</span>
             </div>
           </div>
         </div>

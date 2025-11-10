@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocale } from '../contexts/LocaleContext';
 import { useSearchParams } from 'react-router-dom';
 import { FaCalendar, FaDoorOpen, FaCopy, FaRuler, FaMoneyBillWave, FaGift, FaChartLine, FaUsers, FaGlobe, FaMobileAlt, FaCalendarTimes } from 'react-icons/fa';
 import toast from 'react-hot-toast';
@@ -6,6 +7,7 @@ import toast from 'react-hot-toast';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 export default function RatesAvailability() {
+  const { formatCurrencyRWF } = useLocale() || {};
   const [searchParams] = useSearchParams();
   const view = searchParams.get('view') || 'calendar';
   const [properties, setProperties] = useState([]);
@@ -337,17 +339,17 @@ export default function RatesAvailability() {
       case 'calendar':
         return (
           <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-              <FaCalendar /> Availability Calendar
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-[#4b2a00]">
+              <FaCalendar className="text-[#a06b42]" /> Pricing and booking calendar
             </h2>
             {loading ? (
               <div className="text-center py-8">Loading...</div>
             ) : (
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
-                  <button onClick={() => setActiveMonth(m => new Date(m.getFullYear(), m.getMonth()-1, 1))} className="px-3 py-1 border rounded text-sm">Prev</button>
-                  <div className="font-semibold">{activeMonth.toLocaleString(undefined, { month: 'long', year: 'numeric' })}</div>
-                  <button onClick={() => setActiveMonth(m => new Date(m.getFullYear(), m.getMonth()+1, 1))} className="px-3 py-1 border rounded text-sm">Next</button>
+                  <button onClick={() => setActiveMonth(m => new Date(m.getFullYear(), m.getMonth()-1, 1))} className="px-3 py-1 rounded text-sm bg-[#f5f0e8] border border-[#d4c4b0] text-[#4b2a00] hover:bg-[#e8dcc8]">Prev</button>
+                  <div className="font-semibold text-[#4b2a00]">{activeMonth.toLocaleString(undefined, { month: 'long', year: 'numeric' })}</div>
+                  <button onClick={() => setActiveMonth(m => new Date(m.getFullYear(), m.getMonth()+1, 1))} className="px-3 py-1 rounded text-sm bg-[#f5f0e8] border border-[#d4c4b0] text-[#4b2a00] hover:bg-[#e8dcc8]">Next</button>
                 </div>
                 {calendarData.map((room, idx) => {
                   const cells = daysInMonth(activeMonth);
@@ -355,7 +357,7 @@ export default function RatesAvailability() {
                   return (
                     <div key={idx} className="border rounded-lg p-4">
                       <div className="flex items-center justify-between mb-2">
-                        <h3 className="font-semibold">{room.roomType} <span className="text-sm text-gray-500">• RWF {room.rate?.toLocaleString()}/night</span></h3>
+                        <h3 className="font-semibold text-[#4b2a00]">{room.roomType} <span className="text-sm text-gray-500">• {formatCurrencyRWF ? formatCurrencyRWF(room.rate || 0) : `RWF ${(room.rate || 0).toLocaleString()}`}/night</span></h3>
                         <div className="text-xs text-gray-600">Min {room.minStay} • Max {room.maxStay} • Closed {room.closedDates?.length || 0}</div>
                       </div>
                       <div className="grid grid-cols-7 gap-1 text-xs text-gray-600 mb-1">
@@ -371,7 +373,7 @@ export default function RatesAvailability() {
                               key={i}
                               disabled={!d}
                               onClick={() => onDayClick(room, d)}
-                              className={`h-9 md:h-8 rounded border text-xs flex items-center justify-center ${!d ? 'bg-transparent border-transparent' : closed ? 'bg-red-50 border-red-200 text-red-700' : 'bg-white border-gray-200 hover:bg-gray-50'} ${inSel ? 'ring-2 ring-[#a06b42]' : ''}`}
+                              className={`h-9 md:h-8 rounded border text-xs flex items-center justify-center ${!d ? 'bg-transparent border-transparent' : closed ? 'bg-rose-50 border-rose-200 text-rose-700' : 'bg-white border-gray-200 hover:bg-[#f5f0e8]'} ${inSel ? 'ring-2 ring-[#a06b42] bg-[#f5f0e8] border-[#d4c4b0]' : ''}`}
                             >
                               {d ? d.getDate() : ''}
                             </button>
@@ -379,11 +381,11 @@ export default function RatesAvailability() {
                         })}
                       </div>
                       <div className="mt-2 flex items-center gap-2 text-xs">
-                        <span className="inline-flex items-center gap-1"><span className="w-3 h-3 inline-block bg-red-200 rounded border border-red-300"></span>Closed</span>
+                        <span className="inline-flex items-center gap-1"><span className="w-3 h-3 inline-block bg-rose-100 rounded border border-rose-200"></span>Closed</span>
                         <span className="inline-flex items-center gap-1"><span className="w-3 h-3 inline-block bg-[#e8dcc8] rounded border border-[#d4c4b0]"></span>Selected range</span>
                         <div className="ml-auto flex gap-2">
-                          <button onClick={() => handleOpenDates(room._id)} className="px-2 py-1 bg-green-600 text-white rounded">Open</button>
-                          <button onClick={() => handleCloseDates(room._id)} className="px-2 py-1 bg-red-600 text-white rounded">Close</button>
+                          <button onClick={() => handleOpenDates(room._id)} className="px-2 py-1 bg-[#a06b42] hover:bg-[#8f5a32] text-white rounded">Open</button>
+                          <button onClick={() => handleCloseDates(room._id)} className="px-2 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded">Close</button>
                         </div>
                       </div>
                     </div>
@@ -482,8 +484,8 @@ export default function RatesAvailability() {
         
         return (
           <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-bold mb-2 flex items-center gap-2">
-              <FaDoorOpen /> Open/Close Rooms
+            <h2 className="text-xl font-bold mb-2 flex items-center gap-2 text-[#4b2a00]">
+              <FaDoorOpen className="text-[#a06b42]" /> Open/Close Rooms
             </h2>
             <p className="text-gray-600 mb-6">Manage room availability by opening or closing specific dates.</p>
             
@@ -494,9 +496,9 @@ export default function RatesAvailability() {
             ) : (
               <div className="space-y-6">
                 {/* Date Range Selection for Bulk Operations */}
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <h3 className="font-semibold text-blue-900 mb-3">📅 Bulk Date Management</h3>
-                  <p className="text-sm text-blue-700 mb-3">Select date ranges to open or close multiple dates at once</p>
+                <div className="bg-[#f5f0e8] border border-[#e0d5c7] rounded-lg p-4">
+                  <h3 className="font-semibold text-[#4b2a00] mb-3">📅 Bulk Date Management</h3>
+                  <p className="text-sm text-[#4b2a00] mb-3">Select date ranges to open or close multiple dates at once</p>
                   
                   {propertyData.rooms.map((room, idx) => (
                     <div key={idx} className="bg-white border rounded-lg p-4 mb-3">
@@ -506,7 +508,7 @@ export default function RatesAvailability() {
                           <label className="text-xs text-gray-600 block mb-1">Start Date</label>
                           <input 
                             type="date" 
-                            className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-[#a06b42] focus:border-[#a06b42]"
                             min={new Date().toISOString().split('T')[0]}
                             onChange={(e) => setDateRanges(prev => ({
                               ...prev,
@@ -518,7 +520,7 @@ export default function RatesAvailability() {
                           <label className="text-xs text-gray-600 block mb-1">End Date</label>
                           <input 
                             type="date" 
-                            className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-[#a06b42] focus:border-[#a06b42]"
                             min={dateRanges[room._id]?.startDate || new Date().toISOString().split('T')[0]}
                             onChange={(e) => setDateRanges(prev => ({
                               ...prev,
@@ -530,13 +532,13 @@ export default function RatesAvailability() {
                       <div className="flex gap-2">
                         <button 
                           onClick={() => handleOpenDates(room._id)}
-                          className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+                          className="flex-1 px-4 py-2 bg-[#a06b42] hover:bg-[#8f5a32] text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
                         >
                           <FaDoorOpen /> Open Dates
                         </button>
                         <button 
                           onClick={() => handleCloseDates(room._id)}
-                          className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
+                          className="flex-1 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
                         >
                           <FaCalendarTimes /> Close Dates
                         </button>
@@ -599,9 +601,9 @@ export default function RatesAvailability() {
                                   className={`
                                     aspect-square flex items-center justify-center text-sm rounded-lg cursor-pointer
                                     ${isPast ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : ''}
-                                    ${isClosed && !isPast ? 'bg-red-100 text-red-700 font-semibold' : ''}
-                                    ${!isClosed && !isPast ? 'bg-green-50 text-green-700 hover:bg-green-100' : ''}
-                                    ${isToday ? 'ring-2 ring-blue-500' : ''}
+                                    ${isClosed && !isPast ? 'bg-rose-100 text-rose-700 font-semibold' : ''}
+                                    ${!isClosed && !isPast ? 'bg-[#f5f0e8] text-[#4b2a00] hover:bg-[#e8dcc8]' : ''}
+                                    ${isToday ? 'ring-2 ring-[#a06b42]' : ''}
                                   `}
                                   title={isClosed ? 'Closed' : 'Available'}
                                 >
@@ -614,11 +616,11 @@ export default function RatesAvailability() {
                           {/* Legend */}
                           <div className="mt-4 flex items-center gap-4 text-xs">
                             <div className="flex items-center gap-1">
-                              <div className="w-4 h-4 bg-green-50 border border-green-200 rounded"></div>
+                              <div className="w-4 h-4 bg-[#f5f0e8] border border-[#d4c4b0] rounded"></div>
                               <span>Available</span>
                             </div>
                             <div className="flex items-center gap-1">
-                              <div className="w-4 h-4 bg-red-100 border border-red-200 rounded"></div>
+                              <div className="w-4 h-4 bg-rose-100 border border-rose-200 rounded"></div>
                               <span>Closed</span>
                             </div>
                             <div className="flex items-center gap-1">
@@ -626,7 +628,7 @@ export default function RatesAvailability() {
                               <span>Past</span>
                             </div>
                             <div className="flex items-center gap-1">
-                              <div className="w-4 h-4 border-2 border-blue-500 rounded"></div>
+                              <div className="w-4 h-4 border-2 border-[#a06b42] rounded"></div>
                               <span>Today</span>
                             </div>
                           </div>

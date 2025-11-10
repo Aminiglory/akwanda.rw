@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
+import { useLocale } from '../contexts/LocaleContext';
 import { useParams, useSearchParams } from 'react-router-dom';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 export default function Receipt() {
   const { id } = useParams();
+  const { formatCurrencyRWF } = useLocale() || {};
   const [searchParams] = useSearchParams();
   const isDirect = searchParams.get('direct') === 'true';
   const [data, setData] = useState(null);
@@ -140,29 +142,29 @@ export default function Receipt() {
           <div className="divide-y border rounded border-gray-300">
             <div className="flex items-center justify-between p-3">
               <div>Amount Before Tax</div>
-              <div className="font-medium">RWF {(pricing.amountBeforeTax || 0).toLocaleString()}</div>
+              <div className="font-medium">{formatCurrencyRWF ? formatCurrencyRWF(pricing.amountBeforeTax || 0) : `RWF ${(pricing.amountBeforeTax || 0).toLocaleString()}`}</div>
             </div>
             {showTax && (
               <div className="flex items-center justify-between p-3">
                 <div>Tax ({pricing.taxRate || 3}%)</div>
-                <div className="font-medium">RWF {(pricing.taxAmount || 0).toLocaleString()}</div>
+                <div className="font-medium">{formatCurrencyRWF ? formatCurrencyRWF(pricing.taxAmount || 0) : `RWF ${(pricing.taxAmount || 0).toLocaleString()}`}</div>
               </div>
             )}
             {showCommission && (
               <div className="flex items-center justify-between p-3">
                 <div>Commission</div>
-                <div className="font-medium">RWF {(pricing.commissionAmount || 0).toLocaleString()}</div>
+                <div className="font-medium">{formatCurrencyRWF ? formatCurrencyRWF(pricing.commissionAmount || 0) : `RWF ${(pricing.commissionAmount || 0).toLocaleString()}`}</div>
               </div>
             )}
             {pricing.discountApplied ? (
               <div className="flex items-center justify-between p-3">
                 <div>Discount Applied</div>
-                <div className="font-medium">- RWF {(pricing.discountApplied || 0).toLocaleString()}</div>
+                <div className="font-medium">- {formatCurrencyRWF ? formatCurrencyRWF(pricing.discountApplied || 0) : `RWF ${(pricing.discountApplied || 0).toLocaleString()}`}</div>
               </div>
             ) : null}
             <div className="flex items-center justify-between p-3 border-t border-gray-300">
               <div className="font-semibold">Total</div>
-              <div className="text-blue-600 font-bold">RWF {(pricing.totalAmount || 0).toLocaleString()}</div>
+              <div className="text-blue-600 font-bold">{formatCurrencyRWF ? formatCurrencyRWF(pricing.totalAmount || 0) : `RWF ${(pricing.totalAmount || 0).toLocaleString()}`}</div>
             </div>
           </div>
         </div>

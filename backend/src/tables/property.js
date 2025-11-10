@@ -23,6 +23,16 @@ const roomSchema = new mongoose.Schema({
   },
   infantPolicy: {
     freeUnderAge: { type: Number, default: 2 }
+  },
+  // Persist bed counts per room
+  beds: {
+    twin: { type: Number, default: 0, min: 0 },
+    full: { type: Number, default: 0, min: 0 },
+    queen: { type: Number, default: 0, min: 0 },
+    king: { type: Number, default: 0, min: 0 },
+    bunk: { type: Number, default: 0, min: 0 },
+    sofa: { type: Number, default: 0, min: 0 },
+    futon: { type: Number, default: 0, min: 0 }
   }
 });
 
@@ -63,6 +73,21 @@ const propertySchema = new mongoose.Schema(
     commissionRate: { type: Number, default: 10, min: 8, max: 12 },
     visibilityLevel: { type: String, enum: ['standard', 'premium', 'featured'], default: 'standard' },
     featuredUntil: { type: Date },
+    // Additional listing details to match frontend
+    size: { type: String },
+    ratePlanNonRefundable: { type: Boolean, default: false },
+    ratePlanFreeCancellation: { type: Boolean, default: true },
+    minStayNights: { type: Number, default: 1, min: 0 },
+    cancellationWindowDays: { type: Number, default: 1, min: 0 },
+    prepaymentRequired: { type: Boolean, default: false },
+    depositPercent: { type: Number, default: 0, min: 0, max: 100 },
+    smokingAllowed: { type: Boolean, default: false },
+    cleaningFee: { type: Number, default: 0, min: 0 },
+    verificationMethod: { type: String, default: 'later' },
+    unitMode: { type: String, enum: ['one', 'multiple'], default: 'one' },
+    unitCount: { type: Number, default: 1, min: 1 },
+    latitude: { type: Number },
+    longitude: { type: Number },
     // Booking.com-like globally unique property identifier (human-friendly)
     propertyNumber: { type: String, unique: true, sparse: true, index: true },
     promotions: [{

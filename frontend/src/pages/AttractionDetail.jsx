@@ -34,9 +34,9 @@ export default function AttractionDetail() {
         setLoading(true);
         const res = await fetch(`${API_URL}/api/attractions/${id}`);
         const data = await res.json();
-        if (!res.ok) throw new Error(data.message || 'Failed to load');
+        if (!res.ok) throw new Error(data.message || '');
         setItem(data.attraction || data);
-      } catch (e) { toast.error(e.message); } finally { setLoading(false); }
+      } catch (e) { setItem(null); } finally { setLoading(false); }
     })();
   }, [id]);
 

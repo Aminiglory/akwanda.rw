@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocale } from '../contexts/LocaleContext';
 import { useSearchParams } from 'react-router-dom';
 import { FaDollarSign, FaFileInvoice, FaChartLine, FaCog, FaDownload, FaCalendarAlt, FaCheckCircle, FaClock } from 'react-icons/fa';
 import toast from 'react-hot-toast';
@@ -6,6 +7,7 @@ import toast from 'react-hot-toast';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 export default function FinanceDashboard() {
+  const { formatCurrencyRWF } = useLocale() || {};
   const [searchParams] = useSearchParams();
   const view = searchParams.get('view') || 'overview';
   const [properties, setProperties] = useState([]);
@@ -103,7 +105,7 @@ export default function FinanceDashboard() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Total Earnings</p>
-              <p className="text-2xl font-bold text-gray-900">RWF {financeData.totalEarnings.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-gray-900">{formatCurrencyRWF ? formatCurrencyRWF(financeData.totalEarnings) : `RWF ${financeData.totalEarnings.toLocaleString()}`}</p>
             </div>
             <FaDollarSign className="text-3xl text-green-500" />
           </div>
@@ -113,7 +115,7 @@ export default function FinanceDashboard() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Pending Payments</p>
-              <p className="text-2xl font-bold text-gray-900">RWF {financeData.pendingPayments.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-gray-900">{formatCurrencyRWF ? formatCurrencyRWF(financeData.pendingPayments) : `RWF ${financeData.pendingPayments.toLocaleString()}`}</p>
             </div>
             <FaClock className="text-3xl text-yellow-500" />
           </div>
@@ -123,7 +125,7 @@ export default function FinanceDashboard() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Paid Amount</p>
-              <p className="text-2xl font-bold text-gray-900">RWF {financeData.paidAmount.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-gray-900">{formatCurrencyRWF ? formatCurrencyRWF(financeData.paidAmount) : `RWF ${financeData.paidAmount.toLocaleString()}`}</p>
             </div>
             <FaCheckCircle className="text-3xl text-blue-500" />
           </div>
@@ -133,7 +135,7 @@ export default function FinanceDashboard() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Commission Owed</p>
-              <p className="text-2xl font-bold text-gray-900">RWF {financeData.commissionOwed.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-gray-900">{formatCurrencyRWF ? formatCurrencyRWF(financeData.commissionOwed) : `RWF ${financeData.commissionOwed.toLocaleString()}`}</p>
             </div>
             <FaChartLine className="text-3xl text-red-500" />
           </div>
@@ -157,7 +159,7 @@ export default function FinanceDashboard() {
                 <tr key={transaction._id}>
                   <td className="px-4 py-3 text-sm">{new Date(transaction.createdAt).toLocaleDateString()}</td>
                   <td className="px-4 py-3 text-sm">{`${transaction.guest?.firstName || ''} ${transaction.guest?.lastName || ''}`.trim() || 'Guest'}</td>
-                  <td className="px-4 py-3 text-sm font-medium">RWF {transaction.totalAmount?.toLocaleString()}</td>
+                  <td className="px-4 py-3 text-sm font-medium">{formatCurrencyRWF ? formatCurrencyRWF(transaction.totalAmount || 0) : `RWF ${(transaction.totalAmount || 0).toLocaleString()}`}</td>
                   <td className="px-4 py-3 text-sm">
                     <span className={`px-2 py-1 rounded-full text-xs ${
                       transaction.paymentStatus === 'paid' ? 'bg-green-100 text-green-800' :
@@ -196,7 +198,7 @@ export default function FinanceDashboard() {
               </div>
             </div>
             <div className="flex items-center space-x-4">
-              <p className="font-bold">RWF {invoice.amount?.toLocaleString()}</p>
+              <p className="font-bold">{formatCurrencyRWF ? formatCurrencyRWF(invoice.amount || 0) : `RWF ${(invoice.amount || 0).toLocaleString()}`}</p>
               <span className={`px-3 py-1 rounded-full text-xs ${
                 invoice.status === 'paid' ? 'bg-green-100 text-green-800' :
                 invoice.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
@@ -228,15 +230,15 @@ export default function FinanceDashboard() {
           </div>
           <div>
             <p className="text-sm text-gray-600">Total Revenue</p>
-            <p className="text-xl font-bold">RWF {financeData.totalEarnings.toLocaleString()}</p>
+            <p className="text-xl font-bold">{formatCurrencyRWF ? formatCurrencyRWF(financeData.totalEarnings) : `RWF ${financeData.totalEarnings.toLocaleString()}`}</p>
           </div>
           <div>
             <p className="text-sm text-gray-600">Commission (10%)</p>
-            <p className="text-xl font-bold text-red-600">RWF {financeData.commissionOwed.toLocaleString()}</p>
+            <p className="text-xl font-bold text-red-600">{formatCurrencyRWF ? formatCurrencyRWF(financeData.commissionOwed) : `RWF ${financeData.commissionOwed.toLocaleString()}`}</p>
           </div>
           <div>
             <p className="text-sm text-gray-600">Net Earnings</p>
-            <p className="text-xl font-bold text-green-600">RWF {(financeData.totalEarnings - financeData.commissionOwed).toLocaleString()}</p>
+            <p className="text-xl font-bold text-green-600">{formatCurrencyRWF ? formatCurrencyRWF(financeData.totalEarnings - financeData.commissionOwed) : `RWF ${(financeData.totalEarnings - financeData.commissionOwed).toLocaleString()}`}</p>
           </div>
         </div>
       </div>

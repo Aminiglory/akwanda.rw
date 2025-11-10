@@ -206,7 +206,7 @@ export default function CarsList() {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">{t ? t('vehicles.title') : 'Vehicle Rentals'}</h1>
-          <p className="text-gray-600 text-lg">{t ? t('vehicles.subtitle') : 'Find the perfect car, motorcycle, or bicycle'}</p>
+          <p className="text-gray-600 text-lg">{t ? t('vehicles.subtitle') : 'Find the perfect vehicle (car, motorcycle, or bicycle)'}</p>
         </div>
 
         {/* Search Filters */}
@@ -267,7 +267,7 @@ export default function CarsList() {
         {loading ? (
           <div className="text-center py-12">
             <div className="w-16 h-16 border-4 border-[var(--ak-primary)] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading cars...</p>
+            <p className="text-gray-600">Loading vehicles...</p>
           </div>
         ) : (
           (viewMode === 'table' ? (

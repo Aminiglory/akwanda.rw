@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useLocale } from '../contexts/LocaleContext';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 export default function LandingAttractions() {
+  const { localize } = useLocale() || {};
   const [section, setSection] = useState(null); // { key,title,body,images }
 
   useEffect(() => {
@@ -26,17 +28,18 @@ export default function LandingAttractions() {
       .filter(Boolean);
     return imgs.map((img, i) => {
       const src = /^https?:\/\//i.test(img) ? img : `${API_BASE}${img.startsWith('/') ? img : `/${img}`}`;
-      const title = captions[i] || `Attraction ${i + 1}`;
+      const rawTitle = captions[i] || `Attraction ${i + 1}`;
+      const title = localize ? localize(rawTitle) : rawTitle;
       return { src, title };
     });
-  }, [section]);
+  }, [section, localize]);
 
   if (!section || cards.length === 0) return null;
 
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl md:text-3xl font-bold text-[#4b2a00]">{section.title || 'Top Attractions'}</h2>
+        <h2 className="text-2xl md:text-3xl font-bold text-[#4b2a00]">{localize ? localize(section.title || 'Top Attractions') : (section.title || 'Top Attractions')}</h2>
         <a href="/attractions" className="text-[#a06b42] font-semibold hover:underline">View all</a>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">

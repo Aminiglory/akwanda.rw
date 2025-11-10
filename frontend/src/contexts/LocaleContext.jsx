@@ -505,9 +505,50 @@ export const LocaleProvider = ({ children }) => {
     }
     // amount in target = amt * rate[target] (since base is RWF)
     const converted = amt * rates[cur];
-    const symbol = cur === 'USD' ? '$' : (cur === 'EUR' ? '€' : 'RWF');
     if (cur === 'RWF') return `RWF ${Math.round(converted).toLocaleString()}`;
-    return `${symbol} ${converted.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+    try {
+      const fmt = new Intl.NumberFormat(undefined, { style: 'currency', currency: cur, maximumFractionDigits: 2 });
+      return fmt.format(converted);
+    } catch {
+      return `${cur} ${converted.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+    }
+  };
+
+  // Universal formatter: convert from any base currency into the selected currency
+  const formatCurrency = (amount, baseCurrency = 'RWF') => {
+    const amt = Number(amount || 0);
+    const target = (currency || DEFAULT_CURRENCY).toUpperCase();
+    const base = String(baseCurrency || 'RWF').toUpperCase();
+    // If no rates yet, fallback to showing base currency with naive formatting
+    if (!rates || !rates['RWF']) {
+      const symbolBase = base === 'USD' ? '$' : (base === 'EUR' ? '€' : base);
+      return `${symbolBase} ${amt.toLocaleString()}`;
+    }
+    // Convert base -> RWF
+    let amountInRwf = amt;
+    if (base !== 'RWF') {
+      if (!rates[base] || rates[base] === 0) {
+        const symbolBase = base === 'USD' ? '$' : (base === 'EUR' ? '€' : base);
+        return `${symbolBase} ${amt.toLocaleString()}`;
+      }
+      // Since rates are base RWF, 1 RWF = rates[base] units of base.
+      // Therefore 1 unit of base = 1 / rates[base] RWF.
+      amountInRwf = amt / rates[base];
+    }
+    // RWF -> target
+    const tRate = rates[target];
+    if (!tRate) {
+      // Fallback to RWF
+      return `RWF ${Math.round(amountInRwf).toLocaleString()}`;
+    }
+    const converted = amountInRwf * tRate;
+    if (target === 'RWF') return `RWF ${Math.round(converted).toLocaleString()}`;
+    try {
+      const fmt = new Intl.NumberFormat(undefined, { style: 'currency', currency: target, maximumFractionDigits: 2 });
+      return fmt.format(converted);
+    } catch {
+      return `${target} ${converted.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+    }
   };
 
   const dict = dictionaries[language] || dictionaries[DEFAULT_LANG];
@@ -526,7 +567,25 @@ export const LocaleProvider = ({ children }) => {
     return fn;
   }, [dict]);
 
-  const value = useMemo(() => ({ language, setLanguage, currency, setCurrency, t, rates, formatCurrencyRWF }), [language, currency, t, rates]);
+  // Localize dynamic values coming from Admin CMS or backend
+  // Accepts:
+  // - string: returned as-is
+  // - object: tries value[language] -> value[DEFAULT_LANG] -> first string value
+  const localize = (value) => {
+    if (value == null) return '';
+    if (typeof value === 'string') return value;
+    if (typeof value === 'object') {
+      const v = value[language] ?? value[DEFAULT_LANG];
+      if (typeof v === 'string') return v;
+      // Try to find any string entry
+      for (const k in value) {
+        if (typeof value[k] === 'string') return value[k];
+      }
+    }
+    return String(value);
+  };
+
+  const value = useMemo(() => ({ language, setLanguage, currency, setCurrency, t, rates, formatCurrencyRWF, formatCurrency, localize }), [language, currency, t, rates]);
   return <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>;
 };
 

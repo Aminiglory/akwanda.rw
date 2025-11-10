@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useLocale } from '../contexts/LocaleContext';
 import { FaDownload, FaPrint, FaFileInvoice, FaCalendarAlt, FaUser, FaMapMarkerAlt, FaCreditCard, FaCheckCircle } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const ReceiptComponent = ({ bookingId, userType }) => {
+  const { formatCurrencyRWF } = useLocale() || {};
   const [receipt, setReceipt] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -88,7 +90,8 @@ const ReceiptComponent = ({ bookingId, userType }) => {
   };
 
   const formatCurrency = (amount) => {
-    return `RWF ${amount.toLocaleString()}`;
+    const n = Number(amount || 0);
+    return formatCurrencyRWF ? formatCurrencyRWF(n) : `RWF ${n.toLocaleString()}`;
   };
 
   // Guards

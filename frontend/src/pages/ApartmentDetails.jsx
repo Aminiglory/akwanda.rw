@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useLocale } from '../contexts/LocaleContext';
 import { CardGridSkeleton, ListItemSkeleton } from '../components/Skeletons';
 import RoomCalendarPanel from '../components/RoomCalendarPanel';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -40,6 +41,7 @@ const ApartmentDetails = () => {
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
   const { id } = useParams();
   const { isAuthenticated, user } = useAuth();
+  const { formatCurrencyRWF } = useLocale() || {};
   const navigate = useNavigate();
   const [selectedImage, setSelectedImage] = useState(0);
   const [isFavorited, setIsFavorited] = useState(false);
@@ -78,7 +80,8 @@ const ApartmentDetails = () => {
       setSharing(true);
       const subject = `Check this apartment: ${apartment.title}`;
       const primaryImg = Array.isArray(apartment.images) && apartment.images.length ? apartment.images[0] : '';
-      const priceNight = Number(apartment.pricePerNight || 0).toLocaleString();
+      const priceNight = Number(apartment.pricePerNight || 0);
+      const formattedPriceNight = formatCurrencyRWF ? formatCurrencyRWF(priceNight) : `RWF ${priceNight.toLocaleString()}`;
       const detailsUrl = window.location.href;
       const noteHtml = shareNote ? `<p style="margin:16px 0;color:#374151;line-height:1.5">${shareNote.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</p>` : '';
       const html = `
@@ -105,7 +108,7 @@ const ApartmentDetails = () => {
       <div class="body">
         <h1 style="margin:0 0 6px 0;font-size:22px;color:#111827">${apartment.title}</h1>
         <div class="meta">${apartment.location}</div>
-        <div class="meta">RWF ${priceNight} per night</div>
+        <div class="meta">${formattedPriceNight} per night</div>
         <div style="margin:10px 0 14px 0">
           <span class="pill">${apartment.bedrooms} Bedrooms</span>
           <span class="pill">${apartment.bathrooms} Bathrooms</span>
@@ -643,7 +646,7 @@ const ApartmentDetails = () => {
                         </div>
                         <div className="text-right">
                           <div className="text-xl font-bold text-primary group-hover:text-primary-700 transition-colors duration-300">
-                            RWF {(room.pricePerNight || room.price || 0).toLocaleString()}
+                            {formatCurrencyRWF ? formatCurrencyRWF(room.pricePerNight || room.price || 0) : `RWF ${(room.pricePerNight || room.price || 0).toLocaleString()}`}
                           </div>
                           <div className="text-sm text-gray-500">per night</div>
                         </div>
@@ -870,7 +873,7 @@ const ApartmentDetails = () => {
             <div className="bg-white rounded-2xl shadow-lg p-6 sticky top-8">
               <div className="text-center mb-6">
                 <div className="text-3xl font-bold text-blue-600 mb-1">
-                  RWF {apartment.price?.toLocaleString() || '0'}
+                  {formatCurrencyRWF ? formatCurrencyRWF(apartment.price || 0) : `RWF ${(apartment.price || 0).toLocaleString()}`}
                 </div>
                 <span className="text-gray-600">per month</span>
               </div>
@@ -905,7 +908,7 @@ const ApartmentDetails = () => {
                           </div>
                           <div className="text-xs text-gray-600 truncate">{d.tagline || d.description}</div>
                           <div className="text-xs font-medium text-blue-700 mt-0.5">
-                            {d.discountType === 'percentage' ? `${d.discountValue}% off` : d.discountType === 'fixed_amount' ? `Save RWF ${Number(d.discountValue||0).toLocaleString()}` : `Free night x${d.discountValue}`}
+                            {d.discountType === 'percentage' ? `${d.discountValue}% off` : d.discountType === 'fixed_amount' ? `Save ${formatCurrencyRWF ? formatCurrencyRWF(Number(d.discountValue||0)) : `RWF ${Number(d.discountValue||0).toLocaleString()}`}` : `Free night x${d.discountValue}`}
                           </div>
                         </div>
                       </label>
@@ -953,7 +956,7 @@ const ApartmentDetails = () => {
               <div className="mt-6 pt-6 border-t space-y-2 text-sm">
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600">Monthly rent</span>
-                  <span className="font-medium">RWF {apartment.price?.toLocaleString() || '0'}</span>
+                  <span className="font-medium">{formatCurrencyRWF ? formatCurrencyRWF(apartment.price || 0) : `RWF ${(apartment.price || 0).toLocaleString()}`}</span>
                 </div>
                 {/* Commission details are surfaced in Notifications for property owners */}
               </div>
@@ -1040,7 +1043,7 @@ const ApartmentDetails = () => {
                 </div>
                 <div className="bg-blue-50 rounded-xl p-3 flex items-center justify-between shadow-sm col-span-2">
                   <span className="text-gray-600">Price / night</span>
-                  <span className="font-bold text-blue-700">RWF {(detailsRoom.pricePerNight||0).toLocaleString()}</span>
+                  <span className="font-bold text-blue-700">{formatCurrencyRWF ? formatCurrencyRWF(detailsRoom.pricePerNight || 0) : `RWF ${(detailsRoom.pricePerNight || 0).toLocaleString()}`}</span>
                 </div>
               </div>
               {Array.isArray(detailsRoom.amenities) && detailsRoom.amenities.length > 0 && (

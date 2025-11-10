@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useLocale } from '../contexts/LocaleContext';
 import { FaChartLine, FaUsers, FaBed, FaCalendarAlt, FaDollarSign, FaStar, FaMapMarkerAlt, FaEdit, FaTrash, FaPlus, FaEye, FaCheckCircle, FaTimesCircle, FaClock, FaHome, FaMoneyBillWave, FaCalendarCheck, FaCalendarTimes, FaComments } from 'react-icons/fa';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -19,6 +20,8 @@ const makeAbsolute = (u) => {
 
 const UserDashboard = () => {
   const { user, updateAvatar } = useAuth();
+  const { formatCurrencyRWF } = useLocale() || {};
+
   const [activeTab, setActiveTab] = useState('overview');
   const navigate = useNavigate();
   const [metrics, setMetrics] = useState({
@@ -281,7 +284,7 @@ const UserDashboard = () => {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-semibold text-gray-600 uppercase tracking-wide">TOTAL EARNINGS</p>
-                <p className="text-3xl font-bold text-gray-900">RWF {metrics.totalEarnings?.toLocaleString()}</p>
+                <p className="text-3xl font-bold text-gray-900">{formatCurrencyRWF ? formatCurrencyRWF(metrics.totalEarnings || 0) : `RWF ${(metrics.totalEarnings || 0).toLocaleString()}`}</p>
               </div>
             </div>
           </div>
@@ -320,7 +323,7 @@ const UserDashboard = () => {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">This Month</p>
-                <p className="text-2xl font-bold text-gray-900">RWF {metrics.monthlyEarnings?.toLocaleString()}</p>
+                <p className="text-2xl font-bold text-gray-900">{formatCurrencyRWF ? formatCurrencyRWF(metrics.monthlyEarnings || 0) : `RWF ${(metrics.monthlyEarnings || 0).toLocaleString()}`}</p>
               </div>
             </div>
           </div>
@@ -383,7 +386,7 @@ const UserDashboard = () => {
                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(booking.status)}`}>
                               {booking.status}
                             </span>
-                            <p className="text-sm text-gray-600 mt-1">RWF {booking.totalAmount?.toLocaleString()}</p>
+                            <p className="text-sm text-gray-600 mt-1">{formatCurrencyRWF ? formatCurrencyRWF(booking.totalAmount || 0) : `RWF ${(booking.totalAmount || 0).toLocaleString()}`}</p>
                           </div>
                         </div>
                       ))}
@@ -406,7 +409,7 @@ const UserDashboard = () => {
                             <div className="flex items-center">
                               {renderStars(property.ratings?.length ? property.ratings.reduce((sum, r) => sum + r.rating, 0) / property.ratings.length : 0)}
                             </div>
-                            <p className="text-sm text-gray-600 mt-1">RWF {property.pricePerNight?.toLocaleString()}</p>
+                            <p className="text-sm text-gray-600 mt-1">{formatCurrencyRWF ? formatCurrencyRWF(property.pricePerNight || 0) : `RWF ${(property.pricePerNight || 0).toLocaleString()}`}</p>
                           </div>
                         </div>
                       ))}
@@ -531,7 +534,7 @@ const UserDashboard = () => {
                           <span className="text-sm">{property.city}</span>
                         </div>
                         <div className="flex items-center justify-between mb-4">
-                          <span className="text-lg font-bold text-blue-600">RWF {property.pricePerNight?.toLocaleString()}</span>
+                          <span className="text-lg font-bold text-blue-600">{formatCurrencyRWF ? formatCurrencyRWF(property.pricePerNight || 0) : `RWF ${(property.pricePerNight || 0).toLocaleString()}`}</span>
                           <div className="flex items-center">
                             {renderStars(property.ratings?.length ? property.ratings.reduce((sum, r) => sum + r.rating, 0) / property.ratings.length : 0)}
                           </div>

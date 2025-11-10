@@ -68,6 +68,7 @@ const EnhancedUploadProperty = () => {
     email: user?.email || ''
   });
 
+  // Responsive button styles: smaller on small screens, larger on md+
   const primaryBtn = 'bg-[#a06b42] hover:bg-[#8f5a32] text-white';
   const secondaryBtn = 'border border-gray-300 text-gray-700 hover:bg-gray-50';
 
@@ -378,6 +379,20 @@ const EnhancedUploadProperty = () => {
 
       // Build multipart/form-data to satisfy backend multer
       const fd = new FormData();
+      // Basic required validation to match backend schema
+      if (!formData.title) {
+        throw new Error('Property title is required');
+      }
+      if (!formData.address) {
+        throw new Error('Property address is required');
+      }
+      if (!formData.city) {
+        throw new Error('City is required');
+      }
+      if (formData.pricePerNight === '' || formData.pricePerNight == null || isNaN(Number(formData.pricePerNight))) {
+        throw new Error('Price per night is required and must be a number');
+      }
+
       Object.entries(formData).forEach(([k, v]) => {
         if (v === undefined || v === null) return;
         if (Array.isArray(v)) {
@@ -387,10 +402,24 @@ const EnhancedUploadProperty = () => {
           fd.append(k, String(v));
         }
       });
+      // Map to backend field names for times
+      if (formData.checkinTime != null) fd.set('checkInTime', String(formData.checkinTime));
+      if (formData.checkoutTime != null) fd.set('checkOutTime', String(formData.checkoutTime));
       // Rooms as JSON string (backend handles arrays under req.body.rooms elsewhere too)
       fd.append('rooms', JSON.stringify(rooms || []));
       // Provide imageUrls so backend merges them
       (images || []).forEach(u => fd.append('imageUrls', u));
+
+      // Debug: log payload snapshot (avoid logging FormData directly)
+      try {
+        console.log('[Property Submit] Payload snapshot', {
+          url, method,
+          formData,
+          roomsCount: (rooms || []).length,
+          rooms: rooms,
+          imagesCount: (images || []).length
+        });
+      } catch (_) {}
 
       const res = await fetch(url, {
         method,
@@ -400,16 +429,20 @@ const EnhancedUploadProperty = () => {
       const ct = res.headers.get('content-type') || '';
       if (!ct.includes('application/json')) {
         const text = await res.text().catch(()=> '');
+        console.error('[Property Submit] Unexpected response', { status: res.status, ct, bodyPreview: text.slice(0, 400) });
         throw new Error(`Unexpected ${ct || 'response'} (status ${res.status}). ${text.slice(0,180)}`);
       }
       const data = await res.json().catch(()=>({}));
       if (!res.ok) {
+        console.error('[Property Submit] Server error', { status: res.status, data });
         if (res.status === 401 || res.status === 403) throw new Error('Authorization required. Please log in as a host and try again.');
-        throw new Error(data.message || 'Failed to save property');
+        const details = Array.isArray(data?.details) ? ` Details: ${data.details.map(d=>`${d.field}: ${d.message}`).join('; ')}` : '';
+        throw new Error((data.message || 'Failed to save property') + details);
       }
       toast.success(isEditing ? 'Property updated' : 'Property created');
       navigate('/dashboard');
     } catch (err) {
+      console.error('[Property Submit] Caught error', err);
       toast.error(err.message || 'Failed to save');
     } finally {
       setLoading(false);
@@ -635,7 +668,7 @@ const EnhancedUploadProperty = () => {
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-semibold text-gray-900 border-b pb-2">Room/Unit Types</h2>
-                <button type="button" onClick={addRoom} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium">Add Room</button>
+                <button type="button" onClick={addRoom} className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 md:px-4 md:py-2 rounded-lg text-sm md:text-base font-medium">Add Room</button>
               </div>
               {rooms.length === 0 ? (
                 <div className="text-center py-8 text-gray-500"><FaBed className="text-4xl mx-auto mb-4 text-gray-300" /><p>No rooms added yet.</p></div>
@@ -657,12 +690,12 @@ const EnhancedUploadProperty = () => {
                         <div className="text-sm font-medium text-gray-700 mb-2">Beds</div>
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                           {Object.entries(room.beds || {}).map(([type, count]) => (
-                            <div key={type} className="flex items-center justify-between border rounded-lg px-3 py-2">
+                            <div key={type} className="flex items-center justify-between border rounded-lg px-2 py-2 md:px-3">
                               <span className="capitalize text-sm text-gray-700">{type} bed(s)</span>
                               <div className="flex items-center gap-2">
-                                <button type="button" className="px-2 py-1 border rounded" onClick={()=> updateRoom(index, 'beds', { ...(room.beds||{}), [type]: Math.max(0, (room.beds?.[type]||0)-1) })}>-</button>
+                                <button type="button" className="px-2 py-1 md:px-3 md:py-1 border rounded text-sm" onClick={()=> updateRoom(index, 'beds', { ...(room.beds||{}), [type]: Math.max(0, (room.beds?.[type]||0)-1) })} aria-label={`Decrease ${type} beds`}>-</button>
                                 <span className="w-6 text-center text-sm">{count}</span>
-                                <button type="button" className="px-2 py-1 border rounded" onClick={()=> updateRoom(index, 'beds', { ...(room.beds||{}), [type]: (room.beds?.[type]||0)+1 })}>+</button>
+                                <button type="button" className="px-2 py-1 md:px-3 md:py-1 border rounded text-sm" onClick={()=> updateRoom(index, 'beds', { ...(room.beds||{}), [type]: (room.beds?.[type]||0)+1 })} aria-label={`Increase ${type} beds`}>+</button>
                               </div>
                             </div>
                           ))}
@@ -721,16 +754,16 @@ const EnhancedUploadProperty = () => {
           )}
 
           {/* Footer Controls */}
-          <div className="flex items-center justify-between space-x-4 pt-6 border-t">
+          <div className="flex items-center justify-between space-x-2 md:space-x-4 pt-6 border-t">
             <div className="flex items-center gap-2">
-              <button type="button" onClick={prevStep} disabled={currentStep===1} className={`px-6 py-3 rounded-lg disabled:opacity-50 ${secondaryBtn}`}>Back</button>
-              <button type="button" onClick={saveDraftLocal} className={`px-6 py-3 rounded-lg ${secondaryBtn}`}>Save draft</button>
+              <button type="button" onClick={prevStep} disabled={currentStep===1} className={`px-3 py-2 md:px-6 md:py-3 rounded-lg text-sm md:text-base disabled:opacity-50 ${secondaryBtn}`}>Back</button>
+              <button type="button" onClick={saveDraftLocal} className={`px-3 py-2 md:px-6 md:py-3 rounded-lg text-sm md:text-base ${secondaryBtn}`}>Save draft</button>
             </div>
             {currentStep < totalSteps && (
-              <button type="button" onClick={nextStep} className={`px-6 py-3 rounded-lg ${primaryBtn}`}>Next</button>
+              <button type="button" onClick={nextStep} className={`px-3 py-2 md:px-6 md:py-3 rounded-lg text-sm md:text-base ${primaryBtn}`}>Next</button>
             )}
             {currentStep === totalSteps && (
-              <button type="submit" disabled={loading || uploading} className={`px-6 py-3 rounded-lg ${primaryBtn} disabled:opacity-50`}>{loading ? (isEditing ? 'Saving…' : 'Publishing…') : (isEditing ? 'Save Changes' : 'Publish Property')}</button>
+              <button type="submit" disabled={loading || uploading} className={`px-3 py-2 md:px-6 md:py-3 rounded-lg text-sm md:text-base ${primaryBtn} disabled:opacity-50`}>{loading ? (isEditing ? 'Saving…' : 'Publishing…') : (isEditing ? 'Save Changes' : 'Publish Property')}</button>
             )}
           </div>
         </form>

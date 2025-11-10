@@ -114,6 +114,52 @@ export default function PropertyManagement() {
           </div>
         );
 
+      case 'reservation-policies':
+        return (
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+              <FaFileAlt /> Reservation Policies
+            </h2>
+            <div className="space-y-4">
+              <div className="p-4 border rounded">
+                <h3 className="font-semibold mb-2">Cancellation Policy</h3>
+                <p className="text-sm text-gray-600">{propertyData?.cancellationPolicy || 'Refer to property policy details.'}</p>
+              </div>
+              <div className="p-4 border rounded">
+                <h3 className="font-semibold mb-2">Prepayment</h3>
+                <p className="text-sm text-gray-600">{propertyData?.prepaymentRequired ? 'Prepayment required' : 'No prepayment required'}</p>
+              </div>
+              <div className="p-4 border rounded">
+                <h3 className="font-semibold mb-2">Minimum stay</h3>
+                <p className="text-sm text-gray-600">{propertyData?.minStayNights != null ? `${propertyData.minStayNights} night(s)` : 'Not set'}</p>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'descriptions':
+        return (
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+              <FaInfoCircle /> Descriptions
+            </h2>
+            {loading ? (
+              <div className="text-center py-8">Loading...</div>
+            ) : propertyData ? (
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm text-gray-600">Short description</label>
+                  <p className="text-sm">{propertyData.shortDescription || '—'}</p>
+                </div>
+                <div>
+                  <label className="text-sm text-gray-600">Full description</label>
+                  <p className="text-sm whitespace-pre-line">{propertyData.description || '—'}</p>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        );
+
       case 'page-score':
         return (
           <div className="bg-white rounded-lg shadow p-6">
@@ -309,6 +355,35 @@ export default function PropertyManagement() {
               </div>
             ) : (
               <p className="text-gray-600">No amenities listed.</p>
+            )}
+          </div>
+        );
+
+      case 'room-amenities':
+        return (
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+              <FaBed /> Room Amenities
+            </h2>
+            {Array.isArray(propertyData?.rooms) && propertyData.rooms.length > 0 ? (
+              <div className="space-y-4">
+                {propertyData.rooms.map((room, idx) => (
+                  <div key={idx} className="p-4 border rounded">
+                    <h3 className="font-semibold mb-2">{room.roomType || room.type} - {room.roomNumber}</h3>
+                    {Array.isArray(room.amenities) && room.amenities.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {room.amenities.map((a, i) => (
+                          <span key={i} className="px-2 py-1 bg-gray-100 rounded text-xs capitalize">{String(a).replace(/_/g,' ')}</span>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-600">No room amenities listed.</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-600">No rooms configured.</p>
             )}
           </div>
         );

@@ -262,6 +262,72 @@ export default function AdminLanding() {
               <h2 className="text-lg font-semibold text-gray-900">Our Mission</h2>
               <span className="text-xs text-gray-500">Key: ourMission</span>
             </div>
+
+        {/* How It Works – Guests Media (images used in Guests tab slideshow) */}
+        <div className="bg-white rounded-xl shadow p-5">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-semibold text-gray-900">How It Works – Guests Media</h2>
+            <span className="text-xs text-gray-500">Key: howItWorksGuests</span>
+          </div>
+          {(() => {
+            const sec = getSectionByKey('howItWorksGuests') || { key: 'howItWorksGuests', images: [] };
+            return (
+              <div className="space-y-3">
+                <label className="block text-sm text-gray-700">Slideshow Images (Guests)</label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                  {(sec.images || []).map((img, i) => (
+                    <div key={i} className="relative w-full aspect-video rounded-lg overflow-hidden bg-gray-100">
+                      <img src={(img||'').startsWith('http') ? img : `${API_URL}${img}`} className="w-full h-full object-cover" />
+                      <button type="button" className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-red-600 text-white shadow flex items-center justify-center" onClick={() => setSectionByKey('howItWorksGuests', { ...sec, images: (sec.images||[]).filter((_, idx)=> idx!==i) })}>×</button>
+                    </div>
+                  ))}
+                  <label className="flex items-center justify-center border-2 border-dashed border-gray-300 rounded-lg h-28 cursor-pointer bg-white">
+                    <input type="file" className="hidden" accept="image/*" multiple onChange={async e => {
+                      try {
+                        const paths = await uploadAssets(e.target.files);
+                        setSectionByKey('howItWorksGuests', { ...sec, images: [...(sec.images||[]), ...paths] });
+                      } catch (err) { toast.error(err.message); }
+                    }} />
+                    <span className="text-sm text-gray-600">Add images</span>
+                  </label>
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+
+        {/* How It Works – Hosts Media (images used in Hosts tab slideshow) */}
+        <div className="bg-white rounded-xl shadow p-5">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-semibold text-gray-900">How It Works – Hosts Media</h2>
+            <span className="text-xs text-gray-500">Key: howItWorksHosts</span>
+          </div>
+          {(() => {
+            const sec = getSectionByKey('howItWorksHosts') || { key: 'howItWorksHosts', images: [] };
+            return (
+              <div className="space-y-3">
+                <label className="block text-sm text-gray-700">Slideshow Images (Hosts)</label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                  {(sec.images || []).map((img, i) => (
+                    <div key={i} className="relative w-full aspect-video rounded-lg overflow-hidden bg-gray-100">
+                      <img src={(img||'').startsWith('http') ? img : `${API_URL}${img}`} className="w-full h-full object-cover" />
+                      <button type="button" className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-red-600 text-white shadow flex items-center justify-center" onClick={() => setSectionByKey('howItWorksHosts', { ...sec, images: (sec.images||[]).filter((_, idx)=> idx!==i) })}>×</button>
+                    </div>
+                  ))}
+                  <label className="flex items-center justify-center border-2 border-dashed border-gray-300 rounded-lg h-28 cursor-pointer bg-white">
+                    <input type="file" className="hidden" accept="image/*" multiple onChange={async e => {
+                      try {
+                        const paths = await uploadAssets(e.target.files);
+                        setSectionByKey('howItWorksHosts', { ...sec, images: [...(sec.images||[]), ...paths] });
+                      } catch (err) { toast.error(err.message); }
+                    }} />
+                    <span className="text-sm text-gray-600">Add images</span>
+                  </label>
+                </div>
+              </div>
+            );
+          })()}
+        </div>
             {(() => {
               const sec = getSectionByKey('ourMission') || { key: 'ourMission', title: '', body: '', images: [] };
               return (

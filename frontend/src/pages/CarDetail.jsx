@@ -41,7 +41,7 @@ export default function CarDetail() {
         setLoading(true);
         const res = await fetch(`${API_URL}/api/cars/${id}`);
         const data = await res.json();
-        if (!res.ok) throw new Error(data.message || 'Failed to load car');
+        if (!res.ok) throw new Error(data.message || '');
         setCar(data.car);
         setForm(f => ({ ...f, pickupLocation: data.car?.location || '', returnLocation: data.car?.location || '' }));
         // Load other cars
@@ -49,7 +49,8 @@ export default function CarDetail() {
         const othersData = await others.json();
         if (others.ok) setOtherCars((othersData.cars || []).filter(c => c._id !== id).slice(0, 6));
       } catch (e) {
-        toast.error(e.message);
+        // Silent empty state
+        setCar(null);
       } finally {
         setLoading(false);
       }
@@ -109,7 +110,7 @@ export default function CarDetail() {
           state: {
             bookingId: data.booking._id,
             amount: Number(data.booking.totalAmount || 0),
-            description: `Car rental for ${car?.vehicleName || 'your trip'}`,
+            description: `Vehicle rental for ${car?.vehicleName || 'your trip'}`,
             customerName: data.booking?.guestName || '',
             customerEmail: data.booking?.guestEmail || '',
             phoneNumber: data.booking?.guestPhone || ''
@@ -127,7 +128,7 @@ export default function CarDetail() {
   }
 
   if (loading) return <div className="max-w-6xl mx-auto px-4 py-6">Loading...</div>;
-  if (!car) return <div className="max-w-6xl mx-auto px-4 py-6">Car not found</div>;
+  if (!car) return <div className="max-w-6xl mx-auto px-4 py-6">Vehicle not found</div>;
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-6">

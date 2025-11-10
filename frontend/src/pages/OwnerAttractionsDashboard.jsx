@@ -39,16 +39,23 @@ export default function OwnerAttractionsDashboard() {
   async function loadMine() {
     try {
       setLoading(true);
+      console.log('[Attractions][loadMine] fetching my attractions & bookings');
       const [res, resB] = await Promise.all([
         fetch(`${API_URL}/api/attractions/mine`, { credentials: 'include' }),
         fetch(`${API_URL}/api/attraction-bookings/for-my-attractions`, { credentials: 'include' })
       ]);
       const [data, dataB] = await Promise.all([res.json(), resB.json()]);
-      if (!res.ok) throw new Error(data.message || 'Failed to load');
-      if (!resB.ok) throw new Error(dataB.message || 'Failed to load bookings');
+      console.log('[Attractions][loadMine] responses', { itemsStatus: res.status, bookingsStatus: resB.status, items: (data?.attractions||[]).length, bookings: (dataB?.bookings||[]).length });
+      if (!res.ok) throw new Error(data.message || '');
+      if (!resB.ok) throw new Error(dataB.message || '');
       setItems(data.attractions || []);
       setBookings(dataB.bookings || []);
-    } catch (e) { toast.error(e.message); } finally { setLoading(false); }
+    } catch (e) {
+      console.error('[Attractions][loadMine] error', e);
+      // Show empty state silently
+      setItems([]);
+      setBookings([]);
+    } finally { setLoading(false); }
   }
 
   function exportBookingsCsv() {
@@ -87,6 +94,7 @@ export default function OwnerAttractionsDashboard() {
   async function createItem(e) {
     e.preventDefault();
     try {
+      console.log('[Attractions][create] payload', form);
       if (!createImages || createImages.length === 0) { toast.error('Please add at least one image'); return; }
       setSaving(true);
       const payload = {
@@ -98,50 +106,57 @@ export default function OwnerAttractionsDashboard() {
         method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
       });
       const data = await res.json();
+      console.log('[Attractions][create] result', { status: res.status, id: data?.attraction?._id });
       if (!res.ok) throw new Error(data.message || 'Failed to create');
       setItems(list => [data.attraction, ...list]);
       toast.success('Attraction created');
       await uploadImages(data.attraction._id, createImages);
       reset();
       setCreateImages([]);
-    } catch (e) { toast.error(e.message); } finally { setSaving(false); }
+    } catch (e) { console.error('[Attractions][create] error', e); toast.error(e.message); } finally { setSaving(false); }
   }
 
   async function updateItem(id, patch) {
     try {
+      console.log('[Attractions][update] id', id, 'patch', patch);
       const res = await fetch(`${API_URL}/api/attractions/${id}`, {
         method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch)
       });
       const data = await res.json();
+      console.log('[Attractions][update] result', { status: res.status });
       if (!res.ok) throw new Error(data.message || 'Update failed');
       setItems(list => list.map(x => x._id === id ? data.attraction : x));
       toast.success('Updated');
-    } catch (e) { toast.error(e.message); }
+    } catch (e) { console.error('[Attractions][update] error', e); toast.error(e.message); }
   }
 
   async function deleteItem(id) {
     if (!confirm('Delete this attraction?')) return;
     try {
+      console.log('[Attractions][delete] id', id);
       const res = await fetch(`${API_URL}/api/attractions/${id}`, { method: 'DELETE', credentials: 'include' });
       const data = await res.json().catch(()=>({}));
+      console.log('[Attractions][delete] result', { status: res.status });
       if (!res.ok) throw new Error(data.message || 'Delete failed');
       setItems(list => list.filter(x => x._id !== id));
       toast.success('Deleted');
-    } catch (e) { toast.error(e.message); }
+    } catch (e) { console.error('[Attractions][delete] error', e); toast.error(e.message); }
   }
 
   async function uploadImages(id, files) {
     if (!files?.length) return;
     try {
+      console.log('[Attractions][uploadImages] id', id, 'files', files?.length);
       setUploadingId(id);
       const fd = new FormData();
       Array.from(files).forEach(f => fd.append('images', f));
       const res = await fetch(`${API_URL}/api/attractions/${id}/images`, { method: 'POST', credentials: 'include', body: fd });
       const data = await res.json();
+      console.log('[Attractions][uploadImages] result', { status: res.status, imageCount: (data?.attraction?.images||[]).length });
       if (!res.ok) throw new Error(data.message || 'Upload failed');
       setItems(list => list.map(x => x._id === id ? data.attraction : x));
       toast.success('Images uploaded');
-    } catch (e) { toast.error(e.message); } finally { setUploadingId(null); }
+    } catch (e) { console.error('[Attractions][uploadImages] error', e); toast.error(e.message); } finally { setUploadingId(null); }
   }
 
   const isActiveTab = (path) => location.pathname.startsWith(path);
@@ -151,7 +166,7 @@ export default function OwnerAttractionsDashboard() {
       {/* Owner tabs */}
       <div className="mb-4 flex items-center justify-between gap-2">
         <div className="inline-flex rounded-lg overflow-hidden border border-[#d4c4b0]">
-          <a href="/owner/cars" className={`px-3 py-2 text-sm ${isActiveTab('/owner/cars') ? 'bg-[#a06b42] text-white' : 'bg-[#f6e9d8] text-[#4b2a00] hover:bg-[#e8dcc8]'}`}>Cars</a>
+          <a href="/owner/cars" className={`px-3 py-2 text-sm ${isActiveTab('/owner/cars') ? 'bg-[#a06b42] text-white' : 'bg-[#f6e9d8] text-[#4b2a00] hover:bg-[#e8dcc8]'}`}>Vehicles</a>
           <a href="/owner/attractions" className={`px-3 py-2 text-sm ${isActiveTab('/owner/attractions') ? 'bg-[#a06b42] text-white' : 'bg-[#f6e9d8] text-[#4b2a00] hover:bg-[#e8dcc8]'}`}>Attractions</a>
         </div>
         <div className="inline-flex rounded-lg overflow-hidden border">
@@ -164,19 +179,40 @@ export default function OwnerAttractionsDashboard() {
 
       {/* Create */}
       <form onSubmit={createItem} className="bg-white rounded-lg shadow p-4 mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-        <input className="px-3 py-2 border rounded" placeholder="Name" value={form.name} onChange={e=>setForm({ ...form, name: e.target.value })} />
-        <input className="px-3 py-2 border rounded" placeholder="Category" value={form.category} onChange={e=>setForm({ ...form, category: e.target.value })} />
-        <input className="px-3 py-2 border rounded" placeholder="City" value={form.city} onChange={e=>setForm({ ...form, city: e.target.value })} />
-        <input className="px-3 py-2 border rounded" placeholder="Location" value={form.location} onChange={e=>setForm({ ...form, location: e.target.value })} />
-        <input className="px-3 py-2 border rounded" type="number" placeholder="Price" value={form.price} onChange={e=>setForm({ ...form, price: e.target.value })} />
-        <div className="flex items-center gap-2"><label className="text-sm">Active</label><input type="checkbox" checked={!!form.isActive} onChange={e=>setForm({ ...form, isActive: !!e.target.checked })} /></div>
-        <div className="md:col-span-3">
-          <textarea className="w-full px-3 py-2 border rounded" rows={3} placeholder="Description" value={form.description} onChange={e=>setForm({ ...form, description: e.target.value })} />
+        <div>
+          <label className="block text-xs text-gray-700 mb-1">Attraction name</label>
+          <input className="w-full px-3 py-2 border rounded" placeholder="e.g., Volcanoes National Park Tour" value={form.name} onChange={e=>setForm({ ...form, name: e.target.value })} />
+        </div>
+        <div>
+          <label className="block text-xs text-gray-700 mb-1">Category</label>
+          <input className="w-full px-3 py-2 border rounded" placeholder="e.g., tour, museum, park" value={form.category} onChange={e=>setForm({ ...form, category: e.target.value })} />
+        </div>
+        <div>
+          <label className="block text-xs text-gray-700 mb-1">City</label>
+          <input className="w-full px-3 py-2 border rounded" placeholder="e.g., Musanze" value={form.city} onChange={e=>setForm({ ...form, city: e.target.value })} />
+        </div>
+        <div>
+          <label className="block text-xs text-gray-700 mb-1">Location (address)</label>
+          <input className="w-full px-3 py-2 border rounded" placeholder="Address or meeting point" value={form.location} onChange={e=>setForm({ ...form, location: e.target.value })} />
+        </div>
+        <div>
+          <label className="block text-xs text-gray-700 mb-1">Price</label>
+          <input className="w-full px-3 py-2 border rounded" type="number" placeholder="e.g., 20000" value={form.price} onChange={e=>setForm({ ...form, price: e.target.value })} />
+        </div>
+        <div className="flex items-center gap-2">
+          <label className="text-sm">Active</label>
+          <input type="checkbox" checked={!!form.isActive} onChange={e=>setForm({ ...form, isActive: !!e.target.checked })} />
         </div>
         <div className="md:col-span-3">
-          <input className="w-full px-3 py-2 border rounded" placeholder="Highlights (comma-separated)" value={form.highlights} onChange={e=>setForm({ ...form, highlights: e.target.value })} />
+          <label className="block text-xs text-gray-700 mb-1">Description</label>
+          <textarea className="w-full px-3 py-2 border rounded" rows={3} placeholder="Describe the experience" value={form.description} onChange={e=>setForm({ ...form, description: e.target.value })} />
         </div>
         <div className="md:col-span-3">
+          <label className="block text-xs text-gray-700 mb-1">Highlights</label>
+          <input className="w-full px-3 py-2 border rounded" placeholder="Comma-separated, e.g., Gorilla trekking, Cultural tour" value={form.highlights} onChange={e=>setForm({ ...form, highlights: e.target.value })} />
+        </div>
+        <div className="md:col-span-3">
+          <label className="block text-xs text-gray-700 mb-1">Images</label>
           <input type="file" multiple accept="image/*" onChange={e=>setCreateImages(Array.from(e.target.files || []))} className="w-full px-3 py-2 border rounded" />
         </div>
         <div className="md:col-span-3"><button disabled={saving} className="px-4 py-2 bg-[#a06b42] hover:bg-[#8f5a32] text-white rounded disabled:opacity-50">{saving ? 'Saving...' : 'Add Attraction'}</button></div>

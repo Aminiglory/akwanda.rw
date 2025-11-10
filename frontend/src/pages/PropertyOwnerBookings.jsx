@@ -22,7 +22,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 const PropertyOwnerBookings = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { t, formatCurrencyRWF } = useLocale() || {};
+  const { t, formatCurrencyRWF, formatCurrency } = useLocale() || {};
 
   const [searchParams, setSearchParams] = useSearchParams();
   const [bookings, setBookings] = useState([]);
@@ -849,7 +849,7 @@ const PropertyOwnerBookings = () => {
   const navItems = [
     { label: 'Home', icon: FaHome, href: '/dashboard', children: [] },
     {
-      label: 'Rates & Availability',
+      label: 'Pricing and booking calendar',
       icon: FaCalendarAlt,
       href: '/owner/rates',
       children: [
@@ -897,12 +897,12 @@ const PropertyOwnerBookings = () => {
         { label: 'VAT/tax/charges', href: '/owner/property?view=vat-tax' },
         { label: 'Photos', href: '/owner/property?view=photos' },
         { label: 'Property policies', href: '/owner/property?view=policies' },
-        { label: 'Reservation policies', href: '/owner/property?view=policies' },
+        { label: 'Reservation policies', href: '/owner/property?view=reservation-policies' },
         { label: 'Facilities & services', href: '/owner/property?view=facilities' },
         { label: 'Room details', href: '/owner/property?view=room-details' },
-        { label: 'Room amenities', href: '/owner/property?view=facilities' },
+        { label: 'Room amenities', href: '/owner/property?view=room-amenities' },
         { label: 'Your profile', href: '/owner/property?view=profile' },
-        { label: 'View your descriptions', href: '/owner/property?view=general-info' },
+        { label: 'View your descriptions', href: '/owner/property?view=descriptions' },
         { label: 'Messaging preferences', href: '/settings?tab=messaging' },
         { label: 'Sustainability', href: '/owner/property?view=sustainability' },
       ]
@@ -928,7 +928,7 @@ const PropertyOwnerBookings = () => {
       href: '/messages',
       children: [
         { label: 'Reservation messages', href: '/messages?category=reservations' },
-        { label: 'Booking.com messages', href: '/messages?category=platform' },
+        { label: 'Akwanda.rw messages', href: '/messages?category=platform' },
         { label: 'Guest Q&A', href: '/messages?category=qna' },
       ]
     },
@@ -959,16 +959,7 @@ const PropertyOwnerBookings = () => {
       href: '/dashboard?tab=analytics',
       children: [
         { label: 'Analytics dashboard', href: '/dashboard?tab=analytics' },
-        { label: 'Demand for location', href: '/dashboard?tab=analytics&view=demand' },
-        { label: 'Your pace of bookings', href: '/dashboard?tab=analytics&view=pace' },
         { label: 'Sales statistics', href: '/dashboard?tab=analytics&view=sales' },
-        { label: 'Booker insights', href: '/dashboard?tab=analytics&view=booker' },
-        { label: 'Bookwindow information', href: '/dashboard?tab=analytics&view=bookwindow' },
-        { label: 'Cancellation characteristics', href: '/dashboard?tab=analytics&view=cancellation' },
-        { label: 'Manage your competitive set', href: '/dashboard?tab=analytics&view=competitive' },
-        { label: 'Genius report', href: '/dashboard?tab=analytics&view=genius' },
-        { label: 'Ranking dashboard', href: '/dashboard?tab=analytics&view=ranking' },
-        { label: 'Performance dashboard', href: '/dashboard?tab=analytics&view=performance' },
       ]
     },
   ];
@@ -1097,7 +1088,7 @@ const PropertyOwnerBookings = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-600">Total Revenue</p>
-                    <p className="text-2xl font-bold text-green-600">RWF {stats.totalRevenue.toLocaleString()}</p>
+                    <p className="text-2xl font-bold text-green-600">{formatCurrencyRWF ? formatCurrencyRWF(stats.totalRevenue) : `RWF ${stats.totalRevenue.toLocaleString()}`}</p>
                   </div>
                   <FaMoneyBillWave className="text-3xl text-green-600" />
                 </div>
@@ -1140,12 +1131,12 @@ const PropertyOwnerBookings = () => {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="bg-green-50 border border-green-200 rounded-xl p-6">
                       <h3 className="text-lg font-semibold text-green-900 mb-4">Monthly Revenue</h3>
-                      <div className="text-3xl font-bold text-green-600">RWF {stats.totalRevenue.toLocaleString()}</div>
+                      <div className="text-3xl font-bold text-green-600">{formatCurrencyRWF ? formatCurrencyRWF(stats.totalRevenue) : `RWF ${stats.totalRevenue.toLocaleString()}`}</div>
                       <p className="text-sm text-green-700 mt-2">+12% from last month</p>
                     </div>
                     <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
                       <h3 className="text-lg font-semibold text-blue-900 mb-4">Average Daily Rate</h3>
-                      <div className="text-3xl font-bold text-blue-600">RWF {Math.round(stats.totalRevenue / Math.max(stats.total, 1)).toLocaleString()}</div>
+                      <div className="text-3xl font-bold text-blue-600">{formatCurrencyRWF ? formatCurrencyRWF(Math.round(stats.totalRevenue / Math.max(stats.total, 1))) : `RWF ${Math.round(stats.totalRevenue / Math.max(stats.total, 1)).toLocaleString()}`}</div>
                       <p className="text-sm text-blue-700 mt-2">Per booking average</p>
                     </div>
                     <div className="bg-purple-50 border border-purple-200 rounded-xl p-6">
@@ -1183,7 +1174,7 @@ const PropertyOwnerBookings = () => {
                         </div>
                         <div className="flex justify-between">
                           <span className="text-indigo-700">Avg Booking Value</span>
-                          <span className="font-semibold text-indigo-900">RWF {Math.round(stats.totalRevenue / Math.max(stats.total, 1)).toLocaleString()}</span>
+                          <span className="font-semibold text-indigo-900">{formatCurrencyRWF ? formatCurrencyRWF(Math.round(stats.totalRevenue / Math.max(stats.total, 1))) : `RWF ${Math.round(stats.totalRevenue / Math.max(stats.total, 1)).toLocaleString()}`}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-indigo-700">Repeat Guests</span>
@@ -1342,7 +1333,7 @@ const PropertyOwnerBookings = () => {
                       <div>{checkIn} → {checkOut}</div>
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-600">{b.numberOfGuests || b.guests || 1}</td>
-                    <td className="px-4 py-3 text-right font-semibold">RWF {(b.totalAmount || 0).toLocaleString()}</td>
+                    <td className="px-4 py-3 text-right font-semibold">{formatCurrencyRWF ? formatCurrencyRWF(b.totalAmount || 0) : `RWF ${(b.totalAmount || 0).toLocaleString()}`}</td>
                     <td className="px-4 py-3 text-sm">
                       <span className={`px-2 py-1 rounded-full text-xs ${
                         (b.paymentStatus === 'paid' || b.status === 'confirmed') ? 'bg-green-100 text-green-800' :
@@ -1538,17 +1529,17 @@ const PropertyOwnerBookings = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="bg-green-50 border border-green-200 rounded-xl p-6">
                     <h3 className="text-lg font-semibold text-green-900 mb-4">Total Revenue</h3>
-                    <div className="text-3xl font-bold text-green-600">RWF {stats.totalRevenue.toLocaleString()}</div>
+                    <div className="text-3xl font-bold text-green-600">{formatCurrencyRWF ? formatCurrencyRWF(stats.totalRevenue) : `RWF ${stats.totalRevenue.toLocaleString()}`}</div>
                     <p className="text-sm text-green-700 mt-2">All time earnings</p>
                   </div>
                   <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
                     <h3 className="text-lg font-semibold text-blue-900 mb-4">Pending Revenue</h3>
-                    <div className="text-3xl font-bold text-blue-600">RWF {stats.pendingRevenue.toLocaleString()}</div>
+                    <div className="text-3xl font-bold text-blue-600">{formatCurrencyRWF ? formatCurrencyRWF(stats.pendingRevenue) : `RWF ${stats.pendingRevenue.toLocaleString()}`}</div>
                     <p className="text-sm text-blue-700 mt-2">Awaiting payout</p>
                   </div>
                   <div className="bg-purple-50 border border-purple-200 rounded-xl p-6">
                     <h3 className="text-lg font-semibold text-purple-900 mb-4">Commission Paid</h3>
-                    <div className="text-3xl font-bold text-purple-600">RWF {Math.round(stats.totalRevenue * 0.1).toLocaleString()}</div>
+                    <div className="text-3xl font-bold text-purple-600">{formatCurrencyRWF ? formatCurrencyRWF(Math.round(stats.totalRevenue * 0.1)) : `RWF ${Math.round(stats.totalRevenue * 0.1).toLocaleString()}`}</div>
                     <p className="text-sm text-purple-700 mt-2">Platform fees (10%)</p>
                   </div>
                 </div>
@@ -1568,7 +1559,7 @@ const PropertyOwnerBookings = () => {
                           <div className="text-sm text-gray-500">{new Date(booking.createdAt).toLocaleDateString()}</div>
                         </div>
                         <div className="text-right">
-                          <div className="text-lg font-bold text-gray-900">RWF {(booking.totalAmount || 0).toLocaleString()}</div>
+                          <div className="text-lg font-bold text-gray-900">{formatCurrencyRWF ? formatCurrencyRWF(booking.totalAmount || 0) : `RWF ${(booking.totalAmount || 0).toLocaleString()}`}</div>
                           <span className={`inline-block px-2 py-1 text-xs rounded-full ${
                             booking.paymentStatus === 'paid' ? 'bg-green-100 text-green-800' :
                             booking.paymentStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' :

@@ -33,21 +33,28 @@ export default function CarOwnerDashboard() {
   async function loadData() {
     try {
       setLoading(true);
+      console.log('[Vehicles][loadData] fetching mine & bookings');
       const [carsRes, bookingsRes] = await Promise.all([
         fetch(`${API_URL}/api/cars/mine`, { credentials: 'include' }),
         fetch(`${API_URL}/api/car-bookings/for-my-cars`, { credentials: 'include' })
       ]);
       const carsData = await carsRes.json();
       const bookingsData = await bookingsRes.json();
-      if (!carsRes.ok) throw new Error(carsData.message || 'Failed to load cars');
-      if (!bookingsRes.ok) throw new Error(bookingsData.message || 'Failed to load bookings');
+      console.log('[Vehicles][loadData] responses', { carsStatus: carsRes.status, bookingsStatus: bookingsRes.status, carsCount: (carsData?.cars||[]).length, bookingsCount: (bookingsData?.bookings||[]).length });
+      if (!carsRes.ok) throw new Error(carsData.message || '');
+      if (!bookingsRes.ok) throw new Error(bookingsData.message || '');
       setCars(carsData.cars || []);
       setBookings(bookingsData.bookings || []);
-    } catch (e) { toast.error(e.message); } finally { setLoading(false); }
+    } catch (e) {
+      console.error('[Vehicles][loadData] error', e);
+      // Show empty state silently
+      setCars([]);
+      setBookings([]);
+    } finally { setLoading(false); }
   }
 
   function exportBookingsCsv() {
-    const rows = [['Car','Renter','Pickup','Return','Days','Amount','Status']];
+    const rows = [['Vehicle','Renter','Pickup','Return','Days','Amount','Status']];
     const filtered = bookings.filter(b => {
       if (bookingFilters.status && b.status !== bookingFilters.status) return false;
       if (bookingFilters.from) {
@@ -75,7 +82,7 @@ export default function CarOwnerDashboard() {
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = 'car-bookings.csv'; a.click();
+    a.href = url; a.download = 'vehicle-bookings.csv'; a.click();
     URL.revokeObjectURL(url);
   }
 
@@ -86,6 +93,7 @@ export default function CarOwnerDashboard() {
   async function createCar(e) {
     e.preventDefault();
     try {
+      console.log('[Vehicles][create] payload', form);
       if (user?.isBlocked) { toast.error('Your account is deactivated. Creating cars is disabled.'); return; }
       if (!createImages || createImages.length === 0) { toast.error('Please add at least one image'); return; }
       setSaving(true);
@@ -93,53 +101,60 @@ export default function CarOwnerDashboard() {
         method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form)
       });
       const data = await res.json();
+      console.log('[Vehicles][create] result', { status: res.status, id: data?.car?._id });
       if (!res.ok) throw new Error(data.message || 'Failed to create');
       setCars(c => [data.car, ...c]);
       toast.success('Car created');
       await uploadImages(data.car._id, createImages);
       resetForm();
       setCreateImages([]);
-    } catch (e) { toast.error(e.message); } finally { setSaving(false); }
+    } catch (e) { console.error('[Vehicles][create] error', e); toast.error(e.message); } finally { setSaving(false); }
   }
 
   async function updateCar(id, patch) {
     try {
+      console.log('[Vehicles][update] id', id, 'patch', patch);
       if (user?.isBlocked) { toast.error('Your account is deactivated. Updates are disabled.'); return; }
       const res = await fetch(`${API_URL}/api/cars/${id}`, {
         method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch)
       });
       const data = await res.json();
+      console.log('[Vehicles][update] result', { status: res.status });
       if (!res.ok) throw new Error(data.message || 'Update failed');
       setCars(list => list.map(c => c._id === id ? data.car : c));
       toast.success('Car updated');
-    } catch (e) { toast.error(e.message); }
+    } catch (e) { console.error('[Vehicles][update] error', e); toast.error(e.message); }
   }
 
   async function deleteCar(id) {
     if (!confirm('Delete this car?')) return;
     try {
+      console.log('[Vehicles][delete] id', id);
       if (user?.isBlocked) { toast.error('Your account is deactivated. Delete is disabled.'); return; }
       const res = await fetch(`${API_URL}/api/cars/${id}`, { method: 'DELETE', credentials: 'include' });
       const data = await res.json();
+      console.log('[Vehicles][delete] result', { status: res.status });
       if (!res.ok) throw new Error(data.message || 'Delete failed');
       setCars(list => list.filter(c => c._id !== id));
       toast.success('Car deleted');
-    } catch (e) { toast.error(e.message); }
+    } catch (e) { console.error('[Vehicles][delete] error', e); toast.error(e.message); }
   }
 
   async function uploadImages(id, files) {
     if (!files?.length) return;
     try {
+      console.log('[Vehicles][uploadImages] id', id, 'files', files?.length);
       if (user?.isBlocked) { toast.error('Your account is deactivated. Uploads are disabled.'); return; }
       setUploadingId(id);
       const formData = new FormData();
       Array.from(files).forEach(f => formData.append('images', f));
       const res = await fetch(`${API_URL}/api/cars/${id}/images`, { method: 'POST', credentials: 'include', body: formData });
       const data = await res.json();
+      console.log('[Vehicles][uploadImages] result', { status: res.status, imageCount: (data?.car?.images||[]).length });
       if (!res.ok) throw new Error(data.message || 'Upload failed');
       setCars(list => list.map(c => c._id === id ? data.car : c));
       toast.success('Images uploaded');
-    } catch (e) { toast.error(e.message); } finally { setUploadingId(null); }
+    } catch (e) { console.error('[Vehicles][uploadImages] error', e); toast.error(e.message); } finally { setUploadingId(null); }
   }
 
   return (
@@ -147,7 +162,7 @@ export default function CarOwnerDashboard() {
       {/* Owner tabs */}
       <div className="mb-4 flex items-center justify-between gap-2">
         <div className="inline-flex rounded-lg overflow-hidden border border-[#d4c4b0]">
-          <a href="/owner/cars" className={`px-3 py-2 text-sm ${location.pathname.startsWith('/owner/cars') ? 'bg-[#a06b42] text-white' : 'bg-[#f6e9d8] text-[#4b2a00] hover:bg-[#e8dcc8]'}`}>Cars</a>
+          <a href="/owner/cars" className={`px-3 py-2 text-sm ${location.pathname.startsWith('/owner/cars') ? 'bg-[#a06b42] text-white' : 'bg-[#f6e9d8] text-[#4b2a00] hover:bg-[#e8dcc8]'}`}>Vehicles</a>
           <a href="/owner/attractions" className={`px-3 py-2 text-sm ${location.pathname.startsWith('/owner/attractions') ? 'bg-[#a06b42] text-white' : 'bg-[#f6e9d8] text-[#4b2a00] hover:bg-[#e8dcc8]'}`}>Attractions</a>
         </div>
         <div className="inline-flex rounded-lg overflow-hidden border">
@@ -157,39 +172,73 @@ export default function CarOwnerDashboard() {
       </div>
       {user?.isBlocked && (
         <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
-          Your account is deactivated. Car management is disabled until reactivated.
+          Your account is deactivated. Vehicle management is disabled until reactivated.
         </div>
       )}
-      <h1 className="text-2xl font-bold text-gray-900 mb-4">My Cars</h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-4">My Vehicles</h1>
 
-      {/* Create Car */}
+      {/* Create Vehicle */}
       <form onSubmit={createCar} className="bg-white rounded-lg shadow p-4 mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-        <input className="px-3 py-2 border rounded" placeholder="Vehicle Name" value={form.vehicleName} onChange={e => setForm({ ...form, vehicleName: e.target.value })} />
-        <select className="px-3 py-2 border rounded" value={form.vehicleType} onChange={e => setForm({ ...form, vehicleType: e.target.value })}>
+        <div>
+          <label className="block text-xs text-gray-700 mb-1">Vehicle name</label>
+          <input className="w-full px-3 py-2 border rounded" placeholder="e.g., Toyota RAV4" value={form.vehicleName} onChange={e => setForm({ ...form, vehicleName: e.target.value })} />
+        </div>
+        <div>
+          <label className="block text-xs text-gray-700 mb-1">Vehicle type</label>
+          <select className="w-full px-3 py-2 border rounded" value={form.vehicleType} onChange={e => setForm({ ...form, vehicleType: e.target.value })}>
           {['economy','compact','mid-size','full-size','luxury','suv','minivan','motorcycle','bicycle'].map(x => <option key={x} value={x}>{x}</option>)}
-        </select>
-        <input className="px-3 py-2 border rounded" placeholder="Brand" value={form.brand} onChange={e => setForm({ ...form, brand: e.target.value })} />
-        <input className="px-3 py-2 border rounded" placeholder="Model" value={form.model} onChange={e => setForm({ ...form, model: e.target.value })} />
-        <input className="px-3 py-2 border rounded" type="number" placeholder="Year" value={form.year} onChange={e => setForm({ ...form, year: Number(e.target.value) })} />
-        <input className="px-3 py-2 border rounded" placeholder="License Plate" value={form.licensePlate} onChange={e => setForm({ ...form, licensePlate: e.target.value })} />
-        <input className="px-3 py-2 border rounded" type="number" placeholder="Capacity" value={form.capacity} onChange={e => setForm({ ...form, capacity: Number(e.target.value) })} />
-        <input className="px-3 py-2 border rounded" type="number" placeholder="Price/Day" value={form.pricePerDay} onChange={e => setForm({ ...form, pricePerDay: Number(e.target.value) })} />
-        <input className="px-3 py-2 border rounded" placeholder="Location" value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} />
-        <select className="px-3 py-2 border rounded" value={form.transmission} onChange={e => setForm({ ...form, transmission: e.target.value })}>
-          {['automatic','manual'].map(x => <option key={x} value={x}>{x}</option>)}
-        </select>
-        <select className="px-3 py-2 border rounded" value={form.fuelType} onChange={e => setForm({ ...form, fuelType: e.target.value })}>
-          {['petrol','diesel','hybrid','electric'].map(x => <option key={x} value={x}>{x}</option>)}
-        </select>
+          </select>
+        </div>
+        <div>
+          <label className="block text-xs text-gray-700 mb-1">Brand</label>
+          <input className="w-full px-3 py-2 border rounded" placeholder="e.g., Toyota" value={form.brand} onChange={e => setForm({ ...form, brand: e.target.value })} />
+        </div>
+        <div>
+          <label className="block text-xs text-gray-700 mb-1">Model</label>
+          <input className="w-full px-3 py-2 border rounded" placeholder="e.g., RAV4" value={form.model} onChange={e => setForm({ ...form, model: e.target.value })} />
+        </div>
+        <div>
+          <label className="block text-xs text-gray-700 mb-1">Year</label>
+          <input className="w-full px-3 py-2 border rounded" type="number" placeholder="e.g., 2022" value={form.year} onChange={e => setForm({ ...form, year: Number(e.target.value) })} />
+        </div>
+        <div>
+          <label className="block text-xs text-gray-700 mb-1">License plate</label>
+          <input className="w-full px-3 py-2 border rounded" placeholder="e.g., RAD 123 A" value={form.licensePlate} onChange={e => setForm({ ...form, licensePlate: e.target.value })} />
+        </div>
+        <div>
+          <label className="block text-xs text-gray-700 mb-1">Capacity (seats)</label>
+          <input className="w-full px-3 py-2 border rounded" type="number" placeholder="e.g., 5" value={form.capacity} onChange={e => setForm({ ...form, capacity: Number(e.target.value) })} />
+        </div>
+        <div>
+          <label className="block text-xs text-gray-700 mb-1">Price per day</label>
+          <input className="w-full px-3 py-2 border rounded" type="number" placeholder="e.g., 85000" value={form.pricePerDay} onChange={e => setForm({ ...form, pricePerDay: Number(e.target.value) })} />
+        </div>
+        <div>
+          <label className="block text-xs text-gray-700 mb-1">Location</label>
+          <input className="w-full px-3 py-2 border rounded" placeholder="e.g., Kigali" value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} />
+        </div>
+        <div>
+          <label className="block text-xs text-gray-700 mb-1">Transmission</label>
+          <select className="w-full px-3 py-2 border rounded" value={form.transmission} onChange={e => setForm({ ...form, transmission: e.target.value })}>
+            {['automatic','manual'].map(x => <option key={x} value={x}>{x}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="block text-xs text-gray-700 mb-1">Fuel type</label>
+          <select className="w-full px-3 py-2 border rounded" value={form.fuelType} onChange={e => setForm({ ...form, fuelType: e.target.value })}>
+            {['petrol','diesel','hybrid','electric'].map(x => <option key={x} value={x}>{x}</option>)}
+          </select>
+        </div>
         <div className="flex items-center gap-2">
           <label className="text-sm">Available</label>
           <input type="checkbox" checked={!!form.isAvailable} onChange={e => setForm({ ...form, isAvailable: !!e.target.checked })} />
         </div>
         <div className="md:col-span-3">
+          <label className="block text-xs text-gray-700 mb-1">Images</label>
           <input type="file" multiple accept="image/*" onChange={e => setCreateImages(Array.from(e.target.files || []))} className="w-full px-3 py-2 border rounded" />
         </div>
         <div className="md:col-span-3">
-          <button disabled={saving || user?.isBlocked} className="px-4 py-2 bg-[#a06b42] hover:bg-[#8f5a32] text-white rounded disabled:opacity-50">{saving ? 'Saving...' : 'Add Car'}</button>
+          <button disabled={saving || user?.isBlocked} className="px-4 py-2 bg-[#a06b42] hover:bg-[#8f5a32] text-white rounded disabled:opacity-50">{saving ? 'Saving...' : 'Add Vehicle'}</button>
         </div>
       </form>
 
@@ -234,7 +283,7 @@ export default function CarOwnerDashboard() {
             <table className="min-w-full text-sm">
               <thead>
                 <tr className="bg-gray-50 text-left">
-                  <th className="p-3">Car</th>
+                  <th className="p-3">Vehicle</th>
                   <th className="p-3">Type</th>
                   <th className="p-3">Location</th>
                   <th className="p-3">Price/Day</th>
@@ -289,7 +338,7 @@ export default function CarOwnerDashboard() {
           <table className="min-w-full text-sm">
             <thead>
               <tr className="bg-gray-50 text-left">
-                <th className="p-3">Car</th>
+                <th className="p-3">Vehicle</th>
                 <th className="p-3">Renter</th>
                 <th className="p-3">Dates</th>
                 <th className="p-3">Amount</th>
@@ -343,12 +392,12 @@ export default function CarOwnerDashboard() {
 
       {receiptBooking && (
         <ReceiptPreview
-          title="Car Rental Receipt"
+          title="Vehicle Rental Receipt"
           lines={[
             { label: 'Receipt', value: `#${String(receiptBooking._id).slice(-8)}` },
             { label: 'Date', value: new Date().toLocaleString() },
             '---',
-            { label: 'Car', value: receiptBooking.car?.vehicleName || '' },
+            { label: 'Vehicle', value: receiptBooking.car?.vehicleName || '' },
             { label: 'Renter', value: `${receiptBooking.guest?.firstName || ''} ${receiptBooking.guest?.lastName || ''}`.trim() },
             { label: 'Pickup', value: new Date(receiptBooking.pickupDate).toLocaleDateString() },
             { label: 'Return', value: new Date(receiptBooking.returnDate).toLocaleDateString() },

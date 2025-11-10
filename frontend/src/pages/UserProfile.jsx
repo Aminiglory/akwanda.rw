@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocale } from '../contexts/LocaleContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 import { FaUser, FaChartLine, FaCalendarAlt, FaDollarSign, FaDownload, FaEdit, FaTrash, FaEye, FaCog, FaHome, FaStar, FaMapMarkerAlt, FaCamera, FaFileAlt, FaPrint, FaEnvelope, FaPhone, FaBed, FaUsers, FaWifi, FaCar, FaSwimmingPool, FaUtensils, FaShieldAlt, FaClock, FaComments } from 'react-icons/fa';
@@ -8,6 +9,7 @@ import { safeApiGet, apiGet, apiPost, apiPut, apiDelete, apiDownload } from '../
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const UserProfile = () => {
+  const { formatCurrencyRWF } = useLocale() || {};
   const { user, refreshUser, updateProfile: ctxUpdateProfile, updateAvatar: ctxUpdateAvatar } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
@@ -523,7 +525,7 @@ const UserProfile = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-gray-600">Total Revenue</p>
-                    <p className="text-3xl font-bold text-gray-900">RWF {(reports.totalRevenue || 0).toLocaleString()}</p>
+                    <p className="text-3xl font-bold text-gray-900">{formatCurrencyRWF ? formatCurrencyRWF(reports.totalRevenue || 0) : `RWF ${Number(reports.totalRevenue || 0).toLocaleString()}`}</p>
                   </div>
                   <FaDollarSign className="text-3xl text-yellow-600" />
                 </div>
@@ -625,7 +627,7 @@ const UserProfile = () => {
                       </p>
                       <div className="flex items-center justify-between mb-3">
                         <span className="text-lg font-bold text-blue-600">
-                          RWF {property.pricePerNight?.toLocaleString()}/night
+                          {formatCurrencyRWF ? formatCurrencyRWF(property.pricePerNight || 0) : `RWF ${Number(property.pricePerNight || 0).toLocaleString()}`}/night
                         </span>
                         <div className="flex items-center space-x-1">
                           <FaStar className="text-yellow-400 text-sm" />
@@ -686,7 +688,7 @@ const UserProfile = () => {
                             </div>
                           </td>
                           <td className="px-4 py-3 text-sm text-gray-700">{p.city}, {p.country}</td>
-                          <td className="px-4 py-3 text-sm text-blue-600 font-semibold">RWF {p.pricePerNight?.toLocaleString()}</td>
+                          <td className="px-4 py-3 text-sm text-blue-600 font-semibold">{formatCurrencyRWF ? formatCurrencyRWF(p.pricePerNight || 0) : `RWF ${Number(p.pricePerNight || 0).toLocaleString()}`}</td>
                           <td className="px-4 py-3 text-sm">
                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${p.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{p.isActive ? 'Active' : 'Inactive'}</span>
                           </td>
@@ -741,8 +743,8 @@ const UserProfile = () => {
                   </tr>
                   <tr>
                     <td className="py-2 pr-4 font-medium text-gray-900">Revenue</td>
-                    <td className="py-2 pr-4">RWF {(reports.totalRevenue || 0).toLocaleString()}</td>
-                    <td className="py-2 pr-4">RWF {(reports.thisMonth?.revenue || 0).toLocaleString()}</td>
+                    <td className="py-2 pr-4">{formatCurrencyRWF ? formatCurrencyRWF(reports.totalRevenue || 0) : `RWF ${Number(reports.totalRevenue || 0).toLocaleString()}`}</td>
+                    <td className="py-2 pr-4">{formatCurrencyRWF ? formatCurrencyRWF(reports.thisMonth?.revenue || 0) : `RWF ${Number(reports.thisMonth?.revenue || 0).toLocaleString()}`}</td>
                   </tr>
                   <tr>
                     <td className="py-2 pr-4 font-medium text-gray-900">Occupancy</td>
@@ -925,7 +927,7 @@ const UserProfile = () => {
                     <span className="text-sm font-medium text-gray-600">This Month Revenue</span>
                     <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-green-100 text-green-700"><FaDollarSign /></span>
                   </div>
-                  <div className="text-2xl md:text-3xl font-bold text-green-700">RWF {(reports.thisMonth?.revenue || 0).toLocaleString()}</div>
+                  <div className="text-2xl md:text-3xl font-bold text-green-700">{formatCurrencyRWF ? formatCurrencyRWF(reports.thisMonth?.revenue || 0) : `RWF ${Number(reports.thisMonth?.revenue || 0).toLocaleString()}`}</div>
                 </div>
                 {/* Occupancy */}
                 <div className="rounded-xl border border-gray-200 p-4 hover:shadow-sm transition-shadow">

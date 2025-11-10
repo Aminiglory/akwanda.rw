@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
+import { useLocale } from '../contexts/LocaleContext';
 import { FaFileInvoice, FaBuilding, FaCalculator, FaCheckCircle, FaTimesCircle, FaSpinner, FaDownload, FaPrint } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const RRAEBMIntegration = () => {
+  const { formatCurrencyRWF } = useLocale() || {};
   const [billData, setBillData] = useState({
     customerName: '',
     customerTin: '',
@@ -336,16 +338,16 @@ const RRAEBMIntegration = () => {
                     <div className="space-y-2">
                       <div className="flex justify-between">
                         <span className="text-gray-600">Subtotal:</span>
-                        <span className="font-medium">RWF {calculations.subtotal.toLocaleString()}</span>
+                        <span className="font-medium">{formatCurrencyRWF ? formatCurrencyRWF(calculations.subtotal || 0) : `RWF ${(calculations.subtotal || 0).toLocaleString()}`}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">VAT ({billData.taxRate}%):</span>
-                        <span className="font-medium">RWF {calculations.taxAmount.toLocaleString()}</span>
+                        <span className="font-medium">{formatCurrencyRWF ? formatCurrencyRWF(calculations.taxAmount || 0) : `RWF ${(calculations.taxAmount || 0).toLocaleString()}`}</span>
                       </div>
                       <div className="border-t pt-2">
                         <div className="flex justify-between">
                           <span className="text-lg font-semibold text-gray-900">Total:</span>
-                          <span className="text-lg font-bold text-green-600">RWF {calculations.totalAmount.toLocaleString()}</span>
+                          <span className="text-lg font-bold text-green-600">{formatCurrencyRWF ? formatCurrencyRWF(calculations.totalAmount || 0) : `RWF ${(calculations.totalAmount || 0).toLocaleString()}`}</span>
                         </div>
                       </div>
                     </div>
@@ -485,15 +487,15 @@ const RRAEBMIntegration = () => {
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">Subtotal:</span>
-                        <span className="font-medium">RWF {generatedBill.subtotal.toLocaleString()}</span>
+                        <span className="font-medium">{formatCurrencyRWF ? formatCurrencyRWF(generatedBill.subtotal || 0) : `RWF ${(generatedBill.subtotal || 0).toLocaleString()}`}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">VAT ({generatedBill.taxRate}%):</span>
-                        <span className="font-medium">RWF {generatedBill.taxAmount.toLocaleString()}</span>
+                        <span className="font-medium">{formatCurrencyRWF ? formatCurrencyRWF(generatedBill.taxAmount || 0) : `RWF ${(generatedBill.taxAmount || 0).toLocaleString()}`}</span>
                       </div>
                       <div className="flex justify-between border-t pt-2">
                         <span className="text-lg font-semibold text-gray-900">Total Amount:</span>
-                        <span className="text-lg font-bold text-green-600">RWF {generatedBill.totalAmount.toLocaleString()}</span>
+                        <span className="text-lg font-bold text-green-600">{formatCurrencyRWF ? formatCurrencyRWF(generatedBill.totalAmount || 0) : `RWF ${(generatedBill.totalAmount || 0).toLocaleString()}`}</span>
                       </div>
                     </div>
                   </div>

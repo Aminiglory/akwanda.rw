@@ -1017,9 +1017,25 @@ router.post('/', requireAuth, upload.array('images', 10), async (req, res) => {
         const payload = { ...req.body, images: mergedImages, host: req.user.id };
         
         // Coerce numeric fields
-        ['pricePerNight', 'bedrooms', 'bathrooms', 'maxGuests'].forEach(field => {
+        ['pricePerNight', 'bedrooms', 'bathrooms', 'maxGuests', 'groupBookingDiscount', 'minStayNights', 'cancellationWindowDays', 'depositPercent', 'cleaningFee', 'unitCount', 'latitude', 'longitude'].forEach(field => {
             if (payload[field] !== undefined && payload[field] !== null && payload[field] !== '') {
                 payload[field] = Number(payload[field]);
+            }
+        });
+
+        // Map localTaxPercent from frontend to taxRate in model
+        if (payload.localTaxPercent != null && payload.localTaxPercent !== '') {
+            const t = Number(payload.localTaxPercent);
+            if (!isNaN(t)) payload.taxRate = t;
+            delete payload.localTaxPercent;
+        }
+
+        // Coerce booleans that may arrive as strings
+        ['ratePlanNonRefundable','ratePlanFreeCancellation','prepaymentRequired','smokingAllowed','groupBookingEnabled'].forEach(b => {
+            if (payload[b] != null) {
+                const v = payload[b];
+                if (typeof v === 'string') payload[b] = v === 'true' || v === '1' || v === 'on';
+                else payload[b] = !!v;
             }
         });
         
@@ -1122,8 +1138,24 @@ router.put('/:id', requireAuth, requireWorkerPrivilege('canEditProperties'), upl
         }
         const updates = { ...req.body };
         // Coerce number fields
-        ['pricePerNight','bedrooms','bathrooms','discountPercent','commissionRate','maxGuests'].forEach(k => {
+        ['pricePerNight','bedrooms','bathrooms','discountPercent','commissionRate','maxGuests','groupBookingDiscount','minStayNights','cancellationWindowDays','depositPercent','cleaningFee','unitCount','latitude','longitude'].forEach(k => {
             if (updates[k] != null && updates[k] !== '') updates[k] = Number(updates[k]);
+        });
+
+        // Map localTaxPercent to taxRate if provided
+        if (updates.localTaxPercent != null && updates.localTaxPercent !== '') {
+            const t = Number(updates.localTaxPercent);
+            if (!isNaN(t)) updates.taxRate = t;
+            delete updates.localTaxPercent;
+        }
+
+        // Coerce booleans
+        ['ratePlanNonRefundable','ratePlanFreeCancellation','prepaymentRequired','smokingAllowed','groupBookingEnabled'].forEach(b => {
+            if (updates[b] != null) {
+                const v = updates[b];
+                if (typeof v === 'string') updates[b] = v === 'true' || v === '1' || v === 'on';
+                else updates[b] = !!v;
+            }
         });
         // Ensure commissionRate stays within [8,12] regardless of visibility level
         if (updates.commissionRate != null) {

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocale } from '../contexts/LocaleContext';
 import { FaChartLine, FaUsers, FaBed, FaCalendarAlt, FaDollarSign, FaStar, FaMapMarkerAlt, FaCar, FaPlane, FaCamera, FaFilter, FaSearch, FaEdit, FaTrash, FaPlus, FaEye, FaCheckCircle, FaTimesCircle, FaComments, FaEllipsisV, FaUser, FaHome, FaUserTimes } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -27,6 +28,7 @@ const makeAbsolute = (u) => {
 };
 
 const AdminDashboard = () => {
+  const { formatCurrencyRWF } = useLocale() || {};
   const [activeTab, setActiveTab] = useState('overview');
   const [metrics, setMetrics] = useState({
     totalProperties: 0,
@@ -370,7 +372,7 @@ const AdminDashboard = () => {
               </div>
               <div className="ml-4">
                 <p className="text-xs md:text-sm font-medium text-gray-600">Total Revenue</p>
-                <p className="text-xl md:text-2xl font-bold text-gray-900">RWF {metrics.totalRevenue?.toLocaleString()}</p>
+                <p className="text-xl md:text-2xl font-bold text-gray-900">{formatCurrencyRWF ? formatCurrencyRWF(metrics.totalRevenue || 0) : `RWF ${Number(metrics.totalRevenue || 0).toLocaleString()}`}</p>
               </div>
             </div>
           </div>
@@ -435,7 +437,7 @@ const AdminDashboard = () => {
                             <span className={`px-2 py-1 rounded-full text-[10px] md:text-xs font-medium ${getStatusColor(booking.status)}`}>
                               {booking.status}
                             </span>
-                            <p className="text-xs md:text-sm text-gray-600 mt-1">RWF {booking.totalAmount?.toLocaleString()}</p>
+                            <p className="text-xs md:text-sm text-gray-600 mt-1">{formatCurrencyRWF ? formatCurrencyRWF(booking.totalAmount || 0) : `RWF ${Number(booking.totalAmount || 0).toLocaleString()}`}</p>
                           </div>
                         </div>
                       ))}
@@ -455,7 +457,7 @@ const AdminDashboard = () => {
                             <div className="flex items-center">
                               {renderStars(property.ratings?.length ? property.ratings.reduce((sum, r) => sum + r.rating, 0) / property.ratings.length : 0)}
                             </div>
-                            <p className="text-xs md:text-sm text-gray-600 mt-1">RWF {property.pricePerNight?.toLocaleString()}</p>
+                            <p className="text-xs md:text-sm text-gray-600 mt-1">{formatCurrencyRWF ? formatCurrencyRWF(property.pricePerNight || 0) : `RWF ${Number(property.pricePerNight || 0).toLocaleString()}`}</p>
                           </div>
                         </div>
                       ))}
@@ -532,7 +534,7 @@ const AdminDashboard = () => {
                           <span className="text-sm">{property.city}</span>
                         </div>
                         <div className="flex items-center justify-between mb-4">
-                          <span className="text-lg font-bold text-blue-600">RWF {property.pricePerNight?.toLocaleString()}</span>
+                          <span className="text-lg font-bold text-blue-600">{formatCurrencyRWF ? formatCurrencyRWF(property.pricePerNight || 0) : `RWF ${Number(property.pricePerNight || 0).toLocaleString()}`}</span>
                           <div className="flex items-center">
                             {renderStars(property.ratings?.length ? property.ratings.reduce((sum, r) => sum + r.rating, 0) / property.ratings.length : 0)}
                           </div>
@@ -624,7 +626,7 @@ const AdminDashboard = () => {
                                   <FaCalendarAlt className="mr-1" />
                                   <span>{new Date(booking.checkIn).toLocaleDateString()} - {new Date(booking.checkOut).toLocaleDateString()}</span>
                                 </div>
-                                <span className="font-medium text-gray-900">RWF {booking.totalAmount?.toLocaleString()}</span>
+                                <span className="font-medium text-gray-900">{formatCurrencyRWF ? formatCurrencyRWF(booking.totalAmount || 0) : `RWF ${Number(booking.totalAmount || 0).toLocaleString()}`}</span>
                               </div>
                               <div className="mt-2 text-sm text-gray-600">
                                 <span className="font-medium">Guest:</span> {booking.guest?.firstName} {booking.guest?.lastName}

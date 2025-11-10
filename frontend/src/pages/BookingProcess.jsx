@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useLocale } from '../contexts/LocaleContext';
+
 import { FaCalendarAlt, FaUsers, FaBed, FaCheck, FaMobile, FaShieldAlt, FaDollarSign } from 'react-icons/fa';
 import { useParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -6,6 +8,8 @@ import toast from 'react-hot-toast';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const BookingProcess = () => {
+  const { formatCurrencyRWF } = useLocale() || {};
+
   const { id } = useParams();
   const navigate = useNavigate();
   
@@ -758,11 +762,12 @@ const BookingProcess = () => {
                                     </div>
                                     <div className="text-right shrink-0">
                                       <div className="text-lg md:text-xl font-bold text-primary group-hover:text-primary-600 transition-colors duration-300">
-                                        RWF {(() => {
+                                        {(() => {
                                           const pricePerNight = room.pricePerNight || room.price || 0;
-                                          return pricePerNight.toLocaleString();
+                                          return formatCurrencyRWF ? formatCurrencyRWF(pricePerNight) : `RWF ${Number(pricePerNight).toLocaleString()}`;
                                         })()}
                                       </div>
+
                                       <div className="text-xs md:text-sm text-gray-500">per night</div>
                                       {isRoomSelected(room) && (
                                         <div className="mt-2 flex items-center justify-center">
@@ -828,7 +833,7 @@ const BookingProcess = () => {
                           <strong>Selected Room:</strong> {selectedRoom.roomNumber} - {selectedRoom.roomType}
                         </p>
                         <p className="text-xs text-gray-600 mt-1">
-                          RWF {(selectedRoom.pricePerNight || 0).toLocaleString()} per night
+                          {formatCurrencyRWF ? formatCurrencyRWF(selectedRoom.pricePerNight || 0) : `RWF ${(selectedRoom.pricePerNight || 0).toLocaleString()}`} per night
                         </p>
                       </div>
                       {selectedRoomUnavailable && bookingData.checkIn && bookingData.checkOut && (

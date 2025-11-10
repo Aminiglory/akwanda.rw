@@ -388,8 +388,8 @@ const ApartmentsListing = () => {
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Budget</label>
                 <div className="px-1">
                   <div className="flex items-center justify-between text-xs text-gray-600 mb-1">
-                    <span>RWF {filters.priceMin.toLocaleString()}</span>
-                    <span>{filters.priceMax == null ? 'No max' : `RWF ${Number(filters.priceMax).toLocaleString()}`}</span>
+                    <span>{formatCurrencyRWF ? formatCurrencyRWF(filters.priceMin || 0) : `RWF ${Number(filters.priceMin || 0).toLocaleString()}`}</span>
+                    <span>{filters.priceMax == null ? 'No max' : (formatCurrencyRWF ? formatCurrencyRWF(Number(filters.priceMax) || 0) : `RWF ${Number(filters.priceMax || 0).toLocaleString()}`)}</span>
                   </div>
                   <div className="relative h-8">
                     {/* Selected range track */}

@@ -1,9 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useLocale } from '../contexts/LocaleContext';
 import toast from 'react-hot-toast';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 export default function AdminReports() {
+  const { formatCurrencyRWF } = useLocale() || {};
   const [type, setType] = useState('revenue');
   const [period, setPeriod] = useState('monthly');
   const [loading, setLoading] = useState(false);
@@ -78,8 +80,8 @@ export default function AdminReports() {
                 <tr key={r.propertyId} className="hover:bg-gray-50">
                   <td className="px-4 py-2 text-sm">{r.propertyName}</td>
                   <td className="px-4 py-2 text-sm">{r.bookingsCount}</td>
-                  <td className="px-4 py-2 text-sm">RWF {(r.totalRevenue||0).toLocaleString()}</td>
-                  <td className="px-4 py-2 text-sm">RWF {(r.netRevenue||0).toLocaleString()}</td>
+                  <td className="px-4 py-2 text-sm">{formatCurrencyRWF ? formatCurrencyRWF(r.totalRevenue || 0) : `RWF ${(r.totalRevenue || 0).toLocaleString()}`}</td>
+                  <td className="px-4 py-2 text-sm">{formatCurrencyRWF ? formatCurrencyRWF(r.netRevenue || 0) : `RWF ${(r.netRevenue || 0).toLocaleString()}`}</td>
                 </tr>
               ))}
             </tbody>
@@ -114,7 +116,7 @@ export default function AdminReports() {
                   <tr key={r.propertyId} className="hover:bg-gray-50">
                     <td className="px-4 py-2 text-sm">{r.propertyName}</td>
                     <td className="px-4 py-2 text-sm">{r.bookingsCount}</td>
-                    <td className="px-4 py-2 text-sm">RWF {(r.averageBookingValue||0).toLocaleString()}</td>
+                    <td className="px-4 py-2 text-sm">{formatCurrencyRWF ? formatCurrencyRWF(r.averageBookingValue || 0) : `RWF ${(r.averageBookingValue || 0).toLocaleString()}`}</td>
                   </tr>
                 ))}
               </tbody>
@@ -153,10 +155,10 @@ export default function AdminReports() {
         <div className="bg-white rounded-lg shadow p-4 text-sm">
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             <div><span className="text-gray-600">Year:</span> <span className="font-semibold">{data.year}</span></div>
-            <div><span className="text-gray-600">Taxable Income:</span> <span className="font-semibold">RWF {(data.taxableIncome||0).toLocaleString()}</span></div>
-            <div><span className="text-gray-600">Commissions:</span> <span className="font-semibold">RWF {(data.commissionsPaid||0).toLocaleString()}</span></div>
-            <div><span className="text-gray-600">Net Income:</span> <span className="font-semibold">RWF {(data.netIncome||0).toLocaleString()}</span></div>
-            <div><span className="text-gray-600">Estimated Tax:</span> <span className="font-semibold">RWF {(data.estimatedTax||0).toLocaleString()}</span></div>
+            <div><span className="text-gray-600">Taxable Income:</span> <span className="font-semibold">{formatCurrencyRWF ? formatCurrencyRWF(data.taxableIncome || 0) : `RWF ${(data.taxableIncome || 0).toLocaleString()}`}</span></div>
+            <div><span className="text-gray-600">Commissions:</span> <span className="font-semibold">{formatCurrencyRWF ? formatCurrencyRWF(data.commissionsPaid || 0) : `RWF ${(data.commissionsPaid || 0).toLocaleString()}`}</span></div>
+            <div><span className="text-gray-600">Net Income:</span> <span className="font-semibold">{formatCurrencyRWF ? formatCurrencyRWF(data.netIncome || 0) : `RWF ${(data.netIncome || 0).toLocaleString()}`}</span></div>
+            <div><span className="text-gray-600">Estimated Tax:</span> <span className="font-semibold">{formatCurrencyRWF ? formatCurrencyRWF(data.estimatedTax || 0) : `RWF ${(data.estimatedTax || 0).toLocaleString()}`}</span></div>
             <div><span className="text-gray-600">Properties:</span> <span className="font-semibold">{data.properties}</span></div>
             <div><span className="text-gray-600">Total Bookings:</span> <span className="font-semibold">{data.totalBookings}</span></div>
           </div>

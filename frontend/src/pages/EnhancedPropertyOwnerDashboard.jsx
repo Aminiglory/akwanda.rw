@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocale } from '../contexts/LocaleContext';
 import { useAuth } from '../contexts/AuthContext';
 import { 
   FaHome, FaCalendarAlt, FaMoneyBillWave, FaCheckCircle, FaClock, FaEye, 
@@ -21,6 +22,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 const EnhancedPropertyOwnerDashboard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { formatCurrency } = useLocale() || {};
   const [activeTab, setActiveTab] = useState('overview'); // overview, properties, bookings, analytics
   const [properties, setProperties] = useState([]);
   const [bookings, setBookings] = useState([]);
@@ -253,9 +255,7 @@ const EnhancedPropertyOwnerDashboard = () => {
     }
   };
 
-  const formatCurrency = (amount) => {
-    return `RWF ${amount.toLocaleString()}`;
-  };
+  // Use global currency formatter (defaults base to RWF)
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {

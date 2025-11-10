@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useLocale } from '../contexts/LocaleContext';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 export default function OurMission() {
+  const { localize } = useLocale() || {};
   const [section, setSection] = useState(null); // { key, title, body, images }
   const [index, setIndex] = useState(0);
   const timerRef = useRef(null);
@@ -118,9 +120,9 @@ export default function OurMission() {
           )}
         </div>
         <div>
-          <h2 className="text-2xl md:text-3xl font-bold text-[#4b2a00]">{section.title || 'Our Mission'}</h2>
+          <h2 className="text-2xl md:text-3xl font-bold text-[#4b2a00]">{localize ? localize(section.title || 'Our Mission') : (section.title || 'Our Mission')}</h2>
           {section.body && (
-            <p className="mt-4 text-gray-700 whitespace-pre-line">{section.body}</p>
+            <p className="mt-4 text-gray-700 whitespace-pre-line">{localize ? localize(section.body) : section.body}</p>
           )}
           <div className="mt-6 flex flex-wrap gap-3">
             <a href="/about" className="px-5 py-2.5 rounded-lg bg-[#a06b42] text-white font-semibold hover:bg-[#8f5d36] transition-colors">Learn more</a>

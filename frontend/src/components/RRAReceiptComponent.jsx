@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useLocale } from '../contexts/LocaleContext';
 import { FaFileInvoice, FaPrint, FaDownload, FaCheckCircle } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const RRAReceiptComponent = ({ bookingId }) => {
+  const { formatCurrencyRWF } = useLocale() || {};
   const [receipt, setReceipt] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -160,13 +162,13 @@ const RRAReceiptComponent = ({ bookingId }) => {
         <div className="space-y-3">
           <div className="flex justify-between text-sm">
             <span className="text-gray-700">Amount Before Tax:</span>
-            <span className="font-semibold">RWF {receipt.pricing.amountBeforeTax.toLocaleString()}</span>
+            <span className="font-semibold">{formatCurrencyRWF ? formatCurrencyRWF(receipt.pricing.amountBeforeTax || 0) : `RWF ${(receipt.pricing.amountBeforeTax || 0).toLocaleString()}`}</span>
           </div>
           
           {receipt.pricing.discountApplied > 0 && (
             <div className="flex justify-between text-sm text-green-600">
               <span>Discount Applied:</span>
-              <span className="font-semibold">- RWF {receipt.pricing.discountApplied.toLocaleString()}</span>
+              <span className="font-semibold">- {formatCurrencyRWF ? formatCurrencyRWF(receipt.pricing.discountApplied || 0) : `RWF ${(receipt.pricing.discountApplied || 0).toLocaleString()}`}</span>
             </div>
           )}
           
@@ -181,18 +183,18 @@ const RRAReceiptComponent = ({ bookingId }) => {
             </div>
             <div className="flex justify-between text-sm mb-2">
               <span className="text-gray-700">Taxable Amount:</span>
-              <span className="font-semibold">RWF {receipt.taxDetails.taxableAmount.toLocaleString()}</span>
+              <span className="font-semibold">{formatCurrencyRWF ? formatCurrencyRWF(receipt.taxDetails.taxableAmount || 0) : `RWF ${(receipt.taxDetails.taxableAmount || 0).toLocaleString()}`}</span>
             </div>
             <div className="flex justify-between">
               <span className="font-semibold text-gray-900">Tax Amount:</span>
-              <span className="font-bold text-green-700">RWF {receipt.taxDetails.taxAmount.toLocaleString()}</span>
+              <span className="font-bold text-green-700">{formatCurrencyRWF ? formatCurrencyRWF(receipt.taxDetails.taxAmount || 0) : `RWF ${(receipt.taxDetails.taxAmount || 0).toLocaleString()}`}</span>
             </div>
           </div>
           
           <div className="border-t-2 border-green-400 pt-3 mt-3">
             <div className="flex justify-between">
               <span className="text-lg font-bold text-gray-900">Total Amount (Inc. Tax):</span>
-              <span className="text-xl font-bold text-green-700">RWF {receipt.pricing.totalAmount.toLocaleString()}</span>
+              <span className="text-xl font-bold text-green-700">{formatCurrencyRWF ? formatCurrencyRWF(receipt.pricing.totalAmount || 0) : `RWF ${(receipt.pricing.totalAmount || 0).toLocaleString()}`}</span>
             </div>
           </div>
         </div>

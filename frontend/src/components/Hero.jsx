@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
+import { useLocale } from '../contexts/LocaleContext';
 import { FaBuilding, FaSmile, FaThumbsUp } from 'react-icons/fa';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -45,6 +46,7 @@ const makeAbsoluteUrl = (imagePath) => {
 };
 
 const Hero = () => {
+  const { localize } = useLocale() || {};
   const [isVisible, setIsVisible] = useState(false);
   const [metrics, setMetrics] = useState({ activeListings: 0, happyGuests: 0, satisfactionRate: 0 });
   const [slides, setSlides] = useState([]); // array of { image, caption }
@@ -278,15 +280,15 @@ const Hero = () => {
         }}
       >
         <h1 className="text-white text-3xl md:text-4xl lg:text-5xl font-extrabold leading-tight">
-          {heroTitle || 'Welcome to AKWANDA.rw'}
+          {localize ? localize(heroTitle) : (heroTitle || 'Welcome to AKWANDA.rw')}
         </h1>
         <p className="mt-4 text-blue-100 text-lg md:text-xl max-w-2xl">
-          {heroSubtitle || 'Find places to stay, cars, and attractions'}
+          {localize ? localize(heroSubtitle) : (heroSubtitle || 'Find places to stay, cars, and attractions')}
         </p>
 
         {slides[index]?.caption && (
           <div className="mt-3 inline-block bg-white/20 text-white px-4 py-2 rounded-lg text-sm md:text-base backdrop-blur">
-            {slides[index].caption}
+            {localize ? localize(slides[index].caption) : slides[index].caption}
           </div>
         )}
 
