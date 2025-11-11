@@ -7,7 +7,17 @@ const AuthContext = createContext();
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    return {
+      user: null,
+      isLoading: false,
+      login: async () => ({ success: false, error: 'Auth not ready' }),
+      register: async () => ({ success: false, error: 'Auth not ready' }),
+      logout: async () => {},
+      updateAvatar: async () => { throw new Error('Auth not ready'); },
+      updateProfile: async () => { throw new Error('Auth not ready'); },
+      refreshUser: async () => null,
+      isAuthenticated: false
+    };
   }
   return context;
 };
