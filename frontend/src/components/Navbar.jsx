@@ -152,14 +152,6 @@ const Navbar = () => {
       children: [
         { label: t ? t('nav.calendar') : "Calendar", href: "/owner/rates?view=calendar", icon: FaCalendarAlt },
         { label: t ? t('nav.openCloseRooms') : "Open/close rooms", href: "/owner/rates?view=open-close", icon: FaCalendarAlt },
-        { label: t ? t('nav.copyYearlyRates') : "Copy yearly rates", href: "/owner/rates?view=copy-yearly", icon: FaDollarSign },
-        { label: t ? t('nav.dynamicRestrictionRules') : "Dynamic restriction rules", href: "/owner/rates?view=restrictions", icon: FaCog },
-        { label: t ? t('nav.ratePlans') : "Rate plans", href: "/owner/rates?view=rate-plans", icon: FaDollarSign },
-        { label: t ? t('nav.valueAdds') : "Value adds", href: "/owner/rates?view=value-adds", icon: FaShoppingBag },
-        { label: t ? t('nav.availabilityPlanner') : "Availability planner", href: "/owner/rates?view=availability-planner", icon: FaCalendarAlt },
-        { label: t ? t('nav.pricingPerGuest') : "Pricing per guest", href: "/owner/rates?view=pricing-per-guest", icon: FaDollarSign },
-        { label: t ? t('nav.countryRates') : "Country rates", href: "/owner/rates?view=country-rates", icon: FaGlobe },
-        { label: t ? t('nav.mobileRates') : "Mobile rates", href: "/owner/rates?view=mobile-rates", icon: FaDollarSign },
       ]
     },
     {

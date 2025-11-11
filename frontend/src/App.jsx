@@ -74,6 +74,7 @@ import PaymentSuccess from './pages/PaymentSuccess'
 import Transactions from './pages/Transactions'
 
 function App() {
+  console.debug('[AK] App render start')
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
@@ -180,7 +181,6 @@ function App() {
             <Route path="/owner/workers" element={<HostRoute><div className="dashboard"><WorkersManagement /></div></HostRoute>} />
             <Route path="/owner/rates" element={<HostRoute><div className="dashboard"><RatesAvailability /></div></HostRoute>} />
             <Route path="/owner/property" element={<HostRoute><div className="dashboard"><PropertyManagement /></div></HostRoute>} />
-            <Route path="/dashboard" element={<HostRoute><div className="dashboard"><Dashboard /></div></HostRoute>} />
             <Route path="/finance" element={<HostRoute><div className="dashboard"><FinanceDashboard /></div></HostRoute>} />
             <Route path="/transactions" element={<HostRoute><div className="dashboard"><Transactions /></div></HostRoute>} />
             <Route path="/analytics" element={<HostRoute><div className="dashboard"><AnalyticsDashboard /></div></HostRoute>} />
