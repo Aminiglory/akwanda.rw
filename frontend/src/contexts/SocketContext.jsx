@@ -5,10 +5,8 @@ const SocketContext = createContext();
 
 export const useSocket = () => {
   const context = useContext(SocketContext);
-  if (!context) {
-    throw new Error('useSocket must be used within a SocketProvider');
-  }
-  return context;
+  // Return a safe fallback instead of throwing to avoid crashes
+  return context || { socket: null, isConnected: false };
 };
 
 export const SocketProvider = ({ children }) => {

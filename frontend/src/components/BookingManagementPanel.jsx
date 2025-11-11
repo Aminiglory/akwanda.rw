@@ -5,7 +5,7 @@ import {
   FaMoneyBillWave, FaFileInvoice, FaExclamationCircle
 } from 'react-icons/fa';
 import toast from 'react-hot-toast';
-import { io } from 'socket.io-client';
+ import { useSocket } from '../contexts/SocketContext';
 import { safeApiGet, apiGet, apiPost, apiPatch } from '../utils/apiUtils';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -15,51 +15,55 @@ const BookingManagementPanel = ({ booking, onClose, onUpdate }) => {
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('details'); // details, messages
-  const socketRef = useRef(null);
   const [isTyping, setIsTyping] = useState(false);
   const typingTimeout = useRef(null);
+  const { socket } = useSocket();
 
   useEffect(() => {
     if (activeTab === 'messages') {
       fetchMessages();
       markMessagesAsRead();
 
-      // Connect socket
-      if (!socketRef.current) {
-        socketRef.current = io(API_URL, { withCredentials: true });
-        // On connect, join booking room
-        socketRef.current.on('connect', () => {
-          socketRef.current.emit('join_booking', { bookingId: booking._id });
-        });
-        // New message event
-        socketRef.current.on('message:new', (payload) => {
+      // Join room and register listeners on shared socket
+      if (socket && booking?._id) {
+        try {
+          socket.emit('join_booking', { bookingId: booking._id });
+        } catch (_) {}
+
+        const onNewMessage = (payload) => {
           if (payload?.bookingId === String(booking._id)) {
-            setMessages((prev) => [...prev, payload.message]);
+            setMessages((prev) => [...prev, payload.message || payload]);
           }
-        });
-        // Typing indicator
-        socketRef.current.on('typing', ({ bookingId, userId, typing }) => {
+        };
+        const onTyping = ({ bookingId, typing }) => {
           if (String(bookingId) === String(booking._id)) {
             setIsTyping(!!typing);
           }
-        });
-        // Read receipts
-        socketRef.current.on('message:read', ({ bookingId }) => {
+        };
+        const onRead = ({ bookingId }) => {
           if (String(bookingId) === String(booking._id)) {
-            // Best-effort: refresh read state
             fetchMessages();
           }
-        });
-      } else {
-        // If already connected, ensure joining correct room
-        socketRef.current.emit('join_booking', { bookingId: booking._id });
+        };
+
+        socket.on('message:new', onNewMessage);
+        socket.on('typing', onTyping);
+        socket.on('message:read', onRead);
+
+        return () => {
+          if (socket) {
+            socket.off('message:new', onNewMessage);
+            socket.off('typing', onTyping);
+            socket.off('message:read', onRead);
+          }
+        };
       }
     }
 
     return () => {
-      // No explicit leave required; component keeps socket for the panel lifetime
+      // cleanup handled above when socket is present
     };
-  }, [activeTab]);
+  }, [activeTab, socket, booking?._id]);
 
   const fetchMessages = async () => {
     try {
@@ -97,8 +101,8 @@ const BookingManagementPanel = ({ booking, onClose, onUpdate }) => {
       setMessages([...messages, data.message]);
       setNewMessage('');
       // After sending, also emit typing false
-      if (socketRef.current) {
-        socketRef.current.emit('typing', { bookingId: booking._id, typing: false });
+      if (socket) {
+        try { socket.emit('typing', { bookingId: booking._id, typing: false }); } catch (_) {}
       }
       toast.success('Message sent successfully');
     } catch (error) {
