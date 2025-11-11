@@ -10,7 +10,6 @@ import Navbar from './components/Navbar'
 import ErrorBoundary from './components/ErrorBoundary'
 import Footer from './components/Footer'
 import Home from './pages/Home'
-console.debug('[AK] App module loaded')
 import ApartmentsListing from './pages/ApartmentsListing'
 import SettingsSection from './pages/SettingsSection'
 import Flights from './pages/Flights'

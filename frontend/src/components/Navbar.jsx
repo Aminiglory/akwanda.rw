@@ -4,7 +4,6 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useSocket } from "../contexts/SocketContext";
 import { safeApiGet, apiGet, apiPatch } from "../utils/apiUtils";
-console.debug('[AK] Navbar module loaded');
 import {
   FaHome,
   FaCar,
@@ -52,7 +51,6 @@ import { useLocale } from "../contexts/LocaleContext";
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const Navbar = () => {
-  console.debug('[AK] Navbar render start');
   const { user, logout, isAuthenticated } = useAuth();
   const { language, setLanguage, currency, setCurrency, t, formatCurrencyRWF } = useLocale() || {};
   const location = useLocation();
