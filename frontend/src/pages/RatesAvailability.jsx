@@ -31,6 +31,27 @@ export default function RatesAvailability() {
   });
   const [roomRanges, setRoomRanges] = useState({}); // { [roomId]: { start: 'YYYY-MM-DD', end: 'YYYY-MM-DD' } }
   const [dayModal, setDayModal] = useState(null); // { roomId, date: 'YYYY-MM-DD', events: [] }
+  
+  // State for switch case views (moved to top level to follow Rules of Hooks)
+  const [mobileDiscount, setMobileDiscount] = useState(10);
+  const [selectedRoomForCalendar, setSelectedRoomForCalendar] = useState(null);
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [sourceYear, setSourceYear] = useState(new Date().getFullYear());
+  const [targetYear, setTargetYear] = useState(new Date().getFullYear() + 1);
+  const [peakSeasonStart, setPeakSeasonStart] = useState('');
+  const [peakSeasonEnd, setPeakSeasonEnd] = useState('');
+  const [peakRateIncrease, setPeakRateIncrease] = useState(20);
+  const [offSeasonStart, setOffSeasonStart] = useState('');
+  const [offSeasonEnd, setOffSeasonEnd] = useState('');
+  const [offSeasonDiscount, setOffSeasonDiscount] = useState(15);
+  const [minOccupancy, setMinOccupancy] = useState(60);
+  const [localSeasonalRates, setLocalSeasonalRates] = useState([]);
+  const [newCountry, setNewCountry] = useState('Rwanda');
+  const [newDiscount, setNewDiscount] = useState(0);
+  const [activeRules, setActiveRules] = useState([
+    { country: 'Rwanda', rate: -15 },
+    { country: 'East Africa', rate: -10 }
+  ]);
 
   useEffect(() => {
     fetchProperties();
@@ -423,7 +444,7 @@ export default function RatesAvailability() {
         );
 
       case 'mobile-rates':
-        const [mobileDiscount, setMobileDiscount] = React.useState(Number(mobileRates?.discount || 10));
+        // State moved to top level - using mobileDiscount from component state
         return (
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
@@ -439,8 +460,7 @@ export default function RatesAvailability() {
         );
 
       case 'open-close':
-        const [selectedRoomForCalendar, setSelectedRoomForCalendar] = React.useState(null);
-        const [currentMonth, setCurrentMonth] = React.useState(new Date());
+        // State moved to top level - using selectedRoomForCalendar and currentMonth from component state
         
         // Generate calendar days for the current month
         const generateCalendarDays = () => {
@@ -655,8 +675,7 @@ export default function RatesAvailability() {
         );
 
       case 'copy-yearly':
-        const [sourceYear, setSourceYear] = React.useState(new Date().getFullYear());
-        const [targetYear, setTargetYear] = React.useState(new Date().getFullYear() + 1);
+        // State moved to top level - using sourceYear and targetYear from component state
         
         return (
           <div className="bg-white rounded-lg shadow p-6">
@@ -711,11 +730,7 @@ export default function RatesAvailability() {
               <FaRuler /> Dynamic Restriction Rules
             </h2>
             <p className="text-gray-600 mb-4">Set minimum and maximum stay requirements.</p>
-            {propertyData?.rooms?.map((room, idx) => {
-              const [minStay, setMinStay] = React.useState(room.minStay || 1);
-              const [maxStay, setMaxStay] = React.useState(room.maxStay || 30);
-              
-              return (
+            {propertyData?.rooms?.map((room, idx) => (
                 <div key={idx} className="border rounded-lg p-4 mb-3">
                   <h3 className="font-semibold mb-3">{room.roomType} - {room.roomNumber}</h3>
                   <div className="grid grid-cols-3 gap-3">
@@ -723,8 +738,8 @@ export default function RatesAvailability() {
                       <label className="text-xs text-gray-600">Min Stay (nights)</label>
                       <input 
                         type="number" 
-                        value={minStay} 
-                        onChange={(e) => setMinStay(Number(e.target.value))}
+                        defaultValue={room.minStay || 1}
+                        id={`minStay-${room._id}`}
                         className="w-full px-2 py-1 border rounded text-sm" 
                         min="1" 
                       />
@@ -733,15 +748,19 @@ export default function RatesAvailability() {
                       <label className="text-xs text-gray-600">Max Stay (nights)</label>
                       <input 
                         type="number" 
-                        value={maxStay} 
-                        onChange={(e) => setMaxStay(Number(e.target.value))}
+                        defaultValue={room.maxStay || 30}
+                        id={`maxStay-${room._id}`}
                         className="w-full px-2 py-1 border rounded text-sm" 
                         min="1" 
                       />
                     </div>
                     <div className="flex items-end">
                       <button 
-                        onClick={() => handleUpdateRestrictions(room._id, minStay, maxStay)}
+                        onClick={() => {
+                          const minStay = Number(document.getElementById(`minStay-${room._id}`).value);
+                          const maxStay = Number(document.getElementById(`maxStay-${room._id}`).value);
+                          handleUpdateRestrictions(room._id, minStay, maxStay);
+                        }}
                         className="w-full px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
                       >
                         Update
@@ -749,8 +768,7 @@ export default function RatesAvailability() {
                     </div>
                   </div>
                 </div>
-              );
-            })}
+              ))}
           </div>
         );
 
@@ -830,14 +848,7 @@ export default function RatesAvailability() {
         );
 
       case 'availability-planner':
-        const [peakSeasonStart, setPeakSeasonStart] = React.useState('');
-        const [peakSeasonEnd, setPeakSeasonEnd] = React.useState('');
-        const [peakRateIncrease, setPeakRateIncrease] = React.useState(20);
-        const [offSeasonStart, setOffSeasonStart] = React.useState('');
-        const [offSeasonEnd, setOffSeasonEnd] = React.useState('');
-        const [offSeasonDiscount, setOffSeasonDiscount] = React.useState(15);
-        const [minOccupancy, setMinOccupancy] = React.useState(60);
-        const [localSeasonalRates, setLocalSeasonalRates] = React.useState(seasonalRates);
+        // State moved to top level - using seasonal rate states from component state
         
         const addSeasonalRate = (type) => {
           const newRate = {
@@ -1031,10 +1042,7 @@ export default function RatesAvailability() {
               <FaUsers /> Pricing Per Guest
             </h2>
             <p className="text-gray-600 mb-4">Set additional charges for extra guests beyond base capacity.</p>
-            {propertyData?.rooms?.map((room, idx) => {
-              const [extraFee, setExtraFee] = React.useState(room.additionalGuestCharge || room.extraGuestFee || 5000);
-              
-              return (
+            {propertyData?.rooms?.map((room, idx) => (
                 <div key={idx} className="border rounded-lg p-4 mb-3">
                   <h3 className="font-semibold mb-3">{room.roomType} - {room.roomNumber}</h3>
                   <div className="grid grid-cols-3 gap-3">
@@ -1051,14 +1059,17 @@ export default function RatesAvailability() {
                       <label className="text-xs text-gray-600">Extra Guest Fee (RWF)</label>
                       <input 
                         type="number" 
-                        value={extraFee}
-                        onChange={(e) => setExtraFee(Number(e.target.value))}
+                        defaultValue={room.additionalGuestCharge || room.extraGuestFee || 5000}
+                        id={`extraFee-${room._id}`}
                         className="w-full px-2 py-1 border rounded text-sm" 
                       />
                     </div>
                     <div className="flex items-end">
                       <button 
-                        onClick={() => handleUpdatePricingPerGuest(room._id, extraFee)}
+                        onClick={() => {
+                          const extraFee = Number(document.getElementById(`extraFee-${room._id}`).value);
+                          handleUpdatePricingPerGuest(room._id, extraFee);
+                        }}
                         className="w-full px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
                       >
                         Save
@@ -1066,21 +1077,15 @@ export default function RatesAvailability() {
                     </div>
                   </div>
                   <p className="text-xs text-gray-500 mt-2">
-                    Guests beyond {room.capacity || 2} will be charged RWF {extraFee.toLocaleString()} per night
+                    Guests beyond {room.capacity || 2} will be charged extra per night
                   </p>
                 </div>
-              );
-            })}
+              ))}
           </div>
         );
 
       case 'country-rates':
-        const [newCountry, setNewCountry] = React.useState('Rwanda');
-        const [newDiscount, setNewDiscount] = React.useState(0);
-        const [activeRules, setActiveRules] = React.useState([
-          { country: 'Rwanda', rate: -15 },
-          { country: 'East Africa', rate: -10 }
-        ]);
+        // State moved to top level - using country rate states from component state
         
         const addCountryRule = () => {
           if (!newDiscount) {
