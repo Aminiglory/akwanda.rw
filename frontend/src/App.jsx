@@ -10,6 +10,7 @@ import Navbar from './components/Navbar'
 import ErrorBoundary from './components/ErrorBoundary'
 import Footer from './components/Footer'
 import Home from './pages/Home'
+console.debug('[AK] App module loaded')
 import ApartmentsListing from './pages/ApartmentsListing'
 import SettingsSection from './pages/SettingsSection'
 import Flights from './pages/Flights'
@@ -74,6 +75,7 @@ import PaymentSuccess from './pages/PaymentSuccess'
 import Transactions from './pages/Transactions'
 
 function App() {
+  console.debug('[AK] App render start')
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
