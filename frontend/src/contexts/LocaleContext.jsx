@@ -483,15 +483,32 @@ export const LocaleProvider = ({ children }) => {
     (async () => {
       try {
         // Use exchangerate.host (no API key) with base RWF
-        const res = await fetch('https://api.exchangerate.host/latest?base=RWF&symbols=USD,EUR,RWF');
-        if (!res.ok) return;
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+        
+        const res = await fetch('https://api.exchangerate.host/latest?base=RWF&symbols=USD,EUR,RWF', {
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        
+        if (!res.ok) {
+          console.warn('Exchange rate API returned non-OK status, using fallback rates');
+          if (!cancelled) {
+            setRates({ RWF: 1, USD: 0.00077, EUR: 0.00071 }); // Fallback rates
+          }
+          return;
+        }
         const data = await res.json();
         if (!cancelled && data && data.rates) {
           setRates(data.rates);
           try { localStorage.setItem('fx_rates', JSON.stringify(data.rates)); } catch {}
         }
-      } catch {
-        // ignore; fallback to cached
+      } catch (err) {
+        // Network error or timeout - use fallback rates
+        console.warn('Exchange rate fetch failed, using fallback rates:', err.message);
+        if (!cancelled) {
+          setRates({ RWF: 1, USD: 0.00077, EUR: 0.00071 }); // Fallback rates (approximate)
+        }
       }
     })();
     return () => { cancelled = true; };
