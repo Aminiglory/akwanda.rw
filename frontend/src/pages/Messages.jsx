@@ -1,14 +1,3 @@
-  const category = (searchParams.get('category') || 'all').toLowerCase();
-  const categoryLabel = category === 'platform' ? 'Akwanda.rw messages' : category === 'reservations' ? 'Reservation messages' : category === 'qna' ? 'Guest Q&A' : 'All messages';
-
-  const filteredThreads = useMemo(() => {
-    if (!Array.isArray(threads)) return [];
-    if (category === 'reservations') return threads.filter(t => !!t.context?.bookingId);
-    if (category === 'platform') return threads.filter(t => !t.context?.bookingId);
-    if (category === 'qna') return threads.filter(t => (t.context?.type || '').toLowerCase() === 'qna');
-    return threads;
-  }, [threads, category]);
-
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useSocket } from '../contexts/SocketContext';
@@ -59,6 +48,18 @@ export default function Messages() {
   const typingTimersRef = useRef({}); // per-thread typing timers
   const [contextMenu, setContextMenu] = useState({ visible: false, x: 0, y: 0, message: null });
   const longPressTimerRef = useRef(null);
+
+  // Derived from query params; must be inside component to access searchParams
+  const category = (searchParams.get('category') || 'all').toLowerCase();
+  const categoryLabel = category === 'platform' ? 'Akwanda.rw messages' : category === 'reservations' ? 'Reservation messages' : category === 'qna' ? 'Guest Q&A' : 'All messages';
+
+  const filteredThreads = useMemo(() => {
+    if (!Array.isArray(threads)) return [];
+    if (category === 'reservations') return threads.filter(t => !!t.context?.bookingId);
+    if (category === 'platform') return threads.filter(t => !t.context?.bookingId);
+    if (category === 'qna') return threads.filter(t => (t.context?.type || '').toLowerCase() === 'qna');
+    return threads;
+  }, [threads, category]);
 
   const extractSenderId = (val) => {
     if (!val) return '';

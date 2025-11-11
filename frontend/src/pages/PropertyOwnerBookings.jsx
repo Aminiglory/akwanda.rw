@@ -855,13 +855,6 @@ const PropertyOwnerBookings = () => {
       children: [
         { label: 'Calendar', href: '/owner/rates?view=calendar' },
         { label: 'Open/close rooms', href: '/owner/rates?view=open-close' },
-        { label: 'Copy yearly rates', href: '/owner/rates?view=copy-yearly' },
-        { label: 'Dynamic restriction rules', href: '/owner/rates?view=restrictions' },
-        { label: 'Rate plans', href: '/owner/rates?view=rate-plans' },
-        { label: 'Value adds', href: '/owner/rates?view=value-adds' },
-        { label: 'Availability planner', href: '/owner/rates?view=availability-planner' },
-        { label: 'Pricing per guest', href: '/owner/rates?view=pricing-per-guest' },
-        { label: 'Country rates', href: '/owner/rates?view=country-rates' },
       ]
     },
     {
