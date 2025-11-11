@@ -9,7 +9,8 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 export default function RatesAvailability() {
   const { formatCurrencyRWF } = useLocale() || {};
   const [searchParams] = useSearchParams();
-  const view = searchParams.get('view') || 'calendar';
+  const rawView = searchParams.get('view') || 'calendar';
+  const view = (rawView === 'calendar' || rawView === 'open-close') ? rawView : 'calendar';
   const [properties, setProperties] = useState([]);
   const [selectedProperty, setSelectedProperty] = useState('');
   const [loading, setLoading] = useState(false);
