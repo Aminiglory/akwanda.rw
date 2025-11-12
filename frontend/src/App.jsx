@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import './App.css'
-import { AuthProvider } from './contexts/AuthContext'
+import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { LocaleProvider } from './contexts/LocaleContext'
 import { SocketProvider } from './contexts/SocketContext'
 import { Toaster } from 'react-hot-toast'
@@ -110,16 +110,16 @@ function App() {
     )
   }
 
-  return (
-    <LocaleProvider>
-      <AuthProvider>
-        <SocketProvider>
-          <Router>
-            <ErrorBoundary>
-              <div className="min-h-screen bg-gray-50">
-              <Toaster position="top-right" />
-              {/* Header */}
-              <Navbar />
+  const AppShell = () => {
+    const { user, isAuthenticated } = useAuth();
+    return (
+      <SocketProvider user={user} isAuthenticated={isAuthenticated}>
+        <Router>
+          <ErrorBoundary>
+            <div className="min-h-screen bg-gray-50">
+            <Toaster position="top-right" />
+            {/* Header */}
+            <Navbar />
             {/* commit routes */}
             {/* Main Content */}
             <Routes>
@@ -203,7 +203,14 @@ function App() {
               </div>
             </ErrorBoundary>
           </Router>
-        </SocketProvider>
+      </SocketProvider>
+    );
+  };
+
+  return (
+    <LocaleProvider>
+      <AuthProvider>
+        <AppShell />
       </AuthProvider>
     </LocaleProvider>
   )
