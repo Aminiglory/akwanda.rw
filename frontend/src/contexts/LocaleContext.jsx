@@ -841,7 +841,19 @@ export const LocaleProvider = ({ children }) => {
       let cur = dict;
       for (const p of parts) {
         if (cur && typeof cur === 'object' && p in cur) cur = cur[p];
-        else return path;
+        else {
+          // Fallback: try resolving from root-level dictionaries object (for misplaced keys)
+          let fb = dictionaries;
+          for (const pp of parts) {
+            if (fb && typeof fb === 'object' && pp in fb) fb = fb[pp];
+            else { fb = null; break; }
+          }
+          if (fb != null) {
+            if (typeof fb === 'function') return fb(...args);
+            return fb;
+          }
+          return path;
+        }
       }
       if (typeof cur === 'function') return cur(...args);
       return cur;
