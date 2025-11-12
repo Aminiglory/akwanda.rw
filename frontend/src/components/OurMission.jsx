@@ -4,7 +4,7 @@ import { useLocale } from '../contexts/LocaleContext';
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 export default function OurMission() {
-  const { localize } = useLocale() || {};
+  const { localize, t } = useLocale() || {};
   const [section, setSection] = useState(null); // { key, title, body, images }
   const [index, setIndex] = useState(0);
   const timerRef = useRef(null);
