@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import './App.css'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
@@ -6,72 +6,73 @@ import { LocaleProvider } from './contexts/LocaleContext'
 import { SocketProvider } from './contexts/SocketContext'
 import { Toaster } from 'react-hot-toast'
 import { ProtectedRoute, AdminRoute, HostRoute } from './components/ProtectedRoute'
-import Navbar from './components/Navbar'
 import ErrorBoundary from './components/ErrorBoundary'
 import Footer from './components/Footer'
-import Home from './pages/Home'
-import ApartmentsListing from './pages/ApartmentsListing'
-import SettingsSection from './pages/SettingsSection'
-import Flights from './pages/Flights'
-import Attractions from './pages/Attractions'
-import AttractionDetail from './pages/AttractionDetail'
-import AirportTaxis from './pages/AirportTaxis'
-import ApartmentDetails from './pages/ApartmentDetails'
-import Login from './pages/Login'
-import Register from './pages/Register'
-import OwnerRegister from './pages/OwnerRegister'
-import BecomeHost from './pages/BecomeHost'
-import OwnerLogin from './pages/OwnerLogin'
-import Dashboard from './pages/Dashboard'
-import UploadProperty from './pages/UploadProperty'
-import EnhancedUploadProperty from './pages/EnhancedUploadProperty'
-import ListProperty from './pages/ListProperty'
-import AdminDashboard from './pages/AdminDashboard'
-import AdminLanding from './pages/AdminLanding'
-import AdminAttractions from './pages/AdminAttractions'
-import CarsList from './pages/CarsList'
-import CarDetail from './pages/CarDetail'
-import CarOwnerDashboard from './pages/CarOwnerDashboard'
-import OwnerAttractionsDashboard from './pages/OwnerAttractionsDashboard'
-import AdminProfile from './pages/AdminProfile'
-import UserProfile from './pages/UserProfile'
-import Settings from './pages/Settings'
-import MTNMobileMoneyPayment from './pages/MTNMobileMoneyPayment'
-import PayCommission from './pages/PayCommission'
-import RRAEBMIntegration from './pages/RRAEBMIntegration'
-import BookingProcess from './pages/BookingProcess'
-import BookingConfirmation from './pages/BookingConfirmation'
-import CustomerSupport from './pages/CustomerSupport'
-import PropertyOwnerBookings from './pages/PropertyOwnerBookings'
-// Removed EnhancedPropertyOwnerDashboard (deprecated)
-import Messages from './pages/Messages'
-import OwnerPromotions from './pages/OwnerPromotions'
-import WorkersManagement from './pages/WorkersManagement'
-import OwnerReviews from './pages/OwnerReviews'
-import RatesAvailability from './pages/RatesAvailability'
-import PropertyManagement from './pages/PropertyManagement'
-import FinanceDashboard from './pages/FinanceDashboard'
-import AnalyticsDashboard from './pages/AnalyticsDashboard'
-import BoostPerformance from './pages/BoostPerformance'
-import Homes from './pages/Homes'
-import Experiences from './pages/Experiences'
-import Deals from './pages/Deals'
-import DealsPage from './pages/DealsPage'
-import TestDeals from './pages/TestDeals'
-import DirectBooking from './pages/DirectBooking'
-import Invoice from './pages/Invoice'
-import Receipt from './pages/Receipt'
-import Notifications from './pages/Notifications'
-import TestUpload from './pages/TestUpload'
-import QuickLogin from './pages/QuickLogin'
-import AdminUserManagement from './pages/AdminUserManagement'
-import AdminReports from './pages/AdminReports'
-import EditProperty from './pages/EditProperty'
-import Favorites from './pages/Favorites'
-import LogoutSuccess from './pages/LogoutSuccess'
-import BookingSuccess from './pages/BookingSuccess'
-import PaymentSuccess from './pages/PaymentSuccess'
-import Transactions from './pages/Transactions'
+
+const Navbar = lazy(() => import('./components/Navbar'));
+
+const Home = lazy(() => import('./pages/Home'));
+const ApartmentsListing = lazy(() => import('./pages/ApartmentsListing'));
+const SettingsSection = lazy(() => import('./pages/SettingsSection'));
+const Flights = lazy(() => import('./pages/Flights'));
+const Attractions = lazy(() => import('./pages/Attractions'));
+const AttractionDetail = lazy(() => import('./pages/AttractionDetail'));
+const AirportTaxis = lazy(() => import('./pages/AirportTaxis'));
+const ApartmentDetails = lazy(() => import('./pages/ApartmentDetails'));
+const Login = lazy(() => import('./pages/Login'));
+const Register = lazy(() => import('./pages/Register'));
+const OwnerRegister = lazy(() => import('./pages/OwnerRegister'));
+const BecomeHost = lazy(() => import('./pages/BecomeHost'));
+const OwnerLogin = lazy(() => import('./pages/OwnerLogin'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const UploadProperty = lazy(() => import('./pages/UploadProperty'));
+const EnhancedUploadProperty = lazy(() => import('./pages/EnhancedUploadProperty'));
+const ListProperty = lazy(() => import('./pages/ListProperty'));
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const AdminLanding = lazy(() => import('./pages/AdminLanding'));
+const AdminAttractions = lazy(() => import('./pages/AdminAttractions'));
+const CarsList = lazy(() => import('./pages/CarsList'));
+const CarDetail = lazy(() => import('./pages/CarDetail'));
+const CarOwnerDashboard = lazy(() => import('./pages/CarOwnerDashboard'));
+const OwnerAttractionsDashboard = lazy(() => import('./pages/OwnerAttractionsDashboard'));
+const AdminProfile = lazy(() => import('./pages/AdminProfile'));
+const UserProfile = lazy(() => import('./pages/UserProfile'));
+const Settings = lazy(() => import('./pages/Settings'));
+const MTNMobileMoneyPayment = lazy(() => import('./pages/MTNMobileMoneyPayment'));
+const PayCommission = lazy(() => import('./pages/PayCommission'));
+const RRAEBMIntegration = lazy(() => import('./pages/RRAEBMIntegration'));
+const BookingProcess = lazy(() => import('./pages/BookingProcess'));
+const BookingConfirmation = lazy(() => import('./pages/BookingConfirmation'));
+const CustomerSupport = lazy(() => import('./pages/CustomerSupport'));
+const PropertyOwnerBookings = lazy(() => import('./pages/PropertyOwnerBookings'));
+const Messages = lazy(() => import('./pages/Messages'));
+const OwnerPromotions = lazy(() => import('./pages/OwnerPromotions'));
+const WorkersManagement = lazy(() => import('./pages/WorkersManagement'));
+const OwnerReviews = lazy(() => import('./pages/OwnerReviews'));
+const RatesAvailability = lazy(() => import('./pages/RatesAvailability'));
+const PropertyManagement = lazy(() => import('./pages/PropertyManagement'));
+const FinanceDashboard = lazy(() => import('./pages/FinanceDashboard'));
+const AnalyticsDashboard = lazy(() => import('./pages/AnalyticsDashboard'));
+const BoostPerformance = lazy(() => import('./pages/BoostPerformance'));
+const Homes = lazy(() => import('./pages/Homes'));
+const Experiences = lazy(() => import('./pages/Experiences'));
+const Deals = lazy(() => import('./pages/Deals'));
+const DealsPage = lazy(() => import('./pages/DealsPage'));
+const TestDeals = lazy(() => import('./pages/TestDeals'));
+const DirectBooking = lazy(() => import('./pages/DirectBooking'));
+const Invoice = lazy(() => import('./pages/Invoice'));
+const Receipt = lazy(() => import('./pages/Receipt'));
+const Notifications = lazy(() => import('./pages/Notifications'));
+const TestUpload = lazy(() => import('./pages/TestUpload'));
+const QuickLogin = lazy(() => import('./pages/QuickLogin'));
+const AdminUserManagement = lazy(() => import('./pages/AdminUserManagement'));
+const AdminReports = lazy(() => import('./pages/AdminReports'));
+const EditProperty = lazy(() => import('./pages/EditProperty'));
+const Favorites = lazy(() => import('./pages/Favorites'));
+const LogoutSuccess = lazy(() => import('./pages/LogoutSuccess'));
+const BookingSuccess = lazy(() => import('./pages/BookingSuccess'));
+const PaymentSuccess = lazy(() => import('./pages/PaymentSuccess'));
+const Transactions = lazy(() => import('./pages/Transactions'));
 
 function App() {
   console.debug('[AK] App render start')
@@ -119,9 +120,12 @@ function App() {
             <div className="min-h-screen bg-gray-50">
             <Toaster position="top-right" />
             {/* Header */}
-            <Navbar />
+            <Suspense fallback={null}>
+              <Navbar />
+            </Suspense>
             {/* commit routes */}
             {/* Main Content */}
+            <Suspense fallback={null}>
             <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/apartments" element={<ApartmentsListing />} />
@@ -190,8 +194,10 @@ function App() {
             <Route path="/test-upload" element={<TestUpload />} />
             <Route path="/quick-login" element={<QuickLogin />} />
             </Routes>
+            </Suspense>
             
             {/* Footer - Hidden on messages, profile, auth pages */}
+            <Suspense fallback={null}>
             <Routes>
               <Route path="/messages" element={null} />
               <Route path="/profile" element={null} />
@@ -200,6 +206,7 @@ function App() {
               <Route path="/quick-login" element={null} />
               <Route path="*" element={<Footer />} />
             </Routes>
+            </Suspense>
               </div>
             </ErrorBoundary>
           </Router>
