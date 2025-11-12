@@ -323,18 +323,6 @@ const HowItWorks = () => {
     return () => obs.disconnect();
   }, []);
 
-  // Autoplay for media slideshow (OurMission-like)
-  useEffect(() => {
-    const count = currentImages.length;
-    // Reset to first slide when tab or images change
-    setSlideIndex(0);
-    if (reduceMotion || paused || !slideshowInView || count <= 1) return;
-    slideTimer.current = setInterval(() => {
-      setSlideIndex((i) => (i + 1) % count);
-    }, (typeof how.mediaIntervalMs === 'number' && Number.isFinite(how.mediaIntervalMs)) ? how.mediaIntervalMs : 5000);
-    return () => { if (slideTimer.current) clearInterval(slideTimer.current); };
-  }, [activeTab, currentImages, paused, reduceMotion, slideshowInView, how.mediaIntervalMs]);
-
   // Compute slideshow images using OurMission pattern (per tab)
   const currentImages = useMemo(() => {
     const tabImages = activeTab === 'guests' ? sectionImagesGuests : sectionImagesHosts;
@@ -359,6 +347,18 @@ const HowItWorks = () => {
       })
       .filter(Boolean);
   }, [activeTab, sectionImagesGuests, sectionImagesHosts, howMedia, heroSlides]);
+
+  // Autoplay for media slideshow (OurMission-like)
+  useEffect(() => {
+    const count = currentImages.length;
+    // Reset to first slide when tab or images change
+    setSlideIndex(0);
+    if (reduceMotion || paused || !slideshowInView || count <= 1) return;
+    slideTimer.current = setInterval(() => {
+      setSlideIndex((i) => (i + 1) % count);
+    }, (typeof how.mediaIntervalMs === 'number' && Number.isFinite(how.mediaIntervalMs)) ? how.mediaIntervalMs : 5000);
+    return () => { if (slideTimer.current) clearInterval(slideTimer.current); };
+  }, [activeTab, currentImages, paused, reduceMotion, slideshowInView, how.mediaIntervalMs]);
 
   return (
     <div className="px-4 py-8">
