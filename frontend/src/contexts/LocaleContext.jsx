@@ -629,6 +629,7 @@ const LocaleContext = createContext(null);
 
 export const LocaleProvider = ({ children }) => {
   // ... (rest of the code remains the same)
+  const [language, setLanguage] = useState(() => localStorage.getItem('lang') || DEFAULT_LANG);
   const [currency, setCurrency] = useState(() => localStorage.getItem('currency') || DEFAULT_CURRENCY);
   const [rates, setRates] = useState(() => {
     try {
