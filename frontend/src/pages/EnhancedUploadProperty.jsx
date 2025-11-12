@@ -391,7 +391,15 @@ const EnhancedUploadProperty = () => {
       if (!formData.city) {
         throw new Error('City is required');
       }
-      if (formData.pricePerNight === '' || formData.pricePerNight == null || isNaN(Number(formData.pricePerNight))) {
+      // Accept price from either top-level or first room as fallback
+      const resolvedBasePrice = (() => {
+        const top = formData.pricePerNight;
+        if (top !== '' && top != null && !isNaN(Number(top))) return Number(top);
+        const room0 = (rooms && rooms.length > 0) ? rooms[0].pricePerNight : undefined;
+        if (room0 !== '' && room0 != null && !isNaN(Number(room0))) return Number(room0);
+        return NaN;
+      })();
+      if (isNaN(resolvedBasePrice)) {
         throw new Error('Price per night is required and must be a number');
       }
 
@@ -404,6 +412,8 @@ const EnhancedUploadProperty = () => {
           fd.append(k, String(v));
         }
       });
+      // Ensure pricePerNight is set consistently based on resolved value
+      fd.set('pricePerNight', String(resolvedBasePrice));
       // Map to backend field names for times
       if (formData.checkinTime != null) fd.set('checkInTime', String(formData.checkinTime));
       if (formData.checkoutTime != null) fd.set('checkOutTime', String(formData.checkoutTime));

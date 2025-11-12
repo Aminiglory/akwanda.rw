@@ -81,6 +81,11 @@ const Navbar = () => {
   const [expandedMobileItems, setExpandedMobileItems] = useState({});
   const [billing, setBilling] = useState({ commissionsDue: 0, finesDue: 0, totalDue: 0, minimumPartial: 0, limitedAccess: false });
   const [payingCommission, setPayingCommission] = useState(false);
+  // Locale dropdown states (open on click, not hover)
+  const [langOpenTop, setLangOpenTop] = useState(false);
+  const [currOpenTop, setCurrOpenTop] = useState(false);
+  const [langOpenSecond, setLangOpenSecond] = useState(false);
+  const [currOpenSecond, setCurrOpenSecond] = useState(false);
 
   const makeAbsolute = (u) => {
     if (!u) return u;
@@ -816,28 +821,32 @@ const Navbar = () => {
           </div>
           <div className="flex items-center space-x-4">
             {/* Language selector */}
-            <div className="relative group">
-              <button type="button" className="flex items-center space-x-2 hover:text-white cursor-pointer">
+            <div className="relative lang-selector-top">
+              <button type="button" onClick={() => { setLangOpenTop(o=>!o); setCurrOpenTop(false); }} className="flex items-center space-x-2 hover:text-white cursor-pointer">
                 <FaGlobe className="text-sm" />
                 <span className="hidden sm:inline">{(language || 'en').toUpperCase()}</span>
                 <FaCaretDown className="text-[10px] hidden sm:inline" />
               </button>
-              <div className="main-nav-dropdown absolute right-0 mt-2 hidden group-hover:block bg-white text-[#4b2a00] rounded-md shadow-lg border border-[#e0d5c7]">
-                <button onClick={() => setLanguage && setLanguage('en')} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">English</button>
-                <button onClick={() => setLanguage && setLanguage('fr')} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">Français</button>
-              </div>
+              {langOpenTop && (
+                <div className="main-nav-dropdown absolute right-0 mt-2 bg-white text-[#4b2a00] rounded-md shadow-lg border border-[#e0d5c7]">
+                  <button onClick={() => { setLanguage && setLanguage('en'); setLangOpenTop(false); }} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">English</button>
+                  <button onClick={() => { setLanguage && setLanguage('fr'); setLangOpenTop(false); }} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">Français</button>
+                </div>
+              )}
             </div>
             {/* Currency selector */}
-            <div className="relative group">
-              <button type="button" className="flex items-center space-x-2 hover:text-white cursor-pointer">
+            <div className="relative currency-selector-top">
+              <button type="button" onClick={() => { setCurrOpenTop(o=>!o); setLangOpenTop(false); }} className="flex items-center space-x-2 hover:text-white cursor-pointer">
                 <span className="font-semibold">{(currency || 'RWF').toUpperCase()}</span>
                 <FaCaretDown className="text-[10px]" />
               </button>
-              <div className="main-nav-dropdown absolute right-0 mt-2 hidden group-hover:block bg-white text-[#4b2a00] rounded-md shadow-lg border border-[#e0d5c7] min-w-[120px]">
-                <button onClick={() => setCurrency && setCurrency('RWF')} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">RWF</button>
-                <button onClick={() => setCurrency && setCurrency('USD')} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">USD</button>
-                <button onClick={() => setCurrency && setCurrency('EUR')} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">EUR</button>
-              </div>
+              {currOpenTop && (
+                <div className="main-nav-dropdown absolute right-0 mt-2 bg-white text-[#4b2a00] rounded-md shadow-lg border border-[#e0d5c7] min-w-[120px]">
+                  <button onClick={() => { setCurrency && setCurrency('RWF'); setCurrOpenTop(false); }} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">RWF</button>
+                  <button onClick={() => { setCurrency && setCurrency('USD'); setCurrOpenTop(false); }} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">USD</button>
+                  <button onClick={() => { setCurrency && setCurrency('EUR'); setCurrOpenTop(false); }} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">EUR</button>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -1209,31 +1218,35 @@ const Navbar = () => {
                 </div>
               )}
 
-              {/* Language & Currency selectors (always available in second navbar; also present in top bar for non-landing pages) */}
+              {/* Language & Currency selectors (click to open) */}
               <div className="hidden lg:flex items-center space-x-4 ml-2">
                 {/* Language selector */}
-                <div className="relative group">
-                  <button type="button" className="flex items-center space-x-2 hover:text-[#4b2a00] cursor-pointer">
+                <div className="relative lang-selector-second">
+                  <button type="button" onClick={() => { setLangOpenSecond(o=>!o); setCurrOpenSecond(false); }} className="flex items-center space-x-2 hover:text-[#4b2a00] cursor-pointer">
                     <FaGlobe className="text-sm" />
                     <span className="hidden sm:inline">{(language || 'en').toUpperCase()}</span>
                     <FaCaretDown className="text-[10px] hidden sm:inline" />
                   </button>
-                  <div className="main-nav-dropdown absolute right-0 mt-2 hidden group-hover:block bg-white text-[#4b2a00] rounded-md shadow-lg border border-[#e0d5c7]">
-                    <button onClick={() => setLanguage && setLanguage('en')} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">English</button>
-                    <button onClick={() => setLanguage && setLanguage('fr')} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">Français</button>
-                  </div>
+                  {langOpenSecond && (
+                    <div className="main-nav-dropdown absolute right-0 mt-2 bg-white text-[#4b2a00] rounded-md shadow-lg border border-[#e0d5c7]">
+                      <button onClick={() => { setLanguage && setLanguage('en'); setLangOpenSecond(false); }} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">English</button>
+                      <button onClick={() => { setLanguage && setLanguage('fr'); setLangOpenSecond(false); }} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">Français</button>
+                    </div>
+                  )}
                 </div>
                 {/* Currency selector */}
-                <div className="relative group">
-                  <button type="button" className="flex items-center space-x-2 hover:text-[#4b2a00] cursor-pointer">
+                <div className="relative currency-selector-second">
+                  <button type="button" onClick={() => { setCurrOpenSecond(o=>!o); setLangOpenSecond(false); }} className="flex items-center space-x-2 hover:text-[#4b2a00] cursor-pointer">
                     <span className="font-semibold">{(currency || 'RWF').toUpperCase()}</span>
                     <FaCaretDown className="text-[10px]" />
                   </button>
-                  <div className="main-nav-dropdown absolute right-0 mt-2 hidden group-hover:block bg-white text-[#4b2a00] rounded-md shadow-lg border border-[#e0d5c7] min-w-[120px]">
-                    <button onClick={() => setCurrency && setCurrency('RWF')} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">RWF</button>
-                    <button onClick={() => setCurrency && setCurrency('USD')} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">USD</button>
-                    <button onClick={() => setCurrency && setCurrency('EUR')} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">EUR</button>
-                  </div>
+                  {currOpenSecond && (
+                    <div className="main-nav-dropdown absolute right-0 mt-2 bg-white text-[#4b2a00] rounded-md shadow-lg border border-[#e0d5c7] min-w-[120px]">
+                      <button onClick={() => { setCurrency && setCurrency('RWF'); setCurrOpenSecond(false); }} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">RWF</button>
+                      <button onClick={() => { setCurrency && setCurrency('USD'); setCurrOpenSecond(false); }} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">USD</button>
+                      <button onClick={() => { setCurrency && setCurrency('EUR'); setCurrOpenSecond(false); }} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">EUR</button>
+                    </div>
+                  )}
                 </div>
               </div>
 
