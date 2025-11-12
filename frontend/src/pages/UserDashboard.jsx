@@ -689,7 +689,7 @@ const UserDashboard = () => {
                                   <FaCalendarAlt className="mr-1" />
                                   <span>{new Date(booking.checkIn).toLocaleDateString()} - {new Date(booking.checkOut).toLocaleDateString()}</span>
                                 </div>
-                                <span className="font-medium text-gray-900">RWF {booking.totalAmount?.toLocaleString()}</span>
+                                <span className="font-medium text-gray-900">{formatCurrencyRWF ? formatCurrencyRWF(booking.totalAmount || 0) : `RWF ${(booking.totalAmount || 0).toLocaleString()}`}</span>
                               </div>
                               <div className="mt-2 text-sm text-gray-600">
                                 <span className="font-medium">Guest:</span> {booking.guest?.firstName} {booking.guest?.lastName}
@@ -852,15 +852,15 @@ const UserDashboard = () => {
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-gray-600">Total Revenue</span>
-                        <span className="font-medium text-green-600">RWF {bookings.reduce((sum, b) => sum + b.totalAmount, 0).toLocaleString()}</span>
+                        <span className="font-medium text-green-600">{formatCurrencyRWF ? formatCurrencyRWF(bookings.reduce((sum, b) => sum + (b.totalAmount || 0), 0)) : `RWF ${bookings.reduce((sum, b) => sum + (b.totalAmount || 0), 0).toLocaleString()}`}</span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-gray-600">Commission Paid</span>
-                        <span className="font-medium text-red-600">RWF {bookings.reduce((sum, b) => sum + (b.commissionAmount || 0), 0).toLocaleString()}</span>
+                        <span className="font-medium text-red-600">{formatCurrencyRWF ? formatCurrencyRWF(bookings.reduce((sum, b) => sum + (b.commissionAmount || 0), 0)) : `RWF ${bookings.reduce((sum, b) => sum + (b.commissionAmount || 0), 0).toLocaleString()}`}</span>
                       </div>
                       <div className="flex justify-between items-center border-t pt-4">
                         <span className="text-gray-900 font-semibold">Net Earnings</span>
-                        <span className="font-bold text-green-600 text-lg">RWF {metrics.totalEarnings?.toLocaleString()}</span>
+                        <span className="font-bold text-green-600 text-lg">{formatCurrencyRWF ? formatCurrencyRWF(metrics.totalEarnings || 0) : `RWF ${(metrics.totalEarnings || 0).toLocaleString()}`}</span>
                       </div>
                     </div>
                   </div>
@@ -878,7 +878,7 @@ const UserDashboard = () => {
                             <p className="text-sm text-gray-600">{new Date(booking.createdAt).toLocaleDateString()}</p>
                           </div>
                           <div className="text-right">
-                            <p className="font-medium text-green-600">RWF {(booking.totalAmount - (booking.commissionAmount || 0)).toLocaleString()}</p>
+                            <p className="font-medium text-green-600">{formatCurrencyRWF ? formatCurrencyRWF((booking.totalAmount || 0) - (booking.commissionAmount || 0)) : `RWF ${((booking.totalAmount || 0) - (booking.commissionAmount || 0)).toLocaleString()}`}</p>
                             <p className="text-sm text-gray-500">{booking.status}</p>
                           </div>
                         </div>

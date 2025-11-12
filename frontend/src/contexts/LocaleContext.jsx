@@ -135,7 +135,7 @@ const dictionaries = {
       privacy: 'Privacy Policy',
       quickLinks: 'Quick Links',
       apartments: 'Apartments',
-      bottomCopyright: (year) => `© ${year} AKWANDA.rw. All rights reserved.`
+      bottomCopyright: (year) => ` ${year} AKWANDA.rw. All rights reserved.`
     },
     hero: {
       title: 'Welcome to AKWANDA.rw',
@@ -143,6 +143,37 @@ const dictionaries = {
       activeListings: 'Active Listings',
       happyGuests: 'Happy Guests',
       satisfactionRate: 'Satisfaction Rate'
+    },
+    search: {
+      staysTab: 'Stays',
+      carsTab: 'Cars',
+      attractionsTab: 'Attractions',
+      location: 'Location',
+      pickupLocation: 'Pickup Location',
+      whereGoing: 'Where are you going?',
+      wherePickup: 'Where to pick up?',
+      checkIn: 'Check-in',
+      checkOut: 'Check-out',
+      pickupDate: 'Pickup Date',
+      returnDate: 'Return Date',
+      guests: 'Guests',
+      returnLocationOptional: 'Return Location (optional)',
+      returnDifferentPlace: 'Return to a different place?',
+      searchStays: 'Search Stays',
+      searchCars: 'Search Cars',
+      exploreAttractions: 'Explore Attractions',
+      quickPopularCars: 'Popular Cars',
+      quickFeaturedStays: 'Featured Stays',
+      quickTopAttractions: 'Top Attractions'
+    },
+    listing: {
+      propertyLocation: 'Property location',
+      country: 'Country',
+      findYourAddress: 'Find your address',
+      city: 'City',
+      searching: 'Searching…',
+      coords: (lat, lon) => `Coords: ${lat ?? '—'}, ${lon ?? '—'}`,
+      uploadTitle: 'Upload an apartment',
     },
     vehicles: {
       title: 'Vehicle Rentals',
@@ -207,6 +238,32 @@ const dictionaries = {
       moreOptionsTitle: 'Looking for more options?',
       moreOptionsSubtitle: 'Browse all apartments and filter by location, price, and amenities.',
       viewAll: 'View All Apartments'
+    },
+    property: {
+      hostedBy: 'Hosted by',
+      bookings: 'bookings',
+      bedrooms: 'Bedrooms',
+      bathrooms: 'Bathrooms',
+      area: 'Area',
+      viewDetails: 'View Details'
+    },
+    how: {
+      forGuests: 'For Guests',
+      forHosts: 'For Hosts',
+      moreOnHow: 'More on how it works',
+      faq: 'Frequently Asked Questions',
+      ctaBecomeHost: 'Become a Host',
+      ctaGuests: 'List your apartment and start earning',
+      ctaAuth: 'Sign up to start listing your apartment'
+    },
+    testimonials: {
+      title: 'What Our Users Say',
+      subtitle: 'Real experiences from our community',
+      ctaTitle: 'Ready to Join Our Community?',
+      ctaMessage: "Whether you're looking for a place to stay or want to earn from your space, AKWANDA.rw is here for you.",
+      btnFindApartment: 'Find an Apartment',
+      btnListOrSignUp: (isUser) => isUser ? 'List Your Property' : 'Sign Up to Host',
+      loading: 'Loading testimonials…'
     },
     auth: {
       loginTitle: 'Welcome back',
@@ -532,6 +589,32 @@ const dictionaries = {
       moreOptionsSubtitle: 'Parcourez tous les appartements et filtrez par lieu, prix et équipements.',
       viewAll: 'Voir tous les appartements'
     },
+    property: {
+      hostedBy: 'Hébergé par',
+      bookings: 'réservations',
+      bedrooms: 'Chambres',
+      bathrooms: 'Salles de bain',
+      area: 'Superficie',
+      viewDetails: 'Voir les détails'
+    },
+    how: {
+      forGuests: 'Pour les clients',
+      forHosts: 'Pour les hôtes',
+      moreOnHow: 'En savoir plus sur le fonctionnement',
+      faq: 'Foire aux questions',
+      ctaBecomeHost: 'Devenir hôte',
+      ctaGuests: 'Référencez votre appartement et commencez à gagner',
+      ctaAuth: 'Inscrivez-vous pour commencer à référencer votre appartement'
+    },
+    testimonials: {
+      title: 'Ce que disent nos utilisateurs',
+      subtitle: 'De vraies expériences de notre communauté',
+      ctaTitle: 'Prêt à rejoindre notre communauté ?',
+      ctaMessage: 'Que vous cherchiez un logement ou souhaitiez gagner avec votre espace, AKWANDA.rw est là pour vous.',
+      btnFindApartment: 'Trouver un appartement',
+      btnListOrSignUp: (isUser) => isUser ? 'Référencez votre propriété' : 'Inscrivez-vous pour héberger',
+      loading: 'Chargement des témoignages…'
+    },
     auth: {
       loginTitle: 'Bon retour',
       loginSubtitle: 'Connectez-vous à votre compte AKWANDA.rw',
@@ -689,7 +772,17 @@ export const LocaleProvider = ({ children }) => {
   const formatCurrencyRWF = (amountRwf) => {
     const amt = Number(amountRwf || 0);
     const cur = (currency || DEFAULT_CURRENCY).toUpperCase();
-    if (!rates || !rates[cur] || !rates['RWF']) {
+    if (!rates || !rates['RWF']) {
+      // Rates not ready: display using selected currency symbol, unconverted amount as a fallback
+      try {
+        if (cur === 'RWF') return `RWF ${amt.toLocaleString()}`;
+        const fmt = new Intl.NumberFormat(undefined, { style: 'currency', currency: cur, maximumFractionDigits: 2 });
+        return fmt.format(amt);
+      } catch {
+        return `${cur} ${amt.toLocaleString()}`;
+      }
+    }
+    if (!rates[cur]) {
       return `RWF ${amt.toLocaleString()}`;
     }
     // amount in target = amt * rate[target] (since base is RWF)

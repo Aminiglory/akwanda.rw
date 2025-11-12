@@ -280,10 +280,10 @@ const Hero = () => {
         }}
       >
         <h1 className="text-white text-3xl md:text-4xl lg:text-5xl font-extrabold leading-tight">
-          {localize ? localize(heroTitle) : (heroTitle || 'Welcome to AKWANDA.rw')}
+          {localize ? localize(heroTitle) : heroTitle || (t ? t('hero.title') : 'Welcome to AKWANDA.rw')}
         </h1>
         <p className="mt-4 text-blue-100 text-lg md:text-xl max-w-2xl">
-          {localize ? localize(heroSubtitle) : (heroSubtitle || 'Find places to stay, cars, and attractions')}
+          {localize ? localize(heroSubtitle) : heroSubtitle || (t ? t('hero.subtitle') : 'Find places to stay, cars, and attractions')}
         </p>
 
         {slides[index]?.caption && (

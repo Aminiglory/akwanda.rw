@@ -9,7 +9,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const HowItWorks = () => {
   const { user } = useAuth();
-  const { localize } = useLocale() || {};
+  const { localize, t } = useLocale() || {};
   const [metrics, setMetrics] = useState({ activeListings: 0, happyGuests: 0, satisfactionRate: 0 });
   const [animated, setAnimated] = useState({ activeListings: 0, happyGuests: 0, satisfactionRate: 0 });
   const statsRef = useRef(null);
@@ -365,8 +365,8 @@ const HowItWorks = () => {
       <div className="max-w-6xl mx-auto">
         <div className="flex items-center justify-center mb-2">
           <div className="inline-flex items-center bg-[#F2E8DC] rounded-full p-1">
-            <button onClick={() => setActiveTab('guests')} className={`px-5 py-2 rounded-full text-sm font-semibold transition-all ${activeTab==='guests' ? 'bg-white text-[#2B1B0E] shadow' : 'text-[#6F4E2C] hover:text-[#2B1B0E]'}`}>For Guests</button>
-            <button onClick={() => setActiveTab('hosts')} className={`px-5 py-2 rounded-full text-sm font-semibold transition-all ${activeTab==='hosts' ? 'bg-white text-[#2B1B0E] shadow' : 'text-[#6F4E2C] hover:text-[#2B1B0E]'}`}>For Hosts</button>
+            <button onClick={() => setActiveTab('guests')} className={`px-5 py-2 rounded-full text-sm font-semibold transition-all ${activeTab==='guests' ? 'bg-white text-[#2B1B0E] shadow' : 'text-[#6F4E2C] hover:text-[#2B1B0E]'}`}>{t ? t('how.forGuests') : 'For Guests'}</button>
+            <button onClick={() => setActiveTab('hosts')} className={`px-5 py-2 rounded-full text-sm font-semibold transition-all ${activeTab==='hosts' ? 'bg-white text-[#2B1B0E] shadow' : 'text-[#6F4E2C] hover:text-[#2B1B0E]'}`}>{t ? t('how.forHosts') : 'For Hosts'}</button>
           </div>
         </div>
         {(activeTab==='guests' ? (localize ? localize(how.guestsTagline) : how.guestsTagline) : (localize ? localize(how.hostsTagline) : how.hostsTagline)) && (
@@ -456,7 +456,7 @@ const HowItWorks = () => {
         {/* How It Works gallery (server-provided items) */}
         {howMedia && howMedia.length > 0 && (
           <div className="mb-12">
-            <h3 className="text-xl font-bold text-[#2B1B0E] mb-3">More on how it works</h3>
+            <h3 className="text-xl font-bold text-[#2B1B0E] mb-3">{t ? t('how.moreOnHow') : 'More on how it works'}</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               {howMedia.map((m, i) => (
                 <div key={i} className="bg-white rounded-xl shadow p-3 border border-gray-100">
@@ -481,10 +481,10 @@ const HowItWorks = () => {
             to={user ? "/upload-property" : "/register"} 
             className="modern-btn inline-block"
           >
-            Become a Host
+            {t ? t('how.ctaBecomeHost') : 'Become a Host'}
           </Link>
           <p className="high-contrast-text text-sm mt-3 font-medium">
-            {user ? "List your apartment and start earning" : "Sign up to start listing your apartment"}
+            {user ? (t ? t('how.ctaGuests') : 'List your apartment and start earning') : (t ? t('how.ctaAuth') : 'Sign up to start listing your apartment')}
           </p>
         </div>
 
@@ -495,28 +495,28 @@ const HowItWorks = () => {
             <div className="absolute top-3 left-3 w-2 h-2 bg-[#CDAF8B] rounded"></div>
             <div className="mx-auto mb-2 w-10 h-10 rounded-full bg-[#F2E8DC] text-[#8B5E34] flex items-center justify-center"><FaBuilding /></div>
             <div className="text-4xl font-extrabold text-[#8B5E34] tracking-tight">{Number(animated.activeListings != null ? animated.activeListings : 0).toLocaleString()}</div>
-            <div className="text-xs mt-1 text-[#6F4E2C] uppercase tracking-wide">Active Listings</div>
+            <div className="text-xs mt-1 text-[#6F4E2C] uppercase tracking-wide">{t ? t('hero.activeListings') : 'Active Listings'}</div>
           </div>
           <div className={`relative p-6 rounded-2xl text-center bg-[#FFF9F3] shadow-xl hover:shadow-2xl transition-all duration-500 ${statsInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}
                style={{ transitionDelay: '120ms' }}>
             <div className="absolute top-3 left-3 w-2 h-2 bg-[#CDAF8B] rounded"></div>
             <div className="mx-auto mb-2 w-10 h-10 rounded-full bg-[#F2E8DC] text-[#8B5E34] flex items-center justify-center"><FaSmile /></div>
             <div className="text-4xl font-extrabold text-[#8B5E34] tracking-tight">{Number(animated.happyGuests != null ? animated.happyGuests : 0).toLocaleString()}</div>
-            <div className="text-xs mt-1 text-[#6F4E2C] uppercase tracking-wide">Happy Guests</div>
+            <div className="text-xs mt-1 text-[#6F4E2C] uppercase tracking-wide">{t ? t('hero.happyGuests') : 'Happy Guests'}</div>
           </div>
           <div className={`relative p-6 rounded-2xl text-center bg-[#FFF9F3] shadow-xl hover:shadow-2xl transition-all duration-500 ${statsInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}
                style={{ transitionDelay: '240ms' }}>
             <div className="absolute top-3 left-3 w-2 h-2 bg-[#CDAF8B] rounded"></div>
             <div className="mx-auto mb-2 w-10 h-10 rounded-full bg-[#F2E8DC] text-[#8B5E34] flex items-center justify-center"><FaThumbsUp /></div>
             <div className="text-4xl font-extrabold text-[#8B5E34] tracking-tight">{(animated.satisfactionRate != null ? animated.satisfactionRate : 0)}%</div>
-            <div className="text-xs mt-1 text-[#6F4E2C] uppercase tracking-wide">Satisfaction Rate</div>
+            <div className="text-xs mt-1 text-[#6F4E2C] uppercase tracking-wide">{t ? t('hero.satisfactionRate') : 'Satisfaction Rate'}</div>
           </div>
         </div>
 
         {/* FAQ Accordion */}
         {how.faqs && how.faqs.length > 0 && (
           <div className="mt-14 max-w-4xl mx-auto">
-            <h3 className="text-xl font-bold text-gray-900 mb-4 text-center">Frequently Asked Questions</h3>
+            <h3 className="text-xl font-bold text-gray-900 mb-4 text-center">{t ? t('how.faq') : 'Frequently Asked Questions'}</h3>
             <div className="rounded-xl bg-white/90 backdrop-blur shadow">
               {how.faqs.map((f, i) => (
                 <div key={i}>

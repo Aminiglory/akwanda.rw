@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useLocale } from '../contexts/LocaleContext';
 import ReceiptPreview from '../components/ReceiptPreview';
 import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
@@ -14,6 +15,7 @@ const makeAbsolute = (u) => {
 
 export default function CarOwnerDashboard() {
   const { user } = useAuth();
+  const { formatCurrencyRWF } = useLocale() || {};
   const [cars, setCars] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [bookingFilters, setBookingFilters] = useState({ status: '', from: '', to: '' });
@@ -29,6 +31,7 @@ export default function CarOwnerDashboard() {
   const [uploadingId, setUploadingId] = useState(null);
   const [viewMode, setViewMode] = useState('cards'); // 'cards' | 'table'
   const [createImages, setCreateImages] = useState([]);
+  const [createPreviews, setCreatePreviews] = useState([]);
 
   async function loadData() {
     try {
@@ -235,7 +238,28 @@ export default function CarOwnerDashboard() {
         </div>
         <div className="md:col-span-3">
           <label className="block text-xs text-gray-700 mb-1">Images</label>
-          <input type="file" multiple accept="image/*" onChange={e => setCreateImages(Array.from(e.target.files || []))} className="w-full px-3 py-2 border rounded" />
+          <input
+            type="file"
+            multiple
+            accept="image/*"
+            onChange={e => {
+              const files = Array.from(e.target.files || []);
+              if (!files.length) return;
+              setCreateImages(files);
+              const urls = files.map(f => URL.createObjectURL(f));
+              setCreatePreviews(urls);
+            }}
+            className="w-full px-3 py-2 border rounded"
+          />
+          {createPreviews?.length > 0 && (
+            <div className="mt-2 grid grid-cols-3 md:grid-cols-5 gap-2">
+              {createPreviews.map((src, i) => (
+                <div key={i} className="w-full h-20 bg-gray-100 rounded overflow-hidden">
+                  <img src={src} className="w-full h-full object-cover" alt="Preview" />
+                </div>
+              ))}
+            </div>
+          )}
         </div>
         <div className="md:col-span-3">
           <button disabled={saving || user?.isBlocked} className="px-4 py-2 bg-[#a06b42] hover:bg-[#8f5a32] text-white rounded disabled:opacity-50">{saving ? 'Saving...' : 'Add Vehicle'}</button>
@@ -258,7 +282,7 @@ export default function CarOwnerDashboard() {
                       <button onClick={() => updateCar(car._id, { isAvailable: !car.isAvailable })} className={`px-2 py-1 rounded text-sm ${car.isAvailable ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-700'}`}>{car.isAvailable ? 'Available' : 'Unavailable'}</button>
                     </div>
                     <p className="text-sm text-gray-600">{car.location} • {car.vehicleType} • {car.transmission}</p>
-                    <p className="text-sm font-medium mt-1">RWF {Number(car.pricePerDay || 0).toLocaleString()} / day</p>
+                    <p className="text-sm font-medium mt-1">{formatCurrencyRWF ? formatCurrencyRWF(car.pricePerDay || 0) : `RWF ${Number(car.pricePerDay || 0).toLocaleString()}`} / day</p>
                   </div>
                 </div>
 
@@ -297,7 +321,7 @@ export default function CarOwnerDashboard() {
                     <td className="p-3 font-medium">{car.vehicleName} • {car.brand} {car.model}</td>
                     <td className="p-3">{car.vehicleType}</td>
                     <td className="p-3">{car.location}</td>
-                    <td className="p-3">RWF {Number(car.pricePerDay || 0).toLocaleString()}</td>
+                    <td className="p-3">{formatCurrencyRWF ? formatCurrencyRWF(car.pricePerDay || 0) : `RWF ${Number(car.pricePerDay || 0).toLocaleString()}`}</td>
                     <td className="p-3">
                       <button onClick={() => updateCar(car._id, { isAvailable: !car.isAvailable })} className={`px-2 py-1 rounded text-xs ${car.isAvailable ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-700'}`}>{car.isAvailable ? 'Available' : 'Unavailable'}</button>
                     </td>
@@ -363,7 +387,7 @@ export default function CarOwnerDashboard() {
                   <td className="p-3">{b.car?.vehicleName}</td>
                   <td className="p-3">{b.guest?.firstName} {b.guest?.lastName}</td>
                   <td className="p-3">{new Date(b.pickupDate).toLocaleDateString()} → {new Date(b.returnDate).toLocaleDateString()}</td>
-                  <td className="p-3">RWF {Number(b.totalAmount || 0).toLocaleString()}</td>
+                  <td className="p-3">{formatCurrencyRWF ? formatCurrencyRWF(b.totalAmount || 0) : `RWF ${Number(b.totalAmount || 0).toLocaleString()}`}</td>
                   <td className="p-3"><span className="px-2 py-1 rounded bg-gray-100">{b.status}</span></td>
                   <td className="p-3 flex items-center gap-2">
                     {['pending','confirmed','active','completed','cancelled'].map(s => (
@@ -402,7 +426,7 @@ export default function CarOwnerDashboard() {
             { label: 'Pickup', value: new Date(receiptBooking.pickupDate).toLocaleDateString() },
             { label: 'Return', value: new Date(receiptBooking.returnDate).toLocaleDateString() },
             { label: 'Days', value: String(receiptBooking.numberOfDays || 0) },
-            { label: 'Amount', value: `RWF ${Number(receiptBooking.totalAmount || 0).toLocaleString()}` },
+            { label: 'Amount', value: formatCurrencyRWF ? formatCurrencyRWF(receiptBooking.totalAmount || 0) : `RWF ${Number(receiptBooking.totalAmount || 0).toLocaleString()}` },
             { label: 'Status', value: receiptBooking.status || '' },
           ]}
           onPrint={() => window.print()}

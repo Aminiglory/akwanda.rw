@@ -31,7 +31,8 @@ const AttractionUpload = () => {
     }
   });
 
-  const [images, setImages] = useState([]);
+  const [images, setImages] = useState([]); // array of File objects
+  const [previews, setPreviews] = useState([]); // object URLs
 
   const categories = [
     { value: 'cultural', label: 'Cultural' },
@@ -105,35 +106,17 @@ const AttractionUpload = () => {
     }));
   };
 
-  const handleImageUpload = async (e) => {
-    const files = Array.from(e.target.files);
-    if (files.length === 0) return;
-
-    setUploading(true);
-    try {
-      const formData = new FormData();
-      files.forEach(file => formData.append('images', file));
-
-      const res = await fetch(`${API_URL}/api/upload/images`, {
-        method: 'POST',
-        body: formData,
-        credentials: 'include'
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed to upload images');
-
-      setImages(prev => [...prev, ...data.imageUrls]);
-      toast.success('Images uploaded successfully');
-    } catch (error) {
-      toast.error(error.message);
-    } finally {
-      setUploading(false);
-    }
+  const handleImageUpload = (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    setImages(prev => [...prev, ...files]);
+    const newPreviews = files.map(f => URL.createObjectURL(f));
+    setPreviews(prev => [...prev, ...newPreviews]);
   };
 
   const removeImage = (index) => {
     setImages(prev => prev.filter((_, i) => i !== index));
+    setPreviews(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e) => {
@@ -156,7 +139,6 @@ const AttractionUpload = () => {
         price: Number(formData.price),
         capacity: Number(formData.capacity),
         commissionRate: Number(formData.commissionRate),
-        images,
         featuredUntil: formData.featuredUntil ? new Date(formData.featuredUntil).toISOString() : null
       };
 
@@ -169,6 +151,22 @@ const AttractionUpload = () => {
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to create attraction');
+
+      // Upload images to the created attraction
+      try {
+        setUploading(true);
+        const form = new FormData();
+        images.forEach(file => form.append('images', file));
+        const up = await fetch(`${API_URL}/api/attractions/${data.attraction?._id}/images`, {
+          method: 'POST',
+          credentials: 'include',
+          body: form
+        });
+        const upData = await up.json();
+        if (!up.ok) throw new Error(upData.message || 'Failed to upload images');
+      } finally {
+        setUploading(false);
+      }
 
       toast.success('Attraction created successfully');
       navigate('/admin');
@@ -485,15 +483,11 @@ const AttractionUpload = () => {
                 </label>
               </div>
 
-              {images.length > 0 && (
+              {previews.length > 0 && (
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {images.map((image, index) => (
+                  {previews.map((src, index) => (
                     <div key={index} className="relative group">
-                      <img
-                        src={image.startsWith('http') ? image : `${API_URL}${image}`}
-                        alt={`Attraction ${index + 1}`}
-                        className="w-full h-32 object-cover rounded-lg"
-                      />
+                      <img src={src} alt={`Attraction ${index + 1}`} className="w-full h-32 object-cover rounded-lg" />
                       <button
                         type="button"
                         onClick={() => removeImage(index)}
