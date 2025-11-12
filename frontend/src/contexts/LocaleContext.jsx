@@ -772,21 +772,13 @@ export const LocaleProvider = ({ children }) => {
   const formatCurrencyRWF = (amountRwf) => {
     const amt = Number(amountRwf || 0);
     const cur = (currency || DEFAULT_CURRENCY).toUpperCase();
-    if (!rates || !rates['RWF']) {
-      // Rates not ready: display using selected currency symbol, unconverted amount as a fallback
-      try {
-        if (cur === 'RWF') return `RWF ${amt.toLocaleString()}`;
-        const fmt = new Intl.NumberFormat(undefined, { style: 'currency', currency: cur, maximumFractionDigits: 2 });
-        return fmt.format(amt);
-      } catch {
-        return `${cur} ${amt.toLocaleString()}`;
-      }
-    }
-    if (!rates[cur]) {
+    // Use available rates or safe fallback so we ALWAYS convert numbers, not just change symbol
+    const fx = (rates && rates['RWF']) ? rates : { RWF: 1, USD: 0.00077, EUR: 0.00071 };
+    if (!fx[cur]) {
       return `RWF ${amt.toLocaleString()}`;
     }
     // amount in target = amt * rate[target] (since base is RWF)
-    const converted = amt * rates[cur];
+    const converted = amt * fx[cur];
     if (cur === 'RWF') return `RWF ${Math.round(converted).toLocaleString()}`;
     try {
       const fmt = new Intl.NumberFormat(undefined, { style: 'currency', currency: cur, maximumFractionDigits: 2 });
@@ -801,24 +793,22 @@ export const LocaleProvider = ({ children }) => {
     const amt = Number(amount || 0);
     const target = (currency || DEFAULT_CURRENCY).toUpperCase();
     const base = String(baseCurrency || 'RWF').toUpperCase();
-    // If no rates yet, fallback to showing base currency with naive formatting
-    if (!rates || !rates['RWF']) {
-      const symbolBase = base === 'USD' ? '$' : (base === 'EUR' ? '€' : base);
-      return `${symbolBase} ${amt.toLocaleString()}`;
-    }
+    // Use available rates or safe fallback so conversion happens immediately
+    const fx = (rates && rates['RWF']) ? rates : { RWF: 1, USD: 0.00077, EUR: 0.00071 };
     // Convert base -> RWF
     let amountInRwf = amt;
     if (base !== 'RWF') {
-      if (!rates[base] || rates[base] === 0) {
+      if (!fx[base] || fx[base] === 0) {
+        // If we somehow don't know base, show base amount plainly
         const symbolBase = base === 'USD' ? '$' : (base === 'EUR' ? '€' : base);
         return `${symbolBase} ${amt.toLocaleString()}`;
       }
-      // Since rates are base RWF, 1 RWF = rates[base] units of base.
-      // Therefore 1 unit of base = 1 / rates[base] RWF.
-      amountInRwf = amt / rates[base];
+      // Since rates are base RWF, 1 RWF = fx[base] units of base.
+      // Therefore 1 unit of base = 1 / fx[base] RWF.
+      amountInRwf = amt / fx[base];
     }
     // RWF -> target
-    const tRate = rates[target];
+    const tRate = fx[target];
     if (!tRate) {
       // Fallback to RWF
       return `RWF ${Math.round(amountInRwf).toLocaleString()}`;
