@@ -3,6 +3,7 @@ import { FaPlus, FaTrash, FaUpload, FaBed, FaBath, FaMapMarkerAlt, FaDollarSign,
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
+import { useLocale } from '../contexts/LocaleContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -12,6 +13,7 @@ const EnhancedUploadProperty = () => {
   const [searchParams] = useSearchParams();
   const editId = searchParams.get('edit');
   const isEditing = !!editId;
+  const { t } = useLocale() || {};
 
   const [formData, setFormData] = useState({
     title: '',
@@ -308,11 +310,11 @@ const EnhancedUploadProperty = () => {
         throw new Error(`Server returned HTML instead of JSON. Check backend at ${API_URL}`);
       }
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed to upload room images');
+      if (!res.ok) throw new Error(data.message || (t ? t('msg.roomImagesUploadFailed') : 'Failed to upload room images'));
       setRooms(prev => prev.map((r, i) => i === roomIndex ? { ...r, images: [...(r.images||[]), ...data.imageUrls] } : r));
-      toast.success('Room images uploaded');
+      toast.success(t ? t('msg.roomImagesUploaded') : 'Room images uploaded');
     } catch (err) {
-      toast.error(err.message || 'Failed to upload room images');
+      toast.error(err.message || (t ? t('msg.roomImagesUploadFailed') : 'Failed to upload room images'));
     } finally {
       setUploading(false);
     }
@@ -330,8 +332,8 @@ const EnhancedUploadProperty = () => {
     (async () => {
       try {
         setAddrLoading(true);
-        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q + ' ' + (formData.country || ''))}`;
-        const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+        const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&q=${encodeURIComponent(q + ' ' + (formData.country || ''))}`;
+        const res = await fetch(url, { headers: { 'Accept-Language': (typeof document !== 'undefined' ? document.documentElement.lang : 'en') || 'en' } });
         const json = await res.json().catch(()=>[]);
         if (!cancelled) setAddrSuggestions(Array.isArray(json) ? json.slice(0,6) : []);
       } catch (_) {
@@ -346,15 +348,15 @@ const EnhancedUploadProperty = () => {
   const canProceed = () => {
     if (currentStep === 1 || currentStep === 2) return true;
     if (currentStep === 3) return !!formData.category;
-    // Step 4: allow proceed if address OR coordinates exist; city not required
-    if (currentStep === 4) return !!formData.address || (formData.latitude != null && formData.longitude != null);
+    // Step 4: require city AND (address OR coordinates)
+    if (currentStep === 4) return !!formData.city && (!!formData.address || (formData.latitude != null && formData.longitude != null));
     if (currentStep === 5) return !!formData.title;
     if (currentStep === 8) return images.length > 0 || uploading === false;
     return true;
   };
 
   const nextStep = async () => {
-    if (!canProceed()) { toast.error('Complete required info'); return; }
+    if (!canProceed()) { toast.error(t ? t('msg.completeRequiredInfo') : 'Complete required info'); return; }
     try {
       if (currentStep === 1) {
         await ctxUpdateProfile({
@@ -366,7 +368,7 @@ const EnhancedUploadProperty = () => {
       }
       setCurrentStep(s => Math.min(totalSteps, s + 1));
     } catch (e) {
-      toast.error(e.message || 'Failed to save contact details');
+      toast.error(e.message || (t ? t('msg.contactSaveFailed') : 'Failed to save contact details'));
     }
   };
 
@@ -435,15 +437,15 @@ const EnhancedUploadProperty = () => {
       const data = await res.json().catch(()=>({}));
       if (!res.ok) {
         console.error('[Property Submit] Server error', { status: res.status, data });
-        if (res.status === 401 || res.status === 403) throw new Error('Authorization required. Please log in as a host and try again.');
+        if (res.status === 401 || res.status === 403) throw new Error(t ? t('msg.authRequired') : 'Authorization required. Please log in as a host and try again.');
         const details = Array.isArray(data?.details) ? ` Details: ${data.details.map(d=>`${d.field}: ${d.message}`).join('; ')}` : '';
         throw new Error((data.message || 'Failed to save property') + details);
       }
-      toast.success(isEditing ? 'Property updated' : 'Property created');
+      toast.success(isEditing ? (t ? t('msg.propertyUpdated') : 'Property updated') : (t ? t('msg.propertyCreated') : 'Property created'));
       navigate('/dashboard');
     } catch (err) {
       console.error('[Property Submit] Caught error', err);
-      toast.error(err.message || 'Failed to save');
+      toast.error(err.message || (t ? t('msg.saveFailed') : 'Failed to save'));
     } finally {
       setLoading(false);
     }
@@ -454,8 +456,8 @@ const EnhancedUploadProperty = () => {
   const saveDraftLocal = () => {
     try {
       localStorage.setItem('listing_draft_v1', JSON.stringify({ formData, rooms, images, currentStep, partner }));
-      toast.success('Draft saved');
-    } catch (_) { toast.error('Could not save draft'); }
+      toast.success(t ? t('msg.draftSaved') : 'Draft saved');
+    } catch (_) { toast.error(t ? t('msg.draftSaveFailed') : 'Could not save draft'); }
   };
 
   if (loading && isEditing) {
@@ -463,7 +465,7 @@ const EnhancedUploadProperty = () => {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading property data...</p>
+          <p className="text-gray-600">{t ? t('msg.loadingPropertyData') : 'Loading property data...'}</p>
         </div>
       </div>
     );
@@ -597,23 +599,25 @@ const EnhancedUploadProperty = () => {
 
           {currentStep === 4 && (
             <div className="space-y-6">
-              <h2 className="text-xl font-semibold text-gray-900 border-b pb-2">Property Location</h2>
+              <h2 className="text-xl font-semibold text-gray-900 border-b pb-2">{t ? t('listing.propertyLocation') : 'Property Location'}</h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Country</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{t ? t('listing.country') : 'Country'}</label>
                   <select value={formData.country} onChange={(e)=> setFormData(prev=>({...prev, country: e.target.value }))} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                     {['Rwanda','Kenya','Uganda','Tanzania','DR Congo','Burundi'].map(c=> (<option key={c} value={c}>{c}</option>))}
                   </select>
                 </div>
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Find your address</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{t ? t('listing.findYourAddress') : 'Find your address'}</label>
                   <input value={addrQuery} onChange={(e)=> setAddrQuery(e.target.value)} placeholder="Start typing address" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-                  {addrLoading && <div className="text-xs text-gray-500 mt-1">Searching…</div>}
+                  {addrLoading && <div className="text-xs text-gray-500 mt-1">{t ? t('listing.searching') : 'Searching…'}</div>}
                   {addrSuggestions.length > 0 && (
                     <div className="mt-1 border rounded-lg bg-white shadow max-h-48 overflow-auto">
                       {addrSuggestions.map((sug, i)=> (
                         <button type="button" key={i} onClick={()=>{
-                          setFormData(prev=> ({...prev, address: sug.display_name, city: prev.city || '', latitude: Number(sug.lat), longitude: Number(sug.lon)}));
+                          const a = sug.address || {};
+                          const city = a.city || a.town || a.village || a.municipality || a.state_district || a.county || '';
+                          setFormData(prev=> ({...prev, address: sug.display_name, city: city || prev.city || '', latitude: Number(sug.lat), longitude: Number(sug.lon)}));
                           setAddrSuggestions([]);
                           setAddrQuery(sug.display_name);
                         }} className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm">
@@ -622,6 +626,11 @@ const EnhancedUploadProperty = () => {
                       ))}
                     </div>
                   )}
+                  {/* City field */}
+                  <div className="mt-3">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{t ? t('listing.city') : 'City'}</label>
+                    <input value={formData.city} onChange={(e)=> setFormData(prev=> ({...prev, city: e.target.value}))} placeholder="Kigali" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                  </div>
                   {/* Mock map preview */}
                   <div className="mt-3">
                     <div className="w-full h-48 bg-gray-200 rounded-lg relative overflow-hidden">
@@ -632,7 +641,7 @@ const EnhancedUploadProperty = () => {
                         </div>
                       )}
                     </div>
-                    <div className="text-xs text-gray-600 mt-1">Coords: {formData.latitude ?? '—'}, {formData.longitude ?? '—'}</div>
+                    <div className="text-xs text-gray-600 mt-1">{t ? t('listing.coords', formData.latitude, formData.longitude) : `Coords: ${formData.latitude ?? '—'}, ${formData.longitude ?? '—'}`}</div>
                   </div>
                 </div>
               </div>

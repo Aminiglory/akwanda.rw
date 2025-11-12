@@ -93,18 +93,18 @@ const Navbar = () => {
   // Main navigation items like Booking.com
   const mainNavItems = [
     {
-      label: "Stays",
+      label: t ? t('nav.stays') : "Stays",
       icon: FaHome,
       href: "/apartments",
       children: [
-        { label: "Apartments", href: "/apartments", icon: FaBuilding },
-        { label: "Hotels", href: "/hotels", icon: FaBed },
-        { label: "Homes", href: "/homes", icon: FaHome },
-        { label: "Resorts", href: "/resorts", icon: FaUmbrellaBeach },
+        { label: t ? t('nav.apartments') : "Apartments", href: "/apartments", icon: FaBuilding },
+        { label: t ? t('nav.hotels') : "Hotels", href: "/hotels", icon: FaBed },
+        { label: t ? t('nav.homes') : "Homes", href: "/homes", icon: FaHome },
+        { label: t ? t('nav.resorts') : "Resorts", href: "/resorts", icon: FaUmbrellaBeach },
       ]
     },
     {
-      label: "Flights",
+      label: t ? t('nav.flights') : "Flights",
       icon: FaPlane,
       href: "/flights",
       children: [
@@ -712,7 +712,7 @@ const Navbar = () => {
     e?.preventDefault?.();
     const email = String(ownerEmail || '').trim();
     const password = String(ownerPassword || '').trim();
-    if (!email || !password) { toast.error('Enter owner email and password'); return; }
+    if (!email || !password) { toast.error(t ? t('msg.enterOwnerCredentials') : 'Enter owner email and password'); return; }
     try {
       setSwitchLoading(true);
       // Logout current session (user mode)
@@ -725,19 +725,19 @@ const Navbar = () => {
         body: JSON.stringify({ email, password })
       });
       const data = await res.json().catch(()=>({}));
-      if (!res.ok) throw new Error(data.message || 'Owner login failed');
+      if (!res.ok) throw new Error(data.message || (t ? t('msg.ownerLoginFailed') : 'Owner login failed'));
       // Ensure account is host
       if (data?.user?.userType !== 'host') {
-        toast.error('That account is not a property owner');
+        toast.error(t ? t('msg.notOwnerAccount') : 'That account is not a property owner');
         return;
       }
-      toast.success('Switched to Property Owner');
+      toast.success(t ? t('msg.switchToOwnerSuccess') : 'Switched to Property Owner');
       setShowOwnerSwitch(false);
       setOwnerPassword('');
       // Redirect to owner dashboard
       navigate('/dashboard');
     } catch (err) {
-      toast.error(err.message || 'Could not switch account');
+      toast.error(err.message || (t ? t('msg.couldNotSwitchAccount') : 'Could not switch account'));
     } finally {
       setSwitchLoading(false);
     }
@@ -889,9 +889,9 @@ const Navbar = () => {
                 onClick={() => handlePayCommission(billing.minimumPartial || Math.ceil((billing.totalDue||0)/2))}
                 disabled={payingCommission || (billing.totalDue||0) <= 0}
                 className={`inline-flex items-center justify-center px-3 py-2 rounded-md text-white shadow-sm transition-colors ${payingCommission ? 'bg-[#b58a66] opacity-80' : 'bg-[#a06b42] hover:bg-[#8f5a32]'}`}
-                title={`Pay at least ${formatCurrencyRWF ? formatCurrencyRWF(billing.minimumPartial||0) : `RWF ${Number(billing.minimumPartial||0).toLocaleString()}`} to unlock limited features`}
+                title={`${t ? t('banner.payHalf') : 'Pay Half'}: ${formatCurrencyRWF ? formatCurrencyRWF(billing.minimumPartial||0) : `RWF ${Number(billing.minimumPartial||0).toLocaleString()}`}`}
               >
-                {payingCommission ? 'Processing…' : `Pay Half (${formatCurrencyRWF ? formatCurrencyRWF(billing.minimumPartial||0) : `RWF ${Number(billing.minimumPartial||0).toLocaleString()}`})`}
+                {payingCommission ? 'Processing…' : `${t ? t('banner.payHalf') : 'Pay Half'} (${formatCurrencyRWF ? formatCurrencyRWF(billing.minimumPartial||0) : `RWF ${Number(billing.minimumPartial||0).toLocaleString()}`})`}
               </button>
               <button
                 type="button"
@@ -899,10 +899,10 @@ const Navbar = () => {
                 disabled={payingCommission || (billing.totalDue||0) <= 0}
                 className={`inline-flex items-center justify-center px-3 py-2 rounded-md text-[#3a240e] border border-[#e1d5c3] bg-white/90 hover:bg-white`}
               >
-                Pay Full ({formatCurrencyRWF ? formatCurrencyRWF(billing.totalDue||0) : `RWF ${Number(billing.totalDue||0).toLocaleString()}`})
+                {t ? t('banner.payFull') : 'Pay Full'} ({formatCurrencyRWF ? formatCurrencyRWF(billing.totalDue||0) : `RWF ${Number(billing.totalDue||0).toLocaleString()}`})
               </button>
               <Link to="/notifications" className="inline-flex justify-center px-3 py-2 rounded-md border border-[#e1d5c3] text-[#3a240e] hover:bg-white">
-                View notice
+                {t ? t('banner.viewNotice') : 'View notice'}
               </Link>
             </div>
           </div>
@@ -1005,7 +1005,7 @@ const Navbar = () => {
                         ? 'bg-[#a06b42] text-white shadow-md'
                         : 'text-[#6b5744] hover:text-[#4b2a00] hover:bg-[#e8dcc8]'
                       }`}
-                    title="Choose property to manage"
+                    title={t ? t('banner.choosePropertyToManage') : 'Choose property to manage'}
                   >
                     <FaBuilding className="text-lg" />
                     <FaCaretDown className={`ml-2 text-xs transition-transform ${propDropdownOpen ? 'rotate-180' : ''}`} />
@@ -1256,7 +1256,7 @@ const Navbar = () => {
           {/* Mobile property selector */}
           {user?.userType === 'host' && isInPropertyOwnerDashboard() && myProperties.length > 0 && (
             <div className="px-4 py-3">
-              <div className="text-xs font-semibold text-[#6b5744] mb-2">Manage property</div>
+              <div className="text-xs font-semibold text-[#6b5744] mb-2">{t ? t('banner.manageProperty') : 'Manage property'}</div>
               <div className="grid grid-cols-1 gap-2">
                 {myProperties.map((p) => (
                   <Link

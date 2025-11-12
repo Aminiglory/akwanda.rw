@@ -26,6 +26,10 @@ const dictionaries = {
       signUp: 'Sign Up',
       dashboard: 'Dashboard',
       notifications: 'Notifications',
+      myBookings: 'My Bookings',
+      adminDashboard: 'Admin Dashboard',
+      adminReports: 'Reports',
+      landingContent: 'Content',
       myProfile: 'My Profile',
       settings: 'Settings',
       help: 'Help',
@@ -228,6 +232,92 @@ const dictionaries = {
       subtitle: 'Manage your account settings and preferences'
     }
   },
+  // Common messages (toasts, inline notices)
+  msg: {
+    mustLoginToList: 'Please login to list a property',
+    ownerOnly: 'Only property owners can list properties. Please use Owner Login.',
+    fillRequiredFields: 'Please fill all required fields',
+    propertyUpdated: 'Property updated',
+    propertyCreated: 'Property created',
+    saveFailed: 'Failed to save',
+    draftSaved: 'Draft saved',
+    draftSaveFailed: 'Could not save draft',
+    loadingPropertyData: 'Loading property data...',
+    contactSaveFailed: 'Failed to save contact details',
+    completeRequiredInfo: 'Complete required info',
+    authRequired: 'Authorization required. Please log in as a host and try again.',
+    switchToOwnerSuccess: 'Switched to Property Owner',
+    ownerLoginFailed: 'Owner login failed',
+    notOwnerAccount: 'That account is not a property owner',
+    enterOwnerCredentials: 'Enter owner email and password',
+    couldNotSwitchAccount: 'Could not switch account',
+    roomImagesUploaded: 'Room images uploaded',
+    roomImagesUploadFailed: 'Failed to upload room images',
+    accountDeactivatedNotice: 'Your account is currently deactivated. You cannot create or edit listings until reactivated.',
+  },
+  // Minimal keys for listing flow (used in EnhancedUploadProperty)
+  listing: {
+    propertyLocation: 'Lieu de la propriété',
+    country: 'Pays',
+    findYourAddress: 'Trouver votre adresse',
+    city: 'Ville',
+    searching: 'Recherche…',
+    coords: (lat, lon) => `Coords: ${lat ?? '—'}, ${lon ?? '—'}`,
+    uploadTitle: 'Télécharger un appartement',
+  },
+  // ... (rest of the code remains the same)
+
+  msg: {
+    mustLoginToList: 'Veuillez vous connecter pour répertorier une propriété',
+    ownerOnly: 'Seuls les propriétaires peuvent répertorier des propriétés. Veuillez utiliser la connexion propriétaire.',
+    fillRequiredFields: 'Veuillez remplir tous les champs obligatoires',
+    propertyUpdated: 'Propriété mise à jour',
+    propertyCreated: 'Propriété créée',
+    saveFailed: 'Échec de l\'enregistrement',
+    draftSaved: 'Brouillon enregistré',
+    draftSaveFailed: 'Impossible d\'enregistrer le brouillon',
+    loadingPropertyData: 'Chargement des données de propriété...',
+    contactSaveFailed: 'Échec de l\'enregistrement des coordonnées',
+    completeRequiredInfo: 'Veuillez compléter les informations requises',
+    authRequired: 'Autorisation requise. Veuillez vous connecter en tant qu\'hôte et réessayer.',
+    switchToOwnerSuccess: 'Basculé vers le propriétaire',
+    ownerLoginFailed: 'Échec de la connexion propriétaire',
+    notOwnerAccount: 'Ce compte n\'est pas un propriétaire',
+    enterOwnerCredentials: 'Entrez l\'adresse e-mail et le mot de passe du propriétaire',
+    couldNotSwitchAccount: 'Impossible de basculer de compte',
+    roomImagesUploaded: 'Images de chambres téléchargées',
+    roomImagesUploadFailed: 'Échec du téléchargement des images de chambres',
+    accountDeactivatedNotice: 'Votre compte est actuellement désactivé. Vous ne pouvez pas créer ou modifier des annonces jusqu\'à réactivation.',
+    attractionsTab: 'Attractions',
+    location: 'Location',
+    pickupLocation: 'Pickup Location',
+    whereGoing: 'Where are you going?',
+    wherePickup: 'Where to pick up?',
+    checkIn: 'Check-in',
+    checkOut: 'Check-out',
+    pickupDate: 'Pickup Date',
+    returnDate: 'Return Date',
+    guests: 'Guests',
+    returnLocationOptional: 'Return Location (optional)',
+    returnDifferentPlace: 'Return to a different place?',
+    searchStays: 'Search Stays',
+    searchCars: 'Search Cars',
+    exploreAttractions: 'Explore Attractions',
+    quickPopularCars: 'Popular Cars',
+    quickFeaturedStays: 'Featured Stays',
+    quickTopAttractions: 'Top Attractions'
+  },
+  // Landing attractions section
+  landing: {
+    viewAll: 'View all',
+    curatedBy: 'Curated by AKWANDA.rw',
+    explore: 'Explore'
+  },
+  // Generic CTAs
+  cta: {
+    learnMore: 'Learn more',
+    contactUs: 'Contact us'
+  },
   fr: {
     brand: 'AKWANDA.rw',
     nav: {
@@ -335,6 +425,20 @@ const dictionaries = {
       profile: 'Profil',
       accountSettings: 'Paramètres du compte',
       logout: 'Se déconnecter'
+    },
+    // Navbar banners/messages
+    banner: {
+      accountDeactivated: 'Account deactivated',
+      limitedFeatures: 'Limited features are unlocked due to a partial payment. Complete your payment to restore full visibility.',
+      clearDues: 'Clear outstanding dues to restore full access and visibility.',
+      commissionDue: 'Commission due',
+      finesDue: 'Fines due',
+      totalDue: 'Total due',
+      payHalf: 'Pay Half',
+      payFull: 'Pay Full',
+      viewNotice: 'View notice',
+      choosePropertyToManage: 'Choose property to manage',
+      manageProperty: 'Manage property',
     },
     footer: {
       forGuests: 'Pour les clients',
@@ -451,13 +555,80 @@ const dictionaries = {
       title: 'Paramètres',
       subtitle: 'Gérez les paramètres et préférences de votre compte'
     }
-  }
+  },
+  // Messages communs (toasts, messages)
+  msg: {
+    mustLoginToList: 'Veuillez vous connecter pour référencer une propriété',
+    ownerOnly: 'Seuls les propriétaires peuvent référencer des propriétés. Utilisez la connexion Propriétaire.',
+    fillRequiredFields: 'Veuillez remplir tous les champs obligatoires',
+    propertyUpdated: 'Propriété mise à jour',
+    propertyCreated: 'Propriété créée',
+    saveFailed: 'Échec de l’enregistrement',
+    draftSaved: 'Brouillon enregistré',
+    draftSaveFailed: 'Impossible d’enregistrer le brouillon',
+    loadingPropertyData: 'Chargement des données de la propriété…',
+    contactSaveFailed: 'Échec de l’enregistrement des coordonnées',
+    completeRequiredInfo: 'Complétez les informations requises',
+    authRequired: 'Autorisation requise. Connectez-vous en tant qu’hôte et réessayez.',
+    switchToOwnerSuccess: 'Passé en mode Propriétaire',
+    ownerLoginFailed: 'Échec de la connexion Propriétaire',
+    notOwnerAccount: 'Ce compte n’est pas un propriétaire',
+    enterOwnerCredentials: 'Saisissez l’e-mail et le mot de passe du propriétaire',
+    couldNotSwitchAccount: 'Impossible de changer de compte',
+    roomImagesUploaded: 'Images de chambre téléchargées',
+    roomImagesUploadFailed: 'Échec du téléchargement des images de chambre',
+    accountDeactivatedNotice: 'Votre compte est actuellement désactivé. Vous ne pouvez pas créer ou modifier des annonces tant qu’il n’est pas réactivé.',
+  },
+  // Clés minimales pour le flux d'annonce (utilisées dans EnhancedUploadProperty)
+  listing: {
+    propertyLocation: 'Localisation de la propriété',
+    country: 'Pays',
+    findYourAddress: 'Trouvez votre adresse',
+    city: 'Ville',
+    searching: 'Recherche…',
+    coords: (lat, lon) => `Coordonnées : ${lat ?? '—'}, ${lon ?? '—'}`,
+    uploadTitle: 'Téléverser un appartement',
+  },
+  // Section de recherche (page d'accueil)
+  search: {
+    staysTab: 'Séjours',
+    carsTab: 'Voitures',
+    attractionsTab: 'Attractions',
+    location: 'Lieu',
+    pickupLocation: 'Lieu de prise en charge',
+    whereGoing: 'Où allez-vous ?',
+    wherePickup: 'Où récupérer ?',
+    checkIn: 'Arrivée',
+    checkOut: 'Départ',
+    pickupDate: 'Date de prise en charge',
+    returnDate: 'Date de retour',
+    guests: 'Voyageurs',
+    returnLocationOptional: 'Lieu de retour (optionnel)',
+    returnDifferentPlace: 'Retour à un autre endroit ?',
+    searchStays: 'Rechercher des séjours',
+    searchCars: 'Rechercher des voitures',
+    exploreAttractions: 'Explorer les attractions',
+    quickPopularCars: 'Voitures populaires',
+    quickFeaturedStays: 'Séjours à la une',
+    quickTopAttractions: 'Attractions incontournables'
+  },
+  // Section attractions de la page d'accueil
+  landing: {
+    viewAll: 'Tout voir',
+    curatedBy: 'Sélection AKWANDA.rw',
+    explore: 'Explorer'
+  },
+  // Appels à l'action génériques
+  cta: {
+    learnMore: 'En savoir plus',
+    contactUs: 'Nous contacter'
+  },
 };
 
 const LocaleContext = createContext(null);
 
 export const LocaleProvider = ({ children }) => {
-  const [language, setLanguage] = useState(() => localStorage.getItem('lang') || DEFAULT_LANG);
+  // ... (rest of the code remains the same)
   const [currency, setCurrency] = useState(() => localStorage.getItem('currency') || DEFAULT_CURRENCY);
   const [rates, setRates] = useState(() => {
     try {

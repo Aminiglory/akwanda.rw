@@ -125,8 +125,8 @@ export default function OurMission() {
             <p className="mt-4 text-gray-700 whitespace-pre-line">{localize ? localize(section.body) : section.body}</p>
           )}
           <div className="mt-6 flex flex-wrap gap-3">
-            <a href="/about" className="px-5 py-2.5 rounded-lg bg-[#a06b42] text-white font-semibold hover:bg-[#8f5d36] transition-colors">Learn more</a>
-            <a href="/contact" className="px-5 py-2.5 rounded-lg border theme-chocolate-border text-[#4b2a00] font-semibold hover:bg-[#fff7ee] transition-colors">Contact us</a>
+            <a href="/about" className="px-5 py-2.5 rounded-lg bg-[#a06b42] text-white font-semibold hover:bg-[#8f5d36] transition-colors">{t ? t('cta.learnMore') : 'Learn more'}</a>
+            <a href="/contact" className="px-5 py-2.5 rounded-lg border theme-chocolate-border text-[#4b2a00] font-semibold hover:bg-[#fff7ee] transition-colors">{t ? t('cta.contactUs') : 'Contact us'}</a>
           </div>
         </div>
       </div>

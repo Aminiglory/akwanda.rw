@@ -4,7 +4,7 @@ import { useLocale } from '../contexts/LocaleContext';
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 export default function LandingAttractions() {
-  const { localize } = useLocale() || {};
+  const { localize, t } = useLocale() || {};
   const [section, setSection] = useState(null); // { key,title,body,images }
 
   useEffect(() => {
@@ -40,7 +40,7 @@ export default function LandingAttractions() {
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl md:text-3xl font-bold text-[#4b2a00]">{localize ? localize(section.title || 'Top Attractions') : (section.title || 'Top Attractions')}</h2>
-        <a href="/attractions" className="text-[#a06b42] font-semibold hover:underline">View all</a>
+        <a href="/attractions" className="text-[#a06b42] font-semibold hover:underline">{t ? t('landing.viewAll') : 'View all'}</a>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {cards.map((c, i) => (
@@ -54,8 +54,8 @@ export default function LandingAttractions() {
             </figure>
             <div className="p-4">
               <div className="flex items-center justify-between">
-                <div className="text-sm text-gray-600">Curated by AKWANDA.rw</div>
-                <a href="/attractions" className="text-[#a06b42] text-sm font-semibold hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#a06b42] rounded" aria-label={`Explore attractions including ${c.title}`}>Explore</a>
+                <div className="text-sm text-gray-600">{t ? t('landing.curatedBy') : 'Curated by AKWANDA.rw'}</div>
+                <a href="/attractions" className="text-[#a06b42] text-sm font-semibold hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#a06b42] rounded" aria-label={`Explore attractions including ${c.title}`}>{t ? t('landing.explore') : 'Explore'}</a>
               </div>
             </div>
           </article>

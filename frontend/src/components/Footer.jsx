@@ -61,14 +61,14 @@ const Footer = () => {
       links: [
         { name: t ? t('footer.helpCenter') : "Help Center", href: "/support" },
         { name: t ? t('footer.safetyCenter') : "Safety Center", href: "/support" },
-        { name: "Customer Support", href: "/support#contact" },
+        { name: t ? t('footer.contactUs') : "Contact Us", href: "/support#contact" },
         { name: t ? t('footer.terms') : "Terms of Service", href: "/support" }
       ]
     }
   ];
 
   const quickLinks = [
-    { icon: FaBed, name: "Apartments", href: "/apartments" },
+    { icon: FaBed, name: t ? t('footer.apartments') : "Apartments", href: "/apartments" },
     { icon: FaBuffer, name: t ? t('footer.listProperty') : "List Property", href: "/upload-property" }
   ];
 
@@ -80,7 +80,7 @@ const Footer = () => {
           {/* Brand Section */}
           <div className="lg:col-span-1">
             <div className="mb-6">
-              <h2 className="text-2xl font-bold text-white mb-4">AKWANDA.rw</h2>
+              <h2 className="text-2xl font-bold text-white mb-4">{t ? t('brand') : 'AKWANDA.rw'}</h2>
               <p className="text-white-300 leading-relaxed">
                 Rwanda's leading apartment rental platform. Connect guests with amazing hosts across the country.
               </p>

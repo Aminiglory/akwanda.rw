@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useLocale } from '../contexts/LocaleContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -11,6 +12,7 @@ const UploadProperty = () => {
   const editId = params.get('edit');
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { t, formatCurrencyRWF } = useLocale() || {};
   const [form, setForm] = useState({
     title: '',
     description: '',
@@ -63,17 +65,17 @@ const UploadProperty = () => {
   const onSubmit = async (e) => {
     e.preventDefault();
     if (!user) {
-      toast.error('Please login to list a property');
+      toast.error(t ? t('msg.mustLoginToList') : 'Please login to list a property');
       navigate('/owner-login');
       return;
     }
     if (user.userType !== 'host' && user.userType !== 'admin') {
-      toast.error('Only property owners can list properties. Please use Owner Login.');
+      toast.error(t ? t('msg.ownerOnly') : 'Only property owners can list properties. Please use Owner Login.');
       navigate('/owner-login');
       return;
     }
     if (!form.title || !form.address || !form.city || !form.pricePerNight) {
-      return toast.error('Please fill all required fields');
+      return toast.error(t ? t('msg.fillRequiredFields') : 'Please fill all required fields');
     }
     const body = new FormData();
     Object.entries(form).forEach(([k, v]) => v !== '' && body.append(k, v));
@@ -111,8 +113,8 @@ const UploadProperty = () => {
           credentials: 'include'
         });
         data = await res.json();
-        if (!res.ok) throw new Error(data.message || 'Failed to update property');
-        toast.success('Property updated');
+        if (!res.ok) throw new Error(data.message || (t ? t('msg.saveFailed') : 'Failed to update property'));
+        toast.success(t ? t('msg.propertyUpdated') : 'Property updated');
       } else {
         res = await fetch(`${API_URL}/api/properties`, {
           method: 'POST',
@@ -128,7 +130,7 @@ const UploadProperty = () => {
             : data.message || 'Failed to create property';
           throw new Error(errorMsg);
         }
-        toast.success('Property created');
+        toast.success(t ? t('msg.propertyCreated') : 'Property created');
       }
       setForm({ title: '', description: '', address: '', city: '', pricePerNight: '', discountPercent: '', commissionChoice: 'standard' });
       setDetails({ bedrooms: '1', bathrooms: '1', size: '', amenities: '' });
@@ -148,7 +150,7 @@ const UploadProperty = () => {
       console.error('Property creation error:', e);
       // Show detailed error message
       const errorMessage = e.message || 'Failed to create property';
-      toast.error(errorMessage, { duration: 5000 });
+      toast.error(errorMessage || (t ? t('msg.saveFailed') : 'Failed to save'), { duration: 5000 });
     } finally {
       setSubmitting(false);
     }
@@ -157,25 +159,24 @@ const UploadProperty = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-3xl mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-6">Upload Apartment</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-6">{t ? t('listing.uploadTitle') : 'Upload Apartment'}</h1>
         
         {!user && (
           <div className="mb-4 rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-yellow-800">
-            <p className="font-semibold">⚠️ You are not logged in</p>
-            <p className="text-sm mt-1">Please <a href="/owner-login" className="underline font-medium">login as a property owner</a> to list your property.</p>
+            <p className="font-semibold">⚠️ {t ? t('msg.mustLoginToList') : 'Please login to list a property'}</p>
+            <p className="text-sm mt-1">{t ? t('msg.ownerOnly') : 'Only property owners can list properties. Please use Owner Login.'}</p>
           </div>
         )}
         
         {user && user.userType !== 'host' && user.userType !== 'admin' && (
           <div className="mb-4 rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-yellow-800">
-            <p className="font-semibold">⚠️ Wrong account type</p>
-            <p className="text-sm mt-1">You are logged in as a guest. Please <a href="/owner-login" className="underline font-medium">login as a property owner</a> to list properties.</p>
+            <p className="font-semibold">⚠️ {t ? t('msg.ownerOnly') : 'Only property owners can list properties. Please use Owner Login.'}</p>
           </div>
         )}
         
         {user?.isBlocked && (
           <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
-            Your account is currently deactivated. You cannot create or edit listings until reactivated.
+            {t ? t('msg.accountDeactivatedNotice') : 'Your account is currently deactivated. You cannot create or edit listings until reactivated.'}
           </div>
         )}
         <form onSubmit={onSubmit} className="bg-white rounded-2xl shadow-lg p-6 space-y-4">
@@ -220,7 +221,8 @@ const UploadProperty = () => {
                   const pct = form.commissionChoice === 'higher' ? 12 : (form.commissionChoice === 'mid' ? 10 : 8);
                   const price = Number(form.pricePerNight || 0);
                   const est = Math.round((price * pct) / 100);
-                  return <span>Estimated commission per night: <span className="font-semibold text-blue-700">RWF {isNaN(est) ? 0 : est.toLocaleString()}</span> ({pct}%)</span>;
+                  const estFmt = formatCurrencyRWF ? formatCurrencyRWF(est) : `RWF ${isNaN(est) ? 0 : est.toLocaleString()}`;
+                  return <span>Estimated commission per night: <span className="font-semibold text-blue-700">{estFmt}</span> ({pct}%)</span>;
                 })()}
               </div>
             </div>

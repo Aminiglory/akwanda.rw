@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { FaMapMarkerAlt, FaCalendarAlt, FaUser, FaSearch, FaCar, FaUmbrellaBeach, FaHome } from 'react-icons/fa';
+import { useLocale } from '../contexts/LocaleContext';
 
 const SearchSection = () => {
+  const { t } = useLocale() || {};
   const [activeTab, setActiveTab] = useState('stays'); // stays | cars | attractions
   const [searchData, setSearchData] = useState({
     location: '',
@@ -46,13 +48,13 @@ const SearchSection = () => {
           {/* Tabs */}
           <div className="flex items-center gap-3 mb-6">
             <button onClick={() => setActiveTab('stays')} type="button" className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold ${activeTab==='stays' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 border'}`}>
-              <FaHome /> Stays
+              <FaHome /> {t ? t('search.staysTab') : 'Stays'}
             </button>
             <button onClick={() => setActiveTab('cars')} type="button" className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold ${activeTab==='cars' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 border'}`}>
-              <FaCar /> Cars
+              <FaCar /> {t ? t('search.carsTab') : 'Cars'}
             </button>
             <button onClick={() => setActiveTab('attractions')} type="button" className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold ${activeTab==='attractions' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 border'}`}>
-              <FaUmbrellaBeach /> Attractions
+              <FaUmbrellaBeach /> {t ? t('search.attractionsTab') : 'Attractions'}
             </button>
           </div>
 
@@ -60,13 +62,13 @@ const SearchSection = () => {
             {/* Location */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                {activeTab==='cars' ? 'Pickup Location' : 'Location'}
+                {activeTab==='cars' ? (t ? t('search.pickupLocation') : 'Pickup Location') : (t ? t('search.location') : 'Location')}
               </label>
               <div className="field">
                 <FaMapMarkerAlt className="icon-left" />
                 <input
                   type="text"
-                  placeholder={activeTab==='cars' ? 'Where to pick up?' : 'Where are you going?'}
+                  placeholder={activeTab==='cars' ? (t ? t('search.wherePickup') : 'Where to pick up?') : (t ? t('search.whereGoing') : 'Where are you going?')}
                   className="w-full pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
                   value={activeTab==='cars' ? searchData.pickupLocation : searchData.location}
                   onChange={(e) => handleInputChange(activeTab==='cars' ? 'pickupLocation' : 'location', e.target.value)}
@@ -77,7 +79,7 @@ const SearchSection = () => {
             {/* Check-in / Pickup Date */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                {activeTab==='cars' ? 'Pickup Date' : 'Check-in'}
+                {activeTab==='cars' ? (t ? t('search.pickupDate') : 'Pickup Date') : (t ? t('search.checkIn') : 'Check-in')}
               </label>
               <div className="field">
                 <FaCalendarAlt className="icon-left" />
@@ -93,7 +95,7 @@ const SearchSection = () => {
             {/* Check-out / Return Date */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                {activeTab==='cars' ? 'Return Date' : 'Check-out'}
+                {activeTab==='cars' ? (t ? t('search.returnDate') : 'Return Date') : (t ? t('search.checkOut') : 'Check-out')}
               </label>
               <div className="field">
                 <FaCalendarAlt className="icon-left" />
@@ -110,7 +112,7 @@ const SearchSection = () => {
             {activeTab !== 'cars' ? (
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Guests
+                  {t ? t('search.guests') : 'Guests'}
                 </label>
                 <div className="field">
                   <FaUser className="icon-left" />
@@ -119,24 +121,24 @@ const SearchSection = () => {
                     value={Number(searchData.guests) || 1}
                     onChange={(e) => handleInputChange('guests', Number(e.target.value))}
                   >
-                    <option value="1">1 Guest</option>
-                    <option value="2">2 Guests</option>
-                    <option value="3">3 Guests</option>
-                    <option value="4">4 Guests</option>
-                    <option value="5">5+ Guests</option>
+                    <option value="1">1 {t ? t('search.guests') : 'Guests'}</option>
+                    <option value="2">2 {t ? t('search.guests') : 'Guests'}</option>
+                    <option value="3">3 {t ? t('search.guests') : 'Guests'}</option>
+                    <option value="4">4 {t ? t('search.guests') : 'Guests'}</option>
+                    <option value="5">5+ {t ? t('search.guests') : 'Guests'}</option>
                   </select>
                 </div>
               </div>
             ) : (
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Return Location (optional)
+                  {t ? t('search.returnLocationOptional') : 'Return Location (optional)'}
                 </label>
                 <div className="field">
                   <FaMapMarkerAlt className="icon-left" />
                   <input
                     type="text"
-                    placeholder="Return to a different place?"
+                    placeholder={t ? t('search.returnDifferentPlace') : 'Return to a different place?'}
                     className="w-full pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
                     value={searchData.returnLocation}
                     onChange={(e) => handleInputChange('returnLocation', e.target.value)}
@@ -152,20 +154,20 @@ const SearchSection = () => {
                 className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-semibold flex items-center gap-2 transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl"
               >
                 <FaSearch />
-                {activeTab==='stays' ? 'Search Stays' : activeTab==='cars' ? 'Search Cars' : 'Explore Attractions'}
+                {activeTab==='stays' ? (t ? t('search.searchStays') : 'Search Stays') : activeTab==='cars' ? (t ? t('search.searchCars') : 'Search Cars') : (t ? t('search.exploreAttractions') : 'Explore Attractions')}
               </button>
             </div>
           </form>
         </div>
         {/* Quick links */}
         <div className={`mt-6 flex flex-wrap justify-center gap-3 transition-all duration-700 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}>
-          <a href="/cars" className="px-4 py-2 rounded-full bg-white/80 border hover:border-blue-300 hover:text-blue-700 transition">Popular Cars</a>
-          <a href="/apartments" className="px-4 py-2 rounded-full bg-white/80 border hover:border-blue-300 hover:text-blue-700 transition">Featured Stays</a>
-          <a href="/attractions" className="px-4 py-2 rounded-full bg-white/80 border hover:border-blue-300 hover:text-blue-700 transition">Top Attractions</a>
+          <a href="/cars" className="px-4 py-2 rounded-full bg-white/80 border hover:border-blue-300 hover:text-blue-700 transition">{t ? t('search.quickPopularCars') : 'Popular Cars'}</a>
+          <a href="/apartments" className="px-4 py-2 rounded-full bg-white/80 border hover:border-blue-300 hover:text-blue-700 transition">{t ? t('search.quickFeaturedStays') : 'Featured Stays'}</a>
+          <a href="/attractions" className="px-4 py-2 rounded-full bg-white/80 border hover:border-blue-300 hover:text-blue-700 transition">{t ? t('search.quickTopAttractions') : 'Top Attractions'}</a>
         </div>
       </div>
     </div>
   );
-};
+}
 
 export default SearchSection;
