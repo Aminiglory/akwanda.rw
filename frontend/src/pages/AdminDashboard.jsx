@@ -167,10 +167,13 @@ const AdminDashboard = () => {
       ]);
 
       // Set data with fallbacks
+      const revenueFallback = Array.isArray(bookingsData.bookings)
+        ? bookingsData.bookings.reduce((sum, b) => sum + (Number(b.totalAmount) || 0), 0)
+        : 0;
       setMetrics({
         totalProperties: metricsData.totalProperties || propertiesData.properties?.length || 0,
         totalBookings: metricsData.totalBookings || bookingsData.bookings?.length || 0,
-        totalRevenue: metricsData.totalRevenue || 0,
+        totalRevenue: metricsData.totalRevenue || revenueFallback,
         totalUsers: metricsData.totalUsers || usersData.users?.length || 0,
         totalAttractions: 0,
         totalTaxis: 0,
@@ -333,6 +336,13 @@ const AdminDashboard = () => {
               >
                 Seed Demo Properties
               </button>
+              <Link
+                to="/admin/amenities"
+                className="px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-medium hover:bg-green-700 transition-colors inline-flex items-center gap-2"
+                title="Create and manage amenities and services"
+              >
+                <FaPlus /> Manage Amenities
+              </Link>
             </div>
           </div>
         </div>

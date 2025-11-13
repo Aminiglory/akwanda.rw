@@ -52,10 +52,12 @@ const PropertyOwnerBookings = () => {
     checkIn: '',
     checkOut: '',
     guests: 1,
-    guestInfo: { firstName: '', lastName: '', email: '', phone: '' },
+    guestInfo: { firstName: '', lastName: '', email: '', phone: '', nationality: '', passport: '', address: '' },
     contactInfo: { email: '', phone: '' },
     paymentMethod: 'cash',
     markPaid: true,
+    paymentStatusSelection: 'paid',
+    services: { breakfast: false, airportTransfer: false, laundry: false },
     specialRequests: ''
   });
   const [ownerRooms, setOwnerRooms] = useState([]);
@@ -71,6 +73,8 @@ const PropertyOwnerBookings = () => {
   const [activeNavDropdown, setActiveNavDropdown] = useState(null);
   const [financeFilter, setFinanceFilter] = useState(searchParams.get('finance_status') || 'all'); // all|paid|pending|unpaid
   const [financeView, setFinanceView] = useState(searchParams.get('view') || 'all'); // all|last30|mtd|ytd|invoices|statement|overview
+  const [financePage, setFinancePage] = useState(1);
+  const [financePerPage] = useState(10);
   const [analyticsRange, setAnalyticsRange] = useState(searchParams.get('range') || '30'); // 30|90|ytd|custom
   const [analyticsView, setAnalyticsView] = useState(searchParams.get('view') || 'dashboard'); // dashboard|demand|pace|sales|booker|bookwindow|cancellation|competitive|genius|ranking|performance
   const [boostView, setBoostView] = useState(searchParams.get('view') || 'opportunity'); // opportunity|commission-free|genius|preferred|long-stays|visibility|work-friendly|unit-diff
@@ -78,6 +82,13 @@ const PropertyOwnerBookings = () => {
   const [ownerReviews, setOwnerReviews] = useState([]);
   const [ownerAvgRating, setOwnerAvgRating] = useState(0);
   const [ownerReviewCount, setOwnerReviewCount] = useState(0);
+  const [analyticsData, setAnalyticsData] = useState({ occupancyDaily: [], adrDaily: [], revparDaily: [], totals: { occupancyAvg: 0, adrAvg: 0, revparAvg: 0, conversions: 0, cancellations: 0 } });
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [salesPeriod, setSalesPeriod] = useState('daily'); // daily|weekly|monthly
+  const [salesPage, setSalesPage] = useState(1);
+  const [salesPerPage] = useState(10);
+  const [showSalesConfirm, setShowSalesConfirm] = useState(false);
+  const [salesNewBooking, setSalesNewBooking] = useState(null);
   const [expandedSections, setExpandedSections] = useState({
     reservations: true,
     calendar: false,
@@ -149,6 +160,117 @@ const PropertyOwnerBookings = () => {
       setLoading(false);
     }
   };
+
+  // Sales confirmation flow before printing receipt
+  const onConfirmSalesAndPrint = async () => {
+    try {
+      if (salesNewBooking) {
+        // Ensure analytics tab is active to review
+        setActiveTab('analytics');
+        setAnalyticsView('sales');
+        // Reflect immediately in UI without waiting network
+        setBookings(prev => [salesNewBooking, ...prev]);
+        // Refresh data in background
+        loadData();
+        // Open standard receipt (PDF/HTML route assumed available)
+        window.open(`${API_URL}/api/bookings/${salesNewBooking._id}/receipt`, '_blank');
+      }
+    } finally {
+      setShowSalesConfirm(false);
+      setSalesNewBooking(null);
+    }
+  };
+
+  const onCancelSalesConfirm = () => {
+    setShowSalesConfirm(false);
+    setSalesNewBooking(null);
+  };
+
+  // Load owner analytics (RevPAR, ADR, occupancy) based on selected property
+  useEffect(() => {
+    const fetchOwnerAnalytics = async () => {
+      try {
+        setAnalyticsLoading(true);
+        const params = new URLSearchParams();
+        if (filters.property && filters.property !== 'all') params.set('property', filters.property);
+        const res = await fetch(`${API_URL}/api/analytics/owner?${params.toString()}`, { credentials: 'include' });
+        const data = await res.json();
+        if (res.ok) setAnalyticsData(data || {});
+      } catch (_) {
+        setAnalyticsData({ occupancyDaily: [], adrDaily: [], revparDaily: [], totals: { occupancyAvg: 0, adrAvg: 0, revparAvg: 0, conversions: 0, cancellations: 0 } });
+      } finally {
+        setAnalyticsLoading(false);
+      }
+    };
+    if (activeTab === 'analytics') fetchOwnerAnalytics();
+  }, [activeTab, filters.property]);
+
+  // Reset finance pagination when view or filters change
+  useEffect(() => {
+    setFinancePage(1);
+  }, [financeView, financeFilter, filters.property]);
+
+  // Helpers for sales grouping, export, and pagination
+  const getPeriodKey = (d, period) => {
+    const dt = new Date(d); dt.setHours(0,0,0,0);
+    if (period === 'monthly') return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;
+    if (period === 'weekly') {
+      const t = new Date(dt.getTime());
+      const day = (t.getDay()+6)%7; // ISO week, Monday=0
+      t.setDate(t.getDate()-day);
+      const y = t.getFullYear();
+      const first = new Date(y,0,1); const diff = Math.floor((t-first)/(24*3600*1000));
+      const week = Math.floor((diff+first.getDay()+6)/7)+1;
+      return `${y}-W${String(week).padStart(2,'0')}`;
+    }
+    return dt.toISOString().slice(0,10);
+  };
+
+  const computeSalesBuckets = (list, period) => {
+    const map = new Map();
+    list.forEach(b => {
+      const key = getPeriodKey(b.createdAt || b.checkIn, period);
+      const cur = map.get(key) || { period: key, revenue: 0, tax: 0, count: 0 };
+      cur.revenue += Number(b.totalAmount || 0);
+      cur.tax += Number(b.taxAmount || 0);
+      cur.count += 1;
+      map.set(key, cur);
+    });
+    return Array.from(map.values()).sort((a,b) => a.period.localeCompare(b.period));
+  };
+
+  const exportSalesCSV = (rows) => {
+    const header = ['Period','Revenue','Tax','Count'];
+    const lines = [header.join(',')].concat(rows.map(r => [r.period, r.revenue, r.tax, r.count].join(',')));
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `sales_${salesPeriod}.csv`; a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // Computed values for direct booking modal
+  const ownerSelectedProperty = properties.find(p => String(p._id) === String(directForm.propertyId));
+  const ownerSelectedRoom = ownerRooms.find(r => String(r._id) === String(directForm.roomId));
+  const ownerNightly = ownerSelectedRoom?.pricePerNight || ownerSelectedProperty?.pricePerNight || 0;
+  const ownerNights = (() => {
+    if (!directForm.checkIn || !directForm.checkOut) return 0;
+    const s = new Date(directForm.checkIn); const e = new Date(directForm.checkOut);
+    const n = Math.ceil((e - s) / (1000 * 60 * 60 * 24));
+    return isNaN(n) ? 0 : Math.max(0, n);
+  })();
+  const ownerRoomCharge = ownerNights > 0 ? ownerNightly * ownerNights : 0;
+  const ownerServicesTotal = (() => {
+    let total = 0;
+    if (directForm.services?.breakfast) total += 15000 * Math.max(1, ownerNights);
+    if (directForm.services?.airportTransfer) total += 0;
+    if (directForm.services?.laundry) total += 0;
+    return total;
+  })();
+  const ownerSubtotal = ownerRoomCharge + ownerServicesTotal;
+  const ownerLevy3 = Math.round(ownerSubtotal * 0.03);
+  const ownerVat18 = Math.round(ownerSubtotal * 0.18);
+  const ownerGrandTotal = ownerSubtotal + ownerLevy3 + ownerVat18;
 
   const loadOwnerProperties = async () => {
     try {
@@ -321,6 +443,9 @@ const PropertyOwnerBookings = () => {
         toast.error('Guest name and phone are required');
         return;
       }
+      const uiPaymentMethod = directForm.paymentMethod;
+      const payloadPaymentMethod = uiPaymentMethod === 'mtn_mobile_money' ? 'mtn_mobile_money' : 'cash';
+      const markPaid = directForm.paymentStatusSelection === 'paid';
       const payload = {
         propertyId: directForm.propertyId,
         room: directForm.roomId,
@@ -331,9 +456,9 @@ const PropertyOwnerBookings = () => {
         specialRequests: directForm.specialRequests,
         groupBooking: directForm.guests >= 4,
         groupSize: directForm.guests,
-        paymentMethod: directForm.paymentMethod,
+        paymentMethod: payloadPaymentMethod,
         guestInfo: directForm.guestInfo,
-        markPaid: directForm.paymentMethod === 'cash' ? directForm.markPaid : false,
+        markPaid: payloadPaymentMethod === 'cash' ? !!markPaid : false,
         directBooking: true
       };
       const res = await fetch(`${API_URL}/api/bookings`, {
@@ -346,16 +471,37 @@ const PropertyOwnerBookings = () => {
       if (!res.ok) throw new Error(data.message || 'Failed to create booking');
       toast.success('Direct booking recorded');
       setShowDirectBooking(false);
-      // Open simplified direct receipt for printing/saving
-      if (data?.booking?._id) {
-        window.open(`${API_URL}/api/bookings/${data.booking._id}/direct-receipt.csv`, '_blank');
-        navigate(`/booking-confirmation/${data.booking._id}`);
-      } else {
-        loadData();
+      if (data?.booking) {
+        setSalesNewBooking(data.booking);
+        setShowSalesConfirm(true); // require sales confirmation before printing
       }
     } catch (e) {
       toast.error(e.message);
     }
+  };
+
+  const saveDirectDraft = () => {
+    try {
+      localStorage.setItem('directBookingDraft', JSON.stringify(directForm));
+      toast.success('Saved as draft');
+    } catch (_) {}
+  };
+
+  const clearDirectForm = () => {
+    setDirectForm({
+      propertyId: '',
+      roomId: '',
+      checkIn: '',
+      checkOut: '',
+      guests: 1,
+      guestInfo: { firstName: '', lastName: '', email: '', phone: '', nationality: '', passport: '', address: '' },
+      contactInfo: { email: '', phone: '' },
+      paymentMethod: 'cash',
+      markPaid: true,
+      paymentStatusSelection: 'paid',
+      services: { breakfast: false, airportTransfer: false, laundry: false },
+      specialRequests: ''
+    });
   };
 
   const toggleSection = (section) => {
@@ -917,11 +1063,11 @@ const PropertyOwnerBookings = () => {
       ]
     },
     {
-      label: 'Analytics',
+      label: 'Sales Reporting & Analytics',
       icon: FaChartLine,
       href: '/dashboard?tab=analytics',
       children: [
-        { label: 'Analytics dashboard', href: '/dashboard?tab=analytics' },
+        { label: 'Overview dashboard', href: '/dashboard?tab=analytics' },
         { label: 'Sales statistics', href: '/dashboard?tab=analytics&view=sales' },
       ]
     },
@@ -1111,13 +1257,12 @@ const PropertyOwnerBookings = () => {
                 </div>
               )}
             </div>
-
-            {/* Analytics */}
             <div className="neu-card p-0">
               <div 
                 className="flex items-center justify-between p-6 border-b cursor-pointer hover:bg-gray-50"
                 onClick={() => toggleSection('advancedAnalytics')}
               >
+                {/* ... */}
                 <div className="flex items-center space-x-3">
                   <FaChartLine className="text-purple-600 text-xl" />
                   <h2 className="text-xl font-semibold text-gray-900">Advanced Analytics</h2>
@@ -1513,46 +1658,64 @@ const PropertyOwnerBookings = () => {
               <div className="neu-card p-6">
                 <h2 className="text-xl font-semibold mb-6">Invoices</h2>
                 <div className="space-y-4">
-                  {financeFiltered.map((booking) => (
-                    <div key={booking._id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <div className="font-semibold text-gray-900">Invoice #{booking.confirmationCode || booking._id.slice(-8)}</div>
-                          <div className="text-sm text-gray-600">{booking.property?.title || 'Property'}</div>
-                          <div className="text-sm text-gray-500">{new Date(booking.createdAt).toLocaleDateString()}</div>
+                  {(() => {
+                    const rows = financeFiltered || [];
+                    const totalPages = Math.max(1, Math.ceil(rows.length / financePerPage));
+                    const page = Math.min(financePage, totalPages);
+                    const start = (page - 1) * financePerPage;
+                    const pageRows = rows.slice(start, start + financePerPage);
+                    return (
+                      <>
+                        {pageRows.map((booking) => (
+                          <div key={booking._id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <div className="font-semibold text-gray-900">Invoice #{booking.confirmationCode || booking._id.slice(-8)}</div>
+                                <div className="text-sm text-gray-600">{booking.property?.title || 'Property'}</div>
+                                <div className="text-sm text-gray-500">{new Date(booking.createdAt).toLocaleDateString()}</div>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-lg font-bold text-gray-900">{formatCurrencyRWF ? formatCurrencyRWF(booking.totalAmount || 0) : `RWF ${(booking.totalAmount || 0).toLocaleString()}`}</div>
+                                <span className={`inline-block px-2 py-1 text-xs rounded-full ${
+                                  booking.paymentStatus === 'paid' ? 'bg-green-100 text-green-800' :
+                                  booking.paymentStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                  'bg-red-100 text-red-800'
+                                }`}>
+                                  {booking.paymentStatus || booking.status}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="mt-3 flex space-x-2">
+                              <button
+                                onClick={() => navigate(`/invoice/${booking._id}`)}
+                                className="text-sm text-blue-600 hover:text-blue-800"
+                              >
+                                View Invoice
+                              </button>
+                              <button
+                                onClick={() => {
+                                  window.open(`${API_URL}/api/bookings/${booking._id}/receipt`, '_blank');
+                                }}
+                                className="text-sm text-green-600 hover:text-green-800"
+                              >
+                                View Receipt
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                        {pageRows.length === 0 && (
+                          <div className="text-center py-12 text-gray-500">No invoices found</div>
+                        )}
+                        <div className="flex items-center justify-between pt-2">
+                          <div className="text-sm text-gray-500">Page {page} of {totalPages}</div>
+                          <div className="flex gap-2">
+                            <button disabled={page<=1} onClick={()=>setFinancePage(p=>Math.max(1,p-1))} className="px-3 py-1 rounded border disabled:opacity-50">Prev</button>
+                            <button disabled={page>=totalPages} onClick={()=>setFinancePage(p=>Math.min(totalPages,p+1))} className="px-3 py-1 rounded border disabled:opacity-50">Next</button>
+                          </div>
                         </div>
-                        <div className="text-right">
-                          <div className="text-lg font-bold text-gray-900">{formatCurrencyRWF ? formatCurrencyRWF(booking.totalAmount || 0) : `RWF ${(booking.totalAmount || 0).toLocaleString()}`}</div>
-                          <span className={`inline-block px-2 py-1 text-xs rounded-full ${
-                            booking.paymentStatus === 'paid' ? 'bg-green-100 text-green-800' :
-                            booking.paymentStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-red-100 text-red-800'
-                          }`}>
-                            {booking.paymentStatus || booking.status}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="mt-3 flex space-x-2">
-                        <button
-                          onClick={() => navigate(`/invoice/${booking._id}`)}
-                          className="text-sm text-blue-600 hover:text-blue-800"
-                        >
-                          View Invoice
-                        </button>
-                        <button
-                          onClick={() => {
-                            window.open(`${API_URL}/api/bookings/${booking._id}/receipt`, '_blank');
-                          }}
-                          className="text-sm text-green-600 hover:text-green-800"
-                        >
-                          View Receipt
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                  {financeFiltered.length === 0 && (
-                    <div className="text-center py-12 text-gray-500">No invoices found</div>
-                  )}
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
             )}
@@ -1575,34 +1738,50 @@ const PropertyOwnerBookings = () => {
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {financeFiltered.map((booking) => {
-                        const commission = Math.round((booking.totalAmount || 0) * 0.1);
-                        const net = (booking.totalAmount || 0) - commission;
-                        return (
-                          <tr key={booking._id} className="hover:bg-gray-50">
-                            <td className="px-4 py-3 text-sm">{new Date(booking.createdAt).toLocaleDateString()}</td>
-                            <td className="px-4 py-3 text-sm font-medium">{booking.confirmationCode || booking._id.slice(-8)}</td>
-                            <td className="px-4 py-3 text-sm">{booking.property?.title || 'Property'}</td>
-                            <td className="px-4 py-3 text-sm">{`${booking.guest?.firstName || ''} ${booking.guest?.lastName || ''}`.trim() || 'Guest'}</td>
-                            <td className="px-4 py-3 text-sm text-right font-semibold">RWF {(booking.totalAmount || 0).toLocaleString()}</td>
-                            <td className="px-4 py-3 text-sm text-right text-red-600">-RWF {commission.toLocaleString()}</td>
-                            <td className="px-4 py-3 text-sm text-right font-bold text-green-600">RWF {net.toLocaleString()}</td>
-                            <td className="px-4 py-3 text-sm">
-                              <span className={`inline-block px-2 py-1 text-xs rounded-full ${
-                                booking.paymentStatus === 'paid' ? 'bg-green-100 text-green-800' :
-                                booking.paymentStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                                'bg-red-100 text-red-800'
-                              }`}>
-                                {booking.paymentStatus || booking.status}
-                              </span>
-                            </td>
-                          </tr>
-                        );
-                      })}
+                      {(() => {
+                        const rows = financeFiltered || [];
+                        const totalPages = Math.max(1, Math.ceil(rows.length / financePerPage));
+                        const page = Math.min(financePage, totalPages);
+                        const start = (page - 1) * financePerPage;
+                        const pageRows = rows.slice(start, start + financePerPage);
+                        return pageRows.map((booking) => {
+                          const commission = Math.round((booking.totalAmount || 0) * 0.1);
+                          const net = (booking.totalAmount || 0) - commission;
+                          return (
+                            <tr key={booking._id} className="hover:bg-gray-50">
+                              <td className="px-4 py-3 text-sm">{new Date(booking.createdAt).toLocaleDateString()}</td>
+                              <td className="px-4 py-3 text-sm font-medium">{booking.confirmationCode || booking._id.slice(-8)}</td>
+                              <td className="px-4 py-3 text-sm">{booking.property?.title || 'Property'}</td>
+                              <td className="px-4 py-3 text-sm">{`${booking.guest?.firstName || ''} ${booking.guest?.lastName || ''}`.trim() || 'Guest'}</td>
+                              <td className="px-4 py-3 text-sm text-right font-semibold">RWF {(booking.totalAmount || 0).toLocaleString()}</td>
+                              <td className="px-4 py-3 text-sm text-right text-red-600">-RWF {commission.toLocaleString()}</td>
+                              <td className="px-4 py-3 text-sm text-right font-bold text-green-600">RWF {net.toLocaleString()}</td>
+                              <td className="px-4 py-3 text-sm">
+                                <span className={`inline-block px-2 py-1 text-xs rounded-full ${
+                                  booking.paymentStatus === 'paid' ? 'bg-green-100 text-green-800' :
+                                  booking.paymentStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                  'bg-red-100 text-red-800'
+                                }`}>
+                                  {booking.paymentStatus || booking.status}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        });
+                      })()}
                     </tbody>
                   </table>
-                  {financeFiltered.length === 0 && (
+                  {(!financeFiltered || financeFiltered.length === 0) && (
                     <div className="text-center py-12 text-gray-500">No transactions found</div>
+                  )}
+                  {financeFiltered && financeFiltered.length > 0 && (
+                    <div className="flex items-center justify-between pt-2">
+                      <div className="text-sm text-gray-500">Page {financePage} of {Math.max(1, Math.ceil(financeFiltered.length / financePerPage))}</div>
+                      <div className="flex gap-2">
+                        <button disabled={financePage<=1} onClick={()=>setFinancePage(p=>Math.max(1,p-1))} className="px-3 py-1 rounded border disabled:opacity-50">Prev</button>
+                        <button disabled={financePage>=Math.ceil(financeFiltered.length/financePerPage)} onClick={()=>setFinancePage(p=>Math.min(Math.ceil(financeFiltered.length/financePerPage),p+1))} className="px-3 py-1 rounded border disabled:opacity-50">Next</button>
+                      </div>
+                    </div>
                   )}
                 </div>
               </div>
@@ -1613,19 +1792,35 @@ const PropertyOwnerBookings = () => {
         {activeTab === 'analytics' && (
           <div className="space-y-8">
             <div className="neu-card p-6">
-              <h2 className="text-xl font-semibold mb-6">
-                {analyticsView === 'dashboard' && 'Performance Analytics'}
-                {analyticsView === 'demand' && 'Demand for Location'}
-                {analyticsView === 'pace' && 'Your Pace of Bookings'}
-                {analyticsView === 'sales' && 'Sales Statistics'}
-                {analyticsView === 'booker' && 'Booker Insights'}
-                {analyticsView === 'bookwindow' && 'Booking Window Information'}
-                {analyticsView === 'cancellation' && 'Cancellation Characteristics'}
-                {analyticsView === 'competitive' && 'Competitive Set'}
-                {analyticsView === 'genius' && 'Genius Report'}
-                {analyticsView === 'ranking' && 'Ranking Dashboard'}
-                {analyticsView === 'performance' && 'Performance Dashboard'}
-              </h2>
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+                <h2 className="text-xl font-semibold">
+                  {analyticsView === 'dashboard' && 'Performance Analytics'}
+                  {analyticsView === 'demand' && 'Demand for Location'}
+                  {analyticsView === 'pace' && 'Your Pace of Bookings'}
+                  {analyticsView === 'sales' && 'Sales Reporting & Analytics'}
+                  {analyticsView === 'booker' && 'Booker Insights'}
+                  {analyticsView === 'bookwindow' && 'Booking Window Information'}
+                  {analyticsView === 'cancellation' && 'Cancellation Characteristics'}
+                  {analyticsView === 'competitive' && 'Competitive Set'}
+                  {analyticsView === 'genius' && 'Genius Report'}
+                  {analyticsView === 'ranking' && 'Ranking Dashboard'}
+                  {analyticsView === 'performance' && 'Performance Dashboard'}
+                </h2>
+                {analyticsView === 'sales' && (
+                  <div className="flex items-center gap-3">
+                    <select value={salesPeriod} onChange={(e)=>{ setSalesPeriod(e.target.value); setSalesPage(1); }} className="border rounded-lg px-3 py-2">
+                      <option value="daily">Daily</option>
+                      <option value="weekly">Weekly</option>
+                      <option value="monthly">Monthly</option>
+                    </select>
+                    <button onClick={()=>{
+                      const rows = computeSalesBuckets(bookings, salesPeriod);
+                      exportSalesCSV(rows);
+                    }} className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm">Export CSV</button>
+                    <button onClick={()=>window.print()} className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm">Export PDF</button>
+                  </div>
+                )}
+              </div>
               
               {analyticsView === 'dashboard' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -1676,21 +1871,118 @@ const PropertyOwnerBookings = () => {
               )}
 
               {analyticsView === 'sales' && (
-                <div className="space-y-4">
-                  <p className="text-gray-600">Detailed sales statistics and revenue breakdown.</p>
-                  <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div className="bg-gray-50 p-4 rounded-lg">
                       <p className="text-sm text-gray-600">Total Revenue</p>
                       <p className="text-xl font-bold">RWF {stats.totalRevenue?.toLocaleString()}</p>
                     </div>
                     <div className="bg-gray-50 p-4 rounded-lg">
                       <p className="text-sm text-gray-600">Avg Booking Value</p>
-                      <p className="text-xl font-bold">RWF {Math.round(stats.totalRevenue / (stats.total || 1)).toLocaleString()}</p>
+                      <p className="text-xl font-bold">RWF {Math.round(stats.totalRevenue / Math.max(1, stats.total)).toLocaleString()}</p>
                     </div>
                     <div className="bg-gray-50 p-4 rounded-lg">
-                      <p className="text-sm text-gray-600">Total Bookings</p>
-                      <p className="text-xl font-bold">{stats.total}</p>
+                      <p className="text-sm text-gray-600">Bookings (Direct)</p>
+                      <p className="text-xl font-bold">{bookings.filter(b=>b.isDirect).length}</p>
                     </div>
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <p className="text-sm text-gray-600">Bookings (Online)</p>
+                      <p className="text-xl font-bold">{bookings.filter(b=>!b.isDirect).length}</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-indigo-50 p-4 rounded-lg">
+                      <p className="text-sm text-indigo-700">RevPAR (avg)</p>
+                      <p className="text-2xl font-bold text-indigo-800">RWF {Number(analyticsData?.totals?.revparAvg||0).toLocaleString()}</p>
+                    </div>
+                    <div className="bg-teal-50 p-4 rounded-lg">
+                      <p className="text-sm text-teal-700">ADR (avg)</p>
+                      <p className="text-2xl font-bold text-teal-800">RWF {Number(analyticsData?.totals?.adrAvg||0).toLocaleString()}</p>
+                    </div>
+                    <div className="bg-yellow-50 p-4 rounded-lg">
+                      <p className="text-sm text-yellow-700">Occupancy (avg)</p>
+                      <p className="text-2xl font-bold text-yellow-800">{Number(analyticsData?.totals?.occupancyAvg||0)}%</p>
+                    </div>
+                  </div>
+
+                  <div className="neu-card p-4">
+                    <h3 className="font-semibold mb-3">Revenue by {salesPeriod}</h3>
+                    {(() => {
+                      const list = filters.property && filters.property !== 'all' ? bookings.filter(b => String(b.property?._id||b.property) === String(filters.property)) : bookings;
+                      const rows = computeSalesBuckets(list, salesPeriod);
+                      const totalPages = Math.max(1, Math.ceil(rows.length / salesPerPage));
+                      const page = Math.min(salesPage, totalPages);
+                      const start = (page-1) * salesPerPage;
+                      const pageRows = rows.slice(start, start + salesPerPage);
+                      return (
+                        <div className="space-y-3">
+                          <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-gray-200">
+                              <thead className="bg-gray-50">
+                                <tr>
+                                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Period</th>
+                                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Revenue</th>
+                                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Tax</th>
+                                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Count</th>
+                                </tr>
+                              </thead>
+                              <tbody className="bg-white divide-y divide-gray-100">
+                                {pageRows.map(r => (
+                                  <tr key={r.period} className="hover:bg-gray-50">
+                                    <td className="px-4 py-2 text-sm">{r.period}</td>
+                                    <td className="px-4 py-2 text-sm text-right">RWF {Number(r.revenue).toLocaleString()}</td>
+                                    <td className="px-4 py-2 text-sm text-right">RWF {Number(r.tax).toLocaleString()}</td>
+                                    <td className="px-4 py-2 text-sm text-right">{r.count}</td>
+                                  </tr>
+                                ))}
+                                {pageRows.length === 0 && (
+                                  <tr><td colSpan={4} className="px-4 py-6 text-center text-gray-500">No data</td></tr>
+                                )}
+                              </tbody>
+                            </table>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <div className="text-sm text-gray-500">Page {page} of {totalPages}</div>
+                            <div className="flex gap-2">
+                              <button disabled={page<=1} onClick={()=>setSalesPage(p=>Math.max(1,p-1))} className="px-3 py-1 rounded border disabled:opacity-50">Prev</button>
+                              <button disabled={page>=totalPages} onClick={()=>setSalesPage(p=>Math.min(totalPages,p+1))} className="px-3 py-1 rounded border disabled:opacity-50">Next</button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+
+                  <div className="neu-card p-4">
+                    <h3 className="font-semibold mb-2">Direct vs Online Comparison</h3>
+                    {(() => {
+                      const direct = bookings.filter(b=>b.isDirect);
+                      const online = bookings.filter(b=>!b.isDirect);
+                      const dRev = direct.reduce((s,b)=>s+Number(b.totalAmount||0),0);
+                      const oRev = online.reduce((s,b)=>s+Number(b.totalAmount||0),0);
+                      return (
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="bg-green-50 p-4 rounded-lg">
+                            <p className="text-sm text-green-700">Direct Revenue</p>
+                            <p className="text-xl font-bold text-green-800">RWF {dRev.toLocaleString()}</p>
+                          </div>
+                          <div className="bg-blue-50 p-4 rounded-lg">
+                            <p className="text-sm text-blue-700">Online Revenue</p>
+                            <p className="text-xl font-bold text-blue-800">RWF {oRev.toLocaleString()}</p>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+
+                  <div className="neu-card p-4">
+                    <h3 className="font-semibold mb-2">Tax Liability Tracking</h3>
+                    {(() => {
+                      const list = bookings;
+                      const tax = list.reduce((s,b)=> s + Number(b.taxAmount||0), 0);
+                      return <div className="text-gray-800">Estimated Taxes: <span className="font-semibold">RWF {tax.toLocaleString()}</span></div>;
+                    })()}
                   </div>
                 </div>
               )}
@@ -2102,86 +2394,117 @@ const PropertyOwnerBookings = () => {
                   </select>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Room (optional)</label>
-                    <select
-                      value={directForm.roomId}
-                      onChange={(e) => onDirectChange('roomId', e.target.value)}
-                      className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="">Any room</option>
-                      {ownerRooms.map(r => (
-                        <option key={r._id} value={r._id}>{r.roomNumber || r.roomType || 'Room'}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Check-in</label>
-                    <input type="date" value={directForm.checkIn} onChange={e => onDirectChange('checkIn', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" required />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Check-out</label>
-                    <input type="date" value={directForm.checkOut} onChange={e => onDirectChange('checkOut', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" required />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Guests</label>
-                    <input type="number" min={1} value={directForm.guests} onChange={e => onDirectChange('guests', Number(e.target.value) || 1)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
-                    <select value={directForm.paymentMethod} onChange={e => onDirectChange('paymentMethod', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                      <option value="cash">Pay on Arrival</option>
-                      <option value="mtn_mobile_money">MTN Mobile Money</option>
-                    </select>
-                  </div>
-                  {directForm.paymentMethod === 'cash' && (
-                    <div className="flex items-end">
-                      <label className="inline-flex items-center space-x-2">
-                        <input type="checkbox" checked={directForm.markPaid} onChange={e => onDirectChange('markPaid', e.target.checked)} />
-                        <span className="text-sm">Mark as paid</span>
-                      </label>
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Guest Info</label>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <input placeholder="First name" value={directForm.guestInfo.firstName} onChange={e => onDirectChange('guestInfo.firstName', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" required />
-                    <input placeholder="Last name" value={directForm.guestInfo.lastName} onChange={e => onDirectChange('guestInfo.lastName', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" required />
-                    <input type="email" placeholder="Email" value={directForm.guestInfo.email} onChange={e => onDirectChange('guestInfo.email', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-                    <input type="tel" placeholder="Phone" value={directForm.guestInfo.phone} onChange={e => onDirectChange('guestInfo.phone', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">A guest account will be linked or created automatically if necessary.</p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Contact Info (for booking records)</label>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <input type="email" placeholder="Contact email" value={directForm.contactInfo.email} onChange={e => onDirectChange('contactInfo.email', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-                    <input type="tel" placeholder="Contact phone" value={directForm.contactInfo.phone} onChange={e => onDirectChange('contactInfo.phone', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Special Requests</label>
-                  <textarea value={directForm.specialRequests} onChange={e => onDirectChange('specialRequests', e.target.value)} rows={3} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Any special notes..."></textarea>
-                </div>
-
-                <div className="flex items-center justify-end border-t pt-4">
-                  <button type="submit" className="px-6 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium">Create Booking</button>
-                </div>
-              </form>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Room (optional)</label>
+              <select
+                value={directForm.roomId}
+                onChange={(e) => onDirectChange('roomId', e.target.value)}
+                className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">Any room</option>
+                {ownerRooms.map(r => (
+                  <option key={r._id} value={r._id}>{r.roomNumber || r.roomType || 'Room'}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Check-in</label>
+              <input type="date" value={directForm.checkIn} onChange={e => onDirectChange('checkIn', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" required />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Check-out</label>
+              <input type="date" value={directForm.checkOut} onChange={e => onDirectChange('checkOut', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" required />
             </div>
           </div>
-        </div>
-      )}
-    </div>
-  );
-};
 
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Guests</label>
+              <input type="number" min={1} value={directForm.guests} onChange={e => onDirectChange('guests', Number(e.target.value) || 1)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
+              <select value={directForm.paymentMethod} onChange={e => onDirectChange('paymentMethod', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                <option value="cash">Cash</option>
+                <option value="mtn_mobile_money">Mobile Money</option>
+                <option value="credit_card">Credit Card</option>
+                <option value="bank_transfer">Bank Transfer</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Payment Status</label>
+              <div className="flex items-center gap-4 h-full">
+                <label className="inline-flex items-center gap-2 text-sm"><input type="radio" name="ownerpaystatus" checked={directForm.paymentStatusSelection==='paid'} onChange={() => onDirectChange('paymentStatusSelection','paid')} />Paid</label>
+                <label className="inline-flex items-center gap-2 text-sm"><input type="radio" name="ownerpaystatus" checked={directForm.paymentStatusSelection==='pending'} onChange={() => onDirectChange('paymentStatusSelection','pending')} />Pending</label>
+                <label className="inline-flex items-center gap-2 text-sm"><input type="radio" name="ownerpaystatus" checked={directForm.paymentStatusSelection==='deposit'} onChange={() => onDirectChange('paymentStatusSelection','deposit')} />Deposit</label>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Guest Info</label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <input placeholder="First name" value={directForm.guestInfo.firstName} onChange={e => onDirectChange('guestInfo.firstName', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" required />
+              <input placeholder="Last name" value={directForm.guestInfo.lastName} onChange={e => onDirectChange('guestInfo.lastName', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" required />
+              <input type="email" placeholder="Email" value={directForm.guestInfo.email} onChange={e => onDirectChange('guestInfo.email', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+              <input type="tel" placeholder="Phone" value={directForm.guestInfo.phone} onChange={e => onDirectChange('guestInfo.phone', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+              <input placeholder="Nationality" value={directForm.guestInfo.nationality} onChange={e => onDirectChange('guestInfo.nationality', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+              <input placeholder="Passport" value={directForm.guestInfo.passport} onChange={e => onDirectChange('guestInfo.passport', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+              <input placeholder="Address" value={directForm.guestInfo.address} onChange={e => onDirectChange('guestInfo.address', e.target.value)} className="md:col-span-2 w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+            </div>
+            <p className="text-xs text-gray-500 mt-1">A guest account will be linked or created automatically if necessary.</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Contact Info (for booking records)</label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <input type="email" placeholder="Contact email" value={directForm.contactInfo.email} onChange={e => onDirectChange('contactInfo.email', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+              <input type="tel" placeholder="Contact phone" value={directForm.contactInfo.phone} onChange={e => onDirectChange('contactInfo.phone', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Special Requests</label>
+            <textarea value={directForm.specialRequests} onChange={e => onDirectChange('specialRequests', e.target.value)} rows={3} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Any special notes..."></textarea>
+          </div>
+
+          <div className="border rounded-lg p-4 bg-gray-50">
+            <div className="text-sm text-gray-900 font-semibold mb-2">Payment Information</div>
+            <div className="text-sm text-gray-700 space-y-1">
+              <div>Room Rate: RWF {(ownerNightly !== undefined && ownerNightly !== null ? Number(ownerNightly).toLocaleString() : '0')} × {Math.max(1, ownerNights)} nights = RWF {ownerRoomCharge.toLocaleString()}</div>
+              <div className="mt-2">Additional Services:</div>
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={!!directForm.services?.breakfast} onChange={e => onDirectChange('services', { ...(directForm.services||{}), breakfast: e.target.checked })} />
+                Breakfast Plan: RWF 15,000 × {Math.max(1, ownerNights)} = RWF {(directForm.services?.breakfast ? (15000 * Math.max(1, ownerNights)) : 0).toLocaleString()}
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={!!directForm.services?.airportTransfer} onChange={e => onDirectChange('services', { ...(directForm.services||{}), airportTransfer: e.target.checked })} />
+                Airport Transfer
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={!!directForm.services?.laundry} onChange={e => onDirectChange('services', { ...(directForm.services||{}), laundry: e.target.checked })} />
+                Laundry Service
+              </label>
+              <div className="pt-2">Subtotal: RWF {ownerSubtotal.toLocaleString()}</div>
+              <div>Hospitality Levy (3%): RWF {ownerLevy3.toLocaleString()}</div>
+              <div>VAT (18%): RWF {ownerVat18.toLocaleString()}</div>
+              <div className="font-semibold">TOTAL: RWF {ownerGrandTotal.toLocaleString()}</div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-3 border-t pt-4">
+            <button type="button" onClick={saveDirectDraft} className="px-5 py-3 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100">Save as Draft</button>
+            <button type="button" onClick={clearDirectForm} className="px-5 py-3 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100">Clear Form</button>
+            <button type="submit" className="px-6 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium">Save & Print Receipt</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+)}
+{/* End Modals */}
+</div>
+);
+};
 export default PropertyOwnerBookings;
