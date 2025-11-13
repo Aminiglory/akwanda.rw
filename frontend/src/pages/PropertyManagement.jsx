@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 import { useSearchParams } from 'react-router-dom';
 import { FaStar, FaChartBar, FaInfoCircle, FaMoneyBillWave, FaImages, FaFileAlt, FaBed, FaUser, FaLeaf } from 'react-icons/fa';
 import toast from 'react-hot-toast';
@@ -14,10 +15,43 @@ export default function PropertyManagement() {
   const [propertyData, setPropertyData] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [stats, setStats] = useState(null);
+  const [propertyAmenityOptions, setPropertyAmenityOptions] = useState([]);
+  const [roomAmenityOptions, setRoomAmenityOptions] = useState([]);
+  const [saving, setSaving] = useState(false);
+  const [descDraft, setDescDraft] = useState({ shortDescription: '', description: '' });
+  const [reservationDraft, setReservationDraft] = useState({ cancellationPolicy: '', prepaymentRequired: false, minStayNights: 1 });
+  const [policyDraft, setPolicyDraft] = useState({ checkInTime: '14:00', checkOutTime: '11:00', smokingAllowed: false, petsAllowed: false, petPolicy: '', roomRules: '' });
+  const { user, refreshUser } = useAuth() || {};
+  const [profileDraft, setProfileDraft] = useState({ firstName: '', lastName: '', phone: '', bio: '' });
 
   useEffect(() => {
     fetchProperties();
+    // Load amenity options for property and room scopes
+    (async () => {
+      try {
+        const [propRes, roomRes] = await Promise.all([
+          fetch(`${API_URL}/api/amenities?scope=property&active=true`, { credentials: 'include' }),
+          fetch(`${API_URL}/api/amenities?scope=room&active=true`, { credentials: 'include' })
+        ]);
+        const propData = await propRes.json().catch(()=>({ amenities: [] }));
+        const roomData = await roomRes.json().catch(()=>({ amenities: [] }));
+        if (propRes.ok) setPropertyAmenityOptions(Array.isArray(propData.amenities) ? propData.amenities : []);
+        if (roomRes.ok) setRoomAmenityOptions(Array.isArray(roomData.amenities) ? roomData.amenities : []);
+      } catch (_) {}
+    })();
   }, []);
+
+  // Initialize profile draft from auth user
+  useEffect(() => {
+    if (user) {
+      setProfileDraft({
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        phone: user.phone || '',
+        bio: user.bio || ''
+      });
+    }
+  }, [user]);
 
   useEffect(() => {
     if (selectedProperty) {
@@ -37,6 +71,26 @@ export default function PropertyManagement() {
       }
     } catch (e) {
       console.error('Failed to load stats:', e);
+    }
+  };
+
+  const saveProfile = async () => {
+    try {
+      setSaving(true);
+      const res = await fetch(`${API_URL}/api/user/profile`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(profileDraft)
+      });
+      const json = await res.json().catch(()=>({}));
+      if (!res.ok) throw new Error(json.message || 'Failed to update profile');
+      toast.success('Profile updated');
+      await refreshUser?.();
+    } catch (e) {
+      toast.error(e.message || 'Failed to update profile');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -61,12 +115,68 @@ export default function PropertyManagement() {
       const res = await fetch(`${API_URL}/api/properties/${selectedProperty}`, { credentials: 'include' });
       const data = await res.json();
       if (res.ok) {
-        setPropertyData(data);
+        const p = data?.property || data;
+        setPropertyData(p);
+        setDescDraft({
+          shortDescription: p?.shortDescription || '',
+          description: p?.description || ''
+        });
+        setReservationDraft({
+          cancellationPolicy: p?.cancellationPolicy || '',
+          prepaymentRequired: !!p?.prepaymentRequired,
+          minStayNights: Number(p?.minStayNights || 1)
+        });
+        setPolicyDraft({
+          checkInTime: p?.checkInTime || '14:00',
+          checkOutTime: p?.checkOutTime || '11:00',
+          smokingAllowed: !!p?.smokingAllowed,
+          petsAllowed: !!p?.petsAllowed,
+          petPolicy: p?.petPolicy || '',
+          roomRules: Array.isArray(p?.roomRules) ? (p.roomRules.join(', ')) : ''
+        });
       }
     } catch (e) {
       toast.error('Failed to load property details');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const savePropertyFields = async (fields) => {
+    if (!selectedProperty) return;
+    try {
+      setSaving(true);
+      const res = await fetch(`${API_URL}/api/properties/${selectedProperty}`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(fields)
+      });
+      const json = await res.json().catch(()=>({}));
+      if (!res.ok) throw new Error(json.message || 'Failed to save');
+      toast.success('Saved');
+      await fetchPropertyDetails();
+    } catch (e) {
+      toast.error(e.message || 'Failed to save');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const saveRoomAmenities = async (roomId, amenities) => {
+    try {
+      const res = await fetch(`${API_URL}/api/properties/${selectedProperty}/rooms/${roomId}`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amenities })
+      });
+      const json = await res.json().catch(()=>({}));
+      if (!res.ok) throw new Error(json.message || 'Failed to update room');
+      toast.success('Room amenities updated');
+      await fetchPropertyDetails();
+    } catch (e) {
+      toast.error(e.message || 'Failed to update room');
     }
   };
 
@@ -122,16 +232,18 @@ export default function PropertyManagement() {
             </h2>
             <div className="space-y-4">
               <div className="p-4 border rounded">
-                <h3 className="font-semibold mb-2">Cancellation Policy</h3>
-                <p className="text-sm text-gray-600">{propertyData?.cancellationPolicy || 'Refer to property policy details.'}</p>
+                <label className="block text-sm font-medium mb-1">Cancellation Policy</label>
+                <textarea className="w-full border rounded px-3 py-2" rows={3} value={reservationDraft.cancellationPolicy} onChange={(e)=> setReservationDraft(s=>({...s, cancellationPolicy: e.target.value}))} />
               </div>
-              <div className="p-4 border rounded">
-                <h3 className="font-semibold mb-2">Prepayment</h3>
-                <p className="text-sm text-gray-600">{propertyData?.prepaymentRequired ? 'Prepayment required' : 'No prepayment required'}</p>
+              <div className="p-4 border rounded grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                <label className="inline-flex items-center gap-2 text-sm"><input type="checkbox" checked={reservationDraft.prepaymentRequired} onChange={(e)=> setReservationDraft(s=>({...s, prepaymentRequired: e.target.checked}))} /> Prepayment required</label>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Minimum stay (nights)</label>
+                  <input type="number" className="w-full border rounded px-3 py-2" min={1} value={reservationDraft.minStayNights} onChange={(e)=> setReservationDraft(s=>({...s, minStayNights: Math.max(1, Number(e.target.value)||1)}))} />
+                </div>
               </div>
-              <div className="p-4 border rounded">
-                <h3 className="font-semibold mb-2">Minimum stay</h3>
-                <p className="text-sm text-gray-600">{propertyData?.minStayNights != null ? `${propertyData.minStayNights} night(s)` : 'Not set'}</p>
+              <div>
+                <button disabled={saving} onClick={()=> savePropertyFields(reservationDraft)} className="px-4 py-2 rounded bg-blue-600 text-white disabled:opacity-60">{saving ? 'Saving…' : 'Save changes'}</button>
               </div>
             </div>
           </div>
@@ -148,12 +260,15 @@ export default function PropertyManagement() {
             ) : propertyData ? (
               <div className="space-y-4">
                 <div>
-                  <label className="text-sm text-gray-600">Short description</label>
-                  <p className="text-sm">{propertyData.shortDescription || '—'}</p>
+                  <label className="block text-sm font-medium mb-1">Short description</label>
+                  <input className="w-full border rounded px-3 py-2" value={descDraft.shortDescription} onChange={(e)=> setDescDraft(s=>({...s, shortDescription: e.target.value}))} />
                 </div>
                 <div>
-                  <label className="text-sm text-gray-600">Full description</label>
-                  <p className="text-sm whitespace-pre-line">{propertyData.description || '—'}</p>
+                  <label className="block text-sm font-medium mb-1">Full description</label>
+                  <textarea className="w-full border rounded px-3 py-2" rows={5} value={descDraft.description} onChange={(e)=> setDescDraft(s=>({...s, description: e.target.value}))} />
+                </div>
+                <div>
+                  <button disabled={saving} onClick={()=> savePropertyFields(descDraft)} className="px-4 py-2 rounded bg-blue-600 text-white disabled:opacity-60">{saving ? 'Saving…' : 'Save changes'}</button>
                 </div>
               </div>
             ) : null}
@@ -317,25 +432,52 @@ export default function PropertyManagement() {
             <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
               <FaFileAlt /> Property Policies
             </h2>
-            <div className="space-y-4">
-              <div className="p-4 border rounded">
-                <h3 className="font-semibold mb-2">Check-in/Check-out</h3>
-                <p className="text-sm text-gray-600">Check-in: 2:00 PM - 10:00 PM</p>
-                <p className="text-sm text-gray-600">Check-out: 11:00 AM</p>
+            {propertyData ? (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="p-4 border rounded">
+                    <label className="block text-sm font-medium mb-1">Check-in time</label>
+                    <input type="time" className="w-full border rounded px-3 py-2" value={policyDraft.checkInTime} onChange={(e)=> setPolicyDraft(s=>({...s, checkInTime: e.target.value}))} />
+                  </div>
+                  <div className="p-4 border rounded">
+                    <label className="block text-sm font-medium mb-1">Check-out time</label>
+                    <input type="time" className="w-full border rounded px-3 py-2" value={policyDraft.checkOutTime} onChange={(e)=> setPolicyDraft(s=>({...s, checkOutTime: e.target.value}))} />
+                  </div>
+                </div>
+                <div className="p-4 border rounded grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                  <label className="inline-flex items-center gap-2 text-sm"><input type="checkbox" checked={policyDraft.smokingAllowed} onChange={(e)=> setPolicyDraft(s=>({...s, smokingAllowed: e.target.checked}))} /> Smoking allowed</label>
+                  <label className="inline-flex items-center gap-2 text-sm"><input type="checkbox" checked={policyDraft.petsAllowed} onChange={(e)=> setPolicyDraft(s=>({...s, petsAllowed: e.target.checked}))} /> Pets allowed</label>
+                </div>
+                <div className="p-4 border rounded">
+                  <label className="block text-sm font-medium mb-1">Pet policy</label>
+                  <textarea className="w-full border rounded px-3 py-2" rows={3} value={policyDraft.petPolicy} onChange={(e)=> setPolicyDraft(s=>({...s, petPolicy: e.target.value}))} />
+                </div>
+                <div className="p-4 border rounded">
+                  <label className="block text-sm font-medium mb-1">House rules (comma separated)</label>
+                  <input className="w-full border rounded px-3 py-2" value={policyDraft.roomRules} onChange={(e)=> setPolicyDraft(s=>({...s, roomRules: e.target.value}))} placeholder="no_smoking, no_parties" />
+                  <div className="text-xs text-gray-500 mt-1">Examples: no_smoking, quiet_hours_after_10pm</div>
+                </div>
+                <div>
+                  <button
+                    disabled={saving}
+                    onClick={()=>{
+                      const payload = {
+                        checkInTime: policyDraft.checkInTime,
+                        checkOutTime: policyDraft.checkOutTime,
+                        smokingAllowed: !!policyDraft.smokingAllowed,
+                        petsAllowed: !!policyDraft.petsAllowed,
+                        petPolicy: policyDraft.petPolicy,
+                        roomRules: String(policyDraft.roomRules||'').split(',').map(s=>s.trim()).filter(Boolean)
+                      };
+                      savePropertyFields(payload);
+                    }}
+                    className="px-4 py-2 rounded bg-blue-600 text-white disabled:opacity-60"
+                  >{saving ? 'Saving…' : 'Save policies'}</button>
+                </div>
               </div>
-              <div className="p-4 border rounded">
-                <h3 className="font-semibold mb-2">Cancellation Policy</h3>
-                <p className="text-sm text-gray-600">Free cancellation up to 48 hours before check-in</p>
-              </div>
-              <div className="p-4 border rounded">
-                <h3 className="font-semibold mb-2">House Rules</h3>
-                <ul className="text-sm text-gray-600 list-disc list-inside">
-                  <li>No smoking</li>
-                  <li>No pets</li>
-                  <li>No parties or events</li>
-                </ul>
-              </div>
-            </div>
+            ) : (
+              <p className="text-gray-600">Loading…</p>
+            )}
           </div>
         );
 
@@ -345,16 +487,32 @@ export default function PropertyManagement() {
             <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
               <FaBed /> Facilities & Services
             </h2>
-            {propertyData?.amenities?.length > 0 ? (
-              <div className="grid grid-cols-3 gap-3">
-                {propertyData.amenities.map((amenity, idx) => (
-                  <div key={idx} className="p-3 border rounded text-sm capitalize">
-                    {amenity.replace(/_/g, ' ')}
-                  </div>
-                ))}
-              </div>
+            {propertyData ? (
+              <>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-4">
+                  {propertyAmenityOptions.map(opt => {
+                    const a = opt.slug || opt.name;
+                    const checked = Array.isArray(propertyData.amenities) && propertyData.amenities.includes(a);
+                    return (
+                      <label key={a} className="inline-flex items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={!!checked}
+                          onChange={()=>{
+                            const cur = Array.isArray(propertyData.amenities) ? propertyData.amenities : [];
+                            const next = checked ? cur.filter(x=>x!==a) : [...cur, a];
+                            setPropertyData(prev => ({ ...prev, amenities: next }));
+                          }}
+                        />
+                        <span className="capitalize">{(opt.name || a).replace('_',' ')}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+                <button disabled={saving} onClick={()=> savePropertyFields({ amenities: propertyData.amenities || [] })} className="px-4 py-2 rounded bg-blue-600 text-white disabled:opacity-60">{saving ? 'Saving…' : 'Save amenities'}</button>
+              </>
             ) : (
-              <p className="text-gray-600">No amenities listed.</p>
+              <p className="text-gray-600">Loading…</p>
             )}
           </div>
         );
@@ -367,20 +525,36 @@ export default function PropertyManagement() {
             </h2>
             {Array.isArray(propertyData?.rooms) && propertyData.rooms.length > 0 ? (
               <div className="space-y-4">
-                {propertyData.rooms.map((room, idx) => (
-                  <div key={idx} className="p-4 border rounded">
-                    <h3 className="font-semibold mb-2">{room.roomType || room.type} - {room.roomNumber}</h3>
-                    {Array.isArray(room.amenities) && room.amenities.length > 0 ? (
-                      <div className="flex flex-wrap gap-2">
-                        {room.amenities.map((a, i) => (
-                          <span key={i} className="px-2 py-1 bg-gray-100 rounded text-xs capitalize">{String(a).replace(/_/g,' ')}</span>
-                        ))}
+                {propertyData.rooms.map((room, idx) => {
+                  const current = Array.isArray(room.amenities) ? room.amenities : [];
+                  const toggle = (a) => {
+                    const next = current.includes(a) ? current.filter(x=>x!==a) : [...current, a];
+                    setPropertyData(prev => ({
+                      ...prev,
+                      rooms: prev.rooms.map((r, i)=> i===idx ? { ...r, amenities: next } : r)
+                    }));
+                  };
+                  return (
+                    <div key={room._id || idx} className="p-4 border rounded">
+                      <h3 className="font-semibold mb-2">{room.roomType || room.type} - {room.roomNumber}</h3>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                        {roomAmenityOptions.map(opt => {
+                          const a = opt.slug || opt.name;
+                          const checked = current.includes(a);
+                          return (
+                            <label key={a} className="inline-flex items-center gap-2 text-sm">
+                              <input type="checkbox" checked={checked} onChange={()=>toggle(a)} />
+                              <span className="capitalize">{(opt.name || a).replace('_',' ')}</span>
+                            </label>
+                          );
+                        })}
                       </div>
-                    ) : (
-                      <p className="text-sm text-gray-600">No room amenities listed.</p>
-                    )}
-                  </div>
-                ))}
+                      <div className="mt-2">
+                        <button onClick={()=> saveRoomAmenities(room._id, Array.isArray(propertyData.rooms[idx].amenities) ? propertyData.rooms[idx].amenities : [])} className="px-3 py-2 border rounded">Save Room Amenities</button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             ) : (
               <p className="text-gray-600">No rooms configured.</p>
@@ -416,9 +590,28 @@ export default function PropertyManagement() {
             <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
               <FaUser /> Your Profile
             </h2>
-            <p className="text-gray-600">Manage your host profile and contact information.</p>
-            <div className="mt-4 p-4 bg-blue-50 rounded">
-              <p className="text-sm">Feature coming soon - Edit host profile</p>
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">First name</label>
+                  <input className="w-full border rounded px-3 py-2" value={profileDraft.firstName} onChange={(e)=> setProfileDraft(s=>({...s, firstName: e.target.value}))} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Last name</label>
+                  <input className="w-full border rounded px-3 py-2" value={profileDraft.lastName} onChange={(e)=> setProfileDraft(s=>({...s, lastName: e.target.value}))} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Phone</label>
+                  <input className="w-full border rounded px-3 py-2" value={profileDraft.phone} onChange={(e)=> setProfileDraft(s=>({...s, phone: e.target.value}))} />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium mb-1">Bio</label>
+                  <textarea className="w-full border rounded px-3 py-2" rows={4} value={profileDraft.bio} onChange={(e)=> setProfileDraft(s=>({...s, bio: e.target.value}))} />
+                </div>
+              </div>
+              <div>
+                <button disabled={saving} onClick={saveProfile} className="px-4 py-2 rounded bg-blue-600 text-white disabled:opacity-60">{saving ? 'Saving…' : 'Save profile'}</button>
+              </div>
             </div>
           </div>
         );
