@@ -97,13 +97,24 @@ const EnhancedUploadProperty = () => {
     { value: 'featured', label: 'Featured', description: 'Top visibility (+30% commission)' }
   ];
 
-  const commonAmenities = [
-    'WiFi', 'Parking', 'Kitchen', 'Air Conditioning', 'Pool', 'Gym', 'Spa', 
-    'Restaurant', 'Bar', 'Room Service', 'Laundry', 'Business Center', 
-    'Conference Room', 'Pet Friendly', 'Airport Shuttle', 'Beach Access'
-  ];
+  const [propertyAmenityOptions, setPropertyAmenityOptions] = useState([]);
+  const [roomAmenityOptions, setRoomAmenityOptions] = useState([]);
 
   useEffect(() => {
+    // Load amenity options from API
+    (async () => {
+      try {
+        const [propRes, roomRes] = await Promise.all([
+          fetch(`${API_URL}/api/amenities?scope=property&active=true`, { credentials: 'include' }),
+          fetch(`${API_URL}/api/amenities?scope=room&active=true`, { credentials: 'include' })
+        ]);
+        const propData = await propRes.json().catch(()=>({ amenities: [] }));
+        const roomData = await roomRes.json().catch(()=>({ amenities: [] }));
+        if (propRes.ok) setPropertyAmenityOptions(Array.isArray(propData.amenities) ? propData.amenities : []);
+        if (roomRes.ok) setRoomAmenityOptions(Array.isArray(roomData.amenities) ? roomData.amenities : []);
+      } catch (_) {}
+    })();
+
     if (isEditing) {
       fetchPropertyData();
     }
@@ -676,9 +687,29 @@ const EnhancedUploadProperty = () => {
             <div className="space-y-6">
               <h2 className="text-xl font-semibold text-gray-900 border-b pb-2">Facilities & Amenities</h2>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                {commonAmenities.map(a => (
-                  <label key={a} className="flex items-center"><input type="checkbox" checked={formData.amenities.includes(a)} onChange={(e)=>{ setFormData(prev=> ({...prev, amenities: e.target.checked ? [...prev.amenities, a] : prev.amenities.filter(x=>x!==a)})); }} className="h-4 w-4 text-blue-600 border-gray-300 rounded" /><span className="ml-2 text-sm text-gray-700">{a}</span></label>
-                ))}
+                {propertyAmenityOptions.map(opt => {
+                  const val = opt.slug || opt.name;
+                  const label = opt.name || val;
+                  const checked = Array.isArray(formData.amenities) && formData.amenities.includes(val);
+                  return (
+                    <label key={val} className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={!!checked}
+                        onChange={(e)=>{
+                          setFormData(prev=> ({
+                            ...prev,
+                            amenities: e.target.checked
+                              ? [...(prev.amenities||[]), val]
+                              : (prev.amenities||[]).filter(x=>x!==val)
+                          }));
+                        }}
+                        className="h-4 w-4 text-blue-600 border-gray-300 rounded"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">{label}</span>
+                    </label>
+                  );
+                })}
               </div>
             </div>
           )}

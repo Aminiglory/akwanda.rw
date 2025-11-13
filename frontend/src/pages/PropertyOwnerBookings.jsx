@@ -858,16 +858,6 @@ const PropertyOwnerBookings = () => {
       ]
     },
     {
-      label: 'Promotions',
-      icon: FaShoppingBag,
-      href: '/owner/promotions',
-      children: [
-        { label: 'Choose new promotion', href: '/owner/promotions?action=new' },
-        { label: 'Simulate max discount', href: '/owner/promotions?action=simulate' },
-        { label: 'Your active promotions', href: '/owner/promotions?filter=active' },
-      ]
-    },
-    {
       label: 'Reservations',
       icon: FaCalendarCheck,
       href: '/my-bookings',
@@ -884,35 +874,15 @@ const PropertyOwnerBookings = () => {
       icon: FaBed,
       href: '/owner/property',
       children: [
-        { label: 'Quality rating', href: '/owner/property?view=quality-rating' },
-        { label: 'Property page score', href: '/owner/property?view=page-score' },
-        { label: 'General info & property status', href: '/owner/property?view=general-info' },
-        { label: 'VAT/tax/charges', href: '/owner/property?view=vat-tax' },
-        { label: 'Photos', href: '/owner/property?view=photos' },
         { label: 'Property policies', href: '/owner/property?view=policies' },
         { label: 'Reservation policies', href: '/owner/property?view=reservation-policies' },
-        { label: 'Facilities & services', href: '/owner/property?view=facilities' },
+        { label: 'Facilities and services', href: '/owner/property?view=facilities' },
         { label: 'Room details', href: '/owner/property?view=room-details' },
-        { label: 'Room amenities', href: '/owner/property?view=room-amenities' },
-        { label: 'Your profile', href: '/owner/property?view=profile' },
+        { label: 'Room Amenities', href: '/owner/property?view=room-amenities' },
+        { label: 'your profile', href: '/owner/property?view=profile' },
         { label: 'View your descriptions', href: '/owner/property?view=descriptions' },
         { label: 'Messaging preferences', href: '/settings?tab=messaging' },
-        { label: 'Sustainability', href: '/owner/property?view=sustainability' },
-      ]
-    },
-    {
-      label: 'Boost performance',
-      icon: FaChartLine,
-      href: '/dashboard?tab=boost',
-      children: [
-        { label: 'Opportunity Centre', href: '/dashboard?tab=boost&view=opportunity' },
-        { label: 'Commission-free bookings', href: '/dashboard?tab=boost&view=commission-free' },
-        { label: 'Genius partner programme', href: '/dashboard?tab=boost&view=genius' },
-        { label: 'Preferred Partner Programme', href: '/dashboard?tab=boost&view=preferred' },
-        { label: 'Long stays toolkit', href: '/dashboard?tab=boost&view=long-stays' },
-        { label: 'Visibility booster', href: '/dashboard?tab=boost&view=visibility' },
-        { label: 'Work-Friendly Programme', href: '/dashboard?tab=boost&view=work-friendly' },
-        { label: 'Unit differentiation tool', href: '/dashboard?tab=boost&view=unit-diff' },
+        { label: 'Property photos', href: '/owner/property?view=photos' },
       ]
     },
     {

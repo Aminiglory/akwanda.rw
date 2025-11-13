@@ -160,16 +160,6 @@ const Navbar = () => {
       ]
     },
     {
-      label: t ? t('nav.promotions') : "Promotions",
-      icon: FaShoppingBag,
-      href: "/owner/promotions",
-      children: [
-        { label: t ? t('nav.chooseNewPromotion') : "Choose new promotion", href: "/owner/promotions?action=new", icon: FaShoppingBag },
-        { label: t ? t('nav.simulateMaxDiscount') : "Simulate max discount", href: "/owner/promotions?action=simulate", icon: FaDollarSign },
-        { label: t ? t('nav.yourActivePromotions') : "Your active promotions", href: "/owner/promotions?filter=active", icon: FaShoppingBag },
-      ]
-    },
-    {
       label: t ? t('nav.reservations') : "Reservations",
       icon: FaCalendarAlt,
       href: "/my-bookings",
@@ -187,36 +177,15 @@ const Navbar = () => {
       href: "/owner/property",
       badge: propertyAlerts,
       children: [
-        { label: t ? t('nav.qualityRating') : "Quality rating", href: "/owner/property?view=quality-rating", icon: FaStar },
-        { label: t ? t('nav.propertyPageScore') : "Property page score", href: "/owner/property?view=page-score", icon: FaChartLine },
-        { label: t ? t('nav.generalInfo') : "General info & property status", href: "/owner/property?view=general-info", icon: FaBuilding },
-        { label: t ? t('nav.vatTax') : "VAT/tax/charges", href: "/owner/property?view=vat-tax", icon: FaDollarSign },
-        { label: t ? t('nav.photos') : "Photos", href: "/owner/property?view=photos", icon: FaImages },
         { label: t ? t('nav.propertyPolicies') : "Property policies", href: "/owner/property?view=policies", icon: FaFileAlt },
-        { label: t ? t('nav.reservationPolicies') : "Reservation policies", href: "/owner/property?view=policies", icon: FaFileAlt },
-        { label: t ? t('nav.facilitiesServices') : "Facilities & services", href: "/owner/property?view=facilities", icon: FaCog },
+        { label: t ? t('nav.reservationPolicies') : "Reservation policies", href: "/owner/property?view=reservation-policies", icon: FaFileAlt },
+        { label: t ? t('nav.facilitiesServices') : "Facilities and services", href: "/owner/property?view=facilities", icon: FaCog },
         { label: t ? t('nav.roomDetails') : "Room details", href: "/owner/property?view=room-details", icon: FaBed },
-        { label: t ? t('nav.roomAmenities') : "Room amenities", href: "/owner/property?view=facilities", icon: FaCog },
-        { label: t ? t('nav.yourProfile') : "Your profile", href: "/owner/property?view=profile", icon: FaUser },
-        { label: t ? t('nav.viewDescriptions') : "View your descriptions", href: "/owner/property?view=general-info", icon: FaFileAlt },
+        { label: t ? t('nav.roomAmenities') : "Room Amenities", href: "/owner/property?view=room-amenities", icon: FaBed },
+        { label: t ? t('nav.yourProfile') : "your profile", href: "/owner/property?view=profile", icon: FaUser },
+        { label: t ? t('nav.viewDescriptions') : "View your descriptions", href: "/owner/property?view=descriptions", icon: FaFileAlt },
         { label: t ? t('nav.messagingPreferences') : "Messaging preferences", href: "/settings?tab=messaging", icon: FaEnvelope },
-        { label: t ? t('nav.sustainability') : "Sustainability", href: "/owner/property?view=sustainability", icon: FaGlobe },
-      ]
-    },
-    {
-      label: t ? t('nav.boostPerformance') : "Boost performance",
-      icon: FaChartLine,
-      href: "/dashboard?tab=boost",
-      badge: opportunityCount,
-      children: [
-        { label: t ? t('nav.opportunityCentre') : "Opportunity Centre", href: "/dashboard?tab=boost&view=opportunity", icon: FaShoppingBag, badge: opportunityCount },
-        { label: t ? t('nav.commissionFreeBookings') : "Commission-free bookings", href: "/dashboard?tab=boost&view=commission-free", icon: FaDollarSign },
-        { label: t ? t('nav.geniusPartnerProgramme') : "Genius partner programme", href: "/dashboard?tab=boost&view=genius", icon: FaStar },
-        { label: t ? t('nav.preferredPartnerProgramme') : "Preferred Partner Programme", href: "/dashboard?tab=boost&view=preferred", icon: FaStar },
-        { label: t ? t('nav.longStaysToolkit') : "Long stays toolkit", href: "/dashboard?tab=boost&view=long-stays", icon: FaCalendarAlt },
-        { label: t ? t('nav.visibilityBooster') : "Visibility booster", href: "/dashboard?tab=boost&view=visibility", icon: FaChartLine },
-        { label: t ? t('nav.workFriendlyProgramme') : "Work-Friendly Programme", href: "/dashboard?tab=boost&view=work-friendly", icon: FaBuilding },
-        { label: t ? t('nav.unitDifferentiationTool') : "Unit differentiation tool", href: "/dashboard?tab=boost&view=unit-diff", icon: FaCog },
+        { label: t ? t('nav.photos') : "Property photos", href: "/owner/property?view=photos", icon: FaImages },
       ]
     },
     {

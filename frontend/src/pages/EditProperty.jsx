@@ -11,6 +11,8 @@ const EditProperty = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [property, setProperty] = useState(null);
+  const [propertyAmenityOptions, setPropertyAmenityOptions] = useState([]);
+  const [roomAmenityOptions, setRoomAmenityOptions] = useState([]);
 
   // Editable fields state
   const [form, setForm] = useState({
@@ -71,6 +73,20 @@ const EditProperty = () => {
   };
 
   useEffect(() => { fetchProperty(); /* eslint-disable-next-line */ }, [id]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const [propRes, roomRes] = await Promise.all([
+          fetch(`${API_URL}/api/amenities?scope=property&active=true`, { credentials: 'include' }),
+          fetch(`${API_URL}/api/amenities?scope=room&active=true`, { credentials: 'include' })
+        ]);
+        const propData = await propRes.json().catch(()=>({ amenities: [] }));
+        const roomData = await roomRes.json().catch(()=>({ amenities: [] }));
+        if (propRes.ok) setPropertyAmenityOptions(Array.isArray(propData.amenities) ? propData.amenities : []);
+        if (roomRes.ok) setRoomAmenityOptions(Array.isArray(roomData.amenities) ? roomData.amenities : []);
+      } catch (_) {}
+    })();
+  }, []);
 
   const onFormChange = (key, val) => setForm(prev => ({ ...prev, [key]: val }));
 
@@ -243,9 +259,7 @@ const EditProperty = () => {
   const RoomCard = ({ room }) => {
     const [files, setFiles] = useState([]);
     const [extraUrls, setExtraUrls] = useState('');
-    const AMENITY_OPTIONS = [
-      'wifi','parking','kitchen','air_conditioning','laundry','pool','tv','balcony','desk','breakfast'
-    ];
+    const AMENITY_OPTIONS = roomAmenityOptions.map(opt => opt.slug || opt.name);
     const [roomAmenities, setRoomAmenities] = useState(Array.isArray(room.amenities) ? room.amenities : []);
 
     const toggleRoomAmenity = (a) => {
@@ -358,16 +372,20 @@ const EditProperty = () => {
           <div className="md:col-span-2">
             <div className="text-sm font-medium text-gray-800 mb-2">Property Amenities</div>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-              {['wifi','parking','kitchen','air_conditioning','laundry','pool','tv','balcony','desk','breakfast'].map((a)=> (
-                <label key={a} className="inline-flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={Array.isArray(form.amenitiesArr) && form.amenitiesArr.includes(a)}
-                    onChange={()=> setForm(prev => ({ ...prev, amenitiesArr: prev.amenitiesArr.includes(a) ? prev.amenitiesArr.filter(x=>x!==a) : [...prev.amenitiesArr, a] }))}
-                  />
-                  <span className="capitalize">{a.replace('_',' ')}</span>
-                </label>
-              ))}
+              {propertyAmenityOptions.map((opt)=> {
+                const a = opt.slug || opt.name;
+                const isChecked = Array.isArray(form.amenitiesArr) && form.amenitiesArr.includes(a);
+                return (
+                  <label key={a} className="inline-flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={()=> setForm(prev => ({ ...prev, amenitiesArr: isChecked ? prev.amenitiesArr.filter(x=>x!==a) : [...(prev.amenitiesArr||[]), a] }))}
+                    />
+                    <span className="capitalize">{(opt.name || a).replace('_',' ')}</span>
+                  </label>
+                );
+              })}
             </div>
             <div className="text-xs text-gray-500 mt-2">You can also type custom amenities below (comma separated).</div>
             <input className="border rounded px-3 py-2 w-full mt-2" placeholder="Custom amenities (comma separated)" value={form.amenities} onChange={e=>onFormChange('amenities', e.target.value)} />
