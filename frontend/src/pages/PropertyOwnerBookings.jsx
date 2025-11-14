@@ -866,306 +866,6 @@ const PropertyOwnerBookings = () => {
                 </div>
               )}
 
-              {analyticsView === 'reports' && (
-                <div className="space-y-6">
-                  <div className="neu-card p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="font-semibold">Sales Reports</h3>
-                      <div className="flex items-center gap-2">
-                        <select value={reportsPeriod} onChange={(e)=>{ setReportsPeriod(e.target.value); setReportsPage(1); }} className="border rounded-lg px-3 py-2 text-sm">
-                          <option value="daily">Daily</option>
-                          <option value="weekly">Weekly</option>
-                          <option value="monthly">Monthly</option>
-                        </select>
-                        <button onClick={() => { const rows = computeSalesBuckets(bookings, reportsPeriod); exportSalesCSV(rows); }} className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm">Export CSV</button>
-                        <button onClick={() => window.print()} className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm">Export PDF</button>
-                      </div>
-                    </div>
-                    {(() => {
-                      const list = filters.property && filters.property !== 'all' ? bookings.filter(b => String(b.property?._id||b.property) === String(filters.property)) : bookings;
-                      const rows = computeSalesBuckets(list, reportsPeriod);
-                      const totalPages = Math.max(1, Math.ceil(rows.length / reportsPerPage));
-                      const page = Math.min(reportsPage, totalPages);
-                      const start = (page-1) * reportsPerPage;
-                      const pageRows = rows.slice(start, start + reportsPerPage);
-                      return (
-                        <div className="space-y-3">
-                          <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-200">
-                              <thead className="bg-gray-50">
-                                <tr>
-                                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Period</th>
-                                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Revenue</th>
-                                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Tax</th>
-                                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Count</th>
-                                </tr>
-                              </thead>
-                              <tbody className="bg-white divide-y divide-gray-100">
-                                {pageRows.map(r => (
-                                  <tr key={r.period} className="hover:bg-gray-50">
-                                    <td className="px-4 py-2 text-sm">{r.period}</td>
-                                    <td className="px-4 py-2 text-sm text-right">RWF {Number(r.revenue).toLocaleString()}</td>
-                                    <td className="px-4 py-2 text-sm text-right">RWF {Number(r.tax).toLocaleString()}</td>
-                                    <td className="px-4 py-2 text-sm text-right">{r.count}</td>
-                                  </tr>
-                                ))}
-                                {pageRows.length===0 && (<tr><td colSpan={4} className="px-4 py-6 text-center text-gray-500">No data</td></tr>)}
-                              </tbody>
-                            </table>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <div className="text-sm text-gray-500">Page {page} of {totalPages}</div>
-                            <div className="flex gap-2">
-                              <button disabled={page<=1} onClick={()=>setReportsPage(p=>Math.max(1,p-1))} className="px-3 py-1 rounded border disabled:opacity-50">Prev</button>
-                              <button disabled={page>=totalPages} onClick={()=>setReportsPage(p=>Math.min(totalPages,p+1))} className="px-3 py-1 rounded border disabled:opacity-50">Next</button>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })()}
-                  </div>
-                  <div className="neu-card p-4">
-                    <h3 className="font-semibold mb-3">Quick Links</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <button onClick={() => navigate('/dashboard?tab=finance&view=invoices')} className="px-4 py-3 rounded-lg bg-gray-100 hover:bg-gray-200 text-left">Invoices</button>
-                      <button onClick={() => navigate('/dashboard?tab=finance&view=statement')} className="px-4 py-3 rounded-lg bg-gray-100 hover:bg-gray-200 text-left">Reservations Statement</button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {analyticsView === 'comparison' && (
-                <div className="space-y-6">
-                  <div className="neu-card p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="font-semibold">Direct vs Online Comparison</h3>
-                      <div className="flex gap-2">
-                        <button onClick={() => {
-                          const rows = [
-                            { channel: 'Direct', revenue: bookings.filter(b=>b.isDirect).reduce((s,b)=>s+Number(b.totalAmount||0),0), count: bookings.filter(b=>b.isDirect).length },
-                            { channel: 'Online', revenue: bookings.filter(b=>!b.isDirect).reduce((s,b)=>s+Number(b.totalAmount||0),0), count: bookings.filter(b=>!b.isDirect).length },
-                          ];
-                          const header = ['Channel','Revenue','Count'];
-                          const lines = [header.join(',')].concat(rows.map(r=>[r.channel,r.revenue,r.count].join(',')));
-                          const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
-                          const url = URL.createObjectURL(blob);
-                          const a = document.createElement('a'); a.href = url; a.download = 'comparison.csv'; a.click(); URL.revokeObjectURL(url);
-                        }} className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm">Export CSV</button>
-                        <button onClick={()=>window.print()} className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm">Export PDF</button>
-                      </div>
-                    </div>
-                    {(() => {
-                      const direct = bookings.filter(b=>b.isDirect);
-                      const online = bookings.filter(b=>!b.isDirect);
-                      const dRev = direct.reduce((s,b)=>s+Number(b.totalAmount||0),0);
-                      const oRev = online.reduce((s,b)=>s+Number(b.totalAmount||0),0);
-                      return (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="bg-green-50 p-4 rounded-lg">
-                            <p className="text-sm text-green-700">Direct Revenue</p>
-                            <p className="text-xl font-bold text-green-800">RWF {dRev.toLocaleString()}</p>
-                            <p className="text-sm text-green-700 mt-1">Bookings: {direct.length}</p>
-                          </div>
-                          <div className="bg-blue-50 p-4 rounded-lg">
-                            <p className="text-sm text-blue-700">Online Revenue</p>
-                            <p className="text-xl font-bold text-blue-800">RWF {oRev.toLocaleString()}</p>
-                            <p className="text-sm text-blue-700 mt-1">Bookings: {online.length}</p>
-                          </div>
-                        </div>
-                      );
-                    })()}
-                  </div>
-                  <div className="neu-card p-4">
-                    {(() => {
-                      const rows = bookings.map(b=>({
-                        date: new Date(b.createdAt).toISOString().slice(0,10),
-                        channel: b.isDirect ? 'Direct' : 'Online',
-                        amount: Number(b.totalAmount||0)
-                      }));
-                      const totalPages = Math.max(1, Math.ceil(rows.length / compPerPage));
-                      const page = Math.min(compPage, totalPages);
-                      const start = (page-1) * compPerPage;
-                      const pageRows = rows.slice(start, start + compPerPage);
-                      return (
-                        <div className="space-y-3">
-                          <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-200">
-                              <thead className="bg-gray-50">
-                                <tr>
-                                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Channel</th>
-                                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Amount</th>
-                                </tr>
-                              </thead>
-                              <tbody className="bg-white divide-y divide-gray-100">
-                                {pageRows.map((r,i)=> (
-                                  <tr key={i} className="hover:bg-gray-50">
-                                    <td className="px-4 py-2 text-sm">{r.date}</td>
-                                    <td className="px-4 py-2 text-sm">{r.channel}</td>
-                                    <td className="px-4 py-2 text-sm text-right">RWF {r.amount.toLocaleString()}</td>
-                                  </tr>
-                                ))}
-                                {pageRows.length===0 && (<tr><td colSpan={3} className="px-4 py-6 text-center text-gray-500">No data</td></tr>)}
-                              </tbody>
-                            </table>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <div className="text-sm text-gray-500">Page {page} of {totalPages}</div>
-                            <div className="flex gap-2">
-                              <button disabled={page<=1} onClick={()=>setCompPage(p=>Math.max(1,p-1))} className="px-3 py-1 rounded border disabled:opacity-50">Prev</button>
-                              <button disabled={page>=totalPages} onClick={()=>setCompPage(p=>Math.min(totalPages,p+1))} className="px-3 py-1 rounded border disabled:opacity-50">Next</button>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })()}
-                  </div>
-                </div>
-              )}
-
-              {analyticsView === 'occupancy' && (
-                <div className="space-y-6">
-                  <div className="neu-card p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="font-semibold">Occupancy & Revenue per Room</h3>
-                      <div className="flex gap-2">
-                        <button onClick={() => {
-                          const map = new Map();
-                          bookings.forEach(b => {
-                            const roomKey = (b.room?._id || b.room || 'unknown');
-                            const roomName = b.room?.roomNumber || b.room?.roomType || b.roomNumber || 'Room';
-                            const cur = map.get(roomKey) || { roomName, nights: 0, revenue: 0, count: 0 };
-                            const s = new Date(b.checkIn); const e = new Date(b.checkOut); const n = Math.ceil((e-s)/(1000*60*60*24)) || 0;
-                            cur.nights += Math.max(0,n); cur.revenue += Number(b.totalAmount||0); cur.count += 1; map.set(roomKey, cur);
-                          });
-                          const rows = Array.from(map.values());
-                          const header = ['Room','Nights','Bookings','Revenue'];
-                          const lines = [header.join(',')].concat(rows.map(r=>[r.roomName,r.nights,r.count,r.revenue].join(',')));
-                          const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
-                          const url = URL.createObjectURL(blob);
-                          const a = document.createElement('a'); a.href = url; a.download = 'occupancy_per_room.csv'; a.click(); URL.revokeObjectURL(url);
-                        }} className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm">Export CSV</button>
-                        <button onClick={()=>window.print()} className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm">Export PDF</button>
-                      </div>
-                    </div>
-                    {(() => {
-                      const map = new Map();
-                      bookings.forEach(b => {
-                        const roomKey = (b.room?._id || b.room || 'unknown');
-                        const roomName = b.room?.roomNumber || b.room?.roomType || b.roomNumber || 'Room';
-                        const cur = map.get(roomKey) || { roomName, nights: 0, revenue: 0, count: 0 };
-                        const nights = (()=>{ const s = new Date(b.checkIn); const e = new Date(b.checkOut); const n = Math.ceil((e-s)/(1000*60*60*24)); return isNaN(n)?0:Math.max(0,n); })();
-                        cur.nights += nights;
-                        cur.revenue += Number(b.totalAmount||0);
-                        cur.count += 1;
-                        map.set(roomKey, cur);
-                      });
-                      const rows = Array.from(map.values());
-                      const totalPages = Math.max(1, Math.ceil(rows.length / occPerPage));
-                      const page = Math.min(occPage, totalPages);
-                      const start = (page-1) * occPerPage;
-                      const pageRows = rows.slice(start, start + occPerPage);
-                      return (
-                        <div className="space-y-3">
-                          <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-200">
-                              <thead className="bg-gray-50">
-                                <tr>
-                                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Room</th>
-                                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Nights</th>
-                                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Bookings</th>
-                                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Revenue</th>
-                                </tr>
-                              </thead>
-                              <tbody className="bg-white divide-y divide-gray-100">
-                                {pageRows.map((r, i) => (
-                                  <tr key={i} className="hover:bg-gray-50">
-                                    <td className="px-4 py-2 text-sm">{r.roomName}</td>
-                                    <td className="px-4 py-2 text-sm text-right">{r.nights}</td>
-                                    <td className="px-4 py-2 text-sm text-right">{r.count}</td>
-                                    <td className="px-4 py-2 text-sm text-right">RWF {Number(r.revenue).toLocaleString()}</td>
-                                  </tr>
-                                ))}
-                                {pageRows.length===0 && (<tr><td colSpan={4} className="px-4 py-6 text-center text-gray-500">No data</td></tr>)}
-                              </tbody>
-                            </table>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <div className="text-sm text-gray-500">Page {page} of {totalPages}</div>
-                            <div className="flex gap-2">
-                              <button disabled={page<=1} onClick={()=>setOccPage(p=>Math.max(1,p-1))} className="px-3 py-1 rounded border disabled:opacity-50">Prev</button>
-                              <button disabled={page>=totalPages} onClick={()=>setOccPage(p=>Math.min(totalPages,p+1))} className="px-3 py-1 rounded border disabled:opacity-50">Next</button>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })()}
-                  </div>
-                </div>
-              )}
-
-              {analyticsView === 'tax' && (
-                <div className="space-y-6">
-                  <div className="neu-card p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="font-semibold">Tax Liability Tracking</h3>
-                      <div className="flex gap-2">
-                        <button onClick={() => {
-                          const rows = bookings.map(b=>({ date: new Date(b.createdAt).toISOString().slice(0,10), booking: b.confirmationCode || b._id, amount: Number(b.totalAmount||0), tax: Number(b.taxAmount||0) }));
-                          const header = ['Date','Booking','Amount','Tax'];
-                          const lines = [header.join(',')].concat(rows.map(r=>[r.date,r.booking,r.amount,r.tax].join(',')));
-                          const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
-                          const url = URL.createObjectURL(blob);
-                          const a = document.createElement('a'); a.href = url; a.download = 'tax_liability.csv'; a.click(); URL.revokeObjectURL(url);
-                        }} className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm">Export CSV</button>
-                        <button onClick={()=>window.print()} className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm">Export PDF</button>
-                      </div>
-                    </div>
-                    {(() => {
-                      const rows = bookings.map(b=>({ date: new Date(b.createdAt).toLocaleString(), booking: b.confirmationCode || b._id, amount: Number(b.totalAmount||0), tax: Number(b.taxAmount||0) }));
-                      const totalTax = rows.reduce((s,r)=>s + r.tax, 0);
-                      const totalPages = Math.max(1, Math.ceil(rows.length / taxPerPage));
-                      const page = Math.min(taxPage, totalPages);
-                      const start = (page-1) * taxPerPage;
-                      const pageRows = rows.slice(start, start + taxPerPage);
-                      return (
-                        <div className="space-y-3">
-                          <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-200">
-                              <thead className="bg-gray-50">
-                                <tr>
-                                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Booking</th>
-                                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Amount</th>
-                                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Tax</th>
-                                </tr>
-                              </thead>
-                              <tbody className="bg-white divide-y divide-gray-100">
-                                {pageRows.map((r,i)=> (
-                                  <tr key={i} className="hover:bg-gray-50">
-                                    <td className="px-4 py-2 text-sm">{r.date}</td>
-                                    <td className="px-4 py-2 text-sm">{r.booking}</td>
-                                    <td className="px-4 py-2 text-sm text-right">RWF {r.amount.toLocaleString()}</td>
-                                    <td className="px-4 py-2 text-sm text-right">RWF {r.tax.toLocaleString()}</td>
-                                  </tr>
-                                ))}
-                                {pageRows.length===0 && (<tr><td colSpan={4} className="px-4 py-6 text-center text-gray-500">No data</td></tr>)}
-                              </tbody>
-                            </table>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <div className="text-sm text-gray-700 font-medium">Total Tax: RWF {totalTax.toLocaleString()}</div>
-                            <div className="flex gap-2">
-                              <button disabled={page<=1} onClick={()=>setTaxPage(p=>Math.max(1,p-1))} className="px-3 py-1 rounded border disabled:opacity-50">Prev</button>
-                              <button disabled={page>=totalPages} onClick={()=>setTaxPage(p=>Math.min(totalPages,p+1))} className="px-3 py-1 rounded border disabled:opacity-50">Next</button>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })()}
-                  </div>
-                </div>
-              )}
 
               {/* Review */}
               {selectedBooking.review && (
@@ -2300,6 +2000,307 @@ const PropertyOwnerBookings = () => {
                       const list = bookings;
                       const tax = list.reduce((s,b)=> s + Number(b.taxAmount||0), 0);
                       return <div className="text-gray-800">Estimated Taxes: <span className="font-semibold">RWF {tax.toLocaleString()}</span></div>;
+                    })()}
+                  </div>
+                </div>
+              )}
+
+              {analyticsView === 'reports' && (
+                <div className="space-y-6">
+                  <div className="neu-card p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="font-semibold">Sales Reports</h3>
+                      <div className="flex items-center gap-2">
+                        <select value={reportsPeriod} onChange={(e)=>{ setReportsPeriod(e.target.value); setReportsPage(1); }} className="border rounded-lg px-3 py-2 text-sm">
+                          <option value="daily">Daily</option>
+                          <option value="weekly">Weekly</option>
+                          <option value="monthly">Monthly</option>
+                        </select>
+                        <button onClick={() => { const rows = computeSalesBuckets(bookings, reportsPeriod); exportSalesCSV(rows); }} className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm">Export CSV</button>
+                        <button onClick={() => window.print()} className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm">Export PDF</button>
+                      </div>
+                    </div>
+                    {(() => {
+                      const list = filters.property && filters.property !== 'all' ? bookings.filter(b => String(b.property?._id||b.property) === String(filters.property)) : bookings;
+                      const rows = computeSalesBuckets(list, reportsPeriod);
+                      const totalPages = Math.max(1, Math.ceil(rows.length / reportsPerPage));
+                      const page = Math.min(reportsPage, totalPages);
+                      const start = (page-1) * reportsPerPage;
+                      const pageRows = rows.slice(start, start + reportsPerPage);
+                      return (
+                        <div className="space-y-3">
+                          <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-gray-200">
+                              <thead className="bg-gray-50">
+                                <tr>
+                                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Period</th>
+                                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Revenue</th>
+                                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Tax</th>
+                                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Count</th>
+                                </tr>
+                              </thead>
+                              <tbody className="bg-white divide-y divide-gray-100">
+                                {pageRows.map(r => (
+                                  <tr key={r.period} className="hover:bg-gray-50">
+                                    <td className="px-4 py-2 text-sm">{r.period}</td>
+                                    <td className="px-4 py-2 text-sm text-right">RWF {Number(r.revenue).toLocaleString()}</td>
+                                    <td className="px-4 py-2 text-sm text-right">RWF {Number(r.tax).toLocaleString()}</td>
+                                    <td className="px-4 py-2 text-sm text-right">{r.count}</td>
+                                  </tr>
+                                ))}
+                                {pageRows.length===0 && (<tr><td colSpan={4} className="px-4 py-6 text-center text-gray-500">No data</td></tr>)}
+                              </tbody>
+                            </table>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <div className="text-sm text-gray-500">Page {page} of {totalPages}</div>
+                            <div className="flex gap-2">
+                              <button disabled={page<=1} onClick={()=>setReportsPage(p=>Math.max(1,p-1))} className="px-3 py-1 rounded border disabled:opacity-50">Prev</button>
+                              <button disabled={page>=totalPages} onClick={()=>setReportsPage(p=>Math.min(totalPages,p+1))} className="px-3 py-1 rounded border disabled:opacity-50">Next</button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                  <div className="neu-card p-4">
+                    <h3 className="font-semibold mb-3">Quick Links</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <button onClick={() => navigate('/dashboard?tab=finance&view=invoices')} className="px-4 py-3 rounded-lg bg-gray-100 hover:bg-gray-200 text-left">Invoices</button>
+                      <button onClick={() => navigate('/dashboard?tab=finance&view=statement')} className="px-4 py-3 rounded-lg bg-gray-100 hover:bg-gray-200 text-left">Reservations Statement</button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {analyticsView === 'comparison' && (
+                <div className="space-y-6">
+                  <div className="neu-card p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="font-semibold">Direct vs Online Comparison</h3>
+                      <div className="flex gap-2">
+                        <button onClick={() => {
+                          const rows = [
+                            { channel: 'Direct', revenue: bookings.filter(b=>b.isDirect).reduce((s,b)=>s+Number(b.totalAmount||0),0), count: bookings.filter(b=>b.isDirect).length },
+                            { channel: 'Online', revenue: bookings.filter(b=>!b.isDirect).reduce((s,b)=>s+Number(b.totalAmount||0),0), count: bookings.filter(b=>!b.isDirect).length },
+                          ];
+                          const header = ['Channel','Revenue','Count'];
+                          const lines = [header.join(',')].concat(rows.map(r=>[r.channel,r.revenue,r.count].join(',')));
+                          const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement('a'); a.href = url; a.download = 'comparison.csv'; a.click(); URL.revokeObjectURL(url);
+                        }} className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm">Export CSV</button>
+                        <button onClick={()=>window.print()} className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm">Export PDF</button>
+                      </div>
+                    </div>
+                    {(() => {
+                      const direct = bookings.filter(b=>b.isDirect);
+                      const online = bookings.filter(b=>!b.isDirect);
+                      const dRev = direct.reduce((s,b)=>s+Number(b.totalAmount||0),0);
+                      const oRev = online.reduce((s,b)=>s+Number(b.totalAmount||0),0);
+                      return (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="bg-green-50 p-4 rounded-lg">
+                            <p className="text-sm text-green-700">Direct Revenue</p>
+                            <p className="text-xl font-bold text-green-800">RWF {dRev.toLocaleString()}</p>
+                            <p className="text-sm text-green-700 mt-1">Bookings: {direct.length}</p>
+                          </div>
+                          <div className="bg-blue-50 p-4 rounded-lg">
+                            <p className="text-sm text-blue-700">Online Revenue</p>
+                            <p className="text-xl font-bold text-blue-800">RWF {oRev.toLocaleString()}</p>
+                            <p className="text-sm text-blue-700 mt-1">Bookings: {online.length}</p>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                  <div className="neu-card p-4">
+                    {(() => {
+                      const rows = bookings.map(b=>({
+                        date: new Date(b.createdAt).toISOString().slice(0,10),
+                        channel: b.isDirect ? 'Direct' : 'Online',
+                        amount: Number(b.totalAmount||0)
+                      }));
+                      const totalPages = Math.max(1, Math.ceil(rows.length / compPerPage));
+                      const page = Math.min(compPage, totalPages);
+                      const start = (page-1) * compPerPage;
+                      const pageRows = rows.slice(start, start + compPerPage);
+                      return (
+                        <div className="space-y-3">
+                          <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-gray-200">
+                              <thead className="bg-gray-50">
+                                <tr>
+                                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Channel</th>
+                                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Amount</th>
+                                </tr>
+                              </thead>
+                              <tbody className="bg-white divide-y divide-gray-100">
+                                {pageRows.map((r,i)=> (
+                                  <tr key={i} className="hover:bg-gray-50">
+                                    <td className="px-4 py-2 text-sm">{r.date}</td>
+                                    <td className="px-4 py-2 text-sm">{r.channel}</td>
+                                    <td className="px-4 py-2 text-sm text-right">RWF {r.amount.toLocaleString()}</td>
+                                  </tr>
+                                ))}
+                                {pageRows.length===0 && (<tr><td colSpan={3} className="px-4 py-6 text-center text-gray-500">No data</td></tr>)}
+                              </tbody>
+                            </table>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <div className="text-sm text-gray-500">Page {page} of {totalPages}</div>
+                            <div className="flex gap-2">
+                              <button disabled={page<=1} onClick={()=>setCompPage(p=>Math.max(1,p-1))} className="px-3 py-1 rounded border disabled:opacity-50">Prev</button>
+                              <button disabled={page>=totalPages} onClick={()=>setCompPage(p=>Math.min(totalPages,p+1))} className="px-3 py-1 rounded border disabled:opacity-50">Next</button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </div>
+              )}
+
+              {analyticsView === 'occupancy' && (
+                <div className="space-y-6">
+                  <div className="neu-card p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="font-semibold">Occupancy & Revenue per Room</h3>
+                      <div className="flex gap-2">
+                        <button onClick={() => {
+                          const map = new Map();
+                          bookings.forEach(b => {
+                            const roomKey = (b.room?._id || b.room || 'unknown');
+                            const roomName = b.room?.roomNumber || b.room?.roomType || b.roomNumber || 'Room';
+                            const cur = map.get(roomKey) || { roomName, nights: 0, revenue: 0, count: 0 };
+                            const s = new Date(b.checkIn); const e = new Date(b.checkOut); const n = Math.ceil((e-s)/(1000*60*60*24)) || 0;
+                            cur.nights += Math.max(0,n); cur.revenue += Number(b.totalAmount||0); cur.count += 1; map.set(roomKey, cur);
+                          });
+                          const rows = Array.from(map.values());
+                          const header = ['Room','Nights','Bookings','Revenue'];
+                          const lines = [header.join(',')].concat(rows.map(r=>[r.roomName,r.nights,r.count,r.revenue].join(',')));
+                          const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement('a'); a.href = url; a.download = 'occupancy_per_room.csv'; a.click(); URL.revokeObjectURL(url);
+                        }} className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm">Export CSV</button>
+                        <button onClick={()=>window.print()} className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm">Export PDF</button>
+                      </div>
+                    </div>
+                    {(() => {
+                      const map = new Map();
+                      bookings.forEach(b => {
+                        const roomKey = (b.room?._id || b.room || 'unknown');
+                        const roomName = b.room?.roomNumber || b.room?.roomType || b.roomNumber || 'Room';
+                        const cur = map.get(roomKey) || { roomName, nights: 0, revenue: 0, count: 0 };
+                        const nights = (()=>{ const s = new Date(b.checkIn); const e = new Date(b.checkOut); const n = Math.ceil((e-s)/(1000*60*60*24)); return isNaN(n)?0:Math.max(0,n); })();
+                        cur.nights += nights;
+                        cur.revenue += Number(b.totalAmount||0);
+                        cur.count += 1;
+                        map.set(roomKey, cur);
+                      });
+                      const rows = Array.from(map.values());
+                      const totalPages = Math.max(1, Math.ceil(rows.length / occPerPage));
+                      const page = Math.min(occPage, totalPages);
+                      const start = (page-1) * occPerPage;
+                      const pageRows = rows.slice(start, start + occPerPage);
+                      return (
+                        <div className="space-y-3">
+                          <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-gray-200">
+                              <thead className="bg-gray-50">
+                                <tr>
+                                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Room</th>
+                                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Nights</th>
+                                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Bookings</th>
+                                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Revenue</th>
+                                </tr>
+                              </thead>
+                              <tbody className="bg-white divide-y divide-gray-100">
+                                {pageRows.map((r, i) => (
+                                  <tr key={i} className="hover:bg-gray-50">
+                                    <td className="px-4 py-2 text-sm">{r.roomName}</td>
+                                    <td className="px-4 py-2 text-sm text-right">{r.nights}</td>
+                                    <td className="px-4 py-2 text-sm text-right">{r.count}</td>
+                                    <td className="px-4 py-2 text-sm text-right">RWF {Number(r.revenue).toLocaleString()}</td>
+                                  </tr>
+                                ))}
+                                {pageRows.length===0 && (<tr><td colSpan={4} className="px-4 py-6 text-center text-gray-500">No data</td></tr>)}
+                              </tbody>
+                            </table>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <div className="text-sm text-gray-500">Page {page} of {totalPages}</div>
+                            <div className="flex gap-2">
+                              <button disabled={page<=1} onClick={()=>setOccPage(p=>Math.max(1,p-1))} className="px-3 py-1 rounded border disabled:opacity-50">Prev</button>
+                              <button disabled={page>=totalPages} onClick={()=>setOccPage(p=>Math.min(totalPages,p+1))} className="px-3 py-1 rounded border disabled:opacity-50">Next</button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </div>
+              )}
+
+              {analyticsView === 'tax' && (
+                <div className="space-y-6">
+                  <div className="neu-card p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="font-semibold">Tax Liability Tracking</h3>
+                      <div className="flex gap-2">
+                        <button onClick={() => {
+                          const rows = bookings.map(b=>({ date: new Date(b.createdAt).toISOString().slice(0,10), booking: b.confirmationCode || b._id, amount: Number(b.totalAmount||0), tax: Number(b.taxAmount||0) }));
+                          const header = ['Date','Booking','Amount','Tax'];
+                          const lines = [header.join(',')].concat(rows.map(r=>[r.date,r.booking,r.amount,r.tax].join(',')));
+                          const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement('a'); a.href = url; a.download = 'tax_liability.csv'; a.click(); URL.revokeObjectURL(url);
+                        }} className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm">Export CSV</button>
+                        <button onClick={()=>window.print()} className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm">Export PDF</button>
+                      </div>
+                    </div>
+                    {(() => {
+                      const rows = bookings.map(b=>({ date: new Date(b.createdAt).toLocaleString(), booking: b.confirmationCode || b._id, amount: Number(b.totalAmount||0), tax: Number(b.taxAmount||0) }));
+                      const totalTax = rows.reduce((s,r)=>s + r.tax, 0);
+                      const totalPages = Math.max(1, Math.ceil(rows.length / taxPerPage));
+                      const page = Math.min(taxPage, totalPages);
+                      const start = (page-1) * taxPerPage;
+                      const pageRows = rows.slice(start, start + taxPerPage);
+                      return (
+                        <div className="space-y-3">
+                          <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-gray-200">
+                              <thead className="bg-gray-50">
+                                <tr>
+                                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Booking</th>
+                                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Amount</th>
+                                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Tax</th>
+                                </tr>
+                              </thead>
+                              <tbody className="bg-white divide-y divide-gray-100">
+                                {pageRows.map((r,i)=> (
+                                  <tr key={i} className="hover:bg-gray-50">
+                                    <td className="px-4 py-2 text-sm">{r.date}</td>
+                                    <td className="px-4 py-2 text-sm">{r.booking}</td>
+                                    <td className="px-4 py-2 text-sm text-right">RWF {r.amount.toLocaleString()}</td>
+                                    <td className="px-4 py-2 text-sm text-right">RWF {r.tax.toLocaleString()}</td>
+                                  </tr>
+                                ))}
+                                {pageRows.length===0 && (<tr><td colSpan={4} className="px-4 py-6 text-center text-gray-500">No data</td></tr>)}
+                              </tbody>
+                            </table>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <div className="text-sm text-gray-700 font-medium">Total Tax: RWF {totalTax.toLocaleString()}</div>
+                            <div className="flex gap-2">
+                              <button disabled={page<=1} onClick={()=>setTaxPage(p=>Math.max(1,p-1))} className="px-3 py-1 rounded border disabled:opacity-50">Prev</button>
+                              <button disabled={page>=totalPages} onClick={()=>setTaxPage(p=>Math.min(totalPages,p+1))} className="px-3 py-1 rounded border disabled:opacity-50">Next</button>
+                            </div>
+                          </div>
+                        </div>
+                      );
                     })()}
                   </div>
                 </div>
