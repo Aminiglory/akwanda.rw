@@ -4,6 +4,7 @@ import { useLocale } from '../contexts/LocaleContext';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 export default function Transactions() {
+  const [propBookings, setPropBookings] = useState([]);
   const [carBookings, setCarBookings] = useState([]);
   const [attrBookings, setAttrBookings] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -14,21 +15,50 @@ export default function Transactions() {
     (async () => {
       try {
         setLoading(true);
+        // Fetch owner properties, then per-property bookings
+        const propsRes = await fetch(`${API_URL}/api/properties/my-properties`, { credentials: 'include' });
+        const propsJson = await propsRes.json().catch(()=>({ properties: [] }));
+        const myProps = propsRes.ok ? (propsJson.properties || []) : [];
+        const propBookingsArrays = await Promise.all(
+          myProps.map(async (p) => {
+            try {
+              const r = await fetch(`${API_URL}/api/bookings/owner?property=${p._id}`, { credentials: 'include' });
+              const j = await r.json().catch(()=>({ bookings: [] }));
+              return r.ok ? (j.bookings || []) : [];
+            } catch (_) { return []; }
+          })
+        );
+        const flatPropBookings = propBookingsArrays.flat();
+        setPropBookings(flatPropBookings);
+
+        // Fetch car and attraction bookings
         const [carRes, attrRes] = await Promise.all([
           fetch(`${API_URL}/api/car-bookings/for-my-cars`, { credentials: 'include' }),
           fetch(`${API_URL}/api/attraction-bookings/for-my-attractions`, { credentials: 'include' })
         ]);
-        const [carData, attrData] = await Promise.all([carRes.json(), attrRes.json()]);
+        const [carData, attrData] = await Promise.all([carRes.json().catch(()=>({})), attrRes.json().catch(()=>({}))]);
         setCarBookings(carRes.ok ? (carData.bookings || []) : []);
         setAttrBookings(attrRes.ok ? (attrData.bookings || []) : []);
       } catch (_) {
-        setCarBookings([]); setAttrBookings([]);
+        setPropBookings([]); setCarBookings([]); setAttrBookings([]);
       } finally { setLoading(false); }
     })();
   }, []);
 
   const rows = useMemo(() => {
     const all = [];
+    if (filters.type === 'all' || filters.type === 'property') {
+      for (const b of propBookings) {
+        all.push({
+          kind: 'property',
+          date: new Date(b.createdAt || b.checkIn || Date.now()),
+          amount: Number(b.totalAmount || 0),
+          title: b.property?.title || 'Property booking',
+          code: String(b._id).slice(-8),
+          status: b.status,
+        });
+      }
+    }
     if (filters.type === 'all' || filters.type === 'car') {
       for (const b of carBookings) {
         all.push({

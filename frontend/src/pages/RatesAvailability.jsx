@@ -10,7 +10,16 @@ export default function RatesAvailability() {
   const { formatCurrencyRWF } = useLocale() || {};
   const [searchParams] = useSearchParams();
   const rawView = searchParams.get('view') || 'calendar';
-  const view = (rawView === 'calendar' || rawView === 'open-close') ? rawView : 'calendar';
+  const allowedViews = new Set([
+    'calendar',
+    'open-close',
+    'pricing-per-guest',
+    'mobile-rates',
+    'copy-yearly',
+    'rate-plans',
+    'availability-planner'
+  ]);
+  const view = allowedViews.has(rawView) ? rawView : 'calendar';
   const [properties, setProperties] = useState([]);
   const [selectedProperty, setSelectedProperty] = useState('');
   const [loading, setLoading] = useState(false);
@@ -1044,7 +1053,10 @@ export default function RatesAvailability() {
             <p className="text-gray-600 mb-4">Set additional charges for extra guests beyond base capacity.</p>
             {propertyData?.rooms?.map((room, idx) => (
                 <div key={idx} className="border rounded-lg p-4 mb-3">
-                  <h3 className="font-semibold mb-3">{room.roomType} - {room.roomNumber}</h3>
+                  <h3 className="font-semibold mb-1">{room.roomType} - {room.roomNumber}</h3>
+                  <div className="text-xs text-gray-600 mb-3">
+                    Base price per night: <span className="font-medium">{formatCurrencyRWF ? formatCurrencyRWF(room.pricePerNight || 0) : `RWF ${(room.pricePerNight || 0).toLocaleString()}`}</span>
+                  </div>
                   <div className="grid grid-cols-3 gap-3">
                     <div>
                       <label className="text-xs text-gray-600">Base Capacity</label>

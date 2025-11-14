@@ -1061,6 +1061,7 @@ const PropertyOwnerBookings = () => {
       children: [
         { label: 'Calendar', href: '/owner/rates?view=calendar' },
         { label: 'Open/close rooms', href: '/owner/rates?view=open-close' },
+        { label: 'Guest pricing', href: '/owner/rates?view=pricing-per-guest' },
       ]
     },
     {

@@ -65,9 +65,24 @@ export default function AdminAmenities() {
     <div className="max-w-5xl mx-auto p-6">
       <h1 className="text-2xl font-bold mb-4">Admin: Amenities & Services</h1>
 
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-3 relative z-10">
         <div className="text-sm text-gray-600">Create, edit, or bulk import standard facilities & services.</div>
-        <button type="button" onClick={async()=>{ try{ const res = await fetch(`${API_URL}/api/amenities/bulk-seed`, { method: 'POST', credentials: 'include' }); const data = await res.json(); if (!res.ok) throw new Error(data.message||'Seed failed'); toast.success(`Seeded ${data.seeded} items`); load(); } catch(e){ toast.error(e.message);} }} className="px-3 py-2 border rounded flex items-center gap-2"><FaPlus /> Seed Defaults</button>
+        <button
+          type="button"
+          onClick={async()=>{
+            try{
+              const res = await fetch(`${API_URL}/api/amenities/bulk-seed`, { method: 'POST', credentials: 'include' });
+              const data = await res.json().catch(()=>({}));
+              if (!res.ok) throw new Error(data.message||'Seed failed');
+              const failures = Array.isArray(data.failures) ? data.failures.length : 0;
+              toast.success(`Seeded ${data.seeded || 0} items${failures? `, ${failures} failed` : ''}`);
+              load();
+            } catch(e){ toast.error(e.message || 'Seed failed'); }
+          }}
+          className="px-3 py-2 border rounded flex items-center gap-2 cursor-pointer relative z-10"
+        >
+          <FaPlus /> Seed Defaults
+        </button>
       </div>
 
       <form onSubmit={submit} className="bg-white rounded-xl shadow p-4 mb-6 grid grid-cols-1 md:grid-cols-6 gap-3">
