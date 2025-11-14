@@ -120,6 +120,32 @@ const PropertyOwnerBookings = () => {
   });
   const calendarRef = useRef(null);
 
+  const openReceiptPdf = async (bookingId) => {
+    try {
+      const tryUrls = [
+        `${API_URL}/api/bookings/${bookingId}/receipt?format=pdf`,
+        `${API_URL}/api/bookings/${bookingId}/receipt`
+      ];
+      for (const url of tryUrls) {
+        const res = await fetch(url, { credentials: 'include' });
+        if (res.ok) {
+          const ct = res.headers.get('content-type') || '';
+          const blob = await res.blob();
+          const blobType = ct && ct.includes('pdf') ? 'application/pdf' : blob.type;
+          const pdfBlob = new Blob([blob], { type: blobType || 'application/pdf' });
+          const objectUrl = URL.createObjectURL(pdfBlob);
+          window.open(objectUrl, '_blank', 'noopener,noreferrer');
+          // caller can manually print from viewer; do not auto-print
+          return;
+        }
+      }
+      // Fallback: open original route
+      window.open(`${API_URL}/api/bookings/${bookingId}/receipt`, '_blank');
+    } catch (_) {
+      window.open(`${API_URL}/api/bookings/${bookingId}/receipt`, '_blank');
+    }
+  };
+
   // Removed mock data. We will fetch live data from the backend.
 
   useEffect(() => {
@@ -1468,7 +1494,7 @@ const PropertyOwnerBookings = () => {
                     <td className="px-4 py-3 text-sm">{b.isDirect ? 'Yes' : 'No'}</td>
                     <td className="px-4 py-3 text-sm space-x-1">
                       <button
-                        onClick={() => window.open(`${API_URL}/api/bookings/${b._id}/receipt`, '_blank')}
+                        onClick={() => openReceiptPdf(b._id)}
                         className="p-2 rounded bg-green-50 text-green-700 hover:bg-green-100"
                         aria-label="Receipt"
                         title="Download Receipt"
@@ -1707,9 +1733,7 @@ const PropertyOwnerBookings = () => {
                                 View Invoice
                               </button>
                               <button
-                                onClick={() => {
-                                  window.open(`${API_URL}/api/bookings/${booking._id}/receipt`, '_blank');
-                                }}
+                                onClick={() => openReceiptPdf(booking._id)}
                                 className="text-sm text-green-600 hover:text-green-800"
                               >
                                 View Receipt
@@ -1927,8 +1951,11 @@ const PropertyOwnerBookings = () => {
                   <div className="neu-card p-4">
                     <h3 className="font-semibold mb-3">Revenue by {salesPeriod}</h3>
                     {(() => {
-                      const list = filters.property && filters.property !== 'all' ? bookings.filter(b => String(b.property?._id||b.property) === String(filters.property)) : bookings;
-                      const rows = computeSalesBuckets(list, salesPeriod);
+                      const initial = (filters.property && filters.property !== 'all')
+                        ? bookings.filter(b => String(b.property?._id || b.property) === String(filters.property))
+                        : bookings;
+                      const source = (initial.length === 0 && filters.property && filters.property !== 'all') ? bookings : initial;
+                      const rows = computeSalesBuckets(source, salesPeriod);
                       const totalPages = Math.max(1, Math.ceil(rows.length / salesPerPage));
                       const page = Math.min(salesPage, totalPages);
                       const start = (page-1) * salesPerPage;
@@ -2016,13 +2043,23 @@ const PropertyOwnerBookings = () => {
                           <option value="weekly">Weekly</option>
                           <option value="monthly">Monthly</option>
                         </select>
-                        <button onClick={() => { const rows = computeSalesBuckets(bookings, reportsPeriod); exportSalesCSV(rows); }} className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm">Export CSV</button>
+                        <button onClick={() => { 
+                          const initial = (filters.property && filters.property !== 'all')
+                            ? bookings.filter(b => String(b.property?._id || b.property) === String(filters.property))
+                            : bookings;
+                          const source = (initial.length === 0 && filters.property && filters.property !== 'all') ? bookings : initial;
+                          const rows = computeSalesBuckets(source, reportsPeriod); 
+                          exportSalesCSV(rows); 
+                        }} className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm">Export CSV</button>
                         <button onClick={() => window.print()} className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm">Export PDF</button>
                       </div>
                     </div>
                     {(() => {
-                      const list = filters.property && filters.property !== 'all' ? bookings.filter(b => String(b.property?._id||b.property) === String(filters.property)) : bookings;
-                      const rows = computeSalesBuckets(list, reportsPeriod);
+                      const initial = (filters.property && filters.property !== 'all')
+                        ? bookings.filter(b => String(b.property?._id || b.property) === String(filters.property))
+                        : bookings;
+                      const source = (initial.length === 0 && filters.property && filters.property !== 'all') ? bookings : initial;
+                      const rows = computeSalesBuckets(source, reportsPeriod);
                       const totalPages = Math.max(1, Math.ceil(rows.length / reportsPerPage));
                       const page = Math.min(reportsPage, totalPages);
                       const start = (page-1) * reportsPerPage;
