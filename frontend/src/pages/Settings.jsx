@@ -195,6 +195,18 @@ const Settings = () => {
           <p className="text-gray-600 mt-2">{t ? t('settings.subtitle') : 'Manage your account settings and preferences'}</p>
         </div>
 
+        {user?.isBlocked && (
+          <div className="mb-6 rounded-lg bg-yellow-50 border border-yellow-200 p-4">
+            <div className="text-yellow-900 text-sm">
+              <span className="font-semibold">Account deactivated:</span>
+              <span className="ml-1">Your account is currently deactivated due to outstanding dues. You can continue updating your profile and notification preferences, but booking and listing actions are restricted until dues are paid.</span>
+            </div>
+            <div className="mt-2">
+              <a href="/billing/pay-commission" className="inline-block px-3 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700">Pay dues to reactivate</a>
+            </div>
+          </div>
+        )}
+
         {/* Tabs */}
         <div className="bg-white rounded-lg shadow-sm border">
           <div className="border-b border-gray-200">

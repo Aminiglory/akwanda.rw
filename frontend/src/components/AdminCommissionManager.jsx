@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FaExclamationTriangle, FaCheckCircle, FaToggleOn, FaToggleOff, FaMoneyBillWave } from 'react-icons/fa';
 import toast from 'react-hot-toast';
+import SuccessModal from './SuccessModal';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -11,6 +12,12 @@ const AdminCommissionManager = () => {
   const [punishment, setPunishment] = useState({ durationDays: '', durationWeeks: '', until: '' });
   const [showFineModal, setShowFineModal] = useState(false);
   const [fineForm, setFineForm] = useState({ userId: '', reason: '', amount: '', dueMode: 'none', dueAt: '', dueInDays: '', dueInWeeks: '', block: false, blockMode: 'none', blockedUntil: '', durationDays: '', durationWeeks: '' });
+  const [viewMode, setViewMode] = useState('cards'); // 'cards' | 'table'
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(6);
+  const [successOpen, setSuccessOpen] = useState(false);
+  const [successTitle, setSuccessTitle] = useState('Success');
+  const [successMsg, setSuccessMsg] = useState('Action completed successfully.');
 
   useEffect(() => {
     fetchUsersWithUnpaidCommissions();
