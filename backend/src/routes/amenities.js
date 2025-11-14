@@ -182,18 +182,23 @@ router.post('/bulk-seed', requireAuth, requireAdmin, async (req, res) => {
     add('Grocery Delivery', 'grocery_delivery', 'property', 'service', 'Grocery delivery to apartments.');
     add('Breakfast in Room', 'breakfast_in_room', 'property', 'service', 'Breakfast served in the guest room.');
 
-    // Upsert by slug to avoid duplicates
-    let created = 0;
+    // Upsert by slug to avoid duplicates (resilient, per-item try/catch)
+    let seeded = 0;
+    const failures = [];
     for (const item of defs) {
-      const updated = await Amenity.findOneAndUpdate(
-        { slug: item.slug },
-        { $setOnInsert: item, $set: { description: item.description, name: item.name, scope: item.scope, type: item.type, active: true } },
-        { upsert: true, new: true }
-      );
-      if (updated) created += 1;
+      try {
+        const updated = await Amenity.findOneAndUpdate(
+          { slug: item.slug },
+          { $setOnInsert: item, $set: { description: item.description, name: item.name, scope: item.scope, type: item.type, active: true } },
+          { upsert: true, new: true }
+        );
+        if (updated) seeded += 1;
+      } catch (e) {
+        failures.push({ slug: item.slug, name: item.name, error: e.message });
+      }
     }
     const all = await Amenity.find({}).sort({ order: 1, name: 1 }).lean();
-    res.json({ seeded: created, total: all.length, amenities: all });
+    res.json({ seeded, total: all.length, failures, amenities: all });
   } catch (e) {
     res.status(500).json({ message: 'Failed to seed amenities', error: e.message });
   }
