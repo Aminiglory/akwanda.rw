@@ -990,53 +990,53 @@ const AdminDashboard = () => {
           </div>
         </div>
       )}
-    </div>
-  )}
 
-  {/* Booking Details Modal */}
-  {showBookingDetails && selectedBooking && (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold">Booking Details</h2>
-          <div className="flex items-center gap-2">
-            <div className="inline-flex rounded-lg overflow-hidden border">
-              <button className={`px-3 py-1.5 text-sm ${bookingDetailsMode==='info' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700'}`} onClick={()=>setBookingDetailsMode('info')}>Info</button>
-              <button className={`px-3 py-1.5 text-sm ${bookingDetailsMode==='table' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700'}`} onClick={()=>setBookingDetailsMode('table')}>Table</button>
+      {/* Booking Details Modal */}
+      {showBookingDetails && selectedBooking && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold">Booking Details</h2>
+              <div className="flex items-center gap-2">
+                <div className="inline-flex rounded-lg overflow-hidden border">
+                  <button className={`px-3 py-1.5 text-sm ${bookingDetailsMode==='info' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700'}`} onClick={()=>setBookingDetailsMode('info')}>Info</button>
+                  <button className={`px-3 py-1.5 text-sm ${bookingDetailsMode==='table' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700'}`} onClick={()=>setBookingDetailsMode('table')}>Table</button>
+                </div>
+                <button onClick={() => { setShowBookingDetails(false); setSelectedBooking(null); }} className="text-gray-500 hover:text-gray-700">×</button>
+              </div>
             </div>
-            <button onClick={() => { setShowBookingDetails(false); setSelectedBooking(null); }} className="text-gray-500 hover:text-gray-700">×</button>
+            {bookingDetailsMode === 'info' ? (
+              <div className="space-y-3 text-sm text-gray-700">
+                <div><span className="text-gray-500">Property:</span> {selectedBooking.property?.title}</div>
+                <div><span className="text-gray-500">Guest:</span> {selectedBooking.guest?.firstName} {selectedBooking.guest?.lastName}</div>
+                {selectedBooking.guest?.phone && (<div><span className="text-gray-500">Phone:</span> {selectedBooking.guest.phone}</div>)}
+                <div><span className="text-gray-500">Dates:</span> {new Date(selectedBooking.checkIn).toLocaleDateString()} → {new Date(selectedBooking.checkOut).toLocaleDateString()}</div>
+                <div><span className="text-gray-500">Nights:</span> {selectedBooking.nights || ''}</div>
+                <div><span className="text-gray-500">Amount:</span> {formatCurrencyRWF ? formatCurrencyRWF(selectedBooking.totalAmount || 0) : `RWF ${Number(selectedBooking.totalAmount || 0).toLocaleString()}`}</div>
+                <div><span className="text-gray-500">Status:</span> {selectedBooking.status}</div>
+                {selectedBooking.createdAt && (<div><span className="text-gray-500">Created:</span> {new Date(selectedBooking.createdAt).toLocaleString()}</div>)}
+                {selectedBooking.confirmationCode && (<div><span className="text-gray-500">Confirmation:</span> {selectedBooking.confirmationCode}</div>)}
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-sm">
+                  <tbody>
+                    <tr><td className="p-2 font-medium">Property</td><td className="p-2">{selectedBooking.property?.title}</td></tr>
+                    <tr><td className="p-2 font-medium">Guest</td><td className="p-2">{selectedBooking.guest?.firstName} {selectedBooking.guest?.lastName}</td></tr>
+                    {selectedBooking.guest?.phone && (<tr><td className="p-2 font-medium">Phone</td><td className="p-2">{selectedBooking.guest.phone}</td></tr>)}
+                    <tr><td className="p-2 font-medium">Dates</td><td className="p-2">{new Date(selectedBooking.checkIn).toLocaleDateString()} → {new Date(selectedBooking.checkOut).toLocaleDateString()}</td></tr>
+                    <tr><td className="p-2 font-medium">Nights</td><td className="p-2">{selectedBooking.nights || ''}</td></tr>
+                    <tr><td className="p-2 font-medium">Amount</td><td className="p-2">{formatCurrencyRWF ? formatCurrencyRWF(selectedBooking.totalAmount || 0) : `RWF ${Number(selectedBooking.totalAmount || 0).toLocaleString()}`}</td></tr>
+                    <tr><td className="p-2 font-medium">Status</td><td className="p-2">{selectedBooking.status}</td></tr>
+                    {selectedBooking.createdAt && (<tr><td className="p-2 font-medium">Created</td><td className="p-2">{new Date(selectedBooking.createdAt).toLocaleString()}</td></tr>)}
+                    {selectedBooking.confirmationCode && (<tr><td className="p-2 font-medium">Confirmation</td><td className="p-2">{selectedBooking.confirmationCode}</td></tr>)}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
-        {bookingDetailsMode === 'info' ? (
-          <div className="space-y-3 text-sm text-gray-700">
-            <div><span className="text-gray-500">Property:</span> {selectedBooking.property?.title}</div>
-            <div><span className="text-gray-500">Guest:</span> {selectedBooking.guest?.firstName} {selectedBooking.guest?.lastName}</div>
-            {selectedBooking.guest?.phone && (<div><span className="text-gray-500">Phone:</span> {selectedBooking.guest.phone}</div>)}
-            <div><span className="text-gray-500">Dates:</span> {new Date(selectedBooking.checkIn).toLocaleDateString()} → {new Date(selectedBooking.checkOut).toLocaleDateString()}</div>
-            <div><span className="text-gray-500">Nights:</span> {selectedBooking.nights || ''}</div>
-            <div><span className="text-gray-500">Amount:</span> {formatCurrencyRWF ? formatCurrencyRWF(selectedBooking.totalAmount || 0) : `RWF ${Number(selectedBooking.totalAmount || 0).toLocaleString()}`}</div>
-            <div><span className="text-gray-500">Status:</span> {selectedBooking.status}</div>
-            {selectedBooking.createdAt && (<div><span className="text-gray-500">Created:</span> {new Date(selectedBooking.createdAt).toLocaleString()}</div>)}
-            {selectedBooking.confirmationCode && (<div><span className="text-gray-500">Confirmation:</span> {selectedBooking.confirmationCode}</div>)}
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <tbody>
-                <tr><td className="p-2 font-medium">Property</td><td className="p-2">{selectedBooking.property?.title}</td></tr>
-                <tr><td className="p-2 font-medium">Guest</td><td className="p-2">{selectedBooking.guest?.firstName} {selectedBooking.guest?.lastName}</td></tr>
-                {selectedBooking.guest?.phone && (<tr><td className="p-2 font-medium">Phone</td><td className="p-2">{selectedBooking.guest.phone}</td></tr>)}
-                <tr><td className="p-2 font-medium">Dates</td><td className="p-2">{new Date(selectedBooking.checkIn).toLocaleDateString()} → {new Date(selectedBooking.checkOut).toLocaleDateString()}</td></tr>
-                <tr><td className="p-2 font-medium">Nights</td><td className="p-2">{selectedBooking.nights || ''}</td></tr>
-                <tr><td className="p-2 font-medium">Amount</td><td className="p-2">{formatCurrencyRWF ? formatCurrencyRWF(selectedBooking.totalAmount || 0) : `RWF ${Number(selectedBooking.totalAmount || 0).toLocaleString()}`}</td></tr>
-                <tr><td className="p-2 font-medium">Status</td><td className="p-2">{selectedBooking.status}</td></tr>
-                {selectedBooking.createdAt && (<tr><td className="p-2 font-medium">Created</td><td className="p-2">{new Date(selectedBooking.createdAt).toLocaleString()}</td></tr>)}
-                {selectedBooking.confirmationCode && (<tr><td className="p-2 font-medium">Confirmation</td><td className="p-2">{selectedBooking.confirmationCode}</td></tr>)}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      )}
     </div>
   )};
 
