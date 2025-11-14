@@ -80,6 +80,9 @@ const AdminCommissionManager = () => {
       if (!res.ok) throw new Error(data.message || (data && data.__raw ? data.__raw.slice(0,200) : 'Failed to add fine'));
       toast.success('Fine added');
       setShowFineModal(false);
+      setSuccessTitle('Fine Added');
+      setSuccessMsg('The fine was added successfully.');
+      setSuccessOpen(true);
       fetchUsersWithUnpaidCommissions();
     } catch (e) {
       toast.error(e.message);
@@ -112,6 +115,9 @@ const AdminCommissionManager = () => {
   if (!res.ok) throw new Error(data.message || (data && data.__raw ? data.__raw.slice(0,200) : 'Failed to deactivate user'));
 
       toast.success('User account deactivated successfully');
+      setSuccessTitle('User Deactivated');
+      setSuccessMsg('The user was deactivated due to unpaid commissions.');
+      setSuccessOpen(true);
       fetchUsersWithUnpaidCommissions();
     } catch (error) {
       toast.error(error.message);
@@ -136,6 +142,9 @@ const AdminCommissionManager = () => {
       if (!res.ok) throw new Error(data.message || (data && data.__raw ? data.__raw.slice(0,200) : 'Failed to reactivate user'));
 
       toast.success('User account reactivated successfully');
+      setSuccessTitle('User Reactivated');
+      setSuccessMsg('The user account has been reactivated.');
+      setSuccessOpen(true);
       fetchUsersWithUnpaidCommissions();
     } catch (error) {
       toast.error(error.message);
@@ -163,9 +172,15 @@ const AdminCommissionManager = () => {
           <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Commission Management</h2>
           <p className="text-gray-600 text-xs sm:text-sm">Manage users with unpaid commissions</p>
         </div>
-        <div className="bg-red-100 text-red-800 px-3 py-1.5 rounded-lg text-xs sm:text-sm">
-          <FaExclamationTriangle className="inline mr-2" />
-          <span className="font-semibold">{users.length} users with unpaid commissions</span>
+        <div className="flex items-center gap-2">
+          <div className="inline-flex rounded-lg overflow-hidden border">
+            <button className={`px-3 py-1.5 text-xs sm:text-sm ${viewMode==='cards' ? 'bg-[#a06b42] text-white' : 'bg-white text-gray-700'}`} onClick={()=>setViewMode('cards')}>Cards</button>
+            <button className={`px-3 py-1.5 text-xs sm:text-sm ${viewMode==='table' ? 'bg-[#a06b42] text-white' : 'bg-white text-gray-700'}`} onClick={()=>setViewMode('table')}>Table</button>
+          </div>
+          <div className="bg-red-100 text-red-800 px-3 py-1.5 rounded-lg text-xs sm:text-sm">
+            <FaExclamationTriangle className="inline mr-2" />
+            <span className="font-semibold">{users.length} users with unpaid commissions</span>
+          </div>
         </div>
       </div>
 
@@ -176,55 +191,87 @@ const AdminCommissionManager = () => {
           <p className="text-gray-600 text-sm">No users have unpaid commissions at this time</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-          {users.map(user => (
-            <div key={user._id} className="border border-gray-200 rounded-xl p-3 sm:p-4 bg-white">
-              <div className="flex items-center justify-between mb-2">
-                <div>
-                  <div className="font-semibold text-gray-900 text-sm sm:text-base">{user.firstName} {user.lastName}</div>
-                  <div className="text-xs sm:text-sm text-gray-600 break-words">{user.email}</div>
-                </div>
-                <span className={`inline-flex items-center px-2 py-1 rounded-full text-[10px] sm:text-xs font-medium ${user.isBlocked ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>
-                  {user.isBlocked ? 'Deactivated' : 'Active'}
-                </span>
-              </div>
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <FaMoneyBillWave className="text-red-600 text-sm" />
-                  <span className="font-semibold text-red-600 text-sm sm:text-base">{formatCurrency(user.totalCommission)}</span>
-                </div>
-                <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full text-[10px] sm:text-xs">
-                  {user.bookings?.length || 0} unpaid
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                {user.isBlocked ? (
-                  <button
-                    onClick={() => handleReactivateUser(user._id)}
-                    disabled={processingId === user._id}
-                    className={`flex-1 px-3 py-2 rounded-lg text-white text-xs sm:text-sm ${processingId === user._id ? 'bg-green-400' : 'bg-green-600 hover:bg-green-700'}`}
-                  >
-                    Reactivate
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => handleDeactivateUser(user._id, user.totalCommission)}
-                    disabled={processingId === user._id}
-                    className={`flex-1 px-3 py-2 rounded-lg text-white text-xs sm:text-sm ${processingId === user._id ? 'bg-red-400' : 'bg-red-600 hover:bg-red-700'}`}
-                  >
-                    Deactivate
-                  </button>
-                )}
-                <button
-                  onClick={() => openFineModal(user._id)}
-                  className="px-3 py-2 rounded-lg border text-xs sm:text-sm hover:bg-gray-50"
-                >
-                  Add Fine
-                </button>
-              </div>
+        <>
+          {viewMode === 'table' ? (
+            <div className="bg-white rounded-xl border overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <thead>
+                  <tr className="bg-gray-50 text-left">
+                    <th className="p-3">User</th>
+                    <th className="p-3">Email</th>
+                    <th className="p-3">Unpaid Commission</th>
+                    <th className="p-3">Unpaid Count</th>
+                    <th className="p-3">Status</th>
+                    <th className="p-3">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {users.slice((page-1)*pageSize, (page-1)*pageSize + pageSize).map(user => (
+                    <tr key={user._id} className="border-t">
+                      <td className="p-3 font-medium">{user.firstName} {user.lastName}</td>
+                      <td className="p-3">{user.email}</td>
+                      <td className="p-3 text-red-700 font-semibold">{formatCurrency(user.totalCommission)}</td>
+                      <td className="p-3">{user.bookings?.length || 0}</td>
+                      <td className="p-3">
+                        <span className={`px-2 py-1 rounded-full text-xs ${user.isBlocked ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>{user.isBlocked ? 'Deactivated' : 'Active'}</span>
+                      </td>
+                      <td className="p-3">
+                        <div className="flex items-center gap-2">
+                          {user.isBlocked ? (
+                            <button onClick={() => handleReactivateUser(user._id)} disabled={processingId===user._id} className={`px-3 py-1 rounded text-white text-xs ${processingId===user._id?'bg-green-400':'bg-green-600 hover:bg-green-700'}`}>Reactivate</button>
+                          ) : (
+                            <button onClick={() => handleDeactivateUser(user._id, user.totalCommission)} disabled={processingId===user._id} className={`px-3 py-1 rounded text-white text-xs ${processingId===user._id?'bg-red-400':'bg-red-600 hover:bg-red-700'}`}>Deactivate</button>
+                          )}
+                          <button onClick={() => openFineModal(user._id)} className="px-3 py-1 rounded border text-xs hover:bg-gray-50">Add Fine</button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          ))}
-        </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+              {users.slice((page-1)*pageSize, (page-1)*pageSize + pageSize).map(user => (
+                <div key={user._id} className="border border-gray-200 rounded-xl p-3 sm:p-4 bg-white">
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <div className="font-semibold text-gray-900 text-sm sm:text-base">{user.firstName} {user.lastName}</div>
+                      <div className="text-xs sm:text-sm text-gray-600 break-words">{user.email}</div>
+                    </div>
+                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-[10px] sm:text-xs font-medium ${user.isBlocked ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}> {user.isBlocked ? 'Deactivated' : 'Active'} </span>
+                  </div>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <FaMoneyBillWave className="text-red-600 text-sm" />
+                      <span className="font-semibold text-red-600 text-sm sm:text-base">{formatCurrency(user.totalCommission)}</span>
+                    </div>
+                    <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full text-[10px] sm:text-xs"> {user.bookings?.length || 0} unpaid </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {user.isBlocked ? (
+                      <button onClick={() => handleReactivateUser(user._id)} disabled={processingId === user._id} className={`flex-1 px-3 py-2 rounded-lg text-white text-xs sm:text-sm ${processingId === user._id ? 'bg-green-400' : 'bg-green-600 hover:bg-green-700'}`}>Reactivate</button>
+                    ) : (
+                      <button onClick={() => handleDeactivateUser(user._id, user.totalCommission)} disabled={processingId === user._id} className={`flex-1 px-3 py-2 rounded-lg text-white text-xs sm:text-sm ${processingId === user._id ? 'bg-red-400' : 'bg-red-600 hover:bg-red-700'}`}>Deactivate</button>
+                    )}
+                    <button onClick={() => openFineModal(user._id)} className="px-3 py-2 rounded-lg border text-xs sm:text-sm hover:bg-gray-50">Add Fine</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {/* Pagination */}
+          <div className="mt-4 flex items-center justify-between">
+            <div className="text-xs sm:text-sm text-gray-600">Showing <span className="font-semibold">{Math.min(page*pageSize, users.length)}</span> of <span className="font-semibold">{users.length}</span></div>
+            <div className="flex items-center gap-2">
+              <button disabled={page<=1} onClick={()=>setPage(p=>Math.max(1,p-1))} className="px-3 py-1.5 text-sm border rounded disabled:opacity-50">Prev</button>
+              {Array.from({ length: Math.max(1, Math.ceil(users.length / pageSize)) }, (_, i) => (
+                <button key={i} onClick={()=>setPage(i+1)} className={`px-3 py-1.5 text-sm border rounded ${page===i+1? 'bg-[#a06b42] text-white border-[#a06b42]':'bg-white text-gray-700'}`}>{i+1}</button>
+              ))}
+              <button disabled={page>=Math.max(1, Math.ceil(users.length / pageSize))} onClick={()=>setPage(p=>Math.min(Math.max(1, Math.ceil(users.length / pageSize)), p+1))} className="px-3 py-1.5 text-sm border rounded disabled:opacity-50">Next</button>
+            </div>
+          </div>
+        </>
       )}
 
       <div className="mt-5 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
@@ -330,6 +377,7 @@ const AdminCommissionManager = () => {
           </div>
         </div>
       )}
+      <SuccessModal open={successOpen} title={successTitle} message={successMsg} onClose={()=>setSuccessOpen(false)} />
     </div>
   );
 }

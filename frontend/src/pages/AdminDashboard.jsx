@@ -55,6 +55,19 @@ const AdminDashboard = () => {
   const [deletingUserId, setDeletingUserId] = useState(null);
   const [menuForUserId, setMenuForUserId] = useState(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const [usersViewMode, setUsersViewMode] = useState('cards'); // 'cards' | 'table'
+  const [usersPage, setUsersPage] = useState(1);
+  const usersPageSize = 6;
+  const totalUsersPages = Math.max(1, Math.ceil(users.filter(u => {
+    const matchesSearch = (u.firstName||'').toLowerCase().includes(searchTerm.toLowerCase()) || (u.lastName||'').toLowerCase().includes(searchTerm.toLowerCase()) || (u.email||'').toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesType = filterStatus ? u.userType === filterStatus : true;
+    const excludeAdmins = filterStatus !== 'admin' ? (String(u.userType||'').toLowerCase() !== 'admin') : true;
+    return matchesSearch && matchesType && excludeAdmins;
+  }).length / usersPageSize));
+  const [showBookingDetails, setShowBookingDetails] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState(null);
+  const [bookingDetailsMode, setBookingDetailsMode] = useState('info'); // 'info' | 'table'
+  const [overviewMode, setOverviewMode] = useState('cards'); // 'cards' | 'table'
 
   useEffect(() => {
     fetchDashboardData();
@@ -433,47 +446,75 @@ const AdminDashboard = () => {
             {/* Overview Tab */}
             {activeTab === 'overview' && (
               <div className="space-y-6">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div className="bg-gray-50 rounded-xl p-6">
-                    <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-4">Recent Bookings</h3>
-                    <div className="space-y-3">
-                      {bookings.slice(0, 5).map((booking) => (
-                        <div key={booking._id} className="flex items-center justify-between p-3 bg-white rounded-lg min-w-0">
-                          <div className="min-w-0">
-                            <p className="font-medium text-gray-900 truncate">{booking.property?.title}</p>
-                            <p className="text-xs md:text-sm text-gray-600 truncate">{booking.guest?.firstName} {booking.guest?.lastName}</p>
-                          </div>
-                          <div className="text-right">
-                            <span className={`px-2 py-1 rounded-full text-[10px] md:text-xs font-medium ${getStatusColor(booking.status)}`}>
-                              {booking.status}
-                            </span>
-                            <p className="text-xs md:text-sm text-gray-600 mt-1">{formatCurrencyRWF ? formatCurrencyRWF(booking.totalAmount || 0) : `RWF ${Number(booking.totalAmount || 0).toLocaleString()}`}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="bg-gray-50 rounded-xl p-6">
-                    <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-4">Top Properties</h3>
-                    <div className="space-y-3">
-                      {properties.slice(0, 5).map((property) => (
-                        <div key={property._id} className="flex items-center justify-between p-3 bg-white rounded-lg min-w-0">
-                          <div className="min-w-0">
-                            <p className="font-medium text-gray-900 truncate">{property.title}</p>
-                            <p className="text-xs md:text-sm text-gray-600 truncate">{property.city}</p>
-                          </div>
-                          <div className="text-right">
-                            <div className="flex items-center">
-                              {renderStars(property.ratings?.length ? property.ratings.reduce((sum, r) => sum + r.rating, 0) / property.ratings.length : 0)}
-                            </div>
-                            <p className="text-xs md:text-sm text-gray-600 mt-1">{formatCurrencyRWF ? formatCurrencyRWF(property.pricePerNight || 0) : `RWF ${Number(property.pricePerNight || 0).toLocaleString()}`}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                <div className="flex items-center justify-end">
+                  <div className="inline-flex rounded-lg overflow-hidden border">
+                    <button className={`px-3 py-2 text-sm ${overviewMode==='cards' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700'}`} onClick={()=>setOverviewMode('cards')}>Cards</button>
+                    <button className={`px-3 py-2 text-sm ${overviewMode==='table' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700'}`} onClick={()=>setOverviewMode('table')}>Table</button>
                   </div>
                 </div>
+                {overviewMode === 'cards' ? (
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="bg-gray-50 rounded-xl p-6">
+                      <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-4">Recent Bookings</h3>
+                      <div className="space-y-3">
+                        {bookings.slice(0, 5).map((booking) => (
+                          <div key={booking._id} className="flex items-center justify-between p-3 bg-white rounded-lg min-w-0">
+                            <div className="min-w-0">
+                              <p className="font-medium text-gray-900 truncate">{booking.property?.title}</p>
+                              <p className="text-xs md:text-sm text-gray-600 truncate">{booking.guest?.firstName} {booking.guest?.lastName}</p>
+                            </div>
+                            <div className="text-right">
+                              <span className={`px-2 py-1 rounded-full text-[10px] md:text-xs font-medium ${getStatusColor(booking.status)}`}>{booking.status}</span>
+                              <p className="text-xs md:text-sm text-gray-600 mt-1">{formatCurrencyRWF ? formatCurrencyRWF(booking.totalAmount || 0) : `RWF ${Number(booking.totalAmount || 0).toLocaleString()}`}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="bg-gray-50 rounded-xl p-6">
+                      <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-4">Top Properties</h3>
+                      <div className="space-y-3">
+                        {properties.slice(0, 5).map((property) => (
+                          <div key={property._id} className="flex items-center justify-between p-3 bg-white rounded-lg min-w-0">
+                            <div className="min-w-0">
+                              <p className="font-medium text-gray-900 truncate">{property.title}</p>
+                              <p className="text-xs md:text-sm text-gray-600 truncate">{property.city}</p>
+                            </div>
+                            <div className="text-right">
+                              <div className="flex items-center">{renderStars(property.ratings?.length ? property.ratings.reduce((sum, r) => sum + r.rating, 0) / property.ratings.length : 0)}</div>
+                              <p className="text-xs md:text-sm text-gray-600 mt-1">{formatCurrencyRWF ? formatCurrencyRWF(property.pricePerNight || 0) : `RWF ${Number(property.pricePerNight || 0).toLocaleString()}`}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-white rounded-xl shadow overflow-x-auto">
+                    <table className="min-w-full text-sm">
+                      <thead>
+                        <tr className="bg-gray-50 text-left">
+                          <th className="p-3">Property</th>
+                          <th className="p-3">Guest</th>
+                          <th className="p-3">Dates</th>
+                          <th className="p-3">Amount</th>
+                          <th className="p-3">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {bookings.slice(0, 10).map(b => (
+                          <tr key={b._id} className="border-t">
+                            <td className="p-3">{b.property?.title}</td>
+                            <td className="p-3">{b.guest?.firstName} {b.guest?.lastName}</td>
+                            <td className="p-3">{new Date(b.checkIn).toLocaleDateString()} → {new Date(b.checkOut).toLocaleDateString()}</td>
+                            <td className="p-3">{formatCurrencyRWF ? formatCurrencyRWF(b.totalAmount || 0) : `RWF ${Number(b.totalAmount || 0).toLocaleString()}`}</td>
+                            <td className="p-3"><span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(b.status)}`}>{b.status}</span></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             )}
 
@@ -650,7 +691,7 @@ const AdminDashboard = () => {
                             {booking.status}
                           </span>
                           <div className="mt-2 flex items-center space-x-2">
-                            <button className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
+                            <button className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm" onClick={()=>{ setSelectedBooking(booking); setShowBookingDetails(true); setBookingDetailsMode('info'); }}>
                               View Details
                             </button>
                             {(booking.status === 'pending' || booking.status === 'awaiting') && (
@@ -704,56 +745,114 @@ const AdminDashboard = () => {
                     </div>
                   </div>
                 </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {users
-                    .filter(u => {
-                      const matchesSearch = (u.firstName||'').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                          (u.lastName||'').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                          (u.email||'').toLowerCase().includes(searchTerm.toLowerCase());
-                      const matchesType = filterStatus ? u.userType === filterStatus : true;
-                      const excludeAdmins = filterStatus !== 'admin' ? (String(u.userType||'').toLowerCase() !== 'admin') : true;
-                      return matchesSearch && matchesType && excludeAdmins;
-                    })
-                    .map((user) => (
-                    <div key={user._id} className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
-                      <div className="flex items-center space-x-4">
-                        <div className="w-12 h-12 rounded-full bg-blue-600 text-white flex items-center justify-center text-lg font-bold">
-                          {user.firstName?.[0]}{user.lastName?.[0]}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-semibold text-gray-900 truncate">{user.firstName} {user.lastName}</h4>
-                          <p className="text-sm text-gray-600 truncate">{user.email}</p>
-                          <p className="text-sm text-gray-500 truncate">{user.phone}</p>
-                        </div>
-                        <div className="text-right">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            user.userType === 'admin' ? 'bg-red-100 text-red-800' :
-                            user.userType === 'host' ? 'bg-blue-100 text-blue-800' :
-                            'bg-green-100 text-green-800'
-                          }`}>
-                            {user.userType}
-                          </span>
-                        </div>
-                        <div className="relative">
-                          <button onClick={()=> setMenuForUserId(m => m===user._id ? null : user._id)} className="p-2 border rounded" aria-haspopup="menu" aria-expanded={menuForUserId===user._id} title="Actions"><FaEllipsisV /></button>
-                          {menuForUserId===user._id && (
-                            <div className="absolute right-0 mt-2 w-56 bg-white border rounded shadow z-10">
-                              <button onClick={()=> { viewUserDetails(user._id); setMenuForUserId(null); }} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left"><FaUser className="md:hidden" /><span className="hidden md:inline">View</span><span className="md:hidden">View</span></button>
-                              {user.userType !== 'host' && user.userType !== 'admin' && (
-                                <button onClick={()=> { promoteToHost(user._id); setMenuForUserId(null); }} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left"><FaHome className="md:hidden" /><span className="hidden md:inline">Promote to Host</span><span className="md:hidden">Promote</span></button>
-                              )}
-                              {user.userType === 'host' && (user.propertyCount===0 || (user.properties?.length||0)===0) && (
-                                <button onClick={()=> { demoteToGuest(user._id); setMenuForUserId(null); }} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left"><FaUserTimes className="md:hidden" /><span className="hidden md:inline">Demote to Guest</span><span className="md:hidden">Demote</span></button>
-                              )}
-                              <button onClick={()=> { (user.isBlocked ? reactivateUser(user._id) : deactivateUser(user._id)); setMenuForUserId(null); }} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left"><FaEdit className="md:hidden" /><span className="hidden md:inline">{user.isBlocked ? 'Reactivate' : 'Deactivate'}</span><span className="md:hidden">{user.isBlocked ? 'Reactivate' : 'Deactivate'}</span></button>
-                              <button onClick={()=> { setConfirmDeleteId(user._id); setMenuForUserId(null); }} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left text-rose-600"><FaTrash className="md:hidden" /><span className="hidden md:inline">Delete</span><span className="md:hidden">Delete</span></button>
-                            </div>
-                          )}
-                        </div>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="inline-flex rounded-lg overflow-hidden border">
+                    <button className={`px-3 py-2 text-sm ${usersViewMode==='cards' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700'}`} onClick={()=>setUsersViewMode('cards')}>Cards</button>
+                    <button className={`px-3 py-2 text-sm ${usersViewMode==='table' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700'}`} onClick={()=>setUsersViewMode('table')}>Table</button>
+                  </div>
+                </div>
+                {usersViewMode === 'table' ? (
+                  <div className="bg-white rounded-xl shadow overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {users.filter(u => {
+                          const matchesSearch = (u.firstName||'').toLowerCase().includes(searchTerm.toLowerCase()) || (u.lastName||'').toLowerCase().includes(searchTerm.toLowerCase()) || (u.email||'').toLowerCase().includes(searchTerm.toLowerCase());
+                          const matchesType = filterStatus ? u.userType === filterStatus : true;
+                          const excludeAdmins = filterStatus !== 'admin' ? (String(u.userType||'').toLowerCase() !== 'admin') : true;
+                          return matchesSearch && matchesType && excludeAdmins;
+                        }).slice((usersPage-1)*usersPageSize, (usersPage-1)*usersPageSize + usersPageSize).map((user) => (
+                          <tr key={user._id} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm font-medium text-gray-900">{user.firstName} {user.lastName}</div>
+                              <div className="text-sm text-gray-500">{user.email}</div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${user.userType==='admin'?'bg-red-100 text-red-800':user.userType==='host'?'bg-blue-100 text-blue-800':'bg-green-100 text-green-800'}`}>{user.userType}</span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${user.isBlocked?'bg-red-100 text-red-800':'bg-emerald-100 text-emerald-800'}`}>{user.isBlocked?'Blocked':'Active'}</span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                              <button onClick={()=> viewUserDetails(user._id)} className="px-3 py-1 border rounded mr-2">View</button>
+                              <button onClick={()=> (user.isBlocked ? reactivateUser(user._id) : deactivateUser(user._id))} className="px-3 py-1 border rounded mr-2">{user.isBlocked?'Reactivate':'Deactivate'}</button>
+                              <button onClick={()=> setConfirmDeleteId(user._id)} className="px-3 py-1 border rounded text-rose-600">Delete</button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    <div className="flex items-center justify-between gap-3 p-4 border-t">
+                      <div className="text-sm text-gray-600">Showing <span className="font-semibold">{Math.min(usersPage*usersPageSize, users.filter(u => { const matchesSearch = (u.firstName||'').toLowerCase().includes(searchTerm.toLowerCase()) || (u.lastName||'').toLowerCase().includes(searchTerm.toLowerCase()) || (u.email||'').toLowerCase().includes(searchTerm.toLowerCase()); const matchesType = filterStatus ? u.userType === filterStatus : true; const excludeAdmins = filterStatus !== 'admin' ? (String(u.userType||'').toLowerCase() !== 'admin') : true; return matchesSearch && matchesType && excludeAdmins; }).length)}</span> of <span className="font-semibold">{users.filter(u => { const matchesSearch = (u.firstName||'').toLowerCase().includes(searchTerm.toLowerCase()) || (u.lastName||'').toLowerCase().includes(searchTerm.toLowerCase()) || (u.email||'').toLowerCase().includes(searchTerm.toLowerCase()); const matchesType = filterStatus ? u.userType === filterStatus : true; const excludeAdmins = filterStatus !== 'admin' ? (String(u.userType||'').toLowerCase() !== 'admin') : true; return matchesSearch && matchesType && excludeAdmins; }).length}</span></div>
+                      <div className="flex items-center gap-2">
+                        <button disabled={usersPage<=1} onClick={()=>setUsersPage(p=>Math.max(1,p-1))} className="px-3 py-1.5 text-sm border rounded disabled:opacity-50">Prev</button>
+                        {Array.from({ length: totalUsersPages }, (_, i) => (
+                          <button key={i} onClick={()=>setUsersPage(i+1)} className={`px-3 py-1.5 text-sm border rounded ${usersPage===i+1? 'bg-blue-600 text-white border-blue-600':'bg-white text-gray-700'}`}>{i+1}</button>
+                        ))}
+                        <button disabled={usersPage>=totalUsersPages} onClick={()=>setUsersPage(p=>Math.min(totalUsersPages, p+1))} className="px-3 py-1.5 text-sm border rounded disabled:opacity-50">Next</button>
                       </div>
                     </div>
-                  ))}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {users
+                      .filter(u => {
+                        const matchesSearch = (u.firstName||'').toLowerCase().includes(searchTerm.toLowerCase()) || (u.lastName||'').toLowerCase().includes(searchTerm.toLowerCase()) || (u.email||'').toLowerCase().includes(searchTerm.toLowerCase());
+                        const matchesType = filterStatus ? u.userType === filterStatus : true;
+                        const excludeAdmins = filterStatus !== 'admin' ? (String(u.userType||'').toLowerCase() !== 'admin') : true;
+                        return matchesSearch && matchesType && excludeAdmins;
+                      })
+                      .slice((usersPage-1)*usersPageSize, (usersPage-1)*usersPageSize + usersPageSize)
+                      .map((user) => (
+                      <div key={user._id} className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
+                        <div className="flex items-center space-x-4">
+                          <div className="w-12 h-12 rounded-full bg-blue-600 text-white flex items-center justify-center text-lg font-bold">{user.firstName?.[0]}{user.lastName?.[0]}</div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-semibold text-gray-900 truncate">{user.firstName} {user.lastName}</h4>
+                            <p className="text-sm text-gray-600 truncate">{user.email}</p>
+                            <p className="text-sm text-gray-500 truncate">{user.phone}</p>
+                          </div>
+                          <div className="text-right">
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${user.userType === 'admin' ? 'bg-red-100 text-red-800' : user.userType === 'host' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}`}>{user.userType}</span>
+                          </div>
+                          <div className="relative">
+                            <button onClick={()=> setMenuForUserId(m => m===user._id ? null : user._id)} className="p-2 border rounded" aria-haspopup="menu" aria-expanded={menuForUserId===user._id} title="Actions"><FaEllipsisV /></button>
+                            {menuForUserId===user._id && (
+                              <div className="absolute right-0 mt-2 w-56 bg-white border rounded shadow z-10">
+                                <button onClick={()=> { viewUserDetails(user._id); setMenuForUserId(null); }} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left"><FaUser className="md:hidden" /><span className="hidden md:inline">View</span><span className="md:hidden">View</span></button>
+                                {user.userType !== 'host' && user.userType !== 'admin' && (
+                                  <button onClick={()=> { promoteToHost(user._id); setMenuForUserId(null); }} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left"><FaHome className="md:hidden" /><span className="hidden md:inline">Promote to Host</span><span className="md:hidden">Promote</span></button>
+                                )}
+                                {user.userType === 'host' && (user.propertyCount===0 || (user.properties?.length||0)===0) && (
+                                  <button onClick={()=> { demoteToGuest(user._id); setMenuForUserId(null); }} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left"><FaUserTimes className="md:hidden" /><span className="hidden md:inline">Demote to Guest</span><span className="md:hidden">Demote</span></button>
+                                )}
+                                <button onClick={()=> { (user.isBlocked ? reactivateUser(user._id) : deactivateUser(user._id)); setMenuForUserId(null); }} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left"><FaEdit className="md:hidden" /><span className="hidden md:inline">{user.isBlocked ? 'Reactivate' : 'Deactivate'}</span><span className="md:hidden">{user.isBlocked ? 'Reactivate' : 'Deactivate'}</span></button>
+                                <button onClick={()=> { setConfirmDeleteId(user._id); setMenuForUserId(null); }} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left text-rose-600"><FaTrash className="md:hidden" /><span className="hidden md:inline">Delete</span><span className="md:hidden">Delete</span></button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {/* Users pagination */}
+                <div className="mt-4 flex items-center justify-between">
+                  <div className="text-sm text-gray-600">Page {usersPage} of {totalUsersPages}</div>
+                  <div className="flex items-center gap-2">
+                    <button disabled={usersPage<=1} onClick={()=>setUsersPage(p=>Math.max(1,p-1))} className="px-3 py-1.5 text-sm border rounded disabled:opacity-50">Prev</button>
+                    {Array.from({ length: totalUsersPages }, (_, i) => (
+                      <button key={i} onClick={()=>setUsersPage(i+1)} className={`px-3 py-1.5 text-sm border rounded ${usersPage===i+1? 'bg-blue-600 text-white border-blue-600':'bg-white text-gray-700'}`}>{i+1}</button>
+                    ))}
+                    <button disabled={usersPage>=totalUsersPages} onClick={()=>setUsersPage(p=>Math.min(totalUsersPages, p+1))} className="px-3 py-1.5 text-sm border rounded disabled:opacity-50">Next</button>
+                  </div>
                 </div>
               </div>
             )}
@@ -892,7 +991,53 @@ const AdminDashboard = () => {
         </div>
       )}
     </div>
-  );
-};
+  )}
+
+  {/* Booking Details Modal */}
+  {showBookingDetails && selectedBooking && (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold">Booking Details</h2>
+          <div className="flex items-center gap-2">
+            <div className="inline-flex rounded-lg overflow-hidden border">
+              <button className={`px-3 py-1.5 text-sm ${bookingDetailsMode==='info' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700'}`} onClick={()=>setBookingDetailsMode('info')}>Info</button>
+              <button className={`px-3 py-1.5 text-sm ${bookingDetailsMode==='table' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700'}`} onClick={()=>setBookingDetailsMode('table')}>Table</button>
+            </div>
+            <button onClick={() => { setShowBookingDetails(false); setSelectedBooking(null); }} className="text-gray-500 hover:text-gray-700">×</button>
+          </div>
+        </div>
+        {bookingDetailsMode === 'info' ? (
+          <div className="space-y-3 text-sm text-gray-700">
+            <div><span className="text-gray-500">Property:</span> {selectedBooking.property?.title}</div>
+            <div><span className="text-gray-500">Guest:</span> {selectedBooking.guest?.firstName} {selectedBooking.guest?.lastName}</div>
+            {selectedBooking.guest?.phone && (<div><span className="text-gray-500">Phone:</span> {selectedBooking.guest.phone}</div>)}
+            <div><span className="text-gray-500">Dates:</span> {new Date(selectedBooking.checkIn).toLocaleDateString()} → {new Date(selectedBooking.checkOut).toLocaleDateString()}</div>
+            <div><span className="text-gray-500">Nights:</span> {selectedBooking.nights || ''}</div>
+            <div><span className="text-gray-500">Amount:</span> {formatCurrencyRWF ? formatCurrencyRWF(selectedBooking.totalAmount || 0) : `RWF ${Number(selectedBooking.totalAmount || 0).toLocaleString()}`}</div>
+            <div><span className="text-gray-500">Status:</span> {selectedBooking.status}</div>
+            {selectedBooking.createdAt && (<div><span className="text-gray-500">Created:</span> {new Date(selectedBooking.createdAt).toLocaleString()}</div>)}
+            {selectedBooking.confirmationCode && (<div><span className="text-gray-500">Confirmation:</span> {selectedBooking.confirmationCode}</div>)}
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <tbody>
+                <tr><td className="p-2 font-medium">Property</td><td className="p-2">{selectedBooking.property?.title}</td></tr>
+                <tr><td className="p-2 font-medium">Guest</td><td className="p-2">{selectedBooking.guest?.firstName} {selectedBooking.guest?.lastName}</td></tr>
+                {selectedBooking.guest?.phone && (<tr><td className="p-2 font-medium">Phone</td><td className="p-2">{selectedBooking.guest.phone}</td></tr>)}
+                <tr><td className="p-2 font-medium">Dates</td><td className="p-2">{new Date(selectedBooking.checkIn).toLocaleDateString()} → {new Date(selectedBooking.checkOut).toLocaleDateString()}</td></tr>
+                <tr><td className="p-2 font-medium">Nights</td><td className="p-2">{selectedBooking.nights || ''}</td></tr>
+                <tr><td className="p-2 font-medium">Amount</td><td className="p-2">{formatCurrencyRWF ? formatCurrencyRWF(selectedBooking.totalAmount || 0) : `RWF ${Number(selectedBooking.totalAmount || 0).toLocaleString()}`}</td></tr>
+                <tr><td className="p-2 font-medium">Status</td><td className="p-2">{selectedBooking.status}</td></tr>
+                {selectedBooking.createdAt && (<tr><td className="p-2 font-medium">Created</td><td className="p-2">{new Date(selectedBooking.createdAt).toLocaleString()}</td></tr>)}
+                {selectedBooking.confirmationCode && (<tr><td className="p-2 font-medium">Confirmation</td><td className="p-2">{selectedBooking.confirmationCode}</td></tr>)}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  )};
 
 export default AdminDashboard;

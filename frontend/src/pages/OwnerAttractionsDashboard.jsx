@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import ReceiptPreview from '../components/ReceiptPreview';
 import toast from 'react-hot-toast';
+import SuccessModal from '../components/SuccessModal';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 const makeAbsolute = (u) => {
@@ -21,6 +22,9 @@ export default function OwnerAttractionsDashboard() {
   const [uploadingId, setUploadingId] = useState(null);
   const [viewMode, setViewMode] = useState('cards'); // 'cards' | 'table'
   const [createImages, setCreateImages] = useState([]);
+  const [successOpen, setSuccessOpen] = useState(false);
+  const [successTitle, setSuccessTitle] = useState('Success');
+  const [successMsg, setSuccessMsg] = useState('Action completed successfully.');
 
   const empty = useMemo(() => ({
     name: '',
@@ -110,6 +114,9 @@ export default function OwnerAttractionsDashboard() {
       if (!res.ok) throw new Error(data.message || 'Failed to create');
       setItems(list => [data.attraction, ...list]);
       toast.success('Attraction created');
+      setSuccessTitle('Attraction Created');
+      setSuccessMsg('Your attraction was created successfully.');
+      setSuccessOpen(true);
       await uploadImages(data.attraction._id, createImages);
       reset();
       setCreateImages([]);
@@ -127,6 +134,9 @@ export default function OwnerAttractionsDashboard() {
       if (!res.ok) throw new Error(data.message || 'Update failed');
       setItems(list => list.map(x => x._id === id ? data.attraction : x));
       toast.success('Updated');
+      setSuccessTitle('Attraction Updated');
+      setSuccessMsg('Your attraction was updated successfully.');
+      setSuccessOpen(true);
     } catch (e) { console.error('[Attractions][update] error', e); toast.error(e.message); }
   }
 
@@ -140,6 +150,9 @@ export default function OwnerAttractionsDashboard() {
       if (!res.ok) throw new Error(data.message || 'Delete failed');
       setItems(list => list.filter(x => x._id !== id));
       toast.success('Deleted');
+      setSuccessTitle('Attraction Deleted');
+      setSuccessMsg('Your attraction was deleted successfully.');
+      setSuccessOpen(true);
     } catch (e) { console.error('[Attractions][delete] error', e); toast.error(e.message); }
   }
 
@@ -156,6 +169,9 @@ export default function OwnerAttractionsDashboard() {
       if (!res.ok) throw new Error(data.message || 'Upload failed');
       setItems(list => list.map(x => x._id === id ? data.attraction : x));
       toast.success('Images uploaded');
+      setSuccessTitle('Images Uploaded');
+      setSuccessMsg('Your attraction images were uploaded successfully.');
+      setSuccessOpen(true);
     } catch (e) { console.error('[Attractions][uploadImages] error', e); toast.error(e.message); } finally { setUploadingId(null); }
   }
 
@@ -373,6 +389,7 @@ export default function OwnerAttractionsDashboard() {
           onClose={() => setReceiptBooking(null)}
         />
       )}
+      <SuccessModal open={successOpen} title={successTitle} message={successMsg} onClose={() => setSuccessOpen(false)} />
     </div>
   );
 }

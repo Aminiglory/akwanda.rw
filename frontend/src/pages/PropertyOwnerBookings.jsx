@@ -146,6 +146,30 @@ const PropertyOwnerBookings = () => {
     }
   };
 
+  const openInvoicePdf = async (bookingId) => {
+    try {
+      const tryUrls = [
+        `${API_URL}/api/bookings/${bookingId}/invoice?format=pdf`,
+        `${API_URL}/api/bookings/${bookingId}/invoice`
+      ];
+      for (const url of tryUrls) {
+        const res = await fetch(url, { credentials: 'include' });
+        if (res.ok) {
+          const ct = res.headers.get('content-type') || '';
+          const blob = await res.blob();
+          const blobType = ct && ct.includes('pdf') ? 'application/pdf' : blob.type;
+          const pdfBlob = new Blob([blob], { type: blobType || 'application/pdf' });
+          const objectUrl = URL.createObjectURL(pdfBlob);
+          window.open(objectUrl, '_blank', 'noopener,noreferrer');
+          return;
+        }
+      }
+      window.open(`${API_URL}/api/bookings/${bookingId}/invoice`, '_blank');
+    } catch (_) {
+      window.open(`${API_URL}/api/bookings/${bookingId}/invoice`, '_blank');
+    }
+  };
+
   // Removed mock data. We will fetch live data from the backend.
 
   useEffect(() => {
@@ -207,8 +231,8 @@ const PropertyOwnerBookings = () => {
         setBookings(prev => [salesNewBooking, ...prev]);
         // Refresh data in background
         loadData();
-        // Open standard receipt (PDF/HTML route assumed available)
-        window.open(`${API_URL}/api/bookings/${salesNewBooking._id}/receipt`, '_blank');
+        // Open receipt PDF in a new tab
+        openReceiptPdf(salesNewBooking._id);
       }
     } finally {
       setShowSalesConfirm(false);
@@ -1502,7 +1526,7 @@ const PropertyOwnerBookings = () => {
                         <FaFileInvoice />
                       </button>
                       <button
-                        onClick={() => window.open(`${API_URL}/api/bookings/${b._id}/invoice`, '_blank')}
+                        onClick={() => openInvoicePdf(b._id)}
                         className="p-2 rounded bg-purple-50 text-purple-700 hover:bg-purple-100"
                         aria-label="Invoice"
                         title="Download Invoice"
@@ -1727,7 +1751,7 @@ const PropertyOwnerBookings = () => {
                             </div>
                             <div className="mt-3 flex space-x-2">
                               <button
-                                onClick={() => navigate(`/invoice/${booking._id}`)}
+                                onClick={() => openInvoicePdf(booking._id)}
                                 className="text-sm text-blue-600 hover:text-blue-800"
                               >
                                 View Invoice
@@ -2154,7 +2178,7 @@ const PropertyOwnerBookings = () => {
                   <div className="neu-card p-4">
                     {(() => {
                       const rows = bookings.map(b=>({
-                        date: new Date(b.createdAt).toISOString().slice(0,10),
+                        date: new Date(b.createdAt).toLocaleDateString(undefined, { day:'2-digit', month:'2-digit', year:'numeric' }),
                         channel: b.isDirect ? 'Direct' : 'Online',
                         amount: Number(b.totalAmount||0)
                       }));
@@ -2298,7 +2322,7 @@ const PropertyOwnerBookings = () => {
                       </div>
                     </div>
                     {(() => {
-                      const rows = bookings.map(b=>({ date: new Date(b.createdAt).toLocaleString(), booking: b.confirmationCode || b._id, amount: Number(b.totalAmount||0), tax: Number(b.taxAmount||0) }));
+                      const rows = bookings.map(b=>({ date: new Date(b.createdAt).toLocaleDateString(undefined, { day:'2-digit', month:'2-digit', year:'numeric' }), booking: b.confirmationCode || b._id, amount: Number(b.totalAmount||0), tax: Number(b.taxAmount||0) }));
                       const totalTax = rows.reduce((s,r)=>s + r.tax, 0);
                       const totalPages = Math.max(1, Math.ceil(rows.length / taxPerPage));
                       const page = Math.min(taxPage, totalPages);
