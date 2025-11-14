@@ -10,6 +10,7 @@ export default function AdminAmenities() {
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ name: '', slug: '', scope: 'property', type: 'amenity', icon: '', description: '', active: true, order: 0 });
   const [editingId, setEditingId] = useState(null);
+  const [seeding, setSeeding] = useState(false);
 
   const load = async () => {
     try {
@@ -24,6 +25,26 @@ export default function AdminAmenities() {
   };
 
   useEffect(() => { load(); }, []);
+
+  const seedDefaults = async () => {
+    if (seeding) return;
+    try {
+      setSeeding(true);
+      console.log('[AdminAmenities] Seeding defaults…');
+      const res = await fetch(`${API_URL}/api/amenities/bulk-seed`, { method: 'POST', credentials: 'include' });
+      const data = await res.json().catch(()=>({}));
+      console.log('[AdminAmenities] Seed response', res.status, data);
+      if (!res.ok) throw new Error(data.message || `Seed failed (${res.status})`);
+      const failures = Array.isArray(data.failures) ? data.failures.length : 0;
+      toast.success(`Seeded ${data.seeded || 0} items${failures? `, ${failures} failed` : ''}`);
+      load();
+    } catch(e) {
+      console.error('[AdminAmenities] Seed error', e);
+      toast.error(e.message || 'Seed failed');
+    } finally {
+      setSeeding(false);
+    }
+  };
 
   const submit = async (e) => {
     e.preventDefault();
@@ -69,19 +90,12 @@ export default function AdminAmenities() {
         <div className="text-sm text-gray-600">Create, edit, or bulk import standard facilities & services.</div>
         <button
           type="button"
-          onClick={async()=>{
-            try{
-              const res = await fetch(`${API_URL}/api/amenities/bulk-seed`, { method: 'POST', credentials: 'include' });
-              const data = await res.json().catch(()=>({}));
-              if (!res.ok) throw new Error(data.message||'Seed failed');
-              const failures = Array.isArray(data.failures) ? data.failures.length : 0;
-              toast.success(`Seeded ${data.seeded || 0} items${failures? `, ${failures} failed` : ''}`);
-              load();
-            } catch(e){ toast.error(e.message || 'Seed failed'); }
-          }}
-          className="px-3 py-2 border rounded flex items-center gap-2 cursor-pointer relative z-10"
+          onClick={seedDefaults}
+          title="Seed standard facilities & services"
+          aria-disabled={seeding}
+          className={`px-3 py-2 border rounded flex items-center gap-2 relative z-10 pointer-events-auto ${seeding? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
         >
-          <FaPlus /> Seed Defaults
+          <FaPlus /> {seeding ? 'Seeding…' : 'Seed Defaults'}
         </button>
       </div>
 
