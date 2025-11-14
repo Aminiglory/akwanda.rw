@@ -187,12 +187,15 @@ router.post('/bulk-seed', requireAuth, requireAdmin, async (req, res) => {
     const failures = [];
     for (const item of defs) {
       try {
-        const updated = await Amenity.findOneAndUpdate(
+        // Use a simpler, widely-compatible upsert
+        const r = await Amenity.updateOne(
           { slug: item.slug },
-          { $setOnInsert: item, $set: { description: item.description, name: item.name, scope: item.scope, type: item.type, active: true } },
-          { upsert: true, new: true }
+          { $set: { name: item.name, slug: item.slug, scope: item.scope, type: item.type, description: item.description, icon: item.icon || '', active: true, order: Number(item.order)||0 } },
+          { upsert: true }
         );
-        if (updated) seeded += 1;
+        // r.upsertedCount is available in newer drivers; fallback: count as seeded when matched or upserted
+        const acknowledged = r.acknowledged !== false;
+        if (acknowledged) seeded += 1;
       } catch (e) {
         failures.push({ slug: item.slug, name: item.name, error: e.message });
       }
