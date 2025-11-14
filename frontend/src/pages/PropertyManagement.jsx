@@ -494,11 +494,11 @@ export default function PropertyManagement() {
                     const a = opt.slug || opt.name;
                     const checked = Array.isArray(propertyData.amenities) && propertyData.amenities.includes(a);
                     return (
-                      <label key={a} className="inline-flex items-center gap-2 text-sm">
+                      <label key={a} className="inline-flex items-center gap-2 text-sm" title={opt.description || (opt.name || a)}>
                         <input
                           type="checkbox"
                           checked={!!checked}
-                          onChange={()=>{
+                          onChange={() => {
                             const cur = Array.isArray(propertyData.amenities) ? propertyData.amenities : [];
                             const next = checked ? cur.filter(x=>x!==a) : [...cur, a];
                             setPropertyData(prev => ({ ...prev, amenities: next }));
@@ -542,7 +542,7 @@ export default function PropertyManagement() {
                           const a = opt.slug || opt.name;
                           const checked = current.includes(a);
                           return (
-                            <label key={a} className="inline-flex items-center gap-2 text-sm">
+                            <label key={a} className="inline-flex items-center gap-2 text-sm" title={opt.description || (opt.name || a)}>
                               <input type="checkbox" checked={checked} onChange={()=>toggle(a)} />
                               <span className="capitalize">{(opt.name || a).replace('_',' ')}</span>
                             </label>
