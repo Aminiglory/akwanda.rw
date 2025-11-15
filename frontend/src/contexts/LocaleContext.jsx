@@ -233,11 +233,11 @@ const dictionaries = {
       getStarted: 'Get started'
     },
     featured: {
-      title: 'Featured Apartments',
+      title: 'Featured Properties',
       subtitle: 'Discover our most popular and highly-rated stays',
       moreOptionsTitle: 'Looking for more options?',
-      moreOptionsSubtitle: 'Browse all apartments and filter by location, price, and amenities.',
-      viewAll: 'View All Apartments'
+      moreOptionsSubtitle: 'Browse all properties and filter by location, price, and amenities.',
+      viewAll: 'View All properties'
     },
     property: {
       hostedBy: 'Hosted by',
@@ -253,8 +253,8 @@ const dictionaries = {
       moreOnHow: 'More on how it works',
       faq: 'Frequently Asked Questions',
       ctaBecomeHost: 'Become a Host',
-      ctaGuests: 'List your apartment and start earning',
-      ctaAuth: 'Sign up to start listing your apartment'
+      ctaGuests: 'List your property and start earning',
+      ctaAuth: 'Sign up to start listing your property'
     },
     testimonials: {
       title: 'What Our Users Say',
