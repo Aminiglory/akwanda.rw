@@ -308,10 +308,10 @@ const ApartmentsListing = () => {
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div>
               <h1 className="text-4xl font-bold text-gray-900 uppercase tracking-wide">
-                FIND YOUR PERFECT STAY
+                Find Your Perfect Stay
               </h1>
               <p className="text-gray-600 mt-2 text-lg font-medium">
-                DISCOVER AMAZING STAYS ACROSS RWANDA
+                Discover Amazing Stays Across Rwanda
               </p>
             </div>
 

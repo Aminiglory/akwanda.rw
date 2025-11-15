@@ -36,7 +36,7 @@ const Footer = () => {
     {
       title: t ? t('footer.forGuests') : "For Guests",
       links: [
-        { name: t ? t('footer.searchApartments') : "Search Apartments", href: "/apartments" },
+        { name: t ? t('footer.searchApartments') : "Search Property", href: "/apartments" },
         { name: t ? t('footer.howToBook') : "How to Book", href: "/support#faq" },
         { name: t ? t('footer.guestReviews') : "Guest Reviews", href: "/support#reviews" }
       ]
@@ -68,7 +68,7 @@ const Footer = () => {
   ];
 
   const quickLinks = [
-    { icon: FaBed, name: t ? t('footer.apartments') : "Apartments", href: "/apartments" },
+    // { icon: FaBed, name: t ? t('footer.apartments') : "Properties", href: "/apartments" },
     { icon: FaBuffer, name: t ? t('footer.listProperty') : "List Property", href: "/upload-property" }
   ];
 
@@ -82,7 +82,7 @@ const Footer = () => {
             <div className="mb-6">
               <h2 className="text-2xl font-bold text-white mb-4">{t ? t('brand') : 'AKWANDA.rw'}</h2>
               <p className="text-white-300 leading-relaxed">
-                Rwanda's leading apartment rental platform. Connect guests with amazing hosts across the country.
+                Rwanda's home grown booking platform that connects guest with amazing hosts across the country.
               </p>
             </div>
 

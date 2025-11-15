@@ -484,7 +484,7 @@ const HowItWorks = () => {
             {t ? t('how.ctaBecomeHost') : 'Become a Host'}
           </Link>
           <p className="high-contrast-text text-sm mt-3 font-medium">
-            {user ? (t ? t('how.ctaGuests') : 'List your apartment and start earning') : (t ? t('how.ctaAuth') : 'Sign up to start listing your apartment')}
+            {user ? (t ? t('how.ctaGuests') : 'List your property and start earning') : (t ? t('how.ctaAuth') : 'Sign up to start listing your apartment')}
           </p>
         </div>
 
