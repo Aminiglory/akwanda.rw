@@ -177,7 +177,7 @@ const HowItWorks = () => {
     {
       icon: FaSearch,
       title: "Search & Filter",
-      description: "Find the perfect apartment using our advanced search filters",
+      description: "Find the perfect property using our advanced search filters",
       step: "1"
     },
     {

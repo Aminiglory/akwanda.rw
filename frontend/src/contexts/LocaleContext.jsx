@@ -121,7 +121,7 @@ const dictionaries = {
       forHosts: 'For Hosts',
       company: 'Company',
       support: 'Support',
-      searchApartments: 'Search Apartments',
+      searchApartments: 'Search Properties',
       howToBook: 'How to Book',
       guestReviews: 'Guest Reviews',
       listProperty: 'List Your Property',
