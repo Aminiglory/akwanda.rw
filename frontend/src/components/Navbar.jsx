@@ -1231,22 +1231,55 @@ const Navbar = () => {
               </div>
             </div>
 
-            {/* Owner management links row inside second navbar */}
+            {/* Owner navigation (Booking.com style) in second navbar - desktop */}
             {isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard() && (
-              <div className="hidden lg:flex items-center flex-wrap gap-3 pt-1 border-t border-[#e0d5c7] mt-1">
-                {ownerManagementLinks.map((group, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => {
-                      const first = group.links && group.links[0];
-                      if (first?.href) navigate(first.href);
-                    }}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-[#e8dcc8] text-xs font-medium text-[#4b2a00] hover:bg-[#d8c7af] transition-colors"
-                  >
-                    <span>{group.category}</span>
-                  </button>
-                ))}
+              <div className="hidden lg:flex items-center gap-2 pt-2 border-t border-[#e0d5c7] mt-2">
+                {bookingComNavItems.map((item, idx) => {
+                  const Icon = item.icon;
+                  const isOpen = activeDropdown === item.label;
+                  const isParentActive = isActiveRoute(item.href);
+                  return (
+                    <div key={idx} className="relative owner-nav-dropdown">
+                      <button
+                        type="button"
+                        onClick={() => toggleDropdown(item.label)}
+                        className={`owner-nav-dropdown-button flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-colors border ${isOpen || isParentActive ? 'bg-[#e8dcc8] border-[#d0c4b0] text-[#4b2a00]' : 'bg-white border-[#e0d5c7] text-[#6b5744] hover:bg-[#f2e5d3]'}`}
+                      >
+                        <Icon className="text-sm" />
+                        <span>{item.label}</span>
+                        {item.badge && (
+                          <span className="ml-1 inline-flex items-center justify-center text-[10px] px-2 py-0.5 rounded-full bg-[#a06b42] text-white">{item.badge}</span>
+                        )}
+                        {item.children && item.children.length > 0 && (
+                          <FaCaretDown className={`text-[10px] ml-1 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                        )}
+                      </button>
+                      {isOpen && item.children && item.children.length > 0 && (
+                        <div className="main-nav-dropdown absolute left-0 mt-2 w-64 bg-[#f6e9d8] rounded-xl shadow-2xl border border-[#d4c4b0] py-2 z-[2000]">
+                          {item.children.map((child, cidx) => {
+                            const ChildIcon = child.icon;
+                            const href = child.href || item.href;
+                            const isChildActive = isActiveRoute(href);
+                            return (
+                              <button
+                                key={cidx}
+                                type="button"
+                                onClick={() => { navigate(href); setActiveDropdown(null); }}
+                                className={`w-full flex items-center gap-3 px-4 py-2 text-xs text-left hover:bg-white ${isChildActive ? 'bg-white text-[#4b2a00]' : 'text-[#4b2a00]'}`}
+                              >
+                                {ChildIcon && <ChildIcon className="text-sm" />}
+                                <span className="flex-1">{child.label}</span>
+                                {child.badge && (
+                                  <span className="ml-auto inline-flex items-center justify-center text-[10px] px-2 py-0.5 rounded-full bg-[#a06b42] text-white">{child.badge}</span>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
