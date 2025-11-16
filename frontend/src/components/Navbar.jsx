@@ -989,12 +989,11 @@ const Navbar = () => {
               </div>
 
               {/* Right Side - Booking.com Style */}
-              <div className="flex flex-nowrap items-center gap-2 lg:gap-3">
+              <div className="flex flex-nowrap items-center gap-1 lg:gap-2">
               {/* Property selector (desktop) */}
               {isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard() && myProperties.length > 0 && (
                 <div className="hidden lg:block">
-                  <div className="flex items-center gap-2">
-                    <FaBuilding className="text-[#6b5744]" />
+                  <div className="flex items-center gap-1">
                     <select
                       className="px-3 py-2 border border-[#d4c4b0] rounded-lg bg-white text-sm text-[#4b2a00] focus:outline-none focus:ring-2 focus:ring-[#a06b42]"
                       title={t ? t('banner.choosePropertyToManage') : 'Choose property to manage'}
@@ -1029,7 +1028,7 @@ const Navbar = () => {
                     value={ownerSearchTerm}
                     onChange={(e) => setOwnerSearchTerm(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter') handleOwnerSearch(); }}
-                    placeholder={labelOr('nav.ownerSearchPlaceholder', 'Search bookings, guests or properties')}
+                    placeholder="Search..."
                     className="flex-1 text-xs bg-transparent outline-none placeholder:text-gray-400"
                   />
                 </div>
