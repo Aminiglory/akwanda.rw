@@ -1241,7 +1241,7 @@ const Navbar = () => {
 
             {/* Owner navigation (Booking.com style) in second navbar */}
             {isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard() && (
-              <div className="w-full flex flex-wrap items-center gap-2 pt-2 border-t border-[#e0d5c7] mt-2">
+              <div className="w-full flex items-center gap-2 pt-2 border-t border-[#e0d5c7] mt-2 overflow-x-auto no-scrollbar">
                 {bookingComNavItems.map((item, idx) => {
                   const Icon = item.icon;
                   const isOpen = activeDropdown === item.label;
