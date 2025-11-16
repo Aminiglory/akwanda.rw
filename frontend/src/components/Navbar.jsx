@@ -1241,7 +1241,7 @@ const Navbar = () => {
 
             {/* Owner navigation (Booking.com style) in second navbar */}
             {isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard() && (
-              <div className="w-full flex  items-center gap-2 pt-2 border-t border-[#e0d5c7] mt-2">
+              <div className="w-full flex flex-wrap items-center gap-2 pt-2 border-t border-[#e0d5c7] mt-2">
                 {bookingComNavItems.map((item, idx) => {
                   const Icon = item.icon;
                   const isOpen = activeDropdown === item.label;
@@ -1251,7 +1251,7 @@ const Navbar = () => {
                       <button
                         type="button"
                         onClick={() => toggleDropdown(item.label)}
-                        className={`owner-nav-dropdown-button flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-colors border ${isOpen || isParentActive ? 'bg-[#e8dcc8] border-[#d0c4b0] text-[#4b2a00]' : 'bg-white border-[#e0d5c7] text-[#6b5744] hover:bg-[#f2e5d3]'}`}
+                        className={`owner-nav-dropdown-button inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-colors border ${isOpen || isParentActive ? 'bg-[#e8dcc8] border-[#d0c4b0] text-[#4b2a00]' : 'bg-white border-[#e0d5c7] text-[#6b5744] hover:bg-[#f2e5d3]'}`}
                       >
                         <Icon className="text-sm" />
                         <span>{item.label}</span>
