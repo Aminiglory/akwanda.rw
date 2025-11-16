@@ -514,10 +514,10 @@ nav {
   }
 }
 
-/* Layer 3: All dropdowns - z-index 99999 (above all content and navbars) */
+/* Layer 3: Dropdown panels - z-index 99999 (above all content and navbars)
+   NOTE: do NOT apply this to the owner nav item wrappers themselves, only to the floating panels. */
 .main-nav-dropdown,
 .property-selector-dropdown,
-.owner-nav-dropdown,
 .notification-dropdown,
 .profile-dropdown {
   position: absolute !important;
