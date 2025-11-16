@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { FaMapMarkerAlt, FaStar, FaClock, FaTicketAlt, FaCamera, FaHeart } from 'react-icons/fa';
+import { useNavigate } from 'react-router-dom';
+import { FaStar } from 'react-icons/fa';
 import PropertyCard from '../components/PropertyCard';
 import { useAuth } from '../contexts/AuthContext';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -12,6 +12,12 @@ const Attractions = () => {
   const navigate = useNavigate();
   const [favIds, setFavIds] = useState([]);
   const { isAuthenticated } = useAuth();
+  const [pageContent, setPageContent] = useState({
+    pageTitle: 'Local Amenities Near Your Apartment',
+    introText: 'Discover what is around your apartment in Rwanda',
+    heroImages: [],
+    published: true,
+  });
 
   const makeAbsolute = (u) => {
     if (!u) return null;
@@ -70,9 +76,18 @@ const Attractions = () => {
         const res = await fetch(`${API_URL}/api/content/attractions`, { credentials: 'include' });
         const data = await res.json();
         const content = data?.content || {};
-        // Expect an array of attractions at content.items; fallback to []
-        if (res.ok) setItems(Array.isArray(content.items) ? content.items : []);
-        else setItems([]);
+        if (res.ok) {
+          setPageContent({
+            pageTitle: content.pageTitle || 'Local Amenities Near Your Apartment',
+            introText: content.introText || 'Discover what is around your apartment in Rwanda',
+            heroImages: Array.isArray(content.heroImages) ? content.heroImages : [],
+            published: !!content.published,
+          });
+          // AdminAttractions saves attractions as an array on content.attractions
+          setItems(Array.isArray(content.attractions) ? content.attractions : []);
+        } else {
+          setItems([]);
+        }
       } catch (_) { setItems([]); } finally { setLoading(false); }
     })();
   }, []);
@@ -102,14 +117,29 @@ const Attractions = () => {
     ));
   };
 
+  const heroImage = useMemo(() => {
+    const imgs = Array.isArray(pageContent.heroImages) ? pageContent.heroImages : [];
+    if (!imgs.length) return null;
+    const img = imgs[0];
+    if (!img) return null;
+    if (/^https?:\/\//i.test(img)) return img;
+    return `${API_URL}${img.startsWith('/') ? img : `/${img}`}`;
+  }, [pageContent.heroImages]);
+
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Hero Section */}
-      <div className="bg-[#a06b42] text-white py-12 md:py-16">
-        <div className="max-w-7xl mx-auto px-4">
+      {/* Hero Section driven by CMS */}
+      <div className="relative text-white py-12 md:py-16 bg-[#a06b42]">
+        {heroImage && (
+          <div className="absolute inset-0">
+            <img src={heroImage} alt={pageContent.pageTitle} className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-black/40" />
+          </div>
+        )}
+        <div className="relative max-w-7xl mx-auto px-4">
           <div className="text-center mb-8">
-            <h1 className="text-2xl md:text-4xl font-bold mb-2 md:mb-4">Local Amenities Near Your Apartment</h1>
-            <p className="text-base md:text-xl text-white/90">Discover what's around your apartment in Rwanda</p>
+            <h1 className="text-2xl md:text-4xl font-bold mb-2 md:mb-4">{pageContent.pageTitle}</h1>
+            <p className="text-base md:text-xl text-white/90">{pageContent.introText}</p>
           </div>
         </div>
       </div>
@@ -142,28 +172,35 @@ const Attractions = () => {
           <div className="text-center text-gray-600 py-16">No attractions available yet.</div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filteredAttractions.map((a) => {
-              const id = a.id || a._id || '';
-              const image = a.images && a.images.length ? makeAbsolute(a.images[0]) : makeAbsolute(a.image);
+            {filteredAttractions.map((a, index) => {
+              const id = a.id || a._id || index;
+              const image = a.image ? makeAbsolute(a.image) : null;
               const wishlisted = favIds.some(x => String(x) === String(id));
               return (
                 <PropertyCard
                   key={id}
                   listing={{
                     id,
-                    title: a.name,
-                    location: a.location || a.city || '',
+                    title: a.title || a.name || 'Attraction',
+                    location: a.location || '',
                     image,
-                    price: typeof a.price === 'number' ? Number(a.price) : 0,
+                    price: 0,
                     bedrooms: null,
                     bathrooms: null,
                     area: a.category || '',
                     status: 'active',
-                    bookings: Number(a.reviews || 0),
-                    host: a.ownerName || '',
+                    bookings: 0,
+                    host: '',
+                    description: a.shortDesc || '',
                     wishlisted
                   }}
-                  onView={() => navigate(`/attractions/${id}`)}
+                  onView={() => {
+                    if (a.linkUrl) {
+                      window.open(a.linkUrl, '_blank');
+                    } else {
+                      navigate(`/attractions/${id}`);
+                    }
+                  }}
                   onToggleWishlist={() => toggleWishlist(id)}
                 />
               );
