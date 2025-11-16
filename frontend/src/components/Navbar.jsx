@@ -144,102 +144,99 @@ const Navbar = () => {
     }
   ];
 
-  // Booking.com-style navigation for property owners
+  // Booking.com-style navigation for property owners (matches original dashboard nav structure)
   const bookingComNavItems = [
     {
-      label: t ? t('nav.home') : "Home",
+      label: t ? t('nav.home') : 'Home',
       icon: FaHome,
-      href: "/dashboard",
+      href: '/dashboard',
       children: []
     },
     {
-      label: t ? t('nav.ratesAvailability') : "Rates & Availability",
+      label: t ? t('nav.pricingAndCalendar') : 'Pricing and booking calendar',
       icon: FaCalendarAlt,
-      href: "/owner/rates",
+      href: '/owner/rates',
       children: [
-        { label: t ? t('nav.calendar') : "Calendar", href: "/owner/rates?view=calendar", icon: FaCalendarAlt },
-        { label: t ? t('nav.openCloseRooms') : "Open/close rooms", href: "/owner/rates?view=open-close", icon: FaCalendarAlt },
+        { label: t ? t('nav.calendar') : 'Calendar', href: '/owner/rates?view=calendar', icon: FaCalendarAlt },
+        { label: t ? t('nav.openCloseRooms') : 'Open/close rooms', href: '/owner/rates?view=open-close', icon: FaCalendarAlt },
+        { label: t ? t('nav.pricingPerGuest') : 'Pricing per guest', href: '/owner/rates?view=pricing-per-guest', icon: FaUsers },
       ]
     },
     {
-      label: t ? t('nav.reservations') : "Reservations",
-      icon: FaCalendarAlt,
-      href: "/my-bookings",
+      label: t ? t('nav.reservations') : 'Reservations',
+      icon: FaCalendarCheck,
+      href: '/my-bookings',
       children: [
-        { label: t ? t('nav.allReservations') : "All reservations", href: "/my-bookings?tab=reservations&scope=all", icon: FaCalendarAlt },
-        { label: t ? t('nav.upcoming') : "Upcoming", href: "/my-bookings?tab=reservations&scope=upcoming", icon: FaCalendarAlt },
-        { label: t ? t('nav.checkedIn') : "Check in", href: "/my-bookings?tab=reservations&scope=checked-in", icon: FaCalendarAlt },
-        { label: t ? t('nav.checkedOut') : "Check out", href: "/my-bookings?tab=reservations&scope=checked-out", icon: FaCalendarAlt },
-        { label: t ? t('nav.cancelled') : "Cancelled", href: "/my-bookings?tab=reservations&scope=cancelled", icon: FaCalendarAlt },
+        { label: t ? t('nav.allReservations') : 'All reservations', href: '/my-bookings?tab=reservations&scope=all', icon: FaCalendarCheck },
+        { label: t ? t('nav.upcoming') : 'Upcoming', href: '/my-bookings?tab=reservations&scope=upcoming', icon: FaCalendarCheck },
+        { label: t ? t('nav.checkIn') : 'Check in', href: '/my-bookings?tab=reservations&scope=checked-in', icon: FaCalendarCheck },
+        { label: t ? t('nav.checkOut') : 'Check out', href: '/my-bookings?tab=reservations&scope=checked-out', icon: FaCalendarCheck },
+        { label: t ? t('nav.cancelled') : 'Cancelled', href: '/my-bookings?tab=reservations&scope=cancelled', icon: FaCalendarTimes },
       ]
     },
     {
-      label: t ? t('nav.property') : "Property",
-      icon: FaBuilding,
-      href: "/owner/property",
+      label: t ? t('nav.property') : 'Property',
+      icon: FaBed,
+      href: '/owner/property',
       badge: propertyAlerts,
       children: [
-        { label: t ? t('nav.propertyPolicies') : "Property policies", href: "/owner/property?view=policies", icon: FaFileAlt },
-        { label: t ? t('nav.reservationPolicies') : "Reservation policies", href: "/owner/property?view=reservation-policies", icon: FaFileAlt },
-        { label: t ? t('nav.facilitiesServices') : "Facilities and services", href: "/owner/property?view=facilities", icon: FaCog },
-        { label: t ? t('nav.roomDetails') : "Room details", href: "/owner/property?view=room-details", icon: FaBed },
-        { label: t ? t('nav.roomAmenities') : "Room Amenities", href: "/owner/property?view=room-amenities", icon: FaBed },
-        { label: t ? t('nav.yourProfile') : "your profile", href: "/owner/property?view=profile", icon: FaUser },
-        { label: t ? t('nav.viewDescriptions') : "View your descriptions", href: "/owner/property?view=descriptions", icon: FaFileAlt },
-        { label: t ? t('nav.messagingPreferences') : "Messaging preferences", href: "/settings?tab=messaging", icon: FaEnvelope },
-        { label: t ? t('nav.photos') : "Property photos", href: "/owner/property?view=photos", icon: FaImages },
+        { label: t ? t('nav.propertyPolicies') : 'Property policies', href: '/owner/property?view=policies', icon: FaFileAlt },
+        { label: t ? t('nav.reservationPolicies') : 'Reservation policies', href: '/owner/property?view=reservation-policies', icon: FaFileAlt },
+        { label: t ? t('nav.facilitiesServices') : 'Facilities and services', href: '/owner/property?view=facilities', icon: FaCog },
+        { label: t ? t('nav.roomDetails') : 'Room details', href: '/owner/property?view=room-details', icon: FaBed },
+        { label: t ? t('nav.roomAmenities') : 'Room Amenities', href: '/owner/property?view=room-amenities', icon: FaBed },
+        { label: t ? t('nav.yourProfile') : 'your profile', href: '/owner/property?view=profile', icon: FaUser },
+        { label: t ? t('nav.viewDescriptions') : 'View your descriptions', href: '/owner/property?view=descriptions', icon: FaFileAlt },
+        { label: t ? t('nav.messagingPreferences') : 'Messaging preferences', href: '/settings?tab=messaging', icon: FaEnvelope },
+        { label: t ? t('nav.photos') : 'Property photos', href: '/owner/property?view=photos', icon: FaImages },
       ]
     },
     {
-      label: t ? t('nav.inbox') : "Inbox",
+      label: t ? t('nav.inbox') : 'Inbox',
       icon: FaEnvelope,
-      href: "/messages",
+      href: '/messages',
       badge: unreadMsgCount,
       children: [
-        { label: t ? t('nav.reservationMessages') : "Reservation messages", href: "/messages?category=reservations", icon: FaEnvelope, badge: messageCounts.reservations },
-        { label: t ? t('nav.bookingComMessages') : "Booking.com messages", href: "/messages?category=platform", icon: FaEnvelope, badge: messageCounts.platform },
-        { label: t ? t('nav.guestQandA') : "Guest Q&A", href: "/messages?category=qna", icon: FaQuestionCircle, badge: messageCounts.qna },
+        { label: t ? t('nav.reservationMessages') : 'Reservation messages', href: '/messages?category=reservations', icon: FaEnvelope, badge: messageCounts.reservations },
+        { label: t ? t('nav.bookingComMessages') : 'Akwanda.rw messages', href: '/messages?category=platform', icon: FaEnvelope, badge: messageCounts.platform },
+        { label: t ? t('nav.guestQandA') : 'Guest Q&A', href: '/messages?category=qna', icon: FaQuestionCircle, badge: messageCounts.qna },
       ]
     },
     {
-      label: t ? t('nav.guestReviews') : "Guest reviews",
+      label: t ? t('nav.guestReviews') : 'Guest reviews',
       icon: FaStar,
-      href: "/owner/reviews",
+      href: '/owner/reviews',
       badge: unrepliedReviews,
       children: [
-        { label: t ? t('nav.guestReviews') : "Guest reviews", href: "/owner/reviews", icon: FaStar, badge: unrepliedReviews },
-        { label: t ? t('nav.guestExperience') : "Guest experience", href: "/owner/reviews?view=experience", icon: FaUsers },
+        { label: t ? t('nav.guestReviews') : 'Guest reviews', href: '/owner/reviews', icon: FaStar, badge: unrepliedReviews },
+        { label: t ? t('nav.guestExperience') : 'Guest experience', href: '/owner/reviews?view=experience', icon: FaUsers },
       ]
     },
     {
-      label: t ? t('nav.finance') : "Finance",
+      label: t ? t('nav.finance') : 'Finance',
       icon: FaDollarSign,
-      href: "/dashboard?tab=finance",
+      href: '/dashboard?tab=finance',
       children: [
-        { label: t ? t('nav.invoices') : "Invoices", href: "/dashboard?tab=finance&view=invoices", icon: FaFileAlt },
-        { label: t ? t('nav.reservationsStatement') : "Reservations statement", href: "/dashboard?tab=finance&view=statement", icon: FaFileAlt },
-        { label: t ? t('nav.financialOverview') : "Financial overview", href: "/dashboard?tab=finance&view=overview", icon: FaChartLine },
-        { label: t ? t('nav.financeSettings') : "Finance settings", href: "/settings?tab=finance", icon: FaCog },
+        { label: t ? t('nav.invoices') : 'Invoices', href: '/dashboard?tab=finance&view=invoices', icon: FaFileAlt },
+        { label: t ? t('nav.reservationsStatement') : 'Reservations statement', href: '/dashboard?tab=finance&view=statement', icon: FaFileAlt },
+        { label: t ? t('nav.financialOverview') : 'Financial overview', href: '/dashboard?tab=finance&view=overview', icon: FaChartLine },
+        { label: t ? t('nav.transactions') : 'Transactions', href: '/transactions', icon: FaMoneyBillWave },
+        { label: t ? t('nav.financeSettings') : 'Finance settings', href: '/settings?tab=finance', icon: FaCog },
       ]
     },
     {
-      label: t ? t('nav.analytics') : "Analytics",
+      label: t ? t('nav.salesReportingAnalytics') : 'Sales Reporting & Analytics',
       icon: FaChartLine,
-      href: "/dashboard?tab=analytics",
+      href: '/dashboard?tab=analytics',
       children: [
-        { label: t ? t('nav.analyticsDashboard') : "Analytics dashboard", href: "/dashboard?tab=analytics", icon: FaChartLine },
-        { label: t ? t('nav.demandForLocation') : "Demand for location", href: "/dashboard?tab=analytics&view=demand", icon: FaMapMarkerAlt },
-        { label: t ? t('nav.yourPaceOfBookings') : "Your pace of bookings", href: "/dashboard?tab=analytics&view=pace", icon: FaCalendarAlt },
-        { label: t ? t('nav.salesStatistics') : "Sales statistics", href: "/dashboard?tab=analytics&view=sales", icon: FaChartLine },
-        { label: t ? t('nav.bookerInsights') : "Booker insights", href: "/dashboard?tab=analytics&view=booker", icon: FaUsers },
-        { label: t ? t('nav.bookwindowInformation') : "Bookwindow information", href: "/dashboard?tab=analytics&view=bookwindow", icon: FaCalendarAlt },
-        { label: t ? t('nav.cancellationCharacteristics') : "Cancellation characteristics", href: "/dashboard?tab=analytics&view=cancellation", icon: FaCalendarTimes },
-        { label: t ? t('nav.manageYourCompetitiveSet') : "Manage your competitive set", href: "/dashboard?tab=analytics&view=competitive", icon: FaChartLine },
-        { label: t ? t('nav.geniusReport') : "Genius report", href: "/dashboard?tab=analytics&view=genius", icon: FaStar },
-        { label: t ? t('nav.rankingDashboard') : "Ranking dashboard", href: "/dashboard?tab=analytics&view=ranking", icon: FaChartLine, badge: "New" },
-        { label: t ? t('nav.performanceDashboard') : "Performance dashboard", href: "/dashboard?tab=analytics&view=performance", icon: FaChartLine },
+        { label: t ? t('nav.analyticsDashboard') : 'Overview dashboard', href: '/dashboard?tab=analytics', icon: FaChartLine },
+        { label: t ? t('nav.salesStatistics') : 'Sales statistics', href: '/dashboard?tab=analytics&view=sales', icon: FaChartLine },
+        { label: t ? t('nav.reports') : 'Reports', href: '/dashboard?tab=analytics&view=reports', icon: FaFileAlt },
+        { label: t ? t('nav.directVsOnline') : 'Direct vs Online', href: '/dashboard?tab=analytics&view=comparison', icon: FaChartLine },
+        { label: t ? t('nav.occupancyRevenuePerRoom') : 'Occupancy & Revenue per Room', href: '/dashboard?tab=analytics&view=occupancy', icon: FaChartLine },
+        { label: t ? t('nav.taxLiabilityTracking') : 'Tax liability tracking', href: '/dashboard?tab=analytics&view=tax', icon: FaFileAlt },
       ]
-    }
+    },
   ];
 
   // Owner management links organized exactly like Booking.com
