@@ -911,33 +911,20 @@ const Navbar = () => {
       {/* Second Bar - Navigation Level */}
       <nav className="w-full bg-[#f5f0e8] border-b border-[#e0d5c7] navbar-shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex justify-between items-center">
-            {/* Logo */}
-            <div className="flex items-center space-x-8">
-              <Link
-                to={user?.userType === 'host' && isInPropertyOwnerDashboard() ? "/dashboard" : "/"}
-                className="text-xl font-bold text-[#4b2a00] hover:text-[#6b3f1f]"
-              >
-                AKWANDA.rw
-              </Link>
+          <div className="flex flex-col gap-3">
+            <div className="flex justify-between items-center">
+              {/* Logo */}
+              <div className="flex items-center space-x-8">
+                <Link
+                  to={user?.userType === 'host' && isInPropertyOwnerDashboard() ? "/dashboard" : "/"}
+                  className="text-xl font-bold text-[#4b2a00] hover:text-[#6b3f1f]"
+                >
+                  AKWANDA.rw
+                </Link>
 
-              {/* Property Name and Code Display */}
-              {user?.userType === 'host' && isInPropertyOwnerDashboard() && myProperties.length > 0 && (
-                <div className="hidden lg:flex items-center space-x-3">
-                  <div className="flex items-center space-x-2 px-3 py-2 bg-[#e8dcc8] rounded-lg border border-[#d0c4b0]">
-                    <FaBuilding className="text-[#8b6f47] text-sm" />
-                    <div className="flex flex-col">
-                      <span className="text-sm font-semibold text-[#4b2a00]">{myProperties[0]?.title || myProperties[0]?.name || 'Property'}</span>
-                      <span className="text-xs text-[#8b6f47]">#{myProperties[0]?.propertyNumber || myProperties[0]?._id?.slice(-6) || 'N/A'}</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-
-              {/* Main Navigation Items - Show for guests and hide for property owners in dashboard */}
-              {user?.userType !== "admin" && (user?.userType !== 'host' || !isInPropertyOwnerDashboard()) && (
-                <div className="hidden lg:flex items-center space-x-1">
+                {/* Main Navigation Items - Show for guests and hide for property owners in dashboard */}
+                {user?.userType !== "admin" && (user?.userType !== 'host' || !isInPropertyOwnerDashboard()) && (
+                  <div className="hidden lg:flex items-center space-x-1">
                   {mainNavItems.map((item, index) => {
                     const Icon = item.icon;
                     const isActive = isActiveRoute(item.href);
@@ -989,12 +976,12 @@ const Navbar = () => {
                       </div>
                     );
                   })}
-                </div>
-              )}
-            </div>
+                  </div>
+                )}
+              </div>
 
-            {/* Right Side - Booking.com Style */}
-            <div className="flex flex-nowrap items-center gap-2 lg:gap-3">
+              {/* Right Side - Booking.com Style */}
+              <div className="flex flex-nowrap items-center gap-2 lg:gap-3">
               {/* Property selector (desktop) */}
               {isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard() && myProperties.length > 0 && (
                 <div className="hidden lg:block">
@@ -1034,20 +1021,11 @@ const Navbar = () => {
                     value={ownerSearchTerm}
                     onChange={(e) => setOwnerSearchTerm(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter') handleOwnerSearch(); }}
-                    placeholder={t ? t('nav.searchStays') : 'Search in dashboard'}
+                    placeholder={t ? (t('nav.ownerSearchPlaceholder') || 'Search bookings, guests or properties') : 'Search bookings, guests or properties'}
                     className="flex-1 text-xs bg-transparent outline-none placeholder:text-gray-400"
                   />
                 </div>
               )}
-              {/* List your property - Hidden on small screens completely */}
-              <button
-                onClick={handleListProperty}
-                className="hidden lg:inline-flex items-center px-2 lg:px-3 py-2 rounded-lg bg-[#a06b42] text-white text-xs lg:text-sm font-medium hover:bg-[#8f5a32] transition-colors whitespace-nowrap shadow-md"
-                title="List your property"
-              >
-                <span className="hidden lg:inline">{t ? t('nav.listProperty') : 'List your property'}</span>
-                <span className="lg:hidden">{t ? t('nav.listProperty') : 'List Property'}</span>
-              </button>
 
               {/* Favorites */}
               {isAuthenticated && !isInPropertyOwnerDashboard() && (
@@ -1250,7 +1228,27 @@ const Navbar = () => {
                   {isMenuOpen ? <FaTimes className="text-xl" /> : <FaBars className="text-xl" />}
                 </button>
               )}
+              </div>
             </div>
+
+            {/* Owner management links row inside second navbar */}
+            {isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard() && (
+              <div className="hidden lg:flex items-center flex-wrap gap-3 pt-1 border-t border-[#e0d5c7] mt-1">
+                {ownerManagementLinks.map((group, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => {
+                      const first = group.links && group.links[0];
+                      if (first?.href) navigate(first.href);
+                    }}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-[#e8dcc8] text-xs font-medium text-[#4b2a00] hover:bg-[#d8c7af] transition-colors"
+                  >
+                    <span>{group.category}</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </nav>
