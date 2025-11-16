@@ -7,7 +7,7 @@ import {
   FaUsers, FaBed, FaMapMarkerAlt, FaStar, FaExclamationTriangle, FaToggleOn, FaToggleOff,
   FaComments
 } from 'react-icons/fa';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import BookingManagementPanel from '../components/BookingManagementPanel';
 import RoomCalendarPanel from '../components/RoomCalendarPanel';
@@ -21,6 +21,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const EnhancedPropertyOwnerDashboard = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const { formatCurrency } = useLocale() || {};
   const [activeTab, setActiveTab] = useState('overview'); // overview, properties, bookings, analytics
@@ -51,20 +52,29 @@ const EnhancedPropertyOwnerDashboard = () => {
 
   useEffect(() => {
     fetchDashboardData();
-  }, []);
+  }, [location.search]);
 
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
+      const params = new URLSearchParams(location.search || '');
+      const propertyId = params.get('property');
+      const search = params.get('search') || '';
+      if (search && !searchTerm) {
+        setSearchTerm(search);
+      }
       
       // Fetch properties
       const propsRes = await fetch(`${API_URL}/api/properties/my-properties`, {
         credentials: 'include'
       });
       const propsData = await propsRes.json();
-      
+      let propsList = Array.isArray(propsData.properties) ? propsData.properties : [];
+      if (propertyId) {
+        propsList = propsList.filter(p => String(p._id) === String(propertyId));
+      }
       if (propsRes.ok) {
-        setProperties(propsData.properties || []);
+        setProperties(propsList);
       }
 
       // Fetch bookings
@@ -72,10 +82,26 @@ const EnhancedPropertyOwnerDashboard = () => {
         credentials: 'include'
       });
       const bookingsData = await bookingsRes.json();
-      
+      let bookingList = Array.isArray(bookingsData.bookings) ? bookingsData.bookings : [];
+      if (propertyId) {
+        bookingList = bookingList.filter(b => {
+          const bid = b.property?._id || b.property;
+          return bid && String(bid) === String(propertyId);
+        });
+      }
+      if (search) {
+        const lower = search.toLowerCase();
+        bookingList = bookingList.filter(b => {
+          const code = String(b.confirmationCode || '').toLowerCase();
+          const title = String(b.property?.title || '').toLowerCase();
+          const guestName = `${b.guest?.firstName || ''} ${b.guest?.lastName || ''}`.toLowerCase();
+          return code.includes(lower) || title.includes(lower) || guestName.includes(lower);
+        });
+      }
+
       if (bookingsRes.ok) {
-        setBookings(bookingsData.bookings || []);
-        calculateStats(propsData.properties || [], bookingsData.bookings || []);
+        setBookings(bookingList);
+        calculateStats(propsList, bookingList);
       }
     } catch (error) {
       console.error('Dashboard fetch error:', error);
@@ -441,7 +467,6 @@ const EnhancedPropertyOwnerDashboard = () => {
                 <div className="absolute left-0 mt-2 w-56 bg-white text-gray-800 rounded-xl shadow-xl ring-1 ring-black/5 z-20">
                   <div className="py-1">
                     <button onClick={() => { setActiveTab('properties'); setOpenMenu(null); }} className="w-full text-left px-4 py-2 hover:bg-gray-50">My Properties</button>
-                    <button onClick={() => { if (user?.isBlocked) { toast.error('Your account is deactivated. Listing is disabled.'); return; } setOpenMenu(null); navigate('/upload'); }} className="w-full text-left px-4 py-2 hover:bg-gray-50">Add Property</button>
                     <button onClick={() => { setActiveTab('properties'); setOpenMenu(null); }} className="w-full text-left px-4 py-2 hover:bg-gray-50">Policies & House Rules</button>
                   </div>
                 </div>
@@ -573,15 +598,7 @@ const EnhancedPropertyOwnerDashboard = () => {
             {/* Quick Actions */}
             <div className="bg-white rounded-xl shadow-lg p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-4">Quick Actions</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <button
-                  onClick={() => { if (user?.isBlocked) { toast.error('Your account is deactivated. Listing is disabled.'); return; } navigate('/upload'); }}
-                  disabled={user?.isBlocked}
-                  className="flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-6 py-4 rounded-lg font-medium transition-colors"
-                >
-                  <FaPlus />
-                  <span>Add New Property</span>
-                </button>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <button
                   onClick={() => setActiveTab('bookings')}
                   className="flex items-center justify-center space-x-2 bg-green-600 hover:bg-green-700 text-white px-6 py-4 rounded-lg font-medium transition-colors"
@@ -637,30 +654,16 @@ const EnhancedPropertyOwnerDashboard = () => {
         {/* Properties Tab */}
         {activeTab === 'properties' && (
           <div className="space-y-6">
-            <div className="flex justify-between items-center">
+            <div className="flex items-center">
               <h2 className="text-2xl font-bold text-gray-900">My Properties</h2>
-              <button
-                onClick={() => { if (user?.isBlocked) { toast.error('Your account is deactivated. Listing is disabled.'); return; } navigate('/upload'); }}
-                disabled={user?.isBlocked}
-                className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-6 py-3 rounded-lg font-medium transition-colors"
-              >
-                <FaPlus />
-                <span>Add New Property</span>
-              </button>
             </div>
 
             {properties.length === 0 ? (
               <div className="bg-white rounded-xl shadow-lg p-12 text-center">
                 <FaHome className="text-6xl text-gray-300 mx-auto mb-4" />
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">No Properties Yet</h3>
-                <p className="text-gray-600 mb-6">Start by adding your first property</p>
-                <button
-                  onClick={() => { if (user?.isBlocked) { toast.error('Your account is deactivated. Listing is disabled.'); return; } navigate('/upload'); }}
-                  disabled={user?.isBlocked}
-                  className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-8 py-3 rounded-lg font-medium transition-colors"
-                >
-                  Add Property
-                </button>
+                <p className="text-gray-600 mb-2">You don't have any properties listed yet.</p>
+                <p className="text-gray-500 text-sm">Use the "List your property" option in the footer to add your first property.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

@@ -571,10 +571,139 @@ export default function PropertyManagement() {
             {propertyData?.rooms?.length > 0 ? (
               <div className="space-y-4">
                 {propertyData.rooms.map((room, idx) => (
-                  <div key={idx} className="p-4 border rounded">
-                    <h3 className="font-semibold">{room.roomType || room.type} - {room.roomNumber}</h3>
-                    <p className="text-sm text-gray-600">Capacity: {room.capacity} guests</p>
-                    <p className="text-sm text-gray-600">Rate: RWF {room.pricePerNight?.toLocaleString()}/night</p>
+                  <div key={room._id || idx} className="p-4 border rounded space-y-3">
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                      <div>
+                        <h3 className="font-semibold text-gray-900">{room.roomType || room.type} - {room.roomNumber}</h3>
+                        <p className="text-xs text-gray-500">Room ID: {room._id || 'N/A'}</p>
+                      </div>
+                      {Array.isArray(room.images) && room.images.length > 0 && (
+                        <div className="w-full md:w-40 h-24 rounded overflow-hidden border bg-gray-100">
+                          <img
+                            src={room.images[0]}
+                            alt={room.roomType || `Room ${room.roomNumber}`}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                      <div>
+                        <label className="block text-xs text-gray-600 mb-1">Capacity (guests)</label>
+                        <input
+                          id={`capacity-${room._id}`}
+                          type="number"
+                          defaultValue={room.capacity || 1}
+                          min={1}
+                          className="w-full border rounded px-3 py-2"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-600 mb-1">Rate per night (RWF)</label>
+                        <input
+                          id={`rate-${room._id}`}
+                          type="number"
+                          defaultValue={room.pricePerNight || 0}
+                          min={0}
+                          className="w-full border rounded px-3 py-2"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-600 mb-1">Max adults</label>
+                        <input
+                          id={`maxAdults-${room._id}`}
+                          type="number"
+                          defaultValue={room.maxAdults ?? ''}
+                          min={0}
+                          className="w-full border rounded px-3 py-2"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-600 mb-1">Max children</label>
+                        <input
+                          id={`maxChildren-${room._id}`}
+                          type="number"
+                          defaultValue={room.maxChildren ?? ''}
+                          min={0}
+                          className="w-full border rounded px-3 py-2"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-600 mb-1">Max infants</label>
+                        <input
+                          id={`maxInfants-${room._id}`}
+                          type="number"
+                          defaultValue={room.maxInfants ?? ''}
+                          min={0}
+                          className="w-full border rounded px-3 py-2"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
+                      <span>
+                        Total maximum people: {(Number(room.maxAdults || 0) + Number(room.maxChildren || 0) + Number(room.maxInfants || 0)) || room.capacity || 'N/A'}
+                      </span>
+                    </div>
+
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <button
+                        onClick={async () => {
+                          try {
+                            const capacityEl = document.getElementById(`capacity-${room._id}`);
+                            const rateEl = document.getElementById(`rate-${room._id}`);
+                            const maxAdultsEl = document.getElementById(`maxAdults-${room._id}`);
+                            const maxChildrenEl = document.getElementById(`maxChildren-${room._id}`);
+                            const maxInfantsEl = document.getElementById(`maxInfants-${room._id}`);
+
+                            const payload = {
+                              capacity: Number(capacityEl?.value || room.capacity || 1),
+                              pricePerNight: Number(rateEl?.value || room.pricePerNight || 0),
+                              maxAdults: maxAdultsEl?.value !== '' ? Number(maxAdultsEl.value) : undefined,
+                              maxChildren: maxChildrenEl?.value !== '' ? Number(maxChildrenEl.value) : undefined,
+                              maxInfants: maxInfantsEl?.value !== '' ? Number(maxInfantsEl.value) : undefined,
+                            };
+
+                            const res = await fetch(`${API_URL}/api/properties/${selectedProperty}/rooms/${room._id}`, {
+                              method: 'PUT',
+                              credentials: 'include',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify(payload)
+                            });
+                            const json = await res.json().catch(() => ({}));
+                            if (!res.ok) throw new Error(json.message || 'Failed to update room');
+                            toast.success('Room updated');
+                            await fetchPropertyDetails();
+                          } catch (e) {
+                            toast.error(e.message || 'Failed to update room');
+                          }
+                        }}
+                        className="px-4 py-2 rounded bg-blue-600 text-white text-sm hover:bg-blue-700"
+                      >
+                        Save room details
+                      </button>
+                      <button
+                        onClick={async () => {
+                          if (!window.confirm('Delete this room? This cannot be undone.')) return;
+                          try {
+                            const res = await fetch(`${API_URL}/api/properties/${selectedProperty}/rooms/${room._id}`, {
+                              method: 'DELETE',
+                              credentials: 'include'
+                            });
+                            const json = await res.json().catch(() => ({}));
+                            if (!res.ok) throw new Error(json.message || 'Failed to delete room');
+                            toast.success('Room deleted');
+                            await fetchPropertyDetails();
+                          } catch (e) {
+                            toast.error(e.message || 'Failed to delete room');
+                          }
+                        }}
+                        className="px-4 py-2 rounded bg-red-600 text-white text-sm hover:bg-red-700"
+                      >
+                        Delete room
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>

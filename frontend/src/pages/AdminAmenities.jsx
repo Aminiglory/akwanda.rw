@@ -11,6 +11,8 @@ export default function AdminAmenities() {
   const [form, setForm] = useState({ name: '', slug: '', scope: 'property', type: 'amenity', icon: '', description: '', active: true, order: 0 });
   const [editingId, setEditingId] = useState(null);
   const [seeding, setSeeding] = useState(false);
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
 
   const load = async () => {
     try {
@@ -25,6 +27,14 @@ export default function AdminAmenities() {
   };
 
   useEffect(() => { load(); }, []);
+
+  const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
+
+  useEffect(() => {
+    if (page > totalPages) setPage(1);
+  }, [items.length, totalPages, page]);
+
+  const pagedItems = items.slice((page - 1) * pageSize, page * pageSize);
 
   const seedDefaults = async () => {
     if (seeding) return;
@@ -123,7 +133,7 @@ export default function AdminAmenities() {
       <div className="bg-white rounded-xl shadow">
         <div className="p-3 border-b font-medium">{loading ? 'Loading…' : `Items (${items.length})`}</div>
         <div className="divide-y">
-          {items.map(it => (
+          {pagedItems.map(it => (
             <div key={it._id} className="p-3 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="text-sm text-gray-500 w-16">{it.scope}</div>
@@ -141,6 +151,38 @@ export default function AdminAmenities() {
           ))}
           {items.length === 0 && !loading && <div className="p-4 text-sm text-gray-500">No items yet.</div>}
         </div>
+        {items.length > 0 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 border-t">
+            <div className="text-sm text-gray-600">
+              Showing <span className="font-semibold">{Math.min(page * pageSize, items.length)}</span> of <span className="font-semibold">{items.length}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                disabled={page <= 1}
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                className="px-3 py-1.5 text-sm border rounded disabled:opacity-50"
+              >
+                Prev
+              </button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(num => (
+                <button
+                  key={num}
+                  onClick={() => setPage(num)}
+                  className={`px-3 py-1.5 text-sm border rounded ${page === num ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700'}`}
+                >
+                  {num}
+                </button>
+              ))}
+              <button
+                disabled={page >= totalPages}
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                className="px-3 py-1.5 text-sm border rounded disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

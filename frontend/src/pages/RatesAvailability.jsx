@@ -61,6 +61,7 @@ export default function RatesAvailability() {
     { country: 'Rwanda', rate: -15 },
     { country: 'East Africa', rate: -10 }
   ]);
+  const [addOnServicesDraft, setAddOnServicesDraft] = useState([]);
 
   useEffect(() => {
     fetchProperties();
@@ -78,6 +79,15 @@ export default function RatesAvailability() {
       }
     }
   }, [selectedProperty, view]);
+
+  // Keep add-on services draft in sync with loaded property data
+  useEffect(() => {
+    if (propertyData && Array.isArray(propertyData.addOnServices)) {
+      setAddOnServicesDraft(propertyData.addOnServices);
+    } else {
+      setAddOnServicesDraft([]);
+    }
+  }, [propertyData]);
 
   const fetchPropertyDetails = async () => {
     try {
@@ -206,6 +216,24 @@ export default function RatesAvailability() {
     }
   };
 
+  const handleSaveAddOnServices = async (services) => {
+    if (!selectedProperty) return;
+    try {
+      const res = await fetch(`${API_URL}/api/properties/${selectedProperty}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ addOnServices: services })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || 'Failed to save add-on services');
+      toast.success('Add-on services saved');
+      fetchPropertyDetails();
+    } catch (e) {
+      toast.error(e.message || 'Failed to save add-on services');
+    }
+  };
+
   const handleOpenDates = async (roomId) => {
     const range = dateRanges[roomId];
     if (!range?.startDate || !range?.endDate) {
@@ -274,7 +302,7 @@ export default function RatesAvailability() {
     }
   };
 
-  const handleUpdatePricingPerGuest = async (roomId, extraGuestFee) => {
+  const handleUpdatePricingPerGuest = async (roomId, extraGuestFee, maxGuests) => {
     try {
       const res = await fetch(`${API_URL}/api/rates/pricing-per-guest`, {
         method: 'POST',
@@ -283,7 +311,8 @@ export default function RatesAvailability() {
         body: JSON.stringify({
           propertyId: selectedProperty,
           roomId,
-          additionalGuestCharge: extraGuestFee
+          additionalGuestCharge: extraGuestFee,
+          maxGuests: maxGuests != null ? Number(maxGuests) : undefined
         })
       });
       if (!res.ok) throw new Error('Failed to update pricing');
@@ -817,41 +846,115 @@ export default function RatesAvailability() {
             <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
               <FaGift /> Value Adds
             </h2>
-            <p className="text-gray-600 mb-4">Add extra services or amenities to increase booking value.</p>
+            <p className="text-gray-600 mb-4">Configure extra services (add-ons) that guests can purchase in addition to the room rate.</p>
             <div className="space-y-3">
-              <div className="border rounded-lg p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-semibold">Breakfast</h3>
-                  <span className="text-green-600 font-bold">+RWF 5,000</span>
-                </div>
-                <p className="text-sm text-gray-600">Continental breakfast included</p>
-                <label className="flex items-center mt-2">
-                  <input type="checkbox" className="mr-2" />
-                  <span className="text-sm">Enable for all bookings</span>
-                </label>
-              </div>
-              <div className="border rounded-lg p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-semibold">Airport Transfer</h3>
-                  <span className="text-green-600 font-bold">+RWF 15,000</span>
-                </div>
-                <p className="text-sm text-gray-600">One-way airport pickup</p>
-                <label className="flex items-center mt-2">
-                  <input type="checkbox" className="mr-2" />
-                  <span className="text-sm">Enable for all bookings</span>
-                </label>
-              </div>
-              <div className="border rounded-lg p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-semibold">Late Checkout</h3>
-                  <span className="text-green-600 font-bold">+RWF 10,000</span>
-                </div>
-                <p className="text-sm text-gray-600">Checkout until 6 PM</p>
-                <label className="flex items-center mt-2">
-                  <input type="checkbox" className="mr-2" />
-                  <span className="text-sm">Enable for all bookings</span>
-                </label>
-              </div>
+              {[
+                {
+                  key: 'breakfast-standard',
+                  name: 'Standard Breakfast',
+                  description: 'Continental or local breakfast served in the dining area.',
+                  defaultPrice: 5000
+                },
+                {
+                  key: 'breakfast-premium',
+                  name: 'Premium Breakfast',
+                  description: 'Hot breakfast with multiple options and drinks.',
+                  defaultPrice: 8000
+                },
+                {
+                  key: 'airport-transfer',
+                  name: 'Airport Transfer',
+                  description: 'One-way airport pickup or drop-off.',
+                  defaultPrice: 15000
+                },
+                {
+                  key: 'late-checkout',
+                  name: 'Late Checkout',
+                  description: 'Checkout until 6 PM (subject to availability).',
+                  defaultPrice: 10000
+                },
+                {
+                  key: 'daily-cleaning',
+                  name: 'Daily Cleaning',
+                  description: 'Extra daily room cleaning service.',
+                  defaultPrice: 3000
+                }
+              ].map((opt) => {
+                const existing = addOnServicesDraft.find(s => s.key === opt.key) || {};
+                const enabled = existing.enabled ?? false;
+                const price = existing.price != null ? existing.price : opt.defaultPrice;
+                const scope = existing.scope || 'per-booking';
+                return (
+                  <div key={opt.key} className="border rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div>
+                        <h3 className="font-semibold">{opt.name}</h3>
+                        <p className="text-sm text-gray-600">{opt.description}</p>
+                      </div>
+                      <label className="flex items-center ml-4">
+                        <input
+                          type="checkbox"
+                          className="mr-2"
+                          checked={enabled}
+                          onChange={(e) => {
+                            const next = addOnServicesDraft.filter(s => s.key !== opt.key);
+                            next.push({ key: opt.key, name: opt.name, enabled: e.target.checked, price, scope });
+                            setAddOnServicesDraft(next);
+                          }}
+                        />
+                        <span className="text-sm">Enable</span>
+                      </label>
+                    </div>
+                    <div className="mt-3 grid grid-cols-3 gap-3 text-sm">
+                      <div>
+                        <label className="text-xs text-gray-600">Price (RWF)</label>
+                        <input
+                          type="number"
+                          min="0"
+                          defaultValue={price}
+                          className="w-full px-2 py-1 border rounded"
+                          onBlur={(e) => {
+                            const val = Number(e.target.value || 0);
+                            const next = addOnServicesDraft.filter(s => s.key !== opt.key);
+                            next.push({ key: opt.key, name: opt.name, enabled, price: val, scope });
+                            setAddOnServicesDraft(next);
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-600">Charge Type</label>
+                        <select
+                          className="w-full px-2 py-1 border rounded"
+                          defaultValue={scope}
+                          onChange={(e) => {
+                            const nextScope = e.target.value;
+                            const next = addOnServicesDraft.filter(s => s.key !== opt.key);
+                            next.push({ key: opt.key, name: opt.name, enabled, price, scope: nextScope });
+                            setAddOnServicesDraft(next);
+                          }}
+                        >
+                          <option value="per-booking">Per booking</option>
+                          <option value="per-night">Per night</option>
+                          <option value="per-guest">Per guest</option>
+                        </select>
+                      </div>
+                      <div className="flex items-end">
+                        <div className="text-xs text-gray-500">
+                          Popular extra on many booking platforms.
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="mt-4 flex justify-end">
+              <button
+                onClick={() => handleSaveAddOnServices(addOnServicesDraft)}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700"
+              >
+                Save add-on services
+              </button>
             </div>
           </div>
         );
@@ -1050,14 +1153,14 @@ export default function RatesAvailability() {
             <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
               <FaUsers /> Pricing Per Guest
             </h2>
-            <p className="text-gray-600 mb-4">Set additional charges for extra guests beyond base capacity.</p>
+            <p className="text-gray-600 mb-4">Set additional charges for extra guests and define the maximum guests allowed per room.</p>
             {propertyData?.rooms?.map((room, idx) => (
                 <div key={idx} className="border rounded-lg p-4 mb-3">
                   <h3 className="font-semibold mb-1">{room.roomType} - {room.roomNumber}</h3>
                   <div className="text-xs text-gray-600 mb-3">
                     Base price per night: <span className="font-medium">{formatCurrencyRWF ? formatCurrencyRWF(room.pricePerNight || 0) : `RWF ${(room.pricePerNight || 0).toLocaleString()}`}</span>
                   </div>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-4 gap-3 text-sm">
                     <div>
                       <label className="text-xs text-gray-600">Base Capacity</label>
                       <input 
@@ -1065,6 +1168,16 @@ export default function RatesAvailability() {
                         value={room.capacity || 2} 
                         readOnly 
                         className="w-full px-2 py-1 border rounded text-sm bg-gray-50" 
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-600">Max Guests</label>
+                      <input 
+                        type="number" 
+                        id={`maxGuests-${room._id}`}
+                        defaultValue={room.maxGuests ?? ''}
+                        min={room.capacity || 1}
+                        className="w-full px-2 py-1 border rounded text-sm" 
                       />
                     </div>
                     <div>
@@ -1079,8 +1192,11 @@ export default function RatesAvailability() {
                     <div className="flex items-end">
                       <button 
                         onClick={() => {
-                          const extraFee = Number(document.getElementById(`extraFee-${room._id}`).value);
-                          handleUpdatePricingPerGuest(room._id, extraFee);
+                          const extraFeeEl = document.getElementById(`extraFee-${room._id}`);
+                          const maxGuestsEl = document.getElementById(`maxGuests-${room._id}`);
+                          const extraFee = Number(extraFeeEl?.value || 0);
+                          const maxGuestsVal = maxGuestsEl?.value !== '' ? Number(maxGuestsEl.value) : null;
+                          handleUpdatePricingPerGuest(room._id, extraFee, maxGuestsVal);
                         }}
                         className="w-full px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
                       >
@@ -1089,7 +1205,7 @@ export default function RatesAvailability() {
                     </div>
                   </div>
                   <p className="text-xs text-gray-500 mt-2">
-                    Guests beyond {room.capacity || 2} will be charged extra per night
+                    Guests beyond {room.capacity || 2} will be charged the extra guest fee per night up to the maximum guests you set.
                   </p>
                 </div>
               ))}

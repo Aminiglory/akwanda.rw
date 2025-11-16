@@ -1061,7 +1061,7 @@ const PropertyOwnerBookings = () => {
       children: [
         { label: 'Calendar', href: '/owner/rates?view=calendar' },
         { label: 'Open/close rooms', href: '/owner/rates?view=open-close' },
-        { label: 'Guest pricing', href: '/owner/rates?view=pricing-per-guest' },
+        { label: 'Pricing per guest', href: '/owner/rates?view=pricing-per-guest' },
       ]
     },
     {
@@ -1071,8 +1071,8 @@ const PropertyOwnerBookings = () => {
       children: [
         { label: 'All reservations', href: '/my-bookings?tab=reservations&scope=all' },
         { label: 'Upcoming', href: '/my-bookings?tab=reservations&scope=upcoming' },
-        { label: 'Checked in', href: '/my-bookings?tab=reservations&scope=checked-in' },
-        { label: 'Checked out', href: '/my-bookings?tab=reservations&scope=checked-out' },
+        { label: 'Check in', href: '/my-bookings?tab=reservations&scope=checked-in' },
+        { label: 'Check out', href: '/my-bookings?tab=reservations&scope=checked-out' },
         { label: 'Cancelled', href: '/my-bookings?tab=reservations&scope=cancelled' },
       ]
     },
@@ -1416,8 +1416,8 @@ const PropertyOwnerBookings = () => {
                 <FaFilter className="text-xs" />
                 <span>
                   {filters.dateRange === 'upcoming' && 'Upcoming Bookings'}
-                  {filters.dateRange === 'checked-in' && 'Currently Checked In'}
-                  {filters.dateRange === 'checked-out' && 'Checked Out'}
+                  {filters.dateRange === 'checked-in' && 'Currently check in'}
+                  {filters.dateRange === 'checked-out' && 'Checked out'}
                 </span>
                 <button
                   onClick={() => setFilters(prev => ({ ...prev, dateRange: 'all' }))}

@@ -81,6 +81,8 @@ const Navbar = () => {
   const [expandedMobileItems, setExpandedMobileItems] = useState({});
   const [billing, setBilling] = useState({ commissionsDue: 0, finesDue: 0, totalDue: 0, minimumPartial: 0, limitedAccess: false });
   const [payingCommission, setPayingCommission] = useState(false);
+  const [selectedPropertyId, setSelectedPropertyId] = useState('');
+  const [ownerSearchTerm, setOwnerSearchTerm] = useState('');
   // Locale dropdown states (open on click, not hover)
   const [langOpenTop, setLangOpenTop] = useState(false);
   const [currOpenTop, setCurrOpenTop] = useState(false);
@@ -166,8 +168,8 @@ const Navbar = () => {
       children: [
         { label: t ? t('nav.allReservations') : "All reservations", href: "/my-bookings?tab=reservations&scope=all", icon: FaCalendarAlt },
         { label: t ? t('nav.upcoming') : "Upcoming", href: "/my-bookings?tab=reservations&scope=upcoming", icon: FaCalendarAlt },
-        { label: t ? t('nav.checkedIn') : "Checked in", href: "/my-bookings?tab=reservations&scope=checked-in", icon: FaCalendarAlt },
-        { label: t ? t('nav.checkedOut') : "Checked out", href: "/my-bookings?tab=reservations&scope=checked-out", icon: FaCalendarAlt },
+        { label: t ? t('nav.checkedIn') : "Check in", href: "/my-bookings?tab=reservations&scope=checked-in", icon: FaCalendarAlt },
+        { label: t ? t('nav.checkedOut') : "Check out", href: "/my-bookings?tab=reservations&scope=checked-out", icon: FaCalendarAlt },
         { label: t ? t('nav.cancelled') : "Cancelled", href: "/my-bookings?tab=reservations&scope=cancelled", icon: FaCalendarAlt },
       ]
     },
@@ -431,6 +433,16 @@ const Navbar = () => {
     return () => { cancelled = true; };
   }, [isAuthenticated, user?.userType]);
 
+  // Keep selected property in sync with URL and loaded properties
+  useEffect(() => {
+    if (!isAuthenticated || user?.userType !== 'host' || myProperties.length === 0) return;
+    const params = new URLSearchParams(location.search || '');
+    const urlProp = params.get('property');
+    const existsInList = urlProp && myProperties.some(p => String(p._id) === String(urlProp));
+    const firstId = String(myProperties[0]._id || '');
+    setSelectedPropertyId(existsInList ? String(urlProp) : firstId);
+  }, [isAuthenticated, user?.userType, myProperties, location.search]);
+
   // Fetch dynamic badge counts for navigation
   useEffect(() => {
     if (!isAuthenticated || user?.userType !== 'host') return;
@@ -666,6 +678,15 @@ const Navbar = () => {
     }
     // Navigate to step-based listing wizard
     navigate('/upload');
+  };
+
+  const handleOwnerSearch = () => {
+    const term = String(ownerSearchTerm || '').trim();
+    if (!term) return;
+    const params = new URLSearchParams();
+    if (selectedPropertyId) params.set('property', selectedPropertyId);
+    params.set('search', term);
+    navigate(`/dashboard?${params.toString()}`);
   };
 
   const goToPropertyDashboard = () => {
@@ -976,33 +997,46 @@ const Navbar = () => {
             <div className="flex flex-nowrap items-center gap-2 lg:gap-3">
               {/* Property selector (desktop) */}
               {isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard() && myProperties.length > 0 && (
-                <div className="hidden lg:block relative">
-                  <button
-                    onClick={() => setPropDropdownOpen(v => !v)}
-                    className={`flex items-center px-3 py-2 rounded-lg transition-all duration-300 ${propDropdownOpen
-                        ? 'bg-[#a06b42] text-white shadow-md'
-                        : 'text-[#6b5744] hover:text-[#4b2a00] hover:bg-[#e8dcc8]'
-                      }`}
-                    title={t ? t('banner.choosePropertyToManage') : 'Choose property to manage'}
-                  >
-                    <FaBuilding className="text-lg" />
-                    <FaCaretDown className={`ml-2 text-xs transition-transform ${propDropdownOpen ? 'rotate-180' : ''}`} />
-                  </button>
-                  {propDropdownOpen && (
-                    <div className="property-selector-dropdown absolute top-full right-0 mt-1 w-80 max-h-80 overflow-y-auto bg-[#f6e9d8] rounded-xl shadow-2xl border border-[#d4c4b0] p-2">
-                      {myProperties.map((p) => (
-                        <Link
-                          key={p._id}
-                          to={`/my-bookings?tab=calendar&property=${p._id}`}
-                          className="block px-3 py-2 text-sm text-[#4b2a00] hover:bg-white truncate"
-                          onClick={() => setPropDropdownOpen(false)}
-                          title={p.title}
-                        >
-                          {p.title || p.name || p.propertyNumber}
-                        </Link>
-                      ))}
-                    </div>
-                  )}
+                <div className="hidden lg:block">
+                  <div className="flex items-center gap-2">
+                    <FaBuilding className="text-[#6b5744]" />
+                    <select
+                      className="px-3 py-2 border border-[#d4c4b0] rounded-lg bg-white text-sm text-[#4b2a00] focus:outline-none focus:ring-2 focus:ring-[#a06b42]"
+                      title={t ? t('banner.choosePropertyToManage') : 'Choose property to manage'}
+                      value={selectedPropertyId}
+                      onChange={(e) => {
+                        const id = e.target.value;
+                        setSelectedPropertyId(id);
+                        if (id) {
+                          window.open(`/dashboard?property=${id}`, '_blank');
+                        }
+                      }}
+                    >
+                      {myProperties.map((p) => {
+                        const id = String(p._id || '');
+                        const code = p.propertyNumber || id.slice(-6) || 'N/A';
+                        const name = p.title || p.name || 'Property';
+                        return (
+                          <option key={id} value={id}>{`#${code} - ${name}`}</option>
+                        );
+                      })}
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              {/* Global search within owner dashboard */}
+              {isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard() && (
+                <div className="hidden lg:flex items-center bg-white border border-[#d4c4b0] rounded-lg px-2 py-1.5 ml-1 max-w-xs">
+                  <FaSearch className="text-xs text-gray-500 mr-1" />
+                  <input
+                    type="text"
+                    value={ownerSearchTerm}
+                    onChange={(e) => setOwnerSearchTerm(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleOwnerSearch(); }}
+                    placeholder={t ? t('nav.searchStays') : 'Search in dashboard'}
+                    className="flex-1 text-xs bg-transparent outline-none placeholder:text-gray-400"
+                  />
                 </div>
               )}
               {/* List your property - Hidden on small screens completely */}
@@ -1014,18 +1048,6 @@ const Navbar = () => {
                 <span className="hidden lg:inline">{t ? t('nav.listProperty') : 'List your property'}</span>
                 <span className="lg:hidden">{t ? t('nav.listProperty') : 'List Property'}</span>
               </button>
-
-              {/* Property Dashboard - hidden in user mode to reduce overflow; visible only in owner dashboard context */}
-              {isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard() && (
-                <button
-                  onClick={() => navigate('/dashboard')}
-                  className="hidden lg:inline-flex items-center px-2 lg:px-3 py-2 rounded-lg bg-green-600 text-white text-xs lg:text-sm font-medium hover:bg-green-700 transition-colors whitespace-nowrap"
-                  title="Property Owner Dashboard"
-                >
-                  <span className="hidden lg:inline">{t ? t('nav.dashboard') : 'Dashboard'}</span>
-                  <span className="lg:hidden">{t ? t('nav.dashboard') : 'Dash'}</span>
-                </button>
-              )}
 
               {/* Favorites */}
               {isAuthenticated && !isInPropertyOwnerDashboard() && (
