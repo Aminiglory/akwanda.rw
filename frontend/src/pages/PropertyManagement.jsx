@@ -414,15 +414,91 @@ export default function PropertyManagement() {
               <FaImages /> Photos
             </h2>
             {propertyData?.images?.length > 0 ? (
-              <div className="grid grid-cols-3 gap-4">
-                {propertyData.images.map((img, idx) => (
-                  <div key={idx} className="aspect-video rounded-lg overflow-hidden border">
-                    <img src={img} alt={`Property ${idx + 1}`} className="w-full h-full object-cover" />
-                  </div>
-                ))}
+              <div className="space-y-3">
+                <div className="grid grid-cols-3 gap-4">
+                  {propertyData.images.map((img, idx) => (
+                    <div key={idx} className="relative aspect-video rounded-lg overflow-hidden border bg-gray-100">
+                      <img src={img} alt={`Property ${idx + 1}`} className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPropertyData(prev => {
+                            if (!prev) return prev;
+                            const imgs = Array.isArray(prev.images) ? prev.images : [];
+                            return { ...prev, images: imgs.filter((_, i) => i !== idx) };
+                          });
+                        }}
+                        className="absolute top-2 right-2 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    id="property-new-image"
+                    type="text"
+                    placeholder="Add image URL"
+                    className="flex-1 border rounded px-3 py-2 text-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const input = document.getElementById('property-new-image');
+                      const value = input && 'value' in input ? String(input.value || '').trim() : '';
+                      if (!value) return;
+                      setPropertyData(prev => {
+                        if (!prev) return prev;
+                        const imgs = Array.isArray(prev.images) ? prev.images : [];
+                        return { ...prev, images: [...imgs, value] };
+                      });
+                      if (input) input.value = '';
+                    }}
+                    className="px-3 py-2 rounded bg-blue-600 text-white text-sm"
+                  >
+                    Add image
+                  </button>
+                </div>
+                <div>
+                  <button
+                    type="button"
+                    disabled={saving}
+                    onClick={() => savePropertyFields({ images: Array.isArray(propertyData.images) ? propertyData.images : [] })}
+                    className="px-4 py-2 rounded bg-blue-600 text-white text-sm disabled:opacity-60"
+                  >
+                    {saving ? 'Saving…' : 'Save photos'}
+                  </button>
+                </div>
               </div>
             ) : (
-              <p className="text-gray-600">No photos uploaded yet.</p>
+              <div className="space-y-3">
+                <p className="text-gray-600">No photos uploaded yet.</p>
+                <div className="flex items-center gap-2">
+                  <input
+                    id="property-new-image"
+                    type="text"
+                    placeholder="Add first image URL"
+                    className="flex-1 border rounded px-3 py-2 text-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const input = document.getElementById('property-new-image');
+                      const value = input && 'value' in input ? String(input.value || '').trim() : '';
+                      if (!value) return;
+                      setPropertyData(prev => {
+                        if (!prev) return prev;
+                        return { ...prev, images: [value] };
+                      });
+                      if (input) input.value = '';
+                    }}
+                    className="px-3 py-2 rounded bg-blue-600 text-white text-sm"
+                  >
+                    Add image
+                  </button>
+                </div>
+              </div>
             )}
           </div>
         );
@@ -608,19 +684,66 @@ export default function PropertyManagement() {
 
                       {isExpanded && (
                         <div className="mt-3 space-y-3 border-t pt-3">
-                          {Array.isArray(room.images) && room.images.length > 1 && (
+                          {Array.isArray(room.images) && room.images.length > 0 && (
                             <div>
                               <div className="text-xs font-semibold text-gray-600 mb-1">Room images</div>
-                              <div className="grid grid-cols-3 gap-2">
+                              <div className="grid grid-cols-3 gap-2 mb-2">
                                 {room.images.slice(0, 6).map((img, i) => (
-                                  <div key={i} className="aspect-video rounded overflow-hidden border bg-gray-100">
+                                  <div key={i} className="relative aspect-video rounded overflow-hidden border bg-gray-100">
                                     <img src={img} alt={`${room.roomType || 'Room'} image ${i + 1}`} className="w-full h-full object-cover" />
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setPropertyData(prev => {
+                                          if (!prev) return prev;
+                                          const nextRooms = prev.rooms.map((r, rIdx) => {
+                                            if (rIdx !== idx) return r;
+                                            const imgs = Array.isArray(r.images) ? r.images : [];
+                                            return { ...r, images: imgs.filter((_, imgIdx) => imgIdx !== i) };
+                                          });
+                                          return { ...prev, rooms: nextRooms };
+                                        });
+                                      }}
+                                      className="absolute top-1 right-1 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded"
+                                    >
+                                      Remove
+                                    </button>
                                   </div>
                                 ))}
+                              </div>
+                              <div className="flex gap-2 items-center">
+                                <input
+                                  id={`newImage-${room._id}`}
+                                  type="text"
+                                  placeholder="Add image URL"
+                                  className="flex-1 border rounded px-2 py-1 text-xs"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const input = document.getElementById(`newImage-${room._id}`);
+                                    const value = input && 'value' in input ? String(input.value || '').trim() : '';
+                                    if (!value) return;
+                                    setPropertyData(prev => {
+                                      if (!prev) return prev;
+                                      const nextRooms = prev.rooms.map((r, rIdx) => {
+                                        if (rIdx !== idx) return r;
+                                        const imgs = Array.isArray(r.images) ? r.images : [];
+                                        return { ...r, images: [...imgs, value] };
+                                      });
+                                      return { ...prev, rooms: nextRooms };
+                                    });
+                                    if (input) input.value = '';
+                                  }}
+                                  className="px-2 py-1 rounded bg-blue-600 text-white text-xs"
+                                >
+                                  Add image
+                                </button>
                               </div>
                             </div>
                           )}
 
+                          {/* Room core fields */}
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
                             <div>
                               <label className="block text-xs text-gray-600 mb-1">Capacity (guests)</label>
@@ -674,6 +797,43 @@ export default function PropertyManagement() {
                             </div>
                           </div>
 
+                          {/* Room amenities (per room) */}
+                          <div className="mt-2">
+                            <div className="text-xs font-semibold text-gray-600 mb-1">Room amenities</div>
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                              {roomAmenityOptions.map(opt => {
+                                const a = opt.slug || opt.name;
+                                const currentAmenities = Array.isArray(room.amenities) ? room.amenities : [];
+                                const checked = currentAmenities.includes(a);
+                                return (
+                                  <label
+                                    key={a}
+                                    className="inline-flex items-center gap-2 text-xs"
+                                    title={opt.description || (opt.name || a)}
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={checked}
+                                      onChange={() => {
+                                        setPropertyData(prev => {
+                                          if (!prev) return prev;
+                                          const nextRooms = prev.rooms.map((r, rIdx) => {
+                                            if (rIdx !== idx) return r;
+                                            const cur = Array.isArray(r.amenities) ? r.amenities : [];
+                                            const next = checked ? cur.filter(x => x !== a) : [...cur, a];
+                                            return { ...r, amenities: next };
+                                          });
+                                          return { ...prev, rooms: nextRooms };
+                                        });
+                                      }}
+                                    />
+                                    <span className="capitalize">{(opt.name || a).replace('_', ' ')}</span>
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          </div>
+
                           <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
                             <span>
                               Total maximum people: {totalPeople}
@@ -696,6 +856,8 @@ export default function PropertyManagement() {
                                     maxAdults: maxAdultsEl?.value !== '' ? Number(maxAdultsEl.value) : undefined,
                                     maxChildren: maxChildrenEl?.value !== '' ? Number(maxChildrenEl.value) : undefined,
                                     maxInfants: maxInfantsEl?.value !== '' ? Number(maxInfantsEl.value) : undefined,
+                                    images: Array.isArray(room.images) ? room.images : [],
+                                    amenities: Array.isArray(room.amenities) ? room.amenities : [],
                                   };
 
                                   const res = await fetch(`${API_URL}/api/properties/${selectedProperty}/rooms/${room._id}`, {
