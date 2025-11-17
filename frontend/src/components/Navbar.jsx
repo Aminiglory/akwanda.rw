@@ -924,7 +924,13 @@ const Navbar = () => {
             : 'bg-[#f5f0e8] border-[#e0d5c7]'
         }`}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div
+          className={`${
+            isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard()
+              ? 'w-full px-0'
+              : 'max-w-7xl px-4 sm:px-6 lg:px-8'
+          } mx-auto py-4`}
+        >
           <div className="flex flex-col gap-3">
             <div className="flex justify-between items-center">
               {/* Logo */}
@@ -1250,7 +1256,7 @@ const Navbar = () => {
 
             {/* Owner navigation (Booking.com style) in second navbar */}
             {isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard() && (
-              <div className="w-full flex flex-wrap items-center gap-2 pt-2 border-t border-[#e0d5c7] mt-2">
+              <div className="w-full flex flex-wrap items-center gap-1 pt-1 border-t border-[#e0d5c7] mt-1">
                 {bookingComNavItems.map((item, idx) => {
                   const Icon = item.icon;
                   const isOpen = activeDropdown === item.label;
