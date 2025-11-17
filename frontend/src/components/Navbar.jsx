@@ -927,7 +927,7 @@ const Navbar = () => {
         <div
           className={`${
             isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard()
-              ? 'w-full px-0'
+              ? 'w-full px-2 sm:px-3'
               : 'max-w-7xl px-4 sm:px-6 lg:px-8'
           } mx-auto py-4`}
         >
