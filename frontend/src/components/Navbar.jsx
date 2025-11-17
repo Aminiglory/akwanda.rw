@@ -83,6 +83,7 @@ const Navbar = () => {
   const [payingCommission, setPayingCommission] = useState(false);
   const [selectedPropertyId, setSelectedPropertyId] = useState('');
   const [ownerSearchTerm, setOwnerSearchTerm] = useState('');
+  const [globalSearchTerm, setGlobalSearchTerm] = useState('');
   // Locale dropdown states (open on click, not hover)
   const [langOpenTop, setLangOpenTop] = useState(false);
   const [currOpenTop, setCurrOpenTop] = useState(false);
@@ -639,7 +640,15 @@ const Navbar = () => {
   // Check if user is in property owner dashboard context
   const isInPropertyOwnerDashboard = () => {
     const ownerRoutes = ['/dashboard', '/user-dashboard', '/my-bookings', '/upload', '/owner', '/messages'];
-    return ownerRoutes.some(route => location.pathname.startsWith(route));
+    if (ownerRoutes.some(route => location.pathname.startsWith(route))) {
+      return true;
+    }
+    // Treat global search as owner-mode when explicitly tagged
+    if (location.pathname.startsWith('/search')) {
+      const params = new URLSearchParams(location.search || '');
+      if (params.get('mode') === 'owner') return true;
+    }
+    return false;
   };
 
   const handleLogout = () => {
@@ -692,9 +701,19 @@ const Navbar = () => {
     const term = String(ownerSearchTerm || '').trim();
     if (!term) return;
     const params = new URLSearchParams();
-    if (selectedPropertyId) params.set('property', selectedPropertyId);
-    params.set('search', term);
-    navigate(`/dashboard?${params.toString()}`);
+    params.set('query', term);
+    params.set('mode', 'owner');
+    navigate(`/search?${params.toString()}`);
+  };
+
+  const handleGlobalSearch = (e) => {
+    e?.preventDefault?.();
+    const term = String(globalSearchTerm || '').trim();
+    if (!term) return;
+    const params = new URLSearchParams();
+    params.set('query', term);
+    params.set('mode', isAuthenticated && user?.userType === 'host' ? 'owner' : 'user');
+    navigate(`/search?${params.toString()}`);
   };
 
   const goToPropertyDashboard = () => {
@@ -1035,6 +1054,29 @@ const Navbar = () => {
 
               {/* Right Side - Booking.com Style */}
               <div className="flex flex-nowrap items-center gap-1 lg:gap-2">
+              {/* Global search in main navbar (public / non-owner dashboard context) */}
+              {(!isAuthenticated || !isInPropertyOwnerDashboard()) && (
+                <form
+                  onSubmit={handleGlobalSearch}
+                  className="hidden lg:flex items-center bg-white border border-[#d4c4b0] rounded-lg px-2 py-1.5 mr-1 max-w-xs"
+                >
+                  <FaSearch className="text-xs text-gray-500 mr-1" />
+                  <input
+                    type="text"
+                    value={globalSearchTerm}
+                    onChange={(e) => setGlobalSearchTerm(e.target.value)}
+                    placeholder="Search..."
+                    className="flex-1 text-xs bg-transparent outline-none placeholder:text-gray-400 text-gray-800"
+                  />
+                  <button
+                    type="submit"
+                    className="ml-1 px-2 py-1 text-[11px] rounded-md bg-[#a06b42] text-white hover:bg-[#8f5a32] whitespace-nowrap"
+                  >
+                    Search
+                  </button>
+                </form>
+              )}
+
               {/* Global search within owner dashboard */}
               {isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard() && (
                 <div className="hidden lg:flex items-center bg-white border border-[#d4c4b0] rounded-lg px-2 py-1.5 ml-1 max-w-xs">

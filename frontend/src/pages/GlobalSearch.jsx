@@ -19,6 +19,11 @@ const GlobalSearch = () => {
     return (sp.get('query') || sp.get('q') || '').trim();
   }, [location.search]);
 
+  const isOwnerMode = useMemo(() => {
+    const sp = new URLSearchParams(location.search || '');
+    return (sp.get('mode') || '').toLowerCase() === 'owner';
+  }, [location.search]);
+
   useEffect(() => {
     setQuery(searchTerm);
   }, [searchTerm]);
@@ -93,7 +98,7 @@ const GlobalSearch = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className={isOwnerMode ? 'min-h-screen bg-[#f5f0e8]' : 'min-h-screen bg-gray-50'}>
       <div className="max-w-5xl mx-auto px-4 py-10">
         <h1 className="text-3xl font-bold text-gray-900 mb-4 flex items-center gap-2">
           <FaSearch /> {t ? t('search.globalTitle') : 'Global search'}

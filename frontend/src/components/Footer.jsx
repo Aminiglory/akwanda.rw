@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { FaFacebook, FaTwitter, FaInstagram, FaLinkedin, FaPhone, FaEnvelope, FaMapMarkerAlt, FaBed, FaBuffer, FaSearch } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { useLocale } from '../contexts/LocaleContext';
+import { useAuth } from '../contexts/AuthContext';
 
 const Footer = () => {
   const [site, setSite] = useState(() => {
@@ -13,6 +14,7 @@ const Footer = () => {
     }
   });
   const { t } = useLocale() || {};
+  const { user, isAuthenticated } = useAuth() || {};
   const navigate = useNavigate();
   const [globalQuery, setGlobalQuery] = useState('');
 
@@ -192,6 +194,7 @@ const Footer = () => {
                 if (!term) return;
                 const params = new URLSearchParams();
                 params.set('query', term);
+                params.set('mode', isAuthenticated && user?.userType === 'host' ? 'owner' : 'user');
                 navigate(`/search?${params.toString()}`);
               }}
               className="w-full md:w-auto flex-1 md:flex-none"
