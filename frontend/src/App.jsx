@@ -70,6 +70,7 @@ const AdminUserManagement = lazy(() => import('./pages/AdminUserManagement'));
 const AdminReports = lazy(() => import('./pages/AdminReports'));
 const EditProperty = lazy(() => import('./pages/EditProperty'));
 const Favorites = lazy(() => import('./pages/Favorites'));
+const GlobalSearch = lazy(() => import('./pages/GlobalSearch'));
 const LogoutSuccess = lazy(() => import('./pages/LogoutSuccess'));
 const BookingSuccess = lazy(() => import('./pages/BookingSuccess'));
 const PaymentSuccess = lazy(() => import('./pages/PaymentSuccess'));
@@ -143,6 +144,7 @@ function App() {
             <Route path="/taxis" element={<AirportTaxis />} />
             <Route path="/apartment/:id" element={<ApartmentDetails />} />
             <Route path="/favorites" element={<Favorites />} />
+            <Route path="/search" element={<GlobalSearch />} />
             <Route path="/logout-success" element={<LogoutSuccess />} />
             <Route path="/booking-success" element={<BookingSuccess />} />
             <Route path="/payment-success" element={<PaymentSuccess />} />

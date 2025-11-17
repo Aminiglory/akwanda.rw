@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { FaFacebook, FaTwitter, FaInstagram, FaLinkedin, FaPhone, FaEnvelope, FaMapMarkerAlt, FaBed, FaBuffer } from 'react-icons/fa';
+import { FaFacebook, FaTwitter, FaInstagram, FaLinkedin, FaPhone, FaEnvelope, FaMapMarkerAlt, FaBed, FaBuffer, FaSearch } from 'react-icons/fa';
+import { useNavigate } from 'react-router-dom';
 import { useLocale } from '../contexts/LocaleContext';
 
 const Footer = () => {
@@ -12,6 +13,8 @@ const Footer = () => {
     }
   });
   const { t } = useLocale() || {};
+  const navigate = useNavigate();
+  const [globalQuery, setGlobalQuery] = useState('');
 
   useEffect(() => {
     const handler = (e) => {
@@ -172,14 +175,47 @@ const Footer = () => {
         </div>
       </div>
 
-      {/* Bottom Bar */}
+      {/* Bottom Bar with global search */}
       <div className="border-t border-gray-800">
         <div className="max-w-6xl mx-auto px-4 py-6">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="text-gray-300 text-sm mb-4 md:mb-0">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            {/* Left: copyright */}
+            <div className="text-gray-300 text-sm">
               {t ? t('footer.bottomCopyright', year) : `© ${year} AKWANDA.rw. All rights reserved.`}
             </div>
-            <div className="flex flex-wrap gap-6 text-sm">
+
+            {/* Center: global search */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const term = String(globalQuery || '').trim();
+                if (!term) return;
+                const params = new URLSearchParams();
+                params.set('query', term);
+                navigate(`/search?${params.toString()}`);
+              }}
+              className="w-full md:w-auto flex-1 md:flex-none"
+            >
+              <div className="flex items-center max-w-md mx-auto bg-gray-800 rounded-full px-3 py-1.5 gap-2">
+                <FaSearch className="text-gray-400" />
+                <input
+                  type="text"
+                  value={globalQuery}
+                  onChange={(e) => setGlobalQuery(e.target.value)}
+                  placeholder="Search..."
+                  className="flex-1 bg-transparent border-none outline-none text-sm text-gray-100 placeholder:text-gray-400"
+                />
+                <button
+                  type="submit"
+                  className="px-3 py-1 text-xs md:text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-full whitespace-nowrap"
+                >
+                  {t ? t('footer.search') : 'Search'}
+                </button>
+              </div>
+            </form>
+
+            {/* Right: links */}
+            <div className="flex flex-wrap gap-6 text-sm justify-center md:justify-end">
               <a href="/support" className="text-gray-300 hover:text-white transition-colors duration-300">
                 {t ? t('footer.privacy') : 'Privacy Policy'}
               </a>

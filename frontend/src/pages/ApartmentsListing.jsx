@@ -43,6 +43,7 @@ const ApartmentsListing = () => {
 
   const [showFilters, setShowFilters] = useState(false);
   const [apartments, setApartments] = useState([]);
+  const [searchHighlight, setSearchHighlight] = useState('');
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'table'
   const [loading, setLoading] = useState(true);
   const [fetchTimer, setFetchTimer] = useState(null);
@@ -68,6 +69,7 @@ const ApartmentsListing = () => {
         priceMin: minPrice != null ? snapToStep(minPrice) : prev.priceMin,
         priceMax: maxPrice != null ? (isNaN(Number(maxPrice)) ? null : snapToStep(maxPrice)) : prev.priceMax,
       }));
+      setSearchHighlight(q || '');
     } catch (_) {}
   }, []);
 
@@ -761,6 +763,7 @@ const ApartmentsListing = () => {
                               bookings: apartment.reviews,
                               host: apartment.host
                             }}
+                            highlight={searchHighlight}
                             onView={() => (window.location.href = apartment.href || `/apartment/${apartment.id}`)}
                           />
                         </div>

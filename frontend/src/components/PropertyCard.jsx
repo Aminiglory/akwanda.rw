@@ -23,7 +23,8 @@ const PropertyCard = ({
   onDelete,
   onView,
   onEditHref,
-  onToggleWishlist
+  onToggleWishlist,
+  highlight
 }) => {
   const { formatCurrencyRWF, t } = useLocale() || {};
   const {
@@ -37,6 +38,27 @@ const PropertyCard = ({
     bathrooms,
     area
   } = listing || {};
+
+  const highlightText = (text) => {
+    const term = String(highlight || '').trim();
+    const value = String(text || '');
+    if (!term) return value;
+    const lower = value.toLowerCase();
+    const idx = lower.indexOf(term.toLowerCase());
+    if (idx === -1) return value;
+    const before = value.slice(0, idx);
+    const match = value.slice(idx, idx + term.length);
+    const after = value.slice(idx + term.length);
+    return (
+      <>
+        {before}
+        <mark className="bg-yellow-200 text-gray-900 px-0.5 rounded">
+          {match}
+        </mark>
+        {after}
+      </>
+    );
+  };
 
   const isWishlisted = !!(listing && listing.wishlisted);
 
@@ -67,12 +89,12 @@ const PropertyCard = ({
       ) : null}
       <div className="p-5">
         <div className="flex items-start justify-between mb-1">
-          <h4 className="font-semibold text-gray-900 line-clamp-1">{title}</h4>
+          <h4 className="font-semibold text-gray-900 line-clamp-1">{highlightText(title)}</h4>
           <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(status)}`}>{status}</span>
         </div>
         <div className="flex items-center text-gray-600 text-sm mb-1">
           <FaMapMarkerAlt className="mr-1" />
-          <span className="line-clamp-1">{location}</span>
+          <span className="line-clamp-1">{highlightText(location)}</span>
         </div>
         {listing?.host && (
           <div className="text-xs text-gray-500 mb-3">{t ? t('property.hostedBy') : 'Hosted by'} <span className="font-medium text-gray-700">{listing.host}</span></div>

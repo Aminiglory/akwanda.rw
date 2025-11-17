@@ -1065,7 +1065,11 @@ const Navbar = () => {
               {isAuthenticated && (user?.userType !== 'worker' ? true : !!user?.privileges?.canMessageGuests) && (
                 <Link
                   to="/messages"
-                  className="flex items-center px-3 py-2 rounded-lg text-[#6b5744] hover:text-[#4b2a00] hover:bg-[#e8dcc8] relative transition-colors"
+                  className={`flex items-center px-3 py-2 rounded-lg relative transition-colors ${
+                    isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard()
+                      ? 'text-white hover:text-white/90 hover:bg-[#6b3f1f]'
+                      : 'text-[#6b5744] hover:text-[#4b2a00] hover:bg-[#e8dcc8]'
+                  }`}
                   title={t ? t('nav.messages') : 'Messages'}
                 >
                   <FaEnvelope className="text-lg" />
@@ -1101,10 +1105,15 @@ const Navbar = () => {
                 <div className="relative inline-flex items-center">
                   <button
                     onClick={toggleNotifications}
-                    className={`notification-button relative px-3 py-2 rounded-lg transition-colors ${isNotificationOpen
-                        ? 'bg-[#a06b42] text-white'
-                        : 'text-[#6b5744] hover:text-[#4b2a00] hover:bg-[#e8dcc8]'
-                      }`}
+                    className={`notification-button relative px-3 py-2 rounded-lg transition-colors cursor-pointer ${
+                      isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard()
+                        ? isNotificationOpen
+                          ? 'bg-[#a06b42] text-white'
+                          : 'text-white hover:text-white/90 hover:bg-[#6b3f1f]'
+                        : isNotificationOpen
+                          ? 'bg-[#a06b42] text-white'
+                          : 'text-[#6b5744] hover:text-[#4b2a00] hover:bg-[#e8dcc8]'
+                    }`}
                   >
                     <FaBell className="text-lg" />
                     {unreadNotifCount > 0 && (
