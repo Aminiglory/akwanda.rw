@@ -1262,7 +1262,15 @@ const Navbar = () => {
               <div className="hidden lg:flex items-center space-x-4 ml-2">
                 {/* Language selector */}
                 <div className="relative lang-selector-second">
-                  <button type="button" onClick={() => { setLangOpenSecond(o=>!o); setCurrOpenSecond(false); }} className="flex items-center space-x-2 hover:text-[#4b2a00] cursor-pointer">
+                  <button
+                    type="button"
+                    onClick={() => { setLangOpenSecond(o=>!o); setCurrOpenSecond(false); }}
+                    className={`flex items-center space-x-2 cursor-pointer ${
+                      isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard()
+                        ? ''
+                        : 'hover:text-[#4b2a00]'
+                    }`}
+                  >
                     <FaGlobe className="text-sm" />
                     <span className="hidden sm:inline">{(language || 'en').toUpperCase()}</span>
                     <FaCaretDown className="text-[10px] hidden sm:inline" />
@@ -1276,7 +1284,15 @@ const Navbar = () => {
                 </div>
                 {/* Currency selector */}
                 <div className="relative currency-selector-second">
-                  <button type="button" onClick={() => { setCurrOpenSecond(o=>!o); setLangOpenSecond(false); }} className="flex items-center space-x-2 hover:text-[#4b2a00] cursor-pointer">
+                  <button
+                    type="button"
+                    onClick={() => { setCurrOpenSecond(o=>!o); setLangOpenSecond(false); }}
+                    className={`flex items-center space-x-2 cursor-pointer ${
+                      isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard()
+                        ? ''
+                        : 'hover:text-[#4b2a00]'
+                    }`}
+                  >
                     <span className="font-semibold">{(currency || 'RWF').toUpperCase()}</span>
                     <FaCaretDown className="text-[10px]" />
                   </button>
