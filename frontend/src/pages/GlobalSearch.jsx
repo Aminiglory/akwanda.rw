@@ -1,12 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { FaSearch, FaBed, FaCar, FaMapMarkerAlt } from 'react-icons/fa';
-import { useLocale } from '../contexts/LocaleContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const GlobalSearch = () => {
-  const { t } = useLocale() || {};
   const location = useLocation();
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
@@ -100,12 +98,19 @@ const GlobalSearch = () => {
   return (
     <div className={isOwnerMode ? 'min-h-screen bg-[#f5f0e8]' : 'min-h-screen bg-gray-50'}>
       <div className="max-w-5xl mx-auto px-4 py-10">
-        <h1 className="text-3xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-          <FaSearch /> {t ? t('search.globalTitle') : 'Global search'}
+        <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+          <FaSearch />
+          <span>
+            {searchTerm
+              ? `Search results for "${searchTerm}"`
+              : 'Global search'}
+          </span>
         </h1>
-        <p className="text-gray-600 mb-6 text-sm">
-          {t ? t('search.globalSubtitle') : 'Search across stays and cars on AKWANDA.rw.'}
-        </p>
+        {!searchTerm && (
+          <p className="text-gray-600 mb-6 text-sm">
+            Search across stays and cars on AKWANDA.rw.
+          </p>
+        )}
 
         {/* Search box */}
         <form onSubmit={handleSubmit} className="mb-8">
@@ -115,20 +120,20 @@ const GlobalSearch = () => {
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder={t ? t('search.globalPlaceholder') : 'Search properties, locations, cars...'}
+              placeholder="Search properties, locations, cars..."
               className="flex-1 bg-transparent border-none outline-none text-sm text-gray-900 placeholder:text-gray-400"
             />
             <button
               type="submit"
               className="px-4 py-1.5 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-full"
             >
-              {t ? t('search.search') : 'Search'}
+              Search
             </button>
           </div>
         </form>
 
         {loading && (
-          <div className="text-gray-600 text-sm">{t ? t('search.loading') : 'Searching...'}</div>
+          <div className="text-gray-600 text-sm">Searching...</div>
         )}
         {error && !loading && (
           <div className="text-red-600 text-sm mb-4">{error}</div>
@@ -136,7 +141,7 @@ const GlobalSearch = () => {
 
         {!loading && !error && !searchTerm && (
           <div className="text-gray-500 text-sm">
-            {t ? t('search.globalHint') : 'Type something above to search.'}
+            Type something above to search.
           </div>
         )}
 
@@ -146,12 +151,12 @@ const GlobalSearch = () => {
             <section className="mb-8">
               <h2 className="text-xl font-semibold text-gray-900 mb-3 flex items-center gap-2">
                 <FaBed className="text-blue-600" />
-                {t ? t('search.properties') : 'Stays'}
+                <span>Stays</span>
                 <span className="text-sm text-gray-500">({properties.length})</span>
               </h2>
               {properties.length === 0 ? (
                 <div className="text-gray-500 text-sm">
-                  {t ? t('search.noProperties') : 'No stays found for this search.'}
+                  No stays found for this search.
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -181,12 +186,12 @@ const GlobalSearch = () => {
             <section className="mb-8">
               <h2 className="text-xl font-semibold text-gray-900 mb-3 flex items-center gap-2">
                 <FaCar className="text-blue-600" />
-                {t ? t('search.cars') : 'Cars'}
+                <span>Cars</span>
                 <span className="text-sm text-gray-500">({cars.length})</span>
               </h2>
               {cars.length === 0 ? (
                 <div className="text-gray-500 text-sm">
-                  {t ? t('search.noCars') : 'No cars found for this search.'}
+                  No cars found for this search.
                 </div>
               ) : (
                 <div className="space-y-3">
