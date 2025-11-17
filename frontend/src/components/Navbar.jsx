@@ -917,18 +917,57 @@ const Navbar = () => {
       )}
 
       {/* Second Bar - Navigation Level */}
-      <nav className="w-full bg-[#f5f0e8] border-b border-[#e0d5c7] navbar-shadow">
+      <nav
+        className={`w-full border-b navbar-shadow ${
+          isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard()
+            ? 'bg-[#4b2a00] border-[#3a2000] text-white'
+            : 'bg-[#f5f0e8] border-[#e0d5c7]'
+        }`}
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex flex-col gap-3">
             <div className="flex justify-between items-center">
               {/* Logo */}
-              <div className="flex items-center space-x-8">
+              <div className="flex items-center space-x-4">
                 <Link
                   to={user?.userType === 'host' && isInPropertyOwnerDashboard() ? "/dashboard" : "/"}
-                  className="text-xl font-bold text-[#4b2a00] hover:text-[#6b3f1f]"
+                  className={`text-xl font-bold ${
+                    isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard()
+                      ? 'text-white hover:text-[#f5e9dd]'
+                      : 'text-[#4b2a00] hover:text-[#6b3f1f]'
+                  }`}
                 >
                   AKWANDA.rw
                 </Link>
+
+                {/* Property selector (desktop) - next to logo in owner dashboard */}
+                {isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard() && myProperties.length > 0 && (
+                  <div className="hidden lg:block">
+                    <div className="flex items-center gap-1">
+                      <select
+                        className="px-3 py-2 border border-[#d4c4b0] rounded-lg bg-white text-sm text-[#4b2a00] focus:outline-none focus:ring-2 focus:ring-[#a06b42]"
+                        title={t ? t('banner.choosePropertyToManage') : 'Choose property to manage'}
+                        value={selectedPropertyId}
+                        onChange={(e) => {
+                          const id = e.target.value;
+                          setSelectedPropertyId(id);
+                          if (id) {
+                            window.open(`/dashboard?property=${id}`, '_blank');
+                          }
+                        }}
+                      >
+                        {myProperties.map((p) => {
+                          const id = String(p._id || '');
+                          const code = p.propertyNumber || id.slice(-6) || 'N/A';
+                          const name = p.title || p.name || 'Property';
+                          return (
+                            <option key={id} value={id}>{`#${code} - ${name}`}</option>
+                          );
+                        })}
+                      </select>
+                    </div>
+                  </div>
+                )}
 
                 {/* Main Navigation Items - Show for guests and hide for property owners in dashboard */}
                 {user?.userType !== "admin" && (user?.userType !== 'host' || !isInPropertyOwnerDashboard()) && (
@@ -990,35 +1029,6 @@ const Navbar = () => {
 
               {/* Right Side - Booking.com Style */}
               <div className="flex flex-nowrap items-center gap-1 lg:gap-2">
-              {/* Property selector (desktop) */}
-              {isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard() && myProperties.length > 0 && (
-                <div className="hidden lg:block">
-                  <div className="flex items-center gap-1">
-                    <select
-                      className="px-3 py-2 border border-[#d4c4b0] rounded-lg bg-white text-sm text-[#4b2a00] focus:outline-none focus:ring-2 focus:ring-[#a06b42]"
-                      title={t ? t('banner.choosePropertyToManage') : 'Choose property to manage'}
-                      value={selectedPropertyId}
-                      onChange={(e) => {
-                        const id = e.target.value;
-                        setSelectedPropertyId(id);
-                        if (id) {
-                          window.open(`/dashboard?property=${id}`, '_blank');
-                        }
-                      }}
-                    >
-                      {myProperties.map((p) => {
-                        const id = String(p._id || '');
-                        const code = p.propertyNumber || id.slice(-6) || 'N/A';
-                        const name = p.title || p.name || 'Property';
-                        return (
-                          <option key={id} value={id}>{`#${code} - ${name}`}</option>
-                        );
-                      })}
-                    </select>
-                  </div>
-                </div>
-              )}
-
               {/* Global search within owner dashboard */}
               {isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard() && (
                 <div className="hidden lg:flex items-center bg-white border border-[#d4c4b0] rounded-lg px-2 py-1.5 ml-1 max-w-xs">
