@@ -276,10 +276,10 @@ const DirectBooking = () => {
               <div className="text-sm text-gray-700 space-y-1">
                 <div>Room Rate: based on selected property, room and nights</div>
                 <div className="mt-2">Additional Services:</div>
-                {(!Array.isArray(propertyAddOns) || propertyAddOns.filter(a => a && a.enabled).length === 0) && (
+                {(!Array.isArray(propertyAddOns) || propertyAddOns.length === 0) && (
                   <div className="text-xs text-gray-500">No add-on services configured for this property.</div>
                 )}
-                {Array.isArray(propertyAddOns) && propertyAddOns.filter(a => a && a.enabled).map(addOn => {
+                {Array.isArray(propertyAddOns) && propertyAddOns.map(addOn => {
                   const key = addOn.key;
                   const checked = !!(form.services && form.services[key]);
                   const included = addOn.includedItems && typeof addOn.includedItems === 'object'

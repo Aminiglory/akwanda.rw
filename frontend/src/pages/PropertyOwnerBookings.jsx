@@ -2784,10 +2784,10 @@ const PropertyOwnerBookings = () => {
             <div className="text-sm text-gray-700 space-y-1">
               <div>Room Rate: based on selected property, room and nights</div>
               <div className="mt-2">Additional Services:</div>
-              {ownerAddOns.filter(a => a && a.enabled).length === 0 && (
+              {(ownerAddOns.length === 0) && (
                 <div className="text-xs text-gray-500">No add-on services configured for this property.</div>
               )}
-              {ownerAddOns.filter(a => a && a.enabled).map(addOn => {
+              {ownerAddOns.map(addOn => {
                 const key = addOn.key;
                 const checked = !!(directForm.services && directForm.services[key]);
                 const price = Number(addOn.price || 0);
