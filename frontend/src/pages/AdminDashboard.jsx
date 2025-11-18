@@ -382,6 +382,13 @@ const AdminDashboard = () => {
               >
                 <FaPlus /> Manage Amenities
               </Link>
+              <Link
+                to="/admin/add-ons"
+                className="px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-medium hover:bg-green-700 transition-colors inline-flex items-center gap-2"
+                title="Manage add-on catalog used by property owners"
+              >
+                <FaPlus /> Manage Add-ons
+              </Link>
             </div>
           </div>
         </div>

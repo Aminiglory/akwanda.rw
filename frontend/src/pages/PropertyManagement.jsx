@@ -25,6 +25,7 @@ export default function PropertyManagement() {
   const [profileDraft, setProfileDraft] = useState({ firstName: '', lastName: '', phone: '', bio: '' });
   const [expandedRoomId, setExpandedRoomId] = useState(null);
   const [addOnServicesDraft, setAddOnServicesDraft] = useState([]);
+  const [addOnCatalog, setAddOnCatalog] = useState([]);
 
   useEffect(() => {
     fetchProperties();
@@ -40,6 +41,22 @@ export default function PropertyManagement() {
         if (propRes.ok) setPropertyAmenityOptions(Array.isArray(propData.amenities) ? propData.amenities : []);
         if (roomRes.ok) setRoomAmenityOptions(Array.isArray(roomData.amenities) ? roomData.amenities : []);
       } catch (_) {}
+    })();
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/add-ons/catalog`, { credentials: 'include' });
+        const data = await res.json().catch(()=>({}));
+        if (res.ok && Array.isArray(data.items)) {
+          setAddOnCatalog(data.items);
+        } else {
+          setAddOnCatalog([]);
+        }
+      } catch (_) {
+        setAddOnCatalog([]);
+      }
     })();
   }, []);
 
@@ -445,17 +462,17 @@ export default function PropertyManagement() {
             </h2>
             <p className="text-gray-600 mb-4 text-sm">Configure optional services like breakfast or airport transfer. These will appear in direct booking and use the 3% levy only.</p>
             <div className="space-y-3">
-              {[ 
-                { key: 'standard_breakfast', name: 'Standard breakfast', defaultPrice: 5000 },
-                { key: 'premium_breakfast', name: 'Premium breakfast', defaultPrice: 8000 },
-                { key: 'airport_transfer', name: 'Airport transfer', defaultPrice: 15000 },
-                { key: 'late_checkout', name: 'Late checkout', defaultPrice: 10000 },
-                { key: 'daily_cleaning', name: 'Daily cleaning', defaultPrice: 7000 },
-              ].map((opt) => {
+              {(addOnCatalog.length ? addOnCatalog : [
+                { key: 'standard_breakfast', name: 'Standard breakfast', defaultPrice: 5000, defaultScope: 'per-booking' },
+                { key: 'premium_breakfast', name: 'Premium breakfast', defaultPrice: 8000, defaultScope: 'per-booking' },
+                { key: 'airport_transfer', name: 'Airport transfer', defaultPrice: 15000, defaultScope: 'per-booking' },
+                { key: 'late_checkout', name: 'Late checkout', defaultPrice: 10000, defaultScope: 'per-booking' },
+                { key: 'daily_cleaning', name: 'Daily cleaning', defaultPrice: 7000, defaultScope: 'per-night' },
+              ]).map((opt) => {
                 const existing = addOnServicesDraft.find(s => s.key === opt.key) || {};
                 const enabled = existing.enabled ?? false;
-                const price = existing.price != null ? existing.price : opt.defaultPrice;
-                const scope = existing.scope || 'per-booking';
+                const price = existing.price != null ? existing.price : (opt.defaultPrice || 0);
+                const scope = existing.scope || opt.defaultScope || 'per-booking';
                 return (
                   <div key={opt.key} className="p-3 border rounded flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                     <div>

@@ -62,9 +62,26 @@ export default function RatesAvailability() {
     { country: 'East Africa', rate: -10 }
   ]);
   const [addOnServicesDraft, setAddOnServicesDraft] = useState([]);
+  const [addOnCatalog, setAddOnCatalog] = useState([]);
 
   useEffect(() => {
     fetchProperties();
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/add-ons/catalog`, { credentials: 'include' });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && Array.isArray(data.items)) {
+          setAddOnCatalog(data.items);
+        } else {
+          setAddOnCatalog([]);
+        }
+      } catch (_) {
+        setAddOnCatalog([]);
+      }
+    })();
   }, []);
 
   useEffect(() => {
@@ -856,53 +873,6 @@ export default function RatesAvailability() {
 
       case 'value-adds':
         return (
-          <div className="bg-white rounded-2xl border border-[#e0d5c7] shadow-sm p-6">
-            <h2 className="text-xl font-bold mb-2 flex items-center gap-2 text-[#4b2a00]">
-              <FaGift className="text-[#a06b42]" /> Value adds
-            </h2>
-            <p className="text-sm text-[#6b5744] mb-4">Configure extra services (add-ons) that guests can purchase in addition to the room rate.</p>
-            <div className="space-y-3">
-              {[
-                {
-                  key: 'breakfast-standard',
-                  name: 'Standard Breakfast',
-                  description: 'Continental or local breakfast served in the dining area.',
-                  defaultPrice: 5000
-                },
-                {
-                  key: 'breakfast-premium',
-                  name: 'Premium Breakfast',
-                  description: 'Hot breakfast with multiple options and drinks.',
-                  defaultPrice: 8000
-                },
-                {
-                  key: 'airport-transfer',
-                  name: 'Airport Transfer',
-                  description: 'One-way airport pickup or drop-off.',
-                  defaultPrice: 15000
-                },
-                {
-                  key: 'late-checkout',
-                  name: 'Late Checkout',
-                  description: 'Checkout until 6 PM (subject to availability).',
-                  defaultPrice: 10000
-                },
-                {
-                  key: 'daily-cleaning',
-                  name: 'Daily Cleaning',
-                  description: 'Extra daily room cleaning service.',
-                  defaultPrice: 3000
-                }
-              ].map((opt) => {
-                const existing = addOnServicesDraft.find(s => s.key === opt.key) || {};
-                const enabled = existing.enabled ?? false;
-                const price = existing.price != null ? existing.price : opt.defaultPrice;
-                const scope = existing.scope || 'per-booking';
-                return (
-                  <div key={opt.key} className="border border-[#e0d5c7] rounded-2xl p-4 bg-[#fdf7f0]">
-                    <div className="flex items-center justify-between mb-2">
-                      <div>
-                        <h3 className="font-semibold text-[#4b2a00] text-sm md:text-base">{opt.name}</h3>
                         <p className="text-sm text-[#6b5744]">{opt.description}</p>
                       </div>
                       <label className="flex items-center ml-4">

@@ -32,6 +32,7 @@ const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const AdminLanding = lazy(() => import('./pages/AdminLanding'));
 const AdminAttractions = lazy(() => import('./pages/AdminAttractions'));
 const AdminAmenities = lazy(() => import('./pages/AdminAmenities'));
+const AdminAddOns = lazy(() => import('./pages/AdminAddOns'));
 const CarsList = lazy(() => import('./pages/CarsList'));
 const CarDetail = lazy(() => import('./pages/CarDetail'));
 const CarOwnerDashboard = lazy(() => import('./pages/CarOwnerDashboard'));
@@ -172,6 +173,7 @@ function App() {
             <Route path="/admin/attractions" element={<AdminRoute><div className="dashboard"><AdminAttractions /></div></AdminRoute>} />
             <Route path="/admin/users" element={<AdminRoute><div className="dashboard"><AdminUserManagement /></div></AdminRoute>} />
             <Route path="/admin/amenities" element={<AdminRoute><div className="dashboard"><AdminAmenities /></div></AdminRoute>} />
+            <Route path="/admin/add-ons" element={<AdminRoute><div className="dashboard"><AdminAddOns /></div></AdminRoute>} />
             <Route path="/admin/reports" element={<AdminRoute><div className="dashboard"><AdminReports /></div></AdminRoute>} />
             <Route path="/mtn-payment" element={<ProtectedRoute><MTNMobileMoneyPayment /></ProtectedRoute>} />
             <Route path="/payment/mtn-mobile-money" element={<MTNMobileMoneyPayment />} />
