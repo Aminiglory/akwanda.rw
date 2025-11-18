@@ -139,8 +139,7 @@ const DirectBooking = () => {
 
       toast.success('Direct booking created');
       const id = data.booking._id;
-      // Open printable PDF receipt in a new tab
-      window.open(`${API_URL}/api/bookings/${id}/receipt?format=pdf`, '_blank', 'noopener,noreferrer');
+      // Navigate to booking confirmation; receipt can be previewed & printed from the owner dashboard
       navigate(`/booking-confirmation/${id}`);
     } catch (err) {
       toast.error(err.message);
