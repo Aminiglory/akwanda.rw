@@ -184,6 +184,7 @@ const Navbar = () => {
         { label: labelOr('nav.checkIn', 'Check in'), href: '/my-bookings?tab=reservations&scope=checked-in', icon: FaCalendarCheck },
         { label: labelOr('nav.checkOut', 'Check out'), href: '/my-bookings?tab=reservations&scope=checked-out', icon: FaCalendarCheck },
         { label: labelOr('nav.cancelled', 'Cancelled'), href: '/my-bookings?tab=reservations&scope=cancelled', icon: FaCalendarTimes },
+        { label: labelOr('nav.directBooking', 'Direct booking'), href: '/owner/direct-booking', icon: FaCalendarCheck },
       ]
     },
     {
@@ -772,7 +773,7 @@ const Navbar = () => {
     <> 
       {/* Top Bar - First Level (hidden on landing page) */}
       {location.pathname !== '/' && (
-      <div className="w-full bg-[#4b2a00] text-white py-2 px-4 border-b border-[#3a2000] relative z-[1000]">
+      <div className="w-full bg-[#6b3f1f] text-white py-2 px-4 border-b border-[#5a3419] relative z-[1000]">
         <div className="max-w-7xl mx-auto flex justify-between items-center text-xs">
           <div className="flex items-center space-x-4 lg:space-x-6">
             {/* Property Owner Links - Show when authenticated as host (only show Dashboard label in owner context) */}
@@ -937,7 +938,7 @@ const Navbar = () => {
       <nav
         className={`w-full border-b navbar-shadow ${
           isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard()
-            ? 'bg-[#4b2a00] border-[#3a2000] text-white'
+            ? 'bg-[#6b3f1f] border-[#5a3419] text-white'
             : 'bg-[#f5f0e8] border-[#e0d5c7]'
         }`}
       >
