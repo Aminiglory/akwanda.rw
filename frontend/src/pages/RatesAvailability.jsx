@@ -892,6 +892,7 @@ export default function RatesAvailability() {
                 const enabled = existing.enabled ?? false;
                 const price = existing.price != null ? existing.price : (opt.defaultPrice || 0);
                 const scope = existing.scope || opt.defaultScope || 'per-booking';
+                const selectedItems = existing.includedItems || {};
                 return (
                   <div key={opt.key} className="border border-[#e0d5c7] rounded-2xl p-4 bg-[#fdf7f0]">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -900,6 +901,9 @@ export default function RatesAvailability() {
                         {opt.description && (
                           <p className="text-sm text-[#6b5744]">{opt.description}</p>
                         )}
+                        <p className="text-[11px] text-[#8a745e] mt-1">
+                          Configure price, charge type, and which items are included for this property.
+                        </p>
                       </div>
                       <label className="flex items-center ml-0 sm:ml-4">
                         <input
@@ -908,7 +912,14 @@ export default function RatesAvailability() {
                           checked={enabled}
                           onChange={(e) => {
                             const next = addOnServicesDraft.filter(s => s.key !== opt.key);
-                            next.push({ key: opt.key, name: opt.name, enabled: e.target.checked, price, scope });
+                            next.push({
+                              key: opt.key,
+                              name: opt.name,
+                              enabled: e.target.checked,
+                              price,
+                              scope,
+                              includedItems: selectedItems
+                            });
                             setAddOnServicesDraft(next);
                           }}
                         />
@@ -926,7 +937,14 @@ export default function RatesAvailability() {
                           onBlur={(e) => {
                             const val = Number(e.target.value || 0);
                             const next = addOnServicesDraft.filter(s => s.key !== opt.key);
-                            next.push({ key: opt.key, name: opt.name, enabled, price: val, scope });
+                            next.push({
+                              key: opt.key,
+                              name: opt.name,
+                              enabled,
+                              price: val,
+                              scope,
+                              includedItems: selectedItems
+                            });
                             setAddOnServicesDraft(next);
                           }}
                         />
@@ -939,7 +957,14 @@ export default function RatesAvailability() {
                           onChange={(e) => {
                             const nextScope = e.target.value;
                             const next = addOnServicesDraft.filter(s => s.key !== opt.key);
-                            next.push({ key: opt.key, name: opt.name, enabled, price, scope: nextScope });
+                            next.push({
+                              key: opt.key,
+                              name: opt.name,
+                              enabled,
+                              price,
+                              scope: nextScope,
+                              includedItems: selectedItems
+                            });
                             setAddOnServicesDraft(next);
                           }}
                         >
@@ -954,6 +979,41 @@ export default function RatesAvailability() {
                         </div>
                       </div>
                     </div>
+                    {Array.isArray(opt.includedItems) && opt.includedItems.length > 0 && (
+                      <div className="mt-3 border-t border-[#e0d5c7] pt-2">
+                        <div className="text-[11px] text-[#6b5744] font-semibold mb-1 uppercase tracking-wide">
+                          Included items (select what this property offers)
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-xs">
+                          {opt.includedItems.map((item) => {
+                            const checked = selectedItems[item.key] ?? item.defaultIncluded ?? false;
+                            return (
+                              <label key={item.key} className="inline-flex items-center gap-2 text-[#4b2a00]">
+                                <input
+                                  type="checkbox"
+                                  className="h-3 w-3"
+                                  checked={checked}
+                                  onChange={(e) => {
+                                    const nextIncluded = { ...selectedItems, [item.key]: e.target.checked };
+                                    const next = addOnServicesDraft.filter(s => s.key !== opt.key);
+                                    next.push({
+                                      key: opt.key,
+                                      name: opt.name,
+                                      enabled,
+                                      price,
+                                      scope,
+                                      includedItems: nextIncluded
+                                    });
+                                    setAddOnServicesDraft(next);
+                                  }}
+                                />
+                                <span>{item.label}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })}

@@ -11,7 +11,8 @@ const defaultForm = {
   defaultPrice: '',
   defaultScope: 'per-booking',
   active: true,
-  order: ''
+  order: '',
+  includedItemsText: '' // comma-separated labels for included items
 };
 
 const AdminAddOns = () => {
@@ -88,7 +89,18 @@ const AdminAddOns = () => {
         defaultPrice: Number(form.defaultPrice || 0),
         defaultScope: form.defaultScope || 'per-booking',
         active: !!form.active,
-        order: form.order === '' ? 0 : Number(form.order)
+        order: form.order === '' ? 0 : Number(form.order),
+        includedItems: (form.includedItemsText || '')
+          .split(',')
+          .map((raw) => raw.trim())
+          .filter(Boolean)
+          .map((label, index) => {
+            const key = label
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, '_')
+              .replace(/^_+|_+$/g, '') || `item_${index}`;
+            return { key, label, defaultIncluded: true };
+          })
       };
       const res = await fetch(`${API_URL}/api/add-ons/catalog`, {
         method: 'POST',
@@ -168,6 +180,19 @@ const AdminAddOns = () => {
                 onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
                 placeholder="Short description that owners will see"
               />
+            </div>
+            <div className="md:col-span-3">
+              <label className="block text-xs font-medium text-gray-600 mb-1">Included items (comma separated)</label>
+              <textarea
+                className="w-full border rounded-lg px-3 py-2 text-sm"
+                rows={2}
+                value={form.includedItemsText}
+                onChange={(e) => setForm((f) => ({ ...f, includedItemsText: e.target.value }))}
+                placeholder="e.g. Eggs any style, Coffee or tea, Fresh fruit salad, Toast & jam"
+              />
+              <p className="mt-1 text-[11px] text-gray-500">
+                These items will appear as checkboxes for each property when configuring this add-on.
+              </p>
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Default price (RWF)</label>
@@ -291,6 +316,12 @@ const AdminAddOns = () => {
                         {item.description && (
                           <div className="text-xs text-gray-500 mt-0.5 max-w-md line-clamp-2">
                             {item.description}
+                          </div>
+                        )}
+                        {Array.isArray(item.includedItems) && item.includedItems.length > 0 && (
+                          <div className="mt-1 text-[11px] text-gray-500 max-w-md line-clamp-2">
+                            <span className="font-semibold">Included:</span>{' '}
+                            {item.includedItems.map((it) => it.label).join(', ')}
                           </div>
                         )}
                       </td>

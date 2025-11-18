@@ -473,57 +473,121 @@ export default function PropertyManagement() {
                 const enabled = existing.enabled ?? false;
                 const price = existing.price != null ? existing.price : (opt.defaultPrice || 0);
                 const scope = existing.scope || opt.defaultScope || 'per-booking';
+                const selectedItems = existing.includedItems || {};
                 return (
-                  <div key={opt.key} className="p-3 border rounded flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                    <div>
-                      <label className="inline-flex items-center gap-2 text-sm font-medium text-gray-800">
-                        <input
-                          type="checkbox"
-                          className="mr-1"
-                          checked={enabled}
-                          onChange={(e) => {
-                            const next = addOnServicesDraft.filter(s => s.key !== opt.key);
-                            next.push({ key: opt.key, name: opt.name, enabled: e.target.checked, price, scope });
-                            setAddOnServicesDraft(next);
-                          }}
-                        />
-                        {opt.name}
-                      </label>
-                      <p className="text-xs text-gray-500 mt-1">Choose how this service is charged and the price per unit.</p>
-                    </div>
-                    <div className="flex flex-col md:flex-row gap-2 md:items-center">
+                  <div key={opt.key} className="p-3 border rounded flex flex-col gap-3">
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                       <div>
-                        <label className="block text-xs text-gray-600 mb-1">Price (RWF)</label>
-                        <input
-                          type="number"
-                          defaultValue={price}
-                          className="w-full px-2 py-1 border rounded text-sm"
-                          onBlur={(e) => {
-                            const val = Number(e.target.value || 0);
-                            const next = addOnServicesDraft.filter(s => s.key !== opt.key);
-                            next.push({ key: opt.key, name: opt.name, enabled, price: val, scope });
-                            setAddOnServicesDraft(next);
-                          }}
-                        />
+                        <label className="inline-flex items-center gap-2 text-sm font-medium text-gray-800">
+                          <input
+                            type="checkbox"
+                            className="mr-1"
+                            checked={enabled}
+                            onChange={(e) => {
+                              const next = addOnServicesDraft.filter(s => s.key !== opt.key);
+                              next.push({
+                                key: opt.key,
+                                name: opt.name,
+                                enabled: e.target.checked,
+                                price,
+                                scope,
+                                includedItems: selectedItems
+                              });
+                              setAddOnServicesDraft(next);
+                            }}
+                          />
+                          {opt.name}
+                        </label>
+                        {opt.description && (
+                          <p className="text-xs text-gray-500 mt-1">{opt.description}</p>
+                        )}
+                        <p className="text-[11px] text-gray-500 mt-1">
+                          Choose how this service is charged, the price per unit, and which items are included at this property.
+                        </p>
                       </div>
-                      <div>
-                        <label className="block text-xs text-gray-600 mb-1">Charge type</label>
-                        <select
-                          defaultValue={scope}
-                          className="w-full px-2 py-1 border rounded text-sm"
-                          onChange={(e) => {
-                            const nextScope = e.target.value;
-                            const next = addOnServicesDraft.filter(s => s.key !== opt.key);
-                            next.push({ key: opt.key, name: opt.name, enabled, price, scope: nextScope });
-                            setAddOnServicesDraft(next);
-                          }}
-                        >
-                          <option value="per-booking">Per booking</option>
-                          <option value="per-night">Per night</option>
-                          <option value="per-guest">Per guest</option>
-                        </select>
+                      <div className="flex flex-col md:flex-row gap-2 md:items-center">
+                        <div>
+                          <label className="block text-xs text-gray-600 mb-1">Price (RWF)</label>
+                          <input
+                            type="number"
+                            defaultValue={price}
+                            className="w-full px-2 py-1 border rounded text-sm"
+                            onBlur={(e) => {
+                              const val = Number(e.target.value || 0);
+                              const next = addOnServicesDraft.filter(s => s.key !== opt.key);
+                              next.push({
+                                key: opt.key,
+                                name: opt.name,
+                                enabled,
+                                price: val,
+                                scope,
+                                includedItems: selectedItems
+                              });
+                              setAddOnServicesDraft(next);
+                            }}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-600 mb-1">Charge type</label>
+                          <select
+                            defaultValue={scope}
+                            className="w-full px-2 py-1 border rounded text-sm"
+                            onChange={(e) => {
+                              const nextScope = e.target.value;
+                              const next = addOnServicesDraft.filter(s => s.key !== opt.key);
+                              next.push({
+                                key: opt.key,
+                                name: opt.name,
+                                enabled,
+                                price,
+                                scope: nextScope,
+                                includedItems: selectedItems
+                              });
+                              setAddOnServicesDraft(next);
+                            }}
+                          >
+                            <option value="per-booking">Per booking</option>
+                            <option value="per-night">Per night</option>
+                            <option value="per-guest">Per guest</option>
+                          </select>
+                        </div>
                       </div>
                     </div>
+                    {Array.isArray(opt.includedItems) && opt.includedItems.length > 0 && (
+                      <div className="border-t pt-2 mt-1">
+                        <div className="text-[11px] text-gray-600 font-semibold mb-1 uppercase tracking-wide">
+                          Included items (select what this property offers)
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
+                          {opt.includedItems.map((item) => {
+                            const checked = selectedItems[item.key] ?? item.defaultIncluded ?? false;
+                            return (
+                              <label key={item.key} className="inline-flex items-center gap-2 text-xs text-gray-700">
+                                <input
+                                  type="checkbox"
+                                  className="h-3 w-3"
+                                  checked={checked}
+                                  onChange={(e) => {
+                                    const nextIncluded = { ...selectedItems, [item.key]: e.target.checked };
+                                    const next = addOnServicesDraft.filter(s => s.key !== opt.key);
+                                    next.push({
+                                      key: opt.key,
+                                      name: opt.name,
+                                      enabled,
+                                      price,
+                                      scope,
+                                      includedItems: nextIncluded
+                                    });
+                                    setAddOnServicesDraft(next);
+                                  }}
+                                />
+                                <span>{item.label}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })}

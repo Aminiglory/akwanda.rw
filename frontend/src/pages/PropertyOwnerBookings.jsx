@@ -2741,19 +2741,41 @@ const PropertyOwnerBookings = () => {
                 } else {
                   scopeLabel = `${price.toLocaleString()} per booking`;
                 }
+
+                // Build included items summary from property-level configuration, if present
+                const included = addOn.includedItems && typeof addOn.includedItems === 'object'
+                  ? Object.keys(addOn.includedItems)
+                      .filter(k => addOn.includedItems[k])
+                      .map(k => {
+                        // Use the key but format it nicely if we don't have labels
+                        return k
+                          .replace(/_/g, ' ')
+                          .replace(/\s+/g, ' ')
+                          .trim()
+                          .replace(/^(.)/, (m) => m.toUpperCase());
+                      })
+                  : [];
+
                 return (
-                  <label key={key} className="flex items-center gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={e => {
-                        onDirectChange('services', { ...(directForm.services || {}), [key]: e.target.checked });
-                      }}
-                    />
-                    <span>
-                      {addOn.name}: RWF {lineTotal.toLocaleString()} <span className="text-xs text-gray-500">({scopeLabel})</span>
-                    </span>
-                  </label>
+                  <div key={key} className="space-y-0.5">
+                    <label className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={e => {
+                          onDirectChange('services', { ...(directForm.services || {}), [key]: e.target.checked });
+                        }}
+                      />
+                      <span>
+                        {addOn.name}: RWF {lineTotal.toLocaleString()} <span className="text-xs text-gray-500">({scopeLabel})</span>
+                      </span>
+                    </label>
+                    {included.length > 0 && (
+                      <div className="pl-6 text-xs text-gray-500">
+                        Includes: {included.join(', ')}
+                      </div>
+                    )}
+                  </div>
                 );
               })}
               <div className="pt-2">Subtotal: RWF {ownerSubtotal.toLocaleString()}</div>
