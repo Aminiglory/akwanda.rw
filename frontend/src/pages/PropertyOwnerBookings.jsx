@@ -31,6 +31,7 @@ const PropertyOwnerBookings = () => {
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [showBookingDetails, setShowBookingDetails] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
+  const [receiptPdfUrl, setReceiptPdfUrl] = useState(null);
   const [stats, setStats] = useState({
     total: 0,
     paid: 0,
@@ -57,10 +58,12 @@ const PropertyOwnerBookings = () => {
     paymentMethod: 'cash',
     markPaid: true,
     paymentStatusSelection: 'paid',
-    services: { breakfast: false, airportTransfer: false, laundry: false },
+    // services will be keyed dynamically by add-on key per property
+    services: {},
     specialRequests: ''
   });
   const [ownerRooms, setOwnerRooms] = useState([]);
+  const [ownerAddOns, setOwnerAddOns] = useState([]);
   const [filters, setFilters] = useState({
     status: 'all',
     property: 'all',
@@ -120,54 +123,18 @@ const PropertyOwnerBookings = () => {
   });
   const calendarRef = useRef(null);
 
-  const openReceiptPdf = async (bookingId) => {
-    try {
-      const tryUrls = [
-        `${API_URL}/api/bookings/${bookingId}/receipt?format=pdf`,
-        `${API_URL}/api/bookings/${bookingId}/receipt`
-      ];
-      for (const url of tryUrls) {
-        const res = await fetch(url, { credentials: 'include' });
-        if (res.ok) {
-          const ct = res.headers.get('content-type') || '';
-          const blob = await res.blob();
-          const blobType = ct && ct.includes('pdf') ? 'application/pdf' : blob.type;
-          const pdfBlob = new Blob([blob], { type: blobType || 'application/pdf' });
-          const objectUrl = URL.createObjectURL(pdfBlob);
-          window.open(objectUrl, '_blank', 'noopener,noreferrer');
-          // caller can manually print from viewer; do not auto-print
-          return;
-        }
-      }
-      // Fallback: open original route
-      window.open(`${API_URL}/api/bookings/${bookingId}/receipt`, '_blank');
-    } catch (_) {
-      window.open(`${API_URL}/api/bookings/${bookingId}/receipt`, '_blank');
-    }
+  const openReceiptPdf = (bookingId) => {
+    if (!bookingId) return;
+    const url = `${API_URL}/api/bookings/${bookingId}/receipt?format=pdf`;
+    setReceiptPdfUrl(url);
+    setShowReceipt(true);
   };
 
-  const openInvoicePdf = async (bookingId) => {
-    try {
-      const tryUrls = [
-        `${API_URL}/api/bookings/${bookingId}/invoice?format=pdf`,
-        `${API_URL}/api/bookings/${bookingId}/invoice`
-      ];
-      for (const url of tryUrls) {
-        const res = await fetch(url, { credentials: 'include' });
-        if (res.ok) {
-          const ct = res.headers.get('content-type') || '';
-          const blob = await res.blob();
-          const blobType = ct && ct.includes('pdf') ? 'application/pdf' : blob.type;
-          const pdfBlob = new Blob([blob], { type: blobType || 'application/pdf' });
-          const objectUrl = URL.createObjectURL(pdfBlob);
-          window.open(objectUrl, '_blank', 'noopener,noreferrer');
-          return;
-        }
-      }
-      window.open(`${API_URL}/api/bookings/${bookingId}/invoice`, '_blank');
-    } catch (_) {
-      window.open(`${API_URL}/api/bookings/${bookingId}/invoice`, '_blank');
-    }
+  const openInvoicePdf = (bookingId) => {
+    if (!bookingId) return;
+    const url = `${API_URL}/api/bookings/${bookingId}/invoice?format=pdf`;
+    setReceiptPdfUrl(url);
+    setShowReceipt(true);
   };
 
   // Removed mock data. We will fetch live data from the backend.
@@ -320,10 +287,27 @@ const PropertyOwnerBookings = () => {
   })();
   const ownerRoomCharge = ownerNights > 0 ? ownerNightly * ownerNights : 0;
   const ownerServicesTotal = (() => {
+    if (!Array.isArray(ownerAddOns) || ownerAddOns.length === 0) return 0;
     let total = 0;
-    if (directForm.services?.breakfast) total += 15000 * Math.max(1, ownerNights);
-    if (directForm.services?.airportTransfer) total += 0;
-    if (directForm.services?.laundry) total += 0;
+    const guestCount = Math.max(1, directForm.guests || 1);
+    const nightsCount = Math.max(1, ownerNights || 0);
+    ownerAddOns
+      .filter(a => a && a.enabled)
+      .forEach(addOn => {
+        const key = addOn.key;
+        const selected = !!(directForm.services && directForm.services[key]);
+        if (!selected) return;
+        const price = Number(addOn.price || 0);
+        const scope = addOn.scope || 'per-booking';
+        if (scope === 'per-night') {
+          total += price * nightsCount;
+        } else if (scope === 'per-guest') {
+          total += price * guestCount;
+        } else {
+          // per-booking
+          total += price;
+        }
+      });
     return total;
   })();
   const ownerSubtotal = ownerRoomCharge + ownerServicesTotal;
@@ -485,13 +469,17 @@ const PropertyOwnerBookings = () => {
     onDirectChange('propertyId', pid);
     onDirectChange('roomId', '');
     setOwnerRooms([]);
+     setOwnerAddOns([]);
     // Keep dashboard filters aligned with the currently selected direct-booking property
     setFilters(prev => ({ ...prev, property: pid || 'all' }));
     if (!pid) return;
     try {
       const res = await fetch(`${API_URL}/api/properties/${pid}`, { credentials: 'include' });
       const data = await res.json();
-      if (res.ok) setOwnerRooms(data.property?.rooms || []);
+      if (res.ok) {
+        setOwnerRooms(data.property?.rooms || []);
+        setOwnerAddOns(Array.isArray(data.property?.addOnServices) ? data.property.addOnServices : []);
+      }
     } catch (_) {}
   };
 
@@ -561,7 +549,7 @@ const PropertyOwnerBookings = () => {
       paymentMethod: 'cash',
       markPaid: true,
       paymentStatusSelection: 'paid',
-      services: { breakfast: false, airportTransfer: false, laundry: false },
+      services: {},
       specialRequests: ''
     });
   };
@@ -983,75 +971,32 @@ const PropertyOwnerBookings = () => {
   );
 
   const renderReceipt = () => (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6 border-b border-gray-200">
-          <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-bold">{t ? t('dashboard.bookingReceipt') : 'Booking Receipt'}</h2>
-            <button
-              onClick={() => setShowReceipt(false)}
-              className="text-gray-500 hover:text-gray-700"
-            >
-              <FaTimes className="text-xl" />
-            </button>
-          </div>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
+      <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[95vh] flex flex-col overflow-hidden">
+        <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-gray-900">
+            {t ? t('dashboard.bookingReceipt') : 'Booking receipt'}
+          </h2>
+          <button
+            onClick={() => { setShowReceipt(false); setReceiptPdfUrl(null); }}
+            className="text-gray-500 hover:text-gray-700"
+          >
+            <FaTimes className="text-xl" />
+          </button>
         </div>
-
-        {selectedBooking && (
-          <div className="p-6">
-            <div className="text-center mb-6">
-              <h3 className="text-xl font-bold">AKWANDA.rw</h3>
-              <p className="text-gray-600">{t ? t('dashboard.bookingReceipt') : 'Booking Receipt'}</p>
+        <div className="flex-1 bg-gray-100">
+          {receiptPdfUrl ? (
+            <iframe
+              src={receiptPdfUrl}
+              title="Booking receipt PDF"
+              className="w-full h-full border-0"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-sm text-gray-500">
+              No receipt selected.
             </div>
-
-            <div className="space-y-4">
-              <div className="flex justify-between">
-                <span>Booking ID:</span>
-                <span className="font-medium">{selectedBooking._id}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Property:</span>
-                <span className="font-medium">{selectedBooking.property.name}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Guest:</span>
-                <span className="font-medium">{selectedBooking.guest.name}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Check-in:</span>
-                <span className="font-medium">{selectedBooking.checkIn}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Check-out:</span>
-                <span className="font-medium">{selectedBooking.checkOut}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Guests:</span>
-                <span className="font-medium">{selectedBooking.guests}</span>
-              </div>
-              <hr />
-              <div className="flex justify-between text-lg font-bold">
-                <span>{t ? t('dashboard.totalAmount') : 'Total Amount'}:</span>
-                <span className="text-blue-600">{formatCurrencyRWF ? formatCurrencyRWF(selectedBooking.totalAmount || 0) : `RWF ${selectedBooking.totalAmount.toLocaleString()}`}</span>
-              </div>
-            </div>
-
-            <div className="mt-6 flex space-x-4">
-              <button
-                onClick={() => window.print()}
-                className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                {t ? t('dashboard.printReceipt') : 'Print Receipt'}
-              </button>
-              <button
-                onClick={() => setShowReceipt(false)}
-                className="flex-1 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
-              >
-                {t ? t('dashboard.close') : 'Close'}
-              </button>
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
@@ -2670,7 +2615,7 @@ const PropertyOwnerBookings = () => {
         </div>
       )}
       {showDirectBooking && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
           <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-gray-200 flex items-center justify-between">
               <h2 className="text-2xl font-bold">New Direct Booking</h2>
@@ -2775,18 +2720,42 @@ const PropertyOwnerBookings = () => {
             <div className="text-sm text-gray-700 space-y-1">
               <div>Room Rate: RWF {(ownerNightly !== undefined && ownerNightly !== null ? Number(ownerNightly).toLocaleString() : '0')} × {Math.max(1, ownerNights)} nights = RWF {ownerRoomCharge.toLocaleString()}</div>
               <div className="mt-2">Additional Services:</div>
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={!!directForm.services?.breakfast} onChange={e => onDirectChange('services', { ...(directForm.services||{}), breakfast: e.target.checked })} />
-                Breakfast Plan: RWF 15,000 × {Math.max(1, ownerNights)} = RWF {(directForm.services?.breakfast ? (15000 * Math.max(1, ownerNights)) : 0).toLocaleString()}
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={!!directForm.services?.airportTransfer} onChange={e => onDirectChange('services', { ...(directForm.services||{}), airportTransfer: e.target.checked })} />
-                Airport Transfer
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={!!directForm.services?.laundry} onChange={e => onDirectChange('services', { ...(directForm.services||{}), laundry: e.target.checked })} />
-                Laundry Service
-              </label>
+              {ownerAddOns.filter(a => a && a.enabled).length === 0 && (
+                <div className="text-xs text-gray-500">No add-on services configured for this property.</div>
+              )}
+              {ownerAddOns.filter(a => a && a.enabled).map(addOn => {
+                const key = addOn.key;
+                const checked = !!(directForm.services && directForm.services[key]);
+                const price = Number(addOn.price || 0);
+                const scope = addOn.scope || 'per-booking';
+                const guestCount = Math.max(1, directForm.guests || 1);
+                const nightsCount = Math.max(1, ownerNights || 0);
+                let lineTotal = price;
+                let scopeLabel = 'per booking';
+                if (scope === 'per-night') {
+                  lineTotal = price * nightsCount;
+                  scopeLabel = `${price.toLocaleString()} × ${nightsCount} nights`;
+                } else if (scope === 'per-guest') {
+                  lineTotal = price * guestCount;
+                  scopeLabel = `${price.toLocaleString()} × ${guestCount} guests`;
+                } else {
+                  scopeLabel = `${price.toLocaleString()} per booking`;
+                }
+                return (
+                  <label key={key} className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={e => {
+                        onDirectChange('services', { ...(directForm.services || {}), [key]: e.target.checked });
+                      }}
+                    />
+                    <span>
+                      {addOn.name}: RWF {lineTotal.toLocaleString()} <span className="text-xs text-gray-500">({scopeLabel})</span>
+                    </span>
+                  </label>
+                );
+              })}
               <div className="pt-2">Subtotal: RWF {ownerSubtotal.toLocaleString()}</div>
               <div>Hospitality Levy (3%): RWF {ownerLevy3.toLocaleString()}</div>
               <div className="font-semibold">TOTAL: RWF {ownerGrandTotal.toLocaleString()}</div>

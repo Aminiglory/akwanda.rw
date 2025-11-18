@@ -39,6 +39,7 @@ const DirectBooking = () => {
           city: p.city,
           rooms: p.rooms || [],
           pricePerNight: p.pricePerNight,
+          addOnServices: Array.isArray(p.addOnServices) ? p.addOnServices : [],
         }));
         setProperties(list);
       } catch (e) {
@@ -62,19 +63,37 @@ const DirectBooking = () => {
   }, [form.checkIn, form.checkOut]);
 
   const selectedRoom = rooms.find(r => String(r._id) === String(form.roomId));
-  const nightly = selectedRoom?.pricePerNight || properties.find(p => p.id === form.propertyId)?.pricePerNight || 0;
+  const selectedProperty = properties.find(p => p.id === form.propertyId);
+  const propertyAddOns = selectedProperty?.addOnServices || [];
+  const nightly = selectedRoom?.pricePerNight || selectedProperty?.pricePerNight || 0;
   const roomCharge = useMemo(() => (nights > 0 ? nightly * nights : 0), [nightly, nights]);
   const servicesTotal = useMemo(() => {
+    if (!Array.isArray(propertyAddOns) || propertyAddOns.length === 0) return 0;
     let total = 0;
-    if (form.services.breakfast) total += 15000 * Math.max(1, nights);
-    if (form.services.airportTransfer) total += 0;
-    if (form.services.laundry) total += 0;
+    const guestCount = Math.max(1, Number(form.numberOfGuests) || 1);
+    const nightsCount = Math.max(1, nights || 0);
+    propertyAddOns
+      .filter(a => a && a.enabled)
+      .forEach(addOn => {
+        const key = addOn.key;
+        const selected = !!(form.services && form.services[key]);
+        if (!selected) return;
+        const price = Number(addOn.price || 0);
+        const scope = addOn.scope || 'per-booking';
+        if (scope === 'per-night') {
+          total += price * nightsCount;
+        } else if (scope === 'per-guest') {
+          total += price * guestCount;
+        } else {
+          total += price;
+        }
+      });
     return total;
-  }, [form.services, nights]);
+  }, [propertyAddOns, form.services, nights, form.numberOfGuests]);
   const subtotal = useMemo(() => roomCharge + servicesTotal, [roomCharge, servicesTotal]);
   const levy3 = useMemo(() => Math.round(subtotal * 0.03), [subtotal]);
-  const vat18 = useMemo(() => Math.round(subtotal * 0.18), [subtotal]);
-  const grandTotal = useMemo(() => subtotal + levy3 + vat18, [subtotal, levy3, vat18]);
+  // VAT removed for direct bookings – only levy applied
+  const grandTotal = useMemo(() => subtotal + levy3, [subtotal, levy3]);
 
   const update = (path, value) => {
     if (path.includes('.')) {
@@ -119,9 +138,9 @@ const DirectBooking = () => {
       if (!res.ok) throw new Error(data.message || 'Failed to create booking');
 
       toast.success('Direct booking created');
-      // Provide quick-access to direct receipt (no tax/commission lines)
       const id = data.booking._id;
-      window.open(`${API_URL}/api/bookings/${id}/direct-receipt.csv`, '_blank');
+      // Open printable PDF receipt in a new tab
+      window.open(`${API_URL}/api/bookings/${id}/receipt?format=pdf`, '_blank', 'noopener,noreferrer');
       navigate(`/booking-confirmation/${id}`);
     } catch (err) {
       toast.error(err.message);
@@ -151,7 +170,7 @@ const DirectBooking = () => {
       guestInfo: { firstName: '', lastName: '', email: '', phone: '', nationality: '', passport: '', address: '' },
       contactInfo: { email: '', phone: '' },
       paymentStatusSelection: 'paid',
-      services: { breakfast: false, airportTransfer: false, laundry: false },
+      services: {},
     });
   };
 
@@ -272,7 +291,6 @@ const DirectBooking = () => {
                 </label>
                 <div className="pt-2">Subtotal: RWF {subtotal.toLocaleString()}</div>
                 <div>Hospitality Levy (3%): RWF {levy3.toLocaleString()}</div>
-                <div>VAT (18%): RWF {vat18.toLocaleString()}</div>
                 <div className="font-semibold">TOTAL: RWF {grandTotal.toLocaleString()}</div>
               </div>
             </div>
@@ -284,13 +302,7 @@ const DirectBooking = () => {
             </div>
 
             <div className="mt-4 text-xs text-gray-500">
-              After creation, view receipts at:
-              <ul className="list-disc ml-5 mt-1">
-                <li>/api/bookings/:id/receipt (Owner receipt JSON)</li>
-                <li>/api/bookings/:id/receipt.csv (Owner receipt CSV)</li>
-                <li>/api/bookings/:id/rra-receipt (RRA receipt JSON)</li>
-                <li>/api/bookings/:id/rra-receipt.csv (RRA receipt CSV)</li>
-              </ul>
+              After creation, you can always re-open the printable PDF receipt from the owner dashboard bookings list.
             </div>
           </form>
         </div>
