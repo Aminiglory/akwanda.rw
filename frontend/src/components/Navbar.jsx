@@ -771,8 +771,8 @@ const Navbar = () => {
 
   return (
     <> 
-      {/* Top Bar - First Level (hidden on landing page) */}
-      {location.pathname !== '/' && (
+      {/* Top Bar - First Level (hidden on landing page and in property owner dashboard) */}
+      {location.pathname !== '/' && !(isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard()) && (
       <div className="w-full bg-[#6b3f1f] text-white py-2 px-4 border-b border-[#5a3419] relative z-[1000]">
         <div className="max-w-7xl mx-auto flex justify-between items-center text-xs">
           <div className="flex items-center space-x-4 lg:space-x-6">
@@ -1331,7 +1331,14 @@ const Navbar = () => {
                     <div key={idx} className="relative owner-nav-dropdown">
                       <button
                         type="button"
-                        onClick={() => toggleDropdown(item.label)}
+                        onClick={() => {
+                          if (!item.children || item.children.length === 0) {
+                            if (item.href) navigate(item.href);
+                            setActiveDropdown(null);
+                          } else {
+                            toggleDropdown(item.label);
+                          }
+                        }}
                         className={`owner-nav-dropdown-button inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-colors border ${isOpen || isParentActive ? 'bg-[#e8dcc8] border-[#d0c4b0] text-[#4b2a00]' : 'bg-white border-[#e0d5c7] text-[#6b5744] hover:bg-[#f2e5d3]'}`}
                       >
                         <Icon className="text-sm" />
