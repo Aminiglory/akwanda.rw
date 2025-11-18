@@ -736,27 +736,30 @@ const PropertyOwnerBookings = () => {
       {/* Finance History */}
       <div className="max-w-7xl mx-auto px-4 pb-10">
         <div className="mt-10">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">{t ? t('dashboard.financeHistory') : 'Finance History'}</h2>
-          <div ref={calendarRef} className="neu-card p-0 overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+          <h2 className="text-2xl font-bold text-[#4b2a00] mb-4">{t ? t('dashboard.financeHistory') : 'Finance History'}</h2>
+          <div
+            ref={calendarRef}
+            className="neu-card p-0 overflow-x-auto rounded-2xl border border-[#e0d5c7] bg-white shadow-sm"
+          >
+            <table className="min-w-full divide-y divide-[#eee0cf]">
+              <thead className="bg-[#fdf7f0]">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Booking</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Property</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Method</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-[#6b5744] uppercase tracking-wider">Date</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-[#6b5744] uppercase tracking-wider">Booking</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-[#6b5744] uppercase tracking-wider">Property</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-[#6b5744] uppercase tracking-wider">Client</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-[#6b5744] uppercase tracking-wider">Amount</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-[#6b5744] uppercase tracking-wider">Method</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-[#6b5744] uppercase tracking-wider">Status</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white divide-y divide-[#f1e2d3]">
                 {bookings.map(tr => (
-                  <tr key={`fin-${tr._id}`} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-sm">{new Date(tr.createdAt).toLocaleString()}</td>
-                    <td className="px-4 py-3 text-sm">{tr.confirmationCode || tr._id}</td>
-                    <td className="px-4 py-3 text-sm">{tr.property?.title || tr.property?.name || 'Property'}</td>
-                    <td className="px-4 py-3 text-sm">
+                  <tr key={`fin-${tr._id}`} className="hover:bg-[#fff7ef] transition-colors">
+                    <td className="px-4 py-3 text-xs md:text-sm text-[#4b2a00]">{new Date(tr.createdAt).toLocaleString()}</td>
+                    <td className="px-4 py-3 text-xs md:text-sm text-[#4b2a00]">{tr.confirmationCode || tr._id}</td>
+                    <td className="px-4 py-3 text-xs md:text-sm text-[#4b2a00]">{tr.property?.title || tr.property?.name || 'Property'}</td>
+                    <td className="px-4 py-3 text-xs md:text-sm text-[#4b2a00]">
                       <div className="flex items-center gap-2">
                         {tr.guest?.avatar ? (
                           <img src={tr.guest.avatar.startsWith('http') ? tr.guest.avatar : `${API_URL}${tr.guest.avatar}`} alt={tr.guest?.firstName} className="w-6 h-6 rounded-full object-cover border" />
@@ -768,14 +771,24 @@ const PropertyOwnerBookings = () => {
                         <span>{`${tr.guest?.firstName || ''} ${tr.guest?.lastName || ''}`.trim() || tr.guest?.email || 'Guest'}</span>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-right font-semibold">{formatCurrencyRWF ? formatCurrencyRWF(tr.totalAmount || 0) : `RWF ${(tr.totalAmount || 0).toLocaleString()}`}</td>
-                    <td className="px-4 py-3 text-sm">{tr.paymentMethod}</td>
-                    <td className="px-4 py-3 text-sm">{tr.paymentStatus || tr.status}</td>
+                    <td className="px-4 py-3 text-right font-semibold text-[#4b2a00]">{formatCurrencyRWF ? formatCurrencyRWF(tr.totalAmount || 0) : `RWF ${(tr.totalAmount || 0).toLocaleString()}`}</td>
+                    <td className="px-4 py-3 text-xs md:text-sm text-[#6b5744]">{tr.paymentMethod}</td>
+                    <td className="px-4 py-3 text-xs md:text-sm">
+                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium ${
+                        (tr.paymentStatus || tr.status) === 'paid'
+                          ? 'bg-green-50 text-green-800 border border-green-200'
+                          : (tr.paymentStatus || tr.status) === 'pending'
+                          ? 'bg-yellow-50 text-yellow-800 border border-yellow-200'
+                          : 'bg-gray-50 text-gray-700 border border-gray-200'
+                      }`}>
+                        {tr.paymentStatus || tr.status}
+                      </span>
+                    </td>
                   </tr>
                 ))}
                 {bookings.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-4 py-12 text-center text-gray-500">{t ? t('dashboard.noFinanceHistory') : 'No finance history yet.'}</td>
+                    <td colSpan={7} className="px-4 py-12 text-center text-[#8a745e] text-sm">{t ? t('dashboard.noFinanceHistory') : 'No finance history yet.'}</td>
                   </tr>
                 )}
               </tbody>
@@ -1065,126 +1078,168 @@ const PropertyOwnerBookings = () => {
           </button>
         </div>
 
-        {/* Mobile: New Booking Button Only */}
-        <div className="lg:hidden mb-6 flex justify-end">
-          <button
-            onClick={() => setShowDirectBooking(true)}
-            className="bg-[#a06b42] hover:bg-[#8f5a32] text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-md transition-colors"
-          >
-            <FaPlus />
-            <span className="hidden sm:inline">New Booking</span>
-            <span className="sm:hidden">New</span>
-          </button>
-        </div>
-
         {/* Tab Content */}
         {activeTab === 'dashboard' && (
           <div className="space-y-8">
+            {/* Dashboard header */}
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+              <div>
+                <h1 className="text-2xl font-bold text-[#4b2a00]">Dashboard overview</h1>
+                <p className="text-sm text-[#6b5744] mt-1">
+                  Track your bookings, revenue and property performance at a glance.
+                </p>
+              </div>
+              {/* Desktop: booking actions */}
+              <div className="hidden lg:flex items-center gap-3">
+                <button
+                  onClick={() => setShowDirectBooking(true)}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#a06b42] hover:bg-[#8f5a32] text-white text-sm shadow-md transition-colors"
+                >
+                  <FaPlus className="text-xs" />
+                  <span>New booking</span>
+                </button>
+                <button
+                  onClick={() => navigate('/owner/direct-booking')}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#e0d5c7] bg-white text-[#4b2a00] text-sm hover:bg-[#fff7ef] shadow-sm transition-colors"
+                >
+                  <FaCalendarCheck className="text-xs" />
+                  <span>Direct booking</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Mobile: New Booking Button Only */}
+            <div className="lg:hidden mb-4 flex justify-end">
+              <button
+                onClick={() => setShowDirectBooking(true)}
+                className="bg-[#a06b42] hover:bg-[#8f5a32] text-white px-4 py-2 rounded-full flex items-center gap-2 shadow-md transition-colors text-sm"
+              >
+                <FaPlus className="text-xs" />
+                <span>New booking</span>
+              </button>
+            </div>
+
             {/* Stats Cards (dashboard only) */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              <div className="neu-card p-6 hover:scale-105 transition-all duration-300">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-2">
+              <div className="rounded-2xl border border-[#e0d5c7] bg-[#fdf7f0] p-6 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-600">Total Bookings</p>
-                    <p className="text-2xl font-bold text-blue-600">{stats.total}</p>
+                    <p className="text-xs font-medium text-[#6b5744] uppercase tracking-wide">Total bookings</p>
+                    <p className="mt-2 text-3xl font-bold text-[#4b2a00]">{stats.total}</p>
+                    <p className="mt-1 text-xs text-[#8a745e]">All time reservations</p>
                   </div>
-                  <FaCalendarAlt className="text-3xl text-blue-600" />
+                  <div className="w-11 h-11 rounded-full bg-[#f1ddc7] flex items-center justify-center">
+                    <FaCalendarAlt className="text-lg text-[#6b3f1f]" />
+                  </div>
                 </div>
               </div>
-              <div className="neu-card p-6 hover:scale-105 transition-all duration-300">
+              <div className="rounded-2xl border border-[#e0d5c7] bg-[#fdf7f0] p-6 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-600">Total Revenue</p>
-                    <p className="text-2xl font-bold text-green-600">{formatCurrencyRWF ? formatCurrencyRWF(stats.totalRevenue) : `RWF ${stats.totalRevenue.toLocaleString()}`}</p>
+                    <p className="text-xs font-medium text-[#6b5744] uppercase tracking-wide">Total revenue</p>
+                    <p className="mt-2 text-3xl font-bold text-[#1f6b3f]">{formatCurrencyRWF ? formatCurrencyRWF(stats.totalRevenue) : `RWF ${stats.totalRevenue.toLocaleString()}`}</p>
+                    <p className="mt-1 text-xs text-[#8a745e]">Confirmed and completed stays</p>
                   </div>
-                  <FaMoneyBillWave className="text-3xl text-green-600" />
+                  <div className="w-11 h-11 rounded-full bg-[#e1f5e9] flex items-center justify-center">
+                    <FaMoneyBillWave className="text-lg text-[#1f6b3f]" />
+                  </div>
                 </div>
               </div>
-              <div className="neu-card p-6 hover:scale-105 transition-all duration-300">
+              <div className="rounded-2xl border border-[#e0d5c7] bg-[#fdf7f0] p-6 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-600">Properties</p>
-                    <p className="text-2xl font-bold text-purple-600">{stats.totalProperties}</p>
+                    <p className="text-xs font-medium text-[#6b5744] uppercase tracking-wide">Properties</p>
+                    <p className="mt-2 text-3xl font-bold text-[#4b2a00]">{stats.totalProperties}</p>
+                    <p className="mt-1 text-xs text-[#8a745e]">Listed on AKWANDA.rw</p>
                   </div>
-                  <FaHome className="text-3xl text-purple-600" />
+                  <div className="w-11 h-11 rounded-full bg-[#f3e3cf] flex items-center justify-center">
+                    <FaHome className="text-lg text-[#6b3f1f]" />
+                  </div>
                 </div>
               </div>
-              <div className="neu-card p-6 hover:scale-105 transition-all duration-300">
+              <div className="rounded-2xl border border-[#e0d5c7] bg-[#fdf7f0] p-6 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-600">Occupancy Rate</p>
-                    <p className="text-2xl font-bold text-orange-600">{stats.occupancyRate}%</p>
+                    <p className="text-xs font-medium text-[#6b5744] uppercase tracking-wide">Occupancy rate</p>
+                    <p className="mt-2 text-3xl font-bold text-[#6b3f1f]">{stats.occupancyRate}%</p>
+                    <p className="mt-1 text-xs text-[#8a745e]">Across all active properties</p>
                   </div>
-                  <FaChartLine className="text-3xl text-orange-600" />
+                  <div className="w-11 h-11 rounded-full bg-[#f6e0d0] flex items-center justify-center">
+                    <FaChartLine className="text-lg text-[#c05621]" />
+                  </div>
                 </div>
               </div>
             </div>
             {/* Revenue Management */}
-            <div className="neu-card p-0">
+            <div className="neu-card p-0 rounded-2xl border border-[#e0d5c7] bg-white shadow-sm">
               <div 
-                className="flex items-center justify-between p-6 border-b cursor-pointer hover:bg-gray-50"
+                className="flex items-center justify-between p-6 border-b border-[#eee0cf] cursor-pointer hover:bg-[#fff7ef] rounded-t-2xl"
                 onClick={() => toggleSection('revenue')}
               >
                 <div className="flex items-center space-x-3">
-                  <FaDollarSign className="text-green-600 text-xl" />
-                  <h2 className="text-xl font-semibold text-gray-900">Revenue Management</h2>
+                  <div className="w-9 h-9 rounded-full bg-[#f1ddc7] flex items-center justify-center">
+                    <FaDollarSign className="text-sm text-[#6b3f1f]" />
+                  </div>
+                  <h2 className="text-lg md:text-xl font-semibold text-[#4b2a00]">Revenue management</h2>
                 </div>
-                {expandedSections.revenue ? <FaChevronUp /> : <FaChevronDown />}
+                {expandedSections.revenue ? <FaChevronUp className="text-[#6b5744]" /> : <FaChevronDown className="text-[#6b5744]" />}
               </div>
               
               {expandedSections.revenue && (
-                <div className="p-6 space-y-6">
-                  {/* Revenue content from previous implementation */}
+                <div className="p-6 space-y-6 bg-[#fdf7f0] rounded-b-2xl">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="bg-green-50 border border-green-200 rounded-xl p-6">
-                      <h3 className="text-lg font-semibold text-green-900 mb-4">Monthly Revenue</h3>
-                      <div className="text-3xl font-bold text-green-600">{formatCurrencyRWF ? formatCurrencyRWF(stats.totalRevenue) : `RWF ${stats.totalRevenue.toLocaleString()}`}</div>
-                      <p className="text-sm text-green-700 mt-2">+12% from last month</p>
+                    <div className="rounded-2xl border border-[#d6f0d9] bg-[#f0fbf2] p-5">
+                      <h3 className="text-sm font-semibold text-[#245b33] mb-2 uppercase tracking-wide">Monthly revenue</h3>
+                      <div className="text-2xl md:text-3xl font-bold text-[#1f6b3f]">{formatCurrencyRWF ? formatCurrencyRWF(stats.totalRevenue) : `RWF ${stats.totalRevenue.toLocaleString()}`}</div>
+                      <p className="text-xs text-[#2f855a] mt-1">+12% compared to last month</p>
                     </div>
-                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
-                      <h3 className="text-lg font-semibold text-blue-900 mb-4">Average Daily Rate</h3>
-                      <div className="text-3xl font-bold text-blue-600">{formatCurrencyRWF ? formatCurrencyRWF(Math.round(stats.totalRevenue / Math.max(stats.total, 1))) : `RWF ${Math.round(stats.totalRevenue / Math.max(stats.total, 1)).toLocaleString()}`}</div>
-                      <p className="text-sm text-blue-700 mt-2">Per booking average</p>
+                    <div className="rounded-2xl border border-[#d3e7ff] bg-[#eef4ff] p-5">
+                      <h3 className="text-sm font-semibold text-[#27436b] mb-2 uppercase tracking-wide">Average daily rate</h3>
+                      <div className="text-2xl md:text-3xl font-bold text-[#27436b]">{formatCurrencyRWF ? formatCurrencyRWF(Math.round(stats.totalRevenue / Math.max(stats.total, 1))) : `RWF ${Math.round(stats.totalRevenue / Math.max(stats.total, 1)).toLocaleString()}`}</div>
+                      <p className="text-xs text-[#4c6fb7] mt-1">Per booking average</p>
                     </div>
-                    <div className="bg-purple-50 border border-purple-200 rounded-xl p-6">
-                      <h3 className="text-lg font-semibold text-purple-900 mb-4">Occupancy Rate</h3>
-                      <div className="text-3xl font-bold text-purple-600">{stats.occupancyRate}%</div>
-                      <p className="text-sm text-purple-700 mt-2">Current month</p>
+                    <div className="rounded-2xl border border-[#e2d4ff] bg-[#f5f1ff] p-5">
+                      <h3 className="text-sm font-semibold text-[#4b2a7a] mb-2 uppercase tracking-wide">Occupancy</h3>
+                      <div className="text-2xl md:text-3xl font-bold text-[#4b2a7a]">{stats.occupancyRate}%</div>
+                      <p className="text-xs text-[#6b4fb0] mt-1">Current month across properties</p>
                     </div>
                   </div>
                 </div>
               )}
             </div>
-            <div className="neu-card p-0">
+
+            {/* Advanced Analytics */}
+            <div className="neu-card p-0 rounded-2xl border border-[#e0d5c7] bg-white shadow-sm">
               <div 
-                className="flex items-center justify-between p-6 border-b cursor-pointer hover:bg-gray-50"
+                className="flex items-center justify-between p-6 border-b border-[#eee0cf] cursor-pointer hover:bg-[#fff7ef] rounded-t-2xl"
                 onClick={() => toggleSection('advancedAnalytics')}
               >
-                {/* ... */}
                 <div className="flex items-center space-x-3">
-                  <FaChartLine className="text-purple-600 text-xl" />
-                  <h2 className="text-xl font-semibold text-gray-900">Advanced Analytics</h2>
+                  <div className="w-9 h-9 rounded-full bg-[#f3e3cf] flex items-center justify-center">
+                    <FaChartLine className="text-sm text-[#6b3f1f]" />
+                  </div>
+                  <h2 className="text-lg md:text-xl font-semibold text-[#4b2a00]">Advanced analytics</h2>
                 </div>
-                {expandedSections.advancedAnalytics ? <FaChevronUp /> : <FaChevronDown />}
+                {expandedSections.advancedAnalytics ? <FaChevronUp className="text-[#6b5744]" /> : <FaChevronDown className="text-[#6b5744]" />}
               </div>
               
               {expandedSections.advancedAnalytics && (
-                <div className="p-6 space-y-6">
+                <div className="p-6 space-y-6 bg-[#fdf7f0] rounded-b-2xl">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-6">
-                      <h3 className="text-lg font-semibold text-indigo-900 mb-4">Performance Metrics</h3>
-                      <div className="space-y-3">
+                    <div className="rounded-2xl border border-[#e0d5c7] bg-white p-5">
+                      <h3 className="text-sm font-semibold text-[#4b2a00] mb-3 uppercase tracking-wide">Performance metrics</h3>
+                      <div className="space-y-3 text-xs md:text-sm">
                         <div className="flex justify-between">
-                          <span className="text-indigo-700">Conversion Rate</span>
-                          <span className="font-semibold text-indigo-900">24.5%</span>
+                          <span className="text-[#6b5744]">Conversion rate</span>
+                          <span className="font-semibold text-[#4b2a00]">24.5%</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-indigo-700">Avg Booking Value</span>
-                          <span className="font-semibold text-indigo-900">{formatCurrencyRWF ? formatCurrencyRWF(Math.round(stats.totalRevenue / Math.max(stats.total, 1))) : `RWF ${Math.round(stats.totalRevenue / Math.max(stats.total, 1)).toLocaleString()}`}</span>
+                          <span className="text-[#6b5744]">Avg booking value</span>
+                          <span className="font-semibold text-[#4b2a00]">{formatCurrencyRWF ? formatCurrencyRWF(Math.round(stats.totalRevenue / Math.max(stats.total, 1))) : `RWF ${Math.round(stats.totalRevenue / Math.max(stats.total, 1)).toLocaleString()}`}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-indigo-700">Repeat Guests</span>
-                          <span className="font-semibold text-indigo-900">18%</span>
+                          <span className="text-[#6b5744]">Repeat guests</span>
+                          <span className="font-semibold text-[#4b2a00]">18%</span>
                         </div>
                       </div>
                     </div>
@@ -1198,7 +1253,7 @@ const PropertyOwnerBookings = () => {
         {activeTab === 'reservations' && (
           <div>
             {/* Filters */}
-        <div className="neu-card p-6 mb-8">
+        <div className="neu-card p-6 mb-8 border border-[#e0d5c7] bg-[#fdf7f0] rounded-2xl shadow-sm">
           <div className="flex flex-wrap gap-4 items-center justify-between mb-4">
             <div className="flex flex-wrap gap-4 flex-1">
             <select
@@ -1245,7 +1300,7 @@ const PropertyOwnerBookings = () => {
             </div>
             {/* Active Filter Indicator */}
             {filters.dateRange && filters.dateRange !== 'all' && (
-              <div className="flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+              <div className="flex items-center gap-2 px-3 py-1 bg-[#f1ddc7] text-[#4b2a00] rounded-full text-sm">
                 <FaFilter className="text-xs" />
                 <span>
                   {filters.dateRange === 'upcoming' && 'Upcoming Bookings'}
@@ -1254,7 +1309,7 @@ const PropertyOwnerBookings = () => {
                 </span>
                 <button
                   onClick={() => setFilters(prev => ({ ...prev, dateRange: 'all' }))}
-                  className="ml-1 hover:text-blue-900"
+                  className="ml-1 hover:text-[#6b3f1f]"
                 >
                   ×
                 </button>
@@ -1264,14 +1319,14 @@ const PropertyOwnerBookings = () => {
             <div className="flex gap-2">
               <button
                 onClick={() => downloadReport('pdf')}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
+                className="px-4 py-2 bg-[#6b3f1f] text-white rounded-full hover:bg-[#8f5a32] transition-colors flex items-center gap-2 text-sm"
               >
                 <FaFileAlt />
                 Export PDF
               </button>
               <button
                 onClick={() => downloadReport('csv')}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+                className="px-4 py-2 bg-white border border-[#e0d5c7] text-[#4b2a00] rounded-full hover:bg-[#fff7ef] transition-colors flex items-center gap-2 text-sm"
               >
                 <FaDownload />
                 Export CSV
@@ -1281,18 +1336,26 @@ const PropertyOwnerBookings = () => {
         </div>
 
         {/* Bookings / Calendar Card */}
-        <div className="neu-card p-0 overflow-x-auto">
-          <div className="flex items-center justify-between p-4 border-b">
-            <div className="font-semibold text-gray-800">Clients & Calendar</div>
+        <div className="neu-card p-0 overflow-x-auto rounded-2xl border border-[#e0d5c7] bg-white">
+          <div className="flex items-center justify-between p-4 border-b border-[#eee0cf] bg-[#fdf7f0] rounded-t-2xl">
+            <div className="font-semibold text-[#4b2a00] text-sm md:text-base">Clients &amp; calendar</div>
             <div className="flex gap-2">
               <button
-                className={`px-3 py-1 rounded ${ownerView === 'table' ? 'bg-blue-600 text-white' : 'bg-gray-100'}`}
+                className={`px-3 py-1.5 rounded-full text-xs md:text-sm border transition-colors ${
+                  ownerView === 'table'
+                    ? 'bg-[#a06b42] text-white border-[#8f5a32]'
+                    : 'bg-white text-[#6b5744] border-[#e0d5c7] hover:bg-[#f9efe1]'
+                }`}
                 onClick={() => setOwnerView('table')}
               >
                 Table
               </button>
               <button
-                className={`px-3 py-1 rounded ${ownerView === 'calendar' ? 'bg-blue-600 text-white' : 'bg-gray-100'}`}
+                className={`px-3 py-1.5 rounded-full text-xs md:text-sm border transition-colors ${
+                  ownerView === 'calendar'
+                    ? 'bg-[#a06b42] text-white border-[#8f5a32]'
+                    : 'bg-white text-[#6b5744] border-[#e0d5c7] hover:bg-[#f9efe1]'
+                }`}
                 onClick={() => setOwnerView('calendar')}
               >
                 Calendar

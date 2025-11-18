@@ -484,15 +484,27 @@ export default function RatesAvailability() {
       case 'mobile-rates':
         // State moved to top level - using mobileDiscount from component state
         return (
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-              <FaMobileAlt /> Mobile Rates
+          <div className="bg-white rounded-2xl border border-[#e0d5c7] shadow-sm p-6">
+            <h2 className="text-xl font-bold mb-2 flex items-center gap-2 text-[#4b2a00]">
+              <FaMobileAlt className="text-[#a06b42]" /> Mobile rates
             </h2>
-            <p className="text-gray-600 mb-4">Offer a special discount for guests booking via mobile devices to boost conversions.</p>
-            <div className="max-w-md p-4 border rounded">
-              <label className="block text-sm font-medium mb-2">Mobile Discount (%)</label>
-              <input type="number" min="0" max="90" value={mobileDiscount} onChange={(e)=> setMobileDiscount(Number(e.target.value))} className="w-full px-3 py-2 border rounded" />
-              <button onClick={()=> handleSaveMobileRates(mobileDiscount)} className="mt-3 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Save</button>
+            <p className="text-sm text-[#6b5744] mb-5">Offer a special discount for guests booking via mobile devices to boost conversions.</p>
+            <div className="max-w-md p-4 rounded-2xl border border-[#e0d5c7] bg-[#fdf7f0]">
+              <label className="block text-xs font-semibold text-[#6b5744] mb-2 uppercase tracking-wide">Mobile discount (%)</label>
+              <input
+                type="number"
+                min="0"
+                max="90"
+                value={mobileDiscount}
+                onChange={(e)=> setMobileDiscount(Number(e.target.value))}
+                className="w-full px-3 py-2 border border-[#e0d5c7] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#a06b42] focus:border-[#a06b42] bg-white"
+              />
+              <button
+                onClick={()=> handleSaveMobileRates(mobileDiscount)}
+                className="mt-4 inline-flex items-center justify-center px-4 py-2 rounded-full bg-[#a06b42] hover:bg-[#8f5a32] text-white text-sm font-medium shadow-sm transition-colors"
+              >
+                Save mobile rates
+              </button>
             </div>
           </div>
         );
@@ -542,11 +554,11 @@ export default function RatesAvailability() {
         const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         
         return (
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-2xl border border-[#e0d5c7] shadow-sm p-6">
             <h2 className="text-xl font-bold mb-2 flex items-center gap-2 text-[#4b2a00]">
-              <FaDoorOpen className="text-[#a06b42]" /> Open/Close Rooms
+              <FaDoorOpen className="text-[#a06b42]" /> Open/close rooms
             </h2>
-            <p className="text-gray-600 mb-6">Manage room availability by opening or closing specific dates.</p>
+            <p className="text-sm text-[#6b5744] mb-6">Manage room availability by opening or closing specific dates across your property.</p>
             
             {!propertyData?.rooms || propertyData.rooms.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
@@ -555,16 +567,18 @@ export default function RatesAvailability() {
             ) : (
               <div className="space-y-6">
                 {/* Date Range Selection for Bulk Operations */}
-                <div className="bg-[#f5f0e8] border border-[#e0d5c7] rounded-lg p-4">
-                  <h3 className="font-semibold text-[#4b2a00] mb-3">📅 Bulk Date Management</h3>
-                  <p className="text-sm text-[#4b2a00] mb-3">Select date ranges to open or close multiple dates at once</p>
+                <div className="bg-[#f5f0e8] border border-[#e0d5c7] rounded-2xl p-4">
+                  <h3 className="font-semibold text-[#4b2a00] mb-1 text-sm md:text-base flex items-center gap-2">
+                    <span>📅 Bulk date management</span>
+                  </h3>
+                  <p className="text-xs md:text-sm text-[#6b5744] mb-3">Select date ranges to open or close multiple dates at once.</p>
                   
                   {propertyData.rooms.map((room, idx) => (
-                    <div key={idx} className="bg-white border rounded-lg p-4 mb-3">
-                      <h4 className="font-semibold mb-2 text-gray-800">{room.roomType} - {room.roomNumber}</h4>
+                    <div key={idx} className="bg-white border border-[#e0d5c7] rounded-xl p-4 mb-3">
+                      <h4 className="font-semibold mb-2 text-[#4b2a00] text-sm md:text-base">{room.roomType} - {room.roomNumber}</h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
                         <div>
-                          <label className="text-xs text-gray-600 block mb-1">Start Date</label>
+                          <label className="text-[11px] text-[#6b5744] block mb-1 uppercase tracking-wide">Start date</label>
                           <input 
                             type="date" 
                             className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-[#a06b42] focus:border-[#a06b42]"
@@ -576,7 +590,7 @@ export default function RatesAvailability() {
                           />
                         </div>
                         <div>
-                          <label className="text-xs text-gray-600 block mb-1">End Date</label>
+                          <label className="text-[11px] text-[#6b5744] block mb-1 uppercase tracking-wide">End date</label>
                           <input 
                             type="date" 
                             className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-[#a06b42] focus:border-[#a06b42]"
@@ -591,24 +605,24 @@ export default function RatesAvailability() {
                       <div className="flex gap-2">
                         <button 
                           onClick={() => handleOpenDates(room._id)}
-                          className="flex-1 px-4 py-2 bg-[#a06b42] hover:bg-[#8f5a32] text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                          className="flex-1 px-4 py-2 bg-[#a06b42] hover:bg-[#8f5a32] text-white rounded-full text-xs md:text-sm font-medium transition-colors flex items-center justify-center gap-2"
                         >
                           <FaDoorOpen /> Open Dates
                         </button>
                         <button 
                           onClick={() => handleCloseDates(room._id)}
-                          className="flex-1 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                          className="flex-1 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-full text-xs md:text-sm font-medium transition-colors flex items-center justify-center gap-2"
                         >
                           <FaCalendarTimes /> Close Dates
                         </button>
                       </div>
                       <div className="mt-2 flex items-center justify-between text-xs">
-                        <span className="text-gray-500">
-                          Currently closed dates: <span className="font-semibold text-red-600">{room.closedDates?.length || 0}</span>
+                        <span className="text-[#6b5744]">
+                          Currently closed dates: <span className="font-semibold text-rose-700">{room.closedDates?.length || 0}</span>
                         </span>
                         <button 
                           onClick={() => setSelectedRoomForCalendar(selectedRoomForCalendar === room._id ? null : room._id)}
-                          className="text-blue-600 hover:text-blue-800 font-medium"
+                          className="text-[#a06b42] hover:text-[#8f5a32] font-medium"
                         >
                           {selectedRoomForCalendar === room._id ? 'Hide Calendar' : 'View Calendar'}
                         </button>
@@ -620,7 +634,7 @@ export default function RatesAvailability() {
                           <div className="flex items-center justify-between mb-4">
                             <button 
                               onClick={goToPreviousMonth}
-                              className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm"
+                              className="px-3 py-1 bg-[#f5f0e8] hover:bg-[#e8dcc8] rounded-full text-xs md:text-sm"
                             >
                               ← Prev
                             </button>
@@ -629,7 +643,7 @@ export default function RatesAvailability() {
                             </h4>
                             <button 
                               onClick={goToNextMonth}
-                              className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm"
+                              className="px-3 py-1 bg-[#f5f0e8] hover:bg-[#e8dcc8] rounded-full text-xs md:text-sm"
                             >
                               Next →
                             </button>
@@ -639,7 +653,7 @@ export default function RatesAvailability() {
                           <div className="grid grid-cols-7 gap-1">
                             {/* Day headers */}
                             {dayNames.map(day => (
-                              <div key={day} className="text-center text-xs font-semibold text-gray-600 py-2">
+                              <div key={day} className="text-center text-[11px] font-semibold text-[#6b5744] py-2">
                                 {day}
                               </div>
                             ))}
@@ -673,7 +687,7 @@ export default function RatesAvailability() {
                           </div>
                           
                           {/* Legend */}
-                          <div className="mt-4 flex items-center gap-4 text-xs">
+                          <div className="mt-4 flex items-center gap-4 text-xs text-[#6b5744]">
                             <div className="flex items-center gap-1">
                               <div className="w-4 h-4 bg-[#f5f0e8] border border-[#d4c4b0] rounded"></div>
                               <span>Available</span>
