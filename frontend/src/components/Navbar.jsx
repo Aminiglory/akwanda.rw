@@ -172,6 +172,7 @@ const Navbar = () => {
         { label: labelOr('nav.calendar', 'Calendar'), href: '/owner/rates?view=calendar', icon: FaCalendarAlt },
         { label: labelOr('nav.openCloseRooms', 'Open/close rooms'), href: '/owner/rates?view=open-close', icon: FaCalendarAlt },
         { label: labelOr('nav.pricingPerGuest', 'Pricing per guest'), href: '/owner/rates?view=pricing-per-guest', icon: FaUsers },
+        { label: labelOr('nav.valueAdds', 'Value adds'), href: '/owner/rates?view=value-adds', icon: FaMoneyBillWave },
       ]
     },
     {
