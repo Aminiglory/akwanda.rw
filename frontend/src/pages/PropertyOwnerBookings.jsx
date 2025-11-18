@@ -122,6 +122,7 @@ const PropertyOwnerBookings = () => {
     helpSupport: false
   });
   const calendarRef = useRef(null);
+  const receiptIframeRef = useRef(null);
 
   const openReceiptPdf = (bookingId) => {
     if (!bookingId) return;
@@ -974,19 +975,39 @@ const PropertyOwnerBookings = () => {
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
       <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[95vh] flex flex-col overflow-hidden">
         <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">
-            {t ? t('dashboard.bookingReceipt') : 'Booking receipt'}
-          </h2>
-          <button
-            onClick={() => { setShowReceipt(false); setReceiptPdfUrl(null); }}
-            className="text-gray-500 hover:text-gray-700"
-          >
-            <FaTimes className="text-xl" />
-          </button>
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">
+              {t ? t('dashboard.bookingReceipt') : 'Booking receipt'}
+            </h2>
+            <p className="text-xs text-gray-500 mt-1">
+              Review the receipt preview below, then use the Print button if you need a paper copy.
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                if (receiptIframeRef.current && receiptIframeRef.current.contentWindow) {
+                  receiptIframeRef.current.contentWindow.focus();
+                  receiptIframeRef.current.contentWindow.print();
+                }
+              }}
+              className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium"
+            >
+              Print
+            </button>
+            <button
+              onClick={() => { setShowReceipt(false); setReceiptPdfUrl(null); }}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              <FaTimes className="text-xl" />
+            </button>
+          </div>
         </div>
         <div className="flex-1 bg-gray-100">
           {receiptPdfUrl ? (
             <iframe
+              ref={receiptIframeRef}
               src={receiptPdfUrl}
               title="Booking receipt PDF"
               className="w-full h-full border-0"
