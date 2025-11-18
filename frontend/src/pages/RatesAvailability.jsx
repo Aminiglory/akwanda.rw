@@ -873,9 +873,35 @@ export default function RatesAvailability() {
 
       case 'value-adds':
         return (
-                        <p className="text-sm text-[#6b5744]">{opt.description}</p>
+          <div className="bg-white rounded-2xl border border-[#e0d5c7] shadow-sm p-6">
+            <h2 className="text-xl font-bold mb-2 flex items-center gap-2 text-[#4b2a00]">
+              <FaGift className="text-[#a06b42]" /> Value adds
+            </h2>
+            <p className="text-sm text-[#6b5744] mb-5">
+              Offer additional services to enhance guest experience and generate more revenue.
+            </p>
+            <div className="space-y-3 mt-4">
+              {(addOnCatalog.length ? addOnCatalog : [
+                { key: 'standard_breakfast', name: 'Standard breakfast', description: 'Basic breakfast with local options', defaultPrice: 5000, defaultScope: 'per-booking' },
+                { key: 'premium_breakfast', name: 'Premium breakfast', description: 'Extended breakfast with hot dishes', defaultPrice: 8000, defaultScope: 'per-booking' },
+                { key: 'airport_transfer', name: 'Airport transfer', description: 'One-way airport pick-up or drop-off', defaultPrice: 15000, defaultScope: 'per-booking' },
+                { key: 'late_checkout', name: 'Late checkout', description: 'Stay in the room beyond normal checkout time', defaultPrice: 10000, defaultScope: 'per-booking' },
+                { key: 'daily_cleaning', name: 'Daily cleaning', description: 'Daily housekeeping beyond the standard', defaultPrice: 7000, defaultScope: 'per-night' }
+              ]).map((opt) => {
+                const existing = addOnServicesDraft.find(s => s.key === opt.key) || {};
+                const enabled = existing.enabled ?? false;
+                const price = existing.price != null ? existing.price : (opt.defaultPrice || 0);
+                const scope = existing.scope || opt.defaultScope || 'per-booking';
+                return (
+                  <div key={opt.key} className="border border-[#e0d5c7] rounded-2xl p-4 bg-[#fdf7f0]">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                      <div>
+                        <div className="font-semibold text-[#4b2a00] text-sm md:text-base">{opt.name}</div>
+                        {opt.description && (
+                          <p className="text-sm text-[#6b5744]">{opt.description}</p>
+                        )}
                       </div>
-                      <label className="flex items-center ml-4">
+                      <label className="flex items-center ml-0 sm:ml-4">
                         <input
                           type="checkbox"
                           className="mr-2"
