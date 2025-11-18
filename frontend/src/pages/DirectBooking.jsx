@@ -274,23 +274,23 @@ const DirectBooking = () => {
             <div className="border rounded-lg p-4 bg-gray-50">
               <div className="text-sm text-gray-900 font-semibold mb-2">Payment Information</div>
               <div className="text-sm text-gray-700 space-y-1">
-                <div>Room Rate: RWF {nightly.toLocaleString()} × {Math.max(1, nights)} nights = RWF {roomCharge.toLocaleString()}</div>
+                <div>Room Rate: based on selected property, room and nights</div>
                 <div className="mt-2">Additional Services:</div>
                 <label className="flex items-center gap-2 text-sm">
                   <input type="checkbox" checked={form.services.breakfast} onChange={e => update('services', { ...form.services, breakfast: e.target.checked })} />
-                  Breakfast Plan: RWF 15,000 × {Math.max(1, nights)} = RWF {(form.services.breakfast ? (15000 * Math.max(1, nights)) : 0).toLocaleString()}
+                  Breakfast plan
                 </label>
                 <label className="flex items-center gap-2 text-sm">
                   <input type="checkbox" checked={form.services.airportTransfer} onChange={e => update('services', { ...form.services, airportTransfer: e.target.checked })} />
-                  Airport Transfer
+                  Airport transfer
                 </label>
                 <label className="flex items-center gap-2 text-sm">
                   <input type="checkbox" checked={form.services.laundry} onChange={e => update('services', { ...form.services, laundry: e.target.checked })} />
-                  Laundry Service
+                  Laundry service
                 </label>
-                <div className="pt-2">Subtotal: RWF {subtotal.toLocaleString()}</div>
-                <div>Hospitality Levy (3%): RWF {levy3.toLocaleString()}</div>
-                <div className="font-semibold">TOTAL: RWF {grandTotal.toLocaleString()}</div>
+                <div className="pt-2">Subtotal: calculated automatically</div>
+                <div>Hospitality levy (3%): calculated automatically</div>
+                <div className="font-semibold">TOTAL: calculated automatically</div>
               </div>
             </div>
 

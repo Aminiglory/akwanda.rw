@@ -127,15 +127,14 @@ const PropertyOwnerBookings = () => {
   const openReceiptPdf = (bookingId) => {
     if (!bookingId) return;
     const url = `${API_URL}/api/bookings/${bookingId}/receipt?format=pdf`;
-    setReceiptPdfUrl(url);
-    setShowReceipt(true);
+    // Open directly in browser PDF viewer; built-in print dialog can be used there
+    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   const openInvoicePdf = (bookingId) => {
     if (!bookingId) return;
     const url = `${API_URL}/api/bookings/${bookingId}/invoice?format=pdf`;
-    setReceiptPdfUrl(url);
-    setShowReceipt(true);
+    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   // Removed mock data. We will fetch live data from the backend.
