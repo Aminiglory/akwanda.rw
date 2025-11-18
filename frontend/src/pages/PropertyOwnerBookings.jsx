@@ -199,7 +199,7 @@ const PropertyOwnerBookings = () => {
         setBookings(prev => [salesNewBooking, ...prev]);
         // Refresh data in background
         loadData();
-        // Open receipt PDF in a new tab
+        // Open receipt PDF in the in-page overlay (preview first, then print)
         openReceiptPdf(salesNewBooking._id);
       }
     } finally {
@@ -708,7 +708,7 @@ const PropertyOwnerBookings = () => {
             {booking.guest?.avatar ? (
               <img src={booking.guest.avatar.startsWith('http') ? booking.guest.avatar : `${API_URL}${booking.guest.avatar}`} alt={booking.guest.name} className="w-8 h-8 rounded-full object-cover border" />
             ) : (
-              <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-semibold">
+              <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-xs font-semibold">
                 {((booking.guest?.firstName || booking.guest?.name || '').charAt(0) || (booking.guest?.email || 'U').charAt(0))}
               </div>
             )}
@@ -756,7 +756,7 @@ const PropertyOwnerBookings = () => {
                         {tr.guest?.avatar ? (
                           <img src={tr.guest.avatar.startsWith('http') ? tr.guest.avatar : `${API_URL}${tr.guest.avatar}`} alt={tr.guest?.firstName} className="w-6 h-6 rounded-full object-cover border" />
                         ) : (
-                          <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-[10px] font-semibold">
+                          <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center text-[10px] font-semibold">
                             {((tr.guest?.firstName || '').charAt(0) || (tr.guest?.email || 'U').charAt(0))}
                           </div>
                         )}
@@ -2615,21 +2615,65 @@ const PropertyOwnerBookings = () => {
       {showReceipt && renderReceipt()}
       {showSalesConfirm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full overflow-hidden">
-            <div className="p-6 border-b border-gray-200">
-              <h3 className="text-xl font-semibold">Confirm Sale and Print Receipt</h3>
+          <div className="bg-white rounded-2xl max-w-lg w-full overflow-hidden shadow-xl">
+            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Review booking before printing</h3>
+                <p className="text-xs text-gray-500 mt-1">Check the key details below. When you confirm, the receipt preview will open and you can print from there.</p>
+              </div>
+              <button onClick={onCancelSalesConfirm} className="text-gray-500 hover:text-gray-700">
+                <FaTimes />
+              </button>
             </div>
             <div className="p-6 space-y-4">
-              <p className="text-gray-700">Please confirm that this booking should be recorded in Sales Reporting & Analytics before printing the receipt.</p>
               {salesNewBooking && (
-                <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
-                  <div><span className="font-medium">Booking:</span> {salesNewBooking.confirmationCode || salesNewBooking._id}</div>
-                  <div><span className="font-medium">Amount:</span> {formatCurrencyRWF ? formatCurrencyRWF(salesNewBooking.totalAmount || 0) : `RWF ${(salesNewBooking.totalAmount || 0).toLocaleString()}`}</div>
+                <div className="text-sm text-gray-700 bg-gray-50 p-4 rounded-xl space-y-2">
+                  <div className="flex justify-between gap-4">
+                    <div>
+                      <div className="text-[11px] uppercase tracking-wide text-gray-500">Property</div>
+                      <div className="font-medium text-gray-900">{salesNewBooking.property?.title || salesNewBooking.property?.name || 'Property'}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-[11px] uppercase tracking-wide text-gray-500">Booking ID</div>
+                      <div className="font-mono text-xs">{salesNewBooking.confirmationCode || salesNewBooking._id}</div>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 text-xs mt-2">
+                    <div>
+                      <div className="text-[11px] uppercase tracking-wide text-gray-500">Guest</div>
+                      <div className="font-medium text-gray-900">{salesNewBooking.guest?.firstName || salesNewBooking.guest?.name || 'Guest'} {salesNewBooking.guest?.lastName || ''}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-[11px] uppercase tracking-wide text-gray-500">Dates</div>
+                      <div className="font-medium text-gray-900">
+                        {salesNewBooking.checkIn ? new Date(salesNewBooking.checkIn).toLocaleDateString() : ''}
+                        {' '}–{' '}
+                        {salesNewBooking.checkOut ? new Date(salesNewBooking.checkOut).toLocaleDateString() : ''}
+                      </div>
+                      <div className="text-[11px] text-gray-500">{salesNewBooking.numberOfGuests || salesNewBooking.guests || 1} guests</div>
+                    </div>
+                  </div>
+                  <div className="border-t border-dashed border-gray-200 pt-3 mt-2 flex items-center justify-between text-sm">
+                    <div>
+                      <div className="text-[11px] uppercase tracking-wide text-gray-500">Payment</div>
+                      <div className="text-xs text-gray-700">
+                        {salesNewBooking.paymentMethod || 'Cash'} · {salesNewBooking.paymentStatus || 'paid'}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-[11px] uppercase tracking-wide text-gray-500">Total</div>
+                      <div className="text-base font-semibold text-gray-900">
+                        {formatCurrencyRWF
+                          ? formatCurrencyRWF(salesNewBooking.totalAmount || 0)
+                          : `RWF ${(salesNewBooking.totalAmount || 0).toLocaleString()}`}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
               <div className="flex items-center justify-end gap-3">
-                <button onClick={onCancelSalesConfirm} className="px-5 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100">Cancel</button>
-                <button onClick={onConfirmSalesAndPrint} className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white">Confirm & Print</button>
+                <button onClick={onCancelSalesConfirm} className="px-5 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 text-sm">Cancel</button>
+                <button onClick={onConfirmSalesAndPrint} className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium">Confirm &amp; open receipt</button>
               </div>
             </div>
           </div>

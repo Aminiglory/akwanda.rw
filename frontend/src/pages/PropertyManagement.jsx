@@ -908,34 +908,76 @@ export default function PropertyManagement() {
                                   </div>
                                 ))}
                               </div>
-                              <div className="flex gap-2 items-center">
-                                <input
-                                  id={`newImage-${room._id}`}
-                                  type="text"
-                                  placeholder="Add image URL"
-                                  className="flex-1 border rounded px-2 py-1 text-xs"
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const input = document.getElementById(`newImage-${room._id}`);
-                                    const value = input && 'value' in input ? String(input.value || '').trim() : '';
-                                    if (!value) return;
-                                    setPropertyData(prev => {
-                                      if (!prev) return prev;
-                                      const nextRooms = prev.rooms.map((r, rIdx) => {
-                                        if (rIdx !== idx) return r;
-                                        const imgs = Array.isArray(r.images) ? r.images : [];
-                                        return { ...r, images: [...imgs, value] };
+                              <div className="space-y-2">
+                                <div className="flex gap-2 items-center">
+                                  <input
+                                    id={`newImage-${room._id}`}
+                                    type="text"
+                                    placeholder="Add image URL"
+                                    className="flex-1 border rounded px-2 py-1 text-xs"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const input = document.getElementById(`newImage-${room._id}`);
+                                      const value = input && 'value' in input ? String(input.value || '').trim() : '';
+                                      if (!value) return;
+                                      setPropertyData(prev => {
+                                        if (!prev) return prev;
+                                        const nextRooms = prev.rooms.map((r, rIdx) => {
+                                          if (rIdx !== idx) return r;
+                                          const imgs = Array.isArray(r.images) ? r.images : [];
+                                          return { ...r, images: [...imgs, value] };
+                                        });
+                                        return { ...prev, rooms: nextRooms };
                                       });
-                                      return { ...prev, rooms: nextRooms };
-                                    });
-                                    if (input) input.value = '';
-                                  }}
-                                  className="px-2 py-1 rounded bg-blue-600 text-white text-xs"
-                                >
-                                  Add image
-                                </button>
+                                      if (input) input.value = '';
+                                    }}
+                                    className="px-2 py-1 rounded bg-blue-600 text-white text-xs"
+                                  >
+                                    Add image
+                                  </button>
+                                </div>
+                                <div className="flex items-center gap-2 text-[11px] text-gray-600">
+                                  <input
+                                    type="file"
+                                    accept="image/*"
+                                    className="text-xs"
+                                    onChange={async (e) => {
+                                      const file = e.target.files && e.target.files[0];
+                                      if (!file) return;
+                                      try {
+                                        const formData = new FormData();
+                                        formData.append('images', file);
+                                        const res = await fetch(`${API_URL}/api/properties/upload/images`, {
+                                          method: 'POST',
+                                          credentials: 'include',
+                                          body: formData
+                                        });
+                                        const data = await res.json().catch(() => ({}));
+                                        if (!res.ok || !Array.isArray(data.imageUrls) || !data.imageUrls.length) {
+                                          toast.error(data.message || 'Failed to upload image');
+                                          return;
+                                        }
+                                        const urls = data.imageUrls;
+                                        setPropertyData(prev => {
+                                          if (!prev) return prev;
+                                          const nextRooms = prev.rooms.map((r, rIdx) => {
+                                            if (rIdx !== idx) return r;
+                                            const imgs = Array.isArray(r.images) ? r.images : [];
+                                            return { ...r, images: [...imgs, ...urls] };
+                                          });
+                                          return { ...prev, rooms: nextRooms };
+                                        });
+                                      } catch (err) {
+                                        toast.error('Image upload failed');
+                                      } finally {
+                                        e.target.value = '';
+                                      }
+                                    }}
+                                  />
+                                  <span>or upload from device</span>
+                                </div>
                               </div>
                             </div>
                           )}

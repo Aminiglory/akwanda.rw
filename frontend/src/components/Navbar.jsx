@@ -1244,7 +1244,11 @@ const Navbar = () => {
                         style={{ display: avatarOk ? 'block' : 'none' }}
                       />
                     ) : null}
-                    {!avatarOk || !avatarUrl ? <FaUserCircle className="text-xl" /> : null}
+                    {!avatarOk || !avatarUrl ? (
+                      <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center border border-gray-200">
+                        <FaUserCircle className="text-base text-gray-500" />
+                      </div>
+                    ) : null}
                     <FaCaretDown className="text-[10px]" />
                   </button>
                   {isProfileOpen && (
