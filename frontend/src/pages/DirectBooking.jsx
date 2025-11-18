@@ -276,18 +276,33 @@ const DirectBooking = () => {
               <div className="text-sm text-gray-700 space-y-1">
                 <div>Room Rate: based on selected property, room and nights</div>
                 <div className="mt-2">Additional Services:</div>
-                <label className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" checked={form.services.breakfast} onChange={e => update('services', { ...form.services, breakfast: e.target.checked })} />
-                  Breakfast plan
-                </label>
-                <label className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" checked={form.services.airportTransfer} onChange={e => update('services', { ...form.services, airportTransfer: e.target.checked })} />
-                  Airport transfer
-                </label>
-                <label className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" checked={form.services.laundry} onChange={e => update('services', { ...form.services, laundry: e.target.checked })} />
-                  Laundry service
-                </label>
+                {(!Array.isArray(propertyAddOns) || propertyAddOns.filter(a => a && a.enabled).length === 0) && (
+                  <div className="text-xs text-gray-500">No add-on services configured for this property.</div>
+                )}
+                {Array.isArray(propertyAddOns) && propertyAddOns.filter(a => a && a.enabled).map(addOn => {
+                  const key = addOn.key;
+                  const checked = !!(form.services && form.services[key]);
+                  const included = addOn.includedItems && typeof addOn.includedItems === 'object'
+                    ? Object.keys(addOn.includedItems)
+                        .filter(k => addOn.includedItems[k])
+                        .map(k => k.replace(/_/g, ' ').replace(/\s+/g, ' ').trim().replace(/^(.)/, m => m.toUpperCase()))
+                    : [];
+                  return (
+                    <div key={key} className="space-y-0.5">
+                      <label className="flex items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={e => update('services', { ...(form.services || {}), [key]: e.target.checked })}
+                        />
+                        <span>{addOn.name}</span>
+                      </label>
+                      {included.length > 0 && (
+                        <div className="pl-6 text-xs text-gray-500">Includes: {included.join(', ')}</div>
+                      )}
+                    </div>
+                  );
+                })}
                 <div className="pt-2">Subtotal: calculated automatically</div>
                 <div>Hospitality levy (3%): calculated automatically</div>
                 <div className="font-semibold">TOTAL: calculated automatically</div>

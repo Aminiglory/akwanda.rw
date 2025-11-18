@@ -1060,7 +1060,7 @@ const PropertyOwnerBookings = () => {
               {/* Desktop: booking actions */}
               <div className="hidden lg:flex items-center gap-3">
                 <button
-                  onClick={() => setShowDirectBooking(true)}
+                  onClick={() => navigate('/owner/direct-booking')}
                   className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#a06b42] hover:bg-[#8f5a32] text-white text-sm shadow-md transition-colors"
                 >
                   <FaPlus className="text-xs" />
@@ -1072,7 +1072,7 @@ const PropertyOwnerBookings = () => {
             {/* Mobile: New Booking Button Only */}
             <div className="lg:hidden mb-4 flex justify-end">
               <button
-                onClick={() => setShowDirectBooking(true)}
+                onClick={() => navigate('/owner/direct-booking')}
                 className="bg-[#a06b42] hover:bg-[#8f5a32] text-white px-4 py-2 rounded-full flex items-center gap-2 shadow-md transition-colors text-sm"
               >
                 <FaPlus className="text-xs" />
@@ -2782,7 +2782,7 @@ const PropertyOwnerBookings = () => {
           <div className="border rounded-lg p-4 bg-gray-50">
             <div className="text-sm text-gray-900 font-semibold mb-2">Payment Information</div>
             <div className="text-sm text-gray-700 space-y-1">
-              <div>Room Rate: RWF {(ownerNightly !== undefined && ownerNightly !== null ? Number(ownerNightly).toLocaleString() : '0')} × {Math.max(1, ownerNights)} nights = RWF {ownerRoomCharge.toLocaleString()}</div>
+              <div>Room Rate: based on selected property, room and nights</div>
               <div className="mt-2">Additional Services:</div>
               {ownerAddOns.filter(a => a && a.enabled).length === 0 && (
                 <div className="text-xs text-gray-500">No add-on services configured for this property.</div>
@@ -2830,9 +2830,7 @@ const PropertyOwnerBookings = () => {
                           onDirectChange('services', { ...(directForm.services || {}), [key]: e.target.checked });
                         }}
                       />
-                      <span>
-                        {addOn.name}: RWF {lineTotal.toLocaleString()} <span className="text-xs text-gray-500">({scopeLabel})</span>
-                      </span>
+                      <span>{addOn.name}</span>
                     </label>
                     {included.length > 0 && (
                       <div className="pl-6 text-xs text-gray-500">
@@ -2842,9 +2840,9 @@ const PropertyOwnerBookings = () => {
                   </div>
                 );
               })}
-              <div className="pt-2">Subtotal: RWF {ownerSubtotal.toLocaleString()}</div>
-              <div>Hospitality Levy (3%): RWF {ownerLevy3.toLocaleString()}</div>
-              <div className="font-semibold">TOTAL: RWF {ownerGrandTotal.toLocaleString()}</div>
+              <div className="pt-2">Subtotal: calculated automatically</div>
+              <div>Hospitality levy (3%): calculated automatically</div>
+              <div className="font-semibold">TOTAL: calculated automatically</div>
             </div>
           </div>
 
