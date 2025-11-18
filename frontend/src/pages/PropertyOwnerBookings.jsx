@@ -2789,7 +2789,6 @@ const PropertyOwnerBookings = () => {
               </label>
               <div className="pt-2">Subtotal: RWF {ownerSubtotal.toLocaleString()}</div>
               <div>Hospitality Levy (3%): RWF {ownerLevy3.toLocaleString()}</div>
-              <div>VAT (18%): RWF {ownerVat18.toLocaleString()}</div>
               <div className="font-semibold">TOTAL: RWF {ownerGrandTotal.toLocaleString()}</div>
             </div>
           </div>
