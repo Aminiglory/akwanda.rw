@@ -24,6 +24,7 @@ export default function PropertyManagement() {
   const { user, refreshUser } = useAuth() || {};
   const [profileDraft, setProfileDraft] = useState({ firstName: '', lastName: '', phone: '', bio: '' });
   const [expandedRoomId, setExpandedRoomId] = useState(null);
+  const [addOnServicesDraft, setAddOnServicesDraft] = useState([]);
 
   useEffect(() => {
     fetchProperties();
@@ -63,6 +64,14 @@ export default function PropertyManagement() {
     }
   }, [selectedProperty, view]);
 
+  useEffect(() => {
+    if (propertyData && Array.isArray(propertyData.addOnServices)) {
+      setAddOnServicesDraft(propertyData.addOnServices);
+    } else {
+      setAddOnServicesDraft([]);
+    }
+  }, [propertyData]);
+
   const fetchPropertyStats = async () => {
     try {
       const res = await fetch(`${API_URL}/api/properties/${selectedProperty}/stats`, { credentials: 'include' });
@@ -72,6 +81,27 @@ export default function PropertyManagement() {
       }
     } catch (e) {
       console.error('Failed to load stats:', e);
+    }
+  };
+
+  const handleSaveAddOnServices = async (services) => {
+    if (!selectedProperty) return;
+    try {
+      setSaving(true);
+      const res = await fetch(`${API_URL}/api/properties/${selectedProperty}`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ addOnServices: services })
+      });
+      const json = await res.json().catch(()=>({}));
+      if (!res.ok) throw new Error(json.message || 'Failed to save add-on services');
+      toast.success('Add-on services saved');
+      await fetchPropertyDetails();
+    } catch (e) {
+      toast.error(e.message || 'Failed to save add-on services');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -403,6 +433,92 @@ export default function PropertyManagement() {
                 <label className="block text-sm font-medium mb-2">Cleaning Fee (RWF)</label>
                 <input type="number" className="w-full px-3 py-2 border rounded" placeholder="10000" />
               </div>
+            </div>
+          </div>
+        );
+
+      case 'add-ons':
+        return (
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+              <FaMoneyBillWave /> Add-on services
+            </h2>
+            <p className="text-gray-600 mb-4 text-sm">Configure optional services like breakfast or airport transfer. These will appear in direct booking and use the 3% levy only.</p>
+            <div className="space-y-3">
+              {[ 
+                { key: 'standard_breakfast', name: 'Standard breakfast', defaultPrice: 5000 },
+                { key: 'premium_breakfast', name: 'Premium breakfast', defaultPrice: 8000 },
+                { key: 'airport_transfer', name: 'Airport transfer', defaultPrice: 15000 },
+                { key: 'late_checkout', name: 'Late checkout', defaultPrice: 10000 },
+                { key: 'daily_cleaning', name: 'Daily cleaning', defaultPrice: 7000 },
+              ].map((opt) => {
+                const existing = addOnServicesDraft.find(s => s.key === opt.key) || {};
+                const enabled = existing.enabled ?? false;
+                const price = existing.price != null ? existing.price : opt.defaultPrice;
+                const scope = existing.scope || 'per-booking';
+                return (
+                  <div key={opt.key} className="p-3 border rounded flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                    <div>
+                      <label className="inline-flex items-center gap-2 text-sm font-medium text-gray-800">
+                        <input
+                          type="checkbox"
+                          className="mr-1"
+                          checked={enabled}
+                          onChange={(e) => {
+                            const next = addOnServicesDraft.filter(s => s.key !== opt.key);
+                            next.push({ key: opt.key, name: opt.name, enabled: e.target.checked, price, scope });
+                            setAddOnServicesDraft(next);
+                          }}
+                        />
+                        {opt.name}
+                      </label>
+                      <p className="text-xs text-gray-500 mt-1">Choose how this service is charged and the price per unit.</p>
+                    </div>
+                    <div className="flex flex-col md:flex-row gap-2 md:items-center">
+                      <div>
+                        <label className="block text-xs text-gray-600 mb-1">Price (RWF)</label>
+                        <input
+                          type="number"
+                          defaultValue={price}
+                          className="w-full px-2 py-1 border rounded text-sm"
+                          onBlur={(e) => {
+                            const val = Number(e.target.value || 0);
+                            const next = addOnServicesDraft.filter(s => s.key !== opt.key);
+                            next.push({ key: opt.key, name: opt.name, enabled, price: val, scope });
+                            setAddOnServicesDraft(next);
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-600 mb-1">Charge type</label>
+                        <select
+                          defaultValue={scope}
+                          className="w-full px-2 py-1 border rounded text-sm"
+                          onChange={(e) => {
+                            const nextScope = e.target.value;
+                            const next = addOnServicesDraft.filter(s => s.key !== opt.key);
+                            next.push({ key: opt.key, name: opt.name, enabled, price, scope: nextScope });
+                            setAddOnServicesDraft(next);
+                          }}
+                        >
+                          <option value="per-booking">Per booking</option>
+                          <option value="per-night">Per night</option>
+                          <option value="per-guest">Per guest</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="mt-4 flex justify-end">
+              <button
+                disabled={saving}
+                onClick={() => handleSaveAddOnServices(addOnServicesDraft)}
+                className="px-4 py-2 rounded bg-blue-600 text-white text-sm disabled:opacity-60"
+              >
+                {saving ? 'Saving…' : 'Save add-on services'}
+              </button>
             </div>
           </div>
         );

@@ -199,6 +199,7 @@ const Navbar = () => {
         { label: labelOr('nav.facilitiesServices', 'Facilities and services'), href: '/owner/property?view=facilities', icon: FaCog },
         { label: labelOr('nav.roomDetails', 'Room details'), href: '/owner/property?view=room-details', icon: FaBed },
         { label: labelOr('nav.roomAmenities', 'Room Amenities'), href: '/owner/property?view=room-amenities', icon: FaBed },
+        { label: labelOr('nav.addOnServices', 'Add-on services'), href: '/owner/property?view=add-ons', icon: FaMoneyBillWave },
         { label: labelOr('nav.yourProfile', 'your profile'), href: '/owner/property?view=profile', icon: FaUser },
         { label: labelOr('nav.viewDescriptions', 'View your descriptions'), href: '/owner/property?view=descriptions', icon: FaFileAlt },
         { label: labelOr('nav.messagingPreferences', 'Messaging preferences'), href: '/settings?tab=messaging', icon: FaEnvelope },
