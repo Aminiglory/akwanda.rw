@@ -24,6 +24,7 @@ const AdminAddOns = () => {
   const [form, setForm] = useState(defaultForm);
   const [search, setSearch] = useState('');
   const [includeInactive, setIncludeInactive] = useState(true);
+  const [seeding, setSeeding] = useState(false);
 
   useEffect(() => {
     fetchPage(page);
@@ -49,6 +50,26 @@ const AdminAddOns = () => {
       toast.error(e.message || 'Failed to load add-on catalog');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const seedDefaults = async () => {
+    try {
+      setSeeding(true);
+      const res = await fetch(`${API_URL}/api/add-ons/admin/seed-defaults`, {
+        method: 'POST',
+        credentials: 'include'
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || 'Failed to seed add-ons');
+      toast.success(data.message || 'Default add-ons seeded');
+      setPage(1);
+      fetchPage(1);
+    } catch (e) {
+      console.error(e);
+      toast.error(e.message || 'Failed to seed add-ons');
+    } finally {
+      setSeeding(false);
     }
   };
 
@@ -230,6 +251,14 @@ const AdminAddOns = () => {
                     Showing active only
                   </>
                 )}
+              </button>
+              <button
+                type="button"
+                onClick={seedDefaults}
+                disabled={seeding}
+                className="px-3 py-2 rounded-lg bg-blue-50 text-blue-700 text-xs font-medium hover:bg-blue-100 disabled:opacity-60"
+              >
+                {seeding ? 'Seeding…' : 'Seed default add-ons'}
               </button>
             </div>
           </div>
