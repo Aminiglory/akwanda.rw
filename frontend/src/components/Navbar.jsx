@@ -264,6 +264,7 @@ const Navbar = () => {
         { label: t ? t('nav.pendingReservations') : "Pending reservations", href: "/my-bookings?tab=bookings&scope=pending" },
         { label: t ? t('nav.unpaidReservations') : "Unpaid reservations", href: "/my-bookings?tab=bookings&scope=unpaid" },
         { label: t ? t('nav.cancelledReservations') : "Cancelled reservations", href: "/my-bookings?tab=bookings&scope=cancelled" },
+        { label: t ? t('nav.directBooking') : "Direct booking", href: "/owner/direct-booking" },
       ]
     },
     {
