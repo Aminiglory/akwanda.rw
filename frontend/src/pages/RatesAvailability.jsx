@@ -403,7 +403,7 @@ export default function RatesAvailability() {
               <FaCalendar className="text-[#a06b42]" /> Pricing and booking calendar
             </h2>
             {loading ? (
-              <div className="text-center py-8">Loading...</div>
+              <div className="text-center py-8 text-sm text-[#6b5744]">Loading availability strategy...</div>
             ) : (
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
@@ -730,19 +730,19 @@ export default function RatesAvailability() {
         // State moved to top level - using sourceYear and targetYear from component state
         
         return (
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-              <FaCopy /> Copy Yearly Rates
+          <div className="bg-white rounded-2xl border border-[#e0d5c7] shadow-sm p-6">
+            <h2 className="text-xl font-bold mb-2 flex items-center gap-2 text-[#4b2a00]">
+              <FaCopy className="text-[#a06b42]" /> Copy yearly rates
             </h2>
-            <p className="text-gray-600 mb-6">Copy rates from one year to another to save time.</p>
-            <div className="border rounded-lg p-6">
-              <div className="grid grid-cols-2 gap-4 mb-4">
+            <p className="text-sm text-[#6b5744] mb-5">Duplicate your existing rate setup from one year to another to save time.</p>
+            <div className="rounded-2xl border border-[#e0d5c7] bg-[#fdf7f0] p-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Source Year</label>
+                  <label className="block text-xs font-semibold text-[#6b5744] mb-1 uppercase tracking-wide">Source year</label>
                   <select 
                     value={sourceYear}
                     onChange={(e) => setSourceYear(Number(e.target.value))}
-                    className="w-full px-3 py-2 border rounded-lg"
+                    className="w-full px-3 py-2 border border-[#e0d5c7] rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#a06b42] focus:border-[#a06b42]"
                   >
                     {[2024, 2025, 2026, 2027].map(year => (
                       <option key={year} value={year}>{year}</option>
@@ -750,11 +750,11 @@ export default function RatesAvailability() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Target Year</label>
+                  <label className="block text-xs font-semibold text-[#6b5744] mb-1 uppercase tracking-wide">Target year</label>
                   <select 
                     value={targetYear}
                     onChange={(e) => setTargetYear(Number(e.target.value))}
-                    className="w-full px-3 py-2 border rounded-lg"
+                    className="w-full px-3 py-2 border border-[#e0d5c7] rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#a06b42] focus:border-[#a06b42]"
                   >
                     {[2025, 2026, 2027, 2028].map(year => (
                       <option key={year} value={year}>{year}</option>
@@ -764,11 +764,11 @@ export default function RatesAvailability() {
               </div>
               <button 
                 onClick={() => handleCopyYearlyRates(sourceYear, targetYear)}
-                className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                className="w-full px-4 py-2 rounded-full bg-[#a06b42] hover:bg-[#8f5a32] text-white text-sm font-semibold shadow-sm transition-colors"
               >
-                Copy Rates from {sourceYear} to {targetYear}
+                Copy rates from {sourceYear} to {targetYear}
               </button>
-              <p className="text-xs text-gray-500 mt-3">
+              <p className="text-xs text-[#8a745e] mt-3">
                 This will copy all rate settings, seasonal pricing, and restrictions from {sourceYear} to {targetYear}.
               </p>
             </div>
@@ -777,32 +777,32 @@ export default function RatesAvailability() {
 
       case 'restrictions':
         return (
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-              <FaRuler /> Dynamic Restriction Rules
+          <div className="bg-white rounded-2xl border border-[#e0d5c7] shadow-sm p-6">
+            <h2 className="text-xl font-bold mb-2 flex items-center gap-2 text-[#4b2a00]">
+              <FaRuler className="text-[#a06b42]" /> Dynamic restriction rules
             </h2>
-            <p className="text-gray-600 mb-4">Set minimum and maximum stay requirements.</p>
+            <p className="text-sm text-[#6b5744] mb-4">Set minimum and maximum stay requirements per room type.</p>
             {propertyData?.rooms?.map((room, idx) => (
-                <div key={idx} className="border rounded-lg p-4 mb-3">
-                  <h3 className="font-semibold mb-3">{room.roomType} - {room.roomNumber}</h3>
-                  <div className="grid grid-cols-3 gap-3">
+                <div key={idx} className="border border-[#e0d5c7] rounded-xl p-4 mb-3 bg-[#fdf7f0]">
+                  <h3 className="font-semibold mb-3 text-[#4b2a00] text-sm md:text-base">{room.roomType} - {room.roomNumber}</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
-                      <label className="text-xs text-gray-600">Min Stay (nights)</label>
+                      <label className="text-[11px] text-[#6b5744] block mb-1 uppercase tracking-wide">Min stay (nights)</label>
                       <input 
                         type="number" 
                         defaultValue={room.minStay || 1}
                         id={`minStay-${room._id}`}
-                        className="w-full px-2 py-1 border rounded text-sm" 
+                        className="w-full px-2 py-1 border border-[#e0d5c7] rounded text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#a06b42] focus:border-[#a06b42]" 
                         min="1" 
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-gray-600">Max Stay (nights)</label>
+                      <label className="text-[11px] text-[#6b5744] block mb-1 uppercase tracking-wide">Max stay (nights)</label>
                       <input 
                         type="number" 
                         defaultValue={room.maxStay || 30}
                         id={`maxStay-${room._id}`}
-                        className="w-full px-2 py-1 border rounded text-sm" 
+                        className="w-full px-2 py-1 border border-[#e0d5c7] rounded text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#a06b42] focus:border-[#a06b42]" 
                         min="1" 
                       />
                     </div>
@@ -813,7 +813,7 @@ export default function RatesAvailability() {
                           const maxStay = Number(document.getElementById(`maxStay-${room._id}`).value);
                           handleUpdateRestrictions(room._id, minStay, maxStay);
                         }}
-                        className="w-full px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+                        className="w-full px-3 py-1 rounded-full bg-[#a06b42] hover:bg-[#8f5a32] text-white text-xs md:text-sm font-medium shadow-sm transition-colors"
                       >
                         Update
                       </button>
@@ -826,24 +826,24 @@ export default function RatesAvailability() {
 
       case 'rate-plans':
         return (
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-              <FaMoneyBillWave /> Rate Plans
+          <div className="bg-white rounded-2xl border border-[#e0d5c7] shadow-sm p-6">
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-[#4b2a00]">
+              <FaMoneyBillWave className="text-[#a06b42]" /> Rate plans
             </h2>
             {loading ? (
-              <div className="text-center py-8">Loading...</div>
+              <div className="text-center py-8 text-sm text-[#6b5744]">Loading rate plans...</div>
             ) : (
               <div className="space-y-4">
                 {ratePlans.map((plan, idx) => (
-                  <div key={idx} className="border rounded-lg p-4">
-                    <h3 className="font-semibold">{plan.name}</h3>
-                    <p className="text-sm text-gray-600">{plan.description}</p>
-                    <p className="text-lg font-bold text-green-600 mt-2">RWF {plan.baseRate?.toLocaleString()}/night</p>
+                  <div key={idx} className="border border-[#e0d5c7] rounded-2xl p-5 bg-[#fdf7f0]">
+                    <h3 className="font-semibold text-[#4b2a00] text-sm md:text-base">{plan.name}</h3>
+                    <p className="text-sm text-[#6b5744] mt-1">{plan.description}</p>
+                    <p className="text-lg font-bold text-[#4b2a00] mt-3">RWF {plan.baseRate?.toLocaleString()}/night</p>
                     <div className="mt-3 space-y-2">
                       {plan.rooms?.map((room, ridx) => (
-                        <div key={ridx} className="text-sm flex justify-between">
+                        <div key={ridx} className="text-sm flex justify-between text-[#6b5744]">
                           <span>{room.roomType}</span>
-                          <span className="font-medium">RWF {room.rate?.toLocaleString()}</span>
+                          <span className="font-semibold text-[#4b2a00]">RWF {room.rate?.toLocaleString()}</span>
                         </div>
                       ))}
                     </div>
@@ -856,11 +856,11 @@ export default function RatesAvailability() {
 
       case 'value-adds':
         return (
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-              <FaGift /> Value Adds
+          <div className="bg-white rounded-2xl border border-[#e0d5c7] shadow-sm p-6">
+            <h2 className="text-xl font-bold mb-2 flex items-center gap-2 text-[#4b2a00]">
+              <FaGift className="text-[#a06b42]" /> Value adds
             </h2>
-            <p className="text-gray-600 mb-4">Configure extra services (add-ons) that guests can purchase in addition to the room rate.</p>
+            <p className="text-sm text-[#6b5744] mb-4">Configure extra services (add-ons) that guests can purchase in addition to the room rate.</p>
             <div className="space-y-3">
               {[
                 {
@@ -899,11 +899,11 @@ export default function RatesAvailability() {
                 const price = existing.price != null ? existing.price : opt.defaultPrice;
                 const scope = existing.scope || 'per-booking';
                 return (
-                  <div key={opt.key} className="border rounded-lg p-4">
+                  <div key={opt.key} className="border border-[#e0d5c7] rounded-2xl p-4 bg-[#fdf7f0]">
                     <div className="flex items-center justify-between mb-2">
                       <div>
-                        <h3 className="font-semibold">{opt.name}</h3>
-                        <p className="text-sm text-gray-600">{opt.description}</p>
+                        <h3 className="font-semibold text-[#4b2a00] text-sm md:text-base">{opt.name}</h3>
+                        <p className="text-sm text-[#6b5744]">{opt.description}</p>
                       </div>
                       <label className="flex items-center ml-4">
                         <input
@@ -919,9 +919,9 @@ export default function RatesAvailability() {
                         <span className="text-sm">Enable</span>
                       </label>
                     </div>
-                    <div className="mt-3 grid grid-cols-3 gap-3 text-sm">
+                    <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
                       <div>
-                        <label className="text-xs text-gray-600">Price (RWF)</label>
+                        <label className="text-xs text-[#6b5744]">Price (RWF)</label>
                         <input
                           type="number"
                           min="0"
@@ -936,7 +936,7 @@ export default function RatesAvailability() {
                         />
                       </div>
                       <div>
-                        <label className="text-xs text-gray-600">Charge Type</label>
+                        <label className="text-xs text-[#6b5744]">Charge type</label>
                         <select
                           className="w-full px-2 py-1 border rounded"
                           defaultValue={scope}
@@ -953,7 +953,7 @@ export default function RatesAvailability() {
                         </select>
                       </div>
                       <div className="flex items-end">
-                        <div className="text-xs text-gray-500">
+                        <div className="text-xs text-[#8a745e]">
                           Popular extra on many booking platforms.
                         </div>
                       </div>
@@ -965,7 +965,7 @@ export default function RatesAvailability() {
             <div className="mt-4 flex justify-end">
               <button
                 onClick={() => handleSaveAddOnServices(addOnServicesDraft)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700"
+                className="px-4 py-2 rounded-full bg-[#a06b42] hover:bg-[#8f5a32] text-white text-sm font-semibold shadow-sm transition-colors"
               >
                 Save add-on services
               </button>
@@ -1008,22 +1008,24 @@ export default function RatesAvailability() {
         };
         
         return (
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-              <FaChartLine /> Availability Planner
+          <div className="bg-white rounded-2xl border border-[#e0d5c7] shadow-sm p-6">
+            <h2 className="text-xl font-bold mb-2 flex items-center gap-2 text-[#4b2a00]">
+              <FaChartLine className="text-[#a06b42]" /> Availability planner
             </h2>
-            <p className="text-gray-600 mb-6">Plan your availability strategy for peak and off-peak seasons.</p>
+            <p className="text-sm text-[#6b5744] mb-6">Plan your availability strategy for peak and off-peak seasons.</p>
             
             {loading ? (
               <div className="text-center py-8">Loading...</div>
             ) : (
               <div className="space-y-6">
                 {/* Peak Season */}
-                <div className="border rounded-lg p-4 bg-orange-50">
-                  <h3 className="font-semibold text-lg mb-3 text-orange-800">🔥 Peak Season Strategy</h3>
+                <div className="border border-[#e0d5c7] rounded-2xl p-4 bg-[#fdf7f0]">
+                  <h3 className="font-semibold text-sm md:text-base mb-3 text-[#4b2a00] flex items-center gap-2">
+                    <span>🔥 Peak season strategy</span>
+                  </h3>
                   <div className="grid grid-cols-3 gap-3 mb-3">
                     <div>
-                      <label className="text-xs text-gray-700">Start Date</label>
+                      <label className="text-xs text-[#6b5744]">Start date</label>
                       <input 
                         type="date" 
                         value={peakSeasonStart}
@@ -1032,7 +1034,7 @@ export default function RatesAvailability() {
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-gray-700">End Date</label>
+                      <label className="text-xs text-[#6b5744]">End date</label>
                       <input 
                         type="date" 
                         value={peakSeasonEnd}
@@ -1041,7 +1043,7 @@ export default function RatesAvailability() {
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-gray-700">Rate Increase (%)</label>
+                      <label className="text-xs text-[#6b5744]">Rate increase (%)</label>
                       <input 
                         type="number" 
                         value={peakRateIncrease}
@@ -1052,15 +1054,17 @@ export default function RatesAvailability() {
                   </div>
                   <button 
                     onClick={() => addSeasonalRate('peak')}
-                    className="w-full px-3 py-2 bg-orange-600 text-white rounded hover:bg-orange-700"
+                    className="w-full px-3 py-2 rounded-full bg-[#a06b42] hover:bg-[#8f5a32] text-white text-sm font-medium shadow-sm transition-colors"
                   >
-                    Add Peak Season Period
+                    Add peak season period
                   </button>
                 </div>
 
                 {/* Off Season */}
-                <div className="border rounded-lg p-4 bg-blue-50">
-                  <h3 className="font-semibold text-lg mb-3 text-blue-800">❄️ Off-Season Strategy</h3>
+                <div className="border border-[#e0d5c7] rounded-2xl p-4 bg-[#fdf7f0]">
+                  <h3 className="font-semibold text-sm md:text-base mb-3 text-[#4b2a00] flex items-center gap-2">
+                    <span>❄️ Off-season strategy</span>
+                  </h3>
                   <div className="grid grid-cols-3 gap-3 mb-3">
                     <div>
                       <label className="text-xs text-gray-700">Start Date</label>
@@ -1081,7 +1085,7 @@ export default function RatesAvailability() {
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-gray-700">Discount (%)</label>
+                      <label className="text-xs text-[#6b5744]">Discount (%)</label>
                       <input 
                         type="number" 
                         value={offSeasonDiscount}
@@ -1092,59 +1096,59 @@ export default function RatesAvailability() {
                   </div>
                   <button 
                     onClick={() => addSeasonalRate('off')}
-                    className="w-full px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                    className="w-full px-3 py-2 rounded-full bg-[#a06b42] hover:bg-[#8f5a32] text-white text-sm font-medium shadow-sm transition-colors"
                   >
-                    Add Off-Season Period
+                    Add off-season period
                   </button>
                 </div>
 
                 {/* Occupancy Target */}
-                <div className="border rounded-lg p-4">
-                  <h3 className="font-semibold mb-3">🎯 Occupancy Target</h3>
+                <div className="border border-[#e0d5c7] rounded-2xl p-4 bg-white">
+                  <h3 className="font-semibold mb-3 text-sm md:text-base text-[#4b2a00]">🎯 Occupancy target</h3>
                   <div className="flex items-center gap-4">
-                    <label className="text-sm text-gray-700">Minimum Occupancy Goal:</label>
+                    <label className="text-sm text-[#6b5744]">Minimum occupancy goal:</label>
                     <input 
                       type="number" 
                       value={minOccupancy}
                       onChange={(e) => setMinOccupancy(Number(e.target.value))}
-                      className="px-3 py-2 border rounded w-24" 
+                      className="px-3 py-2 border border-[#e0d5c7] rounded w-24 text-sm focus:outline-none focus:ring-2 focus:ring-[#a06b42] focus:border-[#a06b42]" 
                       min="0"
                       max="100"
                     />
                     <span className="text-sm text-gray-600">%</span>
                   </div>
-                  <p className="text-xs text-gray-500 mt-2">
-                    System will suggest rate adjustments to maintain this occupancy level
+                  <p className="text-xs text-[#8a745e] mt-2">
+                    System will suggest rate adjustments to maintain this occupancy level.
                   </p>
                 </div>
 
                 {/* Active Seasonal Rates */}
-                <div className="border-t pt-4">
-                  <h3 className="font-semibold mb-3">📅 Active Seasonal Periods</h3>
+                <div className="border-t border-[#e0d5c7] pt-4">
+                  <h3 className="font-semibold mb-3 text-sm md:text-base text-[#4b2a00]">📅 Active seasonal periods</h3>
                   <div className="space-y-2">
                     {localSeasonalRates.map((rate, idx) => (
-                      <div key={idx} className={`flex items-center justify-between p-3 rounded ${rate.type === 'peak' ? 'bg-orange-50' : 'bg-blue-50'}`}>
+                      <div key={idx} className="flex items-center justify-between p-3 rounded-2xl bg-[#f5f0e8] border border-[#e0d5c7]">
                         <div>
-                          <span className="font-medium">
+                          <span className="font-medium text-[#4b2a00]">
                             {rate.type === 'peak' ? '🔥 Peak' : '❄️ Off'} Season
                           </span>
-                          <span className="text-sm text-gray-600 ml-3">
+                          <span className="text-sm text-[#6b5744] ml-3">
                             {rate.startDate} to {rate.endDate}
                           </span>
-                          <span className="text-sm font-semibold ml-3">
+                          <span className="text-sm font-semibold ml-3 text-[#4b2a00]">
                             {rate.adjustment > 0 ? '+' : ''}{rate.adjustment}%
                           </span>
                         </div>
                         <button 
                           onClick={() => removeSeasonalRate(idx)}
-                          className="text-red-600 text-sm hover:text-red-800"
+                          className="text-rose-700 text-sm hover:text-rose-800"
                         >
                           Remove
                         </button>
                       </div>
                     ))}
                     {localSeasonalRates.length === 0 && (
-                      <p className="text-sm text-gray-500 text-center py-4">No seasonal periods configured</p>
+                      <p className="text-sm text-[#8a745e] text-center py-4">No seasonal periods configured.</p>
                     )}
                   </div>
                 </div>
@@ -1152,9 +1156,9 @@ export default function RatesAvailability() {
                 {/* Save Button */}
                 <button 
                   onClick={saveStrategy}
-                  className="w-full px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold"
+                  className="w-full px-4 py-3 rounded-full bg-[#a06b42] hover:bg-[#8f5a32] text-white font-semibold shadow-sm transition-colors"
                 >
-                  Save Availability Strategy
+                  Save availability strategy
                 </button>
               </div>
             )}
@@ -1163,20 +1167,20 @@ export default function RatesAvailability() {
 
       case 'pricing-per-guest':
         return (
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-              <FaUsers /> Pricing Per Guest
+          <div className="bg-white rounded-2xl border border-[#e0d5c7] shadow-sm p-6">
+            <h2 className="text-xl font-bold mb-2 flex items-center gap-2 text-[#4b2a00]">
+              <FaUsers className="text-[#a06b42]" /> Pricing per guest
             </h2>
-            <p className="text-gray-600 mb-4">Set additional charges for extra guests and define the maximum guests allowed per room.</p>
+            <p className="text-sm text-[#6b5744] mb-4">Set additional charges for extra guests and define the maximum guests allowed per room.</p>
             {propertyData?.rooms?.map((room, idx) => (
-                <div key={idx} className="border rounded-lg p-4 mb-3">
-                  <h3 className="font-semibold mb-1">{room.roomType} - {room.roomNumber}</h3>
-                  <div className="text-xs text-gray-600 mb-3">
+                <div key={idx} className="border border-[#e0d5c7] rounded-2xl p-4 mb-3 bg-[#fdf7f0]">
+                  <h3 className="font-semibold mb-1 text-[#4b2a00] text-sm md:text-base">{room.roomType} - {room.roomNumber}</h3>
+                  <div className="text-xs text-[#6b5744] mb-3">
                     Base price per night: <span className="font-medium">{formatCurrencyRWF ? formatCurrencyRWF(room.pricePerNight || 0) : `RWF ${(room.pricePerNight || 0).toLocaleString()}`}</span>
                   </div>
-                  <div className="grid grid-cols-4 gap-3 text-sm">
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-sm">
                     <div>
-                      <label className="text-xs text-gray-600">Base Capacity</label>
+                      <label className="text-xs text-[#6b5744]">Base capacity</label>
                       <input 
                         type="number" 
                         value={room.capacity || 2} 
@@ -1185,7 +1189,7 @@ export default function RatesAvailability() {
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-gray-600">Max Guests</label>
+                      <label className="text-xs text-[#6b5744]">Max guests</label>
                       <input 
                         type="number" 
                         id={`maxGuests-${room._id}`}
@@ -1195,7 +1199,7 @@ export default function RatesAvailability() {
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-gray-600">Extra Guest Fee (RWF)</label>
+                      <label className="text-xs text-[#6b5744]">Extra guest fee (RWF)</label>
                       <input 
                         type="number" 
                         defaultValue={room.additionalGuestCharge || room.extraGuestFee || 5000}
@@ -1212,13 +1216,13 @@ export default function RatesAvailability() {
                           const maxGuestsVal = maxGuestsEl?.value !== '' ? Number(maxGuestsEl.value) : null;
                           handleUpdatePricingPerGuest(room._id, extraFee, maxGuestsVal);
                         }}
-                        className="w-full px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+                        className="w-full px-3 py-1 rounded-full bg-[#a06b42] hover:bg-[#8f5a32] text-white text-xs md:text-sm font-medium shadow-sm transition-colors"
                       >
                         Save
                       </button>
                     </div>
                   </div>
-                  <p className="text-xs text-gray-500 mt-2">
+                  <p className="text-xs text-[#8a745e] mt-2">
                     Guests beyond {room.capacity || 2} will be charged the extra guest fee per night up to the maximum guests you set.
                   </p>
                 </div>
@@ -1247,13 +1251,13 @@ export default function RatesAvailability() {
         };
         
         return (
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-              <FaGlobe /> Country Rates
+          <div className="bg-white rounded-2xl border border-[#e0d5c7] shadow-sm p-6">
+            <h2 className="text-xl font-bold mb-2 flex items-center gap-2 text-[#4b2a00]">
+              <FaGlobe className="text-[#a06b42]" /> Country rates
             </h2>
-            <p className="text-gray-600 mb-4">Set different rates for guests from specific countries or regions.</p>
+            <p className="text-sm text-[#6b5744] mb-4">Set different rates for guests from specific countries or regions.</p>
             <div className="space-y-3">
-              <div className="border rounded-lg p-4">
+              <div className="border border-[#e0d5c7] rounded-2xl p-4 bg-[#fdf7f0]">
                 <div className="grid grid-cols-3 gap-3">
                   <div>
                     <label className="text-xs text-gray-600">Country/Region</label>

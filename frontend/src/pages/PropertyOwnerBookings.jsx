@@ -328,8 +328,9 @@ const PropertyOwnerBookings = () => {
   })();
   const ownerSubtotal = ownerRoomCharge + ownerServicesTotal;
   const ownerLevy3 = Math.round(ownerSubtotal * 0.03);
-  const ownerVat18 = Math.round(ownerSubtotal * 0.18);
-  const ownerGrandTotal = ownerSubtotal + ownerLevy3 + ownerVat18;
+  // VAT removed for direct bookings – only levy applied
+  const ownerVat18 = 0;
+  const ownerGrandTotal = ownerSubtotal + ownerLevy3;
 
   const loadOwnerProperties = async () => {
     try {
@@ -484,6 +485,8 @@ const PropertyOwnerBookings = () => {
     onDirectChange('propertyId', pid);
     onDirectChange('roomId', '');
     setOwnerRooms([]);
+    // Keep dashboard filters aligned with the currently selected direct-booking property
+    setFilters(prev => ({ ...prev, property: pid || 'all' }));
     if (!pid) return;
     try {
       const res = await fetch(`${API_URL}/api/properties/${pid}`, { credentials: 'include' });
@@ -587,8 +590,8 @@ const PropertyOwnerBookings = () => {
   };
 
   const handleViewReceipt = (booking) => {
-    setSelectedBooking(booking);
-    setShowReceipt(true);
+    if (!booking?._id) return;
+    openReceiptPdf(booking._id);
   };
 
   const handleStatusChange = async (bookingId, newStatus) => {
@@ -1098,13 +1101,6 @@ const PropertyOwnerBookings = () => {
                   <FaPlus className="text-xs" />
                   <span>New booking</span>
                 </button>
-                <button
-                  onClick={() => navigate('/owner/direct-booking')}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#e0d5c7] bg-white text-[#4b2a00] text-sm hover:bg-[#fff7ef] shadow-sm transition-colors"
-                >
-                  <FaCalendarCheck className="text-xs" />
-                  <span>Direct booking</span>
-                </button>
               </div>
             </div>
 
@@ -1188,20 +1184,20 @@ const PropertyOwnerBookings = () => {
               {expandedSections.revenue && (
                 <div className="p-6 space-y-6 bg-[#fdf7f0] rounded-b-2xl">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="rounded-2xl border border-[#d6f0d9] bg-[#f0fbf2] p-5">
-                      <h3 className="text-sm font-semibold text-[#245b33] mb-2 uppercase tracking-wide">Monthly revenue</h3>
-                      <div className="text-2xl md:text-3xl font-bold text-[#1f6b3f]">{formatCurrencyRWF ? formatCurrencyRWF(stats.totalRevenue) : `RWF ${stats.totalRevenue.toLocaleString()}`}</div>
-                      <p className="text-xs text-[#2f855a] mt-1">+12% compared to last month</p>
+                    <div className="rounded-2xl border border-[#e0d5c7] bg-white p-5">
+                      <h3 className="text-sm font-semibold text-[#6b5744] mb-1 uppercase tracking-wide">Monthly revenue</h3>
+                      <div className="text-2xl md:text-3xl font-bold text-[#4b2a00]">{formatCurrencyRWF ? formatCurrencyRWF(stats.totalRevenue) : `RWF ${stats.totalRevenue.toLocaleString()}`}</div>
+                      <p className="text-xs text-[#8a745e] mt-2">Compared to last month based on confirmed stays.</p>
                     </div>
-                    <div className="rounded-2xl border border-[#d3e7ff] bg-[#eef4ff] p-5">
-                      <h3 className="text-sm font-semibold text-[#27436b] mb-2 uppercase tracking-wide">Average daily rate</h3>
-                      <div className="text-2xl md:text-3xl font-bold text-[#27436b]">{formatCurrencyRWF ? formatCurrencyRWF(Math.round(stats.totalRevenue / Math.max(stats.total, 1))) : `RWF ${Math.round(stats.totalRevenue / Math.max(stats.total, 1)).toLocaleString()}`}</div>
-                      <p className="text-xs text-[#4c6fb7] mt-1">Per booking average</p>
+                    <div className="rounded-2xl border border-[#e0d5c7] bg-white p-5">
+                      <h3 className="text-sm font-semibold text-[#6b5744] mb-1 uppercase tracking-wide">Average daily rate</h3>
+                      <div className="text-2xl md:text-3xl font-bold text-[#4b2a00]">{formatCurrencyRWF ? formatCurrencyRWF(Math.round(stats.totalRevenue / Math.max(stats.total, 1))) : `RWF ${Math.round(stats.totalRevenue / Math.max(stats.total, 1)).toLocaleString()}`}</div>
+                      <p className="text-xs text-[#8a745e] mt-2">Per booking average for the selected period.</p>
                     </div>
-                    <div className="rounded-2xl border border-[#e2d4ff] bg-[#f5f1ff] p-5">
-                      <h3 className="text-sm font-semibold text-[#4b2a7a] mb-2 uppercase tracking-wide">Occupancy</h3>
-                      <div className="text-2xl md:text-3xl font-bold text-[#4b2a7a]">{stats.occupancyRate}%</div>
-                      <p className="text-xs text-[#6b4fb0] mt-1">Current month across properties</p>
+                    <div className="rounded-2xl border border-[#e0d5c7] bg-white p-5">
+                      <h3 className="text-sm font-semibold text-[#6b5744] mb-1 uppercase tracking-wide">Occupancy</h3>
+                      <div className="text-2xl md:text-3xl font-bold text-[#4b2a00]">{stats.occupancyRate}%</div>
+                      <p className="text-xs text-[#8a745e] mt-2">Current occupancy across your active properties.</p>
                     </div>
                   </div>
                 </div>

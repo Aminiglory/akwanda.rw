@@ -90,7 +90,7 @@ const dictionaries = {
       unitDifferentiationTool: 'Unit differentiation tool',
       inbox: 'Inbox',
       reservationMessages: 'Reservation messages',
-      bookingComMessages: 'Booking.com messages',
+      bookingComMessages: 'Akwanda.rw messages',
       guestQandA: 'Guest Q&A',
       guestReviews: 'Guest reviews',
       guestExperience: 'Guest experience',

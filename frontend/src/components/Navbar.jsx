@@ -625,7 +625,12 @@ const Navbar = () => {
 
   const getNotificationLink = (n) => {
     if (!n) return '#';
-    // Route mapping by type and attached entities
+    // In owner dashboard context, always deep-link into the notifications page
+    // so the selected notification is opened/focused there instead of guest-facing routes.
+    if (isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard()) {
+      return `/notifications?open=${encodeURIComponent(n.id || n._id || '')}`;
+    }
+    // Guest/admin routes mapping by type and attached entities
     if ((n.type?.startsWith('booking') || n.type?.includes('receipt')) && (n.booking?._id || n.booking)) {
       const bid = n.booking?._id || n.booking;
       return `/booking-confirmation/${bid}`;
@@ -1403,8 +1408,8 @@ const Navbar = () => {
             </div>
           )}
 
-          {/* Owner navigation (Booking.com style) */}
-          {user?.userType === 'host' && (
+          {/* Owner navigation (Booking.com style) - only in owner dashboard context */}
+          {user?.userType === 'host' && isInPropertyOwnerDashboard() && (
             <div className="px-2 pb-2">
               {bookingComNavItems.map((item, idx) => {
                 const Icon = item.icon;
