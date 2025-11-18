@@ -643,7 +643,7 @@ const Navbar = () => {
 
   // Check if user is in property owner dashboard context
   const isInPropertyOwnerDashboard = () => {
-    const ownerRoutes = ['/dashboard', '/user-dashboard', '/my-bookings', '/upload', '/owner', '/messages'];
+    const ownerRoutes = ['/dashboard', '/user-dashboard', '/my-bookings', '/upload', '/owner', '/messages', '/notifications'];
     if (ownerRoutes.some(route => location.pathname.startsWith(route))) {
       return true;
     }
@@ -773,7 +773,7 @@ const Navbar = () => {
     <> 
       {/* Top Bar - First Level (hidden on landing page and in property owner dashboard) */}
       {location.pathname !== '/' && !(isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard()) && (
-      <div className="w-full bg-[#6b3f1f] text-white py-2 px-4 border-b border-[#5a3419] relative z-[1000]">
+      <div className="w-full bg-[#8b5a35] text-white py-2 px-4 border-b border-[#7a4d2c] relative z-[1000] shadow-sm">
         <div className="max-w-7xl mx-auto flex justify-between items-center text-xs">
           <div className="flex items-center space-x-4 lg:space-x-6">
             {/* Property Owner Links - Show when authenticated as host (only show Dashboard label in owner context) */}
@@ -938,7 +938,7 @@ const Navbar = () => {
       <nav
         className={`w-full border-b navbar-shadow ${
           isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard()
-            ? 'bg-[#6b3f1f] border-[#5a3419] text-white'
+            ? 'bg-[#8b5a35] border-[#7a4d2c] text-white'
             : 'bg-[#f5f0e8] border-[#e0d5c7]'
         }`}
       >
@@ -955,9 +955,9 @@ const Navbar = () => {
               <div className="flex items-center space-x-4">
                 <Link
                   to={user?.userType === 'host' && isInPropertyOwnerDashboard() ? "/dashboard" : "/"}
-                  className={`text-xl font-bold ${
+                  className={`text-xl font-bold tracking-tight ${
                     isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard()
-                      ? 'text-white hover:text-[#f5e9dd]'
+                      ? 'text-white hover:text-[#fdf2e9]'
                       : 'text-[#4b2a00] hover:text-[#6b3f1f]'
                   }`}
                 >

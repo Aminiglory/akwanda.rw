@@ -1593,23 +1593,29 @@ const PropertyOwnerBookings = () => {
             </div>
 
             {financeView === 'overview' && (
-              <div className="neu-card p-6">
-                <h2 className="text-xl font-semibold mb-6">Financial Overview</h2>
+              <div className="neu-card p-6 rounded-2xl border border-[#e0d5c7] bg-white">
+                <h2 className="text-xl font-semibold mb-6 text-[#4b2a00]">Financial overview</h2>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="bg-green-50 border border-green-200 rounded-xl p-6">
-                    <h3 className="text-lg font-semibold text-green-900 mb-4">Total Revenue</h3>
-                    <div className="text-3xl font-bold text-green-600">{formatCurrencyRWF ? formatCurrencyRWF(stats.totalRevenue) : `RWF ${stats.totalRevenue.toLocaleString()}`}</div>
-                    <p className="text-sm text-green-700 mt-2">All time earnings</p>
+                  <div className="rounded-2xl border border-[#e0d5c7] bg-[#fdf7f0] p-5 flex flex-col justify-between">
+                    <div>
+                      <h3 className="text-sm font-semibold text-[#6b5744] mb-1 uppercase tracking-wide">Total revenue</h3>
+                      <div className="text-2xl md:text-3xl font-bold text-[#4b2a00]">{formatCurrencyRWF ? formatCurrencyRWF(stats.totalRevenue) : `RWF ${stats.totalRevenue.toLocaleString()}`}</div>
+                    </div>
+                    <p className="text-xs text-[#8a745e] mt-2">All-time earnings across all properties.</p>
                   </div>
-                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
-                    <h3 className="text-lg font-semibold text-blue-900 mb-4">Pending Revenue</h3>
-                    <div className="text-3xl font-bold text-blue-600">{formatCurrencyRWF ? formatCurrencyRWF(stats.pendingRevenue) : `RWF ${stats.pendingRevenue.toLocaleString()}`}</div>
-                    <p className="text-sm text-blue-700 mt-2">Awaiting payout</p>
+                  <div className="rounded-2xl border border-[#e0d5c7] bg-[#fdf7f0] p-5 flex flex-col justify-between">
+                    <div>
+                      <h3 className="text-sm font-semibold text-[#6b5744] mb-1 uppercase tracking-wide">Pending revenue</h3>
+                      <div className="text-2xl md:text-3xl font-bold text-[#4b2a00]">{formatCurrencyRWF ? formatCurrencyRWF(stats.pendingRevenue) : `RWF ${stats.pendingRevenue.toLocaleString()}`}</div>
+                    </div>
+                    <p className="text-xs text-[#8a745e] mt-2">Awaiting payout from upcoming and in-house stays.</p>
                   </div>
-                  <div className="bg-purple-50 border border-purple-200 rounded-xl p-6">
-                    <h3 className="text-lg font-semibold text-purple-900 mb-4">Commission Paid</h3>
-                    <div className="text-3xl font-bold text-purple-600">{formatCurrencyRWF ? formatCurrencyRWF(Math.round(stats.totalRevenue * 0.1)) : `RWF ${Math.round(stats.totalRevenue * 0.1).toLocaleString()}`}</div>
-                    <p className="text-sm text-purple-700 mt-2">Platform fees (10%)</p>
+                  <div className="rounded-2xl border border-[#e0d5c7] bg-[#fdf7f0] p-5 flex flex-col justify-between">
+                    <div>
+                      <h3 className="text-sm font-semibold text-[#6b5744] mb-1 uppercase tracking-wide">Commission paid</h3>
+                      <div className="text-2xl md:text-3xl font-bold text-[#4b2a00]">{formatCurrencyRWF ? formatCurrencyRWF(Math.round(stats.totalRevenue * 0.1)) : `RWF ${Math.round(stats.totalRevenue * 0.1).toLocaleString()}`}</div>
+                    </div>
+                    <p className="text-xs text-[#8a745e] mt-2">Estimated platform fees based on your total revenue.</p>
                   </div>
                 </div>
               </div>
