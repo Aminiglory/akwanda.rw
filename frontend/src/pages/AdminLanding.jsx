@@ -149,7 +149,15 @@ export default function AdminLanding() {
         .filter(s => s && s.key)
         .map(s => {
           const key = s.key;
-          const title = s.title || (key === 'ourMission' ? 'Our Mission' : key === 'landingAttractions' ? 'Top Attractions' : '');
+          const title = s.title || (
+            key === 'ourMission'
+              ? 'Our Mission'
+              : key === 'landingAttractions'
+                ? 'Top Attractions'
+                : key === 'featuredDestinations'
+                  ? 'Featured destinations'
+                  : ''
+          );
           if (!title) return null; // keep backend schema happy (title is required)
           return {
             key,
