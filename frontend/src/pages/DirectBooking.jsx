@@ -67,29 +67,7 @@ const DirectBooking = () => {
   const propertyAddOns = selectedProperty?.addOnServices || [];
   const nightly = selectedRoom?.pricePerNight || selectedProperty?.pricePerNight || 0;
   const roomCharge = useMemo(() => (nights > 0 ? nightly * nights : 0), [nightly, nights]);
-  const servicesTotal = useMemo(() => {
-    if (!Array.isArray(propertyAddOns) || propertyAddOns.length === 0) return 0;
-    let total = 0;
-    const guestCount = Math.max(1, Number(form.numberOfGuests) || 1);
-    const nightsCount = Math.max(1, nights || 0);
-    propertyAddOns
-      .filter(a => a && a.enabled)
-      .forEach(addOn => {
-        const key = addOn.key;
-        const selected = !!(form.services && form.services[key]);
-        if (!selected) return;
-        const price = Number(addOn.price || 0);
-        const scope = addOn.scope || 'per-booking';
-        if (scope === 'per-night') {
-          total += price * nightsCount;
-        } else if (scope === 'per-guest') {
-          total += price * guestCount;
-        } else {
-          total += price;
-        }
-      });
-    return total;
-  }, [propertyAddOns, form.services, nights, form.numberOfGuests]);
+  const servicesTotal = 0; // Add-ons are negotiable and do not affect payment totals
   const subtotal = useMemo(() => roomCharge + servicesTotal, [roomCharge, servicesTotal]);
   const levy3 = useMemo(() => Math.round(subtotal * 0.03), [subtotal]);
   // VAT removed for direct bookings – only levy applied
@@ -275,7 +253,7 @@ const DirectBooking = () => {
               <div className="text-sm text-gray-900 font-semibold mb-2">Payment Information</div>
               <div className="text-sm text-gray-700 space-y-1">
                 <div>Room Rate: based on selected property, room and nights</div>
-                <div className="mt-2">Additional Services:</div>
+                <div className="mt-2">Additional Services (select for record only, amounts are negotiable and not added to total):</div>
                 {(!Array.isArray(propertyAddOns) || propertyAddOns.length === 0) && (
                   <div className="text-xs text-gray-500">No add-on services configured for this property.</div>
                 )}
@@ -287,6 +265,7 @@ const DirectBooking = () => {
                         .filter(k => addOn.includedItems[k])
                         .map(k => k.replace(/_/g, ' ').replace(/\s+/g, ' ').trim().replace(/^(.)/, m => m.toUpperCase()))
                     : [];
+                  const isFree = !addOn.price || Number(addOn.price) <= 0;
                   return (
                     <div key={key} className="space-y-0.5">
                       <label className="flex items-center gap-2 text-sm">
@@ -296,6 +275,9 @@ const DirectBooking = () => {
                           onChange={e => update('services', { ...(form.services || {}), [key]: e.target.checked })}
                         />
                         <span>{addOn.name}</span>
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${isFree ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'}`}>
+                          {isFree ? 'Free' : 'Paid (negotiable)'}
+                        </span>
                       </label>
                       {included.length > 0 && (
                         <div className="pl-6 text-xs text-gray-500">Includes: {included.join(', ')}</div>

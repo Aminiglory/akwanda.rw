@@ -30,7 +30,9 @@ const BookingProcess = () => {
       age: '',
       country: 'Rwanda'
     },
-    couponCode: ''
+    couponCode: '',
+    // Selected add-on services (by key). Used for information/negotiation only.
+    services: {}
   });
 
   const [currentStep, setCurrentStep] = useState(1);
@@ -72,24 +74,11 @@ const BookingProcess = () => {
     fetchProperty();
   }, [id]);
 
-  // Load available deals for this property (public endpoint)
+  // Promotions/deals UI is currently disabled from affecting price; we avoid
+  // loading or applying them to keep totals simple and transparent.
   useEffect(() => {
-    (async () => {
-      try {
-        setDealsLoading(true);
-        const res = await fetch(`${API_URL}/api/deals/property/${id}`);
-        const data = await res.json();
-        if (res.ok) {
-          setPropertyDeals(Array.isArray(data.deals) ? data.deals : []);
-        } else {
-          setPropertyDeals([]);
-        }
-      } catch (_) {
-        setPropertyDeals([]);
-      } finally {
-        setDealsLoading(false);
-      }
-    })();
+    setPropertyDeals([]);
+    setDealsLoading(false);
   }, [id]);
 
   useEffect(() => {
@@ -184,9 +173,9 @@ const BookingProcess = () => {
         groupBooking: bookingData.guests >= 4,
         groupSize: bookingData.guests,
         paymentMethod: paymentMethod,
-        totalAmount: Math.max(0, Number(finalAmount || totalPrice || 0)),
-        roomPrice: selectedRoom.pricePerNight || selectedRoom.price || 0,
-        dealId: selectedDealId || undefined
+        // Deals/discounts are not applied for now – use plain totalPrice
+        totalAmount: Math.max(0, Number(totalPrice || 0)),
+        roomPrice: selectedRoom.pricePerNight || selectedRoom.price || 0
       };
 
       const bookingRes = await fetch(`${API_URL}/api/bookings`, {
@@ -422,59 +411,11 @@ const BookingProcess = () => {
     }
   };
 
+  // Keep finalAmount equal to the simple room total; promotions/discounts removed
   useEffect(() => {
-    const applyDealIfAny = async () => {
-      if (!selectedDealId || !bookingData.checkIn || !bookingData.checkOut) {
-        setDiscount(0);
-        setFinalAmount(totalPrice || 0);
-        return;
-      }
-      try {
-        const applicableRes = await fetch(`${API_URL}/api/deals/check-applicable`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            propertyId: id,
-            checkInDate: bookingData.checkIn,
-            checkOutDate: bookingData.checkOut,
-            guests: bookingData.guests || 1,
-            rooms: 1,
-            isMobile: /Mobi|Android/i.test(navigator.userAgent)
-          })
-        });
-        const applicableData = await applicableRes.json();
-        const list = Array.isArray(applicableData.deals) ? applicableData.deals : [];
-        const found = list.find(d => d._id === selectedDealId);
-        if (!found) {
-          setDiscount(0);
-          setFinalAmount(totalPrice || 0);
-          return;
-        }
-        if (totalPrice > 0) {
-          const calcRes = await fetch(`${API_URL}/api/deals/calculate-discount`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ dealId: selectedDealId, originalPrice: totalPrice, nights: undefined })
-          });
-          const calc = await calcRes.json();
-          if (calcRes.ok) {
-            setDiscount(Number(calc.discount || 0));
-            setFinalAmount(Number(calc.finalPrice || totalPrice));
-          } else {
-            setDiscount(0);
-            setFinalAmount(totalPrice || 0);
-          }
-        } else {
-          setDiscount(0);
-          setFinalAmount(totalPrice || 0);
-        }
-      } catch {
-        setDiscount(0);
-        setFinalAmount(totalPrice || 0);
-      }
-    };
-    applyDealIfAny();
-  }, [selectedDealId, totalPrice, bookingData.checkIn, bookingData.checkOut, bookingData.guests, id]);
+    setDiscount(0);
+    setFinalAmount(totalPrice || 0);
+  }, [totalPrice]);
 
   // FIX: Improved room selection handler with proper room data normalization and toggle behavior
   const handleRoomSelect = (room) => {

@@ -126,8 +126,8 @@ const PropertyOwnerBookings = () => {
 
   const openReceiptPdf = (bookingId) => {
     if (!bookingId) return;
-    const url = `${API_URL}/api/bookings/${bookingId}/receipt?format=pdf`;
-    // Open directly in browser PDF viewer; built-in print dialog can be used there
+    // Use the React Receipt page, which will call window.print() once loaded
+    const url = `/receipt/${bookingId}`;
     window.open(url, '_blank', 'noopener,noreferrer');
   };
 
@@ -187,19 +187,14 @@ const PropertyOwnerBookings = () => {
     }
   };
 
-  // Sales confirmation flow before printing receipt
+  // Sales confirmation flow kept for analytics, but printing now happens directly
   const onConfirmSalesAndPrint = async () => {
     try {
       if (salesNewBooking) {
-        // Ensure analytics tab is active to review
         setActiveTab('analytics');
         setAnalyticsView('sales');
-        // Reflect immediately in UI without waiting network
         setBookings(prev => [salesNewBooking, ...prev]);
-        // Refresh data in background
         loadData();
-        // Open receipt PDF in the in-page overlay (preview first, then print)
-        openReceiptPdf(salesNewBooking._id);
       }
     } finally {
       setShowSalesConfirm(false);
@@ -522,8 +517,8 @@ const PropertyOwnerBookings = () => {
       toast.success('Direct booking recorded');
       setShowDirectBooking(false);
       if (data?.booking) {
-        setSalesNewBooking(data.booking);
-        setShowSalesConfirm(true); // require sales confirmation before printing
+        // Immediately open printable receipt; the page will invoke window.print()
+        openReceiptPdf(data.booking._id);
       }
     } catch (e) {
       toast.error(e.message);
