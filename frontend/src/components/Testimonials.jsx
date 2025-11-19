@@ -214,7 +214,7 @@ export default function Testimonials() {
                         </div>
 
                         {/* Testimonial Text */}
-                        <p className="text-gray-700 mb-6 leading-relaxed">
+                        <p className="text-gray-700 mb-6 leading-relaxed text-sm md:text-base break-words">
                           "{testimonial.content || testimonial.text}"
                         </p>
 
@@ -256,7 +256,7 @@ export default function Testimonials() {
             <h3 className="text-2xl font-bold mb-4 high-contrast-text">Ready to Join Our Community?</h3>
             <p className="medium-contrast-text mb-6 text-base">Whether you're looking for a place to stay or want to earn from your space, AKWANDA.rw is here for you.</p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link to="/apartments" className="modern-btn text-center">Find an Apartment</Link>
+              <Link to="/apartments" className="modern-btn text-center">Find Properties</Link>
               <Link to={user ? "/upload-property" : "/register"} className="bg-white high-contrast-text px-8 py-3 rounded-xl font-semibold hover:bg-gray-100 shadow-md hover:shadow-lg transition-all duration-300 text-center">
                 {user ? "List Your Property" : "Sign Up to Host"}
               </Link>

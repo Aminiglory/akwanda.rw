@@ -376,6 +376,59 @@ export default function AdminLanding() {
               );
             })()}
           </div>
+          <div className="bg-white rounded-xl shadow p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-semibold text-gray-900">Featured Destinations</h2>
+              <span className="text-xs text-gray-500">Key: featuredDestinations</span>
+            </div>
+            {(() => {
+              const sec = getSectionByKey('featuredDestinations') || { key: 'featuredDestinations', title: '', body: '', images: [] };
+              return (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm text-gray-700 mb-1">Section Title</label>
+                      <input
+                        value={sec.title || ''}
+                        onChange={e => setSectionByKey('featuredDestinations', { ...sec, title: e.target.value })}
+                        className="w-full px-3 py-2 rounded-lg bg-white shadow-sm ring-0 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Featured destinations"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-700 mb-1">Destinations (one per line: City | Tagline)</label>
+                      <textarea
+                        value={sec.body || ''}
+                        onChange={e => setSectionByKey('featuredDestinations', { ...sec, body: e.target.value })}
+                        className="w-full px-3 py-2 h-[92px] rounded-lg bg-white shadow-sm ring-1 ring-gray-200 ring-inset focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder={"Kigali | City lights, hills and vibrant cultural spots\nMusanze | Gateway to gorilla trekking and volcanic peaks"}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-700 mb-1">Destination Images</label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                      {(sec.images || []).map((img, i) => (
+                        <div key={i} className="relative w-full aspect-video rounded-lg overflow-hidden bg-gray-100">
+                          <img src={(img||'').startsWith('http') ? img : `${API_URL}${img}`} className="w-full h-full object-cover" />
+                          <button type="button" className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-red-600 text-white shadow flex items-center justify-center" onClick={() => setSectionByKey('featuredDestinations', { ...sec, images: (sec.images||[]).filter((_, idx)=> idx!==i) })}>×</button>
+                        </div>
+                      ))}
+                      <label className="flex items-center justify-center border-2 border-dashed border-gray-300 rounded-lg h-28 cursor-pointer bg-white">
+                        <input type="file" className="hidden" accept="image/*" multiple onChange={async e => {
+                          try {
+                            const paths = await uploadAssets(e.target.files);
+                            setSectionByKey('featuredDestinations', { ...sec, images: [...(sec.images||[]), ...paths] });
+                          } catch (err) { toast.error(err.message); }
+                        }} />
+                        <span className="text-sm text-gray-600">Add images</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
 
           {/* Landing Attractions CMS */}
           <div className="bg-white rounded-xl shadow p-5">
