@@ -214,7 +214,7 @@ export default function Testimonials() {
                         </div>
 
                         {/* Testimonial Text */}
-                        <p className="text-gray-700 mb-6 leading-relaxed text-sm md:text-base break-words">
+                        <p className="text-gray-700 mb-6 leading-relaxed text-sm md:text-base break-words whitespace-normal max-w-full">
                           "{testimonial.content || testimonial.text}"
                         </p>
 

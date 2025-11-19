@@ -61,8 +61,6 @@ const Home = () => {
         <SearchSection />
         <FeaturedApartments />
         <LandingAttractions />
-        <HowItWorks />
-        <OurMission />
 
         {featuredCards.length > 0 && (
           <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -109,6 +107,9 @@ const Home = () => {
             </div>
           </section>
         )}
+
+        <HowItWorks />
+        <OurMission />
 
         {/* Partners strip (static logos) */}
         <section className="bg-[#fff7ee] border-y theme-chocolate-border">
