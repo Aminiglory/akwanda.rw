@@ -46,7 +46,7 @@ export default function LandingAttractions() {
         {cards.map((c, i) => (
           <article
             key={i}
-            className="group relative rounded-2xl overflow-hidden bg-white/90 border theme-chocolate-border shadow-sm hover:shadow-2xl focus-within:shadow-2xl transform hover:-translate-y-1.5 transition-all duration-500 backdrop-blur-sm"
+            className="group relative rounded-2xl overflow-hidden bg-white border theme-chocolate-border shadow-sm hover:shadow-2xl focus-within:shadow-2xl transform hover:-translate-y-1.5 transition-all duration-500"
           >
             <figure className="relative aspect-[4/3] overflow-hidden">
               <img
@@ -57,7 +57,7 @@ export default function LandingAttractions() {
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/35 to-transparent opacity-80 group-hover:opacity-95 transition-opacity duration-500" aria-hidden="true"></div>
               <figcaption className="absolute inset-x-3 bottom-3 flex flex-col gap-1">
-                <span className="inline-flex items-center px-3 py-1.5 rounded-full bg-white/95 text-[#4b2a00] text-xs sm:text-sm font-semibold shadow">
+                <span className="inline-flex items-center px-3 py-1.5 rounded-full bg-white text-[#4b2a00] text-xs sm:text-sm font-semibold shadow">
                   {c.title}
                 </span>
                 <span className="text-[11px] sm:text-xs text-white/80 tracking-wide uppercase">

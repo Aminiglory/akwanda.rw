@@ -616,7 +616,7 @@ export default function AdminLanding() {
             <div className="mt-4">
               <label className="block text-sm text-gray-700 mb-1">Section Image</label>
               <div
-                className="relative rounded-xl bg-gray-50 p-3 flex items-center gap-3"
+                className="relative rounded-xl bg-white p-3 flex items-center gap-3 border border-gray-200"
                 onDragOver={e => e.preventDefault()}
                 onDrop={async e => {
                   e.preventDefault();

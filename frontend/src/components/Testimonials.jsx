@@ -148,7 +148,7 @@ export default function Testimonials() {
   if (!loading && items.length === 0) return null;
 
   return (
-    <div className="bg-gray-50 py-16 px-4">
+    <div className="bg-white py-16 px-4">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold text-gray-800 mb-4">
@@ -201,8 +201,8 @@ export default function Testimonials() {
                         style={{ transitionDelay: `${idx * 80}ms` }}
                       >
                         <div className="absolute inset-0 -z-10">
-                          <div className="absolute inset-0 translate-x-2 translate-y-2 rounded-xl bg-[#f3ede6]"></div>
-                          <div className="absolute inset-0 translate-x-4 translate-y-4 rounded-xl bg-[#e9dfd5]"></div>
+                          <div className="absolute inset-0 translate-x-2 translate-y-2 rounded-xl bg-white"></div>
+                          <div className="absolute inset-0 translate-x-4 translate-y-4 rounded-xl bg-white"></div>
                         </div>
                         <div className="absolute top-4 right-4 text-[#a06b42]/30">
                           <FaQuoteLeft className="text-2xl" />
@@ -252,12 +252,20 @@ export default function Testimonials() {
         </div>
         {/* Call to Action */}
         <div className="text-center mt-12">
-          <div className="chocolate-gradient rounded-2xl p-8 shadow-lg">
-            <h3 className="text-2xl font-bold mb-4 high-contrast-text">Ready to Join Our Community?</h3>
-            <p className="medium-contrast-text mb-6 text-base">Whether you're looking for a place to stay or want to earn from your space, AKWANDA.rw is here for you.</p>
+          <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-200">
+            <h3 className="text-2xl font-bold mb-4 text-gray-900">Ready to Join Our Community?</h3>
+            <p className="text-gray-700 mb-6 text-base">Whether you're looking for a place to stay or want to earn from your space, AKWANDA.rw is here for you.</p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link to="/apartments" className="modern-btn text-center">Find Properties</Link>
-              <Link to={user ? "/upload-property" : "/register"} className="bg-white high-contrast-text px-8 py-3 rounded-xl font-semibold hover:bg-gray-100 shadow-md hover:shadow-lg transition-all duration-300 text-center">
+              <Link
+                to="/apartments"
+                className="px-8 py-3 rounded-xl font-semibold bg-blue-600 text-white hover:bg-blue-700 shadow-md hover:shadow-lg transition-all duration-300 text-center"
+              >
+                Find Properties
+              </Link>
+              <Link
+                to={user ? "/upload-property" : "/register"}
+                className="bg-white text-gray-900 px-8 py-3 rounded-xl font-semibold hover:bg-gray-100 shadow-md hover:shadow-lg transition-all duration-300 text-center border border-gray-200"
+              >
                 {user ? "List Your Property" : "Sign Up to Host"}
               </Link>
             </div>
