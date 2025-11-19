@@ -27,26 +27,59 @@ const Home = () => {
 
         {/* Featured Destinations (static content) */}
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <h2 className="text-2xl md:text-3xl font-bold text-[#4b2a00] mb-6">{t ? t('home.featuredDestinations') : 'Featured destinations'}</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+          <div className="flex items-center justify-between mb-6 gap-4">
+            <h2 className="text-2xl md:text-3xl font-bold text-[#4b2a00]">{t ? t('home.featuredDestinations') : 'Featured destinations'}</h2>
+            <a
+              href="/apartments"
+              className="hidden sm:inline-flex items-center text-sm font-medium text-[#a06b42] hover:text-[#8f5a32] hover:underline"
+            >
+              {t ? t('home.explore') : 'Explore'}
+            </a>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 md:gap-6">
             {[{
-              name: 'Kigali', img: 'https://images.unsplash.com/photo-1542038382126-77ae2819338e?q=80&w=1200&auto=format&fit=crop'
-            },{
-              name: 'Musanze', img: 'https://images.unsplash.com/photo-1521292270410-a8c4d716d518?q=80&w=1200&auto=format&fit=crop'
-            },{
-              name: 'Gisenyi', img: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?q=80&w=1200&auto=format&fit=crop'
-            },{
-              name: 'Huye', img: 'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?q=80&w=1200&auto=format&fit=crop'
+              name: 'Kigali',
+              tagline: 'City lights, hills and vibrant cultural spots',
+              img: 'https://images.unsplash.com/photo-1564769625420-5f4e2f98b9ec?q=80&w=1400&auto=format&fit=crop'
+            }, {
+              name: 'Musanze',
+              tagline: 'Gateway to gorilla trekking and volcanic peaks',
+              img: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=1400&auto=format&fit=crop'
+            }, {
+              name: 'Gisenyi',
+              tagline: 'Lake Kivu beaches, boats and golden sunsets',
+              img: 'https://images.unsplash.com/photo-1500375592092-40eb2168fd21?q=80&w=1400&auto=format&fit=crop'
+            }, {
+              name: 'Huye',
+              tagline: 'Heritage museums, campuses and quiet gardens',
+              img: 'https://images.unsplash.com/photo-1484821582734-6c6c9f99a672?q=80&w=1400&auto=format&fit=crop'
             }].map((d, i) => (
-              <div key={i} className="group rounded-xl overflow-hidden border theme-chocolate-border bg-white">
-                <div className="aspect-video overflow-hidden">
-                  <img src={d.img} alt={d.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+              <a
+                key={i}
+                href="/apartments"
+                className="group relative rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 bg-gray-900/80"
+              >
+                <div className="relative aspect-[4/5] sm:aspect-[4/5] overflow-hidden">
+                  <img
+                    src={d.img}
+                    alt={d.name}
+                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    loading="lazy"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent" />
+                  <div className="absolute top-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold bg-white/90 text-[#4b2a00] shadow-sm">
+                    #{i + 1} Rwanda getaways
+                  </div>
+                  <div className="absolute bottom-3 left-3 right-3 flex flex-col gap-1">
+                    <h3 className="text-lg sm:text-xl font-bold text-white drop-shadow-md">{d.name}</h3>
+                    <p className="text-xs sm:text-sm text-white/80 line-clamp-2">{d.tagline}</p>
+                    <span className="mt-2 inline-flex items-center text-xs sm:text-sm font-semibold text-white/90">
+                      {t ? t('home.explore') : 'Explore'}
+                      <span className="ml-1 group-hover:translate-x-0.5 transition-transform">→</span>
+                    </span>
+                  </div>
                 </div>
-                <div className="p-3 flex items-center justify-between">
-                  <div className="font-semibold text-[#4b2a00]">{d.name}</div>
-                  <a href="/apartments" className="text-sm theme-chocolate-text hover:underline">{t ? t('home.explore') : 'Explore'}</a>
-                </div>
-              </div>
+              </a>
             ))}
           </div>
         </section>

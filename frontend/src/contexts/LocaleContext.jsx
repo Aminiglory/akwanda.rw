@@ -232,6 +232,11 @@ const dictionaries = {
       listCtaSubtitle: 'Reach guests faster with our owner tools and promotions.',
       getStarted: 'Get started'
     },
+    // Generic CTAs (used on landing sections like Our Mission)
+    cta: {
+      learnMore: 'Learn more',
+      contactUs: 'Contact us'
+    },
     featured: {
       title: 'Featured Properties',
       subtitle: 'Discover our most popular and highly-rated stays',
