@@ -133,7 +133,8 @@ const PropertyOwnerBookings = () => {
 
   const openInvoicePdf = (bookingId) => {
     if (!bookingId) return;
-    const url = `${API_URL}/api/bookings/${bookingId}/invoice?format=pdf`;
+    // Use the React Invoice page for preview; user can print from there
+    const url = `/invoice/${bookingId}`;
     window.open(url, '_blank', 'noopener,noreferrer');
   };
 

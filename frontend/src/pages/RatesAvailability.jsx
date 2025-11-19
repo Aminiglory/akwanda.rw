@@ -878,7 +878,7 @@ export default function RatesAvailability() {
               <FaGift className="text-[#a06b42]" /> Value adds
             </h2>
             <p className="text-sm text-[#6b5744] mb-5">
-              Offer additional services to enhance guest experience and generate more revenue.
+              Configure which additional services are available for this property. Prices are negotiable and handled outside the system.
             </p>
             <div className="space-y-3 mt-4">
               {(addOnCatalog.length ? addOnCatalog : [
@@ -902,7 +902,7 @@ export default function RatesAvailability() {
                           <p className="text-sm text-[#6b5744]">{opt.description}</p>
                         )}
                         <p className="text-[11px] text-[#8a745e] mt-1">
-                          Configure price, charge type, and which items are included for this property.
+                          Turn services on or off and specify which items are actually offered at this property.
                         </p>
                       </div>
                       <label className="flex items-center ml-0 sm:ml-4">
@@ -926,59 +926,7 @@ export default function RatesAvailability() {
                         <span className="text-sm">Enable</span>
                       </label>
                     </div>
-                    <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
-                      <div>
-                        <label className="text-xs text-[#6b5744]">Price (RWF)</label>
-                        <input
-                          type="number"
-                          min="0"
-                          defaultValue={price}
-                          className="w-full px-2 py-1 border rounded"
-                          onBlur={(e) => {
-                            const val = Number(e.target.value || 0);
-                            const next = addOnServicesDraft.filter(s => s.key !== opt.key);
-                            next.push({
-                              key: opt.key,
-                              name: opt.name,
-                              enabled,
-                              price: val,
-                              scope,
-                              includedItems: selectedItems
-                            });
-                            setAddOnServicesDraft(next);
-                          }}
-                        />
-                      </div>
-                      <div>
-                        <label className="text-xs text-[#6b5744]">Charge type</label>
-                        <select
-                          className="w-full px-2 py-1 border rounded"
-                          defaultValue={scope}
-                          onChange={(e) => {
-                            const nextScope = e.target.value;
-                            const next = addOnServicesDraft.filter(s => s.key !== opt.key);
-                            next.push({
-                              key: opt.key,
-                              name: opt.name,
-                              enabled,
-                              price,
-                              scope: nextScope,
-                              includedItems: selectedItems
-                            });
-                            setAddOnServicesDraft(next);
-                          }}
-                        >
-                          <option value="per-booking">Per booking</option>
-                          <option value="per-night">Per night</option>
-                          <option value="per-guest">Per guest</option>
-                        </select>
-                      </div>
-                      <div className="flex items-end">
-                        <div className="text-xs text-[#8a745e]">
-                          Popular extra on many booking platforms.
-                        </div>
-                      </div>
-                    </div>
+                    {/* Pricing and charge type fields intentionally hidden: add-ons are negotiable and do not show fixed values here. */}
                     {Array.isArray(opt.includedItems) && opt.includedItems.length > 0 && (
                       <div className="mt-3 border-t border-[#e0d5c7] pt-2">
                         <div className="text-[11px] text-[#6b5744] font-semibold mb-1 uppercase tracking-wide">

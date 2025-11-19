@@ -566,66 +566,73 @@ router.get('/:id/invoice', requireAuth, async (req, res) => {
   }
 });
 
-// Receipt endpoint (PDF with 3% hospitality levy)
+// Receipt endpoint - JSON payload for SPA receipt views
 router.get('/:id/receipt', requireAuth, async (req, res) => {
   try {
-    const b = await Booking.findById(req.params.id).populate('property').populate('guest');
+    const b = await Booking.findById(req.params.id)
+      .populate('property')
+      .populate('guest', 'firstName lastName email phone');
     if (!b) return res.status(404).json({ message: 'Booking not found' });
+
     const isOwner = b.property && String(b.property.host) === String(req.user.id);
     const isGuest = String(b.guest?._id || b.guest) === String(req.user.id);
     const isAdmin = req.user.userType === 'admin';
     if (!isOwner && !isGuest && !isAdmin) return res.status(403).json({ message: 'Unauthorized' });
 
-    const subtotal = Number(b.totalAmount || 0);
-    const levy = Math.round(subtotal * 0.03); // 3% hospitality levy
-    const total = subtotal + levy;
+    const amountBeforeTax = Number(b.amountBeforeTax != null ? b.amountBeforeTax : b.totalAmount || 0);
+    const taxRate = Number(b.taxRate != null ? b.taxRate : 3);
+    const taxAmount = Number(b.taxAmount != null
+      ? b.taxAmount
+      : Math.round((amountBeforeTax * taxRate) / (100 + taxRate))
+    );
+    const totalAmount = Number(b.totalAmount || amountBeforeTax || 0);
+    const commissionAmount = Number(b.commissionAmount || 0);
+    const discountApplied = Number(b.discountAmount || 0);
 
-    const doc = new PDFDocument({ margin: 50 });
-    const filename = `receipt-${b.confirmationCode || b._id}.pdf`;
+    const checkIn = b.checkIn ? new Date(b.checkIn) : null;
+    const checkOut = b.checkOut ? new Date(b.checkOut) : null;
+    let nights = 0;
+    if (checkIn && checkOut && !isNaN(checkIn.getTime()) && !isNaN(checkOut.getTime())) {
+      nights = Math.max(1, Math.round((checkOut - checkIn) / (1000 * 60 * 60 * 24)));
+    }
 
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+    const receipt = {
+      bookingId: String(b._id),
+      confirmationCode: b.confirmationCode || String(b._id),
+      status: b.status,
+      guests: b.numberOfGuests || 1,
+      createdAt: b.createdAt || new Date(),
+      dates: {
+        checkIn: b.checkIn,
+        checkOut: b.checkOut,
+        nights,
+      },
+      property: {
+        title: b.property?.title || '',
+        address: b.property?.address || '',
+        city: b.property?.city || '',
+      },
+      guest: {
+        name: `${b.guest?.firstName || ''} ${b.guest?.lastName || ''}`.trim(),
+        email: b.guest?.email || '',
+        phone: b.guest?.phone || '',
+      },
+      pricing: {
+        amountBeforeTax,
+        discountApplied,
+        taxRate,
+        taxAmount,
+        totalAmount,
+        commissionAmount,
+      },
+      payment: {
+        method: b.paymentMethod || 'cash',
+        status: b.paymentStatus || 'pending',
+        transactionId: b.paymentTransactionId || '',
+      },
+    };
 
-    doc.pipe(res);
-
-    // Header
-    doc.fontSize(18).text('AKWANDA.rw', { align: 'left' });
-    doc.moveDown(0.2);
-    doc.fontSize(14).text('Payment Receipt', { align: 'left' });
-    doc.moveDown();
-
-    doc.fontSize(10);
-    doc.text(`Receipt #: ${b.confirmationCode || b._id}`);
-    doc.text(`Date: ${new Date(b.createdAt).toLocaleDateString()}`);
-    doc.moveDown();
-
-    // Booking details
-    doc.fontSize(12).text('Booking details', { underline: true });
-    doc.moveDown(0.3);
-    doc.fontSize(10);
-    doc.text(`Property: ${b.property?.title || ''}`);
-    doc.text(`Guest: ${(b.guest?.firstName || '')} ${(b.guest?.lastName || '')}`.trim());
-    doc.text(`Check-in: ${new Date(b.checkIn).toLocaleDateString()}`);
-    doc.text(`Check-out: ${new Date(b.checkOut).toLocaleDateString()}`);
-    doc.text(`Guests: ${b.numberOfGuests || 1}`);
-    doc.moveDown();
-
-    // Payment breakdown
-    doc.fontSize(12).text('Payment breakdown', { underline: true });
-    doc.moveDown(0.3);
-    doc.fontSize(10);
-    doc.text(`Subtotal: RWF ${subtotal.toLocaleString()}`);
-    doc.text(`Hospitality levy (3%): RWF ${levy.toLocaleString()}`);
-    doc.text(`Total: RWF ${total.toLocaleString()}`);
-    doc.moveDown();
-
-    doc.text(`Payment method: ${b.paymentMethod || 'N/A'}`);
-    doc.text(`Payment status: ${b.paymentStatus || 'pending'}`);
-    doc.moveDown();
-
-    doc.text('Thank you for your booking!', { align: 'left' });
-
-    doc.end();
+    return res.json({ receipt });
   } catch (error) {
     console.error('Receipt generation error:', error);
     return res.status(500).json({ message: 'Failed to generate receipt' });

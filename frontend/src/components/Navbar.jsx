@@ -960,7 +960,7 @@ const Navbar = () => {
               {/* Logo */}
               <div className="flex items-center space-x-4">
                 <Link
-                  to={user?.userType === 'host' && isInPropertyOwnerDashboard() ? "/dashboard" : "/"}
+                  to="/"
                   className={`text-xl font-bold tracking-tight ${
                     isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard()
                       ? 'text-white hover:text-[#fdf2e9]'
@@ -1332,7 +1332,7 @@ const Navbar = () => {
 
             {/* Owner navigation (Booking.com style) in second navbar */}
             {isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard() && (
-              <div className="w-full flex flex-wrap items-center gap-1 pt-1 border-t border-[#e0d5c7] mt-1">
+              <div className="w-full flex flex-wrap items-center gap-1 pt-1 mt-1">
                 {bookingComNavItems.map((item, idx) => {
                   const Icon = item.icon;
                   const isOpen = activeDropdown === item.label;
