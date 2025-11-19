@@ -203,8 +203,6 @@ const Navbar = () => {
         { label: labelOr('nav.viewDescriptions', 'View your descriptions'), href: '/owner/property?view=descriptions', icon: FaFileAlt },
         { label: labelOr('nav.messagingPreferences', 'Messaging preferences'), href: '/settings?tab=messaging', icon: FaEnvelope },
         { label: labelOr('nav.photos', 'Property photos'), href: '/owner/property?view=photos', icon: FaImages },
-        { label: labelOr('nav.manageCars', 'Manage cars'), href: '/owner/cars', icon: FaCar },
-        { label: labelOr('nav.manageAttractions', 'Manage attractions'), href: '/owner/attractions', icon: FaUmbrellaBeach },
       ]
     },
     {
