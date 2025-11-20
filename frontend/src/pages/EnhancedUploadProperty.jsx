@@ -125,6 +125,7 @@ const EnhancedUploadProperty = () => {
   const [addrQuery, setAddrQuery] = useState('');
   const [addrSuggestions, setAddrSuggestions] = useState([]);
   const [addrLoading, setAddrLoading] = useState(false);
+  const [hasLocalDraft, setHasLocalDraft] = useState(false);
   const [autoUpdateAddressFromMap, setAutoUpdateAddressFromMap] = useState(true);
   const [locationError, setLocationError] = useState(null);
   const [isReverseGeocoding, setIsReverseGeocoding] = useState(false);
@@ -196,6 +197,7 @@ const EnhancedUploadProperty = () => {
         if (Array.isArray(parsed?.rooms)) setRooms(parsed.rooms);
         if (Array.isArray(parsed?.images)) setImages(parsed.images);
         if (Number.isInteger(parsed?.currentStep)) setCurrentStep(parsed.currentStep);
+        setHasLocalDraft(true);
       }
     } catch (_) {}
   }, [isEditing]);
@@ -277,6 +279,95 @@ const EnhancedUploadProperty = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const clearLocalDraft = () => {
+    try {
+      localStorage.removeItem('listing_draft_v1');
+    } catch (_) {}
+    setHasLocalDraft(false);
+  };
+
+  const resetWizardToBlank = () => {
+    setFormData({
+      title: '',
+      description: '',
+      address: '',
+      city: '',
+      pricePerNight: '',
+      bedrooms: 1,
+      bathrooms: 1,
+      size: '',
+      amenities: [],
+      category: 'apartment',
+      groupBookingEnabled: false,
+      groupBookingDiscount: 0,
+      commissionRate: 10,
+      visibilityLevel: 'standard',
+      featuredUntil: '',
+      ratePlanNonRefundable: false,
+      ratePlanFreeCancellation: true,
+      minStayNights: 1,
+      cancellationWindowDays: 1,
+      prepaymentRequired: false,
+      depositPercent: 0,
+      checkinTime: '14:00',
+      checkoutTime: '11:00',
+      smokingAllowed: false,
+      petsAllowed: false,
+      localTaxPercent: 0,
+      cleaningFee: 0,
+      verificationMethod: 'later',
+      unitMode: 'one',
+      unitCount: 1,
+      country: 'Rwanda',
+      latitude: null,
+      longitude: null,
+    });
+    setRooms([]);
+    setImages([]);
+    setCurrentStep(1);
+  };
+
+  const navigateAfterCancel = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/properties/my-properties`, { credentials: 'include' });
+      const data = await res.json().catch(() => ({}));
+      const count = Array.isArray(data.properties) ? data.properties.length : 0;
+      if (count <= 1) navigate('/dashboard');
+      else navigate('/my-properties');
+    } catch (_) {
+      navigate('/dashboard');
+    }
+  };
+
+  const handleCancelDraft = async () => {
+    if (!window.confirm('Cancel this listing and leave the wizard?')) return;
+    clearLocalDraft();
+    resetWizardToBlank();
+    await navigateAfterCancel();
+  };
+
+  const handleCancelExistingListing = async () => {
+    if (!editId) {
+      return handleCancelDraft();
+    }
+    if (!window.confirm('This will close your listing and stop new bookings. Continue?')) return;
+    try {
+      const res = await fetch(`${API_URL}/api/properties/${editId}/toggle-status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ isActive: false }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || 'Failed to cancel listing');
+      toast.success('Listing closed successfully');
+    } catch (e) {
+      toast.error(e.message || 'Failed to cancel listing');
+      return;
+    }
+    await navigateAfterCancel();
   };
 
   const updateLocationFromMap = async (lat, lng) => {
@@ -653,13 +744,28 @@ const EnhancedUploadProperty = () => {
           </div>
 
           <div className="mb-6">
-            <div className="w-full bg-gray-100 rounded-full h-2">
-              <div className="bg-[#a06b42] h-2 rounded-full" style={{ width: `${Math.round((currentStep-1)/(totalSteps-1)*100)}%` }}></div>
-            </div>
-            <div className="mt-2 text-sm text-gray-600">Step {currentStep} of {totalSteps}</div>
-          </div>
+            {!isEditing && hasLocalDraft && (
+              <div className="mb-4 p-3 border border-blue-200 bg-blue-50 rounded-lg flex flex-col md:flex-row md:items-center md:justify-between gap-2 text-sm">
+                <span>We found an unfinished listing. What would you like to do?</span>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setHasLocalDraft(false)}
+                    className={`px-3 py-2 rounded-lg text-sm ${secondaryBtn}`}
+                  >
+                    Continue saved listing
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { clearLocalDraft(); resetWizardToBlank(); }}
+                    className={`px-3 py-2 rounded-lg text-sm ${primaryBtn}`}
+                  >
+                    Start new listing
+                  </button>
+                </div>
+              </div>
+            )}
 
-          <form onSubmit={handleSubmit} className="space-y-8">
             {currentStep === 1 && (
               <div className="space-y-6">
                 <h2 className="text-xl font-semibold text-gray-900 border-b pb-2">Contact details</h2>
@@ -1001,17 +1107,51 @@ const EnhancedUploadProperty = () => {
           {/* Footer Controls */}
           <div className="flex items-center justify-between space-x-2 md:space-x-4 pt-6 border-t">
             <div className="flex items-center gap-2">
-              <button type="button" onClick={prevStep} disabled={currentStep===1} className={`px-3 py-2 md:px-6 md:py-3 rounded-lg text-sm md:text-base disabled:opacity-50 ${secondaryBtn}`}>Back</button>
-              <button type="button" onClick={saveDraftLocal} className={`px-3 py-2 md:px-6 md:py-3 rounded-lg text-sm md:text-base ${secondaryBtn}`}>Save draft</button>
+              <button
+                type="button"
+                onClick={prevStep}
+                disabled={currentStep===1}
+                className={`px-3 py-2 md:px-6 md:py-3 rounded-lg text-sm md:text-base disabled:opacity-50 ${secondaryBtn}`}
+              >
+                Back
+              </button>
+              <button
+                type="button"
+                onClick={saveDraftLocal}
+                className={`px-3 py-2 md:px-6 md:py-3 rounded-lg text-sm md:text-base ${secondaryBtn}`}
+              >
+                Save draft
+              </button>
             </div>
-            {currentStep < totalSteps && (
-              <button type="button" onClick={nextStep} className={`px-3 py-2 md:px-6 md:py-3 rounded-lg text-sm md:text-base ${primaryBtn}`}>Next</button>
-            )}
-            {currentStep === totalSteps && (
-              <button type="submit" disabled={loading || uploading} className={`px-3 py-2 md:px-6 md:py-3 rounded-lg text-sm md:text-base ${primaryBtn} disabled:opacity-50`}>{loading ? (isEditing ? 'Saving…' : 'Publishing…') : (isEditing ? 'Save Changes' : 'Publish Property')}</button>
-            )}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={isEditing ? handleCancelExistingListing : handleCancelDraft}
+                className="px-3 py-2 md:px-6 md:py-3 rounded-lg text-sm md:text-base border border-red-300 text-red-700 hover:bg-red-50"
+              >
+                Cancel listing
+              </button>
+              {currentStep < totalSteps && (
+                <button
+                  type="button"
+                  onClick={nextStep}
+                  className={`px-3 py-2 md:px-6 md:py-3 rounded-lg text-sm md:text-base ${primaryBtn}`}
+                >
+                  Next
+                </button>
+              )}
+              {currentStep === totalSteps && (
+                <button
+                  type="submit"
+                  disabled={loading || uploading}
+                  className={`px-3 py-2 md:px-6 md:py-3 rounded-lg text-sm md:text-base ${primaryBtn} disabled:opacity-50`}
+                >
+                  {loading ? (isEditing ? 'Saving…' : 'Publishing…') : (isEditing ? 'Save Changes' : 'Publish Property')}
+                </button>
+              )}
+            </div>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   </div>
