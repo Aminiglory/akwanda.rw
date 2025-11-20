@@ -1,5 +1,6 @@
 const { Router } = require('express');
 const jwt = require('jsonwebtoken');
+const PDFDocument = require('pdfkit');
 const Booking = require('../tables/booking');
 const Property = require('../tables/property');
 const Worker = require('../tables/worker');
@@ -511,7 +512,7 @@ router.put('/:id', requireAuth, async (req, res) => {
   }
 });
 
-// Simple invoice download for owner dashboard
+// Simple invoice download for owner dashboard (PDF)
 router.get('/:id/invoice', requireAuth, async (req, res) => {
   try {
     const b = await Booking.findById(req.params.id).populate('property').populate('guest');
@@ -521,76 +522,117 @@ router.get('/:id/invoice', requireAuth, async (req, res) => {
     const isAdmin = req.user.userType === 'admin';
     if (!isOwner && !isGuest && !isAdmin) return res.status(403).json({ message: 'Unauthorized' });
 
-    const content = [
-      'INVOICE',
-      `Booking: ${b.confirmationCode || b._id}`,
-      `Property: ${b.property?.title || ''}`,
-      `Guest: ${(b.guest?.firstName || '')} ${(b.guest?.lastName || '')}`,
-      `Check-in: ${new Date(b.checkIn).toISOString()}`,
-      `Check-out: ${new Date(b.checkOut).toISOString()}`,
-      `Total: RWF ${Number(b.totalAmount || 0).toLocaleString()}`,
-      `Commission: RWF ${Number(b.commissionAmount || 0).toLocaleString()}`,
-      `Payment: ${b.paymentMethod} / ${b.paymentStatus}`
-    ].join('\n');
+    const doc = new PDFDocument({ margin: 50 });
+    const filename = `invoice-${b.confirmationCode || b._id}.pdf`;
 
-    res.setHeader('Content-Type', 'text/plain');
-    res.setHeader('Content-Disposition', `attachment; filename=invoice-${b.confirmationCode || b._id}.txt`);
-    return res.send(content);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+
+    doc.pipe(res);
+
+    doc.fontSize(18).text('AKWANDA.rw', { align: 'left' });
+    doc.moveDown(0.2);
+    doc.fontSize(14).text('Booking Invoice', { align: 'left' });
+    doc.moveDown();
+
+    doc.fontSize(10);
+    doc.text(`Invoice #: ${b.confirmationCode || b._id}`);
+    doc.text(`Date: ${new Date(b.createdAt).toLocaleDateString()}`);
+    doc.moveDown();
+
+    doc.fontSize(12).text('Booking details', { underline: true });
+    doc.moveDown(0.3);
+    doc.fontSize(10);
+    doc.text(`Property: ${b.property?.title || ''}`);
+    doc.text(`Guest: ${(b.guest?.firstName || '')} ${(b.guest?.lastName || '')}`.trim());
+    doc.text(`Check-in: ${new Date(b.checkIn).toLocaleDateString()}`);
+    doc.text(`Check-out: ${new Date(b.checkOut).toLocaleDateString()}`);
+    doc.text(`Guests: ${b.numberOfGuests || 1}`);
+    doc.moveDown();
+
+    const totalAmount = Number(b.totalAmount || 0);
+    const commission = Number(b.commissionAmount || 0);
+
+    doc.fontSize(12).text('Payment summary', { underline: true });
+    doc.moveDown(0.3);
+    doc.fontSize(10);
+    doc.text(`Total amount: RWF ${totalAmount.toLocaleString()}`);
+    doc.text(`Commission: RWF ${commission.toLocaleString()}`);
+    doc.text(`Payment: ${b.paymentMethod || 'N/A'} / ${b.paymentStatus || 'pending'}`);
+
+    doc.end();
   } catch (_) {
     return res.status(500).json({ message: 'Failed to generate invoice' });
   }
 });
 
-// Receipt endpoint
+// Receipt endpoint - JSON payload for SPA receipt views
 router.get('/:id/receipt', requireAuth, async (req, res) => {
   try {
-    const b = await Booking.findById(req.params.id).populate('property').populate('guest');
+    const b = await Booking.findById(req.params.id)
+      .populate('property')
+      .populate('guest', 'firstName lastName email phone');
     if (!b) return res.status(404).json({ message: 'Booking not found' });
+
     const isOwner = b.property && String(b.property.host) === String(req.user.id);
     const isGuest = String(b.guest?._id || b.guest) === String(req.user.id);
     const isAdmin = req.user.userType === 'admin';
     if (!isOwner && !isGuest && !isAdmin) return res.status(403).json({ message: 'Unauthorized' });
 
-    const subtotal = Number(b.totalAmount || 0);
-    const tax = subtotal * 0.03; // 3% tax
-    const total = subtotal + tax;
+    const amountBeforeTax = Number(b.amountBeforeTax != null ? b.amountBeforeTax : b.totalAmount || 0);
+    const taxRate = Number(b.taxRate != null ? b.taxRate : 3);
+    const taxAmount = Number(b.taxAmount != null
+      ? b.taxAmount
+      : Math.round((amountBeforeTax * taxRate) / (100 + taxRate))
+    );
+    const totalAmount = Number(b.totalAmount || amountBeforeTax || 0);
+    const commissionAmount = Number(b.commissionAmount || 0);
+    const discountApplied = Number(b.discountAmount || 0);
 
-    const content = [
-      '=================================',
-      '         PAYMENT RECEIPT         ',
-      '=================================',
-      '',
-      `Receipt #: ${b.confirmationCode || b._id}`,
-      `Date: ${new Date(b.createdAt).toLocaleDateString()}`,
-      '',
-      '=================================',
-      'BOOKING DETAILS',
-      '=================================',
-      `Property: ${b.property?.title || ''}`,
-      `Guest: ${(b.guest?.firstName || '')} ${(b.guest?.lastName || '')}`,
-      `Check-in: ${new Date(b.checkIn).toLocaleDateString()}`,
-      `Check-out: ${new Date(b.checkOut).toLocaleDateString()}`,
-      `Guests: ${b.numberOfGuests || 1}`,
-      '',
-      '=================================',
-      'PAYMENT BREAKDOWN',
-      '=================================',
-      `Subtotal:        RWF ${subtotal.toLocaleString()}`,
-      `Tax (3%):        RWF ${tax.toLocaleString()}`,
-      `Total:           RWF ${total.toLocaleString()}`,
-      '',
-      `Payment Method:  ${b.paymentMethod || 'N/A'}`,
-      `Payment Status:  ${b.paymentStatus || 'pending'}`,
-      '',
-      '=================================',
-      'Thank you for your booking!',
-      'AKWANDA.rw',
-      '================================='
-    ].join('\n');
+    const checkIn = b.checkIn ? new Date(b.checkIn) : null;
+    const checkOut = b.checkOut ? new Date(b.checkOut) : null;
+    let nights = 0;
+    if (checkIn && checkOut && !isNaN(checkIn.getTime()) && !isNaN(checkOut.getTime())) {
+      nights = Math.max(1, Math.round((checkOut - checkIn) / (1000 * 60 * 60 * 24)));
+    }
 
-    res.setHeader('Content-Type', 'text/plain');
-    res.setHeader('Content-Disposition', `attachment; filename=receipt-${b.confirmationCode || b._id}.txt`);
-    return res.send(content);
+    const receipt = {
+      bookingId: String(b._id),
+      confirmationCode: b.confirmationCode || String(b._id),
+      status: b.status,
+      guests: b.numberOfGuests || 1,
+      createdAt: b.createdAt || new Date(),
+      dates: {
+        checkIn: b.checkIn,
+        checkOut: b.checkOut,
+        nights,
+      },
+      property: {
+        title: b.property?.title || '',
+        address: b.property?.address || '',
+        city: b.property?.city || '',
+      },
+      guest: {
+        name: `${b.guest?.firstName || ''} ${b.guest?.lastName || ''}`.trim(),
+        email: b.guest?.email || '',
+        phone: b.guest?.phone || '',
+      },
+      pricing: {
+        amountBeforeTax,
+        discountApplied,
+        taxRate,
+        taxAmount,
+        totalAmount,
+        commissionAmount,
+      },
+      payment: {
+        method: b.paymentMethod || 'cash',
+        status: b.paymentStatus || 'pending',
+        transactionId: b.paymentTransactionId || '',
+      },
+    };
+
+    return res.json({ receipt });
   } catch (error) {
     console.error('Receipt generation error:', error);
     return res.status(500).json({ message: 'Failed to generate receipt' });

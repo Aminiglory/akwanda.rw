@@ -43,6 +43,7 @@ const ApartmentsListing = () => {
 
   const [showFilters, setShowFilters] = useState(false);
   const [apartments, setApartments] = useState([]);
+  const [searchHighlight, setSearchHighlight] = useState('');
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'table'
   const [loading, setLoading] = useState(true);
   const [fetchTimer, setFetchTimer] = useState(null);
@@ -68,6 +69,7 @@ const ApartmentsListing = () => {
         priceMin: minPrice != null ? snapToStep(minPrice) : prev.priceMin,
         priceMax: maxPrice != null ? (isNaN(Number(maxPrice)) ? null : snapToStep(maxPrice)) : prev.priceMax,
       }));
+      setSearchHighlight(q || '');
     } catch (_) {}
   }, []);
 
@@ -308,10 +310,10 @@ const ApartmentsListing = () => {
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div>
               <h1 className="text-4xl font-bold text-gray-900 uppercase tracking-wide">
-                FIND YOUR PERFECT STAY
+                Find Your Perfect Stay
               </h1>
               <p className="text-gray-600 mt-2 text-lg font-medium">
-                DISCOVER AMAZING STAYS ACROSS RWANDA
+                Discover Amazing Stays Across Rwanda
               </p>
             </div>
 
@@ -761,6 +763,7 @@ const ApartmentsListing = () => {
                               bookings: apartment.reviews,
                               host: apartment.host
                             }}
+                            highlight={searchHighlight}
                             onView={() => (window.location.href = apartment.href || `/apartment/${apartment.id}`)}
                           />
                         </div>

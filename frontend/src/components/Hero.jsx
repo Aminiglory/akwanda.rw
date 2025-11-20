@@ -46,7 +46,7 @@ const makeAbsoluteUrl = (imagePath) => {
 };
 
 const Hero = () => {
-  const { localize } = useLocale() || {};
+  const { localize, t } = useLocale() || {};
   const [isVisible, setIsVisible] = useState(false);
   const [metrics, setMetrics] = useState({ activeListings: 0, happyGuests: 0, satisfactionRate: 0 });
   const [slides, setSlides] = useState([]); // array of { image, caption }
@@ -280,10 +280,10 @@ const Hero = () => {
         }}
       >
         <h1 className="text-white text-3xl md:text-4xl lg:text-5xl font-extrabold leading-tight">
-          {localize ? localize(heroTitle) : (heroTitle || 'Welcome to AKWANDA.rw')}
+          {localize ? localize(heroTitle) : heroTitle || (t ? t('hero.title') : 'Welcome to AKWANDA.rw')}
         </h1>
         <p className="mt-4 text-blue-100 text-lg md:text-xl max-w-2xl">
-          {localize ? localize(heroSubtitle) : (heroSubtitle || 'Find places to stay, cars, and attractions')}
+          {localize ? localize(heroSubtitle) : heroSubtitle || (t ? t('hero.subtitle') : 'Find places to stay, cars, and attractions')}
         </p>
 
         {slides[index]?.caption && (
@@ -298,19 +298,19 @@ const Hero = () => {
             <div className="absolute top-2 left-2 w-2 h-2 bg-white/60 rounded"></div>
             <div className="mx-auto mb-1 w-8 h-8 rounded-full bg-white/20 flex items-center justify-center"><FaBuilding /></div>
             <div className="text-3xl font-extrabold tracking-tight">{(animated.activeListings ?? 0).toLocaleString?.() || animated.activeListings || 0}</div>
-            <div className="text-xs mt-1 text-blue-100 uppercase tracking-wide">Active Listings</div>
+            <div className="text-xs mt-1 text-blue-100 uppercase tracking-wide">{t ? t('hero.activeListings') : 'Active Listings'}</div>
           </div>
           <div className="relative p-4 rounded-2xl text-center bg-white/15 backdrop-blur border border-white/30 shadow-xl hover:shadow-2xl transition-transform duration-300 hover:-translate-y-0.5">
             <div className="absolute top-2 left-2 w-2 h-2 bg-white/60 rounded"></div>
             <div className="mx-auto mb-1 w-8 h-8 rounded-full bg-white/20 flex items-center justify-center"><FaSmile /></div>
             <div className="text-3xl font-extrabold tracking-tight">{(animated.happyGuests ?? 0).toLocaleString?.() || animated.happyGuests || 0}</div>
-            <div className="text-xs mt-1 text-blue-100 uppercase tracking-wide">Happy Guests</div>
+            <div className="text-xs mt-1 text-blue-100 uppercase tracking-wide">{t ? t('hero.happyGuests') : 'Happy Guests'}</div>
           </div>
           <div className="relative p-4 rounded-2xl text-center bg-white/15 backdrop-blur border border-white/30 shadow-xl hover:shadow-2xl transition-transform duration-300 hover:-translate-y-0.5">
             <div className="absolute top-2 left-2 w-2 h-2 bg-white/60 rounded"></div>
             <div className="mx-auto mb-1 w-8 h-8 rounded-full bg-white/20 flex items-center justify-center"><FaThumbsUp /></div>
             <div className="text-3xl font-extrabold tracking-tight">{animated.satisfactionRate ?? 0}%</div>
-            <div className="text-xs mt-1 text-blue-100 uppercase tracking-wide">Satisfaction Rate</div>
+            <div className="text-xs mt-1 text-blue-100 uppercase tracking-wide">{t ? t('hero.satisfactionRate') : 'Satisfaction Rate'}</div>
           </div>
         </div>
 

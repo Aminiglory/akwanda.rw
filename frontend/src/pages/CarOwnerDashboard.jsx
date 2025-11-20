@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useLocale } from '../contexts/LocaleContext';
 import ReceiptPreview from '../components/ReceiptPreview';
 import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
+import SuccessModal from '../components/SuccessModal';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 const makeAbsolute = (u) => {
@@ -14,21 +16,35 @@ const makeAbsolute = (u) => {
 
 export default function CarOwnerDashboard() {
   const { user } = useAuth();
+  const { formatCurrencyRWF } = useLocale() || {};
   const [cars, setCars] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [bookingFilters, setBookingFilters] = useState({ status: '', from: '', to: '' });
   const [receiptBooking, setReceiptBooking] = useState(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [category, setCategory] = useState('car'); // 'car' | 'motorcycle' | 'bicycle'
+  const [successOpen, setSuccessOpen] = useState(false);
+  const [successTitle, setSuccessTitle] = useState('Success');
+  const [successMsg, setSuccessMsg] = useState('Action completed successfully.');
   const emptyCar = useMemo(() => ({
     vehicleName: '', vehicleType: 'economy', brand: '', model: '', year: new Date().getFullYear(),
     licensePlate: '', capacity: 4, pricePerDay: 0, pricePerWeek: '', pricePerMonth: '',
-    currency: 'RWF', isAvailable: true, location: '', images: [], features: [], fuelType: 'petrol', transmission: 'automatic', mileage: ''
+    currency: 'RWF', isAvailable: true, location: '', images: [], features: [], fuelType: 'petrol', transmission: 'automatic', mileage: '',
+    // Car-specific
+    doors: 4, airConditioning: true, luggageCapacity: 2,
+    // Motorcycle-specific
+    engineCapacityCc: '', helmetIncluded: false,
+    // Bicycle-specific
+    frameSize: '', gearCount: '', bicycleType: '',
+    // Safety
+    abs: false
   }), []);
   const [form, setForm] = useState(emptyCar);
   const [uploadingId, setUploadingId] = useState(null);
   const [viewMode, setViewMode] = useState('cards'); // 'cards' | 'table'
   const [createImages, setCreateImages] = useState([]);
+  const [createPreviews, setCreatePreviews] = useState([]);
 
   async function loadData() {
     try {
@@ -96,15 +112,99 @@ export default function CarOwnerDashboard() {
       console.log('[Vehicles][create] payload', form);
       if (user?.isBlocked) { toast.error('Your account is deactivated. Creating cars is disabled.'); return; }
       if (!createImages || createImages.length === 0) { toast.error('Please add at least one image'); return; }
+      // Build payload per category with validation
+      if (!form.vehicleName) { toast.error('Vehicle name is required'); return; }
+      if (!form.location) { toast.error('Location is required'); return; }
+      if (!form.pricePerDay || Number(form.pricePerDay) <= 0) { toast.error('Enter a valid price per day'); return; }
+
+      let payload;
+      if (category === 'car') {
+        // Validation
+        if (!form.brand || !form.model) { toast.error('Brand and model are required for cars'); return; }
+        if (!form.licensePlate) { toast.error('License plate is required for cars'); return; }
+        if (!form.transmission) { toast.error('Transmission is required for cars'); return; }
+        if (!form.fuelType) { toast.error('Fuel type is required for cars'); return; }
+        if (!form.capacity || Number(form.capacity) <= 0) { toast.error('Seats must be a positive number'); return; }
+        if (!form.doors || Number(form.doors) <= 0) { toast.error('Doors must be a positive number'); return; }
+        // Map payload
+        payload = {
+          vehicleName: form.vehicleName,
+          vehicleType: form.vehicleType,
+          brand: form.brand,
+          model: form.model,
+          year: form.year,
+          licensePlate: form.licensePlate,
+          capacity: Number(form.capacity), // seats
+          doors: Number(form.doors),
+          airConditioning: !!form.airConditioning,
+          luggageCapacity: form.luggageCapacity !== '' ? Number(form.luggageCapacity) : undefined,
+          abs: !!form.abs,
+          pricePerDay: Number(form.pricePerDay),
+          pricePerWeek: form.pricePerWeek,
+          pricePerMonth: form.pricePerMonth,
+          currency: form.currency,
+          isAvailable: !!form.isAvailable,
+          location: form.location,
+          features: form.features,
+          fuelType: form.fuelType,
+          transmission: form.transmission,
+          mileage: form.mileage
+        };
+      } else if (category === 'motorcycle') {
+        // Validation
+        if (!form.brand || !form.model) { toast.error('Brand and model are required for motorcycles'); return; }
+        if (!form.engineCapacityCc || Number(form.engineCapacityCc) <= 0) { toast.error('Engine capacity (cc) is required for motorcycles'); return; }
+        // Map payload, enforce transmission manual and vehicleType
+        payload = {
+          vehicleName: form.vehicleName,
+          vehicleType: 'motorcycle',
+          brand: form.brand,
+          model: form.model,
+          year: form.year,
+          pricePerDay: Number(form.pricePerDay),
+          currency: form.currency,
+          isAvailable: !!form.isAvailable,
+          location: form.location,
+          capacity: Number(form.capacity || 2),
+          engineCapacityCc: Number(form.engineCapacityCc),
+          helmetIncluded: !!form.helmetIncluded,
+          abs: !!form.abs,
+          transmission: 'manual'
+        };
+      } else {
+        // Bicycle
+        if (!form.brand || !form.model) { toast.error('Brand and model are required for bicycles'); return; }
+        if (!form.frameSize) { toast.error('Frame size is required for bicycles'); return; }
+        if (!form.gearCount || Number(form.gearCount) <= 0) { toast.error('Gear count is required for bicycles'); return; }
+        payload = {
+          vehicleName: form.vehicleName,
+          vehicleType: 'bicycle',
+          brand: form.brand,
+          model: form.model,
+          year: form.year,
+          pricePerDay: Number(form.pricePerDay),
+          currency: form.currency,
+          isAvailable: !!form.isAvailable,
+          location: form.location,
+          capacity: Number(form.capacity || 1),
+          frameSize: String(form.frameSize),
+          gearCount: Number(form.gearCount),
+          helmetIncluded: !!form.helmetIncluded,
+          bicycleType: form.bicycleType || undefined
+        };
+      }
       setSaving(true);
       const res = await fetch(`${API_URL}/api/cars`, {
-        method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form)
+        method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
       });
       const data = await res.json();
       console.log('[Vehicles][create] result', { status: res.status, id: data?.car?._id });
       if (!res.ok) throw new Error(data.message || 'Failed to create');
       setCars(c => [data.car, ...c]);
       toast.success('Car created');
+      setSuccessTitle('Vehicle Created');
+      setSuccessMsg('Your vehicle was created successfully.');
+      setSuccessOpen(true);
       await uploadImages(data.car._id, createImages);
       resetForm();
       setCreateImages([]);
@@ -123,6 +223,9 @@ export default function CarOwnerDashboard() {
       if (!res.ok) throw new Error(data.message || 'Update failed');
       setCars(list => list.map(c => c._id === id ? data.car : c));
       toast.success('Car updated');
+      setSuccessTitle('Vehicle Updated');
+      setSuccessMsg('Your vehicle was updated successfully.');
+      setSuccessOpen(true);
     } catch (e) { console.error('[Vehicles][update] error', e); toast.error(e.message); }
   }
 
@@ -137,6 +240,9 @@ export default function CarOwnerDashboard() {
       if (!res.ok) throw new Error(data.message || 'Delete failed');
       setCars(list => list.filter(c => c._id !== id));
       toast.success('Car deleted');
+      setSuccessTitle('Vehicle Deleted');
+      setSuccessMsg('Your vehicle was deleted successfully.');
+      setSuccessOpen(true);
     } catch (e) { console.error('[Vehicles][delete] error', e); toast.error(e.message); }
   }
 
@@ -154,6 +260,9 @@ export default function CarOwnerDashboard() {
       if (!res.ok) throw new Error(data.message || 'Upload failed');
       setCars(list => list.map(c => c._id === id ? data.car : c));
       toast.success('Images uploaded');
+      setSuccessTitle('Images Uploaded');
+      setSuccessMsg('Your vehicle images were uploaded successfully.');
+      setSuccessOpen(true);
     } catch (e) { console.error('[Vehicles][uploadImages] error', e); toast.error(e.message); } finally { setUploadingId(null); }
   }
 
@@ -180,15 +289,31 @@ export default function CarOwnerDashboard() {
       {/* Create Vehicle */}
       <form onSubmit={createCar} className="bg-white rounded-lg shadow p-4 mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
+          <label className="block text-xs text-gray-700 mb-1">Listing category</label>
+          <select className="w-full px-3 py-2 border rounded" value={category} onChange={e => {
+            const v = e.target.value; setCategory(v);
+            setForm(prev => ({ ...prev, vehicleType: v === 'car' ? (prev.vehicleType && !['motorcycle','bicycle'].includes(prev.vehicleType) ? prev.vehicleType : 'economy') : v }));
+          }}>
+            {['car','motorcycle','bicycle'].map(x => <option key={x} value={x}>{x}</option>)}
+          </select>
+        </div>
+        <div>
           <label className="block text-xs text-gray-700 mb-1">Vehicle name</label>
           <input className="w-full px-3 py-2 border rounded" placeholder="e.g., Toyota RAV4" value={form.vehicleName} onChange={e => setForm({ ...form, vehicleName: e.target.value })} />
         </div>
-        <div>
-          <label className="block text-xs text-gray-700 mb-1">Vehicle type</label>
-          <select className="w-full px-3 py-2 border rounded" value={form.vehicleType} onChange={e => setForm({ ...form, vehicleType: e.target.value })}>
-          {['economy','compact','mid-size','full-size','luxury','suv','minivan','motorcycle','bicycle'].map(x => <option key={x} value={x}>{x}</option>)}
-          </select>
-        </div>
+        {category === 'car' ? (
+          <div>
+            <label className="block text-xs text-gray-700 mb-1">Vehicle type</label>
+            <select className="w-full px-3 py-2 border rounded" value={form.vehicleType} onChange={e => setForm({ ...form, vehicleType: e.target.value })}>
+              {['economy','compact','mid-size','full-size','luxury','suv','minivan'].map(x => <option key={x} value={x}>{x}</option>)}
+            </select>
+          </div>
+        ) : (
+          <div>
+            <label className="block text-xs text-gray-700 mb-1">Vehicle type</label>
+            <input className="w-full px-3 py-2 border rounded bg-gray-100" value={category} readOnly />
+          </div>
+        )}
         <div>
           <label className="block text-xs text-gray-700 mb-1">Brand</label>
           <input className="w-full px-3 py-2 border rounded" placeholder="e.g., Toyota" value={form.brand} onChange={e => setForm({ ...form, brand: e.target.value })} />
@@ -201,8 +326,9 @@ export default function CarOwnerDashboard() {
           <label className="block text-xs text-gray-700 mb-1">Year</label>
           <input className="w-full px-3 py-2 border rounded" type="number" placeholder="e.g., 2022" value={form.year} onChange={e => setForm({ ...form, year: Number(e.target.value) })} />
         </div>
+        {/* License plate & capacity / seats */}
         <div>
-          <label className="block text-xs text-gray-700 mb-1">License plate</label>
+          <label className="block text-xs text-gray-700 mb-1">License plate{category==='car' ? ' (required)':''}</label>
           <input className="w-full px-3 py-2 border rounded" placeholder="e.g., RAD 123 A" value={form.licensePlate} onChange={e => setForm({ ...form, licensePlate: e.target.value })} />
         </div>
         <div>
@@ -217,25 +343,109 @@ export default function CarOwnerDashboard() {
           <label className="block text-xs text-gray-700 mb-1">Location</label>
           <input className="w-full px-3 py-2 border rounded" placeholder="e.g., Kigali" value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} />
         </div>
-        <div>
-          <label className="block text-xs text-gray-700 mb-1">Transmission</label>
-          <select className="w-full px-3 py-2 border rounded" value={form.transmission} onChange={e => setForm({ ...form, transmission: e.target.value })}>
-            {['automatic','manual'].map(x => <option key={x} value={x}>{x}</option>)}
-          </select>
-        </div>
-        <div>
-          <label className="block text-xs text-gray-700 mb-1">Fuel type</label>
-          <select className="w-full px-3 py-2 border rounded" value={form.fuelType} onChange={e => setForm({ ...form, fuelType: e.target.value })}>
-            {['petrol','diesel','hybrid','electric'].map(x => <option key={x} value={x}>{x}</option>)}
-          </select>
-        </div>
+        {category === 'car' && (
+          <>
+            <div>
+              <label className="block text-xs text-gray-700 mb-1">Transmission</label>
+              <select className="w-full px-3 py-2 border rounded" value={form.transmission} onChange={e => setForm({ ...form, transmission: e.target.value })}>
+                {['automatic','manual'].map(x => <option key={x} value={x}>{x}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-gray-700 mb-1">Fuel type</label>
+              <select className="w-full px-3 py-2 border rounded" value={form.fuelType} onChange={e => setForm({ ...form, fuelType: e.target.value })}>
+                {['petrol','diesel','hybrid','electric'].map(x => <option key={x} value={x}>{x}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-gray-700 mb-1">Doors</label>
+              <input className="w-full px-3 py-2 border rounded" type="number" placeholder="e.g., 4" value={form.doors} onChange={e => setForm({ ...form, doors: Number(e.target.value) })} />
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-sm">Air conditioning</label>
+              <input type="checkbox" checked={!!form.airConditioning} onChange={e => setForm({ ...form, airConditioning: !!e.target.checked })} />
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-sm">ABS (Anti-lock Braking System)</label>
+              <input type="checkbox" checked={!!form.abs} onChange={e => setForm({ ...form, abs: !!e.target.checked })} />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-700 mb-1">Luggage capacity</label>
+              <input className="w-full px-3 py-2 border rounded" type="number" placeholder="e.g., 2" value={form.luggageCapacity} onChange={e => setForm({ ...form, luggageCapacity: Number(e.target.value) })} />
+            </div>
+          </>
+        )}
+        {category === 'motorcycle' && (
+          <>
+            <div>
+              <label className="block text-xs text-gray-700 mb-1">Engine capacity (cc)</label>
+              <input className="w-full px-3 py-2 border rounded" type="number" placeholder="e.g., 150" value={form.engineCapacityCc} onChange={e => setForm({ ...form, engineCapacityCc: e.target.value })} />
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-sm">Helmet included</label>
+              <input type="checkbox" checked={!!form.helmetIncluded} onChange={e => setForm({ ...form, helmetIncluded: !!e.target.checked })} />
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-sm">ABS (Anti-lock Braking System)</label>
+              <input type="checkbox" checked={!!form.abs} onChange={e => setForm({ ...form, abs: !!e.target.checked })} />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-700 mb-1">Transmission</label>
+              <input className="w-full px-3 py-2 border rounded bg-gray-100" value="manual" readOnly />
+            </div>
+          </>
+        )}
+        {category === 'bicycle' && (
+          <>
+            <div>
+              <label className="block text-xs text-gray-700 mb-1">Frame size</label>
+              <input className="w-full px-3 py-2 border rounded" placeholder="e.g., M / 54cm" value={form.frameSize} onChange={e => setForm({ ...form, frameSize: e.target.value })} />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-700 mb-1">Gear count</label>
+              <input className="w-full px-3 py-2 border rounded" type="number" placeholder="e.g., 21" value={form.gearCount} onChange={e => setForm({ ...form, gearCount: e.target.value })} />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-700 mb-1">Type</label>
+              <select className="w-full px-3 py-2 border rounded" value={form.bicycleType} onChange={e => setForm({ ...form, bicycleType: e.target.value })}>
+                <option value="">Select type</option>
+                {['mountain','road','hybrid','city'].map(x => <option key={x} value={x}>{x}</option>)}
+              </select>
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-sm">Helmet included</label>
+              <input type="checkbox" checked={!!form.helmetIncluded} onChange={e => setForm({ ...form, helmetIncluded: !!e.target.checked })} />
+            </div>
+          </>
+        )}
         <div className="flex items-center gap-2">
           <label className="text-sm">Available</label>
           <input type="checkbox" checked={!!form.isAvailable} onChange={e => setForm({ ...form, isAvailable: !!e.target.checked })} />
         </div>
         <div className="md:col-span-3">
           <label className="block text-xs text-gray-700 mb-1">Images</label>
-          <input type="file" multiple accept="image/*" onChange={e => setCreateImages(Array.from(e.target.files || []))} className="w-full px-3 py-2 border rounded" />
+          <input
+            type="file"
+            multiple
+            accept="image/*"
+            onChange={e => {
+              const files = Array.from(e.target.files || []);
+              if (!files.length) return;
+              setCreateImages(files);
+              const urls = files.map(f => URL.createObjectURL(f));
+              setCreatePreviews(urls);
+            }}
+            className="w-full px-3 py-2 border rounded"
+          />
+          {createPreviews?.length > 0 && (
+            <div className="mt-2 grid grid-cols-3 md:grid-cols-5 gap-2">
+              {createPreviews.map((src, i) => (
+                <div key={i} className="w-full h-20 bg-gray-100 rounded overflow-hidden">
+                  <img src={src} className="w-full h-full object-cover" alt="Preview" />
+                </div>
+              ))}
+            </div>
+          )}
         </div>
         <div className="md:col-span-3">
           <button disabled={saving || user?.isBlocked} className="px-4 py-2 bg-[#a06b42] hover:bg-[#8f5a32] text-white rounded disabled:opacity-50">{saving ? 'Saving...' : 'Add Vehicle'}</button>
@@ -258,7 +468,7 @@ export default function CarOwnerDashboard() {
                       <button onClick={() => updateCar(car._id, { isAvailable: !car.isAvailable })} className={`px-2 py-1 rounded text-sm ${car.isAvailable ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-700'}`}>{car.isAvailable ? 'Available' : 'Unavailable'}</button>
                     </div>
                     <p className="text-sm text-gray-600">{car.location} • {car.vehicleType} • {car.transmission}</p>
-                    <p className="text-sm font-medium mt-1">RWF {Number(car.pricePerDay || 0).toLocaleString()} / day</p>
+                    <p className="text-sm font-medium mt-1">{formatCurrencyRWF ? formatCurrencyRWF(car.pricePerDay || 0) : `RWF ${Number(car.pricePerDay || 0).toLocaleString()}`} / day</p>
                   </div>
                 </div>
 
@@ -297,7 +507,7 @@ export default function CarOwnerDashboard() {
                     <td className="p-3 font-medium">{car.vehicleName} • {car.brand} {car.model}</td>
                     <td className="p-3">{car.vehicleType}</td>
                     <td className="p-3">{car.location}</td>
-                    <td className="p-3">RWF {Number(car.pricePerDay || 0).toLocaleString()}</td>
+                    <td className="p-3">{formatCurrencyRWF ? formatCurrencyRWF(car.pricePerDay || 0) : `RWF ${Number(car.pricePerDay || 0).toLocaleString()}`}</td>
                     <td className="p-3">
                       <button onClick={() => updateCar(car._id, { isAvailable: !car.isAvailable })} className={`px-2 py-1 rounded text-xs ${car.isAvailable ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-700'}`}>{car.isAvailable ? 'Available' : 'Unavailable'}</button>
                     </td>
@@ -363,7 +573,7 @@ export default function CarOwnerDashboard() {
                   <td className="p-3">{b.car?.vehicleName}</td>
                   <td className="p-3">{b.guest?.firstName} {b.guest?.lastName}</td>
                   <td className="p-3">{new Date(b.pickupDate).toLocaleDateString()} → {new Date(b.returnDate).toLocaleDateString()}</td>
-                  <td className="p-3">RWF {Number(b.totalAmount || 0).toLocaleString()}</td>
+                  <td className="p-3">{formatCurrencyRWF ? formatCurrencyRWF(b.totalAmount || 0) : `RWF ${Number(b.totalAmount || 0).toLocaleString()}`}</td>
                   <td className="p-3"><span className="px-2 py-1 rounded bg-gray-100">{b.status}</span></td>
                   <td className="p-3 flex items-center gap-2">
                     {['pending','confirmed','active','completed','cancelled'].map(s => (
@@ -402,13 +612,14 @@ export default function CarOwnerDashboard() {
             { label: 'Pickup', value: new Date(receiptBooking.pickupDate).toLocaleDateString() },
             { label: 'Return', value: new Date(receiptBooking.returnDate).toLocaleDateString() },
             { label: 'Days', value: String(receiptBooking.numberOfDays || 0) },
-            { label: 'Amount', value: `RWF ${Number(receiptBooking.totalAmount || 0).toLocaleString()}` },
+            { label: 'Amount', value: formatCurrencyRWF ? formatCurrencyRWF(receiptBooking.totalAmount || 0) : `RWF ${Number(receiptBooking.totalAmount || 0).toLocaleString()}` },
             { label: 'Status', value: receiptBooking.status || '' },
           ]}
           onPrint={() => window.print()}
           onClose={() => setReceiptBooking(null)}
         />
       )}
+      <SuccessModal open={successOpen} title={successTitle} message={successMsg} onClose={() => setSuccessOpen(false)} />
     </div>
   );
 }

@@ -19,8 +19,10 @@ const DirectBooking = () => {
     paymentMethod: 'cash',
     markPaid: true,
     specialRequests: '',
-    guestInfo: { firstName: '', lastName: '', email: '', phone: '' },
+    guestInfo: { firstName: '', lastName: '', email: '', phone: '', nationality: '', passport: '', address: '' },
     contactInfo: { email: '', phone: '' },
+    paymentStatusSelection: 'paid',
+    services: { breakfast: false, airportTransfer: false, laundry: false },
   });
 
   // Fetch properties owned by current host for selection
@@ -37,6 +39,7 @@ const DirectBooking = () => {
           city: p.city,
           rooms: p.rooms || [],
           pricePerNight: p.pricePerNight,
+          addOnServices: Array.isArray(p.addOnServices) ? p.addOnServices : [],
         }));
         setProperties(list);
       } catch (e) {
@@ -60,8 +63,15 @@ const DirectBooking = () => {
   }, [form.checkIn, form.checkOut]);
 
   const selectedRoom = rooms.find(r => String(r._id) === String(form.roomId));
-  const nightly = selectedRoom?.pricePerNight || properties.find(p => p.id === form.propertyId)?.pricePerNight || 0;
-  const estimatedTotal = useMemo(() => (nights > 0 ? nightly * nights : 0), [nightly, nights]);
+  const selectedProperty = properties.find(p => p.id === form.propertyId);
+  const propertyAddOns = selectedProperty?.addOnServices || [];
+  const nightly = selectedRoom?.pricePerNight || selectedProperty?.pricePerNight || 0;
+  const roomCharge = useMemo(() => (nights > 0 ? nightly * nights : 0), [nightly, nights]);
+  const servicesTotal = 0; // Add-ons are negotiable and do not affect payment totals
+  const subtotal = useMemo(() => roomCharge + servicesTotal, [roomCharge, servicesTotal]);
+  const levy3 = useMemo(() => Math.round(subtotal * 0.03), [subtotal]);
+  // VAT removed for direct bookings – only levy applied
+  const grandTotal = useMemo(() => subtotal + levy3, [subtotal, levy3]);
 
   const update = (path, value) => {
     if (path.includes('.')) {
@@ -80,6 +90,9 @@ const DirectBooking = () => {
     }
     try {
       setLoading(true);
+      const uiPaymentMethod = form.paymentMethod;
+      const payloadPaymentMethod = uiPaymentMethod === 'mtn_mobile_money' ? 'mtn_mobile_money' : 'cash';
+      const markPaid = form.paymentStatusSelection === 'paid';
       const payload = {
         propertyId: form.propertyId,
         room: form.roomId || null,
@@ -88,9 +101,9 @@ const DirectBooking = () => {
         numberOfGuests: Number(form.numberOfGuests) || 1,
         contactInfo: form.contactInfo,
         specialRequests: form.specialRequests,
-        paymentMethod: form.paymentMethod,
-        markPaid: form.paymentMethod === 'cash' ? !!form.markPaid : false,
-        guestInfo: form.guestInfo, // creates/uses guest if host/admin
+        paymentMethod: payloadPaymentMethod,
+        markPaid: payloadPaymentMethod === 'cash' ? !!markPaid : false,
+        guestInfo: form.guestInfo,
         directBooking: true,
       };
       const res = await fetch(`${API_URL}/api/bookings`, {
@@ -103,15 +116,39 @@ const DirectBooking = () => {
       if (!res.ok) throw new Error(data.message || 'Failed to create booking');
 
       toast.success('Direct booking created');
-      // Provide quick-access to direct receipt (no tax/commission lines)
       const id = data.booking._id;
-      window.open(`${API_URL}/api/bookings/${id}/direct-receipt.csv`, '_blank');
+      // Navigate to booking confirmation; receipt can be previewed & printed from the owner dashboard
       navigate(`/booking-confirmation/${id}`);
     } catch (err) {
       toast.error(err.message);
     } finally {
       setLoading(false);
     }
+  };
+
+  const saveDraft = () => {
+    try {
+      const draft = { ...form };
+      localStorage.setItem('directBookingDraft', JSON.stringify(draft));
+      toast.success('Saved as draft');
+    } catch (_) {}
+  };
+
+  const clearForm = () => {
+    setForm({
+      propertyId: '',
+      roomId: '',
+      checkIn: '',
+      checkOut: '',
+      numberOfGuests: 1,
+      paymentMethod: 'cash',
+      markPaid: true,
+      specialRequests: '',
+      guestInfo: { firstName: '', lastName: '', email: '', phone: '', nationality: '', passport: '', address: '' },
+      contactInfo: { email: '', phone: '' },
+      paymentStatusSelection: 'paid',
+      services: {},
+    });
   };
 
   return (
@@ -169,18 +206,20 @@ const DirectBooking = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
                 <select value={form.paymentMethod} onChange={e => update('paymentMethod', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                  <option value="cash">Pay on Arrival</option>
-                  <option value="mtn_mobile_money">MTN Mobile Money</option>
+                  <option value="cash">Cash</option>
+                  <option value="mtn_mobile_money">Mobile Money</option>
+                  <option value="credit_card">Credit Card</option>
+                  <option value="bank_transfer">Bank Transfer</option>
                 </select>
               </div>
-              {form.paymentMethod === 'cash' && (
-                <div className="flex items-end">
-                  <label className="inline-flex items-center space-x-2">
-                    <input type="checkbox" checked={form.markPaid} onChange={e => update('markPaid', e.target.checked)} />
-                    <span className="text-sm">Mark as paid</span>
-                  </label>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Payment Status</label>
+                <div className="flex items-center gap-4 h-full">
+                  <label className="inline-flex items-center gap-2 text-sm"><input type="radio" name="paystatus" checked={form.paymentStatusSelection==='paid'} onChange={() => update('paymentStatusSelection','paid')} />Paid</label>
+                  <label className="inline-flex items-center gap-2 text-sm"><input type="radio" name="paystatus" checked={form.paymentStatusSelection==='pending'} onChange={() => update('paymentStatusSelection','pending')} />Pending</label>
+                  <label className="inline-flex items-center gap-2 text-sm"><input type="radio" name="paystatus" checked={form.paymentStatusSelection==='deposit'} onChange={() => update('paymentStatusSelection','deposit')} />Deposit</label>
                 </div>
-              )}
+              </div>
             </div>
 
             <div>
@@ -190,6 +229,9 @@ const DirectBooking = () => {
                 <input placeholder="Last name" value={form.guestInfo.lastName} onChange={e => update('guestInfo.lastName', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" required />
                 <input type="email" placeholder="Email" value={form.guestInfo.email} onChange={e => update('guestInfo.email', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
                 <input type="tel" placeholder="Phone" value={form.guestInfo.phone} onChange={e => update('guestInfo.phone', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                <input placeholder="Nationality" value={form.guestInfo.nationality} onChange={e => update('guestInfo.nationality', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                <input placeholder="Passport" value={form.guestInfo.passport} onChange={e => update('guestInfo.passport', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                <input placeholder="Address" value={form.guestInfo.address} onChange={e => update('guestInfo.address', e.target.value)} className="md:col-span-2 w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
               </div>
               <p className="text-xs text-gray-500 mt-1">A guest account will be linked or created automatically if necessary.</p>
             </div>
@@ -207,25 +249,56 @@ const DirectBooking = () => {
               <textarea value={form.specialRequests} onChange={e => update('specialRequests', e.target.value)} rows={3} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Any special notes..."></textarea>
             </div>
 
-            <div className="flex items-center justify-between border-t pt-4">
-              <div className="text-sm text-gray-700">
-                <div>Nights: <span className="font-medium">{nights}</span></div>
-                <div>Nightly: <span className="font-medium">RWF {nightly.toLocaleString()}</span></div>
-                <div>Estimated Total: <span className="font-semibold text-blue-600">RWF {estimatedTotal.toLocaleString()}</span></div>
+            <div className="border rounded-lg p-4 bg-gray-50">
+              <div className="text-sm text-gray-900 font-semibold mb-2">Payment Information</div>
+              <div className="text-sm text-gray-700 space-y-1">
+                <div>Room Rate: based on selected property, room and nights</div>
+                <div className="mt-2">Additional Services (select for record only, amounts are negotiable and not added to total):</div>
+                {(!Array.isArray(propertyAddOns) || propertyAddOns.length === 0) && (
+                  <div className="text-xs text-gray-500">No add-on services configured for this property.</div>
+                )}
+                {Array.isArray(propertyAddOns) && propertyAddOns.map(addOn => {
+                  const key = addOn.key;
+                  const checked = !!(form.services && form.services[key]);
+                  const included = addOn.includedItems && typeof addOn.includedItems === 'object'
+                    ? Object.keys(addOn.includedItems)
+                        .filter(k => addOn.includedItems[k])
+                        .map(k => k.replace(/_/g, ' ').replace(/\s+/g, ' ').trim().replace(/^(.)/, m => m.toUpperCase()))
+                    : [];
+                  const isFree = !addOn.price || Number(addOn.price) <= 0;
+                  return (
+                    <div key={key} className="space-y-0.5">
+                      <label className="flex items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={e => update('services', { ...(form.services || {}), [key]: e.target.checked })}
+                        />
+                        <span>{addOn.name}</span>
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${isFree ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'}`}>
+                          {isFree ? 'Free' : 'Paid (negotiable)'}
+                        </span>
+                      </label>
+                      {included.length > 0 && (
+                        <div className="pl-6 text-xs text-gray-500">Includes: {included.join(', ')}</div>
+                      )}
+                    </div>
+                  );
+                })}
+                <div className="pt-2">Subtotal: calculated automatically</div>
+                <div>Hospitality levy (3%): calculated automatically</div>
+                <div className="font-semibold">TOTAL: calculated automatically</div>
               </div>
-              <button type="submit" disabled={loading} className="px-6 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium disabled:opacity-50">
-                {loading ? 'Creating…' : 'Create Booking'}
-              </button>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 border-t pt-4">
+              <button type="button" onClick={saveDraft} className="px-5 py-3 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100">Save as Draft</button>
+              <button type="button" onClick={clearForm} className="px-5 py-3 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100">Clear Form</button>
+              <button type="submit" disabled={loading} className="px-6 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium disabled:opacity-50">{loading ? 'Creating…' : 'Save & Print Receipt'}</button>
             </div>
 
             <div className="mt-4 text-xs text-gray-500">
-              After creation, view receipts at:
-              <ul className="list-disc ml-5 mt-1">
-                <li>/api/bookings/:id/receipt (Owner receipt JSON)</li>
-                <li>/api/bookings/:id/receipt.csv (Owner receipt CSV)</li>
-                <li>/api/bookings/:id/rra-receipt (RRA receipt JSON)</li>
-                <li>/api/bookings/:id/rra-receipt.csv (RRA receipt CSV)</li>
-              </ul>
+              After creation, you can always re-open the printable PDF receipt from the owner dashboard bookings list.
             </div>
           </form>
         </div>

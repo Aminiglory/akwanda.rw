@@ -1,18 +1,16 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { useAuth } from './AuthContext';
 
 const SocketContext = createContext();
 
-export const useSocket = () => {
+export function useSocket() {
   const context = useContext(SocketContext);
   // Return a safe fallback instead of throwing to avoid crashes
   return context || { socket: null, isConnected: false };
-};
+}
 
-export const SocketProvider = ({ children }) => {
+export const SocketProvider = ({ children, user, isAuthenticated }) => {
   const [socket, setSocket] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
-  const { user, isAuthenticated } = useAuth();
 
   useEffect(() => {
     let closed = false;

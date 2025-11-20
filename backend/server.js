@@ -30,11 +30,13 @@ const attractionsRouter = require('./src/routes/attractions');
 const carBookingsRouter = require('./src/routes/carBookings');
 const attractionBookingsRouter = require('./src/routes/attractionBookings');
 const adminUserManagementRouter = require('./src/routes/admin-user-management');
+const amenitiesRouter = require('./src/routes/amenities');
 const howItWorksRouter = require('./src/routes/howItWorks');
 const testimonialsRouter = require('./src/routes/testimonials');
 const reportsRouter = require('./src/routes/reports');
 const workersRouter = require('./src/routes/workers');
 const reviewsRouter = require('./src/routes/reviews');
+const addOnsRouter = require('./src/routes/addOns');
 let dealsRouter, seedDealsRouter;
 try {
   dealsRouter = require('./src/routes/deals');
@@ -213,6 +215,7 @@ app.use('/api/attractions', attractionsRouter);
 app.use('/api/attraction-bookings', attractionBookingsRouter);
 app.use('/api/notifications', notificationsRouter);
 app.use('/api/admin/user-management', adminUserManagementRouter);
+app.use('/api/amenities', amenitiesRouter);
 app.use('/api/reports', reportsRouter);
 app.use('/api/workers', workersRouter);
 if (dealsRouter) {
@@ -222,6 +225,7 @@ if (dealsRouter) {
 app.use('/api/how-it-works', howItWorksRouter);
 app.use('/api/testimonials', testimonialsRouter);
 app.use('/api/reviews', reviewsRouter);
+app.use('/api/add-ons', addOnsRouter);
 
 // Create HTTP server and bind Socket.IO
 const server = http.createServer(app);

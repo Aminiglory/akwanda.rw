@@ -1,9 +1,57 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FaStar, FaQuoteLeft, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import { FaStar, FaQuoteLeft } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+const mockTestimonials = [
+  {
+    id: 'kigali-business-traveller',
+    name: 'Aline M.',
+    role: 'Business guest in Kigali',
+    rating: 5,
+    text: 'Booking my stay in Kigali through AKWANDA.rw was effortless. The apartment was exactly as shown, and check-in was seamless.',
+    avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=300&h=300&fit=crop&crop=faces',
+    location: 'Kigali, Rwanda'
+  },
+  {
+    id: 'musanze-adventure',
+    name: 'Eric K.',
+    role: 'Gorilla trekking visitor',
+    rating: 5,
+    text: 'We found a cozy stay in Musanze close to Volcanoes National Park. The host was friendly and the views were incredible.',
+    avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=300&h=300&fit=crop&crop=faces',
+    location: 'Musanze, Rwanda'
+  },
+  {
+    id: 'gisenyi-lake-getaway',
+    name: 'Sarah & Paul',
+    role: 'Weekend escape at Lake Kivu',
+    rating: 4,
+    text: 'The platform made it easy to compare lakefront stays in Gisenyi. We loved waking up right by the water.',
+    avatar: 'https://images.unsplash.com/photo-1525134479668-1bee5c7c6845?w=300&h=300&fit=crop&crop=faces',
+    location: 'Gisenyi, Rwanda'
+  },
+  {
+    id: 'huye-student-family',
+    name: 'Jean de Dieu',
+    role: 'Parent visiting Huye campus',
+    rating: 5,
+    text: 'Finding a clean and quiet apartment near the university in Huye saved us a lot of time and stress.',
+    avatar: 'https://images.unsplash.com/photo-1544723795-3fb6469f5b39?w=300&h=300&fit=crop&crop=faces',
+    location: 'Huye, Rwanda'
+  },
+  {
+    id: 'host-experience',
+    name: 'Claudine N.',
+    role: 'Property host in Kigali',
+    rating: 5,
+    text: 'Listing my apartment on AKWANDA.rw helped me reach more guests and manage bookings in one place.',
+    avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=300&h=300&fit=crop&crop=faces',
+    location: 'Kigali, Rwanda'
+  }
+];
 
 export default function Testimonials() {
   const { user } = useAuth();
@@ -16,79 +64,48 @@ export default function Testimonials() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const makeAbsolute = (u) => {
-    if (!u) return '';
-    let s = String(u).trim();
-    if (/^https?:\/\//i.test(s)) return s;
-    if (!s.startsWith('/')) s = `/${s}`;
-    return `${API_URL}${s}`;
-  };
-
   useEffect(() => {
-    let ignore = false;
+    let cancelled = false;
+
     (async () => {
       try {
         setLoading(true);
-        // First try to fetch real reviews
-        const reviewsRes = await fetch(`${API_URL}/api/reviews/landing?limit=30`);
-        if (reviewsRes.ok) {
-          const reviewsData = await reviewsRes.json();
-          if (reviewsData.reviews && reviewsData.reviews.length > 0) {
-            // Map reviews to testimonial format
-            const mappedReviewsRaw = reviewsData.reviews.map(review => ({
-              _id: review._id,
-              name: review.guest?.fullName || 'Anonymous',
-              role: `Guest at ${review.property?.title || 'Property'}`,
-              content: review.comment,
-              rating: review.rating,
-              image: makeAbsolute(review.guest?.profilePicture || ''),
-              createdAt: review.createdAt
-            }));
-            const mappedReviews = mappedReviewsRaw
-              .filter(r => (Number(r.rating) || 0) >= 4)
-              .sort((a, b) => {
-                const r = (b.rating || 0) - (a.rating || 0);
-                if (r !== 0) return r;
-                return new Date(b.createdAt) - new Date(a.createdAt);
-              })
-              .slice(0, 12);
-            if (!ignore) {
-              setItems(mappedReviews);
-              setLoading(false);
-              return;
-            }
+        const res = await fetch(`${API_URL}/api/reviews/landing?limit=12`);
+        if (!res.ok) throw new Error('Failed to fetch reviews');
+        const data = await res.json();
+        const reviews = Array.isArray(data.reviews) ? data.reviews : [];
+
+        const mapped = reviews.map((r) => ({
+          id: r._id,
+          name: r.guest?.fullName || 'Guest',
+          role: r.property?.title ? `Guest at ${r.property.title}` : 'Guest',
+          rating: r.rating || 0,
+          text: r.comment || '',
+          avatar: r.guest?.profilePicture || '',
+          location: r.property?.location || ''
+        }));
+
+        if (!cancelled) {
+          if (mapped.length > 0) {
+            setItems(mapped);
+          } else {
+            setItems(mockTestimonials);
           }
         }
-        
-        // Fallback to testimonials if no reviews
-        const res = await fetch(`${API_URL}/api/testimonials`);
-        if (!res.ok) {
-          if (!ignore) setItems([]);
-          return;
-        }
-        const data = await res.json();
-        if (!ignore) {
-          const list = Array.isArray(data.testimonials) ? data.testimonials : [];
-          // Map to UI shape with fallbacks
-          const normalized = list.map((t, i) => ({
-            id: `${t.propertyTitle || 'prop'}-${i}`,
-            name: t.propertyTitle || 'Guest',
-            role: `Rated ${t.rating || 0}/5`,
-            rating: Math.max(1, Math.min(5, Math.round(Number(t.rating || 0)))) || 5,
-            text: t.comment || '',
-            avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face',
-            location: ''
-          }));
-          const top = normalized.filter(r => r.rating >= 4).slice(0, 12);
-          setItems(top);
-        }
       } catch (_) {
-        setItems([]);
+        if (!cancelled) {
+          setItems(mockTestimonials);
+        }
       } finally {
-        if (!ignore) setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     })();
-    return () => { ignore = true; };
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
 
@@ -131,7 +148,7 @@ export default function Testimonials() {
   if (!loading && items.length === 0) return null;
 
   return (
-    <div className="bg-gray-50 py-16 px-4">
+    <div className="bg-white py-16 px-4">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold text-gray-800 mb-4">
@@ -184,8 +201,8 @@ export default function Testimonials() {
                         style={{ transitionDelay: `${idx * 80}ms` }}
                       >
                         <div className="absolute inset-0 -z-10">
-                          <div className="absolute inset-0 translate-x-2 translate-y-2 rounded-xl bg-[#f3ede6]"></div>
-                          <div className="absolute inset-0 translate-x-4 translate-y-4 rounded-xl bg-[#e9dfd5]"></div>
+                          <div className="absolute inset-0 translate-x-2 translate-y-2 rounded-xl bg-white"></div>
+                          <div className="absolute inset-0 translate-x-4 translate-y-4 rounded-xl bg-white"></div>
                         </div>
                         <div className="absolute top-4 right-4 text-[#a06b42]/30">
                           <FaQuoteLeft className="text-2xl" />
@@ -197,7 +214,7 @@ export default function Testimonials() {
                         </div>
 
                         {/* Testimonial Text */}
-                        <p className="text-gray-700 mb-6 leading-relaxed">
+                        <p className="text-gray-700 mb-6 leading-relaxed text-sm md:text-base break-words whitespace-normal max-w-full">
                           "{testimonial.content || testimonial.text}"
                         </p>
 
@@ -235,12 +252,20 @@ export default function Testimonials() {
         </div>
         {/* Call to Action */}
         <div className="text-center mt-12">
-          <div className="chocolate-gradient rounded-2xl p-8 shadow-lg">
-            <h3 className="text-2xl font-bold mb-4 high-contrast-text">Ready to Join Our Community?</h3>
-            <p className="medium-contrast-text mb-6 text-base">Whether you're looking for a place to stay or want to earn from your space, AKWANDA.rw is here for you.</p>
+          <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-200">
+            <h3 className="text-2xl font-bold mb-4 text-gray-900">Ready to Join Our Community?</h3>
+            <p className="text-gray-700 mb-6 text-base">Whether you're looking for a place to stay or want to earn from your space, AKWANDA.rw is here for you.</p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link to="/apartments" className="modern-btn text-center">Find an Apartment</Link>
-              <Link to={user ? "/upload-property" : "/register"} className="bg-white high-contrast-text px-8 py-3 rounded-xl font-semibold hover:bg-gray-100 shadow-md hover:shadow-lg transition-all duration-300 text-center">
+              <Link
+                to="/apartments"
+                className="px-8 py-3 rounded-xl font-semibold bg-blue-600 text-white hover:bg-blue-700 shadow-md hover:shadow-lg transition-all duration-300 text-center"
+              >
+                Find Properties
+              </Link>
+              <Link
+                to={user ? "/upload-property" : "/register"}
+                className="bg-white text-gray-900 px-8 py-3 rounded-xl font-semibold hover:bg-gray-100 shadow-md hover:shadow-lg transition-all duration-300 text-center border border-gray-200"
+              >
                 {user ? "List Your Property" : "Sign Up to Host"}
               </Link>
             </div>

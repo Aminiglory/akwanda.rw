@@ -81,6 +81,14 @@ const Navbar = () => {
   const [expandedMobileItems, setExpandedMobileItems] = useState({});
   const [billing, setBilling] = useState({ commissionsDue: 0, finesDue: 0, totalDue: 0, minimumPartial: 0, limitedAccess: false });
   const [payingCommission, setPayingCommission] = useState(false);
+  const [selectedPropertyId, setSelectedPropertyId] = useState('');
+  const [ownerSearchTerm, setOwnerSearchTerm] = useState('');
+  const [globalSearchTerm, setGlobalSearchTerm] = useState('');
+  // Locale dropdown states (open on click, not hover)
+  const [langOpenTop, setLangOpenTop] = useState(false);
+  const [currOpenTop, setCurrOpenTop] = useState(false);
+  const [langOpenSecond, setLangOpenSecond] = useState(false);
+  const [currOpenSecond, setCurrOpenSecond] = useState(false);
 
   const makeAbsolute = (u) => {
     if (!u) return u;
@@ -90,21 +98,32 @@ const Navbar = () => {
     return `${API_URL}${s}`;
   };
 
+  const labelOr = (key, fallback) => {
+    if (!t) return fallback;
+    try {
+      const v = t(key);
+      if (!v || v === key) return fallback;
+      return v;
+    } catch (_) {
+      return fallback;
+    }
+  };
+
   // Main navigation items like Booking.com
   const mainNavItems = [
     {
-      label: "Stays",
+      label: t ? t('nav.stays') : "Stays",
       icon: FaHome,
       href: "/apartments",
       children: [
-        { label: "Apartments", href: "/apartments", icon: FaBuilding },
-        { label: "Hotels", href: "/hotels", icon: FaBed },
-        { label: "Homes", href: "/homes", icon: FaHome },
-        { label: "Resorts", href: "/resorts", icon: FaUmbrellaBeach },
+        { label: t ? t('nav.apartments') : "Apartments", href: "/apartments", icon: FaBuilding },
+        { label: t ? t('nav.hotels') : "Hotels", href: "/hotels", icon: FaBed },
+        { label: t ? t('nav.homes') : "Homes", href: "/homes", icon: FaHome },
+        { label: t ? t('nav.resorts') : "Resorts", href: "/resorts", icon: FaUmbrellaBeach },
       ]
     },
     {
-      label: "Flights",
+      label: t ? t('nav.flights') : "Flights",
       icon: FaPlane,
       href: "/flights",
       children: [
@@ -137,133 +156,101 @@ const Navbar = () => {
     }
   ];
 
-  // Booking.com-style navigation for property owners
+  // Booking.com-style navigation for property owners (matches original dashboard nav structure)
   const bookingComNavItems = [
     {
-      label: t ? t('nav.home') : "Home",
+      label: labelOr('nav.home', 'Home'),
       icon: FaHome,
-      href: "/dashboard",
+      href: '/dashboard',
       children: []
     },
     {
-      label: t ? t('nav.ratesAvailability') : "Rates & Availability",
+      label: labelOr('nav.pricingAndCalendar', 'Pricing and booking calendar'),
       icon: FaCalendarAlt,
-      href: "/owner/rates",
+      href: '/owner/rates',
       children: [
-        { label: t ? t('nav.calendar') : "Calendar", href: "/owner/rates?view=calendar", icon: FaCalendarAlt },
-        { label: t ? t('nav.openCloseRooms') : "Open/close rooms", href: "/owner/rates?view=open-close", icon: FaCalendarAlt },
+        { label: labelOr('nav.calendar', 'Calendar'), href: '/owner/rates?view=calendar', icon: FaCalendarAlt },
+        { label: labelOr('nav.openCloseRooms', 'Open/close rooms'), href: '/owner/rates?view=open-close', icon: FaCalendarAlt },
+        { label: labelOr('nav.pricingPerGuest', 'Pricing per guest'), href: '/owner/rates?view=pricing-per-guest', icon: FaUsers },
+        { label: labelOr('nav.valueAdds', 'Value adds'), href: '/owner/rates?view=value-adds', icon: FaMoneyBillWave },
       ]
     },
     {
-      label: t ? t('nav.promotions') : "Promotions",
-      icon: FaShoppingBag,
-      href: "/owner/promotions",
+      label: labelOr('nav.reservations', 'Reservations'),
+      icon: FaCalendarCheck,
+      href: '/my-bookings',
       children: [
-        { label: t ? t('nav.chooseNewPromotion') : "Choose new promotion", href: "/owner/promotions?action=new", icon: FaShoppingBag },
-        { label: t ? t('nav.simulateMaxDiscount') : "Simulate max discount", href: "/owner/promotions?action=simulate", icon: FaDollarSign },
-        { label: t ? t('nav.yourActivePromotions') : "Your active promotions", href: "/owner/promotions?filter=active", icon: FaShoppingBag },
+        { label: labelOr('nav.allReservations', 'All reservations'), href: '/my-bookings?tab=reservations&scope=all', icon: FaCalendarCheck },
+        { label: labelOr('nav.upcoming', 'Upcoming'), href: '/my-bookings?tab=reservations&scope=upcoming', icon: FaCalendarCheck },
+        { label: labelOr('nav.checkIn', 'Check in'), href: '/my-bookings?tab=reservations&scope=checked-in', icon: FaCalendarCheck },
+        { label: labelOr('nav.checkOut', 'Check out'), href: '/my-bookings?tab=reservations&scope=checked-out', icon: FaCalendarCheck },
+        { label: labelOr('nav.cancelled', 'Cancelled'), href: '/my-bookings?tab=reservations&scope=cancelled', icon: FaCalendarTimes },
+        { label: labelOr('nav.directBooking', 'Direct booking'), href: '/owner/direct-booking', icon: FaCalendarCheck },
       ]
     },
     {
-      label: t ? t('nav.reservations') : "Reservations",
-      icon: FaCalendarAlt,
-      href: "/my-bookings",
-      children: [
-        { label: t ? t('nav.allReservations') : "All reservations", href: "/my-bookings?tab=reservations&scope=all", icon: FaCalendarAlt },
-        { label: t ? t('nav.upcoming') : "Upcoming", href: "/my-bookings?tab=reservations&scope=upcoming", icon: FaCalendarAlt },
-        { label: t ? t('nav.checkedIn') : "Checked in", href: "/my-bookings?tab=reservations&scope=checked-in", icon: FaCalendarAlt },
-        { label: t ? t('nav.checkedOut') : "Checked out", href: "/my-bookings?tab=reservations&scope=checked-out", icon: FaCalendarAlt },
-        { label: t ? t('nav.cancelled') : "Cancelled", href: "/my-bookings?tab=reservations&scope=cancelled", icon: FaCalendarAlt },
-      ]
-    },
-    {
-      label: t ? t('nav.property') : "Property",
-      icon: FaBuilding,
-      href: "/owner/property",
+      label: labelOr('nav.property', 'Property'),
+      icon: FaBed,
+      href: '/owner/property',
       badge: propertyAlerts,
       children: [
-        { label: t ? t('nav.qualityRating') : "Quality rating", href: "/owner/property?view=quality-rating", icon: FaStar },
-        { label: t ? t('nav.propertyPageScore') : "Property page score", href: "/owner/property?view=page-score", icon: FaChartLine },
-        { label: t ? t('nav.generalInfo') : "General info & property status", href: "/owner/property?view=general-info", icon: FaBuilding },
-        { label: t ? t('nav.vatTax') : "VAT/tax/charges", href: "/owner/property?view=vat-tax", icon: FaDollarSign },
-        { label: t ? t('nav.photos') : "Photos", href: "/owner/property?view=photos", icon: FaImages },
-        { label: t ? t('nav.propertyPolicies') : "Property policies", href: "/owner/property?view=policies", icon: FaFileAlt },
-        { label: t ? t('nav.reservationPolicies') : "Reservation policies", href: "/owner/property?view=policies", icon: FaFileAlt },
-        { label: t ? t('nav.facilitiesServices') : "Facilities & services", href: "/owner/property?view=facilities", icon: FaCog },
-        { label: t ? t('nav.roomDetails') : "Room details", href: "/owner/property?view=room-details", icon: FaBed },
-        { label: t ? t('nav.roomAmenities') : "Room amenities", href: "/owner/property?view=facilities", icon: FaCog },
-        { label: t ? t('nav.yourProfile') : "Your profile", href: "/owner/property?view=profile", icon: FaUser },
-        { label: t ? t('nav.viewDescriptions') : "View your descriptions", href: "/owner/property?view=general-info", icon: FaFileAlt },
-        { label: t ? t('nav.messagingPreferences') : "Messaging preferences", href: "/settings?tab=messaging", icon: FaEnvelope },
-        { label: t ? t('nav.sustainability') : "Sustainability", href: "/owner/property?view=sustainability", icon: FaGlobe },
+        { label: labelOr('nav.propertyPolicies', 'Property policies'), href: '/owner/property?view=policies', icon: FaFileAlt },
+        { label: labelOr('nav.reservationPolicies', 'Reservation policies'), href: '/owner/property?view=reservation-policies', icon: FaFileAlt },
+        { label: labelOr('nav.facilitiesServices', 'Facilities and services'), href: '/owner/property?view=facilities', icon: FaCog },
+        { label: labelOr('nav.roomDetails', 'Room details'), href: '/owner/property?view=room-details', icon: FaBed },
+        { label: labelOr('nav.roomAmenities', 'Room Amenities'), href: '/owner/property?view=room-amenities', icon: FaBed },
+        { label: labelOr('nav.yourProfile', 'your profile'), href: '/owner/property?view=profile', icon: FaUser },
+        { label: labelOr('nav.viewDescriptions', 'View your descriptions'), href: '/owner/property?view=descriptions', icon: FaFileAlt },
+        { label: labelOr('nav.messagingPreferences', 'Messaging preferences'), href: '/settings?tab=messaging', icon: FaEnvelope },
+        { label: labelOr('nav.photos', 'Property photos'), href: '/owner/property?view=photos', icon: FaImages },
       ]
     },
     {
-      label: t ? t('nav.boostPerformance') : "Boost performance",
-      icon: FaChartLine,
-      href: "/dashboard?tab=boost",
-      badge: opportunityCount,
-      children: [
-        { label: t ? t('nav.opportunityCentre') : "Opportunity Centre", href: "/dashboard?tab=boost&view=opportunity", icon: FaShoppingBag, badge: opportunityCount },
-        { label: t ? t('nav.commissionFreeBookings') : "Commission-free bookings", href: "/dashboard?tab=boost&view=commission-free", icon: FaDollarSign },
-        { label: t ? t('nav.geniusPartnerProgramme') : "Genius partner programme", href: "/dashboard?tab=boost&view=genius", icon: FaStar },
-        { label: t ? t('nav.preferredPartnerProgramme') : "Preferred Partner Programme", href: "/dashboard?tab=boost&view=preferred", icon: FaStar },
-        { label: t ? t('nav.longStaysToolkit') : "Long stays toolkit", href: "/dashboard?tab=boost&view=long-stays", icon: FaCalendarAlt },
-        { label: t ? t('nav.visibilityBooster') : "Visibility booster", href: "/dashboard?tab=boost&view=visibility", icon: FaChartLine },
-        { label: t ? t('nav.workFriendlyProgramme') : "Work-Friendly Programme", href: "/dashboard?tab=boost&view=work-friendly", icon: FaBuilding },
-        { label: t ? t('nav.unitDifferentiationTool') : "Unit differentiation tool", href: "/dashboard?tab=boost&view=unit-diff", icon: FaCog },
-      ]
-    },
-    {
-      label: t ? t('nav.inbox') : "Inbox",
+      label: labelOr('nav.inbox', 'Inbox'),
       icon: FaEnvelope,
-      href: "/messages",
+      href: '/messages',
       badge: unreadMsgCount,
       children: [
-        { label: t ? t('nav.reservationMessages') : "Reservation messages", href: "/messages?category=reservations", icon: FaEnvelope, badge: messageCounts.reservations },
-        { label: t ? t('nav.bookingComMessages') : "Booking.com messages", href: "/messages?category=platform", icon: FaEnvelope, badge: messageCounts.platform },
-        { label: t ? t('nav.guestQandA') : "Guest Q&A", href: "/messages?category=qna", icon: FaQuestionCircle, badge: messageCounts.qna },
+        { label: labelOr('nav.reservationMessages', 'Reservation messages'), href: '/messages?category=reservations', icon: FaEnvelope, badge: messageCounts.reservations },
+        { label: labelOr('nav.bookingComMessages', 'Akwanda.rw messages'), href: '/messages?category=platform', icon: FaEnvelope, badge: messageCounts.platform },
+        { label: labelOr('nav.guestQandA', 'Guest Q&A'), href: '/messages?category=qna', icon: FaQuestionCircle, badge: messageCounts.qna },
       ]
     },
     {
-      label: t ? t('nav.guestReviews') : "Guest reviews",
+      label: labelOr('nav.guestReviews', 'Guest reviews'),
       icon: FaStar,
-      href: "/owner/reviews",
+      href: '/owner/reviews',
       badge: unrepliedReviews,
       children: [
-        { label: t ? t('nav.guestReviews') : "Guest reviews", href: "/owner/reviews", icon: FaStar, badge: unrepliedReviews },
-        { label: t ? t('nav.guestExperience') : "Guest experience", href: "/owner/reviews?view=experience", icon: FaUsers },
+        { label: labelOr('nav.guestReviews', 'Guest reviews'), href: '/owner/reviews', icon: FaStar, badge: unrepliedReviews },
+        { label: labelOr('nav.guestExperience', 'Guest experience'), href: '/owner/reviews?view=experience', icon: FaUsers },
       ]
     },
     {
-      label: t ? t('nav.finance') : "Finance",
+      label: labelOr('nav.finance', 'Finance'),
       icon: FaDollarSign,
-      href: "/dashboard?tab=finance",
+      href: '/dashboard?tab=finance',
       children: [
-        { label: t ? t('nav.invoices') : "Invoices", href: "/dashboard?tab=finance&view=invoices", icon: FaFileAlt },
-        { label: t ? t('nav.reservationsStatement') : "Reservations statement", href: "/dashboard?tab=finance&view=statement", icon: FaFileAlt },
-        { label: t ? t('nav.financialOverview') : "Financial overview", href: "/dashboard?tab=finance&view=overview", icon: FaChartLine },
-        { label: t ? t('nav.financeSettings') : "Finance settings", href: "/settings?tab=finance", icon: FaCog },
+        { label: labelOr('nav.invoices', 'Invoices'), href: '/dashboard?tab=finance&view=invoices', icon: FaFileAlt },
+        { label: labelOr('nav.reservationsStatement', 'Reservations statement'), href: '/dashboard?tab=finance&view=statement', icon: FaFileAlt },
+        { label: labelOr('nav.financialOverview', 'Financial overview'), href: '/dashboard?tab=finance&view=overview', icon: FaChartLine },
+        { label: labelOr('nav.transactions', 'Transactions'), href: '/transactions', icon: FaMoneyBillWave },
+        { label: labelOr('nav.financeSettings', 'Finance settings'), href: '/settings?tab=finance', icon: FaCog },
       ]
     },
     {
-      label: t ? t('nav.analytics') : "Analytics",
+      label: labelOr('nav.salesReportingAnalytics', 'Sales Reporting & Analytics'),
       icon: FaChartLine,
-      href: "/dashboard?tab=analytics",
+      href: '/dashboard?tab=analytics',
       children: [
-        { label: t ? t('nav.analyticsDashboard') : "Analytics dashboard", href: "/dashboard?tab=analytics", icon: FaChartLine },
-        { label: t ? t('nav.demandForLocation') : "Demand for location", href: "/dashboard?tab=analytics&view=demand", icon: FaMapMarkerAlt },
-        { label: t ? t('nav.yourPaceOfBookings') : "Your pace of bookings", href: "/dashboard?tab=analytics&view=pace", icon: FaCalendarAlt },
-        { label: t ? t('nav.salesStatistics') : "Sales statistics", href: "/dashboard?tab=analytics&view=sales", icon: FaChartLine },
-        { label: t ? t('nav.bookerInsights') : "Booker insights", href: "/dashboard?tab=analytics&view=booker", icon: FaUsers },
-        { label: t ? t('nav.bookwindowInformation') : "Bookwindow information", href: "/dashboard?tab=analytics&view=bookwindow", icon: FaCalendarAlt },
-        { label: t ? t('nav.cancellationCharacteristics') : "Cancellation characteristics", href: "/dashboard?tab=analytics&view=cancellation", icon: FaCalendarTimes },
-        { label: t ? t('nav.manageYourCompetitiveSet') : "Manage your competitive set", href: "/dashboard?tab=analytics&view=competitive", icon: FaChartLine },
-        { label: t ? t('nav.geniusReport') : "Genius report", href: "/dashboard?tab=analytics&view=genius", icon: FaStar },
-        { label: t ? t('nav.rankingDashboard') : "Ranking dashboard", href: "/dashboard?tab=analytics&view=ranking", icon: FaChartLine, badge: "New" },
-        { label: t ? t('nav.performanceDashboard') : "Performance dashboard", href: "/dashboard?tab=analytics&view=performance", icon: FaChartLine },
+        { label: labelOr('nav.analyticsDashboard', 'Overview dashboard'), href: '/dashboard?tab=analytics', icon: FaChartLine },
+        { label: labelOr('nav.salesStatistics', 'Sales statistics'), href: '/dashboard?tab=analytics&view=sales', icon: FaChartLine },
+        { label: labelOr('nav.reports', 'Reports'), href: '/dashboard?tab=analytics&view=reports', icon: FaFileAlt },
+        { label: labelOr('nav.directVsOnline', 'Direct vs Online'), href: '/dashboard?tab=analytics&view=comparison', icon: FaChartLine },
+        { label: labelOr('nav.occupancyRevenuePerRoom', 'Occupancy & Revenue per Room'), href: '/dashboard?tab=analytics&view=occupancy', icon: FaChartLine },
+        { label: labelOr('nav.taxLiabilityTracking', 'Tax liability tracking'), href: '/dashboard?tab=analytics&view=tax', icon: FaFileAlt },
       ]
-    }
+    },
   ];
 
   // Owner management links organized exactly like Booking.com
@@ -277,6 +264,7 @@ const Navbar = () => {
         { label: t ? t('nav.pendingReservations') : "Pending reservations", href: "/my-bookings?tab=bookings&scope=pending" },
         { label: t ? t('nav.unpaidReservations') : "Unpaid reservations", href: "/my-bookings?tab=bookings&scope=unpaid" },
         { label: t ? t('nav.cancelledReservations') : "Cancelled reservations", href: "/my-bookings?tab=bookings&scope=cancelled" },
+        { label: t ? t('nav.directBooking') : "Direct booking", href: "/owner/direct-booking" },
       ]
     },
     {
@@ -457,6 +445,16 @@ const Navbar = () => {
     return () => { cancelled = true; };
   }, [isAuthenticated, user?.userType]);
 
+  // Keep selected property in sync with URL and loaded properties
+  useEffect(() => {
+    if (!isAuthenticated || user?.userType !== 'host' || myProperties.length === 0) return;
+    const params = new URLSearchParams(location.search || '');
+    const urlProp = params.get('property');
+    const existsInList = urlProp && myProperties.some(p => String(p._id) === String(urlProp));
+    const firstId = String(myProperties[0]._id || '');
+    setSelectedPropertyId(existsInList ? String(urlProp) : firstId);
+  }, [isAuthenticated, user?.userType, myProperties, location.search]);
+
   // Fetch dynamic badge counts for navigation
   useEffect(() => {
     if (!isAuthenticated || user?.userType !== 'host') return;
@@ -626,7 +624,12 @@ const Navbar = () => {
 
   const getNotificationLink = (n) => {
     if (!n) return '#';
-    // Route mapping by type and attached entities
+    // In owner dashboard context, always deep-link into the notifications page
+    // so the selected notification is opened/focused there instead of guest-facing routes.
+    if (isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard()) {
+      return `/notifications?open=${encodeURIComponent(n.id || n._id || '')}`;
+    }
+    // Guest/admin routes mapping by type and attached entities
     if ((n.type?.startsWith('booking') || n.type?.includes('receipt')) && (n.booking?._id || n.booking)) {
       const bid = n.booking?._id || n.booking;
       return `/booking-confirmation/${bid}`;
@@ -644,8 +647,16 @@ const Navbar = () => {
 
   // Check if user is in property owner dashboard context
   const isInPropertyOwnerDashboard = () => {
-    const ownerRoutes = ['/dashboard', '/user-dashboard', '/my-bookings', '/upload', '/owner', '/messages'];
-    return ownerRoutes.some(route => location.pathname.startsWith(route));
+    const ownerRoutes = ['/dashboard', '/user-dashboard', '/my-bookings', '/upload', '/owner', '/messages', '/notifications'];
+    if (ownerRoutes.some(route => location.pathname.startsWith(route))) {
+      return true;
+    }
+    // Treat global search as owner-mode when explicitly tagged
+    if (location.pathname.startsWith('/search')) {
+      const params = new URLSearchParams(location.search || '');
+      if (params.get('mode') === 'owner') return true;
+    }
+    return false;
   };
 
   const handleLogout = () => {
@@ -694,6 +705,25 @@ const Navbar = () => {
     navigate('/upload');
   };
 
+  const handleOwnerSearch = () => {
+    const term = String(ownerSearchTerm || '').trim();
+    if (!term) return;
+    const params = new URLSearchParams();
+    params.set('query', term);
+    params.set('mode', 'owner');
+    navigate(`/search?${params.toString()}`);
+  };
+
+  const handleGlobalSearch = (e) => {
+    e?.preventDefault?.();
+    const term = String(globalSearchTerm || '').trim();
+    if (!term) return;
+    const params = new URLSearchParams();
+    params.set('query', term);
+    params.set('mode', isAuthenticated && user?.userType === 'host' ? 'owner' : 'user');
+    navigate(`/search?${params.toString()}`);
+  };
+
   const goToPropertyDashboard = () => {
     if (!isAuthenticated) {
       navigate('/login?redirect=/dashboard');
@@ -712,7 +742,7 @@ const Navbar = () => {
     e?.preventDefault?.();
     const email = String(ownerEmail || '').trim();
     const password = String(ownerPassword || '').trim();
-    if (!email || !password) { toast.error('Enter owner email and password'); return; }
+    if (!email || !password) { toast.error(t ? t('msg.enterOwnerCredentials') : 'Enter owner email and password'); return; }
     try {
       setSwitchLoading(true);
       // Logout current session (user mode)
@@ -725,19 +755,19 @@ const Navbar = () => {
         body: JSON.stringify({ email, password })
       });
       const data = await res.json().catch(()=>({}));
-      if (!res.ok) throw new Error(data.message || 'Owner login failed');
+      if (!res.ok) throw new Error(data.message || (t ? t('msg.ownerLoginFailed') : 'Owner login failed'));
       // Ensure account is host
       if (data?.user?.userType !== 'host') {
-        toast.error('That account is not a property owner');
+        toast.error(t ? t('msg.notOwnerAccount') : 'That account is not a property owner');
         return;
       }
-      toast.success('Switched to Property Owner');
+      toast.success(t ? t('msg.switchToOwnerSuccess') : 'Switched to Property Owner');
       setShowOwnerSwitch(false);
       setOwnerPassword('');
       // Redirect to owner dashboard
       navigate('/dashboard');
     } catch (err) {
-      toast.error(err.message || 'Could not switch account');
+      toast.error(err.message || (t ? t('msg.couldNotSwitchAccount') : 'Could not switch account'));
     } finally {
       setSwitchLoading(false);
     }
@@ -745,9 +775,9 @@ const Navbar = () => {
 
   return (
     <> 
-      {/* Top Bar - First Level (hidden on landing page) */}
-      {location.pathname !== '/' && (
-      <div className="w-full bg-[#4b2a00] text-white py-2 px-4 border-b border-[#3a2000] relative z-[1000]">
+      {/* Top Bar - First Level (hidden on landing page and in property owner dashboard) */}
+      {location.pathname !== '/' && !(isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard()) && (
+      <div className="w-full bg-[#8b5a35] text-white py-2 px-4 border-b border-[#7a4d2c] relative z-[1000] shadow-sm">
         <div className="max-w-7xl mx-auto flex justify-between items-center text-xs">
           <div className="flex items-center space-x-4 lg:space-x-6">
             {/* Property Owner Links - Show when authenticated as host (only show Dashboard label in owner context) */}
@@ -764,12 +794,7 @@ const Navbar = () => {
                 >
                   {t ? t('nav.myBookings') : 'My Bookings'}
                 </Link>
-                <Link
-                  to="/owner/cars"
-                  className="hidden sm:inline hover:text-white font-medium"
-                >
-                  {t ? t('nav.myCars') : 'My Cars'}
-                </Link>
+                {/* My Cars moved under Property submenu */}
               </>
             )}
 
@@ -816,28 +841,32 @@ const Navbar = () => {
           </div>
           <div className="flex items-center space-x-4">
             {/* Language selector */}
-            <div className="relative group">
-              <button type="button" className="flex items-center space-x-2 hover:text-white cursor-pointer">
+            <div className="relative lang-selector-top">
+              <button type="button" onClick={() => { setLangOpenTop(o=>!o); setCurrOpenTop(false); }} className="flex items-center space-x-2 hover:text-white cursor-pointer">
                 <FaGlobe className="text-sm" />
                 <span className="hidden sm:inline">{(language || 'en').toUpperCase()}</span>
                 <FaCaretDown className="text-[10px] hidden sm:inline" />
               </button>
-              <div className="main-nav-dropdown absolute right-0 mt-2 hidden group-hover:block bg-white text-[#4b2a00] rounded-md shadow-lg border border-[#e0d5c7]">
-                <button onClick={() => setLanguage && setLanguage('en')} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">English</button>
-                <button onClick={() => setLanguage && setLanguage('fr')} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">Français</button>
-              </div>
+              {langOpenTop && (
+                <div className="main-nav-dropdown absolute right-0 mt-2 bg-white text-[#4b2a00] rounded-md shadow-lg border border-[#e0d5c7]">
+                  <button onClick={() => { setLanguage && setLanguage('en'); setLangOpenTop(false); }} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">English</button>
+                  <button onClick={() => { setLanguage && setLanguage('fr'); setLangOpenTop(false); }} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">Français</button>
+                </div>
+              )}
             </div>
             {/* Currency selector */}
-            <div className="relative group">
-              <button type="button" className="flex items-center space-x-2 hover:text-white cursor-pointer">
+            <div className="relative currency-selector-top">
+              <button type="button" onClick={() => { setCurrOpenTop(o=>!o); setLangOpenTop(false); }} className="flex items-center space-x-2 hover:text-white cursor-pointer">
                 <span className="font-semibold">{(currency || 'RWF').toUpperCase()}</span>
                 <FaCaretDown className="text-[10px]" />
               </button>
-              <div className="main-nav-dropdown absolute right-0 mt-2 hidden group-hover:block bg-white text-[#4b2a00] rounded-md shadow-lg border border-[#e0d5c7] min-w-[120px]">
-                <button onClick={() => setCurrency && setCurrency('RWF')} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">RWF</button>
-                <button onClick={() => setCurrency && setCurrency('USD')} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">USD</button>
-                <button onClick={() => setCurrency && setCurrency('EUR')} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">EUR</button>
-              </div>
+              {currOpenTop && (
+                <div className="main-nav-dropdown absolute right-0 mt-2 bg-white text-[#4b2a00] rounded-md shadow-lg border border-[#e0d5c7] min-w-[120px]">
+                  <button onClick={() => { setCurrency && setCurrency('RWF'); setCurrOpenTop(false); }} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">RWF</button>
+                  <button onClick={() => { setCurrency && setCurrency('USD'); setCurrOpenTop(false); }} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">USD</button>
+                  <button onClick={() => { setCurrency && setCurrency('EUR'); setCurrOpenTop(false); }} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">EUR</button>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -889,9 +918,9 @@ const Navbar = () => {
                 onClick={() => handlePayCommission(billing.minimumPartial || Math.ceil((billing.totalDue||0)/2))}
                 disabled={payingCommission || (billing.totalDue||0) <= 0}
                 className={`inline-flex items-center justify-center px-3 py-2 rounded-md text-white shadow-sm transition-colors ${payingCommission ? 'bg-[#b58a66] opacity-80' : 'bg-[#a06b42] hover:bg-[#8f5a32]'}`}
-                title={`Pay at least ${formatCurrencyRWF ? formatCurrencyRWF(billing.minimumPartial||0) : `RWF ${Number(billing.minimumPartial||0).toLocaleString()}`} to unlock limited features`}
+                title={`${t ? t('banner.payHalf') : 'Pay Half'}: ${formatCurrencyRWF ? formatCurrencyRWF(billing.minimumPartial||0) : `RWF ${Number(billing.minimumPartial||0).toLocaleString()}`}`}
               >
-                {payingCommission ? 'Processing…' : `Pay Half (${formatCurrencyRWF ? formatCurrencyRWF(billing.minimumPartial||0) : `RWF ${Number(billing.minimumPartial||0).toLocaleString()}`})`}
+                {payingCommission ? 'Processing…' : `${t ? t('banner.payHalf') : 'Pay Half'} (${formatCurrencyRWF ? formatCurrencyRWF(billing.minimumPartial||0) : `RWF ${Number(billing.minimumPartial||0).toLocaleString()}`})`}
               </button>
               <button
                 type="button"
@@ -899,10 +928,10 @@ const Navbar = () => {
                 disabled={payingCommission || (billing.totalDue||0) <= 0}
                 className={`inline-flex items-center justify-center px-3 py-2 rounded-md text-[#3a240e] border border-[#e1d5c3] bg-white/90 hover:bg-white`}
               >
-                Pay Full ({formatCurrencyRWF ? formatCurrencyRWF(billing.totalDue||0) : `RWF ${Number(billing.totalDue||0).toLocaleString()}`})
+                {t ? t('banner.payFull') : 'Pay Full'} ({formatCurrencyRWF ? formatCurrencyRWF(billing.totalDue||0) : `RWF ${Number(billing.totalDue||0).toLocaleString()}`})
               </button>
               <Link to="/notifications" className="inline-flex justify-center px-3 py-2 rounded-md border border-[#e1d5c3] text-[#3a240e] hover:bg-white">
-                View notice
+                {t ? t('banner.viewNotice') : 'View notice'}
               </Link>
             </div>
           </div>
@@ -910,35 +939,67 @@ const Navbar = () => {
       )}
 
       {/* Second Bar - Navigation Level */}
-      <nav className="w-full bg-[#f5f0e8] border-b border-[#e0d5c7] navbar-shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex justify-between items-center">
-            {/* Logo */}
-            <div className="flex items-center space-x-8">
-              <Link
-                to={user?.userType === 'host' && isInPropertyOwnerDashboard() ? "/dashboard" : "/"}
-                className="text-xl font-bold text-[#4b2a00] hover:text-[#6b3f1f]"
-              >
-                AKWANDA.rw
-              </Link>
+      <nav
+        className={`w-full border-b navbar-shadow ${
+          isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard()
+            ? 'bg-[#8b5a35] border-[#7a4d2c] text-white'
+            : 'bg-[#f5f0e8] border-[#e0d5c7]'
+        }`}
+      >
+        <div
+          className={`${
+            isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard()
+              ? 'w-full px-2 sm:px-3'
+              : 'max-w-7xl px-4 sm:px-6 lg:px-8'
+          } mx-auto py-4`}
+        >
+          <div className="flex flex-col gap-3">
+            <div className="flex justify-between items-center">
+              {/* Logo */}
+              <div className="flex items-center space-x-4">
+                <Link
+                  to="/"
+                  className={`text-xl font-bold tracking-tight ${
+                    isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard()
+                      ? 'text-white hover:text-[#fdf2e9]'
+                      : 'text-[#4b2a00] hover:text-[#6b3f1f]'
+                  }`}
+                >
+                  AKWANDA.rw
+                </Link>
 
-              {/* Property Name and Code Display */}
-              {user?.userType === 'host' && isInPropertyOwnerDashboard() && myProperties.length > 0 && (
-                <div className="hidden lg:flex items-center space-x-3">
-                  <div className="flex items-center space-x-2 px-3 py-2 bg-[#e8dcc8] rounded-lg border border-[#d0c4b0]">
-                    <FaBuilding className="text-[#8b6f47] text-sm" />
-                    <div className="flex flex-col">
-                      <span className="text-sm font-semibold text-[#4b2a00]">{myProperties[0]?.title || myProperties[0]?.name || 'Property'}</span>
-                      <span className="text-xs text-[#8b6f47]">#{myProperties[0]?.propertyNumber || myProperties[0]?._id?.slice(-6) || 'N/A'}</span>
+                {/* Property selector (desktop) - next to logo in owner dashboard */}
+                {isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard() && myProperties.length > 0 && (
+                  <div className="hidden lg:block">
+                    <div className="flex items-center gap-1">
+                      <select
+                        className="px-3 py-2 border border-[#d4c4b0] rounded-lg bg-white text-sm text-[#4b2a00] focus:outline-none focus:ring-2 focus:ring-[#a06b42]"
+                        title={t ? t('banner.choosePropertyToManage') : 'Choose property to manage'}
+                        value={selectedPropertyId}
+                        onChange={(e) => {
+                          const id = e.target.value;
+                          setSelectedPropertyId(id);
+                          if (id) {
+                            window.open(`/dashboard?property=${id}`, '_blank');
+                          }
+                        }}
+                      >
+                        {myProperties.map((p) => {
+                          const id = String(p._id || '');
+                          const code = p.propertyNumber || id.slice(-6) || 'N/A';
+                          const name = p.title || p.name || 'Property';
+                          return (
+                            <option key={id} value={id}>{`#${code} - ${name}`}</option>
+                          );
+                        })}
+                      </select>
                     </div>
                   </div>
-                </div>
-              )}
+                )}
 
-
-              {/* Main Navigation Items - Show for guests and hide for property owners in dashboard */}
-              {user?.userType !== "admin" && (user?.userType !== 'host' || !isInPropertyOwnerDashboard()) && (
-                <div className="hidden lg:flex items-center space-x-1">
+                {/* Main Navigation Items - Show for guests and hide for property owners in dashboard */}
+                {user?.userType !== "admin" && (user?.userType !== 'host' || !isInPropertyOwnerDashboard()) && (
+                  <div className="hidden lg:flex items-center space-x-1">
                   {mainNavItems.map((item, index) => {
                     const Icon = item.icon;
                     const isActive = isActiveRoute(item.href);
@@ -990,63 +1051,48 @@ const Navbar = () => {
                       </div>
                     );
                   })}
-                </div>
-              )}
-            </div>
+                  </div>
+                )}
+              </div>
 
-            {/* Right Side - Booking.com Style */}
-            <div className="flex flex-nowrap items-center gap-2 lg:gap-3">
-              {/* Property selector (desktop) */}
-              {isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard() && myProperties.length > 0 && (
-                <div className="hidden lg:block relative">
-                  <button
-                    onClick={() => setPropDropdownOpen(v => !v)}
-                    className={`flex items-center px-3 py-2 rounded-lg transition-all duration-300 ${propDropdownOpen
-                        ? 'bg-[#a06b42] text-white shadow-md'
-                        : 'text-[#6b5744] hover:text-[#4b2a00] hover:bg-[#e8dcc8]'
-                      }`}
-                    title="Choose property to manage"
-                  >
-                    <FaBuilding className="text-lg" />
-                    <FaCaretDown className={`ml-2 text-xs transition-transform ${propDropdownOpen ? 'rotate-180' : ''}`} />
-                  </button>
-                  {propDropdownOpen && (
-                    <div className="property-selector-dropdown absolute top-full right-0 mt-1 w-80 max-h-80 overflow-y-auto bg-[#f6e9d8] rounded-xl shadow-2xl border border-[#d4c4b0] p-2">
-                      {myProperties.map((p) => (
-                        <Link
-                          key={p._id}
-                          to={`/my-bookings?tab=calendar&property=${p._id}`}
-                          className="block px-3 py-2 text-sm text-[#4b2a00] hover:bg-white truncate"
-                          onClick={() => setPropDropdownOpen(false)}
-                          title={p.title}
-                        >
-                          {p.title || p.name || p.propertyNumber}
-                        </Link>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-              {/* List your property - Hidden on small screens completely */}
-              <button
-                onClick={handleListProperty}
-                className="hidden lg:inline-flex items-center px-2 lg:px-3 py-2 rounded-lg bg-[#a06b42] text-white text-xs lg:text-sm font-medium hover:bg-[#8f5a32] transition-colors whitespace-nowrap shadow-md"
-                title="List your property"
-              >
-                <span className="hidden lg:inline">{t ? t('nav.listProperty') : 'List your property'}</span>
-                <span className="lg:hidden">{t ? t('nav.listProperty') : 'List Property'}</span>
-              </button>
-
-              {/* Property Dashboard - hidden in user mode to reduce overflow; visible only in owner dashboard context */}
-              {isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard() && (
-                <button
-                  onClick={() => navigate('/dashboard')}
-                  className="hidden lg:inline-flex items-center px-2 lg:px-3 py-2 rounded-lg bg-green-600 text-white text-xs lg:text-sm font-medium hover:bg-green-700 transition-colors whitespace-nowrap"
-                  title="Property Owner Dashboard"
+              {/* Right Side - Booking.com Style */}
+              <div className="flex flex-nowrap items-center gap-1 lg:gap-2">
+              {/* Global search in main navbar (public / non-owner dashboard context) */}
+              {(!isAuthenticated || !isInPropertyOwnerDashboard()) && (
+                <form
+                  onSubmit={handleGlobalSearch}
+                  className="hidden lg:flex items-center bg-white border border-[#d4c4b0] rounded-lg px-2 py-1.5 mr-1 max-w-xs"
                 >
-                  <span className="hidden lg:inline">{t ? t('nav.dashboard') : 'Dashboard'}</span>
-                  <span className="lg:hidden">{t ? t('nav.dashboard') : 'Dash'}</span>
-                </button>
+                  <FaSearch className="text-xs text-gray-500 mr-1" />
+                  <input
+                    type="text"
+                    value={globalSearchTerm}
+                    onChange={(e) => setGlobalSearchTerm(e.target.value)}
+                    placeholder="Search..."
+                    className="flex-1 text-xs bg-transparent outline-none placeholder:text-gray-400 text-gray-800"
+                  />
+                  <button
+                    type="submit"
+                    className="ml-1 px-2 py-1 text-[11px] rounded-md bg-[#a06b42] text-white hover:bg-[#8f5a32] whitespace-nowrap"
+                  >
+                    Search
+                  </button>
+                </form>
+              )}
+
+              {/* Global search within owner dashboard */}
+              {isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard() && (
+                <div className="hidden lg:flex items-center bg-white border border-[#d4c4b0] rounded-lg px-2 py-1.5 ml-1 max-w-xs">
+                  <FaSearch className="text-xs text-gray-500 mr-1" />
+                  <input
+                    type="text"
+                    value={ownerSearchTerm}
+                    onChange={(e) => setOwnerSearchTerm(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleOwnerSearch(); }}
+                    placeholder="Search..."
+                    className="flex-1 text-xs bg-transparent outline-none placeholder:text-gray-400"
+                  />
+                </div>
               )}
 
               {/* Favorites */}
@@ -1064,7 +1110,11 @@ const Navbar = () => {
               {isAuthenticated && (user?.userType !== 'worker' ? true : !!user?.privileges?.canMessageGuests) && (
                 <Link
                   to="/messages"
-                  className="flex items-center px-3 py-2 rounded-lg text-[#6b5744] hover:text-[#4b2a00] hover:bg-[#e8dcc8] relative transition-colors"
+                  className={`flex items-center px-3 py-2 rounded-lg relative transition-colors ${
+                    isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard()
+                      ? 'text-white hover:text-white/90 hover:bg-[#6b3f1f]'
+                      : 'text-[#6b5744] hover:text-[#4b2a00] hover:bg-[#e8dcc8]'
+                  }`}
                   title={t ? t('nav.messages') : 'Messages'}
                 >
                   <FaEnvelope className="text-lg" />
@@ -1100,10 +1150,15 @@ const Navbar = () => {
                 <div className="relative inline-flex items-center">
                   <button
                     onClick={toggleNotifications}
-                    className={`notification-button relative px-3 py-2 rounded-lg transition-colors ${isNotificationOpen
-                        ? 'bg-[#a06b42] text-white'
-                        : 'text-[#6b5744] hover:text-[#4b2a00] hover:bg-[#e8dcc8]'
-                      }`}
+                    className={`notification-button relative px-3 py-2 rounded-lg transition-colors cursor-pointer ${
+                      isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard()
+                        ? isNotificationOpen
+                          ? 'bg-[#a06b42] text-white'
+                          : 'text-white hover:text-white/90 hover:bg-[#6b3f1f]'
+                        : isNotificationOpen
+                          ? 'bg-[#a06b42] text-white'
+                          : 'text-[#6b5744] hover:text-[#4b2a00] hover:bg-[#e8dcc8]'
+                    }`}
                   >
                     <FaBell className="text-lg" />
                     {unreadNotifCount > 0 && (
@@ -1186,7 +1241,11 @@ const Navbar = () => {
                         style={{ display: avatarOk ? 'block' : 'none' }}
                       />
                     ) : null}
-                    {!avatarOk || !avatarUrl ? <FaUserCircle className="text-xl" /> : null}
+                    {!avatarOk || !avatarUrl ? (
+                      <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center border border-gray-200">
+                        <FaUserCircle className="text-base text-gray-500" />
+                      </div>
+                    ) : null}
                     <FaCaretDown className="text-[10px]" />
                   </button>
                   {isProfileOpen && (
@@ -1209,31 +1268,51 @@ const Navbar = () => {
                 </div>
               )}
 
-              {/* Language & Currency selectors (always available in second navbar; also present in top bar for non-landing pages) */}
+              {/* Language & Currency selectors (click to open) */}
               <div className="hidden lg:flex items-center space-x-4 ml-2">
                 {/* Language selector */}
-                <div className="relative group">
-                  <button type="button" className="flex items-center space-x-2 hover:text-[#4b2a00] cursor-pointer">
+                <div className="relative lang-selector-second">
+                  <button
+                    type="button"
+                    onClick={() => { setLangOpenSecond(o=>!o); setCurrOpenSecond(false); }}
+                    className={`flex items-center space-x-2 cursor-pointer ${
+                      isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard()
+                        ? ''
+                        : 'hover:text-[#4b2a00]'
+                    }`}
+                  >
                     <FaGlobe className="text-sm" />
                     <span className="hidden sm:inline">{(language || 'en').toUpperCase()}</span>
                     <FaCaretDown className="text-[10px] hidden sm:inline" />
                   </button>
-                  <div className="main-nav-dropdown absolute right-0 mt-2 hidden group-hover:block bg-white text-[#4b2a00] rounded-md shadow-lg border border-[#e0d5c7]">
-                    <button onClick={() => setLanguage && setLanguage('en')} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">English</button>
-                    <button onClick={() => setLanguage && setLanguage('fr')} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">Français</button>
-                  </div>
+                  {langOpenSecond && (
+                    <div className="main-nav-dropdown absolute right-0 mt-2 bg-white text-[#4b2a00] rounded-md shadow-lg border border-[#e0d5c7]">
+                      <button onClick={() => { setLanguage && setLanguage('en'); setLangOpenSecond(false); }} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">English</button>
+                      <button onClick={() => { setLanguage && setLanguage('fr'); setLangOpenSecond(false); }} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">Français</button>
+                    </div>
+                  )}
                 </div>
                 {/* Currency selector */}
-                <div className="relative group">
-                  <button type="button" className="flex items-center space-x-2 hover:text-[#4b2a00] cursor-pointer">
+                <div className="relative currency-selector-second">
+                  <button
+                    type="button"
+                    onClick={() => { setCurrOpenSecond(o=>!o); setLangOpenSecond(false); }}
+                    className={`flex items-center space-x-2 cursor-pointer ${
+                      isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard()
+                        ? ''
+                        : 'hover:text-[#4b2a00]'
+                    }`}
+                  >
                     <span className="font-semibold">{(currency || 'RWF').toUpperCase()}</span>
                     <FaCaretDown className="text-[10px]" />
                   </button>
-                  <div className="main-nav-dropdown absolute right-0 mt-2 hidden group-hover:block bg-white text-[#4b2a00] rounded-md shadow-lg border border-[#e0d5c7] min-w-[120px]">
-                    <button onClick={() => setCurrency && setCurrency('RWF')} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">RWF</button>
-                    <button onClick={() => setCurrency && setCurrency('USD')} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">USD</button>
-                    <button onClick={() => setCurrency && setCurrency('EUR')} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">EUR</button>
-                  </div>
+                  {currOpenSecond && (
+                    <div className="main-nav-dropdown absolute right-0 mt-2 bg-white text-[#4b2a00] rounded-md shadow-lg border border-[#e0d5c7] min-w-[120px]">
+                      <button onClick={() => { setCurrency && setCurrency('RWF'); setCurrOpenSecond(false); }} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">RWF</button>
+                      <button onClick={() => { setCurrency && setCurrency('USD'); setCurrOpenSecond(false); }} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">USD</button>
+                      <button onClick={() => { setCurrency && setCurrency('EUR'); setCurrOpenSecond(false); }} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">EUR</button>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1246,7 +1325,67 @@ const Navbar = () => {
                   {isMenuOpen ? <FaTimes className="text-xl" /> : <FaBars className="text-xl" />}
                 </button>
               )}
+              </div>
             </div>
+
+            {/* Owner navigation (Booking.com style) in second navbar */}
+            {isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard() && (
+              <div className="w-full flex flex-wrap items-center gap-1 pt-1 mt-1">
+                {bookingComNavItems.map((item, idx) => {
+                  const Icon = item.icon;
+                  const isOpen = activeDropdown === item.label;
+                  const isParentActive = isActiveRoute(item.href);
+                  return (
+                    <div key={idx} className="relative owner-nav-dropdown">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!item.children || item.children.length === 0) {
+                            if (item.href) navigate(item.href);
+                            setActiveDropdown(null);
+                          } else {
+                            toggleDropdown(item.label);
+                          }
+                        }}
+                        className={`owner-nav-dropdown-button inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-colors border ${isOpen || isParentActive ? 'bg-[#e8dcc8] border-[#d0c4b0] text-[#4b2a00]' : 'bg-white border-[#e0d5c7] text-[#6b5744] hover:bg-[#f2e5d3]'}`}
+                      >
+                        <Icon className="text-sm" />
+                        <span>{item.label}</span>
+                        {item.badge && (
+                          <span className="ml-1 inline-flex items-center justify-center text-[10px] px-2 py-0.5 rounded-full bg-[#a06b42] text-white">{item.badge}</span>
+                        )}
+                        {item.children && item.children.length > 0 && (
+                          <FaCaretDown className={`text-[10px] ml-1 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                        )}
+                      </button>
+                      {isOpen && item.children && item.children.length > 0 && (
+                        <div className="main-nav-dropdown absolute left-0 mt-2 w-64 bg-[#f6e9d8] rounded-xl shadow-2xl border border-[#d4c4b0] py-2 z-[2000]">
+                          {item.children.map((child, cidx) => {
+                            const ChildIcon = child.icon;
+                            const href = child.href || item.href;
+                            const isChildActive = isActiveRoute(href);
+                            return (
+                              <button
+                                key={cidx}
+                                type="button"
+                                onClick={() => { navigate(href); setActiveDropdown(null); }}
+                                className={`w-full flex items-center gap-3 px-4 py-2 text-xs text-left hover:bg-white ${isChildActive ? 'bg-white text-[#4b2a00]' : 'text-[#4b2a00]'}`}
+                              >
+                                {ChildIcon && <ChildIcon className="text-sm" />}
+                                <span className="flex-1">{child.label}</span>
+                                {child.badge && (
+                                  <span className="ml-auto inline-flex items-center justify-center text-[10px] px-2 py-0.5 rounded-full bg-[#a06b42] text-white">{child.badge}</span>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       </nav>
@@ -1256,7 +1395,7 @@ const Navbar = () => {
           {/* Mobile property selector */}
           {user?.userType === 'host' && isInPropertyOwnerDashboard() && myProperties.length > 0 && (
             <div className="px-4 py-3">
-              <div className="text-xs font-semibold text-[#6b5744] mb-2">Manage property</div>
+              <div className="text-xs font-semibold text-[#6b5744] mb-2">{t ? t('banner.manageProperty') : 'Manage property'}</div>
               <div className="grid grid-cols-1 gap-2">
                 {myProperties.map((p) => (
                   <Link
@@ -1272,8 +1411,8 @@ const Navbar = () => {
             </div>
           )}
 
-          {/* Owner navigation (Booking.com style) */}
-          {user?.userType === 'host' && (
+          {/* Owner navigation (Booking.com style) - only in owner dashboard context */}
+          {user?.userType === 'host' && isInPropertyOwnerDashboard() && (
             <div className="px-2 pb-2">
               {bookingComNavItems.map((item, idx) => {
                 const Icon = item.icon;

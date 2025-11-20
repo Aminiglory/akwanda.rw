@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useLocale } from '../contexts/LocaleContext';
 import { useParams, useSearchParams } from 'react-router-dom';
 
@@ -12,6 +12,7 @@ export default function Receipt() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const hasPrinted = useRef(false);
 
   useEffect(() => {
     (async () => {
@@ -35,6 +36,14 @@ export default function Receipt() {
     if (!data) return;
     window.print();
   };
+
+  // Automatically trigger window.print once data is loaded, with a guard
+  useEffect(() => {
+    if (data && !hasPrinted.current) {
+      hasPrinted.current = true;
+      window.print();
+    }
+  }, [data]);
 
   if (loading) {
     return (

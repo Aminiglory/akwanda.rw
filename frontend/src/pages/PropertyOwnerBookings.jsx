@@ -31,6 +31,7 @@ const PropertyOwnerBookings = () => {
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [showBookingDetails, setShowBookingDetails] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
+  const [receiptPdfUrl, setReceiptPdfUrl] = useState(null);
   const [stats, setStats] = useState({
     total: 0,
     paid: 0,
@@ -52,13 +53,17 @@ const PropertyOwnerBookings = () => {
     checkIn: '',
     checkOut: '',
     guests: 1,
-    guestInfo: { firstName: '', lastName: '', email: '', phone: '' },
+    guestInfo: { firstName: '', lastName: '', email: '', phone: '', nationality: '', passport: '', address: '' },
     contactInfo: { email: '', phone: '' },
     paymentMethod: 'cash',
     markPaid: true,
+    paymentStatusSelection: 'paid',
+    // services will be keyed dynamically by add-on key per property
+    services: {},
     specialRequests: ''
   });
   const [ownerRooms, setOwnerRooms] = useState([]);
+  const [ownerAddOns, setOwnerAddOns] = useState([]);
   const [filters, setFilters] = useState({
     status: 'all',
     property: 'all',
@@ -71,6 +76,8 @@ const PropertyOwnerBookings = () => {
   const [activeNavDropdown, setActiveNavDropdown] = useState(null);
   const [financeFilter, setFinanceFilter] = useState(searchParams.get('finance_status') || 'all'); // all|paid|pending|unpaid
   const [financeView, setFinanceView] = useState(searchParams.get('view') || 'all'); // all|last30|mtd|ytd|invoices|statement|overview
+  const [financePage, setFinancePage] = useState(1);
+  const [financePerPage] = useState(10);
   const [analyticsRange, setAnalyticsRange] = useState(searchParams.get('range') || '30'); // 30|90|ytd|custom
   const [analyticsView, setAnalyticsView] = useState(searchParams.get('view') || 'dashboard'); // dashboard|demand|pace|sales|booker|bookwindow|cancellation|competitive|genius|ranking|performance
   const [boostView, setBoostView] = useState(searchParams.get('view') || 'opportunity'); // opportunity|commission-free|genius|preferred|long-stays|visibility|work-friendly|unit-diff
@@ -78,6 +85,22 @@ const PropertyOwnerBookings = () => {
   const [ownerReviews, setOwnerReviews] = useState([]);
   const [ownerAvgRating, setOwnerAvgRating] = useState(0);
   const [ownerReviewCount, setOwnerReviewCount] = useState(0);
+  const [analyticsData, setAnalyticsData] = useState({ occupancyDaily: [], adrDaily: [], revparDaily: [], totals: { occupancyAvg: 0, adrAvg: 0, revparAvg: 0, conversions: 0, cancellations: 0 } });
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [salesPeriod, setSalesPeriod] = useState('daily'); // daily|weekly|monthly
+  const [salesPage, setSalesPage] = useState(1);
+  const [salesPerPage] = useState(10);
+  const [reportsPeriod, setReportsPeriod] = useState('monthly');
+  const [reportsPage, setReportsPage] = useState(1);
+  const [reportsPerPage] = useState(10);
+  const [compPage, setCompPage] = useState(1);
+  const [compPerPage] = useState(10);
+  const [occPage, setOccPage] = useState(1);
+  const [occPerPage] = useState(10);
+  const [taxPage, setTaxPage] = useState(1);
+  const [taxPerPage] = useState(10);
+  const [showSalesConfirm, setShowSalesConfirm] = useState(false);
+  const [salesNewBooking, setSalesNewBooking] = useState(null);
   const [expandedSections, setExpandedSections] = useState({
     reservations: true,
     calendar: false,
@@ -99,6 +122,21 @@ const PropertyOwnerBookings = () => {
     helpSupport: false
   });
   const calendarRef = useRef(null);
+  const receiptIframeRef = useRef(null);
+
+  const openReceiptPdf = (bookingId) => {
+    if (!bookingId) return;
+    // Use the React Receipt page, which will call window.print() once loaded
+    const url = `/receipt/${bookingId}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
+  const openInvoicePdf = (bookingId) => {
+    if (!bookingId) return;
+    // Use the React Invoice page for preview; user can print from there
+    const url = `/invoice/${bookingId}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
 
   // Removed mock data. We will fetch live data from the backend.
 
@@ -149,6 +187,130 @@ const PropertyOwnerBookings = () => {
       setLoading(false);
     }
   };
+
+  // Sales confirmation flow kept for analytics, but printing now happens directly
+  const onConfirmSalesAndPrint = async () => {
+    try {
+      if (salesNewBooking) {
+        setActiveTab('analytics');
+        setAnalyticsView('sales');
+        setBookings(prev => [salesNewBooking, ...prev]);
+        loadData();
+      }
+    } finally {
+      setShowSalesConfirm(false);
+      setSalesNewBooking(null);
+    }
+  };
+
+  const onCancelSalesConfirm = () => {
+    setShowSalesConfirm(false);
+    setSalesNewBooking(null);
+  };
+
+  // Load owner analytics (RevPAR, ADR, occupancy) based on selected property
+  useEffect(() => {
+    const fetchOwnerAnalytics = async () => {
+      try {
+        setAnalyticsLoading(true);
+        const params = new URLSearchParams();
+        if (filters.property && filters.property !== 'all') params.set('property', filters.property);
+        const res = await fetch(`${API_URL}/api/analytics/owner?${params.toString()}`, { credentials: 'include' });
+        const data = await res.json();
+        if (res.ok) setAnalyticsData(data || {});
+      } catch (_) {
+        setAnalyticsData({ occupancyDaily: [], adrDaily: [], revparDaily: [], totals: { occupancyAvg: 0, adrAvg: 0, revparAvg: 0, conversions: 0, cancellations: 0 } });
+      } finally {
+        setAnalyticsLoading(false);
+      }
+    };
+    if (activeTab === 'analytics') fetchOwnerAnalytics();
+  }, [activeTab, filters.property]);
+
+  // Reset finance pagination when view or filters change
+  useEffect(() => {
+    setFinancePage(1);
+  }, [financeView, financeFilter, filters.property]);
+
+  // Helpers for sales grouping, export, and pagination
+  const getPeriodKey = (d, period) => {
+    const dt = new Date(d); dt.setHours(0,0,0,0);
+    if (period === 'monthly') return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;
+    if (period === 'weekly') {
+      const t = new Date(dt.getTime());
+      const day = (t.getDay()+6)%7; // ISO week, Monday=0
+      t.setDate(t.getDate()-day);
+      const y = t.getFullYear();
+      const first = new Date(y,0,1); const diff = Math.floor((t-first)/(24*3600*1000));
+      const week = Math.floor((diff+first.getDay()+6)/7)+1;
+      return `${y}-W${String(week).padStart(2,'0')}`;
+    }
+    return dt.toISOString().slice(0,10);
+  };
+
+  const computeSalesBuckets = (list, period) => {
+    const map = new Map();
+    list.forEach(b => {
+      const key = getPeriodKey(b.createdAt || b.checkIn, period);
+      const cur = map.get(key) || { period: key, revenue: 0, tax: 0, count: 0 };
+      cur.revenue += Number(b.totalAmount || 0);
+      cur.tax += Number(b.taxAmount || 0);
+      cur.count += 1;
+      map.set(key, cur);
+    });
+    return Array.from(map.values()).sort((a,b) => a.period.localeCompare(b.period));
+  };
+
+  const exportSalesCSV = (rows) => {
+    const header = ['Period','Revenue','Tax','Count'];
+    const lines = [header.join(',')].concat(rows.map(r => [r.period, r.revenue, r.tax, r.count].join(',')));
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `sales_${salesPeriod}.csv`; a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // Computed values for direct booking modal
+  const ownerSelectedProperty = properties.find(p => String(p._id) === String(directForm.propertyId));
+  const ownerSelectedRoom = ownerRooms.find(r => String(r._id) === String(directForm.roomId));
+  const ownerNightly = ownerSelectedRoom?.pricePerNight || ownerSelectedProperty?.pricePerNight || 0;
+  const ownerNights = (() => {
+    if (!directForm.checkIn || !directForm.checkOut) return 0;
+    const s = new Date(directForm.checkIn); const e = new Date(directForm.checkOut);
+    const n = Math.ceil((e - s) / (1000 * 60 * 60 * 24));
+    return isNaN(n) ? 0 : Math.max(0, n);
+  })();
+  const ownerRoomCharge = ownerNights > 0 ? ownerNightly * ownerNights : 0;
+  const ownerServicesTotal = (() => {
+    if (!Array.isArray(ownerAddOns) || ownerAddOns.length === 0) return 0;
+    let total = 0;
+    const guestCount = Math.max(1, directForm.guests || 1);
+    const nightsCount = Math.max(1, ownerNights || 0);
+    ownerAddOns
+      .filter(a => a && a.enabled)
+      .forEach(addOn => {
+        const key = addOn.key;
+        const selected = !!(directForm.services && directForm.services[key]);
+        if (!selected) return;
+        const price = Number(addOn.price || 0);
+        const scope = addOn.scope || 'per-booking';
+        if (scope === 'per-night') {
+          total += price * nightsCount;
+        } else if (scope === 'per-guest') {
+          total += price * guestCount;
+        } else {
+          // per-booking
+          total += price;
+        }
+      });
+    return total;
+  })();
+  const ownerSubtotal = ownerRoomCharge + ownerServicesTotal;
+  const ownerLevy3 = Math.round(ownerSubtotal * 0.03);
+  // VAT removed for direct bookings – only levy applied
+  const ownerVat18 = 0;
+  const ownerGrandTotal = ownerSubtotal + ownerLevy3;
 
   const loadOwnerProperties = async () => {
     try {
@@ -303,11 +465,17 @@ const PropertyOwnerBookings = () => {
     onDirectChange('propertyId', pid);
     onDirectChange('roomId', '');
     setOwnerRooms([]);
+     setOwnerAddOns([]);
+    // Keep dashboard filters aligned with the currently selected direct-booking property
+    setFilters(prev => ({ ...prev, property: pid || 'all' }));
     if (!pid) return;
     try {
       const res = await fetch(`${API_URL}/api/properties/${pid}`, { credentials: 'include' });
       const data = await res.json();
-      if (res.ok) setOwnerRooms(data.property?.rooms || []);
+      if (res.ok) {
+        setOwnerRooms(data.property?.rooms || []);
+        setOwnerAddOns(Array.isArray(data.property?.addOnServices) ? data.property.addOnServices : []);
+      }
     } catch (_) {}
   };
 
@@ -321,6 +489,9 @@ const PropertyOwnerBookings = () => {
         toast.error('Guest name and phone are required');
         return;
       }
+      const uiPaymentMethod = directForm.paymentMethod;
+      const payloadPaymentMethod = uiPaymentMethod === 'mtn_mobile_money' ? 'mtn_mobile_money' : 'cash';
+      const markPaid = directForm.paymentStatusSelection === 'paid';
       const payload = {
         propertyId: directForm.propertyId,
         room: directForm.roomId,
@@ -331,9 +502,9 @@ const PropertyOwnerBookings = () => {
         specialRequests: directForm.specialRequests,
         groupBooking: directForm.guests >= 4,
         groupSize: directForm.guests,
-        paymentMethod: directForm.paymentMethod,
+        paymentMethod: payloadPaymentMethod,
         guestInfo: directForm.guestInfo,
-        markPaid: directForm.paymentMethod === 'cash' ? directForm.markPaid : false,
+        markPaid: payloadPaymentMethod === 'cash' ? !!markPaid : false,
         directBooking: true
       };
       const res = await fetch(`${API_URL}/api/bookings`, {
@@ -346,16 +517,37 @@ const PropertyOwnerBookings = () => {
       if (!res.ok) throw new Error(data.message || 'Failed to create booking');
       toast.success('Direct booking recorded');
       setShowDirectBooking(false);
-      // Open simplified direct receipt for printing/saving
-      if (data?.booking?._id) {
-        window.open(`${API_URL}/api/bookings/${data.booking._id}/direct-receipt.csv`, '_blank');
-        navigate(`/booking-confirmation/${data.booking._id}`);
-      } else {
-        loadData();
+      if (data?.booking) {
+        // Immediately open printable receipt; the page will invoke window.print()
+        openReceiptPdf(data.booking._id);
       }
     } catch (e) {
       toast.error(e.message);
     }
+  };
+
+  const saveDirectDraft = () => {
+    try {
+      localStorage.setItem('directBookingDraft', JSON.stringify(directForm));
+      toast.success('Saved as draft');
+    } catch (_) {}
+  };
+
+  const clearDirectForm = () => {
+    setDirectForm({
+      propertyId: '',
+      roomId: '',
+      checkIn: '',
+      checkOut: '',
+      guests: 1,
+      guestInfo: { firstName: '', lastName: '', email: '', phone: '', nationality: '', passport: '', address: '' },
+      contactInfo: { email: '', phone: '' },
+      paymentMethod: 'cash',
+      markPaid: true,
+      paymentStatusSelection: 'paid',
+      services: {},
+      specialRequests: ''
+    });
   };
 
   const toggleSection = (section) => {
@@ -382,8 +574,8 @@ const PropertyOwnerBookings = () => {
   };
 
   const handleViewReceipt = (booking) => {
-    setSelectedBooking(booking);
-    setShowReceipt(true);
+    if (!booking?._id) return;
+    openReceiptPdf(booking._id);
   };
 
   const handleStatusChange = async (bookingId, newStatus) => {
@@ -511,7 +703,7 @@ const PropertyOwnerBookings = () => {
             {booking.guest?.avatar ? (
               <img src={booking.guest.avatar.startsWith('http') ? booking.guest.avatar : `${API_URL}${booking.guest.avatar}`} alt={booking.guest.name} className="w-8 h-8 rounded-full object-cover border" />
             ) : (
-              <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-semibold">
+              <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-xs font-semibold">
                 {((booking.guest?.firstName || booking.guest?.name || '').charAt(0) || (booking.guest?.email || 'U').charAt(0))}
               </div>
             )}
@@ -531,46 +723,59 @@ const PropertyOwnerBookings = () => {
       {/* Finance History */}
       <div className="max-w-7xl mx-auto px-4 pb-10">
         <div className="mt-10">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">{t ? t('dashboard.financeHistory') : 'Finance History'}</h2>
-          <div ref={calendarRef} className="neu-card p-0 overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+          <h2 className="text-2xl font-bold text-[#4b2a00] mb-4">{t ? t('dashboard.financeHistory') : 'Finance History'}</h2>
+          <div
+            ref={calendarRef}
+            className="neu-card p-0 overflow-x-auto rounded-2xl border border-[#e0d5c7] bg-white shadow-sm"
+          >
+            <table className="min-w-full divide-y divide-[#eee0cf]">
+              <thead className="bg-[#fdf7f0]">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Booking</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Property</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Method</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-[#6b5744] uppercase tracking-wider">Date</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-[#6b5744] uppercase tracking-wider">Booking</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-[#6b5744] uppercase tracking-wider">Property</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-[#6b5744] uppercase tracking-wider">Client</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-[#6b5744] uppercase tracking-wider">Amount</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-[#6b5744] uppercase tracking-wider">Method</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-[#6b5744] uppercase tracking-wider">Status</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white divide-y divide-[#f1e2d3]">
                 {bookings.map(tr => (
-                  <tr key={`fin-${tr._id}`} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-sm">{new Date(tr.createdAt).toLocaleString()}</td>
-                    <td className="px-4 py-3 text-sm">{tr.confirmationCode || tr._id}</td>
-                    <td className="px-4 py-3 text-sm">{tr.property?.title || tr.property?.name || 'Property'}</td>
-                    <td className="px-4 py-3 text-sm">
+                  <tr key={`fin-${tr._id}`} className="hover:bg-[#fff7ef] transition-colors">
+                    <td className="px-4 py-3 text-xs md:text-sm text-[#4b2a00]">{new Date(tr.createdAt).toLocaleString()}</td>
+                    <td className="px-4 py-3 text-xs md:text-sm text-[#4b2a00]">{tr.confirmationCode || tr._id}</td>
+                    <td className="px-4 py-3 text-xs md:text-sm text-[#4b2a00]">{tr.property?.title || tr.property?.name || 'Property'}</td>
+                    <td className="px-4 py-3 text-xs md:text-sm text-[#4b2a00]">
                       <div className="flex items-center gap-2">
                         {tr.guest?.avatar ? (
                           <img src={tr.guest.avatar.startsWith('http') ? tr.guest.avatar : `${API_URL}${tr.guest.avatar}`} alt={tr.guest?.firstName} className="w-6 h-6 rounded-full object-cover border" />
                         ) : (
-                          <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-[10px] font-semibold">
+                          <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center text-[10px] font-semibold">
                             {((tr.guest?.firstName || '').charAt(0) || (tr.guest?.email || 'U').charAt(0))}
                           </div>
                         )}
                         <span>{`${tr.guest?.firstName || ''} ${tr.guest?.lastName || ''}`.trim() || tr.guest?.email || 'Guest'}</span>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-right font-semibold">{formatCurrencyRWF ? formatCurrencyRWF(tr.totalAmount || 0) : `RWF ${(tr.totalAmount || 0).toLocaleString()}`}</td>
-                    <td className="px-4 py-3 text-sm">{tr.paymentMethod}</td>
-                    <td className="px-4 py-3 text-sm">{tr.paymentStatus || tr.status}</td>
+                    <td className="px-4 py-3 text-right font-semibold text-[#4b2a00]">{formatCurrencyRWF ? formatCurrencyRWF(tr.totalAmount || 0) : `RWF ${(tr.totalAmount || 0).toLocaleString()}`}</td>
+                    <td className="px-4 py-3 text-xs md:text-sm text-[#6b5744]">{tr.paymentMethod}</td>
+                    <td className="px-4 py-3 text-xs md:text-sm">
+                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium ${
+                        (tr.paymentStatus || tr.status) === 'paid'
+                          ? 'bg-green-50 text-green-800 border border-green-200'
+                          : (tr.paymentStatus || tr.status) === 'pending'
+                          ? 'bg-yellow-50 text-yellow-800 border border-yellow-200'
+                          : 'bg-gray-50 text-gray-700 border border-gray-200'
+                      }`}>
+                        {tr.paymentStatus || tr.status}
+                      </span>
+                    </td>
                   </tr>
                 ))}
                 {bookings.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-4 py-12 text-center text-gray-500">{t ? t('dashboard.noFinanceHistory') : 'No finance history yet.'}</td>
+                    <td colSpan={7} className="px-4 py-12 text-center text-[#8a745e] text-sm">{t ? t('dashboard.noFinanceHistory') : 'No finance history yet.'}</td>
                   </tr>
                 )}
               </tbody>
@@ -711,6 +916,7 @@ const PropertyOwnerBookings = () => {
                 </div>
               )}
 
+
               {/* Review */}
               {selectedBooking.review && (
                 <div className="modern-card p-6">
@@ -761,75 +967,52 @@ const PropertyOwnerBookings = () => {
   );
 
   const renderReceipt = () => (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6 border-b border-gray-200">
-          <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-bold">{t ? t('dashboard.bookingReceipt') : 'Booking Receipt'}</h2>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
+      <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[95vh] flex flex-col overflow-hidden">
+        <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">
+              {t ? t('dashboard.bookingReceipt') : 'Booking receipt'}
+            </h2>
+            <p className="text-xs text-gray-500 mt-1">
+              Review the receipt preview below, then use the Print button if you need a paper copy.
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
             <button
-              onClick={() => setShowReceipt(false)}
+              type="button"
+              onClick={() => {
+                if (receiptIframeRef.current && receiptIframeRef.current.contentWindow) {
+                  receiptIframeRef.current.contentWindow.focus();
+                  receiptIframeRef.current.contentWindow.print();
+                }
+              }}
+              className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium"
+            >
+              Print
+            </button>
+            <button
+              onClick={() => { setShowReceipt(false); setReceiptPdfUrl(null); }}
               className="text-gray-500 hover:text-gray-700"
             >
               <FaTimes className="text-xl" />
             </button>
           </div>
         </div>
-
-        {selectedBooking && (
-          <div className="p-6">
-            <div className="text-center mb-6">
-              <h3 className="text-xl font-bold">AKWANDA.rw</h3>
-              <p className="text-gray-600">{t ? t('dashboard.bookingReceipt') : 'Booking Receipt'}</p>
+        <div className="flex-1 bg-gray-100">
+          {receiptPdfUrl ? (
+            <iframe
+              ref={receiptIframeRef}
+              src={receiptPdfUrl}
+              title="Booking receipt PDF"
+              className="w-full h-full border-0"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-sm text-gray-500">
+              No receipt selected.
             </div>
-
-            <div className="space-y-4">
-              <div className="flex justify-between">
-                <span>Booking ID:</span>
-                <span className="font-medium">{selectedBooking._id}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Property:</span>
-                <span className="font-medium">{selectedBooking.property.name}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Guest:</span>
-                <span className="font-medium">{selectedBooking.guest.name}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Check-in:</span>
-                <span className="font-medium">{selectedBooking.checkIn}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Check-out:</span>
-                <span className="font-medium">{selectedBooking.checkOut}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Guests:</span>
-                <span className="font-medium">{selectedBooking.guests}</span>
-              </div>
-              <hr />
-              <div className="flex justify-between text-lg font-bold">
-                <span>{t ? t('dashboard.totalAmount') : 'Total Amount'}:</span>
-                <span className="text-blue-600">{formatCurrencyRWF ? formatCurrencyRWF(selectedBooking.totalAmount || 0) : `RWF ${selectedBooking.totalAmount.toLocaleString()}`}</span>
-              </div>
-            </div>
-
-            <div className="mt-6 flex space-x-4">
-              <button
-                onClick={() => window.print()}
-                className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                {t ? t('dashboard.printReceipt') : 'Print Receipt'}
-              </button>
-              <button
-                onClick={() => setShowReceipt(false)}
-                className="flex-1 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
-              >
-                {t ? t('dashboard.close') : 'Close'}
-              </button>
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
@@ -845,118 +1028,6 @@ const PropertyOwnerBookings = () => {
     );
   }
 
-  // Navigation items with dropdowns - COMPLETE LIST matching mobile menu (60+ sub-links)
-  const navItems = [
-    { label: 'Home', icon: FaHome, href: '/dashboard', children: [] },
-    {
-      label: 'Pricing and booking calendar',
-      icon: FaCalendarAlt,
-      href: '/owner/rates',
-      children: [
-        { label: 'Calendar', href: '/owner/rates?view=calendar' },
-        { label: 'Open/close rooms', href: '/owner/rates?view=open-close' },
-      ]
-    },
-    {
-      label: 'Promotions',
-      icon: FaShoppingBag,
-      href: '/owner/promotions',
-      children: [
-        { label: 'Choose new promotion', href: '/owner/promotions?action=new' },
-        { label: 'Simulate max discount', href: '/owner/promotions?action=simulate' },
-        { label: 'Your active promotions', href: '/owner/promotions?filter=active' },
-      ]
-    },
-    {
-      label: 'Reservations',
-      icon: FaCalendarCheck,
-      href: '/my-bookings',
-      children: [
-        { label: 'All reservations', href: '/my-bookings?tab=reservations&scope=all' },
-        { label: 'Upcoming', href: '/my-bookings?tab=reservations&scope=upcoming' },
-        { label: 'Checked in', href: '/my-bookings?tab=reservations&scope=checked-in' },
-        { label: 'Checked out', href: '/my-bookings?tab=reservations&scope=checked-out' },
-        { label: 'Cancelled', href: '/my-bookings?tab=reservations&scope=cancelled' },
-      ]
-    },
-    {
-      label: 'Property',
-      icon: FaBed,
-      href: '/owner/property',
-      children: [
-        { label: 'Quality rating', href: '/owner/property?view=quality-rating' },
-        { label: 'Property page score', href: '/owner/property?view=page-score' },
-        { label: 'General info & property status', href: '/owner/property?view=general-info' },
-        { label: 'VAT/tax/charges', href: '/owner/property?view=vat-tax' },
-        { label: 'Photos', href: '/owner/property?view=photos' },
-        { label: 'Property policies', href: '/owner/property?view=policies' },
-        { label: 'Reservation policies', href: '/owner/property?view=reservation-policies' },
-        { label: 'Facilities & services', href: '/owner/property?view=facilities' },
-        { label: 'Room details', href: '/owner/property?view=room-details' },
-        { label: 'Room amenities', href: '/owner/property?view=room-amenities' },
-        { label: 'Your profile', href: '/owner/property?view=profile' },
-        { label: 'View your descriptions', href: '/owner/property?view=descriptions' },
-        { label: 'Messaging preferences', href: '/settings?tab=messaging' },
-        { label: 'Sustainability', href: '/owner/property?view=sustainability' },
-      ]
-    },
-    {
-      label: 'Boost performance',
-      icon: FaChartLine,
-      href: '/dashboard?tab=boost',
-      children: [
-        { label: 'Opportunity Centre', href: '/dashboard?tab=boost&view=opportunity' },
-        { label: 'Commission-free bookings', href: '/dashboard?tab=boost&view=commission-free' },
-        { label: 'Genius partner programme', href: '/dashboard?tab=boost&view=genius' },
-        { label: 'Preferred Partner Programme', href: '/dashboard?tab=boost&view=preferred' },
-        { label: 'Long stays toolkit', href: '/dashboard?tab=boost&view=long-stays' },
-        { label: 'Visibility booster', href: '/dashboard?tab=boost&view=visibility' },
-        { label: 'Work-Friendly Programme', href: '/dashboard?tab=boost&view=work-friendly' },
-        { label: 'Unit differentiation tool', href: '/dashboard?tab=boost&view=unit-diff' },
-      ]
-    },
-    {
-      label: 'Inbox',
-      icon: FaEnvelope,
-      href: '/messages',
-      children: [
-        { label: 'Reservation messages', href: '/messages?category=reservations' },
-        { label: 'Akwanda.rw messages', href: '/messages?category=platform' },
-        { label: 'Guest Q&A', href: '/messages?category=qna' },
-      ]
-    },
-    {
-      label: 'Guest reviews',
-      icon: FaStar,
-      href: '/owner/reviews',
-      children: [
-        { label: 'Guest reviews', href: '/owner/reviews' },
-        { label: 'Guest experience', href: '/owner/reviews?view=experience' },
-      ]
-    },
-    {
-      label: 'Finance',
-      icon: FaDollarSign,
-      href: '/dashboard?tab=finance',
-      children: [
-        { label: 'Invoices', href: '/dashboard?tab=finance&view=invoices' },
-        { label: 'Reservations statement', href: '/dashboard?tab=finance&view=statement' },
-        { label: 'Financial overview', href: '/dashboard?tab=finance&view=overview' },
-        { label: 'Transactions', href: '/transactions' },
-        { label: 'Finance settings', href: '/settings?tab=finance' },
-      ]
-    },
-    {
-      label: 'Analytics',
-      icon: FaChartLine,
-      href: '/dashboard?tab=analytics',
-      children: [
-        { label: 'Analytics dashboard', href: '/dashboard?tab=analytics' },
-        { label: 'Sales statistics', href: '/dashboard?tab=analytics&view=sales' },
-      ]
-    },
-  ];
-
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 py-6">
@@ -971,207 +1042,161 @@ const PropertyOwnerBookings = () => {
           </button>
         </div>
 
-        {/* Property Owner Navigation - Desktop Only */}
-        <div className="hidden lg:block mb-6">
-          <div className="bg-white rounded-lg shadow-md p-4">
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              {/* Navigation Links */}
-              <div className="flex items-center gap-2 flex-wrap">
-                {navItems.map((item, index) => (
-                  <div key={index} className="relative">
-                    <button
-                      onClick={() => {
-                        if (item.children.length === 0) {
-                          if (item.href) navigate(item.href);
-                          if (item.action) item.action();
-                          setActiveNavDropdown(null);
-                        } else {
-                          setActiveNavDropdown(activeNavDropdown === item.label ? null : item.label);
-                        }
-                      }}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:text-[#a06b42] hover:bg-[#f5f0e8] transition-colors"
-                    >
-                      <item.icon className="text-sm" />
-                      <span>{item.label}</span>
-                      {item.children.length > 0 && (
-                        <FaChevronDown className={`text-xs transition-transform ${activeNavDropdown === item.label ? 'rotate-180' : ''}`} />
-                      )}
-                    </button>
-                    
-                    {/* Dropdown Menu */}
-                    {item.children.length > 0 && activeNavDropdown === item.label && (
-                      <div className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-xl py-2 min-w-[200px] z-[99999]">
-                        {item.children.map((child, childIndex) => (
-                          <button
-                            key={childIndex}
-                            onClick={() => {
-                              if (child.href) navigate(child.href);
-                              if (child.action) child.action();
-                              setActiveNavDropdown(null);
-                            }}
-                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-[#f5f0e8] hover:text-[#a06b42] transition-colors"
-                          >
-                            {child.label}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-              
-              {/* New Booking Button */}
-              <button
-                onClick={() => setShowDirectBooking(true)}
-                className="bg-[#a06b42] hover:bg-[#8f5a32] text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-md transition-colors"
-              >
-                <FaPlus />
-                <span>New Booking</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Mobile: New Booking Button Only */}
-        <div className="lg:hidden mb-6 flex justify-end">
-          <button
-            onClick={() => setShowDirectBooking(true)}
-            className="bg-[#a06b42] hover:bg-[#8f5a32] text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-md transition-colors"
-          >
-            <FaPlus />
-            <span className="hidden sm:inline">New Booking</span>
-            <span className="sm:hidden">New</span>
-          </button>
-        </div>
-
-        <div className="mb-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div onClick={() => navigate('/owner/cars')} className="cursor-pointer neu-card p-5 flex items-center justify-between hover:shadow-lg transition-shadow">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">Manage Cars</h3>
-                <p className="text-sm text-gray-600">Create, edit and view car bookings</p>
-              </div>
-              <FaCar className="text-3xl text-blue-600" />
-            </div>
-            <div onClick={() => navigate('/owner/attractions')} className="cursor-pointer neu-card p-5 flex items-center justify-between hover:shadow-lg transition-shadow">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">Manage Attractions</h3>
-                <p className="text-sm text-gray-600">Create, edit and view attraction bookings</p>
-              </div>
-              <FaShoppingBag className="text-3xl text-pink-600" />
-            </div>
-          </div>
-        </div>
-
         {/* Tab Content */}
         {activeTab === 'dashboard' && (
           <div className="space-y-8">
+            {/* Dashboard header */}
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+              <div>
+                <h1 className="text-2xl font-bold text-[#4b2a00]">Dashboard overview</h1>
+                <p className="text-sm text-[#6b5744] mt-1">
+                  Track your bookings, revenue and property performance at a glance.
+                </p>
+              </div>
+              {/* Desktop: booking actions */}
+              <div className="hidden lg:flex items-center gap-3">
+                <button
+                  onClick={() => navigate('/owner/direct-booking')}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#a06b42] hover:bg-[#8f5a32] text-white text-sm shadow-md transition-colors"
+                >
+                  <FaPlus className="text-xs" />
+                  <span>New booking</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Mobile: New Booking Button Only */}
+            <div className="lg:hidden mb-4 flex justify-end">
+              <button
+                onClick={() => navigate('/owner/direct-booking')}
+                className="bg-[#a06b42] hover:bg-[#8f5a32] text-white px-4 py-2 rounded-full flex items-center gap-2 shadow-md transition-colors text-sm"
+              >
+                <FaPlus className="text-xs" />
+                <span>New booking</span>
+              </button>
+            </div>
+
             {/* Stats Cards (dashboard only) */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              <div className="neu-card p-6 hover:scale-105 transition-all duration-300">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-2">
+              <div className="rounded-2xl border border-[#e0d5c7] bg-[#fdf7f0] p-6 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-600">Total Bookings</p>
-                    <p className="text-2xl font-bold text-blue-600">{stats.total}</p>
+                    <p className="text-xs font-medium text-[#6b5744] uppercase tracking-wide">Total bookings</p>
+                    <p className="mt-2 text-3xl font-bold text-[#4b2a00]">{stats.total}</p>
+                    <p className="mt-1 text-xs text-[#8a745e]">All time reservations</p>
                   </div>
-                  <FaCalendarAlt className="text-3xl text-blue-600" />
+                  <div className="w-11 h-11 rounded-full bg-[#f1ddc7] flex items-center justify-center">
+                    <FaCalendarAlt className="text-lg text-[#6b3f1f]" />
+                  </div>
                 </div>
               </div>
-              <div className="neu-card p-6 hover:scale-105 transition-all duration-300">
+              <div className="rounded-2xl border border-[#e0d5c7] bg-[#fdf7f0] p-6 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-600">Total Revenue</p>
-                    <p className="text-2xl font-bold text-green-600">{formatCurrencyRWF ? formatCurrencyRWF(stats.totalRevenue) : `RWF ${stats.totalRevenue.toLocaleString()}`}</p>
+                    <p className="text-xs font-medium text-[#6b5744] uppercase tracking-wide">Total revenue</p>
+                    <p className="mt-2 text-3xl font-bold text-[#1f6b3f]">{formatCurrencyRWF ? formatCurrencyRWF(stats.totalRevenue) : `RWF ${stats.totalRevenue.toLocaleString()}`}</p>
+                    <p className="mt-1 text-xs text-[#8a745e]">Confirmed and completed stays</p>
                   </div>
-                  <FaMoneyBillWave className="text-3xl text-green-600" />
+                  <div className="w-11 h-11 rounded-full bg-[#e1f5e9] flex items-center justify-center">
+                    <FaMoneyBillWave className="text-lg text-[#1f6b3f]" />
+                  </div>
                 </div>
               </div>
-              <div className="neu-card p-6 hover:scale-105 transition-all duration-300">
+              <div className="rounded-2xl border border-[#e0d5c7] bg-[#fdf7f0] p-6 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-600">Properties</p>
-                    <p className="text-2xl font-bold text-purple-600">{stats.totalProperties}</p>
+                    <p className="text-xs font-medium text-[#6b5744] uppercase tracking-wide">Properties</p>
+                    <p className="mt-2 text-3xl font-bold text-[#4b2a00]">{stats.totalProperties}</p>
+                    <p className="mt-1 text-xs text-[#8a745e]">Listed on AKWANDA.rw</p>
                   </div>
-                  <FaHome className="text-3xl text-purple-600" />
+                  <div className="w-11 h-11 rounded-full bg-[#f3e3cf] flex items-center justify-center">
+                    <FaHome className="text-lg text-[#6b3f1f]" />
+                  </div>
                 </div>
               </div>
-              <div className="neu-card p-6 hover:scale-105 transition-all duration-300">
+              <div className="rounded-2xl border border-[#e0d5c7] bg-[#fdf7f0] p-6 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-600">Occupancy Rate</p>
-                    <p className="text-2xl font-bold text-orange-600">{stats.occupancyRate}%</p>
+                    <p className="text-xs font-medium text-[#6b5744] uppercase tracking-wide">Occupancy rate</p>
+                    <p className="mt-2 text-3xl font-bold text-[#6b3f1f]">{stats.occupancyRate}%</p>
+                    <p className="mt-1 text-xs text-[#8a745e]">Across all active properties</p>
                   </div>
-                  <FaChartLine className="text-3xl text-orange-600" />
+                  <div className="w-11 h-11 rounded-full bg-[#f6e0d0] flex items-center justify-center">
+                    <FaChartLine className="text-lg text-[#c05621]" />
+                  </div>
                 </div>
               </div>
             </div>
             {/* Revenue Management */}
-            <div className="neu-card p-0">
+            <div className="neu-card p-0 rounded-2xl border border-[#e0d5c7] bg-white shadow-sm">
               <div 
-                className="flex items-center justify-between p-6 border-b cursor-pointer hover:bg-gray-50"
+                className="flex items-center justify-between p-6 border-b border-[#eee0cf] cursor-pointer hover:bg-[#fff7ef] rounded-t-2xl"
                 onClick={() => toggleSection('revenue')}
               >
                 <div className="flex items-center space-x-3">
-                  <FaDollarSign className="text-green-600 text-xl" />
-                  <h2 className="text-xl font-semibold text-gray-900">Revenue Management</h2>
+                  <div className="w-9 h-9 rounded-full bg-[#f1ddc7] flex items-center justify-center">
+                    <FaDollarSign className="text-sm text-[#6b3f1f]" />
+                  </div>
+                  <h2 className="text-lg md:text-xl font-semibold text-[#4b2a00]">Revenue management</h2>
                 </div>
-                {expandedSections.revenue ? <FaChevronUp /> : <FaChevronDown />}
+                {expandedSections.revenue ? <FaChevronUp className="text-[#6b5744]" /> : <FaChevronDown className="text-[#6b5744]" />}
               </div>
               
               {expandedSections.revenue && (
-                <div className="p-6 space-y-6">
-                  {/* Revenue content from previous implementation */}
+                <div className="p-6 space-y-6 bg-[#fdf7f0] rounded-b-2xl">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="bg-green-50 border border-green-200 rounded-xl p-6">
-                      <h3 className="text-lg font-semibold text-green-900 mb-4">Monthly Revenue</h3>
-                      <div className="text-3xl font-bold text-green-600">{formatCurrencyRWF ? formatCurrencyRWF(stats.totalRevenue) : `RWF ${stats.totalRevenue.toLocaleString()}`}</div>
-                      <p className="text-sm text-green-700 mt-2">+12% from last month</p>
+                    <div className="rounded-2xl border border-[#e0d5c7] bg-white p-5">
+                      <h3 className="text-sm font-semibold text-[#6b5744] mb-1 uppercase tracking-wide">Monthly revenue</h3>
+                      <div className="text-2xl md:text-3xl font-bold text-[#4b2a00]">{formatCurrencyRWF ? formatCurrencyRWF(stats.totalRevenue) : `RWF ${stats.totalRevenue.toLocaleString()}`}</div>
+                      <p className="text-xs text-[#8a745e] mt-2">Compared to last month based on confirmed stays.</p>
                     </div>
-                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
-                      <h3 className="text-lg font-semibold text-blue-900 mb-4">Average Daily Rate</h3>
-                      <div className="text-3xl font-bold text-blue-600">{formatCurrencyRWF ? formatCurrencyRWF(Math.round(stats.totalRevenue / Math.max(stats.total, 1))) : `RWF ${Math.round(stats.totalRevenue / Math.max(stats.total, 1)).toLocaleString()}`}</div>
-                      <p className="text-sm text-blue-700 mt-2">Per booking average</p>
+                    <div className="rounded-2xl border border-[#e0d5c7] bg-white p-5">
+                      <h3 className="text-sm font-semibold text-[#6b5744] mb-1 uppercase tracking-wide">Average daily rate</h3>
+                      <div className="text-2xl md:text-3xl font-bold text-[#4b2a00]">{formatCurrencyRWF ? formatCurrencyRWF(Math.round(stats.totalRevenue / Math.max(stats.total, 1))) : `RWF ${Math.round(stats.totalRevenue / Math.max(stats.total, 1)).toLocaleString()}`}</div>
+                      <p className="text-xs text-[#8a745e] mt-2">Per booking average for the selected period.</p>
                     </div>
-                    <div className="bg-purple-50 border border-purple-200 rounded-xl p-6">
-                      <h3 className="text-lg font-semibold text-purple-900 mb-4">Occupancy Rate</h3>
-                      <div className="text-3xl font-bold text-purple-600">{stats.occupancyRate}%</div>
-                      <p className="text-sm text-purple-700 mt-2">Current month</p>
+                    <div className="rounded-2xl border border-[#e0d5c7] bg-white p-5">
+                      <h3 className="text-sm font-semibold text-[#6b5744] mb-1 uppercase tracking-wide">Occupancy</h3>
+                      <div className="text-2xl md:text-3xl font-bold text-[#4b2a00]">{stats.occupancyRate}%</div>
+                      <p className="text-xs text-[#8a745e] mt-2">Current occupancy across your active properties.</p>
                     </div>
                   </div>
                 </div>
               )}
             </div>
 
-            {/* Analytics */}
-            <div className="neu-card p-0">
+            {/* Advanced Analytics */}
+            <div className="neu-card p-0 rounded-2xl border border-[#e0d5c7] bg-white shadow-sm">
               <div 
-                className="flex items-center justify-between p-6 border-b cursor-pointer hover:bg-gray-50"
+                className="flex items-center justify-between p-6 border-b border-[#eee0cf] cursor-pointer hover:bg-[#fff7ef] rounded-t-2xl"
                 onClick={() => toggleSection('advancedAnalytics')}
               >
                 <div className="flex items-center space-x-3">
-                  <FaChartLine className="text-purple-600 text-xl" />
-                  <h2 className="text-xl font-semibold text-gray-900">Advanced Analytics</h2>
+                  <div className="w-9 h-9 rounded-full bg-[#f3e3cf] flex items-center justify-center">
+                    <FaChartLine className="text-sm text-[#6b3f1f]" />
+                  </div>
+                  <h2 className="text-lg md:text-xl font-semibold text-[#4b2a00]">Advanced analytics</h2>
                 </div>
-                {expandedSections.advancedAnalytics ? <FaChevronUp /> : <FaChevronDown />}
+                {expandedSections.advancedAnalytics ? <FaChevronUp className="text-[#6b5744]" /> : <FaChevronDown className="text-[#6b5744]" />}
               </div>
               
               {expandedSections.advancedAnalytics && (
-                <div className="p-6 space-y-6">
+                <div className="p-6 space-y-6 bg-[#fdf7f0] rounded-b-2xl">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-6">
-                      <h3 className="text-lg font-semibold text-indigo-900 mb-4">Performance Metrics</h3>
-                      <div className="space-y-3">
+                    <div className="rounded-2xl border border-[#e0d5c7] bg-white p-5">
+                      <h3 className="text-sm font-semibold text-[#4b2a00] mb-3 uppercase tracking-wide">Performance metrics</h3>
+                      <div className="space-y-3 text-xs md:text-sm">
                         <div className="flex justify-between">
-                          <span className="text-indigo-700">Conversion Rate</span>
-                          <span className="font-semibold text-indigo-900">24.5%</span>
+                          <span className="text-[#6b5744]">Conversion rate</span>
+                          <span className="font-semibold text-[#4b2a00]">24.5%</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-indigo-700">Avg Booking Value</span>
-                          <span className="font-semibold text-indigo-900">{formatCurrencyRWF ? formatCurrencyRWF(Math.round(stats.totalRevenue / Math.max(stats.total, 1))) : `RWF ${Math.round(stats.totalRevenue / Math.max(stats.total, 1)).toLocaleString()}`}</span>
+                          <span className="text-[#6b5744]">Avg booking value</span>
+                          <span className="font-semibold text-[#4b2a00]">{formatCurrencyRWF ? formatCurrencyRWF(Math.round(stats.totalRevenue / Math.max(stats.total, 1))) : `RWF ${Math.round(stats.totalRevenue / Math.max(stats.total, 1)).toLocaleString()}`}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-indigo-700">Repeat Guests</span>
-                          <span className="font-semibold text-indigo-900">18%</span>
+                          <span className="text-[#6b5744]">Repeat guests</span>
+                          <span className="font-semibold text-[#4b2a00]">18%</span>
                         </div>
                       </div>
                     </div>
@@ -1185,7 +1210,7 @@ const PropertyOwnerBookings = () => {
         {activeTab === 'reservations' && (
           <div>
             {/* Filters */}
-        <div className="neu-card p-6 mb-8">
+        <div className="neu-card p-6 mb-8 border border-[#e0d5c7] bg-[#fdf7f0] rounded-2xl shadow-sm">
           <div className="flex flex-wrap gap-4 items-center justify-between mb-4">
             <div className="flex flex-wrap gap-4 flex-1">
             <select
@@ -1232,16 +1257,16 @@ const PropertyOwnerBookings = () => {
             </div>
             {/* Active Filter Indicator */}
             {filters.dateRange && filters.dateRange !== 'all' && (
-              <div className="flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+              <div className="flex items-center gap-2 px-3 py-1 bg-[#f1ddc7] text-[#4b2a00] rounded-full text-sm">
                 <FaFilter className="text-xs" />
                 <span>
                   {filters.dateRange === 'upcoming' && 'Upcoming Bookings'}
-                  {filters.dateRange === 'checked-in' && 'Currently Checked In'}
-                  {filters.dateRange === 'checked-out' && 'Checked Out'}
+                  {filters.dateRange === 'checked-in' && 'Currently check in'}
+                  {filters.dateRange === 'checked-out' && 'Checked out'}
                 </span>
                 <button
                   onClick={() => setFilters(prev => ({ ...prev, dateRange: 'all' }))}
-                  className="ml-1 hover:text-blue-900"
+                  className="ml-1 hover:text-[#6b3f1f]"
                 >
                   ×
                 </button>
@@ -1251,14 +1276,14 @@ const PropertyOwnerBookings = () => {
             <div className="flex gap-2">
               <button
                 onClick={() => downloadReport('pdf')}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
+                className="px-4 py-2 bg-[#6b3f1f] text-white rounded-full hover:bg-[#8f5a32] transition-colors flex items-center gap-2 text-sm"
               >
                 <FaFileAlt />
                 Export PDF
               </button>
               <button
                 onClick={() => downloadReport('csv')}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+                className="px-4 py-2 bg-white border border-[#e0d5c7] text-[#4b2a00] rounded-full hover:bg-[#fff7ef] transition-colors flex items-center gap-2 text-sm"
               >
                 <FaDownload />
                 Export CSV
@@ -1268,18 +1293,26 @@ const PropertyOwnerBookings = () => {
         </div>
 
         {/* Bookings / Calendar Card */}
-        <div className="neu-card p-0 overflow-x-auto">
-          <div className="flex items-center justify-between p-4 border-b">
-            <div className="font-semibold text-gray-800">Clients & Calendar</div>
+        <div className="neu-card p-0 overflow-x-auto rounded-2xl border border-[#e0d5c7] bg-white">
+          <div className="flex items-center justify-between p-4 border-b border-[#eee0cf] bg-[#fdf7f0] rounded-t-2xl">
+            <div className="font-semibold text-[#4b2a00] text-sm md:text-base">Clients &amp; calendar</div>
             <div className="flex gap-2">
               <button
-                className={`px-3 py-1 rounded ${ownerView === 'table' ? 'bg-blue-600 text-white' : 'bg-gray-100'}`}
+                className={`px-3 py-1.5 rounded-full text-xs md:text-sm border transition-colors ${
+                  ownerView === 'table'
+                    ? 'bg-[#a06b42] text-white border-[#8f5a32]'
+                    : 'bg-white text-[#6b5744] border-[#e0d5c7] hover:bg-[#f9efe1]'
+                }`}
                 onClick={() => setOwnerView('table')}
               >
                 Table
               </button>
               <button
-                className={`px-3 py-1 rounded ${ownerView === 'calendar' ? 'bg-blue-600 text-white' : 'bg-gray-100'}`}
+                className={`px-3 py-1.5 rounded-full text-xs md:text-sm border transition-colors ${
+                  ownerView === 'calendar'
+                    ? 'bg-[#a06b42] text-white border-[#8f5a32]'
+                    : 'bg-white text-[#6b5744] border-[#e0d5c7] hover:bg-[#f9efe1]'
+                }`}
                 onClick={() => setOwnerView('calendar')}
               >
                 Calendar
@@ -1339,7 +1372,7 @@ const PropertyOwnerBookings = () => {
                     <td className="px-4 py-3 text-sm">{b.isDirect ? 'Yes' : 'No'}</td>
                     <td className="px-4 py-3 text-sm space-x-1">
                       <button
-                        onClick={() => window.open(`${API_URL}/api/bookings/${b._id}/receipt`, '_blank')}
+                        onClick={() => openReceiptPdf(b._id)}
                         className="p-2 rounded bg-green-50 text-green-700 hover:bg-green-100"
                         aria-label="Receipt"
                         title="Download Receipt"
@@ -1347,7 +1380,7 @@ const PropertyOwnerBookings = () => {
                         <FaFileInvoice />
                       </button>
                       <button
-                        onClick={() => window.open(`${API_URL}/api/bookings/${b._id}/invoice`, '_blank')}
+                        onClick={() => openInvoicePdf(b._id)}
                         className="p-2 rounded bg-purple-50 text-purple-700 hover:bg-purple-100"
                         aria-label="Invoice"
                         title="Download Invoice"
@@ -1517,23 +1550,29 @@ const PropertyOwnerBookings = () => {
             </div>
 
             {financeView === 'overview' && (
-              <div className="neu-card p-6">
-                <h2 className="text-xl font-semibold mb-6">Financial Overview</h2>
+              <div className="neu-card p-6 rounded-2xl border border-[#e0d5c7] bg-white">
+                <h2 className="text-xl font-semibold mb-6 text-[#4b2a00]">Financial overview</h2>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="bg-green-50 border border-green-200 rounded-xl p-6">
-                    <h3 className="text-lg font-semibold text-green-900 mb-4">Total Revenue</h3>
-                    <div className="text-3xl font-bold text-green-600">{formatCurrencyRWF ? formatCurrencyRWF(stats.totalRevenue) : `RWF ${stats.totalRevenue.toLocaleString()}`}</div>
-                    <p className="text-sm text-green-700 mt-2">All time earnings</p>
+                  <div className="rounded-2xl border border-[#e0d5c7] bg-[#fdf7f0] p-5 flex flex-col justify-between">
+                    <div>
+                      <h3 className="text-sm font-semibold text-[#6b5744] mb-1 uppercase tracking-wide">Total revenue</h3>
+                      <div className="text-2xl md:text-3xl font-bold text-[#4b2a00]">{formatCurrencyRWF ? formatCurrencyRWF(stats.totalRevenue) : `RWF ${stats.totalRevenue.toLocaleString()}`}</div>
+                    </div>
+                    <p className="text-xs text-[#8a745e] mt-2">All-time earnings across all properties.</p>
                   </div>
-                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
-                    <h3 className="text-lg font-semibold text-blue-900 mb-4">Pending Revenue</h3>
-                    <div className="text-3xl font-bold text-blue-600">{formatCurrencyRWF ? formatCurrencyRWF(stats.pendingRevenue) : `RWF ${stats.pendingRevenue.toLocaleString()}`}</div>
-                    <p className="text-sm text-blue-700 mt-2">Awaiting payout</p>
+                  <div className="rounded-2xl border border-[#e0d5c7] bg-[#fdf7f0] p-5 flex flex-col justify-between">
+                    <div>
+                      <h3 className="text-sm font-semibold text-[#6b5744] mb-1 uppercase tracking-wide">Pending revenue</h3>
+                      <div className="text-2xl md:text-3xl font-bold text-[#4b2a00]">{formatCurrencyRWF ? formatCurrencyRWF(stats.pendingRevenue) : `RWF ${stats.pendingRevenue.toLocaleString()}`}</div>
+                    </div>
+                    <p className="text-xs text-[#8a745e] mt-2">Awaiting payout from upcoming and in-house stays.</p>
                   </div>
-                  <div className="bg-purple-50 border border-purple-200 rounded-xl p-6">
-                    <h3 className="text-lg font-semibold text-purple-900 mb-4">Commission Paid</h3>
-                    <div className="text-3xl font-bold text-purple-600">{formatCurrencyRWF ? formatCurrencyRWF(Math.round(stats.totalRevenue * 0.1)) : `RWF ${Math.round(stats.totalRevenue * 0.1).toLocaleString()}`}</div>
-                    <p className="text-sm text-purple-700 mt-2">Platform fees (10%)</p>
+                  <div className="rounded-2xl border border-[#e0d5c7] bg-[#fdf7f0] p-5 flex flex-col justify-between">
+                    <div>
+                      <h3 className="text-sm font-semibold text-[#6b5744] mb-1 uppercase tracking-wide">Commission paid</h3>
+                      <div className="text-2xl md:text-3xl font-bold text-[#4b2a00]">{formatCurrencyRWF ? formatCurrencyRWF(Math.round(stats.totalRevenue * 0.1)) : `RWF ${Math.round(stats.totalRevenue * 0.1).toLocaleString()}`}</div>
+                    </div>
+                    <p className="text-xs text-[#8a745e] mt-2">Estimated platform fees based on your total revenue.</p>
                   </div>
                 </div>
               </div>
@@ -1543,46 +1582,62 @@ const PropertyOwnerBookings = () => {
               <div className="neu-card p-6">
                 <h2 className="text-xl font-semibold mb-6">Invoices</h2>
                 <div className="space-y-4">
-                  {financeFiltered.map((booking) => (
-                    <div key={booking._id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <div className="font-semibold text-gray-900">Invoice #{booking.confirmationCode || booking._id.slice(-8)}</div>
-                          <div className="text-sm text-gray-600">{booking.property?.title || 'Property'}</div>
-                          <div className="text-sm text-gray-500">{new Date(booking.createdAt).toLocaleDateString()}</div>
+                  {(() => {
+                    const rows = financeFiltered || [];
+                    const totalPages = Math.max(1, Math.ceil(rows.length / financePerPage));
+                    const page = Math.min(financePage, totalPages);
+                    const start = (page - 1) * financePerPage;
+                    const pageRows = rows.slice(start, start + financePerPage);
+                    return (
+                      <>
+                        {pageRows.map((booking) => (
+                          <div key={booking._id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <div className="font-semibold text-gray-900">Invoice #{booking.confirmationCode || booking._id.slice(-8)}</div>
+                                <div className="text-sm text-gray-600">{booking.property?.title || 'Property'}</div>
+                                <div className="text-sm text-gray-500">{new Date(booking.createdAt).toLocaleDateString()}</div>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-lg font-bold text-gray-900">{formatCurrencyRWF ? formatCurrencyRWF(booking.totalAmount || 0) : `RWF ${(booking.totalAmount || 0).toLocaleString()}`}</div>
+                                <span className={`inline-block px-2 py-1 text-xs rounded-full ${
+                                  booking.paymentStatus === 'paid' ? 'bg-green-100 text-green-800' :
+                                  booking.paymentStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                  'bg-red-100 text-red-800'
+                                }`}>
+                                  {booking.paymentStatus || booking.status}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="mt-3 flex space-x-2">
+                              <button
+                                onClick={() => openInvoicePdf(booking._id)}
+                                className="text-sm text-blue-600 hover:text-blue-800"
+                              >
+                                View Invoice
+                              </button>
+                              <button
+                                onClick={() => openReceiptPdf(booking._id)}
+                                className="text-sm text-green-600 hover:text-green-800"
+                              >
+                                View Receipt
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                        {pageRows.length === 0 && (
+                          <div className="text-center py-12 text-gray-500">No invoices found</div>
+                        )}
+                        <div className="flex items-center justify-between pt-2">
+                          <div className="text-sm text-gray-500">Page {page} of {totalPages}</div>
+                          <div className="flex gap-2">
+                            <button disabled={page<=1} onClick={()=>setFinancePage(p=>Math.max(1,p-1))} className="px-3 py-1 rounded border disabled:opacity-50">Prev</button>
+                            <button disabled={page>=totalPages} onClick={()=>setFinancePage(p=>Math.min(totalPages,p+1))} className="px-3 py-1 rounded border disabled:opacity-50">Next</button>
+                          </div>
                         </div>
-                        <div className="text-right">
-                          <div className="text-lg font-bold text-gray-900">{formatCurrencyRWF ? formatCurrencyRWF(booking.totalAmount || 0) : `RWF ${(booking.totalAmount || 0).toLocaleString()}`}</div>
-                          <span className={`inline-block px-2 py-1 text-xs rounded-full ${
-                            booking.paymentStatus === 'paid' ? 'bg-green-100 text-green-800' :
-                            booking.paymentStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-red-100 text-red-800'
-                          }`}>
-                            {booking.paymentStatus || booking.status}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="mt-3 flex space-x-2">
-                        <button
-                          onClick={() => navigate(`/invoice/${booking._id}`)}
-                          className="text-sm text-blue-600 hover:text-blue-800"
-                        >
-                          View Invoice
-                        </button>
-                        <button
-                          onClick={() => {
-                            window.open(`${API_URL}/api/bookings/${booking._id}/receipt`, '_blank');
-                          }}
-                          className="text-sm text-green-600 hover:text-green-800"
-                        >
-                          View Receipt
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                  {financeFiltered.length === 0 && (
-                    <div className="text-center py-12 text-gray-500">No invoices found</div>
-                  )}
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
             )}
@@ -1605,34 +1660,50 @@ const PropertyOwnerBookings = () => {
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {financeFiltered.map((booking) => {
-                        const commission = Math.round((booking.totalAmount || 0) * 0.1);
-                        const net = (booking.totalAmount || 0) - commission;
-                        return (
-                          <tr key={booking._id} className="hover:bg-gray-50">
-                            <td className="px-4 py-3 text-sm">{new Date(booking.createdAt).toLocaleDateString()}</td>
-                            <td className="px-4 py-3 text-sm font-medium">{booking.confirmationCode || booking._id.slice(-8)}</td>
-                            <td className="px-4 py-3 text-sm">{booking.property?.title || 'Property'}</td>
-                            <td className="px-4 py-3 text-sm">{`${booking.guest?.firstName || ''} ${booking.guest?.lastName || ''}`.trim() || 'Guest'}</td>
-                            <td className="px-4 py-3 text-sm text-right font-semibold">RWF {(booking.totalAmount || 0).toLocaleString()}</td>
-                            <td className="px-4 py-3 text-sm text-right text-red-600">-RWF {commission.toLocaleString()}</td>
-                            <td className="px-4 py-3 text-sm text-right font-bold text-green-600">RWF {net.toLocaleString()}</td>
-                            <td className="px-4 py-3 text-sm">
-                              <span className={`inline-block px-2 py-1 text-xs rounded-full ${
-                                booking.paymentStatus === 'paid' ? 'bg-green-100 text-green-800' :
-                                booking.paymentStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                                'bg-red-100 text-red-800'
-                              }`}>
-                                {booking.paymentStatus || booking.status}
-                              </span>
-                            </td>
-                          </tr>
-                        );
-                      })}
+                      {(() => {
+                        const rows = financeFiltered || [];
+                        const totalPages = Math.max(1, Math.ceil(rows.length / financePerPage));
+                        const page = Math.min(financePage, totalPages);
+                        const start = (page - 1) * financePerPage;
+                        const pageRows = rows.slice(start, start + financePerPage);
+                        return pageRows.map((booking) => {
+                          const commission = Math.round((booking.totalAmount || 0) * 0.1);
+                          const net = (booking.totalAmount || 0) - commission;
+                          return (
+                            <tr key={booking._id} className="hover:bg-gray-50">
+                              <td className="px-4 py-3 text-sm">{new Date(booking.createdAt).toLocaleDateString()}</td>
+                              <td className="px-4 py-3 text-sm font-medium">{booking.confirmationCode || booking._id.slice(-8)}</td>
+                              <td className="px-4 py-3 text-sm">{booking.property?.title || 'Property'}</td>
+                              <td className="px-4 py-3 text-sm">{`${booking.guest?.firstName || ''} ${booking.guest?.lastName || ''}`.trim() || 'Guest'}</td>
+                              <td className="px-4 py-3 text-sm text-right font-semibold">RWF {(booking.totalAmount || 0).toLocaleString()}</td>
+                              <td className="px-4 py-3 text-sm text-right text-red-600">-RWF {commission.toLocaleString()}</td>
+                              <td className="px-4 py-3 text-sm text-right font-bold text-green-600">RWF {net.toLocaleString()}</td>
+                              <td className="px-4 py-3 text-sm">
+                                <span className={`inline-block px-2 py-1 text-xs rounded-full ${
+                                  booking.paymentStatus === 'paid' ? 'bg-green-100 text-green-800' :
+                                  booking.paymentStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                  'bg-red-100 text-red-800'
+                                }`}>
+                                  {booking.paymentStatus || booking.status}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        });
+                      })()}
                     </tbody>
                   </table>
-                  {financeFiltered.length === 0 && (
+                  {(!financeFiltered || financeFiltered.length === 0) && (
                     <div className="text-center py-12 text-gray-500">No transactions found</div>
+                  )}
+                  {financeFiltered && financeFiltered.length > 0 && (
+                    <div className="flex items-center justify-between pt-2">
+                      <div className="text-sm text-gray-500">Page {financePage} of {Math.max(1, Math.ceil(financeFiltered.length / financePerPage))}</div>
+                      <div className="flex gap-2">
+                        <button disabled={financePage<=1} onClick={()=>setFinancePage(p=>Math.max(1,p-1))} className="px-3 py-1 rounded border disabled:opacity-50">Prev</button>
+                        <button disabled={financePage>=Math.ceil(financeFiltered.length/financePerPage)} onClick={()=>setFinancePage(p=>Math.min(Math.ceil(financeFiltered.length/financePerPage),p+1))} className="px-3 py-1 rounded border disabled:opacity-50">Next</button>
+                      </div>
+                    </div>
                   )}
                 </div>
               </div>
@@ -1643,19 +1714,39 @@ const PropertyOwnerBookings = () => {
         {activeTab === 'analytics' && (
           <div className="space-y-8">
             <div className="neu-card p-6">
-              <h2 className="text-xl font-semibold mb-6">
-                {analyticsView === 'dashboard' && 'Performance Analytics'}
-                {analyticsView === 'demand' && 'Demand for Location'}
-                {analyticsView === 'pace' && 'Your Pace of Bookings'}
-                {analyticsView === 'sales' && 'Sales Statistics'}
-                {analyticsView === 'booker' && 'Booker Insights'}
-                {analyticsView === 'bookwindow' && 'Booking Window Information'}
-                {analyticsView === 'cancellation' && 'Cancellation Characteristics'}
-                {analyticsView === 'competitive' && 'Competitive Set'}
-                {analyticsView === 'genius' && 'Genius Report'}
-                {analyticsView === 'ranking' && 'Ranking Dashboard'}
-                {analyticsView === 'performance' && 'Performance Dashboard'}
-              </h2>
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+                <h2 className="text-xl font-semibold">
+                  {analyticsView === 'dashboard' && 'Performance Analytics'}
+                  {analyticsView === 'demand' && 'Demand for Location'}
+                  {analyticsView === 'pace' && 'Your Pace of Bookings'}
+                  {analyticsView === 'sales' && 'Sales Reporting & Analytics'}
+                  {analyticsView === 'reports' && 'Reports'}
+                  {analyticsView === 'comparison' && 'Direct vs Online Booking Comparison'}
+                  {analyticsView === 'occupancy' && 'Occupancy & Revenue per Room'}
+                  {analyticsView === 'tax' && 'Tax Liability Tracking'}
+                  {analyticsView === 'booker' && 'Booker Insights'}
+                  {analyticsView === 'bookwindow' && 'Booking Window Information'}
+                  {analyticsView === 'cancellation' && 'Cancellation Characteristics'}
+                  {analyticsView === 'competitive' && 'Competitive Set'}
+                  {analyticsView === 'genius' && 'Genius Report'}
+                  {analyticsView === 'ranking' && 'Ranking Dashboard'}
+                  {analyticsView === 'performance' && 'Performance Dashboard'}
+                </h2>
+                {analyticsView === 'sales' && (
+                  <div className="flex items-center gap-3">
+                    <select value={salesPeriod} onChange={(e)=>{ setSalesPeriod(e.target.value); setSalesPage(1); }} className="border rounded-lg px-3 py-2">
+                      <option value="daily">Daily</option>
+                      <option value="weekly">Weekly</option>
+                      <option value="monthly">Monthly</option>
+                    </select>
+                    <button onClick={()=>{
+                      const rows = computeSalesBuckets(bookings, salesPeriod);
+                      exportSalesCSV(rows);
+                    }} className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm">Export CSV</button>
+                    <button onClick={()=>window.print()} className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm">Export PDF</button>
+                  </div>
+                )}
+              </div>
               
               {analyticsView === 'dashboard' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -1706,21 +1797,432 @@ const PropertyOwnerBookings = () => {
               )}
 
               {analyticsView === 'sales' && (
-                <div className="space-y-4">
-                  <p className="text-gray-600">Detailed sales statistics and revenue breakdown.</p>
-                  <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div className="bg-gray-50 p-4 rounded-lg">
                       <p className="text-sm text-gray-600">Total Revenue</p>
                       <p className="text-xl font-bold">RWF {stats.totalRevenue?.toLocaleString()}</p>
                     </div>
                     <div className="bg-gray-50 p-4 rounded-lg">
                       <p className="text-sm text-gray-600">Avg Booking Value</p>
-                      <p className="text-xl font-bold">RWF {Math.round(stats.totalRevenue / (stats.total || 1)).toLocaleString()}</p>
+                      <p className="text-xl font-bold">RWF {Math.round(stats.totalRevenue / Math.max(1, stats.total)).toLocaleString()}</p>
                     </div>
                     <div className="bg-gray-50 p-4 rounded-lg">
-                      <p className="text-sm text-gray-600">Total Bookings</p>
-                      <p className="text-xl font-bold">{stats.total}</p>
+                      <p className="text-sm text-gray-600">Bookings (Direct)</p>
+                      <p className="text-xl font-bold">{bookings.filter(b=>b.isDirect).length}</p>
                     </div>
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <p className="text-sm text-gray-600">Bookings (Online)</p>
+                      <p className="text-xl font-bold">{bookings.filter(b=>!b.isDirect).length}</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-indigo-50 p-4 rounded-lg">
+                      <p className="text-sm text-indigo-700">RevPAR (avg)</p>
+                      <p className="text-2xl font-bold text-indigo-800">RWF {Number(analyticsData?.totals?.revparAvg||0).toLocaleString()}</p>
+                    </div>
+                    <div className="bg-teal-50 p-4 rounded-lg">
+                      <p className="text-sm text-teal-700">ADR (avg)</p>
+                      <p className="text-2xl font-bold text-teal-800">RWF {Number(analyticsData?.totals?.adrAvg||0).toLocaleString()}</p>
+                    </div>
+                    <div className="bg-yellow-50 p-4 rounded-lg">
+                      <p className="text-sm text-yellow-700">Occupancy (avg)</p>
+                      <p className="text-2xl font-bold text-yellow-800">{Number(analyticsData?.totals?.occupancyAvg||0)}%</p>
+                    </div>
+                  </div>
+
+                  <div className="neu-card p-4">
+                    <h3 className="font-semibold mb-3">Revenue by {salesPeriod}</h3>
+                    {(() => {
+                      const initial = (filters.property && filters.property !== 'all')
+                        ? bookings.filter(b => String(b.property?._id || b.property) === String(filters.property))
+                        : bookings;
+                      const source = (initial.length === 0 && filters.property && filters.property !== 'all') ? bookings : initial;
+                      const rows = computeSalesBuckets(source, salesPeriod);
+                      const totalPages = Math.max(1, Math.ceil(rows.length / salesPerPage));
+                      const page = Math.min(salesPage, totalPages);
+                      const start = (page-1) * salesPerPage;
+                      const pageRows = rows.slice(start, start + salesPerPage);
+                      return (
+                        <div className="space-y-3">
+                          <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-gray-200">
+                              <thead className="bg-gray-50">
+                                <tr>
+                                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Period</th>
+                                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Revenue</th>
+                                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Tax</th>
+                                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Count</th>
+                                </tr>
+                              </thead>
+                              <tbody className="bg-white divide-y divide-gray-100">
+                                {pageRows.map(r => (
+                                  <tr key={r.period} className="hover:bg-gray-50">
+                                    <td className="px-4 py-2 text-sm">{r.period}</td>
+                                    <td className="px-4 py-2 text-sm text-right">RWF {Number(r.revenue).toLocaleString()}</td>
+                                    <td className="px-4 py-2 text-sm text-right">RWF {Number(r.tax).toLocaleString()}</td>
+                                    <td className="px-4 py-2 text-sm text-right">{r.count}</td>
+                                  </tr>
+                                ))}
+                                {pageRows.length === 0 && (
+                                  <tr><td colSpan={4} className="px-4 py-6 text-center text-gray-500">No data</td></tr>
+                                )}
+                              </tbody>
+                            </table>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <div className="text-sm text-gray-500">Page {page} of {totalPages}</div>
+                            <div className="flex gap-2">
+                              <button disabled={page<=1} onClick={()=>setSalesPage(p=>Math.max(1,p-1))} className="px-3 py-1 rounded border disabled:opacity-50">Prev</button>
+                              <button disabled={page>=totalPages} onClick={()=>setSalesPage(p=>Math.min(totalPages,p+1))} className="px-3 py-1 rounded border disabled:opacity-50">Next</button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+
+                  <div className="neu-card p-4">
+                    <h3 className="font-semibold mb-2">Direct vs Online Comparison</h3>
+                    {(() => {
+                      const direct = bookings.filter(b=>b.isDirect);
+                      const online = bookings.filter(b=>!b.isDirect);
+                      const dRev = direct.reduce((s,b)=>s+Number(b.totalAmount||0),0);
+                      const oRev = online.reduce((s,b)=>s+Number(b.totalAmount||0),0);
+                      return (
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="bg-green-50 p-4 rounded-lg">
+                            <p className="text-sm text-green-700">Direct Revenue</p>
+                            <p className="text-xl font-bold text-green-800">RWF {dRev.toLocaleString()}</p>
+                          </div>
+                          <div className="bg-blue-50 p-4 rounded-lg">
+                            <p className="text-sm text-blue-700">Online Revenue</p>
+                            <p className="text-xl font-bold text-blue-800">RWF {oRev.toLocaleString()}</p>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+
+                  <div className="neu-card p-4">
+                    <h3 className="font-semibold mb-2">Tax Liability Tracking</h3>
+                    {(() => {
+                      const list = bookings;
+                      const tax = list.reduce((s,b)=> s + Number(b.taxAmount||0), 0);
+                      return <div className="text-gray-800">Estimated Taxes: <span className="font-semibold">RWF {tax.toLocaleString()}</span></div>;
+                    })()}
+                  </div>
+                </div>
+              )}
+
+              {analyticsView === 'reports' && (
+                <div className="space-y-6">
+                  <div className="neu-card p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="font-semibold">Sales Reports</h3>
+                      <div className="flex items-center gap-2">
+                        <select value={reportsPeriod} onChange={(e)=>{ setReportsPeriod(e.target.value); setReportsPage(1); }} className="border rounded-lg px-3 py-2 text-sm">
+                          <option value="daily">Daily</option>
+                          <option value="weekly">Weekly</option>
+                          <option value="monthly">Monthly</option>
+                        </select>
+                        <button onClick={() => { 
+                          const initial = (filters.property && filters.property !== 'all')
+                            ? bookings.filter(b => String(b.property?._id || b.property) === String(filters.property))
+                            : bookings;
+                          const source = (initial.length === 0 && filters.property && filters.property !== 'all') ? bookings : initial;
+                          const rows = computeSalesBuckets(source, reportsPeriod); 
+                          exportSalesCSV(rows); 
+                        }} className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm">Export CSV</button>
+                        <button onClick={() => window.print()} className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm">Export PDF</button>
+                      </div>
+                    </div>
+                    {(() => {
+                      const initial = (filters.property && filters.property !== 'all')
+                        ? bookings.filter(b => String(b.property?._id || b.property) === String(filters.property))
+                        : bookings;
+                      const source = (initial.length === 0 && filters.property && filters.property !== 'all') ? bookings : initial;
+                      const rows = computeSalesBuckets(source, reportsPeriod);
+                      const totalPages = Math.max(1, Math.ceil(rows.length / reportsPerPage));
+                      const page = Math.min(reportsPage, totalPages);
+                      const start = (page-1) * reportsPerPage;
+                      const pageRows = rows.slice(start, start + reportsPerPage);
+                      return (
+                        <div className="space-y-3">
+                          <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-gray-200">
+                              <thead className="bg-gray-50">
+                                <tr>
+                                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Period</th>
+                                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Revenue</th>
+                                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Tax</th>
+                                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Count</th>
+                                </tr>
+                              </thead>
+                              <tbody className="bg-white divide-y divide-gray-100">
+                                {pageRows.map(r => (
+                                  <tr key={r.period} className="hover:bg-gray-50">
+                                    <td className="px-4 py-2 text-sm">{r.period}</td>
+                                    <td className="px-4 py-2 text-sm text-right">RWF {Number(r.revenue).toLocaleString()}</td>
+                                    <td className="px-4 py-2 text-sm text-right">RWF {Number(r.tax).toLocaleString()}</td>
+                                    <td className="px-4 py-2 text-sm text-right">{r.count}</td>
+                                  </tr>
+                                ))}
+                                {pageRows.length===0 && (<tr><td colSpan={4} className="px-4 py-6 text-center text-gray-500">No data</td></tr>)}
+                              </tbody>
+                            </table>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <div className="text-sm text-gray-500">Page {page} of {totalPages}</div>
+                            <div className="flex gap-2">
+                              <button disabled={page<=1} onClick={()=>setReportsPage(p=>Math.max(1,p-1))} className="px-3 py-1 rounded border disabled:opacity-50">Prev</button>
+                              <button disabled={page>=totalPages} onClick={()=>setReportsPage(p=>Math.min(totalPages,p+1))} className="px-3 py-1 rounded border disabled:opacity-50">Next</button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                  <div className="neu-card p-4">
+                    <h3 className="font-semibold mb-3">Quick Links</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <button onClick={() => navigate('/dashboard?tab=finance&view=invoices')} className="px-4 py-3 rounded-lg bg-gray-100 hover:bg-gray-200 text-left">Invoices</button>
+                      <button onClick={() => navigate('/dashboard?tab=finance&view=statement')} className="px-4 py-3 rounded-lg bg-gray-100 hover:bg-gray-200 text-left">Reservations Statement</button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {analyticsView === 'comparison' && (
+                <div className="space-y-6">
+                  <div className="neu-card p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="font-semibold">Direct vs Online Comparison</h3>
+                      <div className="flex gap-2">
+                        <button onClick={() => {
+                          const rows = [
+                            { channel: 'Direct', revenue: bookings.filter(b=>b.isDirect).reduce((s,b)=>s+Number(b.totalAmount||0),0), count: bookings.filter(b=>b.isDirect).length },
+                            { channel: 'Online', revenue: bookings.filter(b=>!b.isDirect).reduce((s,b)=>s+Number(b.totalAmount||0),0), count: bookings.filter(b=>!b.isDirect).length },
+                          ];
+                          const header = ['Channel','Revenue','Count'];
+                          const lines = [header.join(',')].concat(rows.map(r=>[r.channel,r.revenue,r.count].join(',')));
+                          const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement('a'); a.href = url; a.download = 'comparison.csv'; a.click(); URL.revokeObjectURL(url);
+                        }} className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm">Export CSV</button>
+                        <button onClick={()=>window.print()} className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm">Export PDF</button>
+                      </div>
+                    </div>
+                    {(() => {
+                      const direct = bookings.filter(b=>b.isDirect);
+                      const online = bookings.filter(b=>!b.isDirect);
+                      const dRev = direct.reduce((s,b)=>s+Number(b.totalAmount||0),0);
+                      const oRev = online.reduce((s,b)=>s+Number(b.totalAmount||0),0);
+                      return (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="bg-green-50 p-4 rounded-lg">
+                            <p className="text-sm text-green-700">Direct Revenue</p>
+                            <p className="text-xl font-bold text-green-800">RWF {dRev.toLocaleString()}</p>
+                            <p className="text-sm text-green-700 mt-1">Bookings: {direct.length}</p>
+                          </div>
+                          <div className="bg-blue-50 p-4 rounded-lg">
+                            <p className="text-sm text-blue-700">Online Revenue</p>
+                            <p className="text-xl font-bold text-blue-800">RWF {oRev.toLocaleString()}</p>
+                            <p className="text-sm text-blue-700 mt-1">Bookings: {online.length}</p>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                  <div className="neu-card p-4">
+                    {(() => {
+                      const rows = bookings.map(b=>({
+                        date: new Date(b.createdAt).toLocaleDateString(undefined, { day:'2-digit', month:'2-digit', year:'numeric' }),
+                        channel: b.isDirect ? 'Direct' : 'Online',
+                        amount: Number(b.totalAmount||0)
+                      }));
+                      const totalPages = Math.max(1, Math.ceil(rows.length / compPerPage));
+                      const page = Math.min(compPage, totalPages);
+                      const start = (page-1) * compPerPage;
+                      const pageRows = rows.slice(start, start + compPerPage);
+                      return (
+                        <div className="space-y-3">
+                          <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-gray-200">
+                              <thead className="bg-gray-50">
+                                <tr>
+                                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Channel</th>
+                                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Amount</th>
+                                </tr>
+                              </thead>
+                              <tbody className="bg-white divide-y divide-gray-100">
+                                {pageRows.map((r,i)=> (
+                                  <tr key={i} className="hover:bg-gray-50">
+                                    <td className="px-4 py-2 text-sm">{r.date}</td>
+                                    <td className="px-4 py-2 text-sm">{r.channel}</td>
+                                    <td className="px-4 py-2 text-sm text-right">RWF {r.amount.toLocaleString()}</td>
+                                  </tr>
+                                ))}
+                                {pageRows.length===0 && (<tr><td colSpan={3} className="px-4 py-6 text-center text-gray-500">No data</td></tr>)}
+                              </tbody>
+                            </table>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <div className="text-sm text-gray-500">Page {page} of {totalPages}</div>
+                            <div className="flex gap-2">
+                              <button disabled={page<=1} onClick={()=>setCompPage(p=>Math.max(1,p-1))} className="px-3 py-1 rounded border disabled:opacity-50">Prev</button>
+                              <button disabled={page>=totalPages} onClick={()=>setCompPage(p=>Math.min(totalPages,p+1))} className="px-3 py-1 rounded border disabled:opacity-50">Next</button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </div>
+              )}
+
+              {analyticsView === 'occupancy' && (
+                <div className="space-y-6">
+                  <div className="neu-card p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="font-semibold">Occupancy & Revenue per Room</h3>
+                      <div className="flex gap-2">
+                        <button onClick={() => {
+                          const map = new Map();
+                          bookings.forEach(b => {
+                            const roomKey = (b.room?._id || b.room || 'unknown');
+                            const roomName = b.room?.roomNumber || b.room?.roomType || b.roomNumber || 'Room';
+                            const cur = map.get(roomKey) || { roomName, nights: 0, revenue: 0, count: 0 };
+                            const s = new Date(b.checkIn); const e = new Date(b.checkOut); const n = Math.ceil((e-s)/(1000*60*60*24)) || 0;
+                            cur.nights += Math.max(0,n); cur.revenue += Number(b.totalAmount||0); cur.count += 1; map.set(roomKey, cur);
+                          });
+                          const rows = Array.from(map.values());
+                          const header = ['Room','Nights','Bookings','Revenue'];
+                          const lines = [header.join(',')].concat(rows.map(r=>[r.roomName,r.nights,r.count,r.revenue].join(',')));
+                          const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement('a'); a.href = url; a.download = 'occupancy_per_room.csv'; a.click(); URL.revokeObjectURL(url);
+                        }} className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm">Export CSV</button>
+                        <button onClick={()=>window.print()} className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm">Export PDF</button>
+                      </div>
+                    </div>
+                    {(() => {
+                      const map = new Map();
+                      bookings.forEach(b => {
+                        const roomKey = (b.room?._id || b.room || 'unknown');
+                        const roomName = b.room?.roomNumber || b.room?.roomType || b.roomNumber || 'Room';
+                        const cur = map.get(roomKey) || { roomName, nights: 0, revenue: 0, count: 0 };
+                        const nights = (()=>{ const s = new Date(b.checkIn); const e = new Date(b.checkOut); const n = Math.ceil((e-s)/(1000*60*60*24)); return isNaN(n)?0:Math.max(0,n); })();
+                        cur.nights += nights;
+                        cur.revenue += Number(b.totalAmount||0);
+                        cur.count += 1;
+                        map.set(roomKey, cur);
+                      });
+                      const rows = Array.from(map.values());
+                      const totalPages = Math.max(1, Math.ceil(rows.length / occPerPage));
+                      const page = Math.min(occPage, totalPages);
+                      const start = (page-1) * occPerPage;
+                      const pageRows = rows.slice(start, start + occPerPage);
+                      return (
+                        <div className="space-y-3">
+                          <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-gray-200">
+                              <thead className="bg-gray-50">
+                                <tr>
+                                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Room</th>
+                                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Nights</th>
+                                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Bookings</th>
+                                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Revenue</th>
+                                </tr>
+                              </thead>
+                              <tbody className="bg-white divide-y divide-gray-100">
+                                {pageRows.map((r, i) => (
+                                  <tr key={i} className="hover:bg-gray-50">
+                                    <td className="px-4 py-2 text-sm">{r.roomName}</td>
+                                    <td className="px-4 py-2 text-sm text-right">{r.nights}</td>
+                                    <td className="px-4 py-2 text-sm text-right">{r.count}</td>
+                                    <td className="px-4 py-2 text-sm text-right">RWF {Number(r.revenue).toLocaleString()}</td>
+                                  </tr>
+                                ))}
+                                {pageRows.length===0 && (<tr><td colSpan={4} className="px-4 py-6 text-center text-gray-500">No data</td></tr>)}
+                              </tbody>
+                            </table>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <div className="text-sm text-gray-500">Page {page} of {totalPages}</div>
+                            <div className="flex gap-2">
+                              <button disabled={page<=1} onClick={()=>setOccPage(p=>Math.max(1,p-1))} className="px-3 py-1 rounded border disabled:opacity-50">Prev</button>
+                              <button disabled={page>=totalPages} onClick={()=>setOccPage(p=>Math.min(totalPages,p+1))} className="px-3 py-1 rounded border disabled:opacity-50">Next</button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </div>
+              )}
+
+              {analyticsView === 'tax' && (
+                <div className="space-y-6">
+                  <div className="neu-card p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="font-semibold">Tax Liability Tracking</h3>
+                      <div className="flex gap-2">
+                        <button onClick={() => {
+                          const rows = bookings.map(b=>({ date: new Date(b.createdAt).toISOString().slice(0,10), booking: b.confirmationCode || b._id, amount: Number(b.totalAmount||0), tax: Number(b.taxAmount||0) }));
+                          const header = ['Date','Booking','Amount','Tax'];
+                          const lines = [header.join(',')].concat(rows.map(r=>[r.date,r.booking,r.amount,r.tax].join(',')));
+                          const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement('a'); a.href = url; a.download = 'tax_liability.csv'; a.click(); URL.revokeObjectURL(url);
+                        }} className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm">Export CSV</button>
+                        <button onClick={()=>window.print()} className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm">Export PDF</button>
+                      </div>
+                    </div>
+                    {(() => {
+                      const rows = bookings.map(b=>({ date: new Date(b.createdAt).toLocaleDateString(undefined, { day:'2-digit', month:'2-digit', year:'numeric' }), booking: b.confirmationCode || b._id, amount: Number(b.totalAmount||0), tax: Number(b.taxAmount||0) }));
+                      const totalTax = rows.reduce((s,r)=>s + r.tax, 0);
+                      const totalPages = Math.max(1, Math.ceil(rows.length / taxPerPage));
+                      const page = Math.min(taxPage, totalPages);
+                      const start = (page-1) * taxPerPage;
+                      const pageRows = rows.slice(start, start + taxPerPage);
+                      return (
+                        <div className="space-y-3">
+                          <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-gray-200">
+                              <thead className="bg-gray-50">
+                                <tr>
+                                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Booking</th>
+                                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Amount</th>
+                                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Tax</th>
+                                </tr>
+                              </thead>
+                              <tbody className="bg-white divide-y divide-gray-100">
+                                {pageRows.map((r,i)=> (
+                                  <tr key={i} className="hover:bg-gray-50">
+                                    <td className="px-4 py-2 text-sm">{r.date}</td>
+                                    <td className="px-4 py-2 text-sm">{r.booking}</td>
+                                    <td className="px-4 py-2 text-sm text-right">RWF {r.amount.toLocaleString()}</td>
+                                    <td className="px-4 py-2 text-sm text-right">RWF {r.tax.toLocaleString()}</td>
+                                  </tr>
+                                ))}
+                                {pageRows.length===0 && (<tr><td colSpan={4} className="px-4 py-6 text-center text-gray-500">No data</td></tr>)}
+                              </tbody>
+                            </table>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <div className="text-sm text-gray-700 font-medium">Total Tax: RWF {totalTax.toLocaleString()}</div>
+                            <div className="flex gap-2">
+                              <button disabled={page<=1} onClick={()=>setTaxPage(p=>Math.max(1,p-1))} className="px-3 py-1 rounded border disabled:opacity-50">Prev</button>
+                              <button disabled={page>=totalPages} onClick={()=>setTaxPage(p=>Math.min(totalPages,p+1))} className="px-3 py-1 rounded border disabled:opacity-50">Next</button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
               )}
@@ -2106,8 +2608,74 @@ const PropertyOwnerBookings = () => {
       {/* Modals */}
       {showBookingDetails && renderBookingDetails()}
       {showReceipt && renderReceipt()}
-      {showDirectBooking && (
+      {showSalesConfirm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full overflow-hidden shadow-xl">
+            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Review booking before printing</h3>
+                <p className="text-xs text-gray-500 mt-1">Check the key details below. When you confirm, the receipt preview will open and you can print from there.</p>
+              </div>
+              <button onClick={onCancelSalesConfirm} className="text-gray-500 hover:text-gray-700">
+                <FaTimes />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              {salesNewBooking && (
+                <div className="text-sm text-gray-700 bg-gray-50 p-4 rounded-xl space-y-2">
+                  <div className="flex justify-between gap-4">
+                    <div>
+                      <div className="text-[11px] uppercase tracking-wide text-gray-500">Property</div>
+                      <div className="font-medium text-gray-900">{salesNewBooking.property?.title || salesNewBooking.property?.name || 'Property'}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-[11px] uppercase tracking-wide text-gray-500">Booking ID</div>
+                      <div className="font-mono text-xs">{salesNewBooking.confirmationCode || salesNewBooking._id}</div>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 text-xs mt-2">
+                    <div>
+                      <div className="text-[11px] uppercase tracking-wide text-gray-500">Guest</div>
+                      <div className="font-medium text-gray-900">{salesNewBooking.guest?.firstName || salesNewBooking.guest?.name || 'Guest'} {salesNewBooking.guest?.lastName || ''}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-[11px] uppercase tracking-wide text-gray-500">Dates</div>
+                      <div className="font-medium text-gray-900">
+                        {salesNewBooking.checkIn ? new Date(salesNewBooking.checkIn).toLocaleDateString() : ''}
+                        {' '}–{' '}
+                        {salesNewBooking.checkOut ? new Date(salesNewBooking.checkOut).toLocaleDateString() : ''}
+                      </div>
+                      <div className="text-[11px] text-gray-500">{salesNewBooking.numberOfGuests || salesNewBooking.guests || 1} guests</div>
+                    </div>
+                  </div>
+                  <div className="border-t border-dashed border-gray-200 pt-3 mt-2 flex items-center justify-between text-sm">
+                    <div>
+                      <div className="text-[11px] uppercase tracking-wide text-gray-500">Payment</div>
+                      <div className="text-xs text-gray-700">
+                        {salesNewBooking.paymentMethod || 'Cash'} · {salesNewBooking.paymentStatus || 'paid'}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-[11px] uppercase tracking-wide text-gray-500">Total</div>
+                      <div className="text-base font-semibold text-gray-900">
+                        {formatCurrencyRWF
+                          ? formatCurrencyRWF(salesNewBooking.totalAmount || 0)
+                          : `RWF ${(salesNewBooking.totalAmount || 0).toLocaleString()}`}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              <div className="flex items-center justify-end gap-3">
+                <button onClick={onCancelSalesConfirm} className="px-5 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 text-sm">Cancel</button>
+                <button onClick={onConfirmSalesAndPrint} className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium">Confirm &amp; open receipt</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {showDirectBooking && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
           <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-gray-200 flex items-center justify-between">
               <h2 className="text-2xl font-bold">New Direct Booking</h2>
@@ -2132,86 +2700,160 @@ const PropertyOwnerBookings = () => {
                   </select>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Room (optional)</label>
-                    <select
-                      value={directForm.roomId}
-                      onChange={(e) => onDirectChange('roomId', e.target.value)}
-                      className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="">Any room</option>
-                      {ownerRooms.map(r => (
-                        <option key={r._id} value={r._id}>{r.roomNumber || r.roomType || 'Room'}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Check-in</label>
-                    <input type="date" value={directForm.checkIn} onChange={e => onDirectChange('checkIn', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" required />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Check-out</label>
-                    <input type="date" value={directForm.checkOut} onChange={e => onDirectChange('checkOut', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" required />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Guests</label>
-                    <input type="number" min={1} value={directForm.guests} onChange={e => onDirectChange('guests', Number(e.target.value) || 1)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
-                    <select value={directForm.paymentMethod} onChange={e => onDirectChange('paymentMethod', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                      <option value="cash">Pay on Arrival</option>
-                      <option value="mtn_mobile_money">MTN Mobile Money</option>
-                    </select>
-                  </div>
-                  {directForm.paymentMethod === 'cash' && (
-                    <div className="flex items-end">
-                      <label className="inline-flex items-center space-x-2">
-                        <input type="checkbox" checked={directForm.markPaid} onChange={e => onDirectChange('markPaid', e.target.checked)} />
-                        <span className="text-sm">Mark as paid</span>
-                      </label>
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Guest Info</label>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <input placeholder="First name" value={directForm.guestInfo.firstName} onChange={e => onDirectChange('guestInfo.firstName', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" required />
-                    <input placeholder="Last name" value={directForm.guestInfo.lastName} onChange={e => onDirectChange('guestInfo.lastName', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" required />
-                    <input type="email" placeholder="Email" value={directForm.guestInfo.email} onChange={e => onDirectChange('guestInfo.email', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-                    <input type="tel" placeholder="Phone" value={directForm.guestInfo.phone} onChange={e => onDirectChange('guestInfo.phone', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">A guest account will be linked or created automatically if necessary.</p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Contact Info (for booking records)</label>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <input type="email" placeholder="Contact email" value={directForm.contactInfo.email} onChange={e => onDirectChange('contactInfo.email', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-                    <input type="tel" placeholder="Contact phone" value={directForm.contactInfo.phone} onChange={e => onDirectChange('contactInfo.phone', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Special Requests</label>
-                  <textarea value={directForm.specialRequests} onChange={e => onDirectChange('specialRequests', e.target.value)} rows={3} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Any special notes..."></textarea>
-                </div>
-
-                <div className="flex items-center justify-end border-t pt-4">
-                  <button type="submit" className="px-6 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium">Create Booking</button>
-                </div>
-              </form>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Room (optional)</label>
+              <select
+                value={directForm.roomId}
+                onChange={(e) => onDirectChange('roomId', e.target.value)}
+                className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">Any room</option>
+                {ownerRooms.map(r => (
+                  <option key={r._id} value={r._id}>{r.roomNumber || r.roomType || 'Room'}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Check-in</label>
+              <input type="date" value={directForm.checkIn} onChange={e => onDirectChange('checkIn', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" required />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Check-out</label>
+              <input type="date" value={directForm.checkOut} onChange={e => onDirectChange('checkOut', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" required />
             </div>
           </div>
-        </div>
-      )}
-    </div>
-  );
-};
 
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Guests</label>
+              <input type="number" min={1} value={directForm.guests} onChange={e => onDirectChange('guests', Number(e.target.value) || 1)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
+              <select value={directForm.paymentMethod} onChange={e => onDirectChange('paymentMethod', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                <option value="cash">Cash</option>
+                <option value="mtn_mobile_money">Mobile Money</option>
+                <option value="credit_card">Credit Card</option>
+                <option value="bank_transfer">Bank Transfer</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Payment Status</label>
+              <div className="flex items-center gap-4 h-full">
+                <label className="inline-flex items-center gap-2 text-sm"><input type="radio" name="ownerpaystatus" checked={directForm.paymentStatusSelection==='paid'} onChange={() => onDirectChange('paymentStatusSelection','paid')} />Paid</label>
+                <label className="inline-flex items-center gap-2 text-sm"><input type="radio" name="ownerpaystatus" checked={directForm.paymentStatusSelection==='pending'} onChange={() => onDirectChange('paymentStatusSelection','pending')} />Pending</label>
+                <label className="inline-flex items-center gap-2 text-sm"><input type="radio" name="ownerpaystatus" checked={directForm.paymentStatusSelection==='deposit'} onChange={() => onDirectChange('paymentStatusSelection','deposit')} />Deposit</label>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Guest Info</label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <input placeholder="First name" value={directForm.guestInfo.firstName} onChange={e => onDirectChange('guestInfo.firstName', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" required />
+              <input placeholder="Last name" value={directForm.guestInfo.lastName} onChange={e => onDirectChange('guestInfo.lastName', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" required />
+              <input type="email" placeholder="Email" value={directForm.guestInfo.email} onChange={e => onDirectChange('guestInfo.email', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+              <input type="tel" placeholder="Phone" value={directForm.guestInfo.phone} onChange={e => onDirectChange('guestInfo.phone', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+              <input placeholder="Nationality" value={directForm.guestInfo.nationality} onChange={e => onDirectChange('guestInfo.nationality', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+              <input placeholder="Passport" value={directForm.guestInfo.passport} onChange={e => onDirectChange('guestInfo.passport', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+              <input placeholder="Address" value={directForm.guestInfo.address} onChange={e => onDirectChange('guestInfo.address', e.target.value)} className="md:col-span-2 w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+            </div>
+            <p className="text-xs text-gray-500 mt-1">A guest account will be linked or created automatically if necessary.</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Contact Info (for booking records)</label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <input type="email" placeholder="Contact email" value={directForm.contactInfo.email} onChange={e => onDirectChange('contactInfo.email', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+              <input type="tel" placeholder="Contact phone" value={directForm.contactInfo.phone} onChange={e => onDirectChange('contactInfo.phone', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Special Requests</label>
+            <textarea value={directForm.specialRequests} onChange={e => onDirectChange('specialRequests', e.target.value)} rows={3} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Any special notes..."></textarea>
+          </div>
+
+          <div className="border rounded-lg p-4 bg-gray-50">
+            <div className="text-sm text-gray-900 font-semibold mb-2">Payment Information</div>
+            <div className="text-sm text-gray-700 space-y-1">
+              <div>Room Rate: based on selected property, room and nights</div>
+              <div className="mt-2">Additional Services:</div>
+              {(ownerAddOns.length === 0) && (
+                <div className="text-xs text-gray-500">No add-on services configured for this property.</div>
+              )}
+              {ownerAddOns.map(addOn => {
+                const key = addOn.key;
+                const checked = !!(directForm.services && directForm.services[key]);
+                const price = Number(addOn.price || 0);
+                const scope = addOn.scope || 'per-booking';
+                const guestCount = Math.max(1, directForm.guests || 1);
+                const nightsCount = Math.max(1, ownerNights || 0);
+                let lineTotal = price;
+                let scopeLabel = 'per booking';
+                if (scope === 'per-night') {
+                  lineTotal = price * nightsCount;
+                  scopeLabel = `${price.toLocaleString()} × ${nightsCount} nights`;
+                } else if (scope === 'per-guest') {
+                  lineTotal = price * guestCount;
+                  scopeLabel = `${price.toLocaleString()} × ${guestCount} guests`;
+                } else {
+                  scopeLabel = `${price.toLocaleString()} per booking`;
+                }
+
+                // Build included items summary from property-level configuration, if present
+                const included = addOn.includedItems && typeof addOn.includedItems === 'object'
+                  ? Object.keys(addOn.includedItems)
+                      .filter(k => addOn.includedItems[k])
+                      .map(k => {
+                        // Use the key but format it nicely if we don't have labels
+                        return k
+                          .replace(/_/g, ' ')
+                          .replace(/\s+/g, ' ')
+                          .trim()
+                          .replace(/^(.)/, (m) => m.toUpperCase());
+                      })
+                  : [];
+
+                return (
+                  <div key={key} className="space-y-0.5">
+                    <label className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={e => {
+                          onDirectChange('services', { ...(directForm.services || {}), [key]: e.target.checked });
+                        }}
+                      />
+                      <span>{addOn.name}</span>
+                    </label>
+                    {included.length > 0 && (
+                      <div className="pl-6 text-xs text-gray-500">
+                        Includes: {included.join(', ')}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+              <div className="pt-2">Subtotal: calculated automatically</div>
+              <div>Hospitality levy (3%): calculated automatically</div>
+              <div className="font-semibold">TOTAL: calculated automatically</div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-3 border-t pt-4">
+            <button type="button" onClick={saveDirectDraft} className="px-5 py-3 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100">Save as Draft</button>
+            <button type="button" onClick={clearDirectForm} className="px-5 py-3 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100">Clear Form</button>
+            <button type="submit" className="px-6 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium">Save & Print Receipt</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+)}
+{/* End Modals */}
+</div>
+);
+};
 export default PropertyOwnerBookings;

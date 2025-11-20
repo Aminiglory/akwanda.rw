@@ -36,7 +36,7 @@ const Footer = () => {
     {
       title: t ? t('footer.forGuests') : "For Guests",
       links: [
-        { name: t ? t('footer.searchApartments') : "Search Apartments", href: "/apartments" },
+        { name: t ? t('footer.searchApartments') : "Search Property", href: "/apartments" },
         { name: t ? t('footer.howToBook') : "How to Book", href: "/support#faq" },
         { name: t ? t('footer.guestReviews') : "Guest Reviews", href: "/support#reviews" }
       ]
@@ -61,14 +61,14 @@ const Footer = () => {
       links: [
         { name: t ? t('footer.helpCenter') : "Help Center", href: "/support" },
         { name: t ? t('footer.safetyCenter') : "Safety Center", href: "/support" },
-        { name: "Customer Support", href: "/support#contact" },
+        { name: t ? t('footer.contactUs') : "Contact Us", href: "/support#contact" },
         { name: t ? t('footer.terms') : "Terms of Service", href: "/support" }
       ]
     }
   ];
 
   const quickLinks = [
-    { icon: FaBed, name: "Apartments", href: "/apartments" },
+    // { icon: FaBed, name: t ? t('footer.apartments') : "Properties", href: "/apartments" },
     { icon: FaBuffer, name: t ? t('footer.listProperty') : "List Property", href: "/upload-property" }
   ];
 
@@ -80,9 +80,9 @@ const Footer = () => {
           {/* Brand Section */}
           <div className="lg:col-span-1">
             <div className="mb-6">
-              <h2 className="text-2xl font-bold text-white mb-4">AKWANDA.rw</h2>
+              <h2 className="text-2xl font-bold text-white mb-4">{t ? t('brand') : 'AKWANDA.rw'}</h2>
               <p className="text-white-300 leading-relaxed">
-                Rwanda's leading apartment rental platform. Connect guests with amazing hosts across the country.
+                Rwanda's home grown booking platform that connects guest with amazing hosts across the country.
               </p>
             </div>
 
@@ -172,14 +172,14 @@ const Footer = () => {
         </div>
       </div>
 
-      {/* Bottom Bar */}
+      {/* Bottom Bar without global search */}
       <div className="border-t border-gray-800">
         <div className="max-w-6xl mx-auto px-4 py-6">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="text-gray-300 text-sm mb-4 md:mb-0">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="text-gray-300 text-sm">
               {t ? t('footer.bottomCopyright', year) : `© ${year} AKWANDA.rw. All rights reserved.`}
             </div>
-            <div className="flex flex-wrap gap-6 text-sm">
+            <div className="flex flex-wrap gap-6 text-sm justify-center md:justify-end">
               <a href="/support" className="text-gray-300 hover:text-white transition-colors duration-300">
                 {t ? t('footer.privacy') : 'Privacy Policy'}
               </a>

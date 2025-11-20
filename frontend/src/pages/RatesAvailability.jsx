@@ -10,7 +10,16 @@ export default function RatesAvailability() {
   const { formatCurrencyRWF } = useLocale() || {};
   const [searchParams] = useSearchParams();
   const rawView = searchParams.get('view') || 'calendar';
-  const view = (rawView === 'calendar' || rawView === 'open-close') ? rawView : 'calendar';
+  const allowedViews = new Set([
+    'calendar',
+    'open-close',
+    'pricing-per-guest',
+    'mobile-rates',
+    'copy-yearly',
+    'rate-plans',
+    'availability-planner'
+  ]);
+  const view = allowedViews.has(rawView) ? rawView : 'calendar';
   const [properties, setProperties] = useState([]);
   const [selectedProperty, setSelectedProperty] = useState('');
   const [loading, setLoading] = useState(false);
@@ -52,9 +61,27 @@ export default function RatesAvailability() {
     { country: 'Rwanda', rate: -15 },
     { country: 'East Africa', rate: -10 }
   ]);
+  const [addOnServicesDraft, setAddOnServicesDraft] = useState([]);
+  const [addOnCatalog, setAddOnCatalog] = useState([]);
 
   useEffect(() => {
     fetchProperties();
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/add-ons/catalog`, { credentials: 'include' });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && Array.isArray(data.items)) {
+          setAddOnCatalog(data.items);
+        } else {
+          setAddOnCatalog([]);
+        }
+      } catch (_) {
+        setAddOnCatalog([]);
+      }
+    })();
   }, []);
 
   useEffect(() => {
@@ -69,6 +96,15 @@ export default function RatesAvailability() {
       }
     }
   }, [selectedProperty, view]);
+
+  // Keep add-on services draft in sync with loaded property data
+  useEffect(() => {
+    if (propertyData && Array.isArray(propertyData.addOnServices)) {
+      setAddOnServicesDraft(propertyData.addOnServices);
+    } else {
+      setAddOnServicesDraft([]);
+    }
+  }, [propertyData]);
 
   const fetchPropertyDetails = async () => {
     try {
@@ -197,6 +233,24 @@ export default function RatesAvailability() {
     }
   };
 
+  const handleSaveAddOnServices = async (services) => {
+    if (!selectedProperty) return;
+    try {
+      const res = await fetch(`${API_URL}/api/properties/${selectedProperty}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ addOnServices: services })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || 'Failed to save add-on services');
+      toast.success('Add-on services saved');
+      fetchPropertyDetails();
+    } catch (e) {
+      toast.error(e.message || 'Failed to save add-on services');
+    }
+  };
+
   const handleOpenDates = async (roomId) => {
     const range = dateRanges[roomId];
     if (!range?.startDate || !range?.endDate) {
@@ -265,7 +319,7 @@ export default function RatesAvailability() {
     }
   };
 
-  const handleUpdatePricingPerGuest = async (roomId, extraGuestFee) => {
+  const handleUpdatePricingPerGuest = async (roomId, extraGuestFee, maxGuests) => {
     try {
       const res = await fetch(`${API_URL}/api/rates/pricing-per-guest`, {
         method: 'POST',
@@ -274,7 +328,8 @@ export default function RatesAvailability() {
         body: JSON.stringify({
           propertyId: selectedProperty,
           roomId,
-          additionalGuestCharge: extraGuestFee
+          additionalGuestCharge: extraGuestFee,
+          maxGuests: maxGuests != null ? Number(maxGuests) : undefined
         })
       });
       if (!res.ok) throw new Error('Failed to update pricing');
@@ -365,7 +420,7 @@ export default function RatesAvailability() {
               <FaCalendar className="text-[#a06b42]" /> Pricing and booking calendar
             </h2>
             {loading ? (
-              <div className="text-center py-8">Loading...</div>
+              <div className="text-center py-8 text-sm text-[#6b5744]">Loading availability strategy...</div>
             ) : (
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
@@ -446,15 +501,27 @@ export default function RatesAvailability() {
       case 'mobile-rates':
         // State moved to top level - using mobileDiscount from component state
         return (
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-              <FaMobileAlt /> Mobile Rates
+          <div className="bg-white rounded-2xl border border-[#e0d5c7] shadow-sm p-6">
+            <h2 className="text-xl font-bold mb-2 flex items-center gap-2 text-[#4b2a00]">
+              <FaMobileAlt className="text-[#a06b42]" /> Mobile rates
             </h2>
-            <p className="text-gray-600 mb-4">Offer a special discount for guests booking via mobile devices to boost conversions.</p>
-            <div className="max-w-md p-4 border rounded">
-              <label className="block text-sm font-medium mb-2">Mobile Discount (%)</label>
-              <input type="number" min="0" max="90" value={mobileDiscount} onChange={(e)=> setMobileDiscount(Number(e.target.value))} className="w-full px-3 py-2 border rounded" />
-              <button onClick={()=> handleSaveMobileRates(mobileDiscount)} className="mt-3 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Save</button>
+            <p className="text-sm text-[#6b5744] mb-5">Offer a special discount for guests booking via mobile devices to boost conversions.</p>
+            <div className="max-w-md p-4 rounded-2xl border border-[#e0d5c7] bg-[#fdf7f0]">
+              <label className="block text-xs font-semibold text-[#6b5744] mb-2 uppercase tracking-wide">Mobile discount (%)</label>
+              <input
+                type="number"
+                min="0"
+                max="90"
+                value={mobileDiscount}
+                onChange={(e)=> setMobileDiscount(Number(e.target.value))}
+                className="w-full px-3 py-2 border border-[#e0d5c7] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#a06b42] focus:border-[#a06b42] bg-white"
+              />
+              <button
+                onClick={()=> handleSaveMobileRates(mobileDiscount)}
+                className="mt-4 inline-flex items-center justify-center px-4 py-2 rounded-full bg-[#a06b42] hover:bg-[#8f5a32] text-white text-sm font-medium shadow-sm transition-colors"
+              >
+                Save mobile rates
+              </button>
             </div>
           </div>
         );
@@ -504,11 +571,11 @@ export default function RatesAvailability() {
         const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         
         return (
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-2xl border border-[#e0d5c7] shadow-sm p-6">
             <h2 className="text-xl font-bold mb-2 flex items-center gap-2 text-[#4b2a00]">
-              <FaDoorOpen className="text-[#a06b42]" /> Open/Close Rooms
+              <FaDoorOpen className="text-[#a06b42]" /> Open/close rooms
             </h2>
-            <p className="text-gray-600 mb-6">Manage room availability by opening or closing specific dates.</p>
+            <p className="text-sm text-[#6b5744] mb-6">Manage room availability by opening or closing specific dates across your property.</p>
             
             {!propertyData?.rooms || propertyData.rooms.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
@@ -517,16 +584,18 @@ export default function RatesAvailability() {
             ) : (
               <div className="space-y-6">
                 {/* Date Range Selection for Bulk Operations */}
-                <div className="bg-[#f5f0e8] border border-[#e0d5c7] rounded-lg p-4">
-                  <h3 className="font-semibold text-[#4b2a00] mb-3">📅 Bulk Date Management</h3>
-                  <p className="text-sm text-[#4b2a00] mb-3">Select date ranges to open or close multiple dates at once</p>
+                <div className="bg-[#f5f0e8] border border-[#e0d5c7] rounded-2xl p-4">
+                  <h3 className="font-semibold text-[#4b2a00] mb-1 text-sm md:text-base flex items-center gap-2">
+                    <span>📅 Bulk date management</span>
+                  </h3>
+                  <p className="text-xs md:text-sm text-[#6b5744] mb-3">Select date ranges to open or close multiple dates at once.</p>
                   
                   {propertyData.rooms.map((room, idx) => (
-                    <div key={idx} className="bg-white border rounded-lg p-4 mb-3">
-                      <h4 className="font-semibold mb-2 text-gray-800">{room.roomType} - {room.roomNumber}</h4>
+                    <div key={idx} className="bg-white border border-[#e0d5c7] rounded-xl p-4 mb-3">
+                      <h4 className="font-semibold mb-2 text-[#4b2a00] text-sm md:text-base">{room.roomType} - {room.roomNumber}</h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
                         <div>
-                          <label className="text-xs text-gray-600 block mb-1">Start Date</label>
+                          <label className="text-[11px] text-[#6b5744] block mb-1 uppercase tracking-wide">Start date</label>
                           <input 
                             type="date" 
                             className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-[#a06b42] focus:border-[#a06b42]"
@@ -538,7 +607,7 @@ export default function RatesAvailability() {
                           />
                         </div>
                         <div>
-                          <label className="text-xs text-gray-600 block mb-1">End Date</label>
+                          <label className="text-[11px] text-[#6b5744] block mb-1 uppercase tracking-wide">End date</label>
                           <input 
                             type="date" 
                             className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-[#a06b42] focus:border-[#a06b42]"
@@ -553,24 +622,24 @@ export default function RatesAvailability() {
                       <div className="flex gap-2">
                         <button 
                           onClick={() => handleOpenDates(room._id)}
-                          className="flex-1 px-4 py-2 bg-[#a06b42] hover:bg-[#8f5a32] text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                          className="flex-1 px-4 py-2 bg-[#a06b42] hover:bg-[#8f5a32] text-white rounded-full text-xs md:text-sm font-medium transition-colors flex items-center justify-center gap-2"
                         >
                           <FaDoorOpen /> Open Dates
                         </button>
                         <button 
                           onClick={() => handleCloseDates(room._id)}
-                          className="flex-1 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                          className="flex-1 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-full text-xs md:text-sm font-medium transition-colors flex items-center justify-center gap-2"
                         >
                           <FaCalendarTimes /> Close Dates
                         </button>
                       </div>
                       <div className="mt-2 flex items-center justify-between text-xs">
-                        <span className="text-gray-500">
-                          Currently closed dates: <span className="font-semibold text-red-600">{room.closedDates?.length || 0}</span>
+                        <span className="text-[#6b5744]">
+                          Currently closed dates: <span className="font-semibold text-rose-700">{room.closedDates?.length || 0}</span>
                         </span>
                         <button 
                           onClick={() => setSelectedRoomForCalendar(selectedRoomForCalendar === room._id ? null : room._id)}
-                          className="text-blue-600 hover:text-blue-800 font-medium"
+                          className="text-[#a06b42] hover:text-[#8f5a32] font-medium"
                         >
                           {selectedRoomForCalendar === room._id ? 'Hide Calendar' : 'View Calendar'}
                         </button>
@@ -582,7 +651,7 @@ export default function RatesAvailability() {
                           <div className="flex items-center justify-between mb-4">
                             <button 
                               onClick={goToPreviousMonth}
-                              className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm"
+                              className="px-3 py-1 bg-[#f5f0e8] hover:bg-[#e8dcc8] rounded-full text-xs md:text-sm"
                             >
                               ← Prev
                             </button>
@@ -591,7 +660,7 @@ export default function RatesAvailability() {
                             </h4>
                             <button 
                               onClick={goToNextMonth}
-                              className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm"
+                              className="px-3 py-1 bg-[#f5f0e8] hover:bg-[#e8dcc8] rounded-full text-xs md:text-sm"
                             >
                               Next →
                             </button>
@@ -601,7 +670,7 @@ export default function RatesAvailability() {
                           <div className="grid grid-cols-7 gap-1">
                             {/* Day headers */}
                             {dayNames.map(day => (
-                              <div key={day} className="text-center text-xs font-semibold text-gray-600 py-2">
+                              <div key={day} className="text-center text-[11px] font-semibold text-[#6b5744] py-2">
                                 {day}
                               </div>
                             ))}
@@ -635,7 +704,7 @@ export default function RatesAvailability() {
                           </div>
                           
                           {/* Legend */}
-                          <div className="mt-4 flex items-center gap-4 text-xs">
+                          <div className="mt-4 flex items-center gap-4 text-xs text-[#6b5744]">
                             <div className="flex items-center gap-1">
                               <div className="w-4 h-4 bg-[#f5f0e8] border border-[#d4c4b0] rounded"></div>
                               <span>Available</span>
@@ -678,19 +747,19 @@ export default function RatesAvailability() {
         // State moved to top level - using sourceYear and targetYear from component state
         
         return (
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-              <FaCopy /> Copy Yearly Rates
+          <div className="bg-white rounded-2xl border border-[#e0d5c7] shadow-sm p-6">
+            <h2 className="text-xl font-bold mb-2 flex items-center gap-2 text-[#4b2a00]">
+              <FaCopy className="text-[#a06b42]" /> Copy yearly rates
             </h2>
-            <p className="text-gray-600 mb-6">Copy rates from one year to another to save time.</p>
-            <div className="border rounded-lg p-6">
-              <div className="grid grid-cols-2 gap-4 mb-4">
+            <p className="text-sm text-[#6b5744] mb-5">Duplicate your existing rate setup from one year to another to save time.</p>
+            <div className="rounded-2xl border border-[#e0d5c7] bg-[#fdf7f0] p-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Source Year</label>
+                  <label className="block text-xs font-semibold text-[#6b5744] mb-1 uppercase tracking-wide">Source year</label>
                   <select 
                     value={sourceYear}
                     onChange={(e) => setSourceYear(Number(e.target.value))}
-                    className="w-full px-3 py-2 border rounded-lg"
+                    className="w-full px-3 py-2 border border-[#e0d5c7] rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#a06b42] focus:border-[#a06b42]"
                   >
                     {[2024, 2025, 2026, 2027].map(year => (
                       <option key={year} value={year}>{year}</option>
@@ -698,11 +767,11 @@ export default function RatesAvailability() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Target Year</label>
+                  <label className="block text-xs font-semibold text-[#6b5744] mb-1 uppercase tracking-wide">Target year</label>
                   <select 
                     value={targetYear}
                     onChange={(e) => setTargetYear(Number(e.target.value))}
-                    className="w-full px-3 py-2 border rounded-lg"
+                    className="w-full px-3 py-2 border border-[#e0d5c7] rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#a06b42] focus:border-[#a06b42]"
                   >
                     {[2025, 2026, 2027, 2028].map(year => (
                       <option key={year} value={year}>{year}</option>
@@ -712,11 +781,11 @@ export default function RatesAvailability() {
               </div>
               <button 
                 onClick={() => handleCopyYearlyRates(sourceYear, targetYear)}
-                className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                className="w-full px-4 py-2 rounded-full bg-[#a06b42] hover:bg-[#8f5a32] text-white text-sm font-semibold shadow-sm transition-colors"
               >
-                Copy Rates from {sourceYear} to {targetYear}
+                Copy rates from {sourceYear} to {targetYear}
               </button>
-              <p className="text-xs text-gray-500 mt-3">
+              <p className="text-xs text-[#8a745e] mt-3">
                 This will copy all rate settings, seasonal pricing, and restrictions from {sourceYear} to {targetYear}.
               </p>
             </div>
@@ -725,32 +794,32 @@ export default function RatesAvailability() {
 
       case 'restrictions':
         return (
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-              <FaRuler /> Dynamic Restriction Rules
+          <div className="bg-white rounded-2xl border border-[#e0d5c7] shadow-sm p-6">
+            <h2 className="text-xl font-bold mb-2 flex items-center gap-2 text-[#4b2a00]">
+              <FaRuler className="text-[#a06b42]" /> Dynamic restriction rules
             </h2>
-            <p className="text-gray-600 mb-4">Set minimum and maximum stay requirements.</p>
+            <p className="text-sm text-[#6b5744] mb-4">Set minimum and maximum stay requirements per room type.</p>
             {propertyData?.rooms?.map((room, idx) => (
-                <div key={idx} className="border rounded-lg p-4 mb-3">
-                  <h3 className="font-semibold mb-3">{room.roomType} - {room.roomNumber}</h3>
-                  <div className="grid grid-cols-3 gap-3">
+                <div key={idx} className="border border-[#e0d5c7] rounded-xl p-4 mb-3 bg-[#fdf7f0]">
+                  <h3 className="font-semibold mb-3 text-[#4b2a00] text-sm md:text-base">{room.roomType} - {room.roomNumber}</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
-                      <label className="text-xs text-gray-600">Min Stay (nights)</label>
+                      <label className="text-[11px] text-[#6b5744] block mb-1 uppercase tracking-wide">Min stay (nights)</label>
                       <input 
                         type="number" 
                         defaultValue={room.minStay || 1}
                         id={`minStay-${room._id}`}
-                        className="w-full px-2 py-1 border rounded text-sm" 
+                        className="w-full px-2 py-1 border border-[#e0d5c7] rounded text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#a06b42] focus:border-[#a06b42]" 
                         min="1" 
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-gray-600">Max Stay (nights)</label>
+                      <label className="text-[11px] text-[#6b5744] block mb-1 uppercase tracking-wide">Max stay (nights)</label>
                       <input 
                         type="number" 
                         defaultValue={room.maxStay || 30}
                         id={`maxStay-${room._id}`}
-                        className="w-full px-2 py-1 border rounded text-sm" 
+                        className="w-full px-2 py-1 border border-[#e0d5c7] rounded text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#a06b42] focus:border-[#a06b42]" 
                         min="1" 
                       />
                     </div>
@@ -761,7 +830,7 @@ export default function RatesAvailability() {
                           const maxStay = Number(document.getElementById(`maxStay-${room._id}`).value);
                           handleUpdateRestrictions(room._id, minStay, maxStay);
                         }}
-                        className="w-full px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+                        className="w-full px-3 py-1 rounded-full bg-[#a06b42] hover:bg-[#8f5a32] text-white text-xs md:text-sm font-medium shadow-sm transition-colors"
                       >
                         Update
                       </button>
@@ -774,24 +843,24 @@ export default function RatesAvailability() {
 
       case 'rate-plans':
         return (
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-              <FaMoneyBillWave /> Rate Plans
+          <div className="bg-white rounded-2xl border border-[#e0d5c7] shadow-sm p-6">
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-[#4b2a00]">
+              <FaMoneyBillWave className="text-[#a06b42]" /> Rate plans
             </h2>
             {loading ? (
-              <div className="text-center py-8">Loading...</div>
+              <div className="text-center py-8 text-sm text-[#6b5744]">Loading rate plans...</div>
             ) : (
               <div className="space-y-4">
                 {ratePlans.map((plan, idx) => (
-                  <div key={idx} className="border rounded-lg p-4">
-                    <h3 className="font-semibold">{plan.name}</h3>
-                    <p className="text-sm text-gray-600">{plan.description}</p>
-                    <p className="text-lg font-bold text-green-600 mt-2">RWF {plan.baseRate?.toLocaleString()}/night</p>
+                  <div key={idx} className="border border-[#e0d5c7] rounded-2xl p-5 bg-[#fdf7f0]">
+                    <h3 className="font-semibold text-[#4b2a00] text-sm md:text-base">{plan.name}</h3>
+                    <p className="text-sm text-[#6b5744] mt-1">{plan.description}</p>
+                    <p className="text-lg font-bold text-[#4b2a00] mt-3">RWF {plan.baseRate?.toLocaleString()}/night</p>
                     <div className="mt-3 space-y-2">
                       {plan.rooms?.map((room, ridx) => (
-                        <div key={ridx} className="text-sm flex justify-between">
+                        <div key={ridx} className="text-sm flex justify-between text-[#6b5744]">
                           <span>{room.roomType}</span>
-                          <span className="font-medium">RWF {room.rate?.toLocaleString()}</span>
+                          <span className="font-semibold text-[#4b2a00]">RWF {room.rate?.toLocaleString()}</span>
                         </div>
                       ))}
                     </div>
@@ -804,45 +873,106 @@ export default function RatesAvailability() {
 
       case 'value-adds':
         return (
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-              <FaGift /> Value Adds
+          <div className="bg-white rounded-2xl border border-[#e0d5c7] shadow-sm p-6">
+            <h2 className="text-xl font-bold mb-2 flex items-center gap-2 text-[#4b2a00]">
+              <FaGift className="text-[#a06b42]" /> Value adds
             </h2>
-            <p className="text-gray-600 mb-4">Add extra services or amenities to increase booking value.</p>
-            <div className="space-y-3">
-              <div className="border rounded-lg p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-semibold">Breakfast</h3>
-                  <span className="text-green-600 font-bold">+RWF 5,000</span>
-                </div>
-                <p className="text-sm text-gray-600">Continental breakfast included</p>
-                <label className="flex items-center mt-2">
-                  <input type="checkbox" className="mr-2" />
-                  <span className="text-sm">Enable for all bookings</span>
-                </label>
-              </div>
-              <div className="border rounded-lg p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-semibold">Airport Transfer</h3>
-                  <span className="text-green-600 font-bold">+RWF 15,000</span>
-                </div>
-                <p className="text-sm text-gray-600">One-way airport pickup</p>
-                <label className="flex items-center mt-2">
-                  <input type="checkbox" className="mr-2" />
-                  <span className="text-sm">Enable for all bookings</span>
-                </label>
-              </div>
-              <div className="border rounded-lg p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-semibold">Late Checkout</h3>
-                  <span className="text-green-600 font-bold">+RWF 10,000</span>
-                </div>
-                <p className="text-sm text-gray-600">Checkout until 6 PM</p>
-                <label className="flex items-center mt-2">
-                  <input type="checkbox" className="mr-2" />
-                  <span className="text-sm">Enable for all bookings</span>
-                </label>
-              </div>
+            <p className="text-sm text-[#6b5744] mb-5">
+              Configure which additional services are available for this property. Prices are negotiable and handled outside the system.
+            </p>
+            <div className="space-y-3 mt-4">
+              {(addOnCatalog.length ? addOnCatalog : [
+                { key: 'standard_breakfast', name: 'Standard breakfast', description: 'Basic breakfast with local options', defaultPrice: 5000, defaultScope: 'per-booking' },
+                { key: 'premium_breakfast', name: 'Premium breakfast', description: 'Extended breakfast with hot dishes', defaultPrice: 8000, defaultScope: 'per-booking' },
+                { key: 'airport_transfer', name: 'Airport transfer', description: 'One-way airport pick-up or drop-off', defaultPrice: 15000, defaultScope: 'per-booking' },
+                { key: 'late_checkout', name: 'Late checkout', description: 'Stay in the room beyond normal checkout time', defaultPrice: 10000, defaultScope: 'per-booking' },
+                { key: 'daily_cleaning', name: 'Daily cleaning', description: 'Daily housekeeping beyond the standard', defaultPrice: 7000, defaultScope: 'per-night' }
+              ]).map((opt) => {
+                const existing = addOnServicesDraft.find(s => s.key === opt.key) || {};
+                const enabled = existing.enabled ?? false;
+                const price = existing.price != null ? existing.price : (opt.defaultPrice || 0);
+                const scope = existing.scope || opt.defaultScope || 'per-booking';
+                const selectedItems = existing.includedItems || {};
+                return (
+                  <div key={opt.key} className="border border-[#e0d5c7] rounded-2xl p-4 bg-[#fdf7f0]">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                      <div>
+                        <div className="font-semibold text-[#4b2a00] text-sm md:text-base">{opt.name}</div>
+                        {opt.description && (
+                          <p className="text-sm text-[#6b5744]">{opt.description}</p>
+                        )}
+                        <p className="text-[11px] text-[#8a745e] mt-1">
+                          Turn services on or off and specify which items are actually offered at this property.
+                        </p>
+                      </div>
+                      <label className="flex items-center ml-0 sm:ml-4">
+                        <input
+                          type="checkbox"
+                          className="mr-2"
+                          checked={enabled}
+                          onChange={(e) => {
+                            const next = addOnServicesDraft.filter(s => s.key !== opt.key);
+                            next.push({
+                              key: opt.key,
+                              name: opt.name,
+                              enabled: e.target.checked,
+                              price,
+                              scope,
+                              includedItems: selectedItems
+                            });
+                            setAddOnServicesDraft(next);
+                          }}
+                        />
+                        <span className="text-sm">Enable</span>
+                      </label>
+                    </div>
+                    {/* Pricing and charge type fields intentionally hidden: add-ons are negotiable and do not show fixed values here. */}
+                    {Array.isArray(opt.includedItems) && opt.includedItems.length > 0 && (
+                      <div className="mt-3 border-t border-[#e0d5c7] pt-2">
+                        <div className="text-[11px] text-[#6b5744] font-semibold mb-1 uppercase tracking-wide">
+                          Included items (select what this property offers)
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-xs">
+                          {opt.includedItems.map((item) => {
+                            const checked = selectedItems[item.key] ?? item.defaultIncluded ?? false;
+                            return (
+                              <label key={item.key} className="inline-flex items-center gap-2 text-[#4b2a00]">
+                                <input
+                                  type="checkbox"
+                                  className="h-3 w-3"
+                                  checked={checked}
+                                  onChange={(e) => {
+                                    const nextIncluded = { ...selectedItems, [item.key]: e.target.checked };
+                                    const next = addOnServicesDraft.filter(s => s.key !== opt.key);
+                                    next.push({
+                                      key: opt.key,
+                                      name: opt.name,
+                                      enabled,
+                                      price,
+                                      scope,
+                                      includedItems: nextIncluded
+                                    });
+                                    setAddOnServicesDraft(next);
+                                  }}
+                                />
+                                <span>{item.label}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <div className="mt-4 flex justify-end">
+              <button
+                onClick={() => handleSaveAddOnServices(addOnServicesDraft)}
+                className="px-4 py-2 rounded-full bg-[#a06b42] hover:bg-[#8f5a32] text-white text-sm font-semibold shadow-sm transition-colors"
+              >
+                Save add-on services
+              </button>
             </div>
           </div>
         );
@@ -882,22 +1012,24 @@ export default function RatesAvailability() {
         };
         
         return (
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-              <FaChartLine /> Availability Planner
+          <div className="bg-white rounded-2xl border border-[#e0d5c7] shadow-sm p-6">
+            <h2 className="text-xl font-bold mb-2 flex items-center gap-2 text-[#4b2a00]">
+              <FaChartLine className="text-[#a06b42]" /> Availability planner
             </h2>
-            <p className="text-gray-600 mb-6">Plan your availability strategy for peak and off-peak seasons.</p>
+            <p className="text-sm text-[#6b5744] mb-6">Plan your availability strategy for peak and off-peak seasons.</p>
             
             {loading ? (
               <div className="text-center py-8">Loading...</div>
             ) : (
               <div className="space-y-6">
                 {/* Peak Season */}
-                <div className="border rounded-lg p-4 bg-orange-50">
-                  <h3 className="font-semibold text-lg mb-3 text-orange-800">🔥 Peak Season Strategy</h3>
+                <div className="border border-[#e0d5c7] rounded-2xl p-4 bg-[#fdf7f0]">
+                  <h3 className="font-semibold text-sm md:text-base mb-3 text-[#4b2a00] flex items-center gap-2">
+                    <span>🔥 Peak season strategy</span>
+                  </h3>
                   <div className="grid grid-cols-3 gap-3 mb-3">
                     <div>
-                      <label className="text-xs text-gray-700">Start Date</label>
+                      <label className="text-xs text-[#6b5744]">Start date</label>
                       <input 
                         type="date" 
                         value={peakSeasonStart}
@@ -906,7 +1038,7 @@ export default function RatesAvailability() {
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-gray-700">End Date</label>
+                      <label className="text-xs text-[#6b5744]">End date</label>
                       <input 
                         type="date" 
                         value={peakSeasonEnd}
@@ -915,7 +1047,7 @@ export default function RatesAvailability() {
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-gray-700">Rate Increase (%)</label>
+                      <label className="text-xs text-[#6b5744]">Rate increase (%)</label>
                       <input 
                         type="number" 
                         value={peakRateIncrease}
@@ -926,15 +1058,17 @@ export default function RatesAvailability() {
                   </div>
                   <button 
                     onClick={() => addSeasonalRate('peak')}
-                    className="w-full px-3 py-2 bg-orange-600 text-white rounded hover:bg-orange-700"
+                    className="w-full px-3 py-2 rounded-full bg-[#a06b42] hover:bg-[#8f5a32] text-white text-sm font-medium shadow-sm transition-colors"
                   >
-                    Add Peak Season Period
+                    Add peak season period
                   </button>
                 </div>
 
                 {/* Off Season */}
-                <div className="border rounded-lg p-4 bg-blue-50">
-                  <h3 className="font-semibold text-lg mb-3 text-blue-800">❄️ Off-Season Strategy</h3>
+                <div className="border border-[#e0d5c7] rounded-2xl p-4 bg-[#fdf7f0]">
+                  <h3 className="font-semibold text-sm md:text-base mb-3 text-[#4b2a00] flex items-center gap-2">
+                    <span>❄️ Off-season strategy</span>
+                  </h3>
                   <div className="grid grid-cols-3 gap-3 mb-3">
                     <div>
                       <label className="text-xs text-gray-700">Start Date</label>
@@ -955,7 +1089,7 @@ export default function RatesAvailability() {
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-gray-700">Discount (%)</label>
+                      <label className="text-xs text-[#6b5744]">Discount (%)</label>
                       <input 
                         type="number" 
                         value={offSeasonDiscount}
@@ -966,59 +1100,59 @@ export default function RatesAvailability() {
                   </div>
                   <button 
                     onClick={() => addSeasonalRate('off')}
-                    className="w-full px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                    className="w-full px-3 py-2 rounded-full bg-[#a06b42] hover:bg-[#8f5a32] text-white text-sm font-medium shadow-sm transition-colors"
                   >
-                    Add Off-Season Period
+                    Add off-season period
                   </button>
                 </div>
 
                 {/* Occupancy Target */}
-                <div className="border rounded-lg p-4">
-                  <h3 className="font-semibold mb-3">🎯 Occupancy Target</h3>
+                <div className="border border-[#e0d5c7] rounded-2xl p-4 bg-white">
+                  <h3 className="font-semibold mb-3 text-sm md:text-base text-[#4b2a00]">🎯 Occupancy target</h3>
                   <div className="flex items-center gap-4">
-                    <label className="text-sm text-gray-700">Minimum Occupancy Goal:</label>
+                    <label className="text-sm text-[#6b5744]">Minimum occupancy goal:</label>
                     <input 
                       type="number" 
                       value={minOccupancy}
                       onChange={(e) => setMinOccupancy(Number(e.target.value))}
-                      className="px-3 py-2 border rounded w-24" 
+                      className="px-3 py-2 border border-[#e0d5c7] rounded w-24 text-sm focus:outline-none focus:ring-2 focus:ring-[#a06b42] focus:border-[#a06b42]" 
                       min="0"
                       max="100"
                     />
                     <span className="text-sm text-gray-600">%</span>
                   </div>
-                  <p className="text-xs text-gray-500 mt-2">
-                    System will suggest rate adjustments to maintain this occupancy level
+                  <p className="text-xs text-[#8a745e] mt-2">
+                    System will suggest rate adjustments to maintain this occupancy level.
                   </p>
                 </div>
 
                 {/* Active Seasonal Rates */}
-                <div className="border-t pt-4">
-                  <h3 className="font-semibold mb-3">📅 Active Seasonal Periods</h3>
+                <div className="border-t border-[#e0d5c7] pt-4">
+                  <h3 className="font-semibold mb-3 text-sm md:text-base text-[#4b2a00]">📅 Active seasonal periods</h3>
                   <div className="space-y-2">
                     {localSeasonalRates.map((rate, idx) => (
-                      <div key={idx} className={`flex items-center justify-between p-3 rounded ${rate.type === 'peak' ? 'bg-orange-50' : 'bg-blue-50'}`}>
+                      <div key={idx} className="flex items-center justify-between p-3 rounded-2xl bg-[#f5f0e8] border border-[#e0d5c7]">
                         <div>
-                          <span className="font-medium">
+                          <span className="font-medium text-[#4b2a00]">
                             {rate.type === 'peak' ? '🔥 Peak' : '❄️ Off'} Season
                           </span>
-                          <span className="text-sm text-gray-600 ml-3">
+                          <span className="text-sm text-[#6b5744] ml-3">
                             {rate.startDate} to {rate.endDate}
                           </span>
-                          <span className="text-sm font-semibold ml-3">
+                          <span className="text-sm font-semibold ml-3 text-[#4b2a00]">
                             {rate.adjustment > 0 ? '+' : ''}{rate.adjustment}%
                           </span>
                         </div>
                         <button 
                           onClick={() => removeSeasonalRate(idx)}
-                          className="text-red-600 text-sm hover:text-red-800"
+                          className="text-rose-700 text-sm hover:text-rose-800"
                         >
                           Remove
                         </button>
                       </div>
                     ))}
                     {localSeasonalRates.length === 0 && (
-                      <p className="text-sm text-gray-500 text-center py-4">No seasonal periods configured</p>
+                      <p className="text-sm text-[#8a745e] text-center py-4">No seasonal periods configured.</p>
                     )}
                   </div>
                 </div>
@@ -1026,9 +1160,9 @@ export default function RatesAvailability() {
                 {/* Save Button */}
                 <button 
                   onClick={saveStrategy}
-                  className="w-full px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold"
+                  className="w-full px-4 py-3 rounded-full bg-[#a06b42] hover:bg-[#8f5a32] text-white font-semibold shadow-sm transition-colors"
                 >
-                  Save Availability Strategy
+                  Save availability strategy
                 </button>
               </div>
             )}
@@ -1037,17 +1171,20 @@ export default function RatesAvailability() {
 
       case 'pricing-per-guest':
         return (
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-              <FaUsers /> Pricing Per Guest
+          <div className="bg-white rounded-2xl border border-[#e0d5c7] shadow-sm p-6">
+            <h2 className="text-xl font-bold mb-2 flex items-center gap-2 text-[#4b2a00]">
+              <FaUsers className="text-[#a06b42]" /> Pricing per guest
             </h2>
-            <p className="text-gray-600 mb-4">Set additional charges for extra guests beyond base capacity.</p>
+            <p className="text-sm text-[#6b5744] mb-4">Set additional charges for extra guests and define the maximum guests allowed per room.</p>
             {propertyData?.rooms?.map((room, idx) => (
-                <div key={idx} className="border rounded-lg p-4 mb-3">
-                  <h3 className="font-semibold mb-3">{room.roomType} - {room.roomNumber}</h3>
-                  <div className="grid grid-cols-3 gap-3">
+                <div key={idx} className="border border-[#e0d5c7] rounded-2xl p-4 mb-3 bg-[#fdf7f0]">
+                  <h3 className="font-semibold mb-1 text-[#4b2a00] text-sm md:text-base">{room.roomType} - {room.roomNumber}</h3>
+                  <div className="text-xs text-[#6b5744] mb-3">
+                    Base price per night: <span className="font-medium">{formatCurrencyRWF ? formatCurrencyRWF(room.pricePerNight || 0) : `RWF ${(room.pricePerNight || 0).toLocaleString()}`}</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-sm">
                     <div>
-                      <label className="text-xs text-gray-600">Base Capacity</label>
+                      <label className="text-xs text-[#6b5744]">Base capacity</label>
                       <input 
                         type="number" 
                         value={room.capacity || 2} 
@@ -1056,7 +1193,17 @@ export default function RatesAvailability() {
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-gray-600">Extra Guest Fee (RWF)</label>
+                      <label className="text-xs text-[#6b5744]">Max guests</label>
+                      <input 
+                        type="number" 
+                        id={`maxGuests-${room._id}`}
+                        defaultValue={room.maxGuests ?? ''}
+                        min={room.capacity || 1}
+                        className="w-full px-2 py-1 border rounded text-sm" 
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-[#6b5744]">Extra guest fee (RWF)</label>
                       <input 
                         type="number" 
                         defaultValue={room.additionalGuestCharge || room.extraGuestFee || 5000}
@@ -1067,17 +1214,20 @@ export default function RatesAvailability() {
                     <div className="flex items-end">
                       <button 
                         onClick={() => {
-                          const extraFee = Number(document.getElementById(`extraFee-${room._id}`).value);
-                          handleUpdatePricingPerGuest(room._id, extraFee);
+                          const extraFeeEl = document.getElementById(`extraFee-${room._id}`);
+                          const maxGuestsEl = document.getElementById(`maxGuests-${room._id}`);
+                          const extraFee = Number(extraFeeEl?.value || 0);
+                          const maxGuestsVal = maxGuestsEl?.value !== '' ? Number(maxGuestsEl.value) : null;
+                          handleUpdatePricingPerGuest(room._id, extraFee, maxGuestsVal);
                         }}
-                        className="w-full px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+                        className="w-full px-3 py-1 rounded-full bg-[#a06b42] hover:bg-[#8f5a32] text-white text-xs md:text-sm font-medium shadow-sm transition-colors"
                       >
                         Save
                       </button>
                     </div>
                   </div>
-                  <p className="text-xs text-gray-500 mt-2">
-                    Guests beyond {room.capacity || 2} will be charged extra per night
+                  <p className="text-xs text-[#8a745e] mt-2">
+                    Guests beyond {room.capacity || 2} will be charged the extra guest fee per night up to the maximum guests you set.
                   </p>
                 </div>
               ))}
@@ -1105,13 +1255,13 @@ export default function RatesAvailability() {
         };
         
         return (
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-              <FaGlobe /> Country Rates
+          <div className="bg-white rounded-2xl border border-[#e0d5c7] shadow-sm p-6">
+            <h2 className="text-xl font-bold mb-2 flex items-center gap-2 text-[#4b2a00]">
+              <FaGlobe className="text-[#a06b42]" /> Country rates
             </h2>
-            <p className="text-gray-600 mb-4">Set different rates for guests from specific countries or regions.</p>
+            <p className="text-sm text-[#6b5744] mb-4">Set different rates for guests from specific countries or regions.</p>
             <div className="space-y-3">
-              <div className="border rounded-lg p-4">
+              <div className="border border-[#e0d5c7] rounded-2xl p-4 bg-[#fdf7f0]">
                 <div className="grid grid-cols-3 gap-3">
                   <div>
                     <label className="text-xs text-gray-600">Country/Region</label>
