@@ -21,6 +21,7 @@ const AirportTaxis = lazy(() => import('./pages/AirportTaxis'));
 const ApartmentDetails = lazy(() => import('./pages/ApartmentDetails'));
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
+const OwnerLogin = lazy(() => import('./pages/OwnerLogin'));
 const OwnerRegister = lazy(() => import('./pages/OwnerRegister'));
 const BecomeHost = lazy(() => import('./pages/BecomeHost'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -185,6 +186,7 @@ function App() {
             <Route path="/booking/:id" element={<ProtectedRoute><BookingProcess /></ProtectedRoute>} />
             <Route path="/booking-confirmation/:id" element={<BookingConfirmation />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/owner-login" element={<OwnerLogin />} />
             <Route path="/register" element={<Register />} />
             <Route path="/owner-register" element={<OwnerRegister />} />
             <Route path="/become-host" element={<ProtectedRoute><BecomeHost /></ProtectedRoute>} />
