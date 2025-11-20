@@ -10,9 +10,9 @@ import { useLocale } from '../contexts/LocaleContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-// Simple red pin SVG (similar to modern booking-style location pins)
+// Simple red pin SVG (clean location pin similar to booking-style pins)
 const redPinSvg = encodeURIComponent(
-  '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="48" viewBox="0 0 32 48" fill="none"><path d="M16 0C9.4 0 4 5.4 4 12c0 8 12 20 12 20s12-12 12-20C28 5.4 22.6 0 16 0z" fill="#E53935"/><circle cx="16" cy="12" r="5" fill="white"/></svg>'
+  '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="48" viewBox="0 0 32 48" fill="none"><path d="M16 2C10 2 5 7 5 13c0 8 11 18 11 18s11-10 11-18C27 7 22 2 16 2z" fill="#FF5A5F"/><circle cx="16" cy="13" r="4" fill="white"/></svg>'
 );
 
 // Red pin icon for map marker using the inline SVG above
@@ -311,6 +311,7 @@ const EnhancedUploadProperty = () => {
         latitude: lat,
         longitude: lng,
       }));
+      setAddrQuery(prevQuery => (addr || prevQuery));
     } catch (_) {
       setLocationError('Could not update address from map. You can still continue with the selected pin location.');
     } finally {
