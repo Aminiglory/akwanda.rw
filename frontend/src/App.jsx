@@ -1,5 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from 'react'
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import './App.css'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { LocaleProvider } from './contexts/LocaleContext'
@@ -21,9 +21,9 @@ const AirportTaxis = lazy(() => import('./pages/AirportTaxis'));
 const ApartmentDetails = lazy(() => import('./pages/ApartmentDetails'));
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
-const OwnerLogin = lazy(() => import('./pages/OwnerLogin'));
 const OwnerRegister = lazy(() => import('./pages/OwnerRegister'));
 const BecomeHost = lazy(() => import('./pages/BecomeHost'));
+const OwnerLogin = lazy(() => import('./pages/OwnerLogin'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const UploadProperty = lazy(() => import('./pages/UploadProperty'));
 const EnhancedUploadProperty = lazy(() => import('./pages/EnhancedUploadProperty'));
@@ -116,38 +116,6 @@ function App() {
 
   const AppShell = () => {
     const { user, isAuthenticated } = useAuth();
-
-    const ListPropertyEntry = () => {
-      const { isAuthenticated: isAuth, user: authUser, isLoading } = useAuth();
-      const navigate = useNavigate();
-
-      useEffect(() => {
-        if (isLoading) return;
-        if (!isAuth) {
-          navigate('/owner-register', { replace: true });
-          return;
-        }
-        if (authUser?.userType === 'host' || authUser?.userType === 'admin') {
-          navigate('/owner/list-property', { replace: true });
-          return;
-        }
-        navigate('/become-host', { replace: true });
-      }, [isLoading, isAuth, authUser, navigate]);
-
-      if (isLoading) {
-        return (
-          <div className="w-full h-screen bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center">
-            <div className="text-center">
-              <div className="w-16 h-16 border-4 border-white/30 border-t-white rounded-full animate-spin mx-auto mb-4"></div>
-              <p className="text-white text-lg animate-pulse">Preparing your host experience...</p>
-            </div>
-          </div>
-        );
-      }
-
-      return null;
-    };
-
     return (
       <SocketProvider user={user} isAuthenticated={isAuthenticated}>
         <Router>
@@ -196,9 +164,8 @@ function App() {
             <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
             <Route path="/account/:section" element={<ProtectedRoute><SettingsSection /></ProtectedRoute>} />
             <Route path="/list-property" element={<Navigate to="/upload" replace />} />
-            <Route path="/upload" element={<ListPropertyEntry />} />
-            <Route path="/upload-property" element={<ListPropertyEntry />} />
-            <Route path="/owner/list-property" element={<HostRoute><EnhancedUploadProperty /></HostRoute>} />
+            <Route path="/upload" element={<HostRoute><EnhancedUploadProperty /></HostRoute>} />
+            <Route path="/upload-property" element={<HostRoute><EnhancedUploadProperty /></HostRoute>} />
             <Route path="/upload-legacy" element={<HostRoute><UploadProperty /></HostRoute>} />
             <Route path="/admin" element={<AdminRoute><div className="dashboard"><AdminDashboard /></div></AdminRoute>} />
             <Route path="/admin/profile" element={<AdminRoute><div className="dashboard"><AdminProfile /></div></AdminRoute>} />

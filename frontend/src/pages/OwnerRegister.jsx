@@ -675,7 +675,7 @@ const OwnerRegister = () => {
         <div className="text-center">
           <p className="text-sm text-gray-600">
             Already have a property owner account?{' '}
-            <Link to="/login?redirect=/upload" className="font-medium text-blue-600 hover:text-blue-500 transition-colors">
+            <Link to="/owner-login" className="font-medium text-blue-600 hover:text-blue-500 transition-colors">
               Sign in here
             </Link>
           </p>

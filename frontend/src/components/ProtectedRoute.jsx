@@ -74,8 +74,11 @@ export const HostRoute = ({ children }) => {
     );
   }
   if (!isAuthenticated) return <Navigate to="/login" replace />;
-  // Allow both hosts and admins to access host routes
-  if (user?.userType !== 'host' && user?.userType !== 'admin') return <Navigate to="/" replace />;
+  // Allow both hosts and admins to access host routes. Non-host authenticated
+  // users are sent through the BecomeHost flow (traveller -> host upgrade)
+  if (user?.userType !== 'host' && user?.userType !== 'admin') {
+    return <Navigate to="/become-host" replace />;
+  }
   if (user?.isBlocked) {
     const allowed = [
       '/notifications',
