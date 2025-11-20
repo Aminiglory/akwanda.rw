@@ -330,15 +330,7 @@ const EnhancedUploadProperty = () => {
   };
 
   const navigateAfterCancel = async () => {
-    try {
-      const res = await fetch(`${API_URL}/api/properties/my-properties`, { credentials: 'include' });
-      const data = await res.json().catch(() => ({}));
-      const count = Array.isArray(data.properties) ? data.properties.length : 0;
-      if (count <= 1) navigate('/dashboard');
-      else navigate('/my-properties');
-    } catch (_) {
-      navigate('/dashboard');
-    }
+    navigate('/dashboard');
   };
 
   const handleCancelDraft = async () => {
