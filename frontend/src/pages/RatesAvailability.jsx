@@ -35,7 +35,7 @@ export default function RatesAvailability() {
   // State for switch case views (moved to top level to follow Rules of Hooks)
   const [mobileDiscount, setMobileDiscount] = useState(10);
   const [selectedRoomForCalendar, setSelectedRoomForCalendar] = useState(null);
-  const [currentMonth, setCurrentMonth] = useState(new Date());
+  // Note: using activeMonth (line 28) instead of currentMonth to avoid duplicate
   const [sourceYear, setSourceYear] = useState(new Date().getFullYear());
   const [targetYear, setTargetYear] = useState(new Date().getFullYear() + 1);
   const [peakSeasonStart, setPeakSeasonStart] = useState('');
@@ -460,12 +460,12 @@ export default function RatesAvailability() {
         );
 
       case 'open-close':
-        // State moved to top level - using selectedRoomForCalendar and currentMonth from component state
+        // State moved to top level - using selectedRoomForCalendar and activeMonth from component state
         
         // Generate calendar days for the current month
         const generateCalendarDays = () => {
-          const year = currentMonth.getFullYear();
-          const month = currentMonth.getMonth();
+          const year = activeMonth.getFullYear();
+          const month = activeMonth.getMonth();
           const firstDay = new Date(year, month, 1);
           const lastDay = new Date(year, month + 1, 0);
           const daysInMonth = lastDay.getDate();
@@ -493,11 +493,11 @@ export default function RatesAvailability() {
         };
         
         const goToPreviousMonth = () => {
-          setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1));
+          setActiveMonth(new Date(activeMonth.getFullYear(), activeMonth.getMonth() - 1, 1));
         };
         
         const goToNextMonth = () => {
-          setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1));
+          setActiveMonth(new Date(activeMonth.getFullYear(), activeMonth.getMonth() + 1, 1));
         };
         
         const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -587,7 +587,7 @@ export default function RatesAvailability() {
                               ← Prev
                             </button>
                             <h4 className="font-semibold text-gray-800">
-                              {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
+                              {monthNames[activeMonth.getMonth()]} {activeMonth.getFullYear()}
                             </h4>
                             <button 
                               onClick={goToNextMonth}

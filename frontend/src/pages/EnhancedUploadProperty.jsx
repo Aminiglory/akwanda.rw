@@ -3,8 +3,64 @@ import { FaPlus, FaTrash, FaUpload, FaBed, FaBath, FaMapMarkerAlt, FaDollarSign,
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
+import 'leaflet/dist/leaflet.css';
+import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
+import L from 'leaflet';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+// Red pin icon for map marker (using Leaflet CDN assets to avoid bundler path issues)
+const redPinIcon = new L.Icon({
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x-red.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  shadowSize: [41, 41],
+});
+
+// Fallback center (Kigali) when no coordinates are set yet
+const KigaliFallbackCenter = { lat: -1.9536, lng: 30.0606 };
+
+const DraggableLocationMarker = ({ position, onPositionChange }) => {
+  const [markerPos, setMarkerPos] = useState(position);
+
+  useEffect(() => {
+    setMarkerPos(position);
+  }, [position.lat, position.lng]);
+
+  useMapEvents({
+    click(e) {
+      setMarkerPos(e.latlng);
+      onPositionChange(e.latlng);
+    },
+  });
+
+  return (
+    <Marker
+      position={markerPos}
+      draggable
+      icon={redPinIcon}
+      eventHandlers={{
+        dragend(event) {
+          const latlng = event.target.getLatLng();
+          setMarkerPos(latlng);
+          onPositionChange(latlng);
+        },
+      }}
+    />
+  );
+};
+
+const RecenterOnChange = ({ center }) => {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!center || typeof center[0] !== 'number' || typeof center[1] !== 'number') return;
+    map.setView(center);
+  }, [center?.[0], center?.[1]]);
+
+  return null;
+};
 
 const EnhancedUploadProperty = () => {
   const navigate = useNavigate();
@@ -61,6 +117,9 @@ const EnhancedUploadProperty = () => {
   const [addrQuery, setAddrQuery] = useState('');
   const [addrSuggestions, setAddrSuggestions] = useState([]);
   const [addrLoading, setAddrLoading] = useState(false);
+  const [autoUpdateAddressFromMap, setAutoUpdateAddressFromMap] = useState(true);
+  const [locationError, setLocationError] = useState(null);
+  const [isReverseGeocoding, setIsReverseGeocoding] = useState(false);
   const [partner, setPartner] = useState({
     firstName: user?.firstName || '',
     lastName: user?.lastName || '',
@@ -198,6 +257,45 @@ const EnhancedUploadProperty = () => {
       toast.error(error.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const updateLocationFromMap = async (lat, lng) => {
+    setFormData(prev => ({ ...prev, latitude: lat, longitude: lng }));
+    setLocationError(null);
+
+    if (!autoUpdateAddressFromMap) return;
+
+    try {
+      setIsReverseGeocoding(true);
+      const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`;
+      const res = await fetch(url, {
+        headers: {
+          'Accept-Language': 'en',
+        },
+      });
+      const data = await res.json().catch(() => null);
+      if (!data) return;
+
+      const addr = data.display_name || '';
+      const city =
+        data.address?.city ||
+        data.address?.town ||
+        data.address?.village ||
+        data.address?.hamlet ||
+        '';
+
+      setFormData(prev => ({
+        ...prev,
+        address: addr || prev.address,
+        city: city || prev.city,
+        latitude: lat,
+        longitude: lng,
+      }));
+    } catch (_) {
+      setLocationError('Could not update address from map. You can still continue with the selected pin location.');
+    } finally {
+      setIsReverseGeocoding(false);
     }
   };
 
@@ -601,38 +699,102 @@ const EnhancedUploadProperty = () => {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Country</label>
-                  <select value={formData.country} onChange={(e)=> setFormData(prev=>({...prev, country: e.target.value }))} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                  <select
+                    value={formData.country}
+                    onChange={(e)=> setFormData(prev=>({...prev, country: e.target.value }))}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
                     {['Rwanda','Kenya','Uganda','Tanzania','DR Congo','Burundi'].map(c=> (<option key={c} value={c}>{c}</option>))}
                   </select>
                 </div>
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Find your address</label>
-                  <input value={addrQuery} onChange={(e)=> setAddrQuery(e.target.value)} placeholder="Start typing address" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-                  {addrLoading && <div className="text-xs text-gray-500 mt-1">Searching…</div>}
-                  {addrSuggestions.length > 0 && (
-                    <div className="mt-1 border rounded-lg bg-white shadow max-h-48 overflow-auto">
-                      {addrSuggestions.map((sug, i)=> (
-                        <button type="button" key={i} onClick={()=>{
-                          setFormData(prev=> ({...prev, address: sug.display_name, city: prev.city || '', latitude: Number(sug.lat), longitude: Number(sug.lon)}));
-                          setAddrSuggestions([]);
-                          setAddrQuery(sug.display_name);
-                        }} className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm">
-                          {sug.display_name}
-                        </button>
-                      ))}
+                <div className="md:col-span-2 space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Find your address</label>
+                    <input
+                      value={addrQuery}
+                      onChange={(e)=> setAddrQuery(e.target.value)}
+                      placeholder="Start typing address"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                    {addrLoading && <div className="text-xs text-gray-500 mt-1">Searching…</div>}
+                    {addrSuggestions.length > 0 && (
+                      <div className="mt-1 border rounded-lg bg-white shadow max-h-48 overflow-auto">
+                        {addrSuggestions.map((sug, i)=> (
+                          <button
+                            type="button"
+                            key={i}
+                            onClick={() => {
+                              const lat = Number(sug.lat);
+                              const lng = Number(sug.lon);
+                              setFormData(prev=> ({
+                                ...prev,
+                                address: sug.display_name,
+                                city: prev.city || '',
+                                latitude: lat,
+                                longitude: lng,
+                              }));
+                              setAddrSuggestions([]);
+                              setAddrQuery(sug.display_name);
+                            }}
+                            className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm"
+                          >
+                            {sug.display_name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-1">
+                    <div className="w-full h-64 md:h-72 bg-gray-200 rounded-lg relative overflow-hidden border border-gray-200">
+                      <MapContainer
+                        center={[
+                          formData.latitude ?? KigaliFallbackCenter.lat,
+                          formData.longitude ?? KigaliFallbackCenter.lng,
+                        ]}
+                        zoom={15}
+                        scrollWheelZoom
+                        className="w-full h-full"
+                      >
+                        <RecenterOnChange
+                          center={[
+                            formData.latitude ?? KigaliFallbackCenter.lat,
+                            formData.longitude ?? KigaliFallbackCenter.lng,
+                          ]}
+                        />
+                        <TileLayer
+                          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                          attribution="&copy; OpenStreetMap contributors"
+                        />
+                        <DraggableLocationMarker
+                          position={{
+                            lat: formData.latitude ?? KigaliFallbackCenter.lat,
+                            lng: formData.longitude ?? KigaliFallbackCenter.lng,
+                          }}
+                          onPositionChange={(latlng) => updateLocationFromMap(latlng.lat, latlng.lng)}
+                        />
+                      </MapContainer>
                     </div>
-                  )}
-                  {/* Mock map preview */}
-                  <div className="mt-3">
-                    <div className="w-full h-48 bg-gray-200 rounded-lg relative overflow-hidden">
-                      <div className="absolute inset-0 flex items-center justify-center text-gray-500 text-sm">Mock Map Preview</div>
-                      {formData.latitude && formData.longitude && (
-                        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-                          <div className="w-3 h-3 bg-red-600 rounded-full shadow" title={`${formData.latitude}, ${formData.longitude}`}></div>
-                        </div>
-                      )}
+                    <div className="mt-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs text-gray-600">
+                      <span>
+                        Coords: {formData.latitude ?? '—'}, {formData.longitude ?? '—'}
+                        {isReverseGeocoding && ' • Updating address…'}
+                      </span>
+                      <label className="inline-flex items-center gap-1">
+                        <input
+                          type="checkbox"
+                          checked={autoUpdateAddressFromMap}
+                          onChange={(e)=> setAutoUpdateAddressFromMap(e.target.checked)}
+                          className="h-3 w-3 text-blue-600 border-gray-300 rounded"
+                        />
+                        <span>Update address when moving the pin</span>
+                      </label>
                     </div>
-                    <div className="text-xs text-gray-600 mt-1">Coords: {formData.latitude ?? '—'}, {formData.longitude ?? '—'}</div>
+                    {locationError && (
+                      <div className="mt-1 text-xs text-red-600">
+                        {locationError}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
