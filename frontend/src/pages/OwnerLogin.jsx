@@ -143,7 +143,7 @@ const OwnerLogin = () => {
             </button>
 
             <div className="text-center text-sm text-gray-600">
-              {t ? t('auth.notHostYet') : 'Not a host yet?'} <Link to="/register" className="text-blue-700 hover:text-blue-900 font-medium">{t ? t('auth.createAccount') : 'Create an account'}</Link>
+              {t ? t('auth.notHostYet') : 'Not a host yet?'} <Link to="/owner-register" className="text-blue-700 hover:text-blue-900 font-medium">{t ? t('auth.createAccount') : 'Create an account'}</Link>
             </div>
           </form>
         </div>
