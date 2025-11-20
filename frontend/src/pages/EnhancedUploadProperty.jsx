@@ -1134,7 +1134,8 @@ const EnhancedUploadProperty = () => {
               )}
               {currentStep === totalSteps && (
                 <button
-                  type="submit"
+                  type="button"
+                  onClick={handleSubmit}
                   disabled={loading || uploading}
                   className={`px-3 py-2 md:px-6 md:py-3 rounded-lg text-sm md:text-base ${primaryBtn} disabled:opacity-50`}
                 >
