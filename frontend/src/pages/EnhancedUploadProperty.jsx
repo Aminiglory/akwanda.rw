@@ -10,12 +10,18 @@ import { useLocale } from '../contexts/LocaleContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-// Red pin icon for map marker (using Leaflet CDN assets to avoid bundler path issues)
+// Simple red pin SVG (similar to modern booking-style location pins)
+const redPinSvg = encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="48" viewBox="0 0 32 48" fill="none"><path d="M16 0C9.4 0 4 5.4 4 12c0 8 12 20 12 20s12-12 12-20C28 5.4 22.6 0 16 0z" fill="#E53935"/><circle cx="16" cy="12" r="5" fill="white"/></svg>'
+);
+
+// Red pin icon for map marker using the inline SVG above
 const redPinIcon = new L.Icon({
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x-red.png',
+  iconUrl: `data:image/svg+xml;charset=UTF-8,${redPinSvg}`,
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
+  iconSize: [32, 48],
+  // Anchor at the bottom center so the tip of the pin matches the map location
+  iconAnchor: [16, 48],
   shadowSize: [41, 41],
 });
 
