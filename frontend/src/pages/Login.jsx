@@ -148,14 +148,6 @@ const Login = () => {
               {t ? t('auth.signIn') : 'Sign in'}
             </button>
 
-            {/* Owner Login shortcut */}
-            <div className="text-center text-sm text-gray-600">
-              <span className="mr-1">{t ? t('auth.ownerPrompt') : 'Are you a property owner?'}</span>
-              <Link to="/owner-login" className="text-blue-700 hover:text-blue-900 font-medium">
-                {t ? t('nav.ownerLogin') : 'Owner Login'}
-              </Link>
-            </div>
-
             {/* Social Logins removed */}
           </form>
         </div>

@@ -23,7 +23,6 @@ const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
 const OwnerRegister = lazy(() => import('./pages/OwnerRegister'));
 const BecomeHost = lazy(() => import('./pages/BecomeHost'));
-const OwnerLogin = lazy(() => import('./pages/OwnerLogin'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const UploadProperty = lazy(() => import('./pages/UploadProperty'));
 const EnhancedUploadProperty = lazy(() => import('./pages/EnhancedUploadProperty'));
@@ -186,7 +185,6 @@ function App() {
             <Route path="/booking/:id" element={<ProtectedRoute><BookingProcess /></ProtectedRoute>} />
             <Route path="/booking-confirmation/:id" element={<BookingConfirmation />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/owner-login" element={<OwnerLogin />} />
             <Route path="/register" element={<Register />} />
             <Route path="/owner-register" element={<OwnerRegister />} />
             <Route path="/become-host" element={<ProtectedRoute><BecomeHost /></ProtectedRoute>} />

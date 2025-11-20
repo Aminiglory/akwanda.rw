@@ -66,12 +66,12 @@ const UploadProperty = () => {
     e.preventDefault();
     if (!user) {
       toast.error(t ? t('msg.mustLoginToList') : 'Please login to list a property');
-      navigate('/owner-login');
+      navigate('/login?redirect=/upload-legacy');
       return;
     }
     if (user.userType !== 'host' && user.userType !== 'admin') {
       toast.error(t ? t('msg.ownerOnly') : 'Only property owners can list properties. Please use Owner Login.');
-      navigate('/owner-login');
+      navigate('/login?redirect=/upload-legacy');
       return;
     }
     if (!form.title || !form.address || !form.city || !form.pricePerNight) {
