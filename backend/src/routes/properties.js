@@ -677,6 +677,41 @@ router.get('/commission-summary', requireAuth, async (req, res) => {
     }
 });
 
+router.get('/:id/manage', requireAuth, async (req, res) => {
+    try {
+        const property = await Property.findById(req.params.id).populate('host', 'firstName lastName isBlocked blockedUntil');
+        if (!property) return res.status(404).json({ message: 'Property not found' });
+
+        const ownerId = property.host && property.host._id ? property.host._id : property.host;
+        if (String(ownerId) !== String(req.user.id) && req.user.userType !== 'admin') {
+            return res.status(403).json({ message: 'Not allowed' });
+        }
+
+        const norm = (u) => {
+            if (!u) return u;
+            let s = String(u).trim();
+            if (/^(https?:)?\/\//i.test(s) || /^data:/i.test(s)) return s;
+            s = s.replace(/\\+/g, '/');
+            if (!s.startsWith('/')) s = `/${s}`;
+            return s;
+        };
+
+        const out = property.toObject({ virtuals: true });
+        if (Array.isArray(out.images)) out.images = out.images.map(norm);
+        if (Array.isArray(out.rooms)) {
+            out.rooms = out.rooms.map(r => ({
+                ...r,
+                images: Array.isArray(r.images) ? r.images.map(norm) : []
+            }));
+        }
+
+        res.json({ property: out });
+    } catch (error) {
+        console.error('Get manage property error:', error);
+        res.status(500).json({ message: 'Failed to fetch property', error: error.message });
+    }
+});
+
 // Send commission payment reminders (can be called by admin or scheduled job)
 router.post('/send-commission-reminders', requireAuth, async (req, res) => {
     try {

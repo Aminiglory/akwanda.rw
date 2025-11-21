@@ -160,7 +160,7 @@ export default function PropertyManagement() {
   const fetchPropertyDetails = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`${API_URL}/api/properties/${selectedProperty}`, { credentials: 'include' });
+      const res = await fetch(`${API_URL}/api/properties/${selectedProperty}/manage`, { credentials: 'include' });
       const data = await res.json();
       if (res.ok) {
         const p = data?.property || data;
@@ -444,7 +444,7 @@ export default function PropertyManagement() {
                   </div>
                   <div>
                     <label className="text-sm text-gray-600">Status</label>
-                    <p className="font-semibold capitalize">{propertyData.status || 'Active'}</p>
+                    <p className="font-semibold capitalize">{propertyData.isActive === false ? 'Closed' : 'Active'}</p>
                   </div>
                   <div>
                     <label className="text-sm text-gray-600">Category</label>
