@@ -49,6 +49,16 @@ const UserDashboard = () => {
     } catch (_) { return 0; }
   };
 
+  // Restore last active tab from localStorage on mount
+  useEffect(() => {
+    try {
+      const savedTab = localStorage.getItem('ownerDashboardActiveTab');
+      if (savedTab) {
+        setActiveTab(savedTab);
+      }
+    } catch (_) {}
+  }, []);
+
   useEffect(() => {
     fetchDashboardData();
   }, []);
@@ -167,6 +177,15 @@ const UserDashboard = () => {
     });
   }, [properties, bookings, selectedPropertyId]);
 
+  // Keep selected property in sync with shared localStorage key
+  useEffect(() => {
+    try {
+      if (selectedPropertyId !== undefined && selectedPropertyId !== null) {
+        localStorage.setItem('lastSelectedPropertyId', selectedPropertyId);
+      }
+    } catch (_) {}
+  }, [selectedPropertyId]);
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'confirmed':
@@ -233,6 +252,11 @@ const UserDashboard = () => {
       console.error('Failed to close room:', error);
       toast.error(error.message || 'Failed to close room');
     }
+  };
+
+  const handleTabChange = (id) => {
+    setActiveTab(id);
+    try { localStorage.setItem('ownerDashboardActiveTab', id); } catch (_) {}
   };
 
   return (
@@ -420,7 +444,7 @@ const UserDashboard = () => {
               ].map(({ id, label, icon: Icon }) => (
                 <button
                   key={id}
-                  onClick={() => setActiveTab(id)}
+                  onClick={() => handleTabChange(id)}
                   className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-300 flex items-center gap-2 ${
                     activeTab === id
                       ? 'border-blue-500 text-blue-600'
