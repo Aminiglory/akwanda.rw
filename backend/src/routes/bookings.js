@@ -171,7 +171,8 @@ router.post('/', requireAuth, async (req, res) => {
       couponCode,
       guestInfo,
       markPaid,
-      directBooking
+      directBooking,
+      services
     } = req.body;
 
     if (!propertyId || !checkIn || !checkOut || !numberOfGuests) {
@@ -373,7 +374,11 @@ router.post('/', requireAuth, async (req, res) => {
         email: contactInfo?.email,
         emergencyContact: contactInfo?.emergencyContact
       },
-      isDirect: !!directBooking
+      isDirect: !!directBooking,
+      // Optional info-only add-on services (e.g., breakfast, airport transfer).
+      // This should mirror the front-end `services` object (key -> boolean)
+      // and is not used in total/commission calculations.
+      services: services && typeof services === 'object' ? services : {}
     });
 
     await Notification.create({

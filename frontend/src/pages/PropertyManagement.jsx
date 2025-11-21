@@ -149,7 +149,13 @@ export default function PropertyManagement() {
       if (res.ok) {
         setProperties(data.properties || []);
         if (data.properties?.length > 0) {
-          setSelectedProperty(data.properties[0]._id);
+          try {
+            const stored = localStorage.getItem('lastSelectedPropertyId');
+            const exists = stored && data.properties.find(p => String(p._id) === String(stored));
+            setSelectedProperty(exists ? exists._id : data.properties[0]._id);
+          } catch (_) {
+            setSelectedProperty(data.properties[0]._id);
+          }
         }
       }
     } catch (e) {
@@ -1284,12 +1290,21 @@ export default function PropertyManagement() {
           <label className="block text-sm font-medium mb-2">Select Property</label>
           <select
             value={selectedProperty}
-            onChange={(e) => setSelectedProperty(e.target.value)}
+            onChange={(e) => {
+              const val = e.target.value;
+              setSelectedProperty(val);
+              try { localStorage.setItem('lastSelectedPropertyId', val); } catch (_) {}
+            }}
             className="w-full max-w-md px-4 py-2 border rounded-lg"
           >
-            {properties.map(p => (
-              <option key={p._id} value={p._id}>{p.title || p.name}</option>
-            ))}
+            {properties.map(p => {
+              const name = p.title || p.name || 'Untitled property';
+              const location = [p.city, p.address].filter(Boolean).join(', ');
+              const label = location ? `${location} - ${name}` : name;
+              return (
+                <option key={p._id} value={p._id}>{label}</option>
+              );
+            })}
           </select>
         </div>
 

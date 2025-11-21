@@ -172,7 +172,6 @@ const Navbar = () => {
         { label: labelOr('nav.calendar', 'Calendar'), href: '/owner/rates?view=calendar', icon: FaCalendarAlt },
         { label: labelOr('nav.openCloseRooms', 'Open/close rooms'), href: '/owner/rates?view=open-close', icon: FaCalendarAlt },
         { label: labelOr('nav.pricingPerGuest', 'Pricing per guest'), href: '/owner/rates?view=pricing-per-guest', icon: FaUsers },
-        { label: labelOr('nav.valueAdds', 'Value adds'), href: '/owner/rates?view=value-adds', icon: FaMoneyBillWave },
       ]
     },
     {
@@ -1021,7 +1020,7 @@ const Navbar = () => {
 
                         {/* Dropdown Menu */}
                         {isDropdownOpen && (
-                          <div className="main-nav-dropdown absolute top-full left-0 mt-1 w-64 bg-[#f6e9d8] rounded-xl shadow-2xl border border-[#d4c4b0] py-3">
+                          <div className="main-nav-dropdown absolute top-full left-0 mt-1 w-64 bg-white rounded-xl shadow-2xl border border-gray-200 py-3">
                             {item.children
                               .filter((child) => {
                                 const href = String(child.href || '');
@@ -1061,7 +1060,7 @@ const Navbar = () => {
               {(!isAuthenticated || !isInPropertyOwnerDashboard()) && (
                 <form
                   onSubmit={handleGlobalSearch}
-                  className="hidden lg:flex items-center bg-white border border-[#d4c4b0] rounded-lg px-2 py-1.5 mr-1 max-w-xs"
+                  className="hidden lg:flex items-center bg-white border border-gray-300 rounded-lg px-2 py-1.5 mr-1 max-w-xs"
                 >
                   <FaSearch className="text-xs text-gray-500 mr-1" />
                   <input
@@ -1082,7 +1081,7 @@ const Navbar = () => {
 
               {/* Global search within owner dashboard */}
               {isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard() && (
-                <div className="hidden lg:flex items-center bg-white border border-[#d4c4b0] rounded-lg px-2 py-1.5 ml-1 max-w-xs">
+                <div className="hidden lg:flex items-center bg-white border border-gray-300 rounded-lg px-2 py-1.5 ml-1 max-w-xs">
                   <FaSearch className="text-xs text-gray-500 mr-1" />
                   <input
                     type="text"
@@ -1168,7 +1167,7 @@ const Navbar = () => {
                     )}
                   </button>
                   {isNotificationOpen && (
-                    <div className="notification-dropdown absolute top-full right-0 sm:right-0 left-0 sm:left-auto mt-2 w-[calc(100vw-1rem)] sm:w-80 max-w-md mx-2 sm:mx-0 bg-[#f6e9d8] rounded-xl shadow-2xl border border-[#d4c4b0] py-2 z-[99999]">
+                    <div className="notification-dropdown absolute top-full right-0 sm:right-0 left-0 sm:left-auto mt-2 w-[calc(100vw-1rem)] sm:w-80 max-w-md mx-2 sm:mx-0 bg-white rounded-xl shadow-2xl border border-gray-200 py-2 z-[99999]">
                       <div className="px-4 py-2 border-b border-gray-100 font-semibold text-sm flex items-center justify-between">
                         <span>{t ? t('nav.notifications') : 'Notifications'}</span>
                         <Link
@@ -1249,7 +1248,7 @@ const Navbar = () => {
                     <FaCaretDown className="text-[10px]" />
                   </button>
                   {isProfileOpen && (
-                    <div className="profile-dropdown absolute top-full right-0 mt-2 w-56 bg-[#f6e9d8] rounded-xl shadow-2xl border border-[#d4c4b0] py-2 z-[99999]">
+                    <div className="profile-dropdown absolute top-full right-0 mt-2 w-56 bg-white rounded-xl shadow-2xl border border-gray-200 py-2 z-[99999]">
                       <div className="px-4 py-2 border-b border-gray-100 text-sm">
                         <div className="font-semibold text-[#4b2a00] truncate">{user?.firstName || user?.email}</div>
                         <div className="text-xs text-gray-600 truncate">{user?.email}</div>
@@ -1286,7 +1285,7 @@ const Navbar = () => {
                     <FaCaretDown className="text-[10px] hidden sm:inline" />
                   </button>
                   {langOpenSecond && (
-                    <div className="main-nav-dropdown absolute right-0 mt-2 bg-white text-[#4b2a00] rounded-md shadow-lg border border-[#e0d5c7]">
+                    <div className="main-nav-dropdown absolute right-0 mt-2 bg-white text-[#4b2a00] rounded-md shadow-lg border border-gray-200">
                       <button onClick={() => { setLanguage && setLanguage('en'); setLangOpenSecond(false); }} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">English</button>
                       <button onClick={() => { setLanguage && setLanguage('fr'); setLangOpenSecond(false); }} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">Français</button>
                     </div>
@@ -1307,7 +1306,7 @@ const Navbar = () => {
                     <FaCaretDown className="text-[10px]" />
                   </button>
                   {currOpenSecond && (
-                    <div className="main-nav-dropdown absolute right-0 mt-2 bg-white text-[#4b2a00] rounded-md shadow-lg border border-[#e0d5c7] min-w-[120px]">
+                    <div className="main-nav-dropdown absolute right-0 mt-2 bg-white text-[#4b2a00] rounded-md shadow-lg border border-gray-200 min-w-[120px]">
                       <button onClick={() => { setCurrency && setCurrency('RWF'); setCurrOpenSecond(false); }} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">RWF</button>
                       <button onClick={() => { setCurrency && setCurrency('USD'); setCurrOpenSecond(false); }} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">USD</button>
                       <button onClick={() => { setCurrency && setCurrency('EUR'); setCurrOpenSecond(false); }} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">EUR</button>
@@ -1347,7 +1346,7 @@ const Navbar = () => {
                             toggleDropdown(item.label);
                           }
                         }}
-                        className={`owner-nav-dropdown-button inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-colors border ${isOpen || isParentActive ? 'bg-[#e8dcc8] border-[#d0c4b0] text-[#4b2a00]' : 'bg-white border-[#e0d5c7] text-[#6b5744] hover:bg-[#f2e5d3]'}`}
+                        className={`owner-nav-dropdown-button inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-colors border ${isOpen || isParentActive ? 'bg-[#e8dcc8] border-gray-200 text-[#4b2a00]' : 'bg-white border-gray-200 text-[#6b5744] hover:bg-[#f2e5d3]'}`}
                       >
                         <Icon className="text-sm" />
                         <span>{item.label}</span>
@@ -1359,7 +1358,7 @@ const Navbar = () => {
                         )}
                       </button>
                       {isOpen && item.children && item.children.length > 0 && (
-                        <div className="main-nav-dropdown absolute left-0 mt-2 w-64 bg-[#f6e9d8] rounded-xl shadow-2xl border border-[#d4c4b0] py-2 z-[2000]">
+                        <div className="main-nav-dropdown absolute left-0 mt-2 w-64 bg-white rounded-xl shadow-2xl border border-gray-200 py-2 z-[2000]">
                           {item.children.map((child, cidx) => {
                             const ChildIcon = child.icon;
                             const href = child.href || item.href;

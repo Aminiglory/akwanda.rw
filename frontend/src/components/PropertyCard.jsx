@@ -63,7 +63,7 @@ const PropertyCard = ({
   const isWishlisted = !!(listing && listing.wishlisted);
 
   return (
-    <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all border border-gray-100 overflow-hidden">
+    <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all border border-gray-100 overflow-hidden h-full flex flex-col">
       {image ? (
         <div className="relative">
           <img
@@ -73,9 +73,6 @@ const PropertyCard = ({
             className="w-full h-44 md:h-48 object-cover"
             onError={(e) => { e.currentTarget.style.display = 'none'; }}
           />
-          {status === 'active' && (
-            <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-orange-500 text-white shadow">Hot</span>
-          )}
           <button
             type="button"
             onClick={(e) => { e.stopPropagation?.(); onToggleWishlist && onToggleWishlist(); }}
@@ -87,7 +84,7 @@ const PropertyCard = ({
           </button>
         </div>
       ) : null}
-      <div className="p-5">
+      <div className="p-5 flex-1 flex flex-col">
         <div className="flex items-start justify-between mb-1">
           <h4 className="font-semibold text-gray-900 line-clamp-1">{highlightText(title)}</h4>
           <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(status)}`}>{status}</span>
@@ -100,7 +97,7 @@ const PropertyCard = ({
           <div className="text-xs text-gray-500 mb-3">{t ? t('property.hostedBy') : 'Hosted by'} <span className="font-medium text-gray-700">{listing.host}</span></div>
         )}
         <div className="text-sm text-gray-600 mb-4">{bookings || 0} {t ? t('property.bookings') : 'bookings'}</div>
-        <div className="grid grid-cols-3 gap-3 text-sm">
+        <div className="grid grid-cols-3 gap-3 text-sm flex-none">
           <div className="flex items-center gap-2">
             <FaBed className="text-gray-400" />
             <div>
@@ -123,7 +120,7 @@ const PropertyCard = ({
             </div>
           </div>
         </div>
-        <div className="mt-4 flex items-center justify-between">
+        <div className="mt-4 flex items-center justify-between flex-none">
           <div className="text-teal-600 font-extrabold text-xl">{formatCurrencyRWF ? formatCurrencyRWF(price ?? 0) : `RWF ${(price ?? 0).toLocaleString()}`}</div>
           <div className="flex items-center gap-2">
             <button type="button" onClick={onView} className="px-3 py-2 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors text-sm">

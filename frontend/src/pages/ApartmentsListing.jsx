@@ -14,7 +14,6 @@ import {
 import toast from "react-hot-toast";
 // Auth not required to view listings
 import { safeApiGet, apiGet } from "../utils/apiUtils";
-import PropertyDealBadge from "../components/PropertyDealBadge";
 import PropertyCard from "../components/PropertyCard";
 import { useLocale } from "../contexts/LocaleContext";
 
@@ -125,8 +124,6 @@ const ApartmentsListing = () => {
         id: p._id,
         title: p.title,
         location: `${p.address}, ${p.city}`,
-        bestDeal: p.bestDeal || null,
-        activeDealsCount: p.activeDealsCount || 0,
         price: pricePerNight,
         pricePerNight: pricePerNight,
         category: p.category || 'apartment',
@@ -156,8 +153,6 @@ const ApartmentsListing = () => {
           id: c._id || c.id,
           title: c.vehicleName || `${c.brand || ''} ${c.model || ''}`.trim() || 'Car',
           location: c.location || '—',
-          bestDeal: null,
-          activeDealsCount: 0,
           price: Number(c.pricePerDay || 0),
           pricePerNight: Number(c.pricePerDay || 0),
           category: 'cars',
@@ -743,12 +738,11 @@ const ApartmentsListing = () => {
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                       {list.map((apartment, index) => (
-                        <div key={apartment.id} style={{ animationDelay: `${index * 0.1}s` }}>
-                          {apartment.bestDeal && (
-                            <div className="mb-3">
-                              <PropertyDealBadge deal={apartment.bestDeal} size="sm" />
-                            </div>
-                          )}
+                        <div
+                          key={apartment.id}
+                          className="h-full"
+                          style={{ animationDelay: `${index * 0.1}s` }}
+                        >
                           <PropertyCard
                             listing={{
                               id: apartment.id,

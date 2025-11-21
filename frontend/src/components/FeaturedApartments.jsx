@@ -24,7 +24,12 @@ const FeaturedApartments = () => {
     (async () => {
       const data = await safeApiGet('/api/properties', { properties: [] });
       if (data && data.properties) {
-        setApartments(data.properties.slice(0, 4).map(p => {
+        const sorted = [...data.properties].sort((a, b) => {
+          const da = a && a.createdAt ? new Date(a.createdAt) : new Date(0);
+          const db = b && b.createdAt ? new Date(b.createdAt) : new Date(0);
+          return db - da;
+        });
+        setApartments(sorted.slice(0, 4).map(p => {
           // Calculate average rating and review count from ratings array
           const ratingsArr = p.ratings || [];
           const avgRating = ratingsArr.length > 0 ? (ratingsArr.reduce((sum, r) => sum + r.rating, 0) / ratingsArr.length) : null;
@@ -81,7 +86,11 @@ const FeaturedApartments = () => {
 
         <div ref={gridRef} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {apartments.map((apartment, index) => (
-            <div key={apartment.id} className={`${gridInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`} style={{ transition: 'all 500ms', transitionDelay: `${index * 80}ms` }}>
+            <div
+              key={apartment.id}
+              className={`${gridInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'} h-full`}
+              style={{ transition: 'all 500ms', transitionDelay: `${index * 80}ms` }}
+            >
               <PropertyCard
                 listing={{
                   id: apartment.id,
