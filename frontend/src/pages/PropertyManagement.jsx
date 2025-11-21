@@ -211,6 +211,52 @@ export default function PropertyManagement() {
     }
   };
 
+  const handleToggleListing = async (isActive) => {
+    if (!selectedProperty) return;
+    try {
+      setSaving(true);
+      const res = await fetch(`${API_URL}/api/properties/${selectedProperty}/toggle-status`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isActive })
+      });
+      const json = await res.json().catch(()=>({}));
+      if (!res.ok) {
+        throw new Error(json.message || (isActive ? 'Failed to reopen listing' : 'Failed to close listing'));
+      }
+      toast.success(isActive ? 'Listing reopened successfully' : 'Listing closed successfully');
+      await fetchPropertyDetails();
+    } catch (e) {
+      toast.error(e.message || 'Failed to update listing status');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteProperty = async () => {
+    if (!selectedProperty) return;
+    if (!window.confirm('This will permanently delete this property if it has no bookings. Continue?')) return;
+    try {
+      setSaving(true);
+      const res = await fetch(`${API_URL}/api/properties/${selectedProperty}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      const json = await res.json().catch(()=>({}));
+      if (!res.ok) {
+        toast.error(json.message || 'Failed to delete property');
+        return;
+      }
+      toast.success(json.message || 'Property deleted successfully');
+      await fetchProperties();
+    } catch (e) {
+      toast.error(e.message || 'Failed to delete property');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const saveRoomAmenities = async (roomId, amenities) => {
     try {
       const res = await fetch(`${API_URL}/api/properties/${selectedProperty}/rooms/${roomId}`, {
@@ -424,6 +470,34 @@ export default function PropertyManagement() {
                 <div>
                   <label className="text-sm text-gray-600">Description</label>
                   <p className="text-sm">{propertyData.description}</p>
+                </div>
+                <div className="pt-2 border-t mt-4">
+                  <p className="text-sm text-gray-700 font-semibold mb-2">Manage listing status</p>
+                  <div className="flex flex-wrap gap-3">
+                    <button
+                      type="button"
+                      disabled={saving}
+                      onClick={() => {
+                        const isClosed = propertyData && propertyData.isActive === false;
+                        const confirmMsg = isClosed
+                          ? 'This will reopen your listing for new bookings. Continue?'
+                          : 'This will close your listing and stop new bookings. Continue?';
+                        if (!window.confirm(confirmMsg)) return;
+                        handleToggleListing(isClosed ? true : false);
+                      }}
+                      className={`px-4 py-2 rounded text-sm text-white disabled:opacity-60 ${propertyData && propertyData.isActive === false ? 'bg-green-600' : 'bg-yellow-600'}`}
+                    >
+                      {propertyData && propertyData.isActive === false ? 'Reopen listing' : 'Close listing'}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={saving}
+                      onClick={handleDeleteProperty}
+                      className="px-4 py-2 rounded text-sm bg-red-600 text-white disabled:opacity-60"
+                    >
+                      Delete property
+                    </button>
+                  </div>
                 </div>
               </div>
             ) : null}

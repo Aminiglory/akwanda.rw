@@ -202,7 +202,7 @@ const Navbar = () => {
         { label: labelOr('nav.yourProfile', 'your profile'), href: '/owner/property?view=profile', icon: FaUser },
         { label: labelOr('nav.viewDescriptions', 'View your descriptions'), href: '/owner/property?view=descriptions', icon: FaFileAlt },
         { label: labelOr('nav.messagingPreferences', 'Messaging preferences'), href: '/settings?tab=messaging', icon: FaEnvelope },
-        { label: labelOr('nav.photos', 'Property photos'), href: '/owner/property?view=photos', icon: FaImages },
+        { label: labelOr('nav.propertyManagement', 'Property management'), href: '/owner/property?view=general-info', icon: FaImages },
       ]
     },
     {

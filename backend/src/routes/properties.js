@@ -1552,30 +1552,14 @@ router.post('/:id/rooms/:roomId/unlock', requireAuth, async (req, res) => {
     res.json({ success: true, room });
 });
 
-// Set discount (host or admin)
-router.post('/:id/discount', requireAuth, async (req, res) => {
-    const property = await Property.findById(req.params.id);
-    if (!property) return res.status(404).json({ message: 'Property not found' });
-    if (String(property.host) !== req.user.id && req.user.userType !== 'admin') {
-        return res.status(403).json({ message: 'Not allowed' });
-    }
-    const { discountPercent } = req.body;
-    if (discountPercent == null || discountPercent < 0 || discountPercent > 100) {
-        return res.status(400).json({ message: 'Invalid discount' });
-    }
-    property.discountPercent = discountPercent;
-    await property.save();
-    res.json({ property });
-});
-
-// Toggle property active status (host only)
+// Toggle property active status (host or admin)
 router.patch('/:id/toggle-status', requireAuth, async (req, res) => {
     try {
         const property = await Property.findById(req.params.id);
         if (!property) return res.status(404).json({ message: 'Property not found' });
         
-        // Only property owner can toggle status
-        if (String(property.host) !== req.user.id) {
+        // Only property owner or admin can toggle status
+        if (String(property.host) !== String(req.user.id) && req.user.userType !== 'admin') {
             return res.status(403).json({ message: 'Not allowed' });
         }
         
@@ -1594,15 +1578,27 @@ router.patch('/:id/toggle-status', requireAuth, async (req, res) => {
     }
 });
 
-// Delete property (host only)
+// Delete property (host or admin, only when no bookings exist)
 router.delete('/:id', requireAuth, async (req, res) => {
     try {
         const property = await Property.findById(req.params.id);
         if (!property) return res.status(404).json({ message: 'Property not found' });
         
-        // Only property owner can delete
-        if (String(property.host) !== req.user.id) {
+        // Only property owner or admin can delete
+        if (String(property.host) !== String(req.user.id) && req.user.userType !== 'admin') {
             return res.status(403).json({ message: 'Not allowed' });
+        }
+        
+        // Check for any bookings linked to this property
+        const Booking = require('../tables/booking');
+        const hasBookings = await Booking.exists({ property: property._id });
+        
+        if (hasBookings) {
+            return res.status(409).json({
+                success: false,
+                code: 'PROPERTY_HAS_BOOKINGS',
+                message: 'This property has bookings and cannot be deleted. Please close the listing instead so it no longer appears to guests.'
+            });
         }
         
         await Property.findByIdAndDelete(req.params.id);
@@ -1616,9 +1612,6 @@ router.delete('/:id', requireAuth, async (req, res) => {
         res.status(500).json({ message: 'Failed to delete property', error: error.message });
     }
 });
-
-// Get my properties (for property owner dashboard)
-// (moved above '/:id')
 
 // List promotions for a property (owner/admin)
 router.get('/:id/promotions', requireAuth, async (req, res) => {

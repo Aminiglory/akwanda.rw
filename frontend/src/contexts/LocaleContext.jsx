@@ -65,6 +65,7 @@ const dictionaries = {
       checkedOut: 'Checked out',
       cancelled: 'Cancelled',
       property: 'Property',
+      propertyManagement: 'Property management',
       qualityRating: 'Quality rating',
       propertyPageScore: 'Property page score',
       generalInfo: 'General info & property status',
