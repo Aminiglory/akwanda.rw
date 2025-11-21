@@ -188,6 +188,28 @@ const PropertyOwnerBookings = () => {
     }
   };
 
+  // Recompute dashboard stats whenever bookings/properties or selected property change
+  useEffect(() => {
+    const list = Array.isArray(bookings) ? bookings : [];
+    const propertyFiltered = (filters.property && filters.property !== 'all')
+      ? list.filter(b => String(b.property?._id) === String(filters.property))
+      : list;
+
+    setStats(prev => ({
+      ...prev,
+      total: propertyFiltered.length,
+      paid: propertyFiltered.filter(b => b.paymentStatus === 'paid' || b.status === 'confirmed').length,
+      pending: propertyFiltered.filter(b => b.paymentStatus === 'pending' || b.status === 'pending').length,
+      unpaid: propertyFiltered.filter(b => b.paymentStatus === 'unpaid').length,
+      totalRevenue: propertyFiltered.reduce((sum, b) => sum + (b.totalAmount || 0), 0),
+      pendingRevenue: propertyFiltered
+        .filter(b => (b.paymentStatus === 'pending' || b.status === 'pending'))
+        .reduce((sum, b) => sum + (b.totalAmount || 0), 0),
+      totalProperties: (properties || []).length,
+      activeProperties: (properties || []).filter(p => p.status === 'active').length,
+    }));
+  }, [bookings, filters.property, properties]);
+
   // Sales confirmation flow kept for analytics, but printing now happens directly
   const onConfirmSalesAndPrint = async () => {
     try {
@@ -347,6 +369,11 @@ const PropertyOwnerBookings = () => {
     const fstatus = params.get('finance_status');
     const view = params.get('view');
     const range = params.get('range');
+
+    // Apply property filter from URL for all tabs (dashboard, reservations, finance, etc.)
+    if (propParam && String(filters.property) !== String(propParam)) {
+      setFilters(prev => ({ ...prev, property: propParam }));
+    }
 
     // Normalize tab mapping to our internal tabs
     if (tab) {
