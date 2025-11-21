@@ -522,7 +522,7 @@ const UserDashboard = () => {
                         </div>
                       </div>
                       <Link
-                        to="/my-bookings"
+                        to={selectedPropertyId ? `/my-bookings?property=${selectedPropertyId}` : "/my-bookings"}
                         className="relative px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors"
                       >
                         Open Dashboard
