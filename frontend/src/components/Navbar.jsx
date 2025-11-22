@@ -109,6 +109,19 @@ const Navbar = () => {
     }
   };
 
+  const attachPropertyParam = (basePath) => {
+    const raw = String(basePath || '');
+    const [path, queryString] = raw.split('?');
+    const params = new URLSearchParams(queryString || '');
+    if (selectedPropertyId) {
+      params.set('property', String(selectedPropertyId));
+    } else {
+      params.delete('property');
+    }
+    const qs = params.toString();
+    return qs ? `${path}?${qs}` : path;
+  };
+
   // Main navigation items like Booking.com
   const mainNavItems = [
     {
