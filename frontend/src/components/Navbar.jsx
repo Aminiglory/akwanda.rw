@@ -977,7 +977,6 @@ const Navbar = () => {
                         value={selectedPropertyId}
                         onChange={(e) => {
                           const id = e.target.value;
-                          setSelectedPropertyId(id);
                           if (id) {
                             window.open(`/dashboard?property=${id}`, '_blank');
                           }
