@@ -44,6 +44,7 @@ export default function CarOwnerDashboard() {
   const [form, setForm] = useState(emptyCar);
   const [uploadingId, setUploadingId] = useState(null);
   const [viewMode, setViewMode] = useState('cards'); // 'cards' | 'table'
+  const [showCreateForm, setShowCreateForm] = useState(false);
   const [createImages, setCreateImages] = useState([]);
   const [createPreviews, setCreatePreviews] = useState([]);
 
@@ -287,9 +288,34 @@ export default function CarOwnerDashboard() {
           <a href="/owner/cars" className={`px-3 py-2 text-sm ${location.pathname.startsWith('/owner/cars') ? 'bg-[#a06b42] text-white' : 'bg-[#f6e9d8] text-[#4b2a00] hover:bg-[#e8dcc8]'}`}>Vehicles</a>
           <a href="/owner/attractions" className={`px-3 py-2 text-sm ${location.pathname.startsWith('/owner/attractions') ? 'bg-[#a06b42] text-white' : 'bg-[#f6e9d8] text-[#4b2a00] hover:bg-[#e8dcc8]'}`}>Attractions</a>
         </div>
-        <div className="inline-flex rounded-lg overflow-hidden border">
-          <button onClick={()=>setViewMode('cards')} className={`px-3 py-2 text-sm ${viewMode==='cards' ? 'bg-[#a06b42] text-white' : 'bg-white text-gray-700'}`}>Cards</button>
-          <button onClick={()=>setViewMode('table')} className={`px-3 py-2 text-sm ${viewMode==='table' ? 'bg-[#a06b42] text-white' : 'bg-white text-gray-700'}`}>Table</button>
+      </div>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <h1 className="text-2xl font-bold text-gray-900">My Vehicles</h1>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowCreateForm(prev => !prev)}
+            className="px-4 py-2 rounded-lg bg-[#a06b42] hover:bg-[#8f5a32] text-white text-sm font-medium"
+            disabled={user?.isBlocked}
+          >
+            {showCreateForm ? 'Close form' : 'List a vehicle'}
+          </button>
+          <div className="inline-flex rounded-lg overflow-hidden border">
+            <button
+              type="button"
+              onClick={() => setViewMode('cards')}
+              className={`px-3 py-2 text-sm ${viewMode==='cards' ? 'bg-[#a06b42] text-white' : 'bg-white text-gray-700'}`}
+            >
+              Cards
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('table')}
+              className={`px-3 py-2 text-sm ${viewMode==='table' ? 'bg-[#a06b42] text-white' : 'bg-white text-gray-700'}`}
+            >
+              Table
+            </button>
+          </div>
         </div>
       </div>
       {user?.isBlocked && (
@@ -297,9 +323,8 @@ export default function CarOwnerDashboard() {
           Your account is deactivated. Vehicle management is disabled until reactivated.
         </div>
       )}
-      <h1 className="text-2xl font-bold text-gray-900 mb-4">My Vehicles</h1>
-
       {/* Create Vehicle */}
+      {showCreateForm && (
       <form onSubmit={createCar} className="bg-white rounded-lg shadow p-4 mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <label className="block text-xs text-gray-700 mb-1">Listing category</label>
@@ -480,6 +505,7 @@ export default function CarOwnerDashboard() {
           <button disabled={saving || user?.isBlocked} className="px-4 py-2 bg-[#a06b42] hover:bg-[#8f5a32] text-white rounded disabled:opacity-50">{saving ? 'Saving...' : 'Add Vehicle'}</button>
         </div>
       </form>
+      )}
 
       {/* Cars List */}
       {loading ? <div>Loading...</div> : (
