@@ -88,7 +88,7 @@ const UserDashboard = () => {
       setBookings(bookings);
       setUnreadCount(messagesData.count || 0);
 
-      // Initialize selected property from URL ?property= first, then localStorage, then first property
+      // Initialize selected property from URL ?property= first, then first property
       try {
         let initialId = '';
 
@@ -102,14 +102,6 @@ const UserDashboard = () => {
             }
           }
         } catch (_) {}
-
-        if (!initialId) {
-          const stored = localStorage.getItem('lastSelectedPropertyId');
-          const existsStored = stored && properties.find(p => String(p._id) === String(stored));
-          if (existsStored) {
-            initialId = String(existsStored._id);
-          }
-        }
 
         if (!initialId && properties.length > 0) {
           initialId = String(properties[0]._id);
@@ -198,13 +190,9 @@ const UserDashboard = () => {
     });
   }, [properties, bookings, selectedPropertyId]);
 
-  // Keep selected property in sync with shared localStorage key
+  // Keep selected property only in component state so each browser tab is independent
   useEffect(() => {
-    try {
-      if (selectedPropertyId !== undefined && selectedPropertyId !== null) {
-        localStorage.setItem('lastSelectedPropertyId', selectedPropertyId);
-      }
-    } catch (_) {}
+    // no-op side effect – retained to mirror previous structure without cross-tab syncing
   }, [selectedPropertyId]);
 
   const getStatusColor = (status) => {
@@ -344,7 +332,6 @@ const UserDashboard = () => {
                 onChange={(e) => {
                   const val = e.target.value;
                   setSelectedPropertyId(val);
-                  try { localStorage.setItem('lastSelectedPropertyId', val); } catch (_) {}
                 }}
                 className="px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent min-w-[220px]"
               >
