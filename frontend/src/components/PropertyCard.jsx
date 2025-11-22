@@ -64,26 +64,27 @@ const PropertyCard = ({
 
   return (
     <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all border border-gray-100 overflow-hidden h-full flex flex-col">
-      {image ? (
-        <div className="relative">
-          <img
-            loading="lazy"
-            src={image}
-            alt={title}
-            className="w-full h-44 md:h-48 object-cover"
-            onError={(e) => { e.currentTarget.style.display = 'none'; }}
-          />
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation?.(); onToggleWishlist && onToggleWishlist(); }}
-            className={`absolute top-3 right-3 w-9 h-9 rounded-full bg-white/90 hover:bg-white flex items-center justify-center shadow ${isWishlisted ? 'text-red-500' : 'text-gray-600 hover:text-red-500'}`}
-            aria-label="Wishlist"
-            aria-pressed={isWishlisted}
-          >
-            <FaHeart />
-          </button>
-        </div>
-      ) : null}
+      <div className="relative w-full aspect-[4/3] bg-gray-100">
+        <img
+          loading="lazy"
+          src={image || 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=500&h=375&fit=crop'}
+          alt={title}
+          className="absolute inset-0 w-full h-full object-cover"
+          onError={(e) => {
+            e.currentTarget.onerror = null;
+            e.currentTarget.src = 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=500&h=375&fit=crop';
+          }}
+        />
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation?.(); onToggleWishlist && onToggleWishlist(); }}
+          className={`absolute top-3 right-3 w-9 h-9 rounded-full bg-white/90 hover:bg-white flex items-center justify-center shadow ${isWishlisted ? 'text-red-500' : 'text-gray-600 hover:text-red-500'}`}
+          aria-label="Wishlist"
+          aria-pressed={isWishlisted}
+        >
+          <FaHeart />
+        </button>
+      </div>
       <div className="p-5 flex-1 flex flex-col">
         <div className="flex items-start justify-between mb-1">
           <h4 className="font-semibold text-gray-900 line-clamp-1">{highlightText(title)}</h4>
