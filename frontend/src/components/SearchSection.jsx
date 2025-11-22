@@ -28,7 +28,12 @@ const SearchSection = () => {
       if (searchData.guests) params.set('guests', String(searchData.guests));
       window.location.href = `/apartments${params.toString() ? `?${params.toString()}` : ''}`;
     } else if (activeTab === 'cars') {
-      window.location.href = '/cars';
+      const params = new URLSearchParams();
+      if (searchData.pickupLocation) params.set('pickupLocation', searchData.pickupLocation);
+      if (searchData.returnLocation) params.set('returnLocation', searchData.returnLocation);
+      if (searchData.pickupDate) params.set('pickupDate', searchData.pickupDate);
+      if (searchData.returnDate) params.set('returnDate', searchData.returnDate);
+      window.location.href = `/cars${params.toString() ? `?${params.toString()}` : ''}`;
     } else {
       window.location.href = '/attractions';
     }
