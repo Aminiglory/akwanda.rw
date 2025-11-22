@@ -151,7 +151,7 @@ export default function PropertyManagement() {
         setProperties(props);
         if (props.length > 0) {
           try {
-            // Prefer explicit ?property=<id> in URL, then lastSelectedPropertyId, then first property
+            // Prefer explicit ?property=<id> in URL, then first property; do not sync across tabs
             let initialId = '';
             try {
               const urlParam = searchParams.get('property');
@@ -160,12 +160,6 @@ export default function PropertyManagement() {
                 if (existsParam) initialId = String(existsParam._id);
               }
             } catch (_) {}
-
-            if (!initialId) {
-              const stored = localStorage.getItem('lastSelectedPropertyId');
-              const existsStored = stored && props.find(p => String(p._id) === String(stored));
-              if (existsStored) initialId = String(existsStored._id);
-            }
 
             if (!initialId) {
               initialId = String(props[0]._id);

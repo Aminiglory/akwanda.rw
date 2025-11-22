@@ -195,6 +195,17 @@ const PropertyOwnerBookings = () => {
       ? list.filter(b => String(b.property?._id) === String(filters.property))
       : list;
 
+    // Derive property-level metrics based on the selected property filter
+    const allProps = Array.isArray(properties) ? properties : [];
+    const hasSpecificProperty = filters.property && filters.property !== 'all';
+    const effectiveProps = hasSpecificProperty
+      ? allProps.filter(p => String(p._id) === String(filters.property))
+      : allProps;
+    const totalPropertiesMetric = hasSpecificProperty
+      ? (effectiveProps.length > 0 ? 1 : 0)
+      : effectiveProps.length;
+    const activePropertiesMetric = effectiveProps.filter(p => p.status === 'active').length;
+
     setStats(prev => ({
       ...prev,
       total: propertyFiltered.length,
@@ -205,8 +216,8 @@ const PropertyOwnerBookings = () => {
       pendingRevenue: propertyFiltered
         .filter(b => (b.paymentStatus === 'pending' || b.status === 'pending'))
         .reduce((sum, b) => sum + (b.totalAmount || 0), 0),
-      totalProperties: (properties || []).length,
-      activeProperties: (properties || []).filter(p => p.status === 'active').length,
+      totalProperties: totalPropertiesMetric,
+      activeProperties: activePropertiesMetric,
     }));
   }, [bookings, filters.property, properties]);
 
@@ -1134,7 +1145,13 @@ const PropertyOwnerBookings = () => {
                   <div>
                     <p className="text-xs font-medium text-[#6b5744] uppercase tracking-wide">Properties</p>
                     <p className="mt-2 text-3xl font-bold text-[#4b2a00]">{stats.totalProperties}</p>
-                    <p className="mt-1 text-xs text-[#8a745e]">Listed on AKWANDA.rw</p>
+                    <p className="mt-1 text-xs text-[#8a745e]">
+                      {filters.property && filters.property !== 'all'
+                        ? (properties.find(p => String(p._id) === String(filters.property))?.title
+                            || properties.find(p => String(p._id) === String(filters.property))?.name
+                            || 'Selected property')
+                        : 'Listed on AKWANDA.rw'}
+                    </p>
                   </div>
                   <div className="w-11 h-11 rounded-full bg-[#f3e3cf] flex items-center justify-center">
                     <FaHome className="text-lg text-[#6b3f1f]" />

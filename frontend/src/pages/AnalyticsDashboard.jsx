@@ -40,13 +40,8 @@ export default function AnalyticsDashboard() {
       if (res.ok) {
         setProperties(data.properties || []);
         if (data.properties && data.properties.length > 0) {
-          try {
-            const stored = localStorage.getItem('lastSelectedPropertyId');
-            const exists = stored && data.properties.find(p => String(p._id) === String(stored));
-            setSelectedProperty(exists ? exists._id : data.properties[0]._id);
-          } catch (_) {
-            setSelectedProperty(data.properties[0]._id);
-          }
+          // Default to the first property in this tab; do not sync across tabs via localStorage
+          setSelectedProperty(data.properties[0]._id);
         }
       }
     } catch (error) {
@@ -299,7 +294,6 @@ export default function AnalyticsDashboard() {
               onChange={(e) => {
                 const val = e.target.value;
                 setSelectedProperty(val);
-                try { localStorage.setItem('lastSelectedPropertyId', val); } catch (_) {}
               }}
               className="w-full md:w-64 px-4 py-2 border rounded-lg"
             >
