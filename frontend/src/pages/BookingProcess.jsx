@@ -175,7 +175,9 @@ const BookingProcess = () => {
         paymentMethod: paymentMethod,
         // Deals/discounts are not applied for now – use plain totalPrice
         totalAmount: Math.max(0, Number(totalPrice || 0)),
-        roomPrice: selectedRoom.pricePerNight || selectedRoom.price || 0
+        roomPrice: selectedRoom.pricePerNight || selectedRoom.price || 0,
+        // Info-only add-on services selected by guest; does not change totals
+        services: bookingData.services || {}
       };
 
       const bookingRes = await fetch(`${API_URL}/api/bookings`, {
@@ -502,7 +504,9 @@ const BookingProcess = () => {
         groupSize: bookingData.guests,
         paymentMethod: 'cash',
         totalAmount: totalPrice,
-        roomPrice: selectedRoom.pricePerNight || selectedRoom.price || 0
+        roomPrice: selectedRoom.pricePerNight || selectedRoom.price || 0,
+        // Info-only add-on services selected by guest; does not change totals
+        services: bookingData.services || {}
       };
 
       const res = await fetch(`${API_URL}/api/bookings`, {
@@ -1073,7 +1077,7 @@ const BookingProcess = () => {
                     <button
                       onClick={() => handlePayment('cash')}
                       disabled={loading}
-                      className="w-full flex items-center p-3 text-sm border border-[#d4c4b0] rounded-lg cursor-pointer hover:bg-[#f6e9d8] text-[#4b2a00] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full flex items-center p-3 text-sm border border-gray-300 rounded-lg cursor-pointer bg-white hover:bg-gray-50 text-[#4b2a00] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <div className="flex items-center">
                         <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center mr-3">
@@ -1089,7 +1093,7 @@ const BookingProcess = () => {
                     <button
                       onClick={() => handlePayment('mtn_mobile_money')}
                       disabled={loading}
-                      className="w-full flex items-center p-3 text-sm border border-[#d4c4b0] rounded-lg cursor-pointer hover:bg-[#f6e9d8] text-[#4b2a00] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full flex items-center p-3 text-sm border border-gray-300 rounded-lg cursor-pointer bg-white hover:bg-gray-50 text-[#4b2a00] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <div className="flex items-center">
                         <div className="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center mr-3">
@@ -1186,8 +1190,8 @@ const BookingProcess = () => {
                   )}
 
                   {totalPrice > 0 && (
-                    <div className="border-t pt-4 mt-4">
-                      <div className="space-y-2 text-sm">
+                    <div className="border-t pt-4 mt-4 space-y-4 text-sm">
+                      <div className="space-y-2">
                         <div className="flex justify-between">
                           <span className="text-gray-600">Room price (nightly):</span>
                           <span>RWF {(selectedRoom.pricePerNight || selectedRoom.price || 0).toLocaleString()}/night</span>
@@ -1202,6 +1206,60 @@ const BookingProcess = () => {
                           <span>Total:</span>
                           <span className="text-blue-600">RWF {totalPrice.toLocaleString()}</span>
                         </div>
+                      </div>
+
+                      {/* Guest-selected add-on services (info only, negotiable) */}
+                      <div className="pt-2 border-t border-dashed border-gray-200">
+                        <div className="text-sm font-semibold text-gray-900 mb-1">Additional Services</div>
+                        <div className="text-xs text-gray-500 mb-2">
+                          Select services for information only. Amounts are negotiable and are not added to the total.
+                        </div>
+                        {(!Array.isArray(property?.addOnServices) || property.addOnServices.length === 0) && (
+                          <div className="text-xs text-gray-400">No add-on services configured for this property.</div>
+                        )}
+                        {Array.isArray(property?.addOnServices) && property.addOnServices.map((addOn) => {
+                          const key = addOn.key;
+                          const checked = !!(bookingData.services && bookingData.services[key]);
+                          const included = addOn.includedItems && typeof addOn.includedItems === 'object'
+                            ? Object.keys(addOn.includedItems)
+                                .filter((k) => addOn.includedItems[k])
+                                .map((k) =>
+                                  k
+                                    .replace(/_/g, ' ')
+                                    .replace(/\s+/g, ' ')
+                                    .trim()
+                                    .replace(/^(.)/, (m) => m.toUpperCase())
+                                )
+                            : [];
+                          const isFree = !addOn.price || Number(addOn.price) <= 0;
+                          return (
+                            <div key={key} className="space-y-0.5 mb-1.5">
+                              <label className="flex items-center gap-2 text-sm">
+                                <input
+                                  type="checkbox"
+                                  checked={checked}
+                                  onChange={(e) =>
+                                    setBookingData((prev) => ({
+                                      ...prev,
+                                      services: { ...(prev.services || {}), [key]: e.target.checked },
+                                    }))
+                                  }
+                                />
+                                <span>{addOn.name}</span>
+                                <span
+                                  className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${
+                                    isFree ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'
+                                  }`}
+                                >
+                                  {isFree ? 'Free' : 'Paid (negotiable)'}
+                                </span>
+                              </label>
+                              {included.length > 0 && (
+                                <div className="pl-6 text-xs text-gray-500">Includes: {included.join(', ')}</div>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   )}

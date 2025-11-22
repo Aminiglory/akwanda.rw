@@ -105,6 +105,8 @@ const DirectBooking = () => {
         markPaid: payloadPaymentMethod === 'cash' ? !!markPaid : false,
         guestInfo: form.guestInfo,
         directBooking: true,
+        // Info-only add-on services selected by host for this direct booking
+        services: form.services || {},
       };
       const res = await fetch(`${API_URL}/api/bookings`, {
         method: 'POST',

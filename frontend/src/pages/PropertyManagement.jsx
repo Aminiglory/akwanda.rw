@@ -147,9 +147,34 @@ export default function PropertyManagement() {
       const res = await fetch(`${API_URL}/api/properties/my-properties`, { credentials: 'include' });
       const data = await res.json();
       if (res.ok) {
-        setProperties(data.properties || []);
-        if (data.properties?.length > 0) {
-          setSelectedProperty(data.properties[0]._id);
+        const props = data.properties || [];
+        setProperties(props);
+        if (props.length > 0) {
+          try {
+            // Prefer explicit ?property=<id> in URL, then lastSelectedPropertyId, then first property
+            let initialId = '';
+            try {
+              const urlParam = searchParams.get('property');
+              if (urlParam) {
+                const existsParam = props.find(p => String(p._id) === String(urlParam));
+                if (existsParam) initialId = String(existsParam._id);
+              }
+            } catch (_) {}
+
+            if (!initialId) {
+              const stored = localStorage.getItem('lastSelectedPropertyId');
+              const existsStored = stored && props.find(p => String(p._id) === String(stored));
+              if (existsStored) initialId = String(existsStored._id);
+            }
+
+            if (!initialId) {
+              initialId = String(props[0]._id);
+            }
+
+            setSelectedProperty(initialId);
+          } catch (_) {
+            setSelectedProperty(String(props[0]._id));
+          }
         }
       }
     } catch (e) {
@@ -1284,12 +1309,21 @@ export default function PropertyManagement() {
           <label className="block text-sm font-medium mb-2">Select Property</label>
           <select
             value={selectedProperty}
-            onChange={(e) => setSelectedProperty(e.target.value)}
+            onChange={(e) => {
+              const val = e.target.value;
+              setSelectedProperty(val);
+              try { localStorage.setItem('lastSelectedPropertyId', val); } catch (_) {}
+            }}
             className="w-full max-w-md px-4 py-2 border rounded-lg"
           >
-            {properties.map(p => (
-              <option key={p._id} value={p._id}>{p.title || p.name}</option>
-            ))}
+            {properties.map(p => {
+              const name = p.title || p.name || 'Untitled property';
+              const location = [p.city, p.address].filter(Boolean).join(', ');
+              const label = location ? `${location} - ${name}` : name;
+              return (
+                <option key={p._id} value={p._id}>{label}</option>
+              );
+            })}
           </select>
         </div>
 

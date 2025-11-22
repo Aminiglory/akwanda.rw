@@ -14,6 +14,7 @@ const Home = () => {
   const { t } = useLocale() || {};
 
   const [featuredSection, setFeaturedSection] = useState(null);
+  const [partnersSection, setPartnersSection] = useState(null);
 
   useEffect(() => {
     (async () => {
@@ -23,7 +24,9 @@ const Home = () => {
         const data = await res.json();
         const sections = Array.isArray(data?.content?.sections) ? data.content.sections : [];
         const sec = sections.find((s) => s?.key === 'featuredDestinations') || null;
+        const partnersSec = sections.find((s) => s?.key === 'partners') || null;
         setFeaturedSection(sec);
+        setPartnersSection(partnersSec);
       } catch (_) {
         setFeaturedSection(null);
       }
@@ -49,6 +52,27 @@ const Home = () => {
       return { name, tagline, img: src };
     });
   }, [featuredSection]);
+
+  const partners = useMemo(() => {
+    if (!partnersSection) return [];
+    const imgs = Array.isArray(partnersSection.images) ? partnersSection.images : [];
+    const lines = String(partnersSection.body || '')
+      .split(/\r?\n/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    return imgs.map((img, i) => {
+      const raw = lines[i] || '';
+      const parts = raw.split('|');
+      const name = (parts[0] || '').trim() || `Partner ${i + 1}`;
+      const tagline = (parts[1] || '').trim();
+      const url = (parts[2] || '').trim();
+      const src = typeof img === 'string' && /^https?:\/\//i.test(img)
+        ? img
+        : `${API_URL}${String(img || '').startsWith('/') ? img : `/${img}`}`;
+      return { name, tagline, url, img: src };
+    });
+  }, [partnersSection]);
   return (
     <div>
       {/* Hero Section with chocolate theme background */}
@@ -111,19 +135,43 @@ const Home = () => {
         <HowItWorks />
         <OurMission />
 
-        {/* Partners strip (static logos) */}
-        <section className="bg-[#fff7ee] border-y theme-chocolate-border">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <h3 className="text-lg md:text-xl font-semibold text-[#4b2a00] mb-4">{t ? t('home.trustedByPartners') : 'Trusted by partners'}</h3>
-            <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-6 gap-4 items-center">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="h-10 sm:h-12 bg-white rounded-lg border theme-chocolate-border flex items-center justify-center">
-                  <span className="text-[#8b6f47] text-sm sm:text-base">Partner {i + 1}</span>
+        {/* Partners strip (admin-managed) */}
+        {partners.length > 0 && (
+          <section className="bg-[#fff7ee] border-y theme-chocolate-border">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+              <h3 className="text-lg md:text-xl font-semibold text-[#4b2a00] mb-4">{t ? t('home.trustedByPartners') : 'Trusted by partners'}</h3>
+              <div className="overflow-x-auto">
+                <div className="flex gap-4 md:gap-6 items-center min-w-max animate-[scroll-horizontal_40s_linear_infinite]">
+                  {[...partners, ...partners].map((p, idx) => {
+                    const content = (
+                      <div className="h-12 sm:h-14 px-3 sm:px-4 bg-white rounded-lg border theme-chocolate-border flex items-center gap-2 sm:gap-3 shadow-sm">
+                        <img
+                          src={p.img}
+                          alt={p.name}
+                          className="h-8 sm:h-10 w-auto object-contain"
+                          loading="lazy"
+                        />
+                        <div className="flex flex-col">
+                          <span className="text-[#4b2a00] text-xs sm:text-sm font-semibold leading-tight">{p.name}</span>
+                          {p.tagline && (
+                            <span className="text-[#8b6f47] text-[11px] sm:text-xs leading-tight line-clamp-2">{p.tagline}</span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                    return p.url ? (
+                      <a key={idx} href={p.url} target="_blank" rel="noreferrer" className="block">
+                        {content}
+                      </a>
+                    ) : (
+                      <div key={idx}>{content}</div>
+                    );
+                  })}
                 </div>
-              ))}
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
+        )}
 
         {/* Testimonials (existing) */}
         <Testimonials />

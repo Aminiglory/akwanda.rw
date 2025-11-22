@@ -36,6 +36,13 @@ const bookingSchema = new mongoose.Schema(
       phone: { type: String },
       email: { type: String },
       emergencyContact: { type: String }
+    },
+    // Optional info-only add-on services selected for this booking.
+    // This mirrors the front-end `services` object (key -> boolean) and
+    // does not affect totals or commission.
+    services: {
+      type: Object,
+      default: {}
     }
   },
   { timestamps: true }

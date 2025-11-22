@@ -49,6 +49,16 @@ const UserDashboard = () => {
     } catch (_) { return 0; }
   };
 
+  // Restore last active tab from localStorage on mount
+  useEffect(() => {
+    try {
+      const savedTab = localStorage.getItem('ownerDashboardActiveTab');
+      if (savedTab) {
+        setActiveTab(savedTab);
+      }
+    } catch (_) {}
+  }, []);
+
   useEffect(() => {
     fetchDashboardData();
   }, []);
@@ -78,38 +88,41 @@ const UserDashboard = () => {
       setBookings(bookings);
       setUnreadCount(messagesData.count || 0);
 
-      // Calculate metrics with safe data
-      const totalEarnings = bookings
-        .filter(b => b.status === 'confirmed' || b.status === 'ended')
-        .reduce((sum, b) => sum + (b.totalAmount - (b.commissionAmount || 0)), 0);
+      // Initialize selected property from URL ?property= first, then localStorage, then first property
+      try {
+        let initialId = '';
 
-      const monthlyEarnings = bookings
-        .filter(b => {
-          const bookingDate = new Date(b.createdAt);
-          const currentMonth = new Date();
-          return bookingDate.getMonth() === currentMonth.getMonth() && 
-                 bookingDate.getFullYear() === currentMonth.getFullYear() &&
-                 (b.status === 'confirmed' || b.status === 'ended');
-        })
-        .reduce((sum, b) => sum + (b.totalAmount - (b.commissionAmount || 0)), 0);
+        try {
+          const sp = new URLSearchParams(window.location.search);
+          const fromUrl = sp.get('property');
+          if (fromUrl) {
+            const existsUrl = properties.find(p => String(p._id) === String(fromUrl));
+            if (existsUrl) {
+              initialId = String(existsUrl._id);
+            }
+          }
+        } catch (_) {}
 
-      const averageRating = properties.reduce((sum, p) => {
-        const ratings = p.ratings || [];
-        return sum + (ratings.length > 0 ? ratings.reduce((s, r) => s + r.rating, 0) / ratings.length : 0);
-      }, 0) / (properties.length || 1);
+        if (!initialId) {
+          const stored = localStorage.getItem('lastSelectedPropertyId');
+          const existsStored = stored && properties.find(p => String(p._id) === String(stored));
+          if (existsStored) {
+            initialId = String(existsStored._id);
+          }
+        }
 
-      const occupancyRate = properties.length > 0 ? 
-        (bookings.filter(b => b.status === 'confirmed').length / (properties.length * 30)) * 100 : 0;
+        if (!initialId && properties.length > 0) {
+          initialId = String(properties[0]._id);
+        }
 
-      setMetrics({
-        totalProperties: properties.length,
-        totalBookings: bookings.length,
-        totalEarnings,
-        pendingBookings: bookings.filter(b => b.status === 'pending' || b.status === 'awaiting').length,
-        monthlyEarnings,
-        averageRating: Math.round(averageRating * 10) / 10,
-        occupancyRate: Math.round(occupancyRate)
-      });
+        if (initialId) {
+          setSelectedPropertyId(initialId);
+        }
+      } catch (_) {
+        if (properties.length > 0 && !selectedPropertyId) {
+          setSelectedPropertyId(String(properties[0]._id));
+        }
+      }
     } catch (error) {
       console.error('User dashboard data fetch error:', error);
       toast.error('Failed to load dashboard data. Please try again.');
@@ -128,6 +141,71 @@ const UserDashboard = () => {
       });
     }
   };
+
+  // Recalculate metrics whenever properties, bookings, or selected property change
+  useEffect(() => {
+    const props = properties || [];
+    const bks = bookings || [];
+
+    const averageRating = props.reduce((sum, p) => {
+      const ratings = p.ratings || [];
+      return sum + (ratings.length > 0 ? ratings.reduce((s, r) => s + r.rating, 0) / ratings.length : 0);
+    }, 0) / (props.length || 1);
+
+    // Narrow bookings to the selected property for property-level metrics
+    const bookingsForSelected = selectedPropertyId
+      ? bks.filter(b => String(b.property?._id || b.property) === String(selectedPropertyId))
+      : bks;
+
+    // Earnings (total & monthly) and pending bookings are per selected property if one is chosen
+    const totalEarnings = bookingsForSelected
+      .filter(b => b.status === 'confirmed' || b.status === 'ended')
+      .reduce((sum, b) => sum + (b.totalAmount - (b.commissionAmount || 0)), 0);
+
+    const monthlyEarnings = bookingsForSelected
+      .filter(b => {
+        const bookingDate = new Date(b.createdAt);
+        const currentMonth = new Date();
+        return bookingDate.getMonth() === currentMonth.getMonth() &&
+               bookingDate.getFullYear() === currentMonth.getFullYear() &&
+               (b.status === 'confirmed' || b.status === 'ended');
+      })
+      .reduce((sum, b) => sum + (b.totalAmount - (b.commissionAmount || 0)), 0);
+
+    const pendingBookings = bookingsForSelected.filter(b => b.status === 'pending' || b.status === 'awaiting').length;
+
+    // For TOTAL PROPERTIES card and Occupancy Rate, respect the selected property
+    const effectiveProps = selectedPropertyId
+      ? props.filter(p => String(p._id) === String(selectedPropertyId))
+      : props;
+
+    const totalPropertiesMetric = selectedPropertyId
+      ? (effectiveProps.length > 0 ? 1 : 0)
+      : props.length;
+
+    const occupancyRate = effectiveProps.length > 0
+      ? (bookingsForSelected.filter(b => b.status === 'confirmed').length / (effectiveProps.length * 30)) * 100
+      : 0;
+
+    setMetrics({
+      totalProperties: totalPropertiesMetric,
+      totalBookings: bookingsForSelected.length,
+      totalEarnings,
+      pendingBookings,
+      monthlyEarnings,
+      averageRating: Math.round(averageRating * 10) / 10,
+      occupancyRate: Math.round(occupancyRate)
+    });
+  }, [properties, bookings, selectedPropertyId]);
+
+  // Keep selected property in sync with shared localStorage key
+  useEffect(() => {
+    try {
+      if (selectedPropertyId !== undefined && selectedPropertyId !== null) {
+        localStorage.setItem('lastSelectedPropertyId', selectedPropertyId);
+      }
+    } catch (_) {}
+  }, [selectedPropertyId]);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -197,6 +275,11 @@ const UserDashboard = () => {
     }
   };
 
+  const handleTabChange = (id) => {
+    setActiveTab(id);
+    try { localStorage.setItem('ownerDashboardActiveTab', id); } catch (_) {}
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -251,6 +334,34 @@ const UserDashboard = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-8">
+        {/* Property Selector for dashboard metrics */}
+        {properties.length > 0 && (
+          <div className="flex justify-end mb-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">View metrics for</label>
+              <select
+                value={selectedPropertyId}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setSelectedPropertyId(val);
+                  try { localStorage.setItem('lastSelectedPropertyId', val); } catch (_) {}
+                }}
+                className="px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent min-w-[220px]"
+              >
+                <option value="">All properties</option>
+                {properties.map((p) => {
+                  const name = p.title || p.name || 'Untitled property';
+                  const location = [p.city, p.address].filter(Boolean).join(', ');
+                  const label = location ? `${location} - ${name}` : name;
+                  return (
+                    <option key={p._id} value={p._id}>{label}</option>
+                  );
+                })}
+              </select>
+            </div>
+          </div>
+        )}
+
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <div className="neu-card p-6 animate-fade-in-up">
@@ -354,7 +465,7 @@ const UserDashboard = () => {
               ].map(({ id, label, icon: Icon }) => (
                 <button
                   key={id}
-                  onClick={() => setActiveTab(id)}
+                  onClick={() => handleTabChange(id)}
                   className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-300 flex items-center gap-2 ${
                     activeTab === id
                       ? 'border-blue-500 text-blue-600'
@@ -432,7 +543,7 @@ const UserDashboard = () => {
                         </div>
                       </div>
                       <Link
-                        to="/my-bookings"
+                        to={selectedPropertyId ? `/my-bookings?property=${selectedPropertyId}` : "/my-bookings"}
                         className="relative px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors"
                       >
                         Open Dashboard

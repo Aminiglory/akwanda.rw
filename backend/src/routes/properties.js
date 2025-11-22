@@ -1114,6 +1114,29 @@ router.post('/', requireAuth, upload.array('images', 10), async (req, res) => {
             delete payload.rooms;
         }
         
+        // Prevent duplicate properties with same name and location for the same host
+        const normalizedTitle = (payload.title || '').toString().trim();
+        const normalizedCity = (payload.city || '').toString().trim();
+        const normalizedAddress = (payload.address || '').toString().trim();
+        if (normalizedTitle && (normalizedCity || normalizedAddress)) {
+            const dupQuery = {
+                host: req.user.id,
+                title: normalizedTitle,
+            };
+            if (normalizedCity) dupQuery.city = normalizedCity;
+            if (normalizedAddress) dupQuery.address = normalizedAddress;
+            const existing = await Property.findOne(dupQuery).select('_id title city address');
+            if (existing) {
+                return res.status(400).json({
+                    message: 'You already have a property with this name in this location. No duplication allowed.'
+                });
+            }
+            // Ensure payload uses the normalized values when saving
+            payload.title = normalizedTitle;
+            if (normalizedCity) payload.city = normalizedCity;
+            if (normalizedAddress) payload.address = normalizedAddress;
+        }
+        
         console.log('Creating property with payload:', {
             title: payload.title,
             address: payload.address,

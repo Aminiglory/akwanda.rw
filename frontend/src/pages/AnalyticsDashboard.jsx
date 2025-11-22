@@ -40,7 +40,13 @@ export default function AnalyticsDashboard() {
       if (res.ok) {
         setProperties(data.properties || []);
         if (data.properties && data.properties.length > 0) {
-          setSelectedProperty(data.properties[0]._id);
+          try {
+            const stored = localStorage.getItem('lastSelectedPropertyId');
+            const exists = stored && data.properties.find(p => String(p._id) === String(stored));
+            setSelectedProperty(exists ? exists._id : data.properties[0]._id);
+          } catch (_) {
+            setSelectedProperty(data.properties[0]._id);
+          }
         }
       }
     } catch (error) {
@@ -290,7 +296,11 @@ export default function AnalyticsDashboard() {
             <label className="block text-sm font-medium text-gray-700 mb-2">Select Property</label>
             <select
               value={selectedProperty}
-              onChange={(e) => setSelectedProperty(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                setSelectedProperty(val);
+                try { localStorage.setItem('lastSelectedPropertyId', val); } catch (_) {}
+              }}
               className="w-full md:w-64 px-4 py-2 border rounded-lg"
             >
               {properties.map((property) => (
