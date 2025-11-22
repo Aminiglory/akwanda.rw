@@ -147,14 +147,33 @@ export default function PropertyManagement() {
       const res = await fetch(`${API_URL}/api/properties/my-properties`, { credentials: 'include' });
       const data = await res.json();
       if (res.ok) {
-        setProperties(data.properties || []);
-        if (data.properties?.length > 0) {
+        const props = data.properties || [];
+        setProperties(props);
+        if (props.length > 0) {
           try {
-            const stored = localStorage.getItem('lastSelectedPropertyId');
-            const exists = stored && data.properties.find(p => String(p._id) === String(stored));
-            setSelectedProperty(exists ? exists._id : data.properties[0]._id);
+            // Prefer explicit ?property=<id> in URL, then lastSelectedPropertyId, then first property
+            let initialId = '';
+            try {
+              const urlParam = searchParams.get('property');
+              if (urlParam) {
+                const existsParam = props.find(p => String(p._id) === String(urlParam));
+                if (existsParam) initialId = String(existsParam._id);
+              }
+            } catch (_) {}
+
+            if (!initialId) {
+              const stored = localStorage.getItem('lastSelectedPropertyId');
+              const existsStored = stored && props.find(p => String(p._id) === String(stored));
+              if (existsStored) initialId = String(existsStored._id);
+            }
+
+            if (!initialId) {
+              initialId = String(props[0]._id);
+            }
+
+            setSelectedProperty(initialId);
           } catch (_) {
-            setSelectedProperty(data.properties[0]._id);
+            setSelectedProperty(String(props[0]._id));
           }
         }
       }

@@ -88,14 +88,35 @@ const UserDashboard = () => {
       setBookings(bookings);
       setUnreadCount(messagesData.count || 0);
 
-      // Initialize selected property from localStorage if available and still valid
+      // Initialize selected property from URL ?property= first, then localStorage, then first property
       try {
-        const stored = localStorage.getItem('lastSelectedPropertyId');
-        const exists = stored && properties.find(p => String(p._id) === String(stored));
-        if (exists) {
-          setSelectedPropertyId(String(exists._id));
-        } else if (properties.length > 0 && !selectedPropertyId) {
-          setSelectedPropertyId(String(properties[0]._id));
+        let initialId = '';
+
+        try {
+          const sp = new URLSearchParams(window.location.search);
+          const fromUrl = sp.get('property');
+          if (fromUrl) {
+            const existsUrl = properties.find(p => String(p._id) === String(fromUrl));
+            if (existsUrl) {
+              initialId = String(existsUrl._id);
+            }
+          }
+        } catch (_) {}
+
+        if (!initialId) {
+          const stored = localStorage.getItem('lastSelectedPropertyId');
+          const existsStored = stored && properties.find(p => String(p._id) === String(stored));
+          if (existsStored) {
+            initialId = String(existsStored._id);
+          }
+        }
+
+        if (!initialId && properties.length > 0) {
+          initialId = String(properties[0]._id);
+        }
+
+        if (initialId) {
+          setSelectedPropertyId(initialId);
         }
       } catch (_) {
         if (properties.length > 0 && !selectedPropertyId) {
