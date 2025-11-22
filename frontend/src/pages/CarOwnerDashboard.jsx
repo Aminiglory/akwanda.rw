@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocale } from '../contexts/LocaleContext';
 import ReceiptPreview from '../components/ReceiptPreview';
 import toast from 'react-hot-toast';
@@ -47,6 +47,7 @@ export default function CarOwnerDashboard() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [createImages, setCreateImages] = useState([]);
   const [createPreviews, setCreatePreviews] = useState([]);
+  const createFormRef = useRef(null);
 
   async function loadData() {
     try {
@@ -294,7 +295,20 @@ export default function CarOwnerDashboard() {
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
-            onClick={() => setShowCreateForm(prev => !prev)}
+            onClick={() => {
+              setShowCreateForm(prev => {
+                const next = !prev;
+                if (!prev && next) {
+                  // Open form then scroll it into view
+                  setTimeout(() => {
+                    if (createFormRef.current) {
+                      createFormRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                  }, 50);
+                }
+                return next;
+              });
+            }}
             className="px-4 py-2 rounded-lg bg-[#a06b42] hover:bg-[#8f5a32] text-white text-sm font-medium"
             disabled={user?.isBlocked}
           >
@@ -325,7 +339,7 @@ export default function CarOwnerDashboard() {
       )}
       {/* Create Vehicle */}
       {showCreateForm && (
-      <form onSubmit={createCar} className="bg-white rounded-lg shadow p-4 mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+      <form ref={createFormRef} onSubmit={createCar} className="bg-white rounded-lg shadow p-4 mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <label className="block text-xs text-gray-700 mb-1">Listing category</label>
           <select className="w-full px-3 py-2 border rounded" value={category} onChange={e => {
