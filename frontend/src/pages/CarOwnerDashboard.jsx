@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import { useLocale } from '../contexts/LocaleContext';
 import ReceiptPreview from '../components/ReceiptPreview';
@@ -58,8 +58,10 @@ export default function CarOwnerDashboard() {
   const [form, setForm] = useState(emptyCar);
   const [uploadingId, setUploadingId] = useState(null);
   const [viewMode, setViewMode] = useState('cards'); // 'cards' | 'table'
+  const [showCreateForm, setShowCreateForm] = useState(false);
   const [createImages, setCreateImages] = useState([]);
   const [createPreviews, setCreatePreviews] = useState([]);
+  const createFormRef = useRef(null);
 
   async function loadData() {
     try {
@@ -356,9 +358,47 @@ export default function CarOwnerDashboard() {
           <a href="/owner/cars" className={`px-3 py-2 text-sm ${location.pathname.startsWith('/owner/cars') ? 'bg-[#a06b42] text-white' : 'bg-[#f6e9d8] text-[#4b2a00] hover:bg-[#e8dcc8]'}`}>Vehicles</a>
           <a href="/owner/attractions" className={`px-3 py-2 text-sm ${location.pathname.startsWith('/owner/attractions') ? 'bg-[#a06b42] text-white' : 'bg-[#f6e9d8] text-[#4b2a00] hover:bg-[#e8dcc8]'}`}>Attractions</a>
         </div>
-        <div className="inline-flex rounded-lg overflow-hidden border">
-          <button onClick={()=>setViewMode('cards')} className={`px-3 py-2 text-sm ${viewMode==='cards' ? 'bg-[#a06b42] text-white' : 'bg-white text-gray-700'}`}>Cards</button>
-          <button onClick={()=>setViewMode('table')} className={`px-3 py-2 text-sm ${viewMode==='table' ? 'bg-[#a06b42] text-white' : 'bg-white text-gray-700'}`}>Table</button>
+      </div>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <h1 className="text-2xl font-bold text-gray-900">My Vehicles</h1>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setShowCreateForm(prev => {
+                const next = !prev;
+                if (!prev && next) {
+                  // Open form then scroll it into view
+                  setTimeout(() => {
+                    if (createFormRef.current) {
+                      createFormRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                  }, 50);
+                }
+                return next;
+              });
+            }}
+            className="px-4 py-2 rounded-lg bg-[#a06b42] hover:bg-[#8f5a32] text-white text-sm font-medium"
+            disabled={user?.isBlocked}
+          >
+            {showCreateForm ? 'Close form' : 'List a vehicle'}
+          </button>
+          <div className="inline-flex rounded-lg overflow-hidden border">
+            <button
+              type="button"
+              onClick={() => setViewMode('cards')}
+              className={`px-3 py-2 text-sm ${viewMode==='cards' ? 'bg-[#a06b42] text-white' : 'bg-white text-gray-700'}`}
+            >
+              Cards
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('table')}
+              className={`px-3 py-2 text-sm ${viewMode==='table' ? 'bg-[#a06b42] text-white' : 'bg-white text-gray-700'}`}
+            >
+              Table
+            </button>
+          </div>
         </div>
       </div>
       {user?.isBlocked && (
@@ -368,65 +408,9 @@ export default function CarOwnerDashboard() {
       )}
       <h1 className="text-2xl font-bold text-gray-900 mb-4">My Vehicles</h1>
 
-      <div className="mb-4 grid grid-cols-1 md:grid-cols-4 gap-3">
-        <div className="md:col-span-1">
-          <label className="block text-xs text-gray-600 mb-1">Selected vehicle</label>
-          <select
-            className="w-full px-3 py-2 border rounded"
-            value={selectedCarId}
-            onChange={e => {
-              const nextId = e.target.value || '';
-              setSelectedCarId(nextId);
-              try {
-                const params = new URLSearchParams(location.search || '');
-                if (nextId) {
-                  params.set('car', nextId);
-                } else {
-                  params.delete('car');
-                }
-                setSearchParams(params);
-              } catch (_) {}
-            }}
-          >
-            {cars.map(c => (
-              <option key={c._id} value={c._id}>
-                {c.vehicleName || `${c.brand || ''} ${c.model || ''}`.trim()}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:col-span-3">
-          <div className="bg-white rounded-lg shadow p-3">
-            <div className="text-xs text-gray-500">Total bookings</div>
-            <div className="text-lg font-semibold">{stats.totalBookings}</div>
-          </div>
-          <div className="bg-white rounded-lg shadow p-3">
-            <div className="text-xs text-gray-500">Active</div>
-            <div className="text-lg font-semibold">{stats.active}</div>
-          </div>
-          <div className="bg-white rounded-lg shadow p-3">
-            <div className="text-xs text-gray-500">Completed</div>
-            <div className="text-lg font-semibold">{stats.completed}</div>
-          </div>
-          <div className="bg-white rounded-lg shadow p-3">
-            <div className="text-xs text-gray-500">Pending</div>
-            <div className="text-lg font-semibold">{stats.pending}</div>
-          </div>
-          <div className="bg-white rounded-lg shadow p-3">
-            <div className="text-xs text-gray-500">Total revenue</div>
-            <div className="text-lg font-semibold">
-              {formatCurrencyRWF ? formatCurrencyRWF(stats.totalRevenue || 0) : `RWF ${Number(stats.totalRevenue || 0).toLocaleString()}`}
-            </div>
-          </div>
-          <div className="bg-white rounded-lg shadow p-3">
-            <div className="text-xs text-gray-500">Avg rental length (days)</div>
-            <div className="text-lg font-semibold">{stats.avgRentalLength.toFixed(1)}</div>
-          </div>
-        </div>
-      </div>
-
       {/* Create Vehicle */}
-      <form onSubmit={createCar} className="bg-white rounded-lg shadow p-4 mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+      {showCreateForm && (
+      <form ref={createFormRef} onSubmit={createCar} className="bg-white rounded-lg shadow p-4 mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <label className="block text-xs text-gray-700 mb-1">Listing category</label>
           <select className="w-full px-3 py-2 border rounded" value={category} onChange={e => {
@@ -606,6 +590,7 @@ export default function CarOwnerDashboard() {
           <button disabled={saving || user?.isBlocked} className="px-4 py-2 bg-[#a06b42] hover:bg-[#8f5a32] text-white rounded disabled:opacity-50">{saving ? 'Saving...' : 'Add Vehicle'}</button>
         </div>
       </form>
+      )}
 
       {/* Cars List */}
       {loading ? <div>Loading...</div> : (

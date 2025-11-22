@@ -55,6 +55,9 @@ const ApartmentDetails = () => {
   const [calendarRoom, setCalendarRoom] = useState(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [detailsRoom, setDetailsRoom] = useState(null);
+  const [reviews, setReviews] = useState([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [reviewsError, setReviewsError] = useState('');
 
   const makeAbsolute = (u) => {
     if (!u) return u;
@@ -252,7 +255,6 @@ const ApartmentDetails = () => {
           host: {
             name: p.host ? `${p.host.firstName} ${p.host.lastName}` : '—',
             avatar: null,
-            // Host panel will use apartment.rating and apartment.reviews from Property.ratings[]
             email: p.host?.email,
             phone: p.host?.phone,
             id: p.host?._id || p.host?.id,
@@ -264,17 +266,44 @@ const ApartmentDetails = () => {
             })()
           },
           features: {
-            checkIn: '3:00 PM',
-            checkOut: '11:00 AM',
-            cancellation: 'Free cancellation up to 24 hours before check-in',
-            houseRules: Array.isArray(p.houseRules) && p.houseRules.length ? p.houseRules : []
-          }
+            checkIn: p.checkInTime || '3:00 PM',
+            checkOut: p.checkOutTime || '11:00 AM',
+            cancellation: p.cancellationPolicy || 'Free cancellation up to 24 hours before check-in',
+            houseRules: Array.isArray(p.roomRules) && p.roomRules.length ? p.roomRules : []
+          },
+          lat: typeof p.latitude === 'number' ? p.latitude : null,
+          lng: typeof p.longitude === 'number' ? p.longitude : null
         });
       } catch (e) {
         toast.error(e.message);
       }
     })();
   }, [id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        setReviewsLoading(true);
+        setReviewsError('');
+        const res = await fetch(`${API_URL}/api/reviews/property/${id}`);
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.message || 'Failed to load reviews');
+        if (!cancelled) {
+          setReviews(Array.isArray(data.reviews) ? data.reviews : []);
+        }
+      } catch (e) {
+        if (!cancelled) {
+          setReviewsError(e.message || 'Failed to load reviews');
+        }
+      } finally {
+        if (!cancelled) {
+          setReviewsLoading(false);
+        }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [API_URL, id]);
 
   // Auto-expand the first room for bookers so the calendar is visible immediately
   useEffect(() => {
@@ -763,6 +792,104 @@ const ApartmentDetails = () => {
               </div>
             )}
 
+            <div className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-shadow p-5 md:p-6">
+              <div className="flex items-center gap-2 text-gray-900 font-semibold mb-3">
+                <FaStar className="text-blue-600" />
+                <h3 className="text-lg">Guest Reviews</h3>
+              </div>
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="text-sm font-semibold text-gray-800">
+                    {apartment.reviews > 0
+                      ? `${apartment.reviews} stay${apartment.reviews === 1 ? '' : 's'} at this property`
+                      : 'No reviews yet for this property'}
+                  </p>
+                  {apartment.reviews > 0 && (
+                    <p className="text-xs text-gray-500">
+                      Average rating {apartment.rating.toFixed(1)} / 5
+                    </p>
+                  )}
+                </div>
+                {apartment.reviews > 0 && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl font-bold text-blue-600">{apartment.rating.toFixed(1)}</span>
+                    <div className="hidden sm:flex">{renderStars(apartment.rating)}</div>
+                  </div>
+                )}
+              </div>
+              {reviewsLoading ? (
+                <div className="space-y-3">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="h-16 bg-gray-100 rounded-xl animate-pulse" />
+                  ))}
+                </div>
+              ) : reviewsError ? (
+                <p className="text-sm text-red-500">{reviewsError}</p>
+              ) : reviews && reviews.length > 0 ? (
+                <div className="space-y-4">
+                  {reviews.slice(0, 3).map((review) => {
+                    const guest = review.guest || {};
+                    const initials = (guest.fullName || `${guest.firstName || ''} ${guest.lastName || ''}` || 'G')
+                      .trim()
+                      .split(' ')
+                      .map((p) => p[0])
+                      .join('')
+                      .slice(0, 2)
+                      .toUpperCase();
+                    return (
+                      <div key={review._id} className="flex gap-3">
+                        <div className="flex-shrink-0">
+                          {guest.profilePicture ? (
+                            <img
+                              src={guest.profilePicture}
+                              alt={guest.fullName || 'Guest'}
+                              className="w-10 h-10 rounded-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-semibold">
+                              {initials || 'G'}
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-sm font-semibold text-gray-800 truncate">
+                                {guest.fullName || 'Guest'}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {review.createdAt ? new Date(review.createdAt).toLocaleDateString() : ''}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <FaStar className="text-yellow-400" />
+                              <span className="text-sm font-medium text-gray-800">
+                                {Number(review.rating || 0).toFixed(1)}
+                              </span>
+                            </div>
+                          </div>
+                          {review.comment && (
+                            <p className="mt-1 text-sm text-gray-700 break-words">
+                              {review.comment}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {reviews.length > 3 && (
+                    <p className="text-xs text-gray-500">
+                      Showing 3 of {reviews.length} reviews.
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-600">
+                  No guest reviews yet. Be the first to share your experience.
+                </p>
+              )}
+            </div>
+
             {/* Host */}
             <div className="bg-white rounded-2xl shadow-lg p-6">
               <h3 className="text-lg font-semibold text-gray-800 mb-4">
@@ -833,6 +960,28 @@ const ApartmentDetails = () => {
                 </div>
               </div>
             </div>
+
+            {apartment.lat != null && apartment.lng != null && (
+              <div className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-shadow p-5 md:p-6">
+                <div className="flex items-center gap-2 text-gray-900 font-semibold mb-3">
+                  <FaMapMarkerAlt className="text-blue-600" />
+                  <h3 className="text-lg">Location &amp; Area Info</h3>
+                </div>
+                <p className="text-sm text-gray-600 mb-3">{apartment.location}</p>
+                <div className="rounded-2xl overflow-hidden border border-gray-100 h-64 mb-3">
+                  <iframe
+                    title="Property location map"
+                    src={`https://www.google.com/maps?q=${apartment.lat},${apartment.lng}&hl=en&z=14&output=embed`}
+                    className="w-full h-full border-0"
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                  />
+                </div>
+                <p className="text-xs text-gray-400">
+                  Map location is approximate and provided for orientation.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Booking Sidebar */}

@@ -206,6 +206,14 @@ const Navbar = () => {
       ]
     },
     {
+      label: labelOr('nav.vehicles', 'Vehicles'),
+      icon: FaCar,
+      href: '/owner/cars',
+      children: [
+        { label: labelOr('nav.myVehicles', 'My vehicles'), href: '/owner/cars', icon: FaCar },
+      ]
+    },
+    {
       label: labelOr('nav.inbox', 'Inbox'),
       icon: FaEnvelope,
       href: '/messages',

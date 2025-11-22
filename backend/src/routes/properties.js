@@ -783,7 +783,7 @@ router.post('/send-commission-reminders', requireAuth, async (req, res) => {
 });
 
 router.get('/:id', async (req, res) => {
-    const property = await Property.findById(req.params.id).populate('host', 'firstName lastName isBlocked blockedUntil');
+    const property = await Property.findById(req.params.id).populate('host', 'firstName lastName email phone createdAt isBlocked blockedUntil');
     if (!property || !property.isActive) return res.status(404).json({ message: 'Property not found' });
 
     const host = property.host;
