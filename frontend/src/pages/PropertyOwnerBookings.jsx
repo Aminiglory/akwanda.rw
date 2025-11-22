@@ -178,7 +178,8 @@ const PropertyOwnerBookings = () => {
         pendingRevenue: list.filter(b => (b.paymentStatus === 'pending' || b.status === 'pending')).reduce((sum, b) => sum + (b.totalAmount || 0), 0),
         totalProperties: (propJson.properties || []).length,
         activeProperties: (propJson.properties || []).filter(p => p.status === 'active').length,
-        occupancyRate: Math.max(0, Math.min(100, Number(occJson?.kpis?.occupancyPercent || 0))),
+        // Initial occupancyRate will be recomputed per-property in the stats effect
+        occupancyRate: 0,
         averageRating: 0
       });
     } catch (error) {
@@ -206,6 +207,14 @@ const PropertyOwnerBookings = () => {
       : effectiveProps.length;
     const activePropertiesMetric = effectiveProps.filter(p => p.status === 'active').length;
 
+    // Approximate occupancy: confirmed/ended bookings over capacity * period (30 days per active property)
+    const occupancyNumerator = propertyFiltered.filter(b => (
+      b.status === 'confirmed' || b.status === 'ended'
+    )).length;
+    const denominatorBase = Math.max(1, activePropertiesMetric || totalPropertiesMetric || 1);
+    const occupancyRateRaw = (occupancyNumerator / (denominatorBase * 30)) * 100;
+    const occupancyRateMetric = Math.max(0, Math.min(100, Math.round(occupancyRateRaw)));
+
     setStats(prev => ({
       ...prev,
       total: propertyFiltered.length,
@@ -218,6 +227,7 @@ const PropertyOwnerBookings = () => {
         .reduce((sum, b) => sum + (b.totalAmount || 0), 0),
       totalProperties: totalPropertiesMetric,
       activeProperties: activePropertiesMetric,
+      occupancyRate: occupancyRateMetric,
     }));
   }, [bookings, filters.property, properties]);
 
