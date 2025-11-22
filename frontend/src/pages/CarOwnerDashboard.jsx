@@ -38,7 +38,8 @@ export default function CarOwnerDashboard() {
     // Bicycle-specific
     frameSize: '', gearCount: '', bicycleType: '',
     // Safety
-    abs: false
+    abs: false,
+    fuelPolicy: '', mileageLimitPerDayKm: '', cancellationPolicy: '', depositInfo: ''
   }), []);
   const [form, setForm] = useState(emptyCar);
   const [uploadingId, setUploadingId] = useState(null);
@@ -148,7 +149,11 @@ export default function CarOwnerDashboard() {
           features: form.features,
           fuelType: form.fuelType,
           transmission: form.transmission,
-          mileage: form.mileage
+          mileage: form.mileage,
+          fuelPolicy: form.fuelPolicy || undefined,
+          mileageLimitPerDayKm: form.mileageLimitPerDayKm !== '' ? Number(form.mileageLimitPerDayKm) : undefined,
+          cancellationPolicy: form.cancellationPolicy || undefined,
+          depositInfo: form.depositInfo || undefined
         };
       } else if (category === 'motorcycle') {
         // Validation
@@ -169,7 +174,11 @@ export default function CarOwnerDashboard() {
           engineCapacityCc: Number(form.engineCapacityCc),
           helmetIncluded: !!form.helmetIncluded,
           abs: !!form.abs,
-          transmission: 'manual'
+          transmission: 'manual',
+          fuelPolicy: form.fuelPolicy || undefined,
+          mileageLimitPerDayKm: form.mileageLimitPerDayKm !== '' ? Number(form.mileageLimitPerDayKm) : undefined,
+          cancellationPolicy: form.cancellationPolicy || undefined,
+          depositInfo: form.depositInfo || undefined
         };
       } else {
         // Bicycle
@@ -190,7 +199,11 @@ export default function CarOwnerDashboard() {
           frameSize: String(form.frameSize),
           gearCount: Number(form.gearCount),
           helmetIncluded: !!form.helmetIncluded,
-          bicycleType: form.bicycleType || undefined
+          bicycleType: form.bicycleType || undefined,
+          fuelPolicy: form.fuelPolicy || undefined,
+          mileageLimitPerDayKm: form.mileageLimitPerDayKm !== '' ? Number(form.mileageLimitPerDayKm) : undefined,
+          cancellationPolicy: form.cancellationPolicy || undefined,
+          depositInfo: form.depositInfo || undefined
         };
       }
       setSaving(true);
@@ -342,6 +355,22 @@ export default function CarOwnerDashboard() {
         <div>
           <label className="block text-xs text-gray-700 mb-1">Location</label>
           <input className="w-full px-3 py-2 border rounded" placeholder="e.g., Kigali" value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} />
+        </div>
+        <div>
+          <label className="block text-xs text-gray-700 mb-1">Fuel policy</label>
+          <input className="w-full px-3 py-2 border rounded" placeholder="e.g., Same-to-same" value={form.fuelPolicy} onChange={e => setForm({ ...form, fuelPolicy: e.target.value })} />
+        </div>
+        <div>
+          <label className="block text-xs text-gray-700 mb-1">Mileage limit per day (km)</label>
+          <input className="w-full px-3 py-2 border rounded" type="number" placeholder="e.g., 150" value={form.mileageLimitPerDayKm} onChange={e => setForm({ ...form, mileageLimitPerDayKm: e.target.value })} />
+        </div>
+        <div>
+          <label className="block text-xs text-gray-700 mb-1">Cancellation policy</label>
+          <input className="w-full px-3 py-2 border rounded" placeholder="Short description shown to guests" value={form.cancellationPolicy} onChange={e => setForm({ ...form, cancellationPolicy: e.target.value })} />
+        </div>
+        <div>
+          <label className="block text-xs text-gray-700 mb-1">Deposit information</label>
+          <input className="w-full px-3 py-2 border rounded" placeholder="e.g., No deposit required" value={form.depositInfo} onChange={e => setForm({ ...form, depositInfo: e.target.value })} />
         </div>
         {category === 'car' && (
           <>

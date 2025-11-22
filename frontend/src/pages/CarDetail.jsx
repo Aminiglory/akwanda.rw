@@ -29,11 +29,27 @@ export default function CarDetail() {
     pickupLocation: '',
     returnLocation: '',
     pickupTime: '',
-    returnTime: ''
+    returnTime: '',
+    withDriver: false,
+    driverAge: '',
+    contactPhone: '',
+    specialRequests: ''
   });
   const [available, setAvailable] = useState(null);
   const [otherCars, setOtherCars] = useState([]);
   const [favIds, setFavIds] = useState([]);
+
+  const tripSummary = useMemo(() => {
+    if (!form.pickupDate || !form.returnDate) return { days: 0, total: 0 };
+    const start = new Date(form.pickupDate);
+    const end = new Date(form.returnDate);
+    const ms = end - start;
+    if (!Number.isFinite(ms) || ms <= 0) return { days: 0, total: 0 };
+    const days = Math.ceil(ms / (24 * 60 * 60 * 1000));
+    const daily = Number(car?.pricePerDay || 0);
+    const total = days * daily;
+    return { days, total };
+  }, [form.pickupDate, form.returnDate, car?.pricePerDay]);
 
   useEffect(() => {
     try {
@@ -119,9 +135,13 @@ export default function CarDetail() {
     if (!form.pickupDate || !form.returnDate || !form.pickupLocation) return toast.error('Fill booking fields');
     try {
       setBooking(true);
+      const payload = { carId: id, ...form, paymentMethod };
+      if (payload.driverAge) {
+        payload.driverAge = Number(payload.driverAge);
+      }
       const res = await fetch(`${API_URL}/api/car-bookings`, {
         method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ carId: id, ...form, paymentMethod })
+        body: JSON.stringify(payload)
       });
       if (res.status === 401) {
         toast.error('Please login to book');
@@ -195,6 +215,19 @@ export default function CarDetail() {
                 </div>
               </div>
             )}
+            {(car.fuelPolicy || car.mileageLimitPerDayKm || car.cancellationPolicy || car.depositInfo) && (
+              <div className="mt-4">
+                <div className="font-semibold">Rental policies</div>
+                <div className="mt-1 text-sm text-gray-700 space-y-1">
+                  {car.fuelPolicy && <div>Fuel: {car.fuelPolicy}</div>}
+                  {typeof car.mileageLimitPerDayKm === 'number' && car.mileageLimitPerDayKm > 0 && (
+                    <div>Mileage: {car.mileageLimitPerDayKm} km per day included</div>
+                  )}
+                  {car.cancellationPolicy && <div>Cancellation: {car.cancellationPolicy}</div>}
+                  {car.depositInfo && <div>Deposit: {car.depositInfo}</div>}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -202,6 +235,11 @@ export default function CarDetail() {
         <div>
           <div className="bg-white rounded-lg shadow p-4">
             <div className="text-xl font-semibold">{formatCurrencyRWF ? formatCurrencyRWF(car.pricePerDay) : `RWF ${Number(car.pricePerDay || 0).toLocaleString()}`} / {t ? t('vehicleDetail.pricePerDay') : 'per day'}</div>
+            {tripSummary.days > 0 && (
+              <div className="mt-1 text-sm text-gray-700">
+                Trip: {tripSummary.days} {tripSummary.days === 1 ? 'day' : 'days'} • {formatCurrencyRWF ? formatCurrencyRWF(tripSummary.total || 0) : `RWF ${Number(tripSummary.total || 0).toLocaleString()}`}
+              </div>
+            )}
             <div className="grid grid-cols-1 gap-3 mt-3">
               <div>
                 <label className="text-sm text-gray-700">{t ? t('vehicleDetail.pickupDate') : 'Pickup date'}</label>
@@ -240,6 +278,53 @@ export default function CarDetail() {
               <div>
                 <label className="text-sm text-gray-700">{t ? t('vehicleDetail.returnLocation') : 'Return location'}</label>
                 <input value={form.returnLocation} onChange={e => setForm({ ...form, returnLocation: e.target.value })} className="w-full px-3 py-2 border rounded" />
+              </div>
+              <div>
+                <label className="text-sm text-gray-700">Trip type</label>
+                <div className="mt-1 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setForm({ ...form, withDriver: false })}
+                    className={`px-3 py-2 rounded border text-sm ${!form.withDriver ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-[#f6e9d8] text-[#4b2a00] border-[#d4c4b0]'}`}
+                  >
+                    Self-drive
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setForm({ ...form, withDriver: true })}
+                    className={`px-3 py-2 rounded border text-sm ${form.withDriver ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-[#f6e9d8] text-[#4b2a00] border-[#d4c4b0]'}`}
+                  >
+                    With driver
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className="text-sm text-gray-700">Main driver age</label>
+                <input
+                  type="number"
+                  min={18}
+                  max={80}
+                  value={form.driverAge}
+                  onChange={e => setForm({ ...form, driverAge: e.target.value })}
+                  className="w-full px-3 py-2 border rounded"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-gray-700">Contact phone</label>
+                <input
+                  value={form.contactPhone}
+                  onChange={e => setForm({ ...form, contactPhone: e.target.value })}
+                  className="w-full px-3 py-2 border rounded"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-gray-700">Notes for the host</label>
+                <textarea
+                  rows={2}
+                  value={form.specialRequests}
+                  onChange={e => setForm({ ...form, specialRequests: e.target.value })}
+                  className="w-full px-3 py-2 border rounded"
+                />
               </div>
               <div className="flex items-center gap-2">
                 <button disabled={checking} onClick={checkAvailability} className="px-3 py-2 bg-[#a06b42] hover:bg-[#8f5a32] text-white rounded">{checking ? 'Checking...' : (t ? t('vehicleDetail.checkAvailability') : 'Check availability')}</button>

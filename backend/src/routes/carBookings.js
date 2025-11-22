@@ -21,7 +21,7 @@ router.post('/', requireAuth, async (req, res) => {
   try {
     const CarRental = require('../tables/carRental');
     const CarRentalBooking = require('../tables/carRentalBooking');
-    const { carId, pickupDate, returnDate, pickupLocation, returnLocation, withDriver, contactPhone, specialRequests } = req.body || {};
+    const { carId, pickupDate, returnDate, pickupLocation, returnLocation, withDriver, contactPhone, specialRequests, driverAge, paymentMethod } = req.body || {};
     if (!carId || !pickupDate || !returnDate || !pickupLocation) {
       return res.status(400).json({ message: 'Missing required fields' });
     }
@@ -58,6 +58,14 @@ router.post('/', requireAuth, async (req, res) => {
       total = months * car.pricePerMonth + rem * (car.pricePerWeek || car.pricePerDay * 7) / 7;
     }
 
+    const normalizedPaymentMethod = (() => {
+      if (!paymentMethod) return undefined;
+      const m = String(paymentMethod).toLowerCase();
+      if (m === 'mtn_mobile_money' || m === 'mtn-momo' || m === 'mtnmomo' || m === 'mobile_money' || m === 'momo') return 'mobile_money';
+      if (['cash', 'card', 'bank_transfer'].includes(m)) return m;
+      return undefined;
+    })();
+
     const booking = await CarRentalBooking.create({
       car: car._id,
       guest: req.user.id,
@@ -68,8 +76,11 @@ router.post('/', requireAuth, async (req, res) => {
       numberOfDays,
       totalAmount: total,
       status: 'pending',
+      withDriver: !!withDriver,
+      driverAge: driverAge || undefined,
       contactPhone: contactPhone || '',
-      specialRequests: specialRequests || ''
+      specialRequests: specialRequests || '',
+      paymentMethod: normalizedPaymentMethod || undefined
     });
 
     res.status(201).json({ booking });

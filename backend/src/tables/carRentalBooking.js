@@ -14,6 +14,8 @@ const carRentalBookingSchema = new mongoose.Schema(
     commissionAmount: { type: Number, default: 0 },
     commissionPaid: { type: Boolean, default: false },
     paymentMethod: { type: String, enum: ['cash', 'card', 'mobile_money', 'bank_transfer'], default: 'cash' },
+    withDriver: { type: Boolean, default: false },
+    driverAge: { type: Number },
     driverLicense: { type: String },
     contactPhone: { type: String },
     specialRequests: { type: String },

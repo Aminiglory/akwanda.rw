@@ -43,7 +43,12 @@ const carRentalSchema = new mongoose.Schema(
     // Bicycle-specific fields
     frameSize: { type: String },
     gearCount: { type: Number },
-    bicycleType: { type: String }
+    bicycleType: { type: String },
+    // Rental policy fields (optional, for clearer UX on detail page)
+    fuelPolicy: { type: String }, // e.g. "Same-to-same", "Full-to-full"
+    mileageLimitPerDayKm: { type: Number },
+    cancellationPolicy: { type: String },
+    depositInfo: { type: String }
   },
   { timestamps: true }
 );
