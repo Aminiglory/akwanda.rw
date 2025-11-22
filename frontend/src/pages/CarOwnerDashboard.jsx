@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import { useLocale } from '../contexts/LocaleContext';
 import ReceiptPreview from '../components/ReceiptPreview';
 import toast from 'react-hot-toast';
@@ -16,6 +17,8 @@ const makeAbsolute = (u) => {
 
 export default function CarOwnerDashboard() {
   const { user } = useAuth();
+  const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { formatCurrencyRWF } = useLocale() || {};
   const [cars, setCars] = useState([]);
   const [bookings, setBookings] = useState([]);
@@ -27,6 +30,17 @@ export default function CarOwnerDashboard() {
   const [successOpen, setSuccessOpen] = useState(false);
   const [successTitle, setSuccessTitle] = useState('Success');
   const [successMsg, setSuccessMsg] = useState('Action completed successfully.');
+  const [selectedCarId, setSelectedCarId] = useState('');
+  const [stats, setStats] = useState({
+    totalBookings: 0,
+    pending: 0,
+    active: 0,
+    completed: 0,
+    cancelled: 0,
+    totalRevenue: 0,
+    daysRented: 0,
+    avgRentalLength: 0
+  });
   const emptyCar = useMemo(() => ({
     vehicleName: '', vehicleType: 'economy', brand: '', model: '', year: new Date().getFullYear(),
     licensePlate: '', capacity: 4, pricePerDay: 0, pricePerWeek: '', pricePerMonth: '',
@@ -104,6 +118,61 @@ export default function CarOwnerDashboard() {
   }
 
   useEffect(() => { loadData(); }, []);
+
+  useEffect(() => {
+    if (!Array.isArray(cars) || cars.length === 0) return;
+    let initialId = '';
+    try {
+      const urlCar = searchParams.get('car');
+      if (urlCar && cars.some(c => String(c._id) === String(urlCar))) {
+        initialId = String(urlCar);
+      }
+    } catch (_) {}
+    if (!initialId) {
+      initialId = String(cars[0]._id);
+    }
+    if (String(selectedCarId) !== String(initialId)) {
+      setSelectedCarId(initialId);
+    }
+  }, [cars, searchParams, selectedCarId]);
+
+  useEffect(() => {
+    const baseList = Array.isArray(bookings) ? bookings : [];
+    const vehicleFiltered = selectedCarId
+      ? baseList.filter(b => String(b.car?._id) === String(selectedCarId))
+      : baseList;
+
+    let total = vehicleFiltered.length;
+    let pending = 0;
+    let active = 0;
+    let completed = 0;
+    let cancelled = 0;
+    let totalRevenue = 0;
+    let daysRented = 0;
+
+    vehicleFiltered.forEach(b => {
+      const s = b.status || '';
+      if (s === 'pending') pending += 1;
+      if (s === 'confirmed' || s === 'active') active += 1;
+      if (s === 'completed') completed += 1;
+      if (s === 'cancelled') cancelled += 1;
+      totalRevenue += Number(b.totalAmount || 0);
+      daysRented += Number(b.numberOfDays || 0);
+    });
+
+    const avgRentalLength = total > 0 ? daysRented / total : 0;
+
+    setStats({
+      totalBookings: total,
+      pending,
+      active,
+      completed,
+      cancelled,
+      totalRevenue,
+      daysRented,
+      avgRentalLength
+    });
+  }, [bookings, selectedCarId]);
 
   function resetForm() { setForm(emptyCar); }
 
@@ -298,6 +367,63 @@ export default function CarOwnerDashboard() {
         </div>
       )}
       <h1 className="text-2xl font-bold text-gray-900 mb-4">My Vehicles</h1>
+
+      <div className="mb-4 grid grid-cols-1 md:grid-cols-4 gap-3">
+        <div className="md:col-span-1">
+          <label className="block text-xs text-gray-600 mb-1">Selected vehicle</label>
+          <select
+            className="w-full px-3 py-2 border rounded"
+            value={selectedCarId}
+            onChange={e => {
+              const nextId = e.target.value || '';
+              setSelectedCarId(nextId);
+              try {
+                const params = new URLSearchParams(location.search || '');
+                if (nextId) {
+                  params.set('car', nextId);
+                } else {
+                  params.delete('car');
+                }
+                setSearchParams(params);
+              } catch (_) {}
+            }}
+          >
+            {cars.map(c => (
+              <option key={c._id} value={c._id}>
+                {c.vehicleName || `${c.brand || ''} ${c.model || ''}`.trim()}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:col-span-3">
+          <div className="bg-white rounded-lg shadow p-3">
+            <div className="text-xs text-gray-500">Total bookings</div>
+            <div className="text-lg font-semibold">{stats.totalBookings}</div>
+          </div>
+          <div className="bg-white rounded-lg shadow p-3">
+            <div className="text-xs text-gray-500">Active</div>
+            <div className="text-lg font-semibold">{stats.active}</div>
+          </div>
+          <div className="bg-white rounded-lg shadow p-3">
+            <div className="text-xs text-gray-500">Completed</div>
+            <div className="text-lg font-semibold">{stats.completed}</div>
+          </div>
+          <div className="bg-white rounded-lg shadow p-3">
+            <div className="text-xs text-gray-500">Pending</div>
+            <div className="text-lg font-semibold">{stats.pending}</div>
+          </div>
+          <div className="bg-white rounded-lg shadow p-3">
+            <div className="text-xs text-gray-500">Total revenue</div>
+            <div className="text-lg font-semibold">
+              {formatCurrencyRWF ? formatCurrencyRWF(stats.totalRevenue || 0) : `RWF ${Number(stats.totalRevenue || 0).toLocaleString()}`}
+            </div>
+          </div>
+          <div className="bg-white rounded-lg shadow p-3">
+            <div className="text-xs text-gray-500">Avg rental length (days)</div>
+            <div className="text-lg font-semibold">{stats.avgRentalLength.toFixed(1)}</div>
+          </div>
+        </div>
+      </div>
 
       {/* Create Vehicle */}
       <form onSubmit={createCar} className="bg-white rounded-lg shadow p-4 mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -587,6 +713,7 @@ export default function CarOwnerDashboard() {
             </thead>
             <tbody>
               {bookings.filter(b => {
+                if (selectedCarId && String(b.car?._id) !== String(selectedCarId)) return false;
                 if (bookingFilters.status && b.status !== bookingFilters.status) return false;
                 if (bookingFilters.from) {
                   const from = new Date(bookingFilters.from);

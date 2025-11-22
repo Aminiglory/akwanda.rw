@@ -161,47 +161,48 @@ const Navbar = () => {
     {
       label: labelOr('nav.home', 'Home'),
       icon: FaHome,
-      href: '/dashboard',
+      href: attachPropertyParam('/dashboard'),
       children: []
     },
     {
       label: labelOr('nav.pricingAndCalendar', 'Pricing and booking calendar'),
       icon: FaCalendarAlt,
-      href: '/owner/rates',
+      href: attachPropertyParam('/owner/rates'),
       children: [
-        { label: labelOr('nav.calendar', 'Calendar'), href: '/owner/rates?view=calendar', icon: FaCalendarAlt },
-        { label: labelOr('nav.openCloseRooms', 'Open/close rooms'), href: '/owner/rates?view=open-close', icon: FaCalendarAlt },
-        { label: labelOr('nav.pricingPerGuest', 'Pricing per guest'), href: '/owner/rates?view=pricing-per-guest', icon: FaUsers },
+        { label: labelOr('nav.calendar', 'Calendar'), href: attachPropertyParam('/owner/rates?view=calendar'), icon: FaCalendarAlt },
+        { label: labelOr('nav.openCloseRooms', 'Open/close rooms'), href: attachPropertyParam('/owner/rates?view=open-close'), icon: FaCalendarAlt },
+        { label: labelOr('nav.pricingPerGuest', 'Pricing per guest'), href: attachPropertyParam('/owner/rates?view=pricing-per-guest'), icon: FaUsers },
       ]
     },
     {
       label: labelOr('nav.reservations', 'Reservations'),
       icon: FaCalendarCheck,
-      href: '/my-bookings',
+      href: attachPropertyParam('/my-bookings'),
       children: [
-        { label: labelOr('nav.allReservations', 'All reservations'), href: '/my-bookings?tab=reservations&scope=all', icon: FaCalendarCheck },
-        { label: labelOr('nav.upcoming', 'Upcoming'), href: '/my-bookings?tab=reservations&scope=upcoming', icon: FaCalendarCheck },
-        { label: labelOr('nav.checkIn', 'Check in'), href: '/my-bookings?tab=reservations&scope=checked-in', icon: FaCalendarCheck },
-        { label: labelOr('nav.checkOut', 'Check out'), href: '/my-bookings?tab=reservations&scope=checked-out', icon: FaCalendarCheck },
-        { label: labelOr('nav.cancelled', 'Cancelled'), href: '/my-bookings?tab=reservations&scope=cancelled', icon: FaCalendarTimes },
-        { label: labelOr('nav.directBooking', 'Direct booking'), href: '/owner/direct-booking', icon: FaCalendarCheck },
+        { label: labelOr('nav.allReservations', 'All reservations'), href: attachPropertyParam('/my-bookings?tab=reservations&scope=all'), icon: FaCalendarCheck },
+        { label: labelOr('nav.upcoming', 'Upcoming'), href: attachPropertyParam('/my-bookings?tab=reservations&scope=upcoming'), icon: FaCalendarCheck },
+        { label: labelOr('nav.checkIn', 'Check in'), href: attachPropertyParam('/my-bookings?tab=reservations&scope=checked-in'), icon: FaCalendarCheck },
+        { label: labelOr('nav.checkOut', 'Check out'), href: attachPropertyParam('/my-bookings?tab=reservations&scope=checked-out'), icon: FaCalendarCheck },
+        { label: labelOr('nav.cancelled', 'Cancelled'), href: attachPropertyParam('/my-bookings?tab=reservations&scope=cancelled'), icon: FaCalendarTimes },
+        { label: labelOr('nav.directBooking', 'Direct booking'), href: attachPropertyParam('/owner/direct-booking'), icon: FaCalendarCheck },
       ]
     },
     {
       label: labelOr('nav.property', 'Property'),
       icon: FaBed,
-      href: '/owner/property',
+      href: attachPropertyParam('/owner/property'),
       badge: propertyAlerts,
       children: [
-        { label: labelOr('nav.propertyPolicies', 'Property policies'), href: '/owner/property?view=policies', icon: FaFileAlt },
-        { label: labelOr('nav.reservationPolicies', 'Reservation policies'), href: '/owner/property?view=reservation-policies', icon: FaFileAlt },
-        { label: labelOr('nav.facilitiesServices', 'Facilities and services'), href: '/owner/property?view=facilities', icon: FaCog },
-        { label: labelOr('nav.roomDetails', 'Room details'), href: '/owner/property?view=room-details', icon: FaBed },
-        { label: labelOr('nav.roomAmenities', 'Room Amenities'), href: '/owner/property?view=room-amenities', icon: FaBed },
-        { label: labelOr('nav.yourProfile', 'your profile'), href: '/owner/property?view=profile', icon: FaUser },
-        { label: labelOr('nav.viewDescriptions', 'View your descriptions'), href: '/owner/property?view=descriptions', icon: FaFileAlt },
+        { label: labelOr('nav.propertyPolicies', 'Property policies'), href: attachPropertyParam('/owner/property?view=policies'), icon: FaFileAlt },
+        { label: labelOr('nav.reservationPolicies', 'Reservation policies'), href: attachPropertyParam('/owner/property?view=reservation-policies'), icon: FaFileAlt },
+        { label: labelOr('nav.facilitiesServices', 'Facilities and services'), href: attachPropertyParam('/owner/property?view=facilities'), icon: FaCog },
+        { label: labelOr('nav.roomDetails', 'Room details'), href: attachPropertyParam('/owner/property?view=room-details'), icon: FaBed },
+        { label: labelOr('nav.roomAmenities', 'Room Amenities'), href: attachPropertyParam('/owner/property?view=room-amenities'), icon: FaBed },
+        { label: labelOr('nav.yourProfile', 'your profile'), href: attachPropertyParam('/owner/property?view=profile'), icon: FaUser },
+        { label: labelOr('nav.viewDescriptions', 'View your descriptions'), href: attachPropertyParam('/owner/property?view=descriptions'), icon: FaFileAlt },
+        { label: labelOr('nav.photos', 'Photos'), href: attachPropertyParam('/owner/property?view=photos'), icon: FaImages },
         { label: labelOr('nav.messagingPreferences', 'Messaging preferences'), href: '/settings?tab=messaging', icon: FaEnvelope },
-        { label: labelOr('nav.propertyManagement', 'Property management'), href: '/owner/property?view=general-info', icon: FaImages },
+        { label: labelOr('nav.propertyManagement', 'Property management'), href: attachPropertyParam('/owner/property?view=general-info'), icon: FaImages },
       ]
     },
     {
@@ -228,26 +229,26 @@ const Navbar = () => {
     {
       label: labelOr('nav.finance', 'Finance'),
       icon: FaDollarSign,
-      href: '/dashboard?tab=finance',
+      href: attachPropertyParam('/dashboard?tab=finance'),
       children: [
-        { label: labelOr('nav.invoices', 'Invoices'), href: '/dashboard?tab=finance&view=invoices', icon: FaFileAlt },
-        { label: labelOr('nav.reservationsStatement', 'Reservations statement'), href: '/dashboard?tab=finance&view=statement', icon: FaFileAlt },
-        { label: labelOr('nav.financialOverview', 'Financial overview'), href: '/dashboard?tab=finance&view=overview', icon: FaChartLine },
-        { label: labelOr('nav.transactions', 'Transactions'), href: '/transactions', icon: FaMoneyBillWave },
+        { label: labelOr('nav.invoices', 'Invoices'), href: attachPropertyParam('/dashboard?tab=finance&view=invoices'), icon: FaFileAlt },
+        { label: labelOr('nav.reservationsStatement', 'Reservations statement'), href: attachPropertyParam('/dashboard?tab=finance&view=statement'), icon: FaFileAlt },
+        { label: labelOr('nav.financialOverview', 'Financial overview'), href: attachPropertyParam('/dashboard?tab=finance&view=overview'), icon: FaChartLine },
+        { label: labelOr('nav.transactions', 'Transactions'), href: attachPropertyParam('/transactions'), icon: FaMoneyBillWave },
         { label: labelOr('nav.financeSettings', 'Finance settings'), href: '/settings?tab=finance', icon: FaCog },
       ]
     },
     {
       label: labelOr('nav.salesReportingAnalytics', 'Sales Reporting & Analytics'),
       icon: FaChartLine,
-      href: '/dashboard?tab=analytics',
+      href: attachPropertyParam('/dashboard?tab=analytics'),
       children: [
-        { label: labelOr('nav.analyticsDashboard', 'Overview dashboard'), href: '/dashboard?tab=analytics', icon: FaChartLine },
-        { label: labelOr('nav.salesStatistics', 'Sales statistics'), href: '/dashboard?tab=analytics&view=sales', icon: FaChartLine },
-        { label: labelOr('nav.reports', 'Reports'), href: '/dashboard?tab=analytics&view=reports', icon: FaFileAlt },
-        { label: labelOr('nav.directVsOnline', 'Direct vs Online'), href: '/dashboard?tab=analytics&view=comparison', icon: FaChartLine },
-        { label: labelOr('nav.occupancyRevenuePerRoom', 'Occupancy & Revenue per Room'), href: '/dashboard?tab=analytics&view=occupancy', icon: FaChartLine },
-        { label: labelOr('nav.taxLiabilityTracking', 'Tax liability tracking'), href: '/dashboard?tab=analytics&view=tax', icon: FaFileAlt },
+        { label: labelOr('nav.analyticsDashboard', 'Overview dashboard'), href: attachPropertyParam('/dashboard?tab=analytics'), icon: FaChartLine },
+        { label: labelOr('nav.salesStatistics', 'Sales statistics'), href: attachPropertyParam('/dashboard?tab=analytics&view=sales'), icon: FaChartLine },
+        { label: labelOr('nav.reports', 'Reports'), href: attachPropertyParam('/dashboard?tab=analytics&view=reports'), icon: FaFileAlt },
+        { label: labelOr('nav.directVsOnline', 'Direct vs Online'), href: attachPropertyParam('/dashboard?tab=analytics&view=comparison'), icon: FaChartLine },
+        { label: labelOr('nav.occupancyRevenuePerRoom', 'Occupancy & Revenue per Room'), href: attachPropertyParam('/dashboard?tab=analytics&view=occupancy'), icon: FaChartLine },
+        { label: labelOr('nav.taxLiabilityTracking', 'Tax liability tracking'), href: attachPropertyParam('/dashboard?tab=analytics&view=tax'), icon: FaFileAlt },
       ]
     },
   ];
