@@ -24,13 +24,7 @@ export default function CarsList() {
     returnTime: ''
   });
   const [openFaq, setOpenFaq] = useState(null);
-
-  const popularLocations = [
-    { id: 'kigali-airport', label: 'Kigali International Airport', location: 'Kigali', description: 'Ideal for airport pick-ups and drop-offs' },
-    { id: 'kigali-city', label: 'Kigali City Center', location: 'Kigali', description: 'Perfect for business and city trips' },
-    { id: 'musanze', label: 'Musanze / Volcanoes', location: 'Musanze', description: 'Great for trips to Volcanoes National Park' },
-    { id: 'rubavu', label: 'Rubavu / Gisenyi', location: 'Rubavu', description: 'Beach getaways by Lake Kivu' }
-  ];
+  const [popularLocations, setPopularLocations] = useState([]);
 
   const faqs = [
     {
@@ -50,6 +44,13 @@ export default function CarsList() {
       a: 'Prices are shown per day. Some vehicles offer weekly or monthly rates. When you select your rental dates, the total amount is calculated automatically before you confirm the booking.'
     }
   ];
+
+  const popularTitle = (() => {
+    const key = 'vehicles.popularLocationsTitle';
+    const raw = t ? t(key) : '';
+    if (!raw || raw === key) return 'Popular pick-up locations';
+    return raw;
+  })();
 
   const makeAbsolute = (u) => {
     if (!u) return null;
@@ -213,6 +214,33 @@ export default function CarsList() {
     }
     finally { setLoading(false); }
   }
+
+  useEffect(() => {
+    try {
+      if (!Array.isArray(cars) || !cars.length) {
+        setPopularLocations([]);
+        return;
+      }
+      const counts = new Map();
+      cars.forEach(c => {
+        const loc = (c.location || '').trim();
+        if (!loc) return;
+        counts.set(loc, (counts.get(loc) || 0) + 1);
+      });
+      const sorted = Array.from(counts.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 4)
+        .map(([loc, count]) => ({
+          id: loc,
+          label: loc,
+          location: loc,
+          description: count > 1 ? `${count} vehicles available` : '1 vehicle available'
+        }));
+      setPopularLocations(sorted);
+    } catch {
+      setPopularLocations([]);
+    }
+  }, [cars]);
 
   useEffect(() => {
     // Initialize type from URL (e.g., ?type=motorcycle or ?type=bicycle)
