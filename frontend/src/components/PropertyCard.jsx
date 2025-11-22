@@ -64,12 +64,12 @@ const PropertyCard = ({
 
   return (
     <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all border border-gray-100 overflow-hidden h-full flex flex-col">
-      <div className="relative w-full aspect-[4/3] bg-gray-100">
+      <div className="relative bg-gray-100">
         <img
           loading="lazy"
           src={image || 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=500&h=375&fit=crop'}
           alt={title}
-          className="absolute inset-0 w-full h-full object-cover"
+          className="w-full h-44 md:h-48 object-cover"
           onError={(e) => {
             e.currentTarget.onerror = null;
             e.currentTarget.src = 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=500&h=375&fit=crop';
