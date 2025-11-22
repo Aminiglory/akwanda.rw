@@ -36,6 +36,29 @@ export default function CarDetail() {
   const [favIds, setFavIds] = useState([]);
 
   useEffect(() => {
+    try {
+      const usp = new URLSearchParams(window.location.search);
+      const pickupLocation = usp.get('pickupLocation') || '';
+      const returnLocation = usp.get('returnLocation') || '';
+      const pickupDate = usp.get('pickupDate') || '';
+      const returnDate = usp.get('returnDate') || '';
+      const pickupTime = usp.get('pickupTime') || '';
+      const returnTime = usp.get('returnTime') || '';
+      if (pickupLocation || returnLocation || pickupDate || returnDate || pickupTime || returnTime) {
+        setForm(prev => ({
+          ...prev,
+          pickupLocation: pickupLocation || prev.pickupLocation,
+          returnLocation: returnLocation || prev.returnLocation || pickupLocation || prev.returnLocation,
+          pickupDate: pickupDate || prev.pickupDate,
+          returnDate: returnDate || prev.returnDate,
+          pickupTime: pickupTime || prev.pickupTime,
+          returnTime: returnTime || prev.returnTime
+        }));
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
     (async () => {
       try {
         setLoading(true);
@@ -43,7 +66,11 @@ export default function CarDetail() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.message || '');
         setCar(data.car);
-        setForm(f => ({ ...f, pickupLocation: data.car?.location || '', returnLocation: data.car?.location || '' }));
+        setForm(f => ({
+          ...f,
+          pickupLocation: f.pickupLocation || data.car?.location || '',
+          returnLocation: f.returnLocation || data.car?.location || ''
+        }));
         // Load other cars
         const others = await fetch(`${API_URL}/api/cars?location=${encodeURIComponent(data.car.location || '')}&type=${encodeURIComponent(data.car.vehicleType || '')}`);
         const othersData = await others.json();

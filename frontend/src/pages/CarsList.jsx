@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaCar, FaMapMarkerAlt, FaUsers, FaGasPump, FaCog, FaStar } from 'react-icons/fa';
+import { FaCar, FaMapMarkerAlt, FaUsers, FaGasPump, FaCog, FaStar, FaCalendarAlt, FaClock, FaSearch } from 'react-icons/fa';
 import PropertyCard from '../components/PropertyCard';
 import { useAuth } from '../contexts/AuthContext';
 import { useLocale } from '../contexts/LocaleContext';
@@ -16,6 +16,40 @@ export default function CarsList() {
   const [favIds, setFavIds] = useState([]);
   const { isAuthenticated } = useAuth();
   const { t, formatCurrencyRWF } = useLocale() || {};
+  const [searchForm, setSearchForm] = useState({
+    pickupLocation: '',
+    pickupDate: '',
+    pickupTime: '',
+    returnDate: '',
+    returnTime: ''
+  });
+  const [openFaq, setOpenFaq] = useState(null);
+
+  const popularLocations = [
+    { id: 'kigali-airport', label: 'Kigali International Airport', location: 'Kigali', description: 'Ideal for airport pick-ups and drop-offs' },
+    { id: 'kigali-city', label: 'Kigali City Center', location: 'Kigali', description: 'Perfect for business and city trips' },
+    { id: 'musanze', label: 'Musanze / Volcanoes', location: 'Musanze', description: 'Great for trips to Volcanoes National Park' },
+    { id: 'rubavu', label: 'Rubavu / Gisenyi', location: 'Rubavu', description: 'Beach getaways by Lake Kivu' }
+  ];
+
+  const faqs = [
+    {
+      q: 'Which vehicles can I rent on AKWANDA.rw?',
+      a: 'You can rent different land vehicles including cars (economy to luxury), SUVs, minivans, motorcycles and bicycles. Each listing clearly shows the vehicle type and capacity.'
+    },
+    {
+      q: 'How do pick-up and drop-off work?',
+      a: 'Choose your preferred pick-up location, date and time in the search bar. Many hosts allow drop-off at the same location, and some offer flexible return locations which are shown in the listing details or confirmed in chat.'
+    },
+    {
+      q: 'Do I pay online or on pick-up?',
+      a: 'You can usually choose between paying on pick-up (cash) or using MTN Mobile Money when completing your booking. The available options are shown on the booking form.'
+    },
+    {
+      q: 'Are prices per day and are there discounts for longer rentals?',
+      a: 'Prices are shown per day. Some vehicles offer weekly or monthly rates. When you select your rental dates, the total amount is calculated automatically before you confirm the booking.'
+    }
+  ];
 
   const makeAbsolute = (u) => {
     if (!u) return null;
@@ -161,13 +195,14 @@ export default function CarsList() {
     }
   ];
 
-  async function loadCars() {
+  async function loadCars(nextFilters) {
     try {
       setLoading(true);
+      const activeFilters = nextFilters || filters;
       const qs = new URLSearchParams();
-      if (filters.location) qs.set('location', filters.location);
-      if (filters.type) qs.set('type', filters.type);
-      if (filters.q) qs.set('q', filters.q);
+      if (activeFilters.location) qs.set('location', activeFilters.location);
+      if (activeFilters.type) qs.set('type', activeFilters.type);
+      if (activeFilters.q) qs.set('q', activeFilters.q);
       const res = await fetch(`${API_URL}/api/cars?${qs.toString()}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to load cars');
@@ -183,9 +218,32 @@ export default function CarsList() {
     // Initialize type from URL (e.g., ?type=motorcycle or ?type=bicycle)
     try {
       const usp = new URLSearchParams(window.location.search);
-      const t = usp.get('type');
-      if (t && ['motorcycle','bicycle','economy','compact','mid-size','full-size','luxury','suv','minivan'].includes(t)) {
-        setFilters(prev => ({ ...prev, type: t }));
+      const typeFromUrl = usp.get('type');
+      const allowedTypes = ['motorcycle','bicycle','economy','compact','mid-size','full-size','luxury','suv','minivan'];
+      const update = {};
+      if (typeFromUrl && allowedTypes.includes(typeFromUrl)) {
+        update.type = typeFromUrl;
+      }
+      const pickupLocation = usp.get('pickupLocation') || '';
+      const pickupDate = usp.get('pickupDate') || '';
+      const returnDate = usp.get('returnDate') || '';
+      const pickupTime = usp.get('pickupTime') || '';
+      const returnTime = usp.get('returnTime') || '';
+      if (pickupLocation) {
+        update.location = pickupLocation;
+      }
+      if (Object.keys(update).length > 0) {
+        setFilters(prev => ({ ...prev, ...update }));
+      }
+      if (pickupLocation || pickupDate || returnDate || pickupTime || returnTime) {
+        setSearchForm(prev => ({
+          ...prev,
+          pickupLocation: pickupLocation || prev.pickupLocation,
+          pickupDate: pickupDate || prev.pickupDate,
+          returnDate: returnDate || prev.returnDate,
+          pickupTime: pickupTime || prev.pickupTime,
+          returnTime: returnTime || prev.returnTime
+        }));
       }
     } catch {}
     loadCars();
@@ -211,16 +269,116 @@ export default function CarsList() {
 
         {/* Search Filters */}
         <div className="modern-card p-6 mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="relative">
-              <FaMapMarkerAlt className="absolute left-3 top-1/2 transform -translate-y-1/2 text-primary" />
-              <input 
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 ring-primary focus:border-transparent transition-all duration-300" 
-                placeholder={t ? t('vehicles.location') : 'Location'} 
-                value={filters.location} 
-                onChange={e => setFilters({ ...filters, location: e.target.value })} 
-              />
+          {/* Booking.com-style bar in AKWANDA colors */}
+          <div className="rounded-2xl border border-[#f2e8dc] bg-[#fffaf3] shadow-sm overflow-hidden mb-4">
+            <div className="flex flex-col lg:flex-row divide-y lg:divide-y-0 lg:divide-x divide-[#f2e8dc]">
+              <div className="flex-1 px-4 py-3 flex items-center gap-3">
+                <FaMapMarkerAlt className="text-[#a06b42]" />
+                <div className="flex flex-col w-full">
+                  <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">
+                    {t ? t('vehicleDetail.pickupLocation') : 'Pick-up location'}
+                  </span>
+                  <input
+                    className="w-full bg-transparent focus:outline-none text-sm placeholder-gray-400"
+                    placeholder={t ? t('vehicles.location') : 'Airport, city, or station'}
+                    value={searchForm.pickupLocation}
+                    onChange={e => {
+                      const v = e.target.value;
+                      setSearchForm(prev => ({ ...prev, pickupLocation: v }));
+                      setFilters(prev => ({ ...prev, location: v }));
+                    }}
+                  />
+                </div>
+              </div>
+              <div className="flex-1 px-4 py-3 flex items-center gap-3">
+                <FaCalendarAlt className="text-[#a06b42]" />
+                <div className="flex flex-col w-full">
+                  <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">
+                    {t ? t('vehicleDetail.pickupDate') : 'Pickup date'}
+                  </span>
+                  <input
+                    type="date"
+                    className="w-full bg-transparent focus:outline-none text-sm"
+                    value={searchForm.pickupDate}
+                    onChange={e => setSearchForm(prev => ({ ...prev, pickupDate: e.target.value }))}
+                  />
+                </div>
+              </div>
+              <div className="w-full lg:w-48 px-4 py-3 flex items-center gap-3">
+                <FaClock className="text-[#a06b42]" />
+                <div className="flex flex-col w-full">
+                  <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">
+                    {t ? t('vehicleDetail.pickupTime') : 'Pickup time'}
+                  </span>
+                  <input
+                    type="time"
+                    className="w-full bg-transparent focus:outline-none text-sm"
+                    value={searchForm.pickupTime}
+                    onChange={e => setSearchForm(prev => ({ ...prev, pickupTime: e.target.value }))}
+                  />
+                </div>
+              </div>
+              <div className="flex-1 px-4 py-3 flex items-center gap-3">
+                <FaCalendarAlt className="text-[#a06b42]" />
+                <div className="flex flex-col w-full">
+                  <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">
+                    {t ? t('vehicleDetail.returnDate') : 'Drop-off date'}
+                  </span>
+                  <input
+                    type="date"
+                    className="w-full bg-transparent focus:outline-none text-sm"
+                    value={searchForm.returnDate}
+                    onChange={e => setSearchForm(prev => ({ ...prev, returnDate: e.target.value }))}
+                  />
+                </div>
+              </div>
+              <div className="w-full lg:w-48 px-4 py-3 flex items-center gap-3">
+                <FaClock className="text-[#a06b42]" />
+                <div className="flex flex-col w-full">
+                  <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">
+                    {t ? t('vehicleDetail.returnTime') : 'Drop-off time'}
+                  </span>
+                  <input
+                    type="time"
+                    className="w-full bg-transparent focus:outline-none text-sm"
+                    value={searchForm.returnTime}
+                    onChange={e => setSearchForm(prev => ({ ...prev, returnTime: e.target.value }))}
+                  />
+                </div>
+              </div>
+              <div className="w-full lg:w-40 px-4 py-3 flex items-center justify-center bg-[#a06b42] hover:bg-[#8f5a32] transition-colors">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = {
+                      ...filters,
+                      location: searchForm.pickupLocation || filters.location
+                    };
+                    setFilters(next);
+                    const params = new URLSearchParams();
+                    if (searchForm.pickupLocation) params.set('pickupLocation', searchForm.pickupLocation);
+                    if (searchForm.pickupDate) params.set('pickupDate', searchForm.pickupDate);
+                    if (searchForm.returnDate) params.set('returnDate', searchForm.returnDate);
+                    if (searchForm.pickupTime) params.set('pickupTime', searchForm.pickupTime);
+                    if (searchForm.returnTime) params.set('returnTime', searchForm.returnTime);
+                    const qs = params.toString();
+                    try {
+                      const base = window.location.pathname;
+                      window.history.replaceState(null, '', `${base}${qs ? `?${qs}` : ''}`);
+                    } catch {}
+                    loadCars(next);
+                  }}
+                  className="inline-flex items-center gap-2 text-white font-semibold text-sm px-5 py-2 rounded-xl shadow-lg"
+                >
+                  <FaSearch />
+                  {t ? t('vehicles.searchVehicles') : 'Search'}
+                </button>
+              </div>
             </div>
+          </div>
+
+          {/* Advanced filters */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <select 
               className="px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 ring-primary focus:border-transparent transition-all duration-300" 
               value={filters.type} 
@@ -238,7 +396,8 @@ export default function CarsList() {
               onChange={e => setFilters({ ...filters, q: e.target.value })} 
             />
             <button 
-              onClick={loadCars} 
+              type="button"
+              onClick={() => loadCars()} 
               className="px-6 py-3 btn-primary text-white rounded-xl font-semibold transition-all duration-300 hover:scale-105 shadow-lg"
             >
               {t ? t('vehicles.searchVehicles') : 'Search Vehicles'}
@@ -262,6 +421,35 @@ export default function CarsList() {
             </button>
           </div>
         </div>
+
+        {/* Popular locations */}
+        {popularLocations.length > 0 && (
+          <section className="mb-8">
+            <h2 className="text-xl font-semibold text-gray-900 mb-3">
+              {t ? t('vehicles.popularLocationsTitle') : 'Popular car rental locations'}
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {popularLocations.map(loc => (
+                <button
+                  key={loc.id}
+                  type="button"
+                  onClick={() => {
+                    setSearchForm(prev => ({ ...prev, pickupLocation: loc.location }));
+                    const next = { ...filters, location: loc.location };
+                    setFilters(next);
+                    loadCars(next);
+                  }}
+                  className="text-left rounded-2xl bg-white shadow-sm border border-[#f2e8dc] px-4 py-3 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300"
+                >
+                  <div className="text-sm font-semibold text-[#4b2a00]">{loc.label}</div>
+                  {loc.description && (
+                    <div className="text-xs text-gray-600 mt-1">{loc.description}</div>
+                  )}
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Results */}
         {loading ? (
@@ -333,13 +521,50 @@ export default function CarsList() {
                       host: c.ownerName || '',
                       wishlisted
                     }}
-                    onView={() => navigate(`/cars/${c._id}`)}
+                    onView={() => {
+                      const params = new URLSearchParams();
+                      if (searchForm.pickupLocation) params.set('pickupLocation', searchForm.pickupLocation);
+                      if (searchForm.pickupDate) params.set('pickupDate', searchForm.pickupDate);
+                      if (searchForm.returnDate) params.set('returnDate', searchForm.returnDate);
+                      if (searchForm.pickupTime) params.set('pickupTime', searchForm.pickupTime);
+                      if (searchForm.returnTime) params.set('returnTime', searchForm.returnTime);
+                      const qs = params.toString();
+                      navigate(`/cars/${c._id}${qs ? `?${qs}` : ''}`);
+                    }}
                     onToggleWishlist={() => toggleWishlist(c._id)}
                   />
                 );
               })}
             </div>
           ))
+        )}
+
+        {faqs.length > 0 && (
+          <section className="mt-12 max-w-4xl mx-auto">
+            <h2 className="text-2xl font-semibold text-gray-900 mb-4 text-center">
+              Car & land-vehicle rental FAQs
+            </h2>
+            <div className="rounded-xl bg-white/90 shadow border border-[#f2e8dc]">
+              {faqs.map((f, i) => (
+                <div key={i} className={i > 0 ? 'border-t border-gray-100' : ''}>
+                  <button
+                    type="button"
+                    className="w-full text-left px-5 py-4 flex items-center justify-between hover:bg-gray-50"
+                    onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                    aria-expanded={openFaq === i}
+                  >
+                    <span className="font-semibold text-gray-800 text-sm md:text-base">{f.q}</span>
+                    <span className="text-[#a06b42] text-xl">{openFaq === i ? '-' : '+'}</span>
+                  </button>
+                  {openFaq === i && (
+                    <div className="px-5 pb-4 text-gray-600 text-sm leading-relaxed">
+                      {f.a}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
         )}
       </div>
     </div>
