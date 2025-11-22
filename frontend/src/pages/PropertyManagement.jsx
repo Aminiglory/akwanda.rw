@@ -1306,7 +1306,6 @@ export default function PropertyManagement() {
             onChange={(e) => {
               const val = e.target.value;
               setSelectedProperty(val);
-              try { localStorage.setItem('lastSelectedPropertyId', val); } catch (_) {}
             }}
             className="w-full max-w-md px-4 py-2 border rounded-lg"
           >

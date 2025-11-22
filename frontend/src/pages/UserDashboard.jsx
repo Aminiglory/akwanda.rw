@@ -332,7 +332,6 @@ const UserDashboard = () => {
                 onChange={(e) => {
                   const val = e.target.value;
                   setSelectedPropertyId(val);
-                  try { localStorage.setItem('lastSelectedPropertyId', val); } catch (_) {}
                 }}
                 className="px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent min-w-[220px]"
               >
