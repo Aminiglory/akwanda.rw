@@ -40,6 +40,7 @@ export default function RatesAvailability() {
   });
   const [roomRanges, setRoomRanges] = useState({}); // { [roomId]: { start: 'YYYY-MM-DD', end: 'YYYY-MM-DD' } }
   const [dayModal, setDayModal] = useState(null); // { roomId, date: 'YYYY-MM-DD', events: [] }
+  const [pricingCalendarView, setPricingCalendarView] = useState('monthly');
   
   // State for switch case views (moved to top level to follow Rules of Hooks)
   const [mobileDiscount, setMobileDiscount] = useState(10);
@@ -423,51 +424,198 @@ export default function RatesAvailability() {
               <div className="text-center py-8 text-sm text-[#6b5744]">Loading availability strategy...</div>
             ) : (
               <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <button onClick={() => setActiveMonth(m => new Date(m.getFullYear(), m.getMonth()-1, 1))} className="px-3 py-1 rounded text-sm bg-[#f5f0e8] border border-[#d4c4b0] text-[#4b2a00] hover:bg-[#e8dcc8]">Prev</button>
-                  <div className="font-semibold text-[#4b2a00]">{activeMonth.toLocaleString(undefined, { month: 'long', year: 'numeric' })}</div>
-                  <button onClick={() => setActiveMonth(m => new Date(m.getFullYear(), m.getMonth()+1, 1))} className="px-3 py-1 rounded text-sm bg-[#f5f0e8] border border-[#d4c4b0] text-[#4b2a00] hover:bg-[#e8dcc8]">Next</button>
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <button onClick={() => setActiveMonth(m => new Date(m.getFullYear(), m.getMonth()-1, 1))} className="px-3 py-1 rounded text-sm bg-[#f5f0e8] border border-[#d4c4b0] text-[#4b2a00] hover:bg-[#e8dcc8]">Prev</button>
+                    <div className="font-semibold text-[#4b2a00]">{activeMonth.toLocaleString(undefined, { month: 'long', year: 'numeric' })}</div>
+                    <button onClick={() => setActiveMonth(m => new Date(m.getFullYear(), m.getMonth()+1, 1))} className="px-3 py-1 rounded text-sm bg-[#f5f0e8] border border-[#d4c4b0] text-[#4b2a00] hover:bg-[#e8dcc8]">Next</button>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className="text-[#6b5744]">View:</span>
+                    <select
+                      value={pricingCalendarView}
+                      onChange={(e) => setPricingCalendarView(e.target.value)}
+                      className="px-3 py-1.5 rounded-full border border-[#d4c4b0] bg-[#fdf7f0] text-[#4b2a00]"
+                    >
+                      <option value="monthly">Monthly view</option>
+                      <option value="yearly">Yearly view</option>
+                      <option value="list">List view</option>
+                    </select>
+                  </div>
                 </div>
-                {calendarData.map((room, idx) => {
-                  const cells = daysInMonth(activeMonth);
-                  const sel = roomRanges[room._id] || {};
-                  return (
-                    <div key={idx} className="border rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <h3 className="font-semibold text-[#4b2a00]">{room.roomType} <span className="text-sm text-gray-500">• {formatCurrencyRWF ? formatCurrencyRWF(room.rate || 0) : `RWF ${(room.rate || 0).toLocaleString()}`}/night</span></h3>
-                        <div className="text-xs text-gray-600">Min {room.minStay} • Max {room.maxStay} • Closed {room.closedDates?.length || 0}</div>
-                      </div>
-                      <div className="grid grid-cols-7 gap-1 text-xs text-gray-600 mb-1">
-                        {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d => <div key={d} className="text-center py-1">{d}</div>)}
-                      </div>
-                      <div className="grid grid-cols-7 gap-1">
-                        {cells.map((d, i) => {
-                          const dateStr = d ? fmt(d) : '';
-                          const closed = d && isClosed(room, dateStr);
-                          const inSel = d && sel.start && sel.end && dateStr >= sel.start && dateStr <= sel.end;
-                          return (
+
+                {pricingCalendarView === 'monthly' && (
+                  <>
+                    {calendarData.map((room, idx) => {
+                      const cells = daysInMonth(activeMonth);
+                      const sel = roomRanges[room._id] || {};
+                      return (
+                        <div key={idx} className="border rounded-lg p-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <h3 className="font-semibold text-[#4b2a00]">{room.roomType} <span className="text-sm text-gray-500">• {formatCurrencyRWF ? formatCurrencyRWF(room.rate || 0) : `RWF ${(room.rate || 0).toLocaleString()}`}/night</span></h3>
+                            <div className="text-xs text-gray-600">Min {room.minStay} • Max {room.maxStay} • Closed {room.closedDates?.length || 0}</div>
+                          </div>
+                          <div className="grid grid-cols-7 gap-1 text-xs text-gray-600 mb-1">
+                            {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d => <div key={d} className="text-center py-1">{d}</div>)}
+                          </div>
+                          <div className="grid grid-cols-7 gap-1">
+                            {cells.map((d, i) => {
+                              const dateStr = d ? fmt(d) : '';
+                              const closed = d && isClosed(room, dateStr);
+                              const inSel = d && sel.start && sel.end && dateStr >= sel.start && dateStr <= sel.end;
+                              return (
+                                <button
+                                  key={i}
+                                  disabled={!d}
+                                  onClick={() => onDayClick(room, d)}
+                                  className={`h-9 md:h-8 rounded border text-xs flex items-center justify-center ${!d ? 'bg-transparent border-transparent' : closed ? 'bg-rose-50 border-rose-200 text-rose-700' : 'bg-white border-gray-200 hover:bg-[#f5f0e8]'} ${inSel ? 'ring-2 ring-[#a06b42] bg-[#f5f0e8] border-[#d4c4b0]' : ''}`}
+                                >
+                                  {d ? d.getDate() : ''}
+                                </button>
+                              );
+                            })}
+                          </div>
+                          <div className="mt-2 flex items-center gap-2 text-xs">
+                            <span className="inline-flex items-center gap-1"><span className="w-3 h-3 inline-block bg-rose-100 rounded border border-rose-200"></span>Closed</span>
+                            <span className="inline-flex items-center gap-1"><span className="w-3 h-3 inline-block bg-[#e8dcc8] rounded border border-[#d4c4b0]"></span>Selected range</span>
+                            <div className="ml-auto flex gap-2">
+                              <button onClick={() => handleOpenDates(room._id)} className="px-2 py-1 bg-[#a06b42] hover:bg-[#8f5a32] text-white rounded">Open</button>
+                              <button onClick={() => handleCloseDates(room._id)} className="px-2 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded">Close</button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </>
+                )}
+
+                {pricingCalendarView === 'list' && (
+                  <div className="border border-[#e0d5c7] rounded-xl overflow-x-auto">
+                    <table className="min-w-full text-xs">
+                      <thead className="bg-[#fdf7f0] text-[#4b2a00]">
+                        <tr>
+                          <th className="px-3 py-2 text-left w-40">Room</th>
+                          {daysInMonth(activeMonth).filter(Boolean).map((d) => (
+                            <th key={d.toISOString()} className="px-2 py-2 text-center whitespace-nowrap border-l border-[#e0d5c7]">
+                              <div>{d.getDate()}</div>
+                              <div className="text-[10px] text-gray-500">{d.toLocaleDateString(undefined, { weekday: 'short' })}</div>
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {calendarData.map((room) => (
+                          <tr key={room._id} className="border-t border-[#f0e6d9]">
+                            <td className="px-3 py-2 text-[11px] text-[#4b2a00] bg-[#fdf7f0] sticky left-0 z-10">
+                              <div className="font-semibold">{room.roomType}</div>
+                              <div className="text-[10px] text-gray-500">Closed dates: {room.closedDates?.length || 0}</div>
+                            </td>
+                            {daysInMonth(activeMonth).filter(Boolean).map((d) => {
+                              const dateStr = fmt(d);
+                              const closed = isClosed(room, dateStr);
+                              const cls = closed ? 'bg-rose-50 border-rose-200 text-rose-700' : 'bg-[#e9f7ec] border-[#b7dfc5] text-[#245430]';
+                              return (
+                                <td
+                                  key={d.toISOString()}
+                                  className={`px-1 py-1 text-center border-l border-[#f0e6d9] ${cls}`}
+                                >
+                                  <div className="text-[10px] font-semibold">{closed ? 'Closed' : 'Open'}</div>
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        ))}
+                        {calendarData.length === 0 && (
+                          <tr>
+                            <td colSpan={daysInMonth(activeMonth).filter(Boolean).length + 1} className="px-4 py-8 text-center text-gray-500">
+                              No rooms loaded for this property.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {pricingCalendarView === 'yearly' && (
+                  (() => {
+                    const year = activeMonth.getFullYear();
+                    const months = Array.from({ length: 12 }, (_, i) => i);
+                    const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+                    const hasClosedOn = (d) => {
+                      const dateStr = fmt(d);
+                      return calendarData.some(room => isClosed(room, dateStr));
+                    };
+                    const buildMonthMatrix = (y, m) => {
+                      const first = new Date(y, m, 1);
+                      const last = new Date(y, m + 1, 0);
+                      const offset = (first.getDay() + 6) % 7;
+                      const days = [];
+                      for (let i = 0; i < offset; i++) days.push(null);
+                      for (let d = 1; d <= last.getDate(); d++) days.push(new Date(y, m, d));
+                      return days;
+                    };
+                    return (
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between text-[11px] text-gray-600">
+                          <div className="flex items-center gap-2">
                             <button
-                              key={i}
-                              disabled={!d}
-                              onClick={() => onDayClick(room, d)}
-                              className={`h-9 md:h-8 rounded border text-xs flex items-center justify-center ${!d ? 'bg-transparent border-transparent' : closed ? 'bg-rose-50 border-rose-200 text-rose-700' : 'bg-white border-gray-200 hover:bg-[#f5f0e8]'} ${inSel ? 'ring-2 ring-[#a06b42] bg-[#f5f0e8] border-[#d4c4b0]' : ''}`}
+                              type="button"
+                              onClick={() => setActiveMonth(m => new Date(m.getFullYear() - 1, m.getMonth(), 1))}
+                              className="px-2 py-1 text-xs rounded border border-[#e0d5c7] bg-white hover:bg-[#f5ede1]"
                             >
-                              {d ? d.getDate() : ''}
+                              ◀ {year - 1}
                             </button>
-                          );
-                        })}
-                      </div>
-                      <div className="mt-2 flex items-center gap-2 text-xs">
-                        <span className="inline-flex items-center gap-1"><span className="w-3 h-3 inline-block bg-rose-100 rounded border border-rose-200"></span>Closed</span>
-                        <span className="inline-flex items-center gap-1"><span className="w-3 h-3 inline-block bg-[#e8dcc8] rounded border border-[#d4c4b0]"></span>Selected range</span>
-                        <div className="ml-auto flex gap-2">
-                          <button onClick={() => handleOpenDates(room._id)} className="px-2 py-1 bg-[#a06b42] hover:bg-[#8f5a32] text-white rounded">Open</button>
-                          <button onClick={() => handleCloseDates(room._id)} className="px-2 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded">Close</button>
+                            <div className="px-3 py-1.5 rounded-full bg-[#f5ede1] text-[#4b2a00] text-sm font-semibold">{year}</div>
+                            <button
+                              type="button"
+                              onClick={() => setActiveMonth(m => new Date(m.getFullYear() + 1, m.getMonth(), 1))}
+                              className="px-2 py-1 text-xs rounded border border-[#e0d5c7] bg-white hover:bg-[#f5ede1]"
+                            >
+                              {year + 1} ▶
+                            </button>
+                          </div>
+                          <div className="hidden sm:flex items-center gap-3">
+                            <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-[#e9f7ec] border border-[#b7dfc5]"></span> Open</span>
+                            <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-[#fdeeee] border border-[#f5b5b5]"></span> Closed</span>
+                          </div>
+                        </div>
+                        <div className="grid gap-4 md:grid-cols-3">
+                          {months.map((m) => {
+                            const cells = buildMonthMatrix(year, m);
+                            return (
+                              <div key={m} className="border border-[#e0d5c7] rounded-xl bg-white overflow-hidden">
+                                <div className="px-3 py-2 bg-[#fdf7f0] text-[#4b2a00] text-sm font-semibold border-b border-[#e0d5c7] flex items-center justify-between">
+                                  <span>{monthNames[m]}</span>
+                                </div>
+                                <div className="grid grid-cols-7 text-[10px] text-gray-500 px-2 pt-2">
+                                  {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d => (
+                                    <div key={d} className="text-center pb-1">{d}</div>
+                                  ))}
+                                </div>
+                                <div className="grid grid-cols-7 text-[10px] px-2 pb-2 gap-y-1">
+                                  {cells.map((d, i) => {
+                                    if (!d) return <div key={i} />;
+                                    const closed = hasClosedOn(d);
+                                    const baseClasses = 'h-6 flex items-center justify-center rounded-sm border text-[10px]';
+                                    const cls = closed
+                                      ? 'bg-[#fdeeee] border-[#f5b5b5] text-[#7a1f1f]'
+                                      : 'bg-[#e9f7ec] border-[#b7dfc5] text-[#245430]';
+                                    return (
+                                      <div key={i} className={`${baseClasses} ${cls}`}>
+                                        {d.getDate()}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })()
+                )}
               </div>
             )}
 
