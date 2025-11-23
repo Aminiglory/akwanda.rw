@@ -262,7 +262,7 @@ const BookingCalendar = ({ propertyId, onBookingSelect, initialDate }) => {
       case 'cancelled':
         return 'bg-red-100 text-red-800 border-red-200';
       case 'ended':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
+        return 'bg-[#fdf7f0] text-[#4b2a00] border-[#e0d5c7]';
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200';
     }
@@ -321,7 +321,7 @@ const BookingCalendar = ({ propertyId, onBookingSelect, initialDate }) => {
               </button>
               <button
                 onClick={() => setCurrentDate(new Date())}
-                className="px-3 py-1.5 md:px-4 md:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                className="px-3 py-1.5 md:px-4 md:py-2 bg-[#a06b42] text-white rounded-lg hover:bg-[#8f5a32] transition-colors text-sm"
               >
                 Today
               </button>
@@ -399,13 +399,13 @@ const BookingCalendar = ({ propertyId, onBookingSelect, initialDate }) => {
             return (
               <div
                 key={index}
-                className={`relative aspect-square md:min-h-[90px] p-1 md:p-2 rounded-lg flex flex-col ${date ? 'bg-white hover:bg-gray-50' : 'bg-gray-100'} transition-all ${isSelected ? 'bg-blue-50 shadow-sm' : ''} ${closed ? 'cal-cell--closed' : ''} ${isToday ? 'cal-cell--today' : ''}`}
+                className={`relative aspect-square md:min-h-[90px] p-1 md:p-2 rounded-lg flex flex-col ${date ? 'bg-white hover:bg-[#fdf7f0]' : 'bg-gray-100'} transition-all ${isSelected ? 'bg-[#f5ede1] shadow-sm' : ''} ${closed ? 'cal-cell--closed' : ''} ${isToday ? 'cal-cell--today' : ''}`}
                 onClick={() => date && onMonthCellClick(date)}
               >
                 {date && (
                   <>
                     <div className={`text-xs md:text-sm font-semibold mb-1 transition-colors ${
-                      isToday ? 'text-blue-600' : 'text-gray-900'
+                      isToday ? 'text-[#a06b42]' : 'text-gray-900'
                     }`}>
                       {date.getDate()}
                     </div>
@@ -469,7 +469,7 @@ const BookingCalendar = ({ propertyId, onBookingSelect, initialDate }) => {
             </button>
             <button
               onClick={() => setCurrentDate(new Date())}
-              className="px-3 py-1.5 md:px-4 md:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+              className="px-3 py-1.5 md:px-4 md:py-2 bg-[#a06b42] text-white rounded-lg hover:bg-[#8f5a32] transition-colors text-sm"
             >
               This Week
             </button>
@@ -491,7 +491,7 @@ const BookingCalendar = ({ propertyId, onBookingSelect, initialDate }) => {
             return (
               <div key={index} className="space-y-2">
                 <div className={`text-center p-2 rounded-lg ${
-                  isToday ? 'bg-blue-100 text-blue-600' : 'bg-gray-50 text-gray-700'
+                  isToday ? 'bg-[#fdf7f0] text-[#a06b42]' : 'bg-gray-50 text-gray-700'
                 }`}>
                   <div className="text-xs md:text-sm font-medium">{date.toLocaleDateString('en-US', { weekday: 'short' })}</div>
                   <div className="text-base md:text-lg font-bold">{date.getDate()}</div>
@@ -535,7 +535,7 @@ const BookingCalendar = ({ propertyId, onBookingSelect, initialDate }) => {
             </button>
             <button
               onClick={() => setCurrentDate(new Date())}
-              className="px-3 py-1.5 md:px-4 md:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+              className="px-3 py-1.5 md:px-4 md:py-2 bg-[#a06b42] text-white rounded-lg hover:bg-[#8f5a32] transition-colors text-sm"
             >
               Today
             </button>
@@ -552,7 +552,7 @@ const BookingCalendar = ({ propertyId, onBookingSelect, initialDate }) => {
         <div className="space-y-4">
           {dayBookings.length === 0 ? (
             <div className="text-center py-12 text-gray-500">
-              <FaCalendarAlt className="text-3xl md:text-4xl mx-auto mb-4 text-gray-300" />
+              <FaCalendarAlt className="text-3xl md:text-4xl mx-auto mb-4 text-[#e0d5c7]" />
               <p>No bookings for this day</p>
             </div>
           ) : (
@@ -596,28 +596,28 @@ const BookingCalendar = ({ propertyId, onBookingSelect, initialDate }) => {
   };
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 animate-fade-in-up">
+    <div className="bg-white rounded-xl border border-[#e0d5c7] p-4 md:p-6 animate-fade-in-up">
       <div className="flex items-center justify-between mb-3 md:mb-4">
         <div>
-          <h1 className="text-lg md:text-xl font-bold text-gray-900">Booking Calendar</h1>
+          <h1 className="text-lg md:text-xl font-bold text-[#4b2a00]">Booking Calendar</h1>
           <p className="text-[11px] md:text-xs text-gray-500">View, filter, and manage your bookings</p>
         </div>
         <div className="flex items-center space-x-2 md:space-x-3">
           <button
             onClick={() => setViewMode('month')}
-            className={`px-2.5 py-1.5 md:px-3 md:py-1.5 rounded border text-xs md:text-sm ${viewMode === 'month' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 hover:bg-gray-50 border-gray-300'}`}
+            className={`px-2.5 py-1.5 md:px-3 md:py-1.5 rounded border text-xs md:text-sm ${viewMode === 'month' ? 'bg-[#a06b42] text-white border-[#8f5a32]' : 'bg-white text-[#6b5744] hover:bg-[#fdf7f0] border-[#e0d5c7]'}`}
           >
             MONTH
           </button>
           <button
             onClick={() => setViewMode('week')}
-            className={`px-2.5 py-1.5 md:px-3 md:py-1.5 rounded border text-xs md:text-sm ${viewMode === 'week' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 hover:bg-gray-50 border-gray-300'}`}
+            className={`px-2.5 py-1.5 md:px-3 md:py-1.5 rounded border text-xs md:text-sm ${viewMode === 'week' ? 'bg-[#a06b42] text-white border-[#8f5a32]' : 'bg-white text-[#6b5744] hover:bg-[#fdf7f0] border-[#e0d5c7]'}`}
           >
             WEEK
           </button>
           <button
             onClick={() => setViewMode('day')}
-            className={`px-2.5 py-1.5 md:px-3 md:py-1.5 rounded border text-xs md:text-sm ${viewMode === 'day' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 hover:bg-gray-50 border-gray-300'}`}
+            className={`px-2.5 py-1.5 md:px-3 md:py-1.5 rounded border text-xs md:text-sm ${viewMode === 'day' ? 'bg-[#a06b42] text-white border-[#8f5a32]' : 'bg-white text-[#6b5744] hover:bg-[#fdf7f0] border-[#e0d5c7]'}`}
           >
             DAY
           </button>
@@ -653,7 +653,7 @@ const BookingCalendar = ({ propertyId, onBookingSelect, initialDate }) => {
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+          <div className="w-8 h-8 border-4 border-[#a06b42] border-t-transparent rounded-full animate-spin"></div>
         </div>
       ) : (
         <>
@@ -671,8 +671,8 @@ const BookingCalendar = ({ propertyId, onBookingSelect, initialDate }) => {
 
       {/* Selected Date Info */}
       {selectedDate && (
-        <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
-          <h3 className="font-semibold text-blue-900 mb-2">
+        <div className="mt-6 p-4 bg-[#fdf7f0] border border-[#e0d5c7] rounded-xl">
+          <h3 className="font-semibold text-[#4b2a00] mb-2">
             Bookings for {formatDate(selectedDate)}
           </h3>
           <div className="space-y-2">

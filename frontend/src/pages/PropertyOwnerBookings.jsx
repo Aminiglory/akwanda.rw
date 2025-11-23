@@ -72,7 +72,7 @@ const PropertyOwnerBookings = () => {
     search: ''
   });
   const [ownerView, setOwnerView] = useState('table'); // 'table' | 'calendar'
-  const [calendarViewMode, setCalendarViewMode] = useState('monthly'); // 'monthly' | 'yearly'
+  const [calendarViewMode, setCalendarViewMode] = useState('monthly'); // 'monthly' | 'yearly' | 'matrix'
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'dashboard');
   const [activeNavDropdown, setActiveNavDropdown] = useState(null);
   const [financeFilter, setFinanceFilter] = useState(searchParams.get('finance_status') || 'all'); // all|paid|pending|unpaid
@@ -1557,21 +1557,16 @@ const PropertyOwnerBookings = () => {
                       <option key={p._id} value={p._id}>{p.name}</option>
                     ))}
                   </select>
-                  <div className="inline-flex rounded-full border border-[#e0d5c7] bg-[#fdf7f0] overflow-hidden text-xs">
-                    <button
-                      type="button"
-                      onClick={() => setCalendarViewMode('monthly')}
-                      className={`px-3 py-1.5 ${calendarViewMode === 'monthly' ? 'bg-[#a06b42] text-white' : 'text-[#6b5744]'}`}
+                  <div className="relative">
+                    <select
+                      value={calendarViewMode}
+                      onChange={(e) => setCalendarViewMode(e.target.value)}
+                      className="pl-3 pr-8 py-2 rounded-full border border-[#e0d5c7] bg-[#fdf7f0] text-xs text-[#4b2a00] focus:outline-none focus:ring-2 focus:ring-[#a06b42]"
                     >
-                      Monthly view
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setCalendarViewMode('yearly')}
-                      className={`px-3 py-1.5 ${calendarViewMode === 'yearly' ? 'bg-[#a06b42] text-white' : 'text-[#6b5744]'}`}
-                    >
-                      Yearly view
-                    </button>
+                      <option value="monthly">Monthly view</option>
+                      <option value="yearly">Yearly view</option>
+                      <option value="matrix">List view</option>
+                    </select>
                   </div>
                 </div>
               </div>
@@ -1599,6 +1594,133 @@ const PropertyOwnerBookings = () => {
                         setShowBookingDetails(true);
                       }}
                     />
+                  );
+                }
+
+                if (calendarViewMode === 'matrix') {
+                  const start = new Date(filters.year, new Date().getMonth(), 1);
+                  const end = new Date(start.getFullYear(), start.getMonth() + 1, 0);
+
+                  const days = [];
+                  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                    days.push(new Date(d));
+                  }
+
+                  const roomsForProperty = ownerRooms.filter(
+                    r => String(r.property) === String(propertyForCalendar)
+                  );
+
+                  const getRoomUnits = (room) => Number(room.totalUnits || room.units || 1);
+
+                  const getRoomStatsForDay = (room, day) => {
+                    const roomId = room._id || room.id;
+
+                    const list = bookings.filter(b => {
+                      if (String(b.property?._id) !== String(propertyForCalendar)) return false;
+                      if (String(b.room) !== String(roomId)) return false;
+                      const ci = new Date(b.checkIn);
+                      const co = new Date(b.checkOut);
+                      const d0 = new Date(day.getFullYear(), day.getMonth(), day.getDate());
+                      return d0 >= new Date(ci.getFullYear(), ci.getMonth(), ci.getDate()) &&
+                             d0 <  new Date(co.getFullYear(), co.getMonth(), co.getDate());
+                    });
+
+                    const units = getRoomUnits(room);
+                    const booked = list.length;
+                    const remaining = Math.max(0, units - booked);
+
+                    let status = 'bookable';
+                    if (booked >= units && units > 0) status = 'soldout';
+                    else if (booked > 0) status = 'partial';
+
+                    return { units, booked, remaining, status };
+                  };
+
+                  const statusClasses = {
+                    bookable: 'bg-[#e9f7ec] border-[#b7dfc5] text-[#245430]',
+                    partial:  'bg-[#fff4e6] border-[#f1c48a] text-[#7b4a12]',
+                    soldout:  'bg-[#fdeeee] border-[#f5b5b5] text-[#7a1f1f]',
+                  };
+
+                  return (
+                    <div className="space-y-4">
+                      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-2">
+                        <div className="flex items-center gap-2">
+                          <div className="text-sm font-semibold text-[#4b2a00]">
+                            {start.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3 text-[11px] text-gray-600">
+                          <span className="inline-flex items-center gap-1">
+                            <span className="w-3 h-3 rounded-sm bg-[#e9f7ec] border border-[#b7dfc5]" /> Open
+                          </span>
+                          <span className="inline-flex items-center gap-1">
+                            <span className="w-3 h-3 rounded-sm bg-[#fff4e6] border border-[#f1c48a]" /> Partially booked
+                          </span>
+                          <span className="inline-flex items-center gap-1">
+                            <span className="w-3 h-3 rounded-sm bg-[#fdeeee] border border-[#f5b5b5]" /> Sold-out
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="border border-[#e0d5c7] rounded-xl overflow-x-auto bg-white">
+                        <table className="min-w-full text-xs">
+                          <thead className="bg-[#fdf7f0] text-[#4b2a00]">
+                            <tr>
+                              <th className="px-3 py-2 text-left w-40">Room</th>
+                              {days.map(d => (
+                                <th
+                                  key={d.toISOString()}
+                                  className="px-2 py-2 text-center whitespace-nowrap border-l border-[#e0d5c7]"
+                                >
+                                  <div>{d.getDate()}</div>
+                                  <div className="text-[10px] text-gray-500">
+                                    {d.toLocaleDateString(undefined, { weekday: 'short' })}
+                                  </div>
+                                </th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {roomsForProperty.map(room => (
+                              <tr key={room._id || room.id} className="border-t border-[#f0e6d9]">
+                                <td className="px-3 py-2 text-[11px] text-[#4b2a00] bg-[#fdf7f0] sticky left-0 z-10">
+                                  <div className="font-semibold">{room.roomNumber || room.name || 'Room'}</div>
+                                  <div className="text-[10px] text-gray-500">
+                                    Rooms to sell: {getRoomUnits(room)}
+                                  </div>
+                                </td>
+                                {days.map(d => {
+                                  const { units, booked, remaining, status } = getRoomStatsForDay(room, d);
+                                  const cls = statusClasses[status] || 'bg-white border-[#e0d5c7] text-[#4b2a00]';
+                                  return (
+                                    <td
+                                      key={d.toISOString()}
+                                      className={`px-1 py-1 text-center border-l border-[#f0e6d9] ${cls}`}
+                                      title={`${booked} booked / ${units} total`}
+                                    >
+                                      <div className="text-[10px] font-semibold">
+                                        {booked}/{units}
+                                      </div>
+                                      <div className="text-[9px] text-[rgba(0,0,0,0.55)]">
+                                        {remaining} open
+                                      </div>
+                                    </td>
+                                  );
+                                })}
+                              </tr>
+                            ))}
+                            {roomsForProperty.length === 0 && (
+                              <tr>
+                                <td colSpan={days.length + 1} className="px-4 py-8 text-center text-gray-500">
+                                  Add rooms to this property to use the list view.
+                                </td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
                   );
                 }
 
