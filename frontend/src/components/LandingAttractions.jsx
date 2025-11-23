@@ -100,21 +100,21 @@ export default function LandingAttractions() {
       return { src: makeAbsoluteImageUrl(src), title, category: 'attraction', priority: i < 3 };
     });
     
-    // Preload first 3 attraction images
-    useEffect(() => {
-      if (processedCards.length > 0) {
-        const criticalImages = processedCards.slice(0, 3).map((card, index) => ({
-          url: card.src,
-          priority: 3 - index,
-          category: 'attraction'
-        }));
-        
-        preloadImages(criticalImages, { maxConcurrent: 2, timeout: 3000 });
-      }
-    }, [processedCards]);
-    
     return processedCards;
   }, [section, localize]);
+
+  // Preload first 3 attraction images
+  useEffect(() => {
+    if (cards.length > 0) {
+      const criticalImages = cards.slice(0, 3).map((card, index) => ({
+        url: card.src,
+        priority: 3 - index,
+        category: 'attraction'
+      }));
+      
+      preloadImages(criticalImages, { maxConcurrent: 2, timeout: 3000 });
+    }
+  }, [cards]);
 
   if (!section || cards.length === 0) return null;
 
