@@ -1114,34 +1114,6 @@ const ApartmentDetails = () => {
 
           {/* Booking Sidebar */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-2xl shadow-lg p-6 sticky top-8">
-              <div className="text-center mb-6">
-                <div className="text-3xl font-bold text-blue-600 mb-1">
-                  {formatCurrencyRWF ? formatCurrencyRWF(apartment.pricePerNight || apartment.price || 0) : `RWF ${(apartment.pricePerNight || apartment.price || 0).toLocaleString()}`}
-                </div>
-                <span className="text-gray-600">per night</span>
-              </div>
-              <button
-                type="button"
-                disabled={!isAuthenticated}
-                onClick={(e) => {
-                  if (!isAuthenticated) {
-                    e.preventDefault();
-                    navigate('/login');
-                  } else {
-                    navigate(`/booking/${id}`);
-                  }
-                }}
-                className={`w-full ${
-                  isAuthenticated
-                    ? 'bg-blue-600 hover:bg-blue-700'
-                    : 'bg-gray-300'
-                } text-white py-4 rounded-xl font-semibold transition-all duration-300 ${
-                  isAuthenticated
-                    ? 'hover:scale-105 shadow-lg hover:shadow-xl'
-                    : ''
-                }`}
-              >
                 {isAuthenticated ? 'Start Booking Process' : 'Login to Book'}
               </button>
 

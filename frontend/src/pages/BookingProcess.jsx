@@ -86,6 +86,18 @@ const BookingProcess = () => {
       const params = new URLSearchParams(window.location.search);
       const d = params.get('dealId') || '';
       if (d) setSelectedDealId(d);
+
+      const cin = params.get('checkIn') || '';
+      const cout = params.get('checkOut') || '';
+      const guestsParam = params.get('guests');
+      if (cin || cout || guestsParam) {
+        setBookingData(prev => ({
+          ...prev,
+          checkIn: cin || prev.checkIn,
+          checkOut: cout || prev.checkOut,
+          guests: guestsParam ? Number(guestsParam) || prev.guests : prev.guests
+        }));
+      }
     } catch {}
   }, []);
 
