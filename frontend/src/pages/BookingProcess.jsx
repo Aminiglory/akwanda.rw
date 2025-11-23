@@ -20,7 +20,7 @@ const BookingProcess = () => {
   const [bookingData, setBookingData] = useState({
     checkIn: '',
     checkOut: '',
-    guests: 1,
+    guests: '',
     rooms: 1,
     budget: '',
     specialRequests: '',
@@ -62,6 +62,8 @@ const BookingProcess = () => {
     'Rwanda', 'Uganda', 'Kenya', 'Tanzania', 'Burundi', 'DRC', 'South Sudan',
     'Ethiopia', 'Somalia', 'Djibouti', 'Eritrea', 'Other'
   ];
+
+  const cameFromProperty = !!initialRoomId;
 
   const dedupeRooms = (rooms) => {
     const map = new Map();
@@ -123,12 +125,13 @@ const BookingProcess = () => {
           ...prev,
           checkIn: cin || prev.checkIn,
           checkOut: cout || prev.checkOut,
-          guests: guestsParam ? Number(guestsParam) || prev.guests : prev.guests
+          guests: guestsParam ? guestsParam : prev.guests
         }));
       }
 
       if (roomParam) {
         setInitialRoomId(roomParam);
+        // Coming from property page with a specific room -> go directly to dates review (Step 3)
         setCurrentStep(3);
       }
     } catch {}
@@ -197,6 +200,11 @@ const BookingProcess = () => {
       return;
     }
 
+    if (!bookingData.guests || Number(bookingData.guests) < 1) {
+      toast.error('Please enter number of guests');
+      return;
+    }
+
     if (!bookingData.contactInfo.firstName || !bookingData.contactInfo.lastName || !bookingData.contactInfo.email) {
       toast.error('Please fill in all required contact information');
       return;
@@ -212,11 +220,11 @@ const BookingProcess = () => {
         room: roomId,
         checkIn: bookingData.checkIn,
         checkOut: bookingData.checkOut,
-        numberOfGuests: bookingData.guests,
+        numberOfGuests: Number(bookingData.guests),
         contactInfo: bookingData.contactInfo,
         specialRequests: bookingData.specialRequests,
-        groupBooking: bookingData.guests >= 4,
-        groupSize: bookingData.guests,
+        groupBooking: Number(bookingData.guests) >= 4,
+        groupSize: Number(bookingData.guests),
         paymentMethod: paymentMethod,
         // Deals/discounts are not applied for now – use plain totalPrice
         totalAmount: Math.max(0, Number(totalPrice || 0)),
@@ -278,10 +286,14 @@ const BookingProcess = () => {
   };
 
   useEffect(() => {
-    if (bookingData.checkIn && bookingData.checkOut) {
+    // For direct bookings without a pre-selected room, auto-check availability when dates are set.
+    if (!cameFromProperty && bookingData.checkIn && bookingData.checkOut) {
       checkAvailability();
-    } else if (property && property.rooms && property.rooms.length > 0 && availableRooms.length === 0) {
-      // Fallback: if no availability check was made, use all rooms from property
+      return;
+    }
+
+    // Fallback: if no availability check was made, use all rooms from property
+    if (property && property.rooms && property.rooms.length > 0 && availableRooms.length === 0) {
       const processedRooms = property.rooms.map(room => {
         const pricePerNight = room.pricePerNight || room.price || 0;
         return {
@@ -294,7 +306,7 @@ const BookingProcess = () => {
       });
       setAvailableRooms(processedRooms);
     }
-  }, [bookingData.checkIn, bookingData.checkOut, bookingData.guests, property]);
+  }, [cameFromProperty, bookingData.checkIn, bookingData.checkOut, property, availableRooms.length]);
 
   useEffect(() => {
     filterRoomsByBudget();
@@ -337,6 +349,7 @@ const BookingProcess = () => {
   };
 
   const checkAvailability = async () => {
+
     try {
       setLoadingRooms(true);
       const res = await fetch(`${API_URL}/api/properties/${id}/availability`, {
@@ -346,7 +359,7 @@ const BookingProcess = () => {
         body: JSON.stringify({
           checkIn: bookingData.checkIn,
           checkOut: bookingData.checkOut,
-          guests: bookingData.guests
+          guests: Number(bookingData.guests)
         })
       });
       
@@ -529,6 +542,11 @@ const BookingProcess = () => {
       return;
     }
 
+    if (!bookingData.guests || Number(bookingData.guests) < 1) {
+      toast.error('Please enter number of guests');
+      return;
+    }
+
     if (!bookingData.contactInfo.firstName || !bookingData.contactInfo.lastName || !bookingData.contactInfo.email) {
       toast.error('Please fill in all required contact information');
       return;
@@ -545,11 +563,11 @@ const BookingProcess = () => {
         room: roomId,
         checkIn: bookingData.checkIn,
         checkOut: bookingData.checkOut,
-        numberOfGuests: bookingData.guests,
+        numberOfGuests: Number(bookingData.guests),
         contactInfo: bookingData.contactInfo,
         specialRequests: bookingData.specialRequests,
-        groupBooking: bookingData.guests >= 4,
-        groupSize: bookingData.guests,
+        groupBooking: Number(bookingData.guests) >= 4,
+        groupSize: Number(bookingData.guests),
         paymentMethod: 'cash',
         totalAmount: totalPrice,
         roomPrice: selectedRoom.pricePerNight || selectedRoom.price || 0,
@@ -876,25 +894,31 @@ const BookingProcess = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Guests</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Guests *</label>
                     <div className="relative">
                       <FaUsers className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                       <input
                         type="number"
                         min={1}
                         value={bookingData.guests}
-                        onChange={(e) => handleInputChange('guests', Number(e.target.value) || 1)}
+                        onChange={(e) => handleInputChange('guests', e.target.value)}
+                        placeholder="Number of guests"
                         className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        required
                       />
                     </div>
                   </div>
                 </div>
 
                 {/* Check Availability Button */}
-                {bookingData.checkIn && bookingData.checkOut && (
+                {!cameFromProperty && bookingData.checkIn && bookingData.checkOut && (
                   <div className="mb-6">
                     <button
                       onClick={async () => {
+                        if (!bookingData.guests || Number(bookingData.guests) < 1) {
+                          toast.error('Please enter number of guests before checking availability');
+                          return;
+                        }
                         await checkAvailability();
                         if (!selectedRoomUnavailable) {
                           toast.success('Room is available for your selected dates!');
@@ -922,7 +946,7 @@ const BookingProcess = () => {
                 )}
 
                 {/* Availability Status Message */}
-                {bookingData.checkIn && bookingData.checkOut && !loadingRooms && (
+                {!cameFromProperty && bookingData.checkIn && bookingData.checkOut && !loadingRooms && (
                   <div className="mb-6">
                     {selectedRoomUnavailable ? (
                       <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
@@ -961,6 +985,7 @@ const BookingProcess = () => {
                     )}
                   </div>
                 )}
+                
 
                 <div className="flex justify-between mt-6">
                   <button
@@ -978,6 +1003,10 @@ const BookingProcess = () => {
                       }
                       if (!bookingData.checkIn || !bookingData.checkOut) {
                         toast.error('Please select check-in and check-out dates');
+                        return;
+                      }
+                      if (!bookingData.guests || Number(bookingData.guests) < 1) {
+                        toast.error('Please enter number of guests');
                         return;
                       }
                       if (selectedRoomUnavailable) {

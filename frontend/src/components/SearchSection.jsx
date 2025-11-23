@@ -9,7 +9,7 @@ const SearchSection = () => {
     location: '',
     checkIn: '',
     checkOut: '',
-    guests: 1,
+    guests: '',
     pickupLocation: '',
     returnLocation: '',
     pickupDate: '',
@@ -123,9 +123,13 @@ const SearchSection = () => {
                   <FaUser className="icon-left" />
                   <select
                     className="w-full pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 appearance-none bg-white"
-                    value={Number(searchData.guests) || 1}
-                    onChange={(e) => handleInputChange('guests', Number(e.target.value))}
+                    value={searchData.guests}
+                    onChange={(e) => handleInputChange('guests', e.target.value)}
+                    required
                   >
+                    <option value="" disabled>
+                      {t ? t('search.guestsPlaceholder') : 'Select guests'}
+                    </option>
                     <option value="1">1 {t ? t('search.guests') : 'Guests'}</option>
                     <option value="2">2 {t ? t('search.guests') : 'Guests'}</option>
                     <option value="3">3 {t ? t('search.guests') : 'Guests'}</option>

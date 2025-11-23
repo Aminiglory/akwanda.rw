@@ -60,7 +60,7 @@ const ApartmentDetails = () => {
   const [reviewsError, setReviewsError] = useState('');
   const [searchCheckIn, setSearchCheckIn] = useState('');
   const [searchCheckOut, setSearchCheckOut] = useState('');
-  const [searchGuests, setSearchGuests] = useState(1);
+  const [searchGuests, setSearchGuests] = useState('');
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
   const [availabilityRooms, setAvailabilityRooms] = useState(null);
 
@@ -318,8 +318,8 @@ const ApartmentDetails = () => {
   }, [apartment, selectedRoom]);
 
   const handleDatesAvailability = async () => {
-    if (!searchCheckIn || !searchCheckOut) {
-      toast.error('Please select check-in and check-out dates to see available rooms.');
+    if (!searchCheckIn || !searchCheckOut || !searchGuests || Number(searchGuests) < 1) {
+      toast.error('Please select check-in, check-out, and number of guests to see available rooms.');
       return;
     }
 
@@ -332,7 +332,7 @@ const ApartmentDetails = () => {
         body: JSON.stringify({
           checkIn: searchCheckIn,
           checkOut: searchCheckOut,
-          guests: searchGuests
+          guests: Number(searchGuests)
         })
       });
 
@@ -356,8 +356,8 @@ const ApartmentDetails = () => {
   };
 
   const handleReserveRoom = (room) => {
-    if (!searchCheckIn || !searchCheckOut) {
-      toast.error('Please select check-in and check-out dates before reserving a room.');
+    if (!searchCheckIn || !searchCheckOut || !searchGuests || Number(searchGuests) < 1) {
+      toast.error('Please select check-in, check-out, and number of guests before reserving a room.');
       return;
     }
 
@@ -375,7 +375,7 @@ const ApartmentDetails = () => {
     const params = new URLSearchParams({
       checkIn: searchCheckIn,
       checkOut: searchCheckOut,
-      guests: String(searchGuests || 1),
+      guests: String(searchGuests),
       roomId: String(roomId)
     });
 
@@ -734,8 +734,10 @@ const ApartmentDetails = () => {
                           type="number"
                           min={1}
                           value={searchGuests}
-                          onChange={(e) => setSearchGuests(Math.max(1, Number(e.target.value) || 1))}
+                          onChange={(e) => setSearchGuests(e.target.value)}
+                          placeholder="Guests"
                           className="pl-9 pr-3 py-2 w-24 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          required
                         />
                       </div>
                       <button
