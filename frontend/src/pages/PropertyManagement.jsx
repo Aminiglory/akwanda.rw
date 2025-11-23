@@ -834,7 +834,7 @@ export default function PropertyManagement() {
                             }));
                           }}
                         >
-                          
+                          <span>{'<'}</span>
                         </button>
                         <button
                           type="button"
@@ -847,7 +847,7 @@ export default function PropertyManagement() {
                             }));
                           }}
                         >
-                          
+                          <span>{'>'}</span>
                         </button>
                       </>
                     )}
@@ -1004,7 +1004,71 @@ export default function PropertyManagement() {
               <FaBed /> Room Details
             </h2>
             {propertyData?.rooms?.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <>
+                {/* Availability / Accommodation type summary table */}
+                <div className="mb-6 border border-gray-200 rounded-lg overflow-hidden">
+                  <div className="bg-blue-900 text-white text-xs sm:text-sm font-semibold px-4 py-2 flex">
+                    <div className="flex-1">Accommodation type</div>
+                    <div className="w-32 text-center hidden sm:block">Number of guests</div>
+                    <div className="w-32 text-center">Actions</div>
+                  </div>
+                  <div className="divide-y divide-gray-200 bg-white text-xs sm:text-sm">
+                    {propertyData.rooms.map((room, idx) => {
+                      const roomKey = room._id || idx;
+                      const beds = room.beds || {};
+                      const bedParts = [];
+                      const pushBed = (count, label) => {
+                        if (!count) return;
+                        bedParts.push(`${count} ${label}${count > 1 ? 's' : ''}`);
+                      };
+                      pushBed(beds.twin, 'twin bed');
+                      pushBed(beds.full, 'full bed');
+                      pushBed(beds.queen, 'queen bed');
+                      pushBed(beds.king, 'king bed');
+                      pushBed(beds.bunk, 'bunk bed');
+                      pushBed(beds.sofa, 'sofa bed');
+                      pushBed(beds.futon, 'futon');
+                      const bedText = bedParts.length ? bedParts.join(' · ') : `${room.capacity || 1} bed${(room.capacity || 1) > 1 ? 's' : ''}`;
+                      const adults = Number(room.maxAdults || 0);
+                      const children = Number(room.maxChildren || 0);
+                      const infants = Number(room.maxInfants || 0);
+                      const totalGuests = adults + children + infants || room.capacity || 1;
+                      return (
+                        <div key={roomKey} className="flex flex-col sm:flex-row items-stretch">
+                          <div className="flex-1 px-4 py-3">
+                            <div className="text-blue-800 font-semibold text-sm">
+                              {room.roomType || room.type || 'Room'} {room.roomNumber ? `- ${room.roomNumber}` : ''}
+                            </div>
+                            <div className="text-[11px] text-gray-600 mt-0.5 flex items-center gap-1">
+                              <FaBed className="inline-block" />
+                              <span>{bedText}</span>
+                            </div>
+                          </div>
+                          <div className="w-full sm:w-32 px-4 py-3 flex items-center justify-start sm:justify-center border-t sm:border-t-0 sm:border-l border-gray-200 text-gray-800 text-xs">
+                            <div className="flex items-center gap-1">
+                              <FaUser className="text-gray-600" />
+                              <span>x {totalGuests}</span>
+                            </div>
+                          </div>
+                          <div className="w-full sm:w-32 px-4 py-3 flex items-center justify-end sm:justify-center border-t sm:border-t-0 sm:border-l border-gray-200">
+                            <button
+                              type="button"
+                              className="px-3 py-1.5 rounded bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold"
+                              onClick={() => {
+                                // this can be wired to open a pricing/availability view for this room
+                                toast?.success('Use the Pricing & booking calendar to adjust prices for this room type.');
+                              }}
+                            >
+                              Show prices
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {propertyData.rooms.map((room, idx) => {
                   const roomKey = room._id || idx;
                   const isExpanded = expandedRoomId === roomKey;
@@ -1219,110 +1283,67 @@ export default function PropertyManagement() {
                             </div>
                           </div>
 
-                          {/* Room amenities (per room) */}
-                          <div className="mt-2">
-                            <div className="text-xs font-semibold text-gray-600 mb-1">Room amenities</div>
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                              {roomAmenityOptions.map(opt => {
-                                const a = opt.slug || opt.name;
-                                const currentAmenities = Array.isArray(room.amenities) ? room.amenities : [];
-                                const checked = currentAmenities.includes(a);
-                                return (
-                                  <label
-                                    key={a}
-                                    className="inline-flex items-center gap-2 text-xs"
-                                    title={opt.description || (opt.name || a)}
-                                  >
-                                    <input
-                                      type="checkbox"
-                                      checked={checked}
-                                      onChange={() => {
-                                        setPropertyData(prev => {
-                                          if (!prev) return prev;
-                                          const nextRooms = prev.rooms.map((r, rIdx) => {
-                                            if (rIdx !== idx) return r;
-                                            const cur = Array.isArray(r.amenities) ? r.amenities : [];
-                                            const next = checked ? cur.filter(x => x !== a) : [...cur, a];
-                                            return { ...r, amenities: next };
-                                          });
-                                          return { ...prev, rooms: nextRooms };
-                                        });
-                                      }}
-                                    />
-                                    <span className="capitalize">{(opt.name || a).replace('_', ' ')}</span>
-                                  </label>
-                                );
-                              })}
+                          {/* Bed configuration */}
+                          <div>
+                            <div className="text-xs font-semibold text-gray-600 mb-2">Bed configuration</div>
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+                              {['twin', 'full', 'queen', 'king', 'bunk', 'sofa', 'futon'].map(bedType => (
+                                <div key={bedType}>
+                                  <label className="block text-xs text-gray-600 mb-1 capitalize">{bedType} beds</label>
+                                  <input
+                                    id={`beds-${bedType}-${room._id}`}
+                                    type="number"
+                                    defaultValue={room.beds?.[bedType] || 0}
+                                    min={0}
+                                    className="w-full border rounded px-3 py-2"
+                                  />
+                                </div>
+                              ))}
                             </div>
                           </div>
 
-                          <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
-                            <span>
-                              Total maximum people: {totalPeople}
-                            </span>
-                          </div>
-
-                          <div className="mt-3 flex flex-wrap gap-2">
+                          {/* Save button */}
+                          <div className="pt-3 border-t">
                             <button
+                              type="button"
                               onClick={async () => {
+                                const updates = {
+                                  capacity: Number(document.getElementById(`capacity-${room._id}`)?.value || 1),
+                                  pricePerNight: Number(document.getElementById(`rate-${room._id}`)?.value || 0),
+                                  maxAdults: Number(document.getElementById(`maxAdults-${room._id}`)?.value || 0),
+                                  maxChildren: Number(document.getElementById(`maxChildren-${room._id}`)?.value || 0),
+                                  maxInfants: Number(document.getElementById(`maxInfants-${room._id}`)?.value || 0),
+                                  bathroomType: document.getElementById(`bathroomType-${room._id}`)?.value || 'inside',
+                                  bathrooms: Number(document.getElementById(`bathrooms-${room._id}`)?.value || 1),
+                                  beds: {
+                                    twin: Number(document.getElementById(`beds-twin-${room._id}`)?.value || 0),
+                                    full: Number(document.getElementById(`beds-full-${room._id}`)?.value || 0),
+                                    queen: Number(document.getElementById(`beds-queen-${room._id}`)?.value || 0),
+                                    king: Number(document.getElementById(`beds-king-${room._id}`)?.value || 0),
+                                    bunk: Number(document.getElementById(`beds-bunk-${room._id}`)?.value || 0),
+                                    sofa: Number(document.getElementById(`beds-sofa-${room._id}`)?.value || 0),
+                                    futon: Number(document.getElementById(`beds-futon-${room._id}`)?.value || 0)
+                                  },
+                                  images: Array.isArray(propertyData.rooms[idx].images) ? propertyData.rooms[idx].images : []
+                                };
                                 try {
-                                  const capacityEl = document.getElementById(`capacity-${room._id}`);
-                                  const rateEl = document.getElementById(`rate-${room._id}`);
-                                  const maxAdultsEl = document.getElementById(`maxAdults-${room._id}`);
-                                  const maxChildrenEl = document.getElementById(`maxChildren-${room._id}`);
-                                  const maxInfantsEl = document.getElementById(`maxInfants-${room._id}`);
-                                  const bathroomTypeEl = document.getElementById(`bathroomType-${room._id}`);
-                                  const bathroomsEl = document.getElementById(`bathrooms-${room._id}`);
-
-                                  const payload = {
-                                    capacity: Number(capacityEl?.value || room.capacity || 1),
-                                    pricePerNight: Number(rateEl?.value || room.pricePerNight || 0),
-                                    maxAdults: maxAdultsEl?.value !== '' ? Number(maxAdultsEl.value) : undefined,
-                                    maxChildren: maxChildrenEl?.value !== '' ? Number(maxChildrenEl.value) : undefined,
-                                    maxInfants: maxInfantsEl?.value !== '' ? Number(maxInfantsEl.value) : undefined,
-                                    bathroomType: bathroomTypeEl?.value || room.bathroomType || 'inside',
-                                    bathrooms: bathroomsEl?.value !== '' ? Number(bathroomsEl.value) : room.bathrooms ?? 1,
-                                    images: Array.isArray(room.images) ? room.images : [],
-                                    amenities: Array.isArray(room.amenities) ? room.amenities : [],
-                                  };
-
                                   const res = await fetch(`${API_URL}/api/properties/${selectedProperty}/rooms/${room._id}`, {
                                     method: 'PUT',
                                     credentials: 'include',
                                     headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify(payload)
+                                    body: JSON.stringify(updates)
                                   });
-                                  const json = await res.json().catch(() => ({}));
+                                  const json = await res.json().catch(()=>({}));
                                   if (!res.ok) throw new Error(json.message || 'Failed to update room');
-                                  toast.success('Room updated');
+                                  toast.success('Room updated successfully');
                                   await fetchPropertyDetails();
                                 } catch (e) {
                                   toast.error(e.message || 'Failed to update room');
                                 }
                               }}
-                              className="px-4 py-2 rounded bg-blue-600 text-white text-xs"
+                              className="px-4 py-2 rounded bg-blue-600 text-white text-sm hover:bg-blue-700"
                             >
-                              Save changes
-                            </button>
-                            <button
-                              onClick={async () => {
-                                if (!window.confirm('Are you sure you want to delete this room?')) return;
-                                try {
-                                  const res = await fetch(`${API_URL}/api/properties/${selectedProperty}/rooms/${room._id}`, {
-                                    method: 'DELETE',
-                                    credentials: 'include'
-                                  });
-                                  const json = await res.json().catch(() => ({}));
-                                  if (!res.ok) throw new Error(json.message || 'Failed to delete room');
-                                  toast.success('Room deleted');
-                                  await fetchPropertyDetails();
-                                } catch (e) {
-                                  toast.error(e.message || 'Failed to delete room');
-                                }
-                              }}
-                              className="px-4 py-2 rounded bg-red-600 text-white text-xs"
-                            >
-                              Delete room
+                              Save room details
                             </button>
                           </div>
                         </div>
@@ -1330,9 +1351,10 @@ export default function PropertyManagement() {
                     </div>
                   );
                 })}
-              </div>
+                </div>
+              </>
             ) : (
-              <p className="text-gray-600">No rooms configured.</p>
+              <p className="text-gray-600">No rooms configured for this property.</p>
             )}
           </div>
         );
@@ -1346,24 +1368,51 @@ export default function PropertyManagement() {
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">First name</label>
-                  <input className="w-full border rounded px-3 py-2" value={profileDraft.firstName} onChange={(e)=> setProfileDraft(s=>({...s, firstName: e.target.value}))} />
+                  <label className="block text-sm font-medium mb-1">First Name</label>
+                  <input
+                    type="text"
+                    className="w-full border rounded px-3 py-2"
+                    value={profileDraft.firstName}
+                    onChange={(e) => setProfileDraft(s => ({...s, firstName: e.target.value}))}
+                  />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Last name</label>
-                  <input className="w-full border rounded px-3 py-2" value={profileDraft.lastName} onChange={(e)=> setProfileDraft(s=>({...s, lastName: e.target.value}))} />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Phone</label>
-                  <input className="w-full border rounded px-3 py-2" value={profileDraft.phone} onChange={(e)=> setProfileDraft(s=>({...s, phone: e.target.value}))} />
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium mb-1">Bio</label>
-                  <textarea className="w-full border rounded px-3 py-2" rows={4} value={profileDraft.bio} onChange={(e)=> setProfileDraft(s=>({...s, bio: e.target.value}))} />
+                  <label className="block text-sm font-medium mb-1">Last Name</label>
+                  <input
+                    type="text"
+                    className="w-full border rounded px-3 py-2"
+                    value={profileDraft.lastName}
+                    onChange={(e) => setProfileDraft(s => ({...s, lastName: e.target.value}))}
+                  />
                 </div>
               </div>
               <div>
-                <button disabled={saving} onClick={saveProfile} className="px-4 py-2 rounded bg-blue-600 text-white disabled:opacity-60">{saving ? 'Saving…' : 'Save profile'}</button>
+                <label className="block text-sm font-medium mb-1">Phone</label>
+                <input
+                  type="tel"
+                  className="w-full border rounded px-3 py-2"
+                  value={profileDraft.phone}
+                  onChange={(e) => setProfileDraft(s => ({...s, phone: e.target.value}))}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Bio</label>
+                <textarea
+                  className="w-full border rounded px-3 py-2"
+                  rows={4}
+                  value={profileDraft.bio}
+                  onChange={(e) => setProfileDraft(s => ({...s, bio: e.target.value}))}
+                  placeholder="Tell guests about yourself..."
+                />
+              </div>
+              <div>
+                <button
+                  disabled={saving}
+                  onClick={saveProfile}
+                  className="px-4 py-2 rounded bg-blue-600 text-white disabled:opacity-60"
+                >
+                  {saving ? 'Saving…' : 'Save profile'}
+                </button>
               </div>
             </div>
           </div>
@@ -1375,45 +1424,124 @@ export default function PropertyManagement() {
             <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
               <FaLeaf className="text-green-600" /> Sustainability
             </h2>
-            <p className="text-gray-600">Highlight your eco-friendly practices and certifications.</p>
-            <div className="mt-4 p-4 bg-green-50 rounded">
-              <p className="text-sm">Feature coming soon - Sustainability features</p>
+            <div className="space-y-4">
+              <div className="p-4 bg-green-50 rounded-lg">
+                <h3 className="font-semibold text-green-800 mb-2">Environmental Practices</h3>
+                <p className="text-sm text-green-700 mb-3">
+                  Show guests your commitment to sustainability and environmental responsibility.
+                </p>
+                <div className="space-y-2">
+                  {[
+                    'Energy-efficient lighting',
+                    'Water conservation measures',
+                    'Recycling program',
+                    'Local sourcing',
+                    'Renewable energy',
+                    'Waste reduction initiatives'
+                  ].map(practice => (
+                    <label key={practice} className="inline-flex items-center gap-2 text-sm">
+                      <input type="checkbox" className="text-green-600" />
+                      <span>{practice}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div className="p-4 border rounded">
+                <label className="block text-sm font-medium mb-2">Sustainability Description</label>
+                <textarea
+                  className="w-full border rounded px-3 py-2"
+                  rows={4}
+                  placeholder="Describe your property's sustainability initiatives..."
+                />
+              </div>
+              <button className="px-4 py-2 rounded bg-green-600 text-white">
+                Save sustainability info
+              </button>
             </div>
           </div>
         );
 
       default:
-        return <div>Select a view</div>;
+        return (
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-xl font-bold mb-4">Property Management</h2>
+            <p className="text-gray-600">Select a view from the navigation menu to manage your property.</p>
+          </div>
+        );
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold mb-6">Property Management</h1>
-        
-        {/* Property Selector */}
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-6">
-          <label className="block text-sm font-medium mb-2">Select Property</label>
-          <select
-            value={selectedProperty}
-            onChange={(e) => {
-              const val = e.target.value;
-              setSelectedProperty(val);
-            }}
-            className="w-full max-w-md px-4 py-2 border rounded-lg"
-          >
-            {properties.map(p => {
-              const name = p.title || p.name || 'Untitled property';
-              const location = [p.city, p.address].filter(Boolean).join(', ');
-              const label = location ? `${location} - ${name}` : name;
-              return (
-                <option key={p._id} value={p._id}>{label}</option>
-              );
-            })}
-          </select>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Property Management</h1>
+          <p className="text-gray-600">Manage your property details, amenities, and settings.</p>
         </div>
 
+        {/* Property Selector */}
+        {properties.length > 0 && (
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Select Property
+            </label>
+            <select
+              value={selectedProperty}
+              onChange={(e) => setSelectedProperty(e.target.value)}
+              className="w-full max-w-md border border-gray-300 rounded-md px-3 py-2 bg-white"
+            >
+              {properties.map(property => (
+                <option key={property._id} value={property._id}>
+                  {property.title || property.name} - {property.city}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {/* Navigation Menu */}
+        <div className="mb-6">
+          <div className="border-b border-gray-200">
+            <nav className="-mb-px flex space-x-8 overflow-x-auto">
+              {[
+                { key: 'general-info', label: 'General Info', icon: FaInfoCircle },
+                { key: 'quality-rating', label: 'Quality Rating', icon: FaStar },
+                { key: 'page-score', label: 'Page Score', icon: FaChartBar },
+                { key: 'vat-tax', label: 'VAT/Tax', icon: FaMoneyBillWave },
+                { key: 'photos', label: 'Photos', icon: FaImages },
+                { key: 'policies', label: 'Policies', icon: FaFileAlt },
+                { key: 'reservation-policies', label: 'Reservations', icon: FaFileAlt },
+                { key: 'facilities', label: 'Facilities', icon: FaBed },
+                { key: 'room-details', label: 'Room Details', icon: FaBed },
+                { key: 'room-amenities', label: 'Room Amenities', icon: FaBed },
+                { key: 'descriptions', label: 'Descriptions', icon: FaInfoCircle },
+                { key: 'add-ons', label: 'Add-ons', icon: FaMoneyBillWave },
+                { key: 'profile', label: 'Profile', icon: FaUser },
+                { key: 'sustainability', label: 'Sustainability', icon: FaLeaf }
+              ].map(({ key, label, icon: Icon }) => (
+                <button
+                  key={key}
+                  onClick={() => {
+                    const url = new URL(window.location);
+                    url.searchParams.set('view', key);
+                    window.history.pushState({}, '', url);
+                    window.location.reload();
+                  }}
+                  className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+                    view === key
+                      ? 'border-[#a06b42] text-[#a06b42]'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  {label}
+                </button>
+              ))}
+            </nav>
+          </div>
+        </div>
+
+        {/* Content */}
         {renderContent()}
       </div>
     </div>
