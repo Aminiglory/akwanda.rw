@@ -355,6 +355,33 @@ const ApartmentDetails = () => {
     }
   };
 
+  const handleReserveRoom = (room) => {
+    if (!searchCheckIn || !searchCheckOut) {
+      toast.error('Please select check-in and check-out dates before reserving a room.');
+      return;
+    }
+
+    const roomId = room && (room._id || room.id || room.roomNumber);
+    if (!roomId) {
+      toast.error('Unable to identify this room. Please try a different room.');
+      return;
+    }
+
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+
+    const params = new URLSearchParams({
+      checkIn: searchCheckIn,
+      checkOut: searchCheckOut,
+      guests: String(searchGuests || 1),
+      roomId: String(roomId)
+    });
+
+    navigate(`/booking/${id}?${params.toString()}`);
+  };
+
   const renderStars = (rating) => {
     return Array.from({ length: 5 }, (_, i) => {
       const full = i < Math.floor(rating);
@@ -867,6 +894,31 @@ const ApartmentDetails = () => {
                           </div>
                         )}
 
+                        {/* Reserve Button */}
+                        <div
+                          className="mt-4 flex items-center justify-between"
+                          data-interactive="true"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div className="text-xs text-gray-600">
+                            {searchCheckIn && searchCheckOut ? (
+                              <>
+                                {new Date(searchCheckIn).toLocaleDateString()} -{' '}
+                                {new Date(searchCheckOut).toLocaleDateString()}
+                              </>
+                            ) : (
+                              'Choose your dates first'
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            className="inline-flex items-center px-3 py-2 rounded-lg bg-blue-600 text-white text-xs md:text-sm font-semibold hover:bg-blue-700 transition-colors"
+                            onClick={() => handleReserveRoom(room)}
+                          >
+                            Reserve this room
+                          </button>
+                        </div>
+
                         {/* Selection Indicator */}
                         {selectedRoom === index && (
                           <div className="absolute top-2 right-2 w-6 h-6 bg-primary rounded-full flex items-center justify-center animate-pulse">
@@ -1114,35 +1166,61 @@ const ApartmentDetails = () => {
 
           {/* Booking Sidebar */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-2xl shadow-lg p-6 sticky top-8">
-              <div className="text-center mb-6">
-                <div className="text-3xl font-bold text-blue-600 mb-1">
-                  {formatCurrencyRWF ? formatCurrencyRWF(apartment.pricePerNight || apartment.price || 0) : `RWF ${(apartment.pricePerNight || apartment.price || 0).toLocaleString()}`}
+            <div className="bg-white rounded-2xl shadow-lg p-6 sticky top-8 space-y-4">
+              <div>
+                <div className="text-sm text-gray-500 mb-1">From</div>
+                <div className="text-2xl font-bold text-gray-900">
+                  {formatCurrencyRWF
+                    ? formatCurrencyRWF(apartment.pricePerNight || apartment.price || 0)
+                    : `RWF ${(apartment.pricePerNight || apartment.price || 0).toLocaleString()}`}
+                  <span className="text-sm font-normal text-gray-500 ml-1">/ night</span>
                 </div>
-                <span className="text-gray-600">per night</span>
+                {searchCheckIn && searchCheckOut && (
+                  <div className="mt-2 text-xs text-gray-600">
+                    {new Date(searchCheckIn).toLocaleDateString()} - {new Date(searchCheckOut).toLocaleDateString()}
+                  </div>
+                )}
               </div>
+
+              <div className="border-t border-gray-100 pt-4 space-y-2 text-sm text-gray-700">
+                <div className="flex items-center justify-between">
+                  <span>Check-in</span>
+                  <span className="font-medium">
+                    {searchCheckIn ? new Date(searchCheckIn).toLocaleDateString() : 'Select dates'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Check-out</span>
+                  <span className="font-medium">
+                    {searchCheckOut ? new Date(searchCheckOut).toLocaleDateString() : 'Select dates'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Guests</span>
+                  <span className="font-medium">{searchGuests || 1}</span>
+                </div>
+              </div>
+
               <button
                 type="button"
-                disabled={!isAuthenticated}
-                onClick={(e) => {
+                className="w-full inline-flex items-center justify-center px-4 py-3 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-colors"
+                onClick={() => {
                   if (!isAuthenticated) {
-                    e.preventDefault();
                     navigate('/login');
-                  } else {
-                    navigate(`/booking/${id}`);
+                    return;
                   }
+                  if (!searchCheckIn || !searchCheckOut) {
+                    toast.error('Please select check-in and check-out dates before reserving a room.');
+                    return;
+                  }
+                  if (selectedRoom === null || !roomsToDisplay[selectedRoom]) {
+                    toast.error('Please choose a room below and click "Reserve this room".');
+                    return;
+                  }
+                  handleReserveRoom(roomsToDisplay[selectedRoom]);
                 }}
-                className={`w-full ${
-                  isAuthenticated
-                    ? 'bg-blue-600 hover:bg-blue-700'
-                    : 'bg-gray-300'
-                } text-white py-4 rounded-xl font-semibold transition-all duration-300 ${
-                  isAuthenticated
-                    ? 'hover:scale-105 shadow-lg hover:shadow-xl'
-                    : ''
-                }`}
               >
-                {isAuthenticated ? 'Start Booking Process' : 'Login to Book'}
+                {isAuthenticated ? 'Reserve selected room' : 'Login to book'}
               </button>
 
               {/* Commission details are surfaced in Notifications for property owners; no monthly pricing shown here. */}
