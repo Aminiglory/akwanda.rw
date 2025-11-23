@@ -433,3 +433,6 @@ export const initializeLandingPageOptimization = async (criticalImages = []) => 
     });
   }
 };
+
+// Export performance utilities
+export { getDeviceOptimizations };
