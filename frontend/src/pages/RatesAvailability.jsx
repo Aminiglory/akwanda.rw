@@ -41,6 +41,14 @@ export default function RatesAvailability() {
   const [roomRanges, setRoomRanges] = useState({}); // { [roomId]: { start: 'YYYY-MM-DD', end: 'YYYY-MM-DD' } }
   const [dayModal, setDayModal] = useState(null); // { roomId, date: 'YYYY-MM-DD', events: [] }
   const [pricingCalendarView, setPricingCalendarView] = useState('monthly');
+  const [bulkEditRoom, setBulkEditRoom] = useState(null);
+  const [bulkEditOpen, setBulkEditOpen] = useState(false);
+  const [bulkRange, setBulkRange] = useState({ start: '', end: '' });
+  const [bulkWeekdays, setBulkWeekdays] = useState({ Mon: true, Tue: true, Wed: true, Thu: true, Fri: true, Sat: true, Sun: true });
+  const [bulkRate, setBulkRate] = useState('');
+  const [bulkMinStay, setBulkMinStay] = useState('');
+  const [bulkMaxStay, setBulkMaxStay] = useState('');
+  const [listBookings, setListBookings] = useState([]);
   
   // State for switch case views (moved to top level to follow Rules of Hooks)
   const [mobileDiscount, setMobileDiscount] = useState(10);
@@ -97,6 +105,29 @@ export default function RatesAvailability() {
       }
     }
   }, [selectedProperty, view]);
+
+  // Load bookings for list view matrix (Rooms to sell / Net booked)
+  useEffect(() => {
+    const loadListBookings = async () => {
+      try {
+        if (!selectedProperty || view !== 'calendar' || pricingCalendarView !== 'list') return;
+        const month = activeMonth.getMonth() + 1;
+        const year = activeMonth.getFullYear();
+        const res = await fetch(`${API_URL}/api/bookings?propertyId=${selectedProperty}&month=${month}&year=${year}`, {
+          credentials: 'include'
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && Array.isArray(data.bookings)) {
+          setListBookings(data.bookings);
+        } else {
+          setListBookings([]);
+        }
+      } catch (_) {
+        setListBookings([]);
+      }
+    };
+    loadListBookings();
+  }, [selectedProperty, view, pricingCalendarView, activeMonth]);
 
   // Keep add-on services draft in sync with loaded property data
   useEffect(() => {
@@ -162,6 +193,40 @@ export default function RatesAvailability() {
     if (action === 'open') await handleOpenDates(roomId);
     if (action === 'close') await handleCloseDates(roomId);
     setDayModal(null);
+  };
+
+  const openBulkEdit = (room) => {
+    setBulkEditRoom(room);
+    setBulkEditOpen(true);
+    const todayStr = fmt(new Date());
+    setBulkRange(r => ({ start: r.start || todayStr, end: r.end || todayStr }));
+  };
+
+  const closeBulkEdit = () => {
+    setBulkEditOpen(false);
+    setBulkEditRoom(null);
+  };
+
+  const applyBulkOpenClose = async (mode) => {
+    if (!bulkEditRoom) return;
+    const roomId = bulkEditRoom._id;
+    setDateRanges(prev => ({
+      ...prev,
+      [roomId]: {
+        startDate: bulkRange.start,
+        endDate: bulkRange.end
+      }
+    }));
+    if (mode === 'open') await handleOpenDates(roomId);
+    if (mode === 'close') await handleCloseDates(roomId);
+  };
+
+  const applyBulkRestrictions = async () => {
+    if (!bulkEditRoom) return;
+    const roomId = bulkEditRoom._id;
+    const minStay = bulkMinStay !== '' ? Number(bulkMinStay) : null;
+    const maxStay = bulkMaxStay !== '' ? Number(bulkMaxStay) : null;
+    await handleUpdateRestrictions(roomId, minStay, maxStay);
   };
 
   const fetchProperties = async () => {
@@ -494,7 +559,7 @@ export default function RatesAvailability() {
                     <table className="min-w-full text-xs">
                       <thead className="bg-[#fdf7f0] text-[#4b2a00]">
                         <tr>
-                          <th className="px-3 py-2 text-left w-40">Room</th>
+                          <th className="px-3 py-2 text-left w-48">Room</th>
                           {daysInMonth(activeMonth).filter(Boolean).map((d) => (
                             <th key={d.toISOString()} className="px-2 py-2 text-center whitespace-nowrap border-l border-[#e0d5c7]">
                               <div>{d.getDate()}</div>
@@ -504,27 +569,108 @@ export default function RatesAvailability() {
                         </tr>
                       </thead>
                       <tbody>
-                        {calendarData.map((room) => (
-                          <tr key={room._id} className="border-t border-[#f0e6d9]">
-                            <td className="px-3 py-2 text-[11px] text-[#4b2a00] bg-[#fdf7f0] sticky left-0 z-10">
-                              <div className="font-semibold">{room.roomType}</div>
-                              <div className="text-[10px] text-gray-500">Closed dates: {room.closedDates?.length || 0}</div>
-                            </td>
-                            {daysInMonth(activeMonth).filter(Boolean).map((d) => {
-                              const dateStr = fmt(d);
-                              const closed = isClosed(room, dateStr);
-                              const cls = closed ? 'bg-rose-50 border-rose-200 text-rose-700' : 'bg-[#e9f7ec] border-[#b7dfc5] text-[#245430]';
-                              return (
-                                <td
-                                  key={d.toISOString()}
-                                  className={`px-1 py-1 text-center border-l border-[#f0e6d9] ${cls}`}
-                                >
-                                  <div className="text-[10px] font-semibold">{closed ? 'Closed' : 'Open'}</div>
+                        {calendarData.map((room) => {
+                          const days = daysInMonth(activeMonth).filter(Boolean);
+                          const roomId = room._id;
+                          const capacityUnits = Number(room.capacity || 1);
+                          const getBookedForDay = (d) => {
+                            const dayStart = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+                            const dayEnd = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
+                            return listBookings.filter(b => {
+                              if (String(b.property?._id || b.property) !== String(selectedProperty)) return false;
+                              if (roomId && b.room && String(b.room) !== String(roomId)) return false;
+                              const ci = new Date(b.checkIn);
+                              const co = new Date(b.checkOut);
+                              return ci < dayEnd && co > dayStart;
+                            }).length;
+                          };
+                          return (
+                          <React.Fragment key={room._id}>
+                            <tr className="border-t border-[#f0e6d9] bg-[#fdf7f0]">
+                              <td className="px-3 py-2 text-[11px] text-[#4b2a00] sticky left-0 z-10">
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <div className="font-semibold">{room.roomType}</div>
+                                    <div className="text-[10px] text-gray-500">Closed dates: {room.closedDates?.length || 0}</div>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => openBulkEdit(room)}
+                                    className="ml-2 px-3 py-1 rounded-full bg-[#003580] text-white text-[11px] hover:bg-[#00265a] whitespace-nowrap"
+                                  >
+                                    Bulk edit
+                                  </button>
+                                </div>
+                              </td>
+                              {days.map((d) => {
+                                const dateStr = fmt(d);
+                                const closed = isClosed(room, dateStr);
+                                const cls = closed ? 'bg-rose-50 border-rose-200 text-rose-700' : 'bg-[#e9f7ec] border-[#b7dfc5] text-[#245430]';
+                                return (
+                                  <td
+                                    key={d.toISOString()}
+                                    className={`px-1 py-1 text-center border-l border-[#f0e6d9] ${cls}`}
+                                  >
+                                    <div className="text-[10px] font-semibold">{closed ? 'Closed' : 'Open'}</div>
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                            <tr className="border-t border-[#f0e6d9]">
+                              <td className="px-3 py-2 text-[11px] text-gray-600 sticky left-0 bg-white z-10">
+                                <div className="font-semibold mb-1">Rooms to sell</div>
+                                <div className="text-[10px] text-gray-500">Approximate units available per day</div>
+                              </td>
+                              {days.map((d) => {
+                                const closed = isClosed(room, fmt(d));
+                                const units = closed ? 0 : capacityUnits;
+                                return (
+                                  <td key={d.toISOString()} className="px-1 py-1 text-center border-l border-[#f0e6d9]">
+                                    <div className="text-[10px] text-gray-800 font-medium">{units}</div>
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                            <tr className="border-t border-[#f0e6d9]">
+                              <td className="px-3 py-2 text-[11px] text-gray-600 sticky left-0 bg-white z-10">
+                                <div className="font-semibold mb-1">Net booked</div>
+                                <div className="text-[10px] text-gray-500">Confirmed + in-house bookings</div>
+                              </td>
+                              {days.map((d) => {
+                                const booked = getBookedForDay(d);
+                                return (
+                                  <td key={d.toISOString()} className="px-1 py-1 text-center border-l border-[#f0e6d9]">
+                                    <div className="text-[10px] text-gray-800 font-medium">{booked}</div>
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                            <tr className="border-t border-[#f0e6d9]">
+                              <td className="px-3 py-2 text-[11px] text-gray-600 sticky left-0 bg-white z-10">
+                                <div className="font-semibold mb-1">Standard rate</div>
+                                <div className="text-[10px] text-gray-500">Base price per night</div>
+                              </td>
+                              {days.map((d) => (
+                                <td key={d.toISOString()} className="px-1 py-1 text-center border-l border-[#f0e6d9]">
+                                  <div className="text-[10px] text-[#4b2a00] font-medium">
+                                    {formatCurrencyRWF ? formatCurrencyRWF(room.rate || 0) : `RWF ${(room.rate || 0).toLocaleString()}`}
+                                  </div>
                                 </td>
-                              );
-                            })}
-                          </tr>
-                        ))}
+                              ))}
+                            </tr>
+                            <tr className="border-t border-[#f0e6d9]">
+                              <td className="px-3 py-2 text-[11px] text-gray-600 sticky left-0 bg-white z-10">
+                                <div className="font-semibold mb-1">Minimum length of stay</div>
+                              </td>
+                              {days.map((d) => (
+                                <td key={d.toISOString()} className="px-1 py-1 text-center border-l border-[#f0e6d9]">
+                                  <div className="text-[10px] text-gray-700">{room.minStay || 1} night(s)</div>
+                                </td>
+                              ))}
+                            </tr>
+                          </React.Fragment>
+                          );
+                        })}
                         {calendarData.length === 0 && (
                           <tr>
                             <td colSpan={daysInMonth(activeMonth).filter(Boolean).length + 1} className="px-4 py-8 text-center text-gray-500">
@@ -616,6 +762,183 @@ export default function RatesAvailability() {
                     );
                   })()
                 )}
+              </div>
+            )}
+
+            {bulkEditOpen && bulkEditRoom && (
+              <div className="fixed inset-0 z-[9999] flex justify-end">
+                <div className="absolute inset-0 bg-black/40" onClick={closeBulkEdit} />
+                <div className="relative w-full max-w-md h-full bg-white shadow-xl overflow-y-auto">
+                  <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                    <h3 className="text-lg font-semibold text-[#4b2a00]">Bulk edit</h3>
+                    <button onClick={closeBulkEdit} className="text-gray-500 hover:text-gray-800 text-sm">Close</button>
+                  </div>
+                  <div className="px-6 py-4 space-y-6 text-sm">
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[11px] font-semibold text-gray-600 mb-1 uppercase tracking-wide">From</label>
+                          <input
+                            type="date"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                            value={bulkRange.start}
+                            onChange={(e) => setBulkRange(r => ({ ...r, start: e.target.value }))}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-semibold text-gray-600 mb-1 uppercase tracking-wide">Up to and including</label>
+                          <input
+                            type="date"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                            value={bulkRange.end}
+                            onChange={(e) => setBulkRange(r => ({ ...r, end: e.target.value }))}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-[11px] font-semibold text-gray-600 mb-2 uppercase tracking-wide">Which days of the week do you want to apply changes to?</p>
+                        <div className="flex flex-wrap gap-2">
+                          {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d => (
+                            <label key={d} className="inline-flex items-center gap-1 text-[11px]">
+                              <input
+                                type="checkbox"
+                                checked={bulkWeekdays[d]}
+                                onChange={(e) => setBulkWeekdays(prev => ({ ...prev, [d]: e.target.checked }))}
+                              />
+                              <span>{d}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="border border-[#e0d5c7] rounded-lg">
+                      <button
+                        type="button"
+                        className="w-full flex items-center justify-between px-4 py-3 text-left text-sm font-semibold text-[#4b2a00] bg-[#fdf7f0] border-b border-[#e0d5c7]"
+                      >
+                        <span>Rooms to sell & availability</span>
+                      </button>
+                      <div className="px-4 py-3 space-y-3 text-sm">
+                        <p className="text-[11px] text-gray-600">Open or close this room type for the selected dates.</p>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => applyBulkOpenClose('open')}
+                            className="flex-1 px-3 py-2 rounded-full bg-[#e9f7ec] text-[#245430] text-xs font-medium border border-[#b7dfc5] hover:bg-[#d6f0de]"
+                          >
+                            Open selected dates
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => applyBulkOpenClose('close')}
+                            className="flex-1 px-3 py-2 rounded-full bg-[#fdeeee] text-[#7a1f1f] text-xs font-medium border border-[#f5b5b5] hover:bg-[#f8d7d7]"
+                          >
+                            Close selected dates
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="border border-[#e0d5c7] rounded-lg">
+                      <button
+                        type="button"
+                        className="w-full flex items-center justify-between px-4 py-3 text-left text-sm font-semibold text-[#4b2a00] bg-[#fdf7f0] border-b border-[#e0d5c7]"
+                      >
+                        <span>Prices</span>
+                      </button>
+                      <div className="px-4 py-3 space-y-3 text-sm">
+                        <p className="text-[11px] text-gray-600">Set the base price per night for this room type.</p>
+                        <div className="flex gap-2 items-center">
+                          <input
+                            type="number"
+                            min="0"
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                            value={bulkRate}
+                            onChange={(e) => setBulkRate(e.target.value)}
+                            placeholder="Enter rate in RWF"
+                          />
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              if (!bulkEditRoom) return;
+                              const rate = Number(bulkRate);
+                              if (!rate || rate <= 0) { toast.error('Enter a valid rate'); return; }
+                              try {
+                                const res = await fetch(`${API_URL}/api/rates/bulk/set-rate`, {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  credentials: 'include',
+                                  body: JSON.stringify({
+                                    rate,
+                                    rooms: [{ propertyId: selectedProperty, roomId: bulkEditRoom._id }]
+                                  })
+                                });
+                                if (!res.ok) throw new Error('Failed to set rate');
+                                toast.success('Rate updated');
+                                fetchCalendar();
+                              } catch (e) {
+                                toast.error(e.message || 'Failed to set rate');
+                              }
+                            }}
+                            className="px-3 py-2 rounded-full bg-[#a06b42] text-white text-xs font-medium hover:bg-[#8f5a32]"
+                          >
+                            Save
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="border border-[#e0d5c7] rounded-lg">
+                      <button
+                        type="button"
+                        className="w-full flex items-center justify-between px-4 py-3 text-left text-sm font-semibold text-[#4b2a00] bg-[#fdf7f0] border-b border-[#e0d5c7]"
+                      >
+                        <span>Restrictions</span>
+                      </button>
+                      <div className="px-4 py-3 space-y-3 text-sm">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-[11px] font-semibold text-gray-600 mb-1 uppercase tracking-wide">Minimum stay (nights)</label>
+                            <input
+                              type="number"
+                              min="1"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                              value={bulkMinStay}
+                              onChange={(e) => setBulkMinStay(e.target.value)}
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[11px] font-semibold text-gray-600 mb-1 uppercase tracking-wide">Maximum stay (nights)</label>
+                            <input
+                              type="number"
+                              min="1"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                              value={bulkMaxStay}
+                              onChange={(e) => setBulkMaxStay(e.target.value)}
+                            />
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={applyBulkRestrictions}
+                            className="flex-1 px-3 py-2 rounded-full bg-[#a06b42] text-white text-xs font-medium hover:bg-[#8f5a32]"
+                          >
+                            Save restrictions
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => { setBulkMinStay(''); setBulkMaxStay(''); }}
+                            className="flex-1 px-3 py-2 rounded-full border border-gray-300 text-xs font-medium hover:bg-gray-50"
+                          >
+                            Reset
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
 
