@@ -27,6 +27,9 @@ export default function PropertyManagement() {
   const [addOnServicesDraft, setAddOnServicesDraft] = useState([]);
   const [addOnCatalog, setAddOnCatalog] = useState([]);
   const [photoLightbox, setPhotoLightbox] = useState({ open: false, index: 0 });
+  const [bulkEditMode, setBulkEditMode] = useState(false);
+  const [selectedRooms, setSelectedRooms] = useState([]);
+  const [bulkUpdates, setBulkUpdates] = useState({});
 
   useEffect(() => {
     fetchProperties();
@@ -279,6 +282,7 @@ export default function PropertyManagement() {
 
   const saveRoomAmenities = async (roomId, amenities) => {
     try {
+      setSaving(true);
       const res = await fetch(`${API_URL}/api/properties/${selectedProperty}/rooms/${roomId}`, {
         method: 'PUT',
         credentials: 'include',
@@ -291,6 +295,67 @@ export default function PropertyManagement() {
       await fetchPropertyDetails();
     } catch (e) {
       toast.error(e.message || 'Failed to update room');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const bulkUpdateRooms = async (updates) => {
+    if (selectedRooms.length === 0) {
+      toast.error('Please select rooms to update');
+      return;
+    }
+    
+    try {
+      setSaving(true);
+      const promises = selectedRooms.map(roomId => 
+        fetch(`${API_URL}/api/properties/${selectedProperty}/rooms/${roomId}`, {
+          method: 'PUT',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updates)
+        })
+      );
+      
+      const results = await Promise.all(promises);
+      const failed = results.filter(res => !res.ok);
+      
+      if (failed.length > 0) {
+        toast.error(`Failed to update ${failed.length} room(s)`);
+      } else {
+        toast.success(`Successfully updated ${selectedRooms.length} room(s)`);
+        setSelectedRooms([]);
+        setBulkEditMode(false);
+        setBulkUpdates({});
+      }
+      
+      await fetchPropertyDetails();
+    } catch (e) {
+      toast.error('Bulk update failed');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const updateSingleRoom = async (roomId, updates) => {
+    try {
+      setSaving(true);
+      const res = await fetch(`${API_URL}/api/properties/${selectedProperty}/rooms/${roomId}`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates)
+      });
+      const json = await res.json().catch(()=>({}));
+      if (!res.ok) throw new Error(json.message || 'Failed to update room');
+      toast.success('Room updated successfully');
+      await fetchPropertyDetails();
+      return true;
+    } catch (e) {
+      toast.error(e.message || 'Failed to update room');
+      return false;
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -985,7 +1050,13 @@ export default function PropertyManagement() {
                         })}
                       </div>
                       <div className="mt-2">
-                        <button onClick={()=> saveRoomAmenities(room._id, Array.isArray(propertyData.rooms[idx].amenities) ? propertyData.rooms[idx].amenities : [])} className="px-3 py-2 border rounded">Save Room Amenities</button>
+                        <button 
+                          disabled={saving}
+                          onClick={()=> saveRoomAmenities(room._id, Array.isArray(propertyData.rooms[idx].amenities) ? propertyData.rooms[idx].amenities : [])} 
+                          className="px-3 py-2 border rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+                        >
+                          {saving ? 'Saving...' : 'Save Room Amenities'}
+                        </button>
                       </div>
                     </div>
                   );
@@ -1000,9 +1071,87 @@ export default function PropertyManagement() {
       case 'room-details':
         return (
           <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-              <FaBed /> Room Details
-            </h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <FaBed /> Room Details
+              </h2>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setBulkEditMode(!bulkEditMode);
+                    setSelectedRooms([]);
+                    setBulkUpdates({});
+                  }}
+                  className={`px-3 py-1 rounded text-sm ${
+                    bulkEditMode 
+                      ? 'bg-red-600 text-white hover:bg-red-700' 
+                      : 'bg-blue-600 text-white hover:bg-blue-700'
+                  }`}
+                >
+                  {bulkEditMode ? 'Cancel Bulk Edit' : 'Bulk Edit'}
+                </button>
+                {bulkEditMode && selectedRooms.length > 0 && (
+                  <button
+                    type="button"
+                    disabled={saving || Object.keys(bulkUpdates).length === 0}
+                    onClick={() => bulkUpdateRooms(bulkUpdates)}
+                    className="px-3 py-1 rounded text-sm bg-green-600 text-white hover:bg-green-700 disabled:opacity-50"
+                  >
+                    {saving ? 'Updating...' : `Update ${selectedRooms.length} Room(s)`}
+                  </button>
+                )}
+              </div>
+            </div>
+            
+            {/* Bulk Edit Controls */}
+            {bulkEditMode && (
+              <div className="mb-6 p-4 bg-blue-50 rounded-lg border">
+                <h3 className="font-semibold text-blue-800 mb-3">Bulk Edit Controls</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">Bulk Price (RWF)</label>
+                    <input
+                      type="number"
+                      className="w-full border rounded px-3 py-2"
+                      placeholder="Set price for selected rooms"
+                      onChange={(e) => {
+                        const value = Number(e.target.value);
+                        setBulkUpdates(prev => value ? {...prev, pricePerNight: value} : {...prev});
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">Bulk Capacity</label>
+                    <input
+                      type="number"
+                      className="w-full border rounded px-3 py-2"
+                      placeholder="Set capacity for selected rooms"
+                      onChange={(e) => {
+                        const value = Number(e.target.value);
+                        setBulkUpdates(prev => value ? {...prev, capacity: value} : {...prev});
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">Bulk Max Adults</label>
+                    <input
+                      type="number"
+                      className="w-full border rounded px-3 py-2"
+                      placeholder="Set max adults for selected rooms"
+                      onChange={(e) => {
+                        const value = Number(e.target.value);
+                        setBulkUpdates(prev => value ? {...prev, maxAdults: value} : {...prev});
+                      }}
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-blue-600 mt-2">
+                  Select rooms below and fill in the fields you want to update. Only non-empty fields will be applied.
+                </p>
+              </div>
+            )}
+            
             {propertyData?.rooms?.length > 0 ? (
               <>
                 {/* Availability / Accommodation type summary table */}
@@ -1094,7 +1243,23 @@ export default function PropertyManagement() {
                       </div>
 
                       <div className="flex justify-between items-center mt-1 text-xs text-gray-500">
-                        <span>{Array.isArray(room.amenities) ? `${room.amenities.length} amenities` : 'No amenities set'}</span>
+                        <div className="flex items-center gap-2">
+                          {bulkEditMode && (
+                            <input
+                              type="checkbox"
+                              checked={selectedRooms.includes(roomKey)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedRooms(prev => [...prev, roomKey]);
+                                } else {
+                                  setSelectedRooms(prev => prev.filter(id => id !== roomKey));
+                                }
+                              }}
+                              className="mr-2"
+                            />
+                          )}
+                          <span>{Array.isArray(room.amenities) ? `${room.amenities.length} amenities` : 'No amenities set'}</span>
+                        </div>
                         <button
                           type="button"
                           onClick={() => setExpandedRoomId(isExpanded ? null : roomKey)}
@@ -1326,20 +1491,7 @@ export default function PropertyManagement() {
                                   },
                                   images: Array.isArray(propertyData.rooms[idx].images) ? propertyData.rooms[idx].images : []
                                 };
-                                try {
-                                  const res = await fetch(`${API_URL}/api/properties/${selectedProperty}/rooms/${room._id}`, {
-                                    method: 'PUT',
-                                    credentials: 'include',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify(updates)
-                                  });
-                                  const json = await res.json().catch(()=>({}));
-                                  if (!res.ok) throw new Error(json.message || 'Failed to update room');
-                                  toast.success('Room updated successfully');
-                                  await fetchPropertyDetails();
-                                } catch (e) {
-                                  toast.error(e.message || 'Failed to update room');
-                                }
+                                await updateSingleRoom(room._id, updates);
                               }}
                               className="px-4 py-2 rounded bg-blue-600 text-white text-sm hover:bg-blue-700"
                             >
