@@ -72,7 +72,7 @@ const PropertyOwnerBookings = () => {
     search: ''
   });
   const [ownerView, setOwnerView] = useState('table'); // 'table' | 'calendar'
-  const [calendarViewMode, setCalendarViewMode] = useState('monthly'); // 'monthly' | 'yearly'
+  const [calendarViewMode, setCalendarViewMode] = useState('monthly'); // 'monthly' | 'yearly' | 'matrix'
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'dashboard');
   const [activeNavDropdown, setActiveNavDropdown] = useState(null);
   const [financeFilter, setFinanceFilter] = useState(searchParams.get('finance_status') || 'all'); // all|paid|pending|unpaid
@@ -1557,21 +1557,16 @@ const PropertyOwnerBookings = () => {
                       <option key={p._id} value={p._id}>{p.name}</option>
                     ))}
                   </select>
-                  <div className="inline-flex rounded-full border border-[#e0d5c7] bg-[#fdf7f0] overflow-hidden text-xs">
-                    <button
-                      type="button"
-                      onClick={() => setCalendarViewMode('monthly')}
-                      className={`px-3 py-1.5 ${calendarViewMode === 'monthly' ? 'bg-[#a06b42] text-white' : 'text-[#6b5744]'}`}
+                  <div className="relative">
+                    <select
+                      value={calendarViewMode}
+                      onChange={(e) => setCalendarViewMode(e.target.value)}
+                      className="pl-3 pr-8 py-2 rounded-full border border-[#e0d5c7] bg-[#fdf7f0] text-xs text-[#4b2a00] focus:outline-none focus:ring-2 focus:ring-[#a06b42]"
                     >
-                      Monthly view
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setCalendarViewMode('yearly')}
-                      className={`px-3 py-1.5 ${calendarViewMode === 'yearly' ? 'bg-[#a06b42] text-white' : 'text-[#6b5744]'}`}
-                    >
-                      Yearly view
-                    </button>
+                      <option value="monthly">Monthly view</option>
+                      <option value="yearly">Yearly view</option>
+                      <option value="matrix">List view</option>
+                    </select>
                   </div>
                 </div>
               </div>
