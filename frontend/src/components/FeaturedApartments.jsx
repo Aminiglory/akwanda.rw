@@ -151,5 +151,4 @@ const FeaturedApartments = () => {
   );
 };
 
-export { OptimizedImage };
 export default FeaturedApartments;
