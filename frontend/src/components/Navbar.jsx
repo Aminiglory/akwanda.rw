@@ -1094,7 +1094,8 @@ const Navbar = () => {
                     </div>
                   </div>
                 )}
-                {isAuthenticated && user?.userType === 'host' && isInAnyOwnerDashboard() && myCars.length > 0 && (
+                {/* Vehicle selector temporarily hidden - will be relocated later */}
+                {false && isAuthenticated && user?.userType === 'host' && isInAnyOwnerDashboard() && myCars.length > 0 && (
                   <div className="hidden lg:block">
                     <div className="flex items-center gap-1">
                       <select
