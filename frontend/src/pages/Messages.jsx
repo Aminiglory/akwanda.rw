@@ -1076,16 +1076,17 @@ export default function Messages() {
             <h2 className="text-xl font-bold text-gray-900 mb-1">AKWANDA Chat</h2>
             <p className="text-sm text-gray-500 mb-1 animate-pulse">Fast, simple and reliable messaging</p>
             <div className="text-xs text-[#4b2a00] bg-[#f5f0e8] border border-[#e0d5c7] rounded px-2 py-1 inline-block mb-3">{categoryLabel}</div>
-            <div className="relative">
-              <FaSearch className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <div className="field">
+              <FaSearch className="icon-left text-gray-400" />
               <input
                 type="text"
                 placeholder="Search conversations..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="modern-input w-full h-10 pl-10 pr-3"
+                className="modern-input w-full h-10 pr-3"
               />
             </div>
+
             <button
               onClick={() => setShowUserSearch(true)}
               className="mt-3 w-full hidden lg:flex items-center justify-center space-x-2 btn-primary text-white px-4 py-2 rounded-lg transition-colors"
