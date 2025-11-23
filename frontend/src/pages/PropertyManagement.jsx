@@ -30,6 +30,8 @@ export default function PropertyManagement() {
   const [bulkEditMode, setBulkEditMode] = useState(false);
   const [selectedRooms, setSelectedRooms] = useState([]);
   const [bulkUpdates, setBulkUpdates] = useState({});
+  const [bulkDateAction, setBulkDateAction] = useState('close'); // 'close' or 'open'
+  const [bulkDateRange, setBulkDateRange] = useState({ startDate: '', endDate: '' });
 
   useEffect(() => {
     fetchProperties();
@@ -337,6 +339,124 @@ export default function PropertyManagement() {
     }
   };
 
+  const bulkUpdateAvailability = async () => {
+    if (selectedRooms.length === 0) {
+      toast.error('Please select rooms to update availability');
+      return;
+    }
+    
+    if (!bulkDateRange.startDate || !bulkDateRange.endDate) {
+      toast.error('Please select both start and end dates');
+      return;
+    }
+    
+    try {
+      setSaving(true);
+      
+      // Use the rates/calendar API endpoint for proper calendar synchronization
+      const promises = selectedRooms.map(roomId => 
+        fetch(`${API_URL}/api/rates/calendar/bulk-update`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            propertyId: selectedProperty,
+            roomId: roomId,
+            startDate: bulkDateRange.startDate,
+            endDate: bulkDateRange.endDate,
+            updates: {
+              available: bulkDateAction === 'open',
+              closed: bulkDateAction === 'close'
+            }
+          })
+        })
+      );
+      
+      const results = await Promise.all(promises);
+      const failed = results.filter(res => !res.ok);
+      
+      if (failed.length > 0) {
+        // Try fallback method with individual room updates
+        console.log('Bulk update failed, trying individual updates...');
+        await bulkUpdateAvailabilityFallback();
+      } else {
+        const actionText = bulkDateAction === 'close' ? 'closed' : 'opened';
+        toast.success(`Successfully ${actionText} dates for ${selectedRooms.length} room(s)`);
+        setBulkDateRange({ startDate: '', endDate: '' });
+        
+        // Refresh calendar data by triggering a page reload or event
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('calendarDataChanged', {
+            detail: { propertyId: selectedProperty, action: bulkDateAction }
+          }));
+        }, 500);
+      }
+      
+      await fetchPropertyDetails();
+    } catch (e) {
+      console.error('Bulk availability update failed:', e);
+      // Try fallback method
+      await bulkUpdateAvailabilityFallback();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const bulkUpdateAvailabilityFallback = async () => {
+    try {
+      // Generate date array from range
+      const startDate = new Date(bulkDateRange.startDate);
+      const endDate = new Date(bulkDateRange.endDate);
+      const dates = [];
+      
+      for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+        dates.push(d.toISOString().split('T')[0]);
+      }
+      
+      // Update each room for each date
+      const promises = [];
+      selectedRooms.forEach(roomId => {
+        dates.forEach(date => {
+          promises.push(
+            fetch(`${API_URL}/api/rates/calendar/update`, {
+              method: 'POST',
+              credentials: 'include',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                propertyId: selectedProperty,
+                roomId: roomId,
+                date: date,
+                available: bulkDateAction === 'open',
+                closed: bulkDateAction === 'close'
+              })
+            })
+          );
+        });
+      });
+      
+      const results = await Promise.all(promises);
+      const failed = results.filter(res => !res.ok);
+      
+      if (failed.length > 0) {
+        toast.error(`Failed to update ${failed.length} date(s). Calendar may not reflect all changes.`);
+      } else {
+        const actionText = bulkDateAction === 'close' ? 'closed' : 'opened';
+        toast.success(`Successfully ${actionText} dates for ${selectedRooms.length} room(s)`);
+        setBulkDateRange({ startDate: '', endDate: '' });
+      }
+      
+      // Trigger calendar refresh
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('calendarDataChanged', {
+          detail: { propertyId: selectedProperty, action: bulkDateAction }
+        }));
+      }, 500);
+      
+    } catch (e) {
+      toast.error('Failed to update availability. Please try again or use the calendar directly.');
+    }
+  };
+
   const updateSingleRoom = async (roomId, updates) => {
     try {
       setSaving(true);
@@ -516,48 +636,275 @@ export default function PropertyManagement() {
         return (
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-              <FaInfoCircle /> General Info & Property Status
+              <FaInfoCircle /> Complete Property Details
             </h2>
             {loading ? (
               <div className="text-center py-8">Loading...</div>
             ) : propertyData ? (
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm text-gray-600">Property Name</label>
-                    <p className="font-semibold">{propertyData.title || propertyData.name}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm text-gray-600">Status</label>
-                    <p className="font-semibold capitalize">{propertyData.isActive === false ? 'Closed' : 'Active'}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm text-gray-600">Category</label>
-                    <p className="font-semibold capitalize">{propertyData.category}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm text-gray-600">Bedrooms</label>
-                    <p className="font-semibold">{propertyData.bedrooms}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm text-gray-600">Bathrooms</label>
-                    <p className="font-semibold">{propertyData.bathrooms}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm text-gray-600">Max Guests</label>
-                    <p className="font-semibold">{propertyData.maxGuests || 'N/A'}</p>
+              <div className="space-y-6">
+                {/* Basic Information */}
+                <div className="border-b pb-4">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-3">Basic Information</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="text-sm text-gray-600">Property ID</label>
+                      <p className="font-semibold text-blue-600">{propertyData._id}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm text-gray-600">Property Name</label>
+                      <p className="font-semibold">{propertyData.title || propertyData.name}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm text-gray-600">Status</label>
+                      <p className={`font-semibold capitalize ${propertyData.isActive === false ? 'text-red-600' : 'text-green-600'}`}>
+                        {propertyData.isActive === false ? '🔴 Closed' : '🟢 Active'}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="text-sm text-gray-600">Category</label>
+                      <p className="font-semibold capitalize">{propertyData.category}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm text-gray-600">Property Type</label>
+                      <p className="font-semibold capitalize">{propertyData.propertyType || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm text-gray-600">Created Date</label>
+                      <p className="font-semibold">{propertyData.createdAt ? new Date(propertyData.createdAt).toLocaleDateString() : 'N/A'}</p>
+                    </div>
                   </div>
                 </div>
-                <div>
-                  <label className="text-sm text-gray-600">Address</label>
-                  <p className="font-semibold">{propertyData.address}, {propertyData.city}, {propertyData.country}</p>
+
+                {/* Location Details */}
+                <div className="border-b pb-4">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-3">Location Details</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm text-gray-600">Full Address</label>
+                      <p className="font-semibold">{propertyData.address}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm text-gray-600">City</label>
+                      <p className="font-semibold">{propertyData.city}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm text-gray-600">Country</label>
+                      <p className="font-semibold">{propertyData.country}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm text-gray-600">Postal Code</label>
+                      <p className="font-semibold">{propertyData.postalCode || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm text-gray-600">Coordinates</label>
+                      <p className="font-semibold">
+                        {propertyData.latitude && propertyData.longitude 
+                          ? `${propertyData.latitude}, ${propertyData.longitude}` 
+                          : 'N/A'
+                        }
+                      </p>
+                    </div>
+                    <div>
+                      <label className="text-sm text-gray-600">Neighborhood</label>
+                      <p className="font-semibold">{propertyData.neighborhood || 'N/A'}</p>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <label className="text-sm text-gray-600">Description</label>
-                  <p className="text-sm">{propertyData.description}</p>
+
+                {/* Property Specifications */}
+                <div className="border-b pb-4">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-3">Property Specifications</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
+                      <label className="text-sm text-gray-600">Bedrooms</label>
+                      <p className="font-semibold text-lg">{propertyData.bedrooms}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm text-gray-600">Bathrooms</label>
+                      <p className="font-semibold text-lg">{propertyData.bathrooms}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm text-gray-600">Max Guests</label>
+                      <p className="font-semibold text-lg">{propertyData.maxGuests || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm text-gray-600">Square Footage</label>
+                      <p className="font-semibold text-lg">{propertyData.squareFootage ? `${propertyData.squareFootage} sq ft` : 'N/A'}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm text-gray-600">Floor Number</label>
+                      <p className="font-semibold">{propertyData.floorNumber || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm text-gray-600">Total Floors</label>
+                      <p className="font-semibold">{propertyData.totalFloors || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm text-gray-600">Parking Spaces</label>
+                      <p className="font-semibold">{propertyData.parkingSpaces || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm text-gray-600">Year Built</label>
+                      <p className="font-semibold">{propertyData.yearBuilt || 'N/A'}</p>
+                    </div>
+                  </div>
                 </div>
-                <div className="pt-2 border-t mt-4">
-                  <p className="text-sm text-gray-700 font-semibold mb-2">Manage listing status</p>
+
+                {/* Pricing & Booking Info */}
+                <div className="border-b pb-4">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-3">Pricing & Booking</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="text-sm text-gray-600">Base Price per Night</label>
+                      <p className="font-semibold text-lg text-green-600">RWF {Number(propertyData.pricePerNight || 0).toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm text-gray-600">Cleaning Fee</label>
+                      <p className="font-semibold">RWF {Number(propertyData.cleaningFee || 0).toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm text-gray-600">Security Deposit</label>
+                      <p className="font-semibold">RWF {Number(propertyData.securityDeposit || 0).toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm text-gray-600">Minimum Stay (nights)</label>
+                      <p className="font-semibold">{propertyData.minStayNights || 1}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm text-gray-600">Maximum Stay (nights)</label>
+                      <p className="font-semibold">{propertyData.maxStayNights || 'Unlimited'}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm text-gray-600">Instant Booking</label>
+                      <p className="font-semibold">{propertyData.instantBooking ? '✅ Enabled' : '❌ Disabled'}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Policies & Rules */}
+                <div className="border-b pb-4">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-3">Policies & Rules</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm text-gray-600">Check-in Time</label>
+                      <p className="font-semibold">{propertyData.checkInTime || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm text-gray-600">Check-out Time</label>
+                      <p className="font-semibold">{propertyData.checkOutTime || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm text-gray-600">Smoking Allowed</label>
+                      <p className="font-semibold">{propertyData.smokingAllowed ? '✅ Yes' : '❌ No'}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm text-gray-600">Pets Allowed</label>
+                      <p className="font-semibold">{propertyData.petsAllowed ? '✅ Yes' : '❌ No'}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm text-gray-600">Cancellation Policy</label>
+                      <p className="font-semibold capitalize">{propertyData.cancellationPolicy || 'Standard'}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm text-gray-600">Prepayment Required</label>
+                      <p className="font-semibold">{propertyData.prepaymentRequired ? '✅ Yes' : '❌ No'}</p>
+                    </div>
+                  </div>
+                  {propertyData.roomRules && Array.isArray(propertyData.roomRules) && propertyData.roomRules.length > 0 && (
+                    <div className="mt-3">
+                      <label className="text-sm text-gray-600">House Rules</label>
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        {propertyData.roomRules.map((rule, idx) => (
+                          <span key={idx} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
+                            {rule}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {propertyData.petPolicy && (
+                    <div className="mt-3">
+                      <label className="text-sm text-gray-600">Pet Policy</label>
+                      <p className="text-sm bg-gray-50 p-2 rounded">{propertyData.petPolicy}</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Content & Media */}
+                <div className="border-b pb-4">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-3">Content & Media</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm text-gray-600">Total Photos</label>
+                      <p className="font-semibold text-lg">{propertyData.images?.length || 0}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm text-gray-600">Total Amenities</label>
+                      <p className="font-semibold text-lg">{propertyData.amenities?.length || 0}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm text-gray-600">Description Length</label>
+                      <p className="font-semibold">{propertyData.description?.length || 0} characters</p>
+                    </div>
+                    <div>
+                      <label className="text-sm text-gray-600">Short Description</label>
+                      <p className="font-semibold">{propertyData.shortDescription?.length || 0} characters</p>
+                    </div>
+                  </div>
+                  {propertyData.description && (
+                    <div className="mt-3">
+                      <label className="text-sm text-gray-600">Full Description</label>
+                      <p className="text-sm bg-gray-50 p-3 rounded max-h-32 overflow-y-auto">{propertyData.description}</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Room Information */}
+                {propertyData.rooms && Array.isArray(propertyData.rooms) && propertyData.rooms.length > 0 && (
+                  <div className="border-b pb-4">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-3">Room Information</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {propertyData.rooms.map((room, idx) => (
+                        <div key={room._id || idx} className="border rounded p-3 bg-gray-50">
+                          <h4 className="font-semibold text-blue-700">{room.roomType || room.type} - {room.roomNumber}</h4>
+                          <div className="text-xs space-y-1 mt-2">
+                            <p><span className="text-gray-600">Capacity:</span> {room.capacity || 1} guests</p>
+                            <p><span className="text-gray-600">Price:</span> RWF {Number(room.pricePerNight || 0).toLocaleString()}/night</p>
+                            <p><span className="text-gray-600">Bathrooms:</span> {room.bathrooms || 1}</p>
+                            <p><span className="text-gray-600">Amenities:</span> {room.amenities?.length || 0}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Statistics & Performance */}
+                <div className="border-b pb-4">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-3">Statistics & Performance</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
+                      <label className="text-sm text-gray-600">Average Rating</label>
+                      <p className="font-semibold text-lg text-yellow-600">⭐ {propertyData.rating || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm text-gray-600">Total Reviews</label>
+                      <p className="font-semibold text-lg">{propertyData.reviewCount || 0}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm text-gray-600">Total Bookings</label>
+                      <p className="font-semibold text-lg">{propertyData.bookingCount || 0}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm text-gray-600">Views Count</label>
+                      <p className="font-semibold text-lg">{propertyData.viewCount || 0}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Management Actions */}
+                <div className="pt-2">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-3">Management Actions</h3>
                   <div className="flex flex-wrap gap-3">
                     <button
                       type="button"
@@ -570,17 +917,41 @@ export default function PropertyManagement() {
                         if (!window.confirm(confirmMsg)) return;
                         handleToggleListing(isClosed ? true : false);
                       }}
-                      className={`px-4 py-2 rounded text-sm text-white disabled:opacity-60 ${propertyData && propertyData.isActive === false ? 'bg-green-600' : 'bg-yellow-600'}`}
+                      className={`px-4 py-2 rounded text-sm text-white disabled:opacity-60 ${
+                        propertyData && propertyData.isActive === false ? 'bg-green-600 hover:bg-green-700' : 'bg-yellow-600 hover:bg-yellow-700'
+                      }`}
                     >
-                      {propertyData && propertyData.isActive === false ? 'Reopen listing' : 'Close listing'}
+                      {propertyData && propertyData.isActive === false ? '🟢 Reopen Listing' : '🟡 Close Listing'}
                     </button>
                     <button
                       type="button"
                       disabled={saving}
                       onClick={handleDeleteProperty}
-                      className="px-4 py-2 rounded text-sm bg-red-600 text-white disabled:opacity-60"
+                      className="px-4 py-2 rounded text-sm bg-red-600 text-white disabled:opacity-60 hover:bg-red-700"
                     >
-                      Delete property
+                      🗑️ Delete Property
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const url = new URL(window.location.origin + '/owner/rates');
+                        url.searchParams.set('view', 'calendar');
+                        if (selectedProperty) url.searchParams.set('property', selectedProperty);
+                        window.open(url.toString(), '_blank');
+                      }}
+                      className="px-4 py-2 rounded text-sm bg-blue-600 text-white hover:bg-blue-700"
+                    >
+                      📅 Open Calendar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(propertyData._id);
+                        toast.success('Property ID copied to clipboard!');
+                      }}
+                      className="px-4 py-2 rounded text-sm bg-gray-600 text-white hover:bg-gray-700"
+                    >
+                      📋 Copy Property ID
                     </button>
                   </div>
                 </div>
@@ -1092,14 +1463,9 @@ export default function PropertyManagement() {
                   {bulkEditMode ? 'Cancel Bulk Edit' : 'Bulk Edit'}
                 </button>
                 {bulkEditMode && selectedRooms.length > 0 && (
-                  <button
-                    type="button"
-                    disabled={saving || Object.keys(bulkUpdates).length === 0}
-                    onClick={() => bulkUpdateRooms(bulkUpdates)}
-                    className="px-3 py-1 rounded text-sm bg-green-600 text-white hover:bg-green-700 disabled:opacity-50"
-                  >
-                    {saving ? 'Updating...' : `Update ${selectedRooms.length} Room(s)`}
-                  </button>
+                  <div className="text-xs text-blue-600">
+                    {selectedRooms.length} room(s) selected for bulk operations
+                  </div>
                 )}
               </div>
             </div>
@@ -1108,42 +1474,129 @@ export default function PropertyManagement() {
             {bulkEditMode && (
               <div className="mb-6 p-4 bg-blue-50 rounded-lg border">
                 <h3 className="font-semibold text-blue-800 mb-3">Bulk Edit Controls</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                  <div>
-                    <label className="block text-xs text-gray-600 mb-1">Bulk Price (RWF)</label>
-                    <input
-                      type="number"
-                      className="w-full border rounded px-3 py-2"
-                      placeholder="Set price for selected rooms"
-                      onChange={(e) => {
-                        const value = Number(e.target.value);
-                        setBulkUpdates(prev => value ? {...prev, pricePerNight: value} : {...prev});
-                      }}
-                    />
+                {/* Room Properties Section */}
+                <div className="mb-4">
+                  <h4 className="text-sm font-semibold text-blue-700 mb-2">Room Properties</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                    <div>
+                      <label className="block text-xs text-gray-600 mb-1">Bulk Price (RWF)</label>
+                      <input
+                        type="number"
+                        className="w-full border rounded px-3 py-2"
+                        placeholder="Set price for selected rooms"
+                        onChange={(e) => {
+                          const value = Number(e.target.value);
+                          setBulkUpdates(prev => value ? {...prev, pricePerNight: value} : {...prev});
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-600 mb-1">Bulk Capacity</label>
+                      <input
+                        type="number"
+                        className="w-full border rounded px-3 py-2"
+                        placeholder="Set capacity for selected rooms"
+                        onChange={(e) => {
+                          const value = Number(e.target.value);
+                          setBulkUpdates(prev => value ? {...prev, capacity: value} : {...prev});
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-600 mb-1">Bulk Max Adults</label>
+                      <input
+                        type="number"
+                        className="w-full border rounded px-3 py-2"
+                        placeholder="Set max adults for selected rooms"
+                        onChange={(e) => {
+                          const value = Number(e.target.value);
+                          setBulkUpdates(prev => value ? {...prev, maxAdults: value} : {...prev});
+                        }}
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-xs text-gray-600 mb-1">Bulk Capacity</label>
-                    <input
-                      type="number"
-                      className="w-full border rounded px-3 py-2"
-                      placeholder="Set capacity for selected rooms"
-                      onChange={(e) => {
-                        const value = Number(e.target.value);
-                        setBulkUpdates(prev => value ? {...prev, capacity: value} : {...prev});
-                      }}
-                    />
+                  <div className="mt-3">
+                    <button
+                      type="button"
+                      disabled={saving || Object.keys(bulkUpdates).length === 0}
+                      onClick={() => bulkUpdateRooms(bulkUpdates)}
+                      className="px-4 py-2 rounded text-sm bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+                    >
+                      {saving ? 'Updating...' : `Update Properties for ${selectedRooms.length} Room(s)`}
+                    </button>
                   </div>
-                  <div>
-                    <label className="block text-xs text-gray-600 mb-1">Bulk Max Adults</label>
-                    <input
-                      type="number"
-                      className="w-full border rounded px-3 py-2"
-                      placeholder="Set max adults for selected rooms"
-                      onChange={(e) => {
-                        const value = Number(e.target.value);
-                        setBulkUpdates(prev => value ? {...prev, maxAdults: value} : {...prev});
+                </div>
+
+                {/* Availability Management Section */}
+                <div className="border-t pt-4">
+                  <h4 className="text-sm font-semibold text-blue-700 mb-2">Availability Management</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm items-end">
+                    <div>
+                      <label className="block text-xs text-gray-600 mb-1">Action</label>
+                      <select
+                        value={bulkDateAction}
+                        onChange={(e) => setBulkDateAction(e.target.value)}
+                        className="w-full border rounded px-3 py-2"
+                      >
+                        <option value="close">Close dates</option>
+                        <option value="open">Open dates</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-600 mb-1">Start Date</label>
+                      <input
+                        type="date"
+                        value={bulkDateRange.startDate}
+                        onChange={(e) => setBulkDateRange(prev => ({...prev, startDate: e.target.value}))}
+                        className="w-full border rounded px-3 py-2"
+                        min={new Date().toISOString().split('T')[0]}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-600 mb-1">End Date</label>
+                      <input
+                        type="date"
+                        value={bulkDateRange.endDate}
+                        onChange={(e) => setBulkDateRange(prev => ({...prev, endDate: e.target.value}))}
+                        className="w-full border rounded px-3 py-2"
+                        min={bulkDateRange.startDate || new Date().toISOString().split('T')[0]}
+                      />
+                    </div>
+                    <div>
+                      <button
+                        type="button"
+                        disabled={saving || !bulkDateRange.startDate || !bulkDateRange.endDate}
+                        onClick={bulkUpdateAvailability}
+                        className={`px-4 py-2 rounded text-sm text-white hover:opacity-90 disabled:opacity-50 ${
+                          bulkDateAction === 'close' ? 'bg-red-600' : 'bg-green-600'
+                        }`}
+                      >
+                        {saving ? 'Updating...' : `${bulkDateAction === 'close' ? 'Close' : 'Open'} Dates`}
+                      </button>
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    {bulkDateAction === 'close' 
+                      ? 'Close selected dates to prevent new bookings for selected rooms. Dates will appear red in the calendar.'
+                      : 'Open selected dates to allow new bookings for selected rooms. Dates will appear available in the calendar.'
+                    }
+                  </p>
+                  <div className="flex items-center justify-between mt-2">
+                    <p className="text-xs text-blue-500">
+                      💡 Tip: After updating, check the calendar to see red (closed) dates.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const url = new URL(window.location.origin + '/owner/rates');
+                        url.searchParams.set('view', 'calendar');
+                        if (selectedProperty) url.searchParams.set('property', selectedProperty);
+                        window.open(url.toString(), '_blank');
                       }}
-                    />
+                      className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+                    >
+                      Open Calendar →
+                    </button>
                   </div>
                 </div>
                 <p className="text-xs text-blue-600 mt-2">
