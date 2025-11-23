@@ -307,7 +307,7 @@ const BookingProcess = () => {
       
       const data = await res.json();
       if (res.ok) {
-        // Process the available rooms with proper image URLs and monthly prices
+        // Process the available rooms with proper image URLs
         const processedAvailableRooms = (data.availableRooms || []).map(room => {
           const pricePerNight = room.pricePerNight || room.price || 0;
           return {
@@ -318,33 +318,36 @@ const BookingProcess = () => {
             ) : []
           };
         });
-        // If no rooms returned by availability, gracefully fall back to all property rooms
-        if (processedAvailableRooms.length === 0 && property && Array.isArray(property.rooms)) {
-          const processedRooms = property.rooms.map(room => ({
-            ...room,
-            pricePerNight: room.pricePerNight || room.price || 0,
-            images: room.images ? room.images.map(img => img.startsWith('http') ? img : `${API_URL}${img}`) : []
-          }));
-          setAvailableRooms(dedupeRooms(processedRooms));
-          try { toast.dismiss(); toast('No rooms matched the selected dates. Showing all rooms for this property.', { icon: 'ℹ️' }); } catch (_) {}
-        } else {
-          setAvailableRooms(dedupeRooms(processedAvailableRooms));
-        }
-        
-        // If selected room is no longer available, keep it visible and mark as unavailable with message
-        if (selectedRoom) {
-          const isStillAvailable = processedAvailableRooms.some(room => {
-            const roomId = room._id || room.id;
-            const selectedId = selectedRoom._id || selectedRoom.id;
-            if (roomId && selectedId) return roomId === selectedId;
-            return room.roomNumber === selectedRoom.roomNumber;
-          });
-          setSelectedRoomUnavailable(!isStillAvailable);
-          if (!isStillAvailable) {
-            toast.error(`Sorry, ${selectedRoom.roomNumber || 'this room'} is not available for ${new Date(bookingData.checkIn).toLocaleDateString()} to ${new Date(bookingData.checkOut).toLocaleDateString()}.`);
+
+        if (processedAvailableRooms.length === 0) {
+          // No rooms match the selected dates -> reflect that in the UI
+          setAvailableRooms([]);
+          if (selectedRoom) {
+            setSelectedRoomUnavailable(true);
+            toast.error(`No rooms, including ${selectedRoom.roomNumber || 'this room'}, are available for ${new Date(bookingData.checkIn).toLocaleDateString()} to ${new Date(bookingData.checkOut).toLocaleDateString()}.`);
+          } else {
+            setSelectedRoomUnavailable(false);
+            try { toast.dismiss(); toast('No rooms are available for the selected dates.', { icon: 'ℹ️' }); } catch (_) {}
           }
         } else {
-          setSelectedRoomUnavailable(false);
+          // Only rooms returned by the API are considered available for these dates
+          const uniqueRooms = dedupeRooms(processedAvailableRooms);
+          setAvailableRooms(uniqueRooms);
+
+          if (selectedRoom) {
+            const isStillAvailable = uniqueRooms.some(room => {
+              const roomId = room._id || room.id;
+              const selectedId = selectedRoom._id || selectedRoom.id;
+              if (roomId && selectedId) return roomId === selectedId;
+              return room.roomNumber === selectedRoom.roomNumber;
+            });
+            setSelectedRoomUnavailable(!isStillAvailable);
+            if (!isStillAvailable) {
+              toast.error(`Sorry, ${selectedRoom.roomNumber || 'this room'} is not available for ${new Date(bookingData.checkIn).toLocaleDateString()} to ${new Date(bookingData.checkOut).toLocaleDateString()}.`);
+            }
+          } else {
+            setSelectedRoomUnavailable(false);
+          }
         }
       }
     } catch (error) {
@@ -676,12 +679,19 @@ const BookingProcess = () => {
                                           <span className="font-medium">{room.capacity || 1} guests</span>
                                         </div>
                                         <div className={`px-2.5 py-1 rounded-full text-[11px] md:text-xs font-medium transition-all duration-300 ${
-                                          room.isAvailable !== false 
-                                            ? 'bg-green-100 text-green-800 hover:bg-green-200' 
-                                            : 'bg-red-100 text-red-800 hover:bg-red-200'
+                                          !(bookingData.checkIn && bookingData.checkOut)
+                                            ? 'bg-gray-100 text-gray-700'
+                                            : (room.isAvailable !== false
+                                                ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                                                : 'bg-red-100 text-red-800 hover:bg-red-200')
                                         }`}>
-                                          {room.isAvailable !== false ? '✓ Available' : '✗ Unavailable'}
+                                          {!(bookingData.checkIn && bookingData.checkOut)
+                                            ? 'Select dates to check'
+                                            : (room.isAvailable !== false
+                                                ? '✓ Available for your dates'
+                                                : '✗ Unavailable for your dates')}
                                         </div>
+
                                         {room.__outsideFilter && (
                                           <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-[11px] md:text-xs rounded-full">Outside current filter</span>
                                         )}
@@ -1076,7 +1086,8 @@ const BookingProcess = () => {
                   <div className="space-y-3">
                     <button
                       onClick={() => handlePayment('cash')}
-                      disabled={loading}
+                      disabled={loading || !selectedRoom || !bookingData.checkIn || !bookingData.checkOut || selectedRoomUnavailable}
+
                       className="w-full flex items-center p-3 text-sm border border-gray-300 rounded-lg cursor-pointer bg-white hover:bg-gray-50 text-[#4b2a00] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <div className="flex items-center">
@@ -1092,7 +1103,8 @@ const BookingProcess = () => {
 
                     <button
                       onClick={() => handlePayment('mtn_mobile_money')}
-                      disabled={loading}
+                      disabled={loading || !selectedRoom || !bookingData.checkIn || !bookingData.checkOut || selectedRoomUnavailable}
+
                       className="w-full flex items-center p-3 text-sm border border-gray-300 rounded-lg cursor-pointer bg-white hover:bg-gray-50 text-[#4b2a00] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <div className="flex items-center">
@@ -1117,7 +1129,8 @@ const BookingProcess = () => {
                   </button>
                   <button
                     onClick={handleBooking}
-                    disabled={loading || !selectedRoom}
+                    disabled={loading || !selectedRoom || !bookingData.checkIn || !bookingData.checkOut || selectedRoomUnavailable}
+
                     className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-lg font-medium transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {loading ? (
