@@ -26,6 +26,7 @@ export default function PropertyManagement() {
   const [expandedRoomId, setExpandedRoomId] = useState(null);
   const [addOnServicesDraft, setAddOnServicesDraft] = useState([]);
   const [addOnCatalog, setAddOnCatalog] = useState([]);
+  const [photoLightbox, setPhotoLightbox] = useState({ open: false, index: 0 });
 
   useEffect(() => {
     fetchProperties();
@@ -707,11 +708,20 @@ export default function PropertyManagement() {
               <div className="space-y-3">
                 <div className="grid grid-cols-3 gap-4">
                   {propertyData.images.map((img, idx) => (
-                    <div key={idx} className="relative aspect-video rounded-lg overflow-hidden border bg-gray-100">
+                    <button
+                      key={idx}
+                      type="button"
+                      className="relative aspect-video rounded-lg overflow-hidden border bg-gray-100 focus:outline-none"
+                      onClick={() => setPhotoLightbox({ open: true, index: idx })}
+                    >
                       <img src={img} alt={`Property ${idx + 1}`} className="w-full h-full object-cover" />
+                      <span className="absolute bottom-1 left-1 bg-black/50 text-white text-[10px] px-1.5 py-0.5 rounded">
+                        View
+                      </span>
                       <button
                         type="button"
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation();
                           setPropertyData(prev => {
                             if (!prev) return prev;
                             const imgs = Array.isArray(prev.images) ? prev.images : [];
@@ -722,7 +732,7 @@ export default function PropertyManagement() {
                       >
                         Remove
                       </button>
-                    </div>
+                    </button>
                   ))}
                 </div>
                 <div className="flex items-center gap-2">
@@ -787,6 +797,64 @@ export default function PropertyManagement() {
                   >
                     Add image
                   </button>
+                </div>
+              </div>
+            )}
+            {photoLightbox.open && Array.isArray(propertyData?.images) && propertyData.images.length > 0 && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
+                <button
+                  type="button"
+                  className="absolute inset-0"
+                  onClick={() => setPhotoLightbox({ open: false, index: 0 })}
+                />
+                <div className="relative max-w-5xl w-full px-4">
+                  <div className="relative bg-black rounded-lg overflow-hidden shadow-2xl flex items-center justify-center">
+                    <img
+                      src={propertyData.images[photoLightbox.index]}
+                      alt={`Property ${photoLightbox.index + 1}`}
+                      className="max-h-[80vh] w-full object-contain bg-black"
+                    />
+                    <button
+                      type="button"
+                      className="absolute top-3 right-3 bg-black/70 text-white rounded-full px-3 py-1 text-xs"
+                      onClick={() => setPhotoLightbox({ open: false, index: 0 })}
+                    >
+                      Close
+                    </button>
+                    {propertyData.images.length > 1 && (
+                      <>
+                        <button
+                          type="button"
+                          className="absolute left-3 top-1/2 -translate-y-1/2 bg-black/70 text-white rounded-full w-8 h-8 flex items-center justify-center text-lg"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setPhotoLightbox(prev => ({
+                              open: true,
+                              index: (prev.index - 1 + propertyData.images.length) % propertyData.images.length
+                            }));
+                          }}
+                        >
+                          
+                        </button>
+                        <button
+                          type="button"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 bg-black/70 text-white rounded-full w-8 h-8 flex items-center justify-center text-lg"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setPhotoLightbox(prev => ({
+                              open: true,
+                              index: (prev.index + 1) % propertyData.images.length
+                            }));
+                          }}
+                        >
+                          
+                        </button>
+                      </>
+                    )}
+                  </div>
+                  <div className="mt-3 text-center text-xs text-gray-200">
+                    Photo {photoLightbox.index + 1} of {propertyData.images.length}
+                  </div>
                 </div>
               </div>
             )}
@@ -1127,6 +1195,28 @@ export default function PropertyManagement() {
                                 className="w-full border rounded px-3 py-2"
                               />
                             </div>
+                            <div>
+                              <label className="block text-xs text-gray-600 mb-1">Bathroom type</label>
+                              <select
+                                id={`bathroomType-${room._id}`}
+                                defaultValue={room.bathroomType || 'inside'}
+                                className="w-full border rounded px-3 py-2 text-xs capitalize"
+                              >
+                                <option value="inside">Inside</option>
+                                <option value="attached">Attached</option>
+                                <option value="shared">Shared</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-xs text-gray-600 mb-1">Bathrooms in this room</label>
+                              <input
+                                id={`bathrooms-${room._id}`}
+                                type="number"
+                                defaultValue={room.bathrooms ?? 1}
+                                min={0}
+                                className="w-full border rounded px-3 py-2"
+                              />
+                            </div>
                           </div>
 
                           {/* Room amenities (per room) */}
@@ -1181,6 +1271,8 @@ export default function PropertyManagement() {
                                   const maxAdultsEl = document.getElementById(`maxAdults-${room._id}`);
                                   const maxChildrenEl = document.getElementById(`maxChildren-${room._id}`);
                                   const maxInfantsEl = document.getElementById(`maxInfants-${room._id}`);
+                                  const bathroomTypeEl = document.getElementById(`bathroomType-${room._id}`);
+                                  const bathroomsEl = document.getElementById(`bathrooms-${room._id}`);
 
                                   const payload = {
                                     capacity: Number(capacityEl?.value || room.capacity || 1),
@@ -1188,6 +1280,8 @@ export default function PropertyManagement() {
                                     maxAdults: maxAdultsEl?.value !== '' ? Number(maxAdultsEl.value) : undefined,
                                     maxChildren: maxChildrenEl?.value !== '' ? Number(maxChildrenEl.value) : undefined,
                                     maxInfants: maxInfantsEl?.value !== '' ? Number(maxInfantsEl.value) : undefined,
+                                    bathroomType: bathroomTypeEl?.value || room.bathroomType || 'inside',
+                                    bathrooms: bathroomsEl?.value !== '' ? Number(bathroomsEl.value) : room.bathrooms ?? 1,
                                     images: Array.isArray(room.images) ? room.images : [],
                                     amenities: Array.isArray(room.amenities) ? room.amenities : [],
                                   };

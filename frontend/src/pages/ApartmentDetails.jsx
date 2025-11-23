@@ -1099,6 +1099,10 @@ const ApartmentDetails = () => {
                   <span className="text-gray-600">Capacity</span>
                   <span className="font-medium text-gray-800">{detailsRoom.capacity} guests</span>
                 </div>
+                <div className="bg-gray-50 rounded-xl p-3 flex items-center justify-between shadow-sm">
+                  <span className="text-gray-600">Bathroom</span>
+                  <span className="font-medium capitalize text-gray-800">{detailsRoom.bathroomType || 'inside'}</span>
+                </div>
                 <div className="bg-blue-50 rounded-xl p-3 flex items-center justify-between shadow-sm col-span-2">
                   <span className="text-gray-600">Price / night</span>
                   <span className="font-bold text-blue-700">{formatCurrencyRWF ? formatCurrencyRWF(detailsRoom.pricePerNight || 0) : `RWF ${(detailsRoom.pricePerNight || 0).toLocaleString()}`}</span>

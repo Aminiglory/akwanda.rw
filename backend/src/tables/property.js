@@ -33,7 +33,9 @@ const roomSchema = new mongoose.Schema({
     bunk: { type: Number, default: 0, min: 0 },
     sofa: { type: Number, default: 0, min: 0 },
     futon: { type: Number, default: 0, min: 0 }
-  }
+  },
+  bathroomType: { type: String, enum: ['shared', 'attached', 'inside'], default: 'inside' },
+  bathrooms: { type: Number, default: 1, min: 0 }
 });
 
 const propertySchema = new mongoose.Schema(

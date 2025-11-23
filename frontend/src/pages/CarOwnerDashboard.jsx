@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import { useLocale } from '../contexts/LocaleContext';
 import ReceiptPreview from '../components/ReceiptPreview';
 import toast from 'react-hot-toast';
@@ -16,6 +17,8 @@ const makeAbsolute = (u) => {
 
 export default function CarOwnerDashboard() {
   const { user } = useAuth();
+  const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { formatCurrencyRWF } = useLocale() || {};
   const [cars, setCars] = useState([]);
   const [bookings, setBookings] = useState([]);
@@ -27,6 +30,17 @@ export default function CarOwnerDashboard() {
   const [successOpen, setSuccessOpen] = useState(false);
   const [successTitle, setSuccessTitle] = useState('Success');
   const [successMsg, setSuccessMsg] = useState('Action completed successfully.');
+  const [selectedCarId, setSelectedCarId] = useState('');
+  const [stats, setStats] = useState({
+    totalBookings: 0,
+    pending: 0,
+    active: 0,
+    completed: 0,
+    cancelled: 0,
+    totalRevenue: 0,
+    daysRented: 0,
+    avgRentalLength: 0
+  });
   const emptyCar = useMemo(() => ({
     vehicleName: '', vehicleType: 'economy', brand: '', model: '', year: new Date().getFullYear(),
     licensePlate: '', capacity: 4, pricePerDay: 0, pricePerWeek: '', pricePerMonth: '',
@@ -106,6 +120,61 @@ export default function CarOwnerDashboard() {
   }
 
   useEffect(() => { loadData(); }, []);
+
+  useEffect(() => {
+    if (!Array.isArray(cars) || cars.length === 0) return;
+    let initialId = '';
+    try {
+      const urlCar = searchParams.get('car');
+      if (urlCar && cars.some(c => String(c._id) === String(urlCar))) {
+        initialId = String(urlCar);
+      }
+    } catch (_) {}
+    if (!initialId) {
+      initialId = String(cars[0]._id);
+    }
+    if (String(selectedCarId) !== String(initialId)) {
+      setSelectedCarId(initialId);
+    }
+  }, [cars, searchParams, selectedCarId]);
+
+  useEffect(() => {
+    const baseList = Array.isArray(bookings) ? bookings : [];
+    const vehicleFiltered = selectedCarId
+      ? baseList.filter(b => String(b.car?._id) === String(selectedCarId))
+      : baseList;
+
+    let total = vehicleFiltered.length;
+    let pending = 0;
+    let active = 0;
+    let completed = 0;
+    let cancelled = 0;
+    let totalRevenue = 0;
+    let daysRented = 0;
+
+    vehicleFiltered.forEach(b => {
+      const s = b.status || '';
+      if (s === 'pending') pending += 1;
+      if (s === 'confirmed' || s === 'active') active += 1;
+      if (s === 'completed') completed += 1;
+      if (s === 'cancelled') cancelled += 1;
+      totalRevenue += Number(b.totalAmount || 0);
+      daysRented += Number(b.numberOfDays || 0);
+    });
+
+    const avgRentalLength = total > 0 ? daysRented / total : 0;
+
+    setStats({
+      totalBookings: total,
+      pending,
+      active,
+      completed,
+      cancelled,
+      totalRevenue,
+      daysRented,
+      avgRentalLength
+    });
+  }, [bookings, selectedCarId]);
 
   function resetForm() { setForm(emptyCar); }
 
@@ -337,6 +406,8 @@ export default function CarOwnerDashboard() {
           Your account is deactivated. Vehicle management is disabled until reactivated.
         </div>
       )}
+      <h1 className="text-2xl font-bold text-gray-900 mb-4">My Vehicles</h1>
+
       {/* Create Vehicle */}
       {showCreateForm && (
       <form ref={createFormRef} onSubmit={createCar} className="bg-white rounded-lg shadow p-4 mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -627,6 +698,7 @@ export default function CarOwnerDashboard() {
             </thead>
             <tbody>
               {bookings.filter(b => {
+                if (selectedCarId && String(b.car?._id) !== String(selectedCarId)) return false;
                 if (bookingFilters.status && b.status !== bookingFilters.status) return false;
                 if (bookingFilters.from) {
                   const from = new Date(bookingFilters.from);
