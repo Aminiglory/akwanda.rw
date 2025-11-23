@@ -6,12 +6,16 @@ import LandingAttractions from '../components/LandingAttractions';
 import OurMission from '../components/OurMission';
 import HowItWorks from '../components/HowItWorks';
 import Testimonials from '../components/Testimonials';
+import ImageLoadingBar from '../components/ImageLoadingBar';
 import { useLocale } from '../contexts/LocaleContext';
 import { 
   initializeLandingPageOptimization, 
   makeAbsoluteImageUrl, 
   preloadImages,
-  getImageLoadStats 
+  getImageLoadStats,
+  getFallbackImage,
+  setExpectedImageCount,
+  resetImageLoadStats 
 } from '../utils/imageUtils';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -22,6 +26,8 @@ const Home = () => {
   const [featuredSection, setFeaturedSection] = useState(null);
   const [partnersSection, setPartnersSection] = useState(null);
   const [imageOptimizationInitialized, setImageOptimizationInitialized] = useState(false);
+  const [totalExpectedImages, setTotalExpectedImages] = useState(0);
+  const [showLoadingBar, setShowLoadingBar] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -37,7 +43,11 @@ const Home = () => {
         
         // Initialize comprehensive image optimization
         if (!imageOptimizationInitialized) {
+          // Reset stats for fresh tracking
+          resetImageLoadStats();
+          
           const criticalImages = [];
+          let expectedTotal = 0;
           
           // Add hero images
           if (data?.content?.heroImages?.length > 0) {
@@ -47,6 +57,7 @@ const Home = () => {
                 priority: 10 - index,
                 category: 'hero'
               });
+              expectedTotal++;
             });
           }
           
@@ -58,8 +69,22 @@ const Home = () => {
                 priority: 8 - index,
                 category: 'attraction'
               });
+              expectedTotal++;
             });
           }
+          
+          // Add partners images
+          if (partnersSec?.images?.length > 0) {
+            expectedTotal += Math.min(partnersSec.images.length, 4); // Estimate visible partners
+          }
+          
+          // Estimate featured apartments (usually 4)
+          expectedTotal += 4;
+          
+          // Set expected count and show loading bar
+          setExpectedImageCount(expectedTotal);
+          setTotalExpectedImages(expectedTotal);
+          setShowLoadingBar(true);
           
           // Initialize optimization with critical images
           await initializeLandingPageOptimization(criticalImages);
@@ -119,6 +144,19 @@ const Home = () => {
   }, [partnersSection]);
   return (
     <div>
+      {/* Image Loading Bar */}
+      <ImageLoadingBar 
+        isVisible={showLoadingBar}
+        totalImages={totalExpectedImages}
+        onComplete={() => {
+          console.log('All images loaded successfully!');
+          setTimeout(() => setShowLoadingBar(false), 1500);
+        }}
+        showPercentage={true}
+        autoHide={true}
+        hideDelay={1500}
+      />
+      
       {/* Hero Section with chocolate theme background */}
       <div className="bg-gradient-to-br from-[#6b3f1f] via-[#a06b42] to-[#c59b77]">
         <Hero />
@@ -154,6 +192,11 @@ const Home = () => {
                       alt={d.name}
                       className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                       loading="lazy"
+                      decoding="async"
+                      onError={(e) => {
+                        console.warn(`Featured destination image failed to load: ${d.img}`);
+                        e.target.src = getFallbackImage('attraction', 'medium');
+                      }}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent" />
                     <div className="absolute top-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold bg-white/90 text-[#4b2a00] shadow-sm">
@@ -194,6 +237,11 @@ const Home = () => {
                           alt={p.name}
                           className="h-8 sm:h-10 w-auto object-contain"
                           loading="lazy"
+                          decoding="async"
+                          onError={(e) => {
+                            console.warn(`Partner image failed to load: ${p.img}`);
+                            e.target.src = getFallbackImage('default', 'small');
+                          }}
                         />
                         <div className="flex flex-col">
                           <span className="text-[#4b2a00] text-xs sm:text-sm font-semibold leading-tight">{p.name}</span>

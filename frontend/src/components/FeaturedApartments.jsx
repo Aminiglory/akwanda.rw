@@ -4,20 +4,16 @@ import { FaStar } from 'react-icons/fa';
 import PropertyCard from './PropertyCard';
 import { useLocale } from '../contexts/LocaleContext';
 import { safeApiGet } from '../utils/apiUtils';
+import { makeAbsoluteImageUrl, preloadImages, processImagesForComponent } from '../utils/imageUtils';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const FeaturedApartments = () => {
   const { t } = useLocale() || {};
   const [apartments, setApartments] = useState([]);
-  const makeAbsolute = (u) => {
-    if (!u) return u;
-    let s = String(u).replace(/\\/g, '/');
-    if (!s.startsWith('http')) {
-      if (!s.startsWith('/')) s = `/${s}`;
-      return `${API_URL}${s}`;
-    }
-    return s;
+  // Use optimized image URL processing
+  const processImageUrl = (url) => {
+    return makeAbsoluteImageUrl(url);
   };
 
   useEffect(() => {
@@ -34,9 +30,9 @@ const FeaturedApartments = () => {
           const ratingsArr = p.ratings || [];
           const avgRating = ratingsArr.length > 0 ? (ratingsArr.reduce((sum, r) => sum + r.rating, 0) / ratingsArr.length) : null;
           
-          // Process images with better error handling
-          const primaryImage = p.images && p.images.length ? makeAbsolute(p.images[0]) : null;
-          const allImages = Array.isArray(p.images) ? p.images.map(makeAbsolute).filter(Boolean) : [];
+          // Process images with optimized utilities
+          const primaryImage = p.images && p.images.length ? processImageUrl(p.images[0]) : null;
+          const allImages = Array.isArray(p.images) ? p.images.map(processImageUrl).filter(Boolean) : [];
           
           return {
             id: p._id,
@@ -59,24 +55,20 @@ const FeaturedApartments = () => {
         
         setApartments(processedApartments);
         
-        // Preload critical images
-        processedApartments.forEach((apt, index) => {
-          if (apt.image && index < 2) { // Preload first 2 images
-            const img = new Image();
-            img.src = apt.image;
-          }
-        });
+        // Preload critical images using optimized preloading
+        const criticalImages = processedApartments.slice(0, 2).map((apt, index) => ({
+          url: apt.image,
+          priority: 2 - index,
+          category: apt.category || 'apartment'
+        })).filter(item => item.url);
+        
+        if (criticalImages.length > 0) {
+          preloadImages(criticalImages, { maxConcurrent: 2, timeout: 3000 });
+        }
       }
     })();
   }, []);
 
-  const handleImageLoad = () => {
-    setImagesLoaded(prev => prev + 1);
-  };
-
-  const handleImageError = () => {
-    console.warn('Image failed to load, using fallback');
-  };
 
   // Reveal animation on scroll
   const gridRef = useRef(null);

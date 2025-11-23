@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { FaHeart, FaMapMarkerAlt, FaBed, FaBath, FaRulerCombined, FaEdit, FaTrash } from 'react-icons/fa';
 import { useLocale } from '../contexts/LocaleContext';
+import { getFallbackImage, makeAbsoluteImageUrl } from '../utils/imageUtils';
 
 const getStatusColor = (status) => {
   switch (status) {
@@ -67,12 +68,14 @@ const PropertyCard = ({
       <div className="relative bg-gray-100">
         <img
           loading="lazy"
-          src={image || 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=500&h=375&fit=crop'}
+          decoding="async"
+          src={makeAbsoluteImageUrl(image) || getFallbackImage('apartment', 'medium')}
           alt={title}
           className="w-full h-44 md:h-48 object-cover"
           onError={(e) => {
+            console.warn(`Property image failed to load: ${image}`);
             e.currentTarget.onerror = null;
-            e.currentTarget.src = 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=500&h=375&fit=crop';
+            e.currentTarget.src = getFallbackImage('apartment', 'medium');
           }}
         />
         <button

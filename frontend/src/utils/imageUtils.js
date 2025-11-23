@@ -7,7 +7,9 @@ let imageLoadStats = {
   loaded: 0,
   failed: 0,
   preloaded: 0,
-  totalLoadTime: 0
+  totalLoadTime: 0,
+  totalExpected: 0,
+  isLoading: false
 };
 
 // Device-specific optimizations
@@ -116,6 +118,10 @@ export const preloadImages = (imageData, options = {}) => {
     .sort((a, b) => (b.priority || 0) - (a.priority || 0))
     .slice(0, maxConcurrent);
   
+  // Update expected total and set loading state
+  imageLoadStats.totalExpected = Math.max(imageLoadStats.totalExpected, sortedImages.length);
+  imageLoadStats.isLoading = true;
+  
   const preloadPromises = sortedImages.map((item, index) => {
     return new Promise((resolve) => {
       const startTime = performance.now();
@@ -141,6 +147,12 @@ export const preloadImages = (imageData, options = {}) => {
         imageLoadStats.preloaded++;
         imageLoadStats.totalLoadTime += loadTime;
         
+        // Check if all expected images are loaded
+        const totalProcessed = imageLoadStats.loaded + imageLoadStats.failed;
+        if (totalProcessed >= imageLoadStats.totalExpected) {
+          imageLoadStats.isLoading = false;
+        }
+        
         onProgress && onProgress(index + 1, sortedImages.length);
         resolve({ success: true, url: item.url, loadTime });
       };
@@ -148,6 +160,13 @@ export const preloadImages = (imageData, options = {}) => {
       img.onerror = () => {
         cleanup();
         imageLoadStats.failed++;
+        
+        // Check if all expected images are processed
+        const totalProcessed = imageLoadStats.loaded + imageLoadStats.failed;
+        if (totalProcessed >= imageLoadStats.totalExpected) {
+          imageLoadStats.isLoading = false;
+        }
+        
         console.warn(`Failed to preload: ${item.url}`);
         resolve({ success: false, url: item.url, error: 'load_failed' });
       };
@@ -171,7 +190,16 @@ export const getImageLoadStats = () => ({ ...imageLoadStats });
  * Reset image loading statistics
  */
 export const resetImageLoadStats = () => {
-  imageLoadStats = { loaded: 0, failed: 0, preloaded: 0, totalLoadTime: 0 };
+  imageLoadStats = { loaded: 0, failed: 0, preloaded: 0, totalLoadTime: 0, totalExpected: 0, isLoading: false };
+};
+
+/**
+ * Set expected total images for progress tracking
+ * @param {number} total - Total number of images expected to load
+ */
+export const setExpectedImageCount = (total) => {
+  imageLoadStats.totalExpected = total;
+  imageLoadStats.isLoading = total > 0;
 };
 
 /**
@@ -377,6 +405,13 @@ export const createOptimizedImageElement = (config) => {
   
   img.onload = () => {
     imageLoadStats.loaded++;
+    
+    // Check if all expected images are loaded
+    const totalProcessed = imageLoadStats.loaded + imageLoadStats.failed;
+    if (totalProcessed >= imageLoadStats.totalExpected) {
+      imageLoadStats.isLoading = false;
+    }
+    
     onLoad && onLoad();
   };
   

@@ -333,8 +333,8 @@ const Hero = () => {
                 decoding={i === 0 ? 'sync' : 'async'}
                 fetchpriority={i === 0 ? 'high' : 'auto'}
                 onError={(e) => {
-                  // Avoid spamming console; hide element
-                  e.target.style.display = 'none';
+                  console.warn(`Hero image failed to load: ${url}`);
+                  e.target.src = getFallbackImage('hero', 'large');
                 }}
               />
             );
