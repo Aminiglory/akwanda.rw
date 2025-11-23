@@ -15,6 +15,8 @@ const BookingProcess = () => {
   
   const [property, setProperty] = useState(null);
   const [selectedRoom, setSelectedRoom] = useState(null);
+  const [initialRoomId, setInitialRoomId] = useState(null);
+
   const [bookingData, setBookingData] = useState({
     checkIn: '',
     checkOut: '',
@@ -71,6 +73,30 @@ const BookingProcess = () => {
   };
 
   useEffect(() => {
+    if (!initialRoomId || !availableRooms || availableRooms.length === 0 || selectedRoom) return;
+
+    const match = availableRooms.find((room) => {
+      const key = String(room._id || room.id || room.roomNumber || '');
+      return key && key === String(initialRoomId);
+    });
+
+    if (match) {
+      const pricePerNight = match.pricePerNight || match.price || 0;
+      const normalized = {
+        ...match,
+        _id: match._id || match.id,
+        roomNumber: match.roomNumber || match.name || 'Unknown Room',
+        roomType: match.roomType || 'Standard',
+        pricePerNight: pricePerNight,
+        isAvailable: match.isAvailable !== undefined ? match.isAvailable : true,
+        capacity: match.capacity || 1,
+        amenities: match.amenities || []
+      };
+      setSelectedRoom(normalized);
+    }
+  }, [initialRoomId, availableRooms, selectedRoom]);
+
+  useEffect(() => {
     fetchProperty();
   }, [id]);
 
@@ -90,6 +116,8 @@ const BookingProcess = () => {
       const cin = params.get('checkIn') || '';
       const cout = params.get('checkOut') || '';
       const guestsParam = params.get('guests');
+      const roomParam = params.get('roomId');
+
       if (cin || cout || guestsParam) {
         setBookingData(prev => ({
           ...prev,
@@ -97,6 +125,11 @@ const BookingProcess = () => {
           checkOut: cout || prev.checkOut,
           guests: guestsParam ? Number(guestsParam) || prev.guests : prev.guests
         }));
+      }
+
+      if (roomParam) {
+        setInitialRoomId(roomParam);
+        setCurrentStep(3);
       }
     } catch {}
   }, []);
@@ -938,6 +971,11 @@ const BookingProcess = () => {
                   </button>
                   <button
                     onClick={() => {
+                      if (!selectedRoom) {
+                        toast.error('Please select a room before continuing.');
+                        setCurrentStep(2);
+                        return;
+                      }
                       if (!bookingData.checkIn || !bookingData.checkOut) {
                         toast.error('Please select check-in and check-out dates');
                         return;
