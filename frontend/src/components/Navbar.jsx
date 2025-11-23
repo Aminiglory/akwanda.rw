@@ -75,6 +75,7 @@ const Navbar = () => {
   const [ownerPassword, setOwnerPassword] = useState('');
   const [switchLoading, setSwitchLoading] = useState(false);
   const [myProperties, setMyProperties] = useState([]);
+  const [myCars, setMyCars] = useState([]);
   const [propDropdownOpen, setPropDropdownOpen] = useState(false);
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
   const dropdownButtonRefs = useRef({});
@@ -167,6 +168,55 @@ const Navbar = () => {
         { label: t ? t('nav.deals') : "Deals", href: "/deals", icon: FaShoppingBag },
       ]
     }
+  ];
+
+  // Vehicle owner navigation items (car dashboard scopes)
+  const carOwnerNavItems = [
+    {
+      label: t ? t('nav.vehiclesHome') : 'Vehicles',
+      icon: FaHome,
+      href: '/owner/cars',
+    },
+    {
+      label: t ? t('nav.reservations') : 'Reservations',
+      icon: FaCalendarAlt,
+      href: '/owner/cars?section=reservations',
+    },
+    {
+      label: t ? t('nav.calendar') : 'Calendar',
+      icon: FaCalendarAlt,
+      href: '/owner/cars?section=calendar',
+    },
+    {
+      label: t ? t('nav.finance') : 'Finance',
+      icon: FaDollarSign,
+      href: '/transactions',
+    },
+    {
+      label: t ? t('nav.analytics') : 'Analytics',
+      icon: FaChartLine,
+      href: '/analytics',
+    },
+    {
+      label: t ? t('nav.promotions') : 'Promotions',
+      icon: FaShoppingBag,
+      href: '/owner/promotions',
+    },
+    {
+      label: t ? t('nav.reviews') : 'Reviews',
+      icon: FaStar,
+      href: '/owner/reviews',
+    },
+    {
+      label: t ? t('nav.messages') : 'Messages',
+      icon: FaEnvelope,
+      href: '/messages?category=reservations',
+    },
+    {
+      label: t ? t('nav.settings') : 'Settings',
+      icon: FaSettings,
+      href: '/settings?tab=notifications',
+    },
   ];
 
   // Booking.com-style navigation for property owners (matches original dashboard nav structure)
@@ -435,6 +485,7 @@ const Navbar = () => {
     return () => { if (timer) clearInterval(timer); };
   }, [isAuthenticated, user?.userType]);
 
+
   // Load host's properties for property selector (desktop and mobile)
   useEffect(() => {
     let cancelled = false;
@@ -475,6 +526,7 @@ const Navbar = () => {
     const firstId = String(myProperties[0]._id || '');
     setSelectedPropertyId(existsInList ? String(urlProp) : firstId);
   }, [isAuthenticated, user?.userType, myProperties, location.search]);
+
 
   // Fetch dynamic badge counts for navigation
   useEffect(() => {
@@ -680,6 +732,16 @@ const Navbar = () => {
     return false;
   };
 
+  // Vehicles owner dashboard context
+  const isInCarOwnerDashboard = () => {
+    return location.pathname.startsWith('/owner/cars');
+  };
+
+  // Any owner dashboard (properties or vehicles)
+  const isInAnyOwnerDashboard = () => {
+    return isInPropertyOwnerDashboard() || isInCarOwnerDashboard();
+  };
+
   const handleLogout = () => {
     logout();
     navigate("/logout-success");
@@ -796,8 +858,8 @@ const Navbar = () => {
 
   return (
     <> 
-      {/* Top Bar - First Level (hidden on landing page and in property owner dashboard) */}
-      {location.pathname !== '/' && !(isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard()) && (
+      {/* Top Bar - First Level (hidden on landing page and in any owner dashboard) */}
+      {location.pathname !== '/' && !(isAuthenticated && user?.userType === 'host' && isInAnyOwnerDashboard()) && (
       <div className="w-full bg-[#8b5a35] text-white py-2 px-4 border-b border-[#7a4d2c] relative z-[1000] shadow-sm">
         <div className="max-w-7xl mx-auto flex justify-between items-center text-xs">
           <div className="flex items-center space-x-4 lg:space-x-6">
@@ -962,14 +1024,14 @@ const Navbar = () => {
       {/* Second Bar - Navigation Level */}
       <nav
         className={`w-full border-b navbar-shadow ${
-          isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard()
+          isAuthenticated && user?.userType === 'host' && isInAnyOwnerDashboard()
             ? 'bg-[#8b5a35] border-[#7a4d2c] text-white'
             : 'bg-[#f5f0e8] border-[#e0d5c7]'
         }`}
       >
         <div
           className={`${
-            isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard()
+            isAuthenticated && user?.userType === 'host' && isInAnyOwnerDashboard()
               ? 'w-full px-2 sm:px-3'
               : 'max-w-7xl px-4 sm:px-6 lg:px-8'
           } mx-auto py-4`}
@@ -981,7 +1043,7 @@ const Navbar = () => {
                 <Link
                   to="/"
                   className={`text-xl font-bold tracking-tight ${
-                    isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard()
+                    isAuthenticated && user?.userType === 'host' && isInAnyOwnerDashboard()
                       ? 'text-white hover:text-[#fdf2e9]'
                       : 'text-[#4b2a00] hover:text-[#6b3f1f]'
                   }`}
@@ -1008,6 +1070,32 @@ const Navbar = () => {
                           const id = String(p._id || '');
                           const code = p.propertyNumber || id.slice(-6) || 'N/A';
                           const name = p.title || p.name || 'Property';
+                          return (
+                            <option key={id} value={id}>{`#${code} - ${name}`}</option>
+                          );
+                        })}
+                      </select>
+                    </div>
+                  </div>
+                )}
+                {isAuthenticated && user?.userType === 'host' && isInAnyOwnerDashboard() && myCars.length > 0 && (
+                  <div className="hidden lg:block">
+                    <div className="flex items-center gap-1">
+                      <select
+                        className="px-3 py-2 border border-[#d4c4b0] rounded-lg bg-white text-sm text-[#4b2a00] focus:outline-none focus:ring-2 focus:ring-[#a06b42]"
+                        title={t ? t('banner.chooseCarToManage') : 'Choose car to manage'}
+                        defaultValue={myCars[0]?._id}
+                        onChange={(e) => {
+                          const id = e.target.value;
+                          if (id) {
+                            window.open(`/owner/cars?car=${id}`, '_blank');
+                          }
+                        }}
+                      >
+                        {myCars.map((c) => {
+                          const id = String(c._id || '');
+                          const code = c.vehicleNumber || id.slice(-6) || 'N/A';
+                          const name = c.title || c.name || 'Car';
                           return (
                             <option key={id} value={id}>{`#${code} - ${name}`}</option>
                           );
@@ -1078,7 +1166,7 @@ const Navbar = () => {
               {/* Right Side - Booking.com Style */}
               <div className="flex flex-nowrap items-center gap-1 lg:gap-2">
               {/* Global search in main navbar (public / non-owner dashboard context) */}
-              {(!isAuthenticated || !isInPropertyOwnerDashboard()) && (
+              {(!isAuthenticated || !isInAnyOwnerDashboard()) && (
                 <form
                   onSubmit={handleGlobalSearch}
                   className="hidden lg:flex items-center bg-white border border-gray-300 rounded-lg px-2 py-1.5 mr-1 max-w-xs"
@@ -1116,7 +1204,7 @@ const Navbar = () => {
               )}
 
               {/* Favorites */}
-              {isAuthenticated && !isInPropertyOwnerDashboard() && (
+              {isAuthenticated && !isInAnyOwnerDashboard() && (
                 <Link
                   to="/favorites"
                   className="hidden lg:flex items-center px-3 py-2 rounded-lg text-[#6b5744] hover:text-[#4b2a00] hover:bg-[#e8dcc8] transition-colors"
@@ -1131,7 +1219,7 @@ const Navbar = () => {
                 <Link
                   to="/messages"
                   className={`flex items-center px-3 py-2 rounded-lg relative transition-colors ${
-                    isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard()
+                    isAuthenticated && user?.userType === 'host' && isInAnyOwnerDashboard()
                       ? 'text-white hover:text-white/90 hover:bg-[#6b3f1f]'
                       : 'text-[#6b5744] hover:text-[#4b2a00] hover:bg-[#e8dcc8]'
                   }`}
@@ -1171,7 +1259,7 @@ const Navbar = () => {
                   <button
                     onClick={toggleNotifications}
                     className={`notification-button relative px-3 py-2 rounded-lg transition-colors cursor-pointer ${
-                      isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard()
+                      isAuthenticated && user?.userType === 'host' && isInAnyOwnerDashboard()
                         ? isNotificationOpen
                           ? 'bg-[#a06b42] text-white'
                           : 'text-white hover:text-white/90 hover:bg-[#6b3f1f]'
@@ -1349,9 +1437,9 @@ const Navbar = () => {
             </div>
 
             {/* Owner navigation (Booking.com style) in second navbar */}
-            {isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard() && (
+            {isAuthenticated && user?.userType === 'host' && isInAnyOwnerDashboard() && (
               <div className="w-full flex flex-wrap items-center gap-1 pt-1 mt-1">
-                {bookingComNavItems.map((item, idx) => {
+                {(isInCarOwnerDashboard() ? carOwnerNavItems : bookingComNavItems).map((item, idx) => {
                   const Icon = item.icon;
                   const isOpen = activeDropdown === item.label;
                   const isParentActive = isActiveRoute(item.href);
@@ -1432,9 +1520,9 @@ const Navbar = () => {
           )}
 
           {/* Owner navigation (Booking.com style) - only in owner dashboard context */}
-          {user?.userType === 'host' && isInPropertyOwnerDashboard() && (
+          {user?.userType === 'host' && isInAnyOwnerDashboard() && (
             <div className="px-2 pb-2">
-              {bookingComNavItems.map((item, idx) => {
+              {(isInCarOwnerDashboard() ? carOwnerNavItems : bookingComNavItems).map((item, idx) => {
                 const Icon = item.icon;
                 const open = !!expandedMobileItems[item.label];
                 return (

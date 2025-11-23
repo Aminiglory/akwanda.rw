@@ -72,6 +72,7 @@ const PropertyOwnerBookings = () => {
     search: ''
   });
   const [ownerView, setOwnerView] = useState('table'); // 'table' | 'calendar'
+  const [calendarViewMode, setCalendarViewMode] = useState('monthly'); // 'monthly' | 'yearly'
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'dashboard');
   const [activeNavDropdown, setActiveNavDropdown] = useState(null);
   const [financeFilter, setFinanceFilter] = useState(searchParams.get('finance_status') || 'all'); // all|paid|pending|unpaid
@@ -1540,9 +1541,12 @@ const PropertyOwnerBookings = () => {
         {activeTab === 'calendar' && (
           <div>
             <div className="neu-card p-6 mb-8">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold">Property Calendar</h2>
-                <div className="flex space-x-4">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
+                <div>
+                  <h2 className="text-xl font-semibold text-[#4b2a00]">Property Calendar</h2>
+                  <p className="text-xs text-gray-500">Switch between monthly and yearly availability views.</p>
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
                   <select
                     value={filters.property}
                     onChange={(e) => setFilters(prev => ({ ...prev, property: e.target.value }))}
@@ -1553,9 +1557,25 @@ const PropertyOwnerBookings = () => {
                       <option key={p._id} value={p._id}>{p.name}</option>
                     ))}
                   </select>
+                  <div className="inline-flex rounded-full border border-[#e0d5c7] bg-[#fdf7f0] overflow-hidden text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setCalendarViewMode('monthly')}
+                      className={`px-3 py-1.5 ${calendarViewMode === 'monthly' ? 'bg-[#a06b42] text-white' : 'text-[#6b5744]'}`}
+                    >
+                      Monthly view
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCalendarViewMode('yearly')}
+                      className={`px-3 py-1.5 ${calendarViewMode === 'yearly' ? 'bg-[#a06b42] text-white' : 'text-[#6b5744]'}`}
+                    >
+                      Yearly view
+                    </button>
+                  </div>
                 </div>
               </div>
-              
+
               {(() => {
                 const propertyForCalendar = filters.property !== 'all' ? filters.property : (properties[0]?._id || '');
                 if (!propertyForCalendar) {
@@ -1564,20 +1584,106 @@ const PropertyOwnerBookings = () => {
                   );
                 }
 
-                const mo = parseInt(searchParams.get('monthOffset') || '0');
-                const base = new Date(filters.year, new Date().getMonth(), 1);
-                if (!isNaN(mo)) {
-                  base.setMonth(base.getMonth() + mo);
+                if (calendarViewMode === 'monthly') {
+                  const mo = parseInt(searchParams.get('monthOffset') || '0');
+                  const base = new Date(filters.year, new Date().getMonth(), 1);
+                  if (!isNaN(mo)) {
+                    base.setMonth(base.getMonth() + mo);
+                  }
+                  return (
+                    <BookingCalendar
+                      propertyId={propertyForCalendar}
+                      initialDate={base}
+                      onBookingSelect={(booking) => {
+                        setSelectedBooking(booking);
+                        setShowBookingDetails(true);
+                      }}
+                    />
+                  );
                 }
+
+                const year = Number(filters.year) || new Date().getFullYear();
+                const propertyBookings = bookings.filter(b => String(b.property?._id) === String(propertyForCalendar));
+                const hasBookingOn = (d) => {
+                  return propertyBookings.some(b => {
+                    const ci = new Date(b.checkIn);
+                    const co = new Date(b.checkOut);
+                    const day = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+                    return day >= new Date(ci.getFullYear(), ci.getMonth(), ci.getDate()) && day < new Date(co.getFullYear(), co.getMonth(), co.getDate());
+                  });
+                };
+                const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+                const buildMonthMatrix = (y, m) => {
+                  const first = new Date(y, m, 1);
+                  const last = new Date(y, m + 1, 0);
+                  const offset = first.getDay();
+                  const days = [];
+                  for (let i = 0; i < offset; i++) days.push(null);
+                  for (let d = 1; d <= last.getDate(); d++) days.push(new Date(y, m, d));
+                  return days;
+                };
+
                 return (
-                  <BookingCalendar
-                    propertyId={propertyForCalendar}
-                    initialDate={base}
-                    onBookingSelect={(booking) => {
-                      setSelectedBooking(booking);
-                      setShowBookingDetails(true);
-                    }}
-                  />
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setFilters(prev => ({ ...prev, year: prev.year - 1 }))}
+                          className="px-2 py-1 text-xs rounded border border-[#e0d5c7] bg-white hover:bg-[#f5ede1]"
+                        >
+                          ◀ {year - 1}
+                        </button>
+                        <div className="px-3 py-1.5 rounded-full bg-[#f5ede1] text-[#4b2a00] text-sm font-semibold">
+                          {year}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setFilters(prev => ({ ...prev, year: prev.year + 1 }))}
+                          className="px-2 py-1 text-xs rounded border border-[#e0d5c7] bg-white hover:bg-[#f5ede1]"
+                        >
+                          {year + 1} ▶
+                        </button>
+                      </div>
+                      <div className="hidden sm:flex items-center gap-3 text-[11px] text-gray-600">
+                        <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-[#e9f7ec] border border-[#b7dfc5]"></span> Bookable</span>
+                        <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-[#fdeeee] border border-[#f5b5b5]"></span> Has bookings</span>
+                      </div>
+                    </div>
+                    <div className="grid gap-4 md:grid-cols-3">
+                      {monthNames.map((name, idx) => {
+                        const cells = buildMonthMatrix(year, idx);
+                        return (
+                          <div key={name} className="border border-[#e0d5c7] rounded-xl bg-white overflow-hidden">
+                            <div className="px-3 py-2 bg-[#fdf7f0] text-[#4b2a00] text-sm font-semibold border-b border-[#e0d5c7] flex items-center justify-between">
+                              <span>{name}</span>
+                            </div>
+                            <div className="grid grid-cols-7 text-[10px] text-gray-500 px-2 pt-2">
+                              {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d => (
+                                <div key={d} className="text-center pb-1">{d}</div>
+                              ))}
+                            </div>
+                            <div className="grid grid-cols-7 text-[10px] px-2 pb-2 gap-y-1">
+                              {cells.map((d, i) => {
+                                if (!d) return <div key={i} />;
+                                const booked = hasBookingOn(d);
+                                const baseClasses = 'h-6 flex items-center justify-center rounded-sm border text-[10px]';
+                                const cls = booked
+                                  ? 'bg-[#fdeeee] border-[#f5b5b5] text-[#7a1f1f]'
+                                  : 'bg-[#e9f7ec] border-[#b7dfc5] text-[#245430]';
+                                return (
+                                  <div key={i} className={`${baseClasses} ${cls}`}>
+                                    {d.getDate()}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
                 );
               })()}
             </div>
