@@ -210,6 +210,14 @@ export default function RatesAvailability() {
   const applyBulkOpenClose = async (mode) => {
     if (!bulkEditRoom) return;
     const roomId = bulkEditRoom._id;
+    if (!bulkRange.start || !bulkRange.end) {
+      toast.error('Please select both start and end dates');
+      return;
+    }
+    if (bulkRange.end < bulkRange.start) {
+      toast.error('End date must be after start date');
+      return;
+    }
     setDateRanges(prev => ({
       ...prev,
       [roomId]: {
@@ -219,6 +227,7 @@ export default function RatesAvailability() {
     }));
     if (mode === 'open') await handleOpenDates(roomId);
     if (mode === 'close') await handleCloseDates(roomId);
+    closeBulkEdit();
   };
 
   const applyBulkRestrictions = async () => {
@@ -226,7 +235,12 @@ export default function RatesAvailability() {
     const roomId = bulkEditRoom._id;
     const minStay = bulkMinStay !== '' ? Number(bulkMinStay) : null;
     const maxStay = bulkMaxStay !== '' ? Number(bulkMaxStay) : null;
+    if (minStay != null && maxStay != null && maxStay < minStay) {
+      toast.error('Maximum stay must be greater than or equal to minimum stay');
+      return;
+    }
     await handleUpdateRestrictions(roomId, minStay, maxStay);
+    closeBulkEdit();
   };
 
   const fetchProperties = async () => {
