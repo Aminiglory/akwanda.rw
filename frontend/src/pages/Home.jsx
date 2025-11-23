@@ -7,6 +7,12 @@ import OurMission from '../components/OurMission';
 import HowItWorks from '../components/HowItWorks';
 import Testimonials from '../components/Testimonials';
 import { useLocale } from '../contexts/LocaleContext';
+import { 
+  initializeLandingPageOptimization, 
+  makeAbsoluteImageUrl, 
+  preloadImages,
+  getImageLoadStats 
+} from '../utils/imageUtils';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -15,6 +21,7 @@ const Home = () => {
 
   const [featuredSection, setFeaturedSection] = useState(null);
   const [partnersSection, setPartnersSection] = useState(null);
+  const [imageOptimizationInitialized, setImageOptimizationInitialized] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -27,11 +34,48 @@ const Home = () => {
         const partnersSec = sections.find((s) => s?.key === 'partners') || null;
         setFeaturedSection(sec);
         setPartnersSection(partnersSec);
+        
+        // Initialize comprehensive image optimization
+        if (!imageOptimizationInitialized) {
+          const criticalImages = [];
+          
+          // Add hero images
+          if (data?.content?.heroImages?.length > 0) {
+            data.content.heroImages.slice(0, 2).forEach((img, index) => {
+              criticalImages.push({
+                url: makeAbsoluteImageUrl(img),
+                priority: 10 - index,
+                category: 'hero'
+              });
+            });
+          }
+          
+          // Add featured destinations images
+          if (sec?.images?.length > 0) {
+            sec.images.slice(0, 2).forEach((img, index) => {
+              criticalImages.push({
+                url: makeAbsoluteImageUrl(img),
+                priority: 8 - index,
+                category: 'attraction'
+              });
+            });
+          }
+          
+          // Initialize optimization with critical images
+          await initializeLandingPageOptimization(criticalImages);
+          setImageOptimizationInitialized(true);
+          
+          // Log performance stats after 3 seconds
+          setTimeout(() => {
+            const stats = getImageLoadStats();
+            console.log('Landing page image performance:', stats);
+          }, 3000);
+        }
       } catch (_) {
         setFeaturedSection(null);
       }
     })();
-  }, []);
+  }, [imageOptimizationInitialized]);
 
   const featuredCards = useMemo(() => {
     if (!featuredSection) return [];

@@ -1,6 +1,77 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useLocale } from '../contexts/LocaleContext';
 import { FaBuilding, FaSmile, FaThumbsUp } from 'react-icons/fa';
+import { 
+  makeAbsoluteImageUrl, 
+  preloadImages, 
+  getFallbackImage,
+  generateResponsiveImages,
+  getDeviceOptimizations 
+} from '../utils/imageUtils';
+
+// Optimized Hero Image Component
+const OptimizedHeroImage = ({ src, alt, priority = false }) => {
+  const [imageSrc, setImageSrc] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    if (!src) {
+      setImageSrc(getFallbackImage('hero', 'large'));
+      setIsLoading(false);
+      return;
+    }
+
+    const img = new Image();
+    const deviceOpts = getDeviceOptimizations();
+    
+    // Generate responsive image URL
+    const responsiveImages = generateResponsiveImages(src);
+    const optimizedSrc = responsiveImages ? responsiveImages.large : src;
+    
+    img.onload = () => {
+      setImageSrc(optimizedSrc);
+      setIsLoading(false);
+      setHasError(false);
+    };
+    
+    img.onerror = () => {
+      console.warn(`Hero image failed to load: ${src}`);
+      setImageSrc(getFallbackImage('hero', 'large'));
+      setIsLoading(false);
+      setHasError(true);
+    };
+    
+    img.src = optimizedSrc;
+  }, [src]);
+
+  return (
+    <div className="relative w-full h-full">
+      {isLoading && (
+        <div className="absolute inset-0 bg-gradient-to-br from-[#6b3f1f] via-[#a06b42] to-[#c59b77] animate-pulse flex items-center justify-center">
+          <div className="w-12 h-12 border-4 border-white/30 border-t-white rounded-full animate-spin"></div>
+        </div>
+      )}
+      {imageSrc && (
+        <img
+          src={imageSrc}
+          alt={alt}
+          className={`w-full h-full object-cover transition-opacity duration-500 ${
+            isLoading ? 'opacity-0' : 'opacity-100'
+          }`}
+          loading={priority ? 'eager' : 'lazy'}
+          decoding="async"
+          fetchpriority={priority ? 'high' : 'auto'}
+        />
+      )}
+      {hasError && (
+        <div className="absolute top-4 right-4 bg-yellow-500/90 text-white text-xs px-2 py-1 rounded">
+          Fallback Image
+        </div>
+      )}
+    </div>
+  );
+};
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 // Normalize API base to avoid mixed content on HTTPS (notably strict on mobile)
@@ -138,14 +209,22 @@ const Hero = () => {
           
           console.log('Final processed slides (pre-validate):', fromSlides);
           // Preload images and filter out any that fail to load to avoid console errors
-          const preloadOne = (u) => new Promise((resolve) => {
-            try {
-              const img = new Image();
-              img.onload = () => resolve(true);
-              img.onerror = () => resolve(false);
-              img.src = u;
-            } catch { resolve(false); }
+          // Use optimized preloading from imageUtils
+          const imageData = fromSlides.map((slide, index) => ({
+            url: slide.image,
+            priority: fromSlides.length - index, // First images have higher priority
+            category: 'hero'
+          }));
+          
+          const preloadResults = await preloadImages(imageData, {
+            maxConcurrent: 2,
+            timeout: 4000
           });
+          
+          const preloadOne = (u) => {
+            const result = preloadResults.find(r => r.url === u);
+            return Promise.resolve(result ? result.success : false);
+          };
           const validated = [];
           for (const s of fromSlides) {
             // eslint-disable-next-line no-await-in-loop

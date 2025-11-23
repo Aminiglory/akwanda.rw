@@ -40,6 +40,7 @@ export default function RatesAvailability() {
   });
   const [roomRanges, setRoomRanges] = useState({}); // { [roomId]: { start: 'YYYY-MM-DD', end: 'YYYY-MM-DD' } }
   const [dayModal, setDayModal] = useState(null); // { roomId, date: 'YYYY-MM-DD', events: [] }
+  const [singleClickMode, setSingleClickMode] = useState(true); // Toggle between single-click and range selection
   const [pricingCalendarView, setPricingCalendarView] = useState('monthly');
   const [bulkEditRoom, setBulkEditRoom] = useState(null);
   const [bulkEditOpen, setBulkEditOpen] = useState(false);
@@ -169,21 +170,72 @@ export default function RatesAvailability() {
     return closed.some(c => c === dateStr || (c.date && c.date.startsWith(dateStr)));
   };
 
-  const onDayClick = (room, dayDate) => {
+  const onDayClick = async (room, dayDate) => {
     if (!dayDate) return;
     const dateStr = fmt(dayDate);
-    // range selection: first click -> start, second -> end then open modal for actions
-    const cur = roomRanges[room._id] || {};
-    if (!cur.start || (cur.start && cur.end)) {
-      setRoomRanges(prev => ({ ...prev, [room._id]: { start: dateStr, end: '' } }));
-      setDateRanges(prev => ({ ...prev, [room._id]: { startDate: dateStr, endDate: '' } }));
-      setDayModal({ roomId: room._id, date: dateStr, events: [] });
-    } else if (!cur.end) {
-      const start = cur.start <= dateStr ? cur.start : dateStr;
-      const end = cur.start <= dateStr ? dateStr : cur.start;
-      setRoomRanges(prev => ({ ...prev, [room._id]: { start, end } }));
-      setDateRanges(prev => ({ ...prev, [room._id]: { startDate: start, endDate: end } }));
-      setDayModal({ roomId: room._id, date: start, events: [], rangeEnd: end });
+    
+    if (singleClickMode) {
+      // Single-click mode: instantly toggle lock/unlock like Booking.com
+      const isCurrentlyClosed = isClosed(room, dateStr);
+      const action = isCurrentlyClosed ? 'open' : 'close';
+      
+      try {
+        // Try primary API endpoint first
+        let res = await fetch(`${API_URL}/api/rates/calendar/single-date`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            propertyId: selectedProperty,
+            roomId: room._id,
+            date: dateStr,
+            action: action,
+            available: action === 'open',
+            closed: action === 'close'
+          })
+        });
+        
+        // If primary endpoint fails, try fallback
+        if (!res.ok && res.status === 404) {
+          console.log('Primary endpoint not found, trying fallback...');
+          res = await fetch(`${API_URL}/api/properties/${selectedProperty}/rooms/${room._id}/availability`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+              date: dateStr,
+              available: action === 'open',
+              closed: action === 'close'
+            })
+          });
+        }
+        
+        if (res.ok) {
+          toast.success(`Date ${action === 'close' ? 'locked 🔒' : 'unlocked 🔓'}`);
+          // Refresh calendar to show changes immediately
+          await fetchCalendar();
+        } else {
+          const errorData = await res.json().catch(() => ({}));
+          throw new Error(errorData.message || 'Failed to update date');
+        }
+      } catch (e) {
+        console.error('Calendar update error:', e);
+        toast.error(`Failed to ${action} date. Please try again.`);
+      }
+    } else {
+      // Range selection mode: original behavior
+      const cur = roomRanges[room._id] || {};
+      if (!cur.start || (cur.start && cur.end)) {
+        setRoomRanges(prev => ({ ...prev, [room._id]: { start: dateStr, end: '' } }));
+        setDateRanges(prev => ({ ...prev, [room._id]: { startDate: dateStr, endDate: '' } }));
+        setDayModal({ roomId: room._id, date: dateStr, events: [] });
+      } else if (!cur.end) {
+        const start = cur.start <= dateStr ? cur.start : dateStr;
+        const end = cur.start <= dateStr ? dateStr : cur.start;
+        setRoomRanges(prev => ({ ...prev, [room._id]: { start, end } }));
+        setDateRanges(prev => ({ ...prev, [room._id]: { startDate: start, endDate: end } }));
+        setDayModal({ roomId: room._id, date: start, events: [], rangeEnd: end });
+      }
     }
   };
 
@@ -509,6 +561,19 @@ export default function RatesAvailability() {
                     <div className="font-semibold text-[#4b2a00]">{activeMonth.toLocaleString(undefined, { month: 'long', year: 'numeric' })}</div>
                     <button onClick={() => setActiveMonth(m => new Date(m.getFullYear(), m.getMonth()+1, 1))} className="px-3 py-1 rounded text-sm bg-[#f5f0e8] border border-[#d4c4b0] text-[#4b2a00] hover:bg-[#e8dcc8]">Next</button>
                   </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-600">Click mode:</span>
+                    <button
+                      onClick={() => setSingleClickMode(!singleClickMode)}
+                      className={`px-3 py-1 rounded text-xs font-medium ${
+                        singleClickMode 
+                          ? 'bg-green-100 text-green-700 border border-green-300' 
+                          : 'bg-blue-100 text-blue-700 border border-blue-300'
+                      }`}
+                    >
+                      {singleClickMode ? '🔒 Single Click Lock/Unlock' : '📅 Range Selection'}
+                    </button>
+                  </div>
                   <div className="flex items-center gap-2 text-xs">
                     <span className="text-[#6b5744]">View:</span>
                     <select
@@ -547,16 +612,35 @@ export default function RatesAvailability() {
                                   key={i}
                                   disabled={!d}
                                   onClick={() => onDayClick(room, d)}
-                                  className={`h-9 md:h-8 rounded border text-xs flex items-center justify-center ${!d ? 'bg-transparent border-transparent' : closed ? 'bg-rose-50 border-rose-200 text-rose-700' : 'bg-white border-gray-200 hover:bg-[#f5f0e8]'} ${inSel ? 'ring-2 ring-[#a06b42] bg-[#f5f0e8] border-[#d4c4b0]' : ''}`}
+                                  className={`h-9 md:h-8 rounded border text-xs flex items-center justify-center transition-all duration-200 ${
+                                    !d ? 'bg-transparent border-transparent' : 
+                                    closed ? 'bg-red-200 border-red-400 text-red-900 hover:bg-red-300 font-semibold' : 
+                                    'bg-green-100 border-green-300 text-green-900 hover:bg-green-200'
+                                  } ${inSel ? 'ring-2 ring-[#a06b42] bg-[#f5f0e8] border-[#d4c4b0]' : ''} ${
+                                    singleClickMode && d ? 'cursor-pointer hover:scale-105' : ''
+                                  }`}
+                                  title={d && singleClickMode ? (closed ? 'Click to unlock date 🔓' : 'Click to lock date 🔒') : ''}
                                 >
-                                  {d ? d.getDate() : ''}
+                                  {d ? (
+                                    <div className="flex flex-col items-center">
+                                      <span>{d.getDate()}</span>
+                                      {singleClickMode && (
+                                        <span className="text-[10px] opacity-70">
+                                          {closed ? '🔒' : '🔓'}
+                                        </span>
+                                      )}
+                                    </div>
+                                  ) : ''}
                                 </button>
                               );
                             })}
                           </div>
                           <div className="mt-2 flex items-center gap-2 text-xs">
-                            <span className="inline-flex items-center gap-1"><span className="w-3 h-3 inline-block bg-rose-100 rounded border border-rose-200"></span>Closed</span>
-                            <span className="inline-flex items-center gap-1"><span className="w-3 h-3 inline-block bg-[#e8dcc8] rounded border border-[#d4c4b0]"></span>Selected range</span>
+                            <span className="inline-flex items-center gap-1"><span className="w-3 h-3 inline-block bg-red-200 rounded border border-red-400"></span>🔒 Locked (Closed)</span>
+                            <span className="inline-flex items-center gap-1"><span className="w-3 h-3 inline-block bg-green-100 rounded border border-green-300"></span>🔓 Unlocked (Open)</span>
+                            {!singleClickMode && (
+                              <span className="inline-flex items-center gap-1"><span className="w-3 h-3 inline-block bg-[#e8dcc8] rounded border border-[#d4c4b0]"></span>Selected range</span>
+                            )}
                             <div className="ml-auto flex gap-2">
                               <button onClick={() => handleOpenDates(room._id)} className="px-2 py-1 bg-[#a06b42] hover:bg-[#8f5a32] text-white rounded">Open</button>
                               <button onClick={() => handleCloseDates(room._id)} className="px-2 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded">Close</button>

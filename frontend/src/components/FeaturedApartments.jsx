@@ -29,10 +29,15 @@ const FeaturedApartments = () => {
           const db = b && b.createdAt ? new Date(b.createdAt) : new Date(0);
           return db - da;
         });
-        setApartments(sorted.slice(0, 4).map(p => {
+        const processedApartments = sorted.slice(0, 4).map(p => {
           // Calculate average rating and review count from ratings array
           const ratingsArr = p.ratings || [];
           const avgRating = ratingsArr.length > 0 ? (ratingsArr.reduce((sum, r) => sum + r.rating, 0) / ratingsArr.length) : null;
+          
+          // Process images with better error handling
+          const primaryImage = p.images && p.images.length ? makeAbsolute(p.images[0]) : null;
+          const allImages = Array.isArray(p.images) ? p.images.map(makeAbsolute).filter(Boolean) : [];
+          
           return {
             id: p._id,
             title: p.title,
@@ -40,19 +45,38 @@ const FeaturedApartments = () => {
             price: p.pricePerNight,
             rating: avgRating ? Number(avgRating.toFixed(1)) : null,
             reviews: ratingsArr.length,
-            image: p.images && p.images.length ? makeAbsolute(p.images[0]) : 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=500&h=300&fit=crop',
-            images: Array.isArray(p.images) ? p.images.map(makeAbsolute) : [],
+            image: primaryImage,
+            images: allImages,
             bedrooms: p.bedrooms ?? 2,
             bathrooms: p.bathrooms ?? 1,
             amenities: p.amenities || ["WiFi", "Parking", "Kitchen"],
             isAvailable: p.isActive,
             discountPercent: p.discountPercent || 0,
-            host: p.host ? `${p.host.firstName || ''} ${p.host.lastName || ''}`.trim() : '—'
+            host: p.host ? `${p.host.firstName || ''} ${p.host.lastName || ''}`.trim() : '—',
+            category: p.category || 'apartment' // For fallback image selection
           };
-        }));
+        });
+        
+        setApartments(processedApartments);
+        
+        // Preload critical images
+        processedApartments.forEach((apt, index) => {
+          if (apt.image && index < 2) { // Preload first 2 images
+            const img = new Image();
+            img.src = apt.image;
+          }
+        });
       }
     })();
   }, []);
+
+  const handleImageLoad = () => {
+    setImagesLoaded(prev => prev + 1);
+  };
+
+  const handleImageError = () => {
+    console.warn('Image failed to load, using fallback');
+  };
 
   // Reveal animation on scroll
   const gridRef = useRef(null);
@@ -127,4 +151,5 @@ const FeaturedApartments = () => {
   );
 };
 
+export { OptimizedImage };
 export default FeaturedApartments;

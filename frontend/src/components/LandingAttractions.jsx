@@ -1,7 +1,74 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useLocale } from '../contexts/LocaleContext';
+import { 
+  makeAbsoluteImageUrl, 
+  preloadImages, 
+  getFallbackImage,
+  generateResponsiveImages,
+  processImagesForComponent 
+} from '../utils/imageUtils';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+// Optimized Attraction Image Component
+const OptimizedAttractionImage = ({ src, alt, className, priority = false }) => {
+  const [imageSrc, setImageSrc] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    if (!src) {
+      setImageSrc(getFallbackImage('attraction', 'medium'));
+      setIsLoading(false);
+      return;
+    }
+
+    const img = new Image();
+    const responsiveImages = generateResponsiveImages(src);
+    const optimizedSrc = responsiveImages ? responsiveImages.medium : src;
+    
+    img.onload = () => {
+      setImageSrc(optimizedSrc);
+      setIsLoading(false);
+      setHasError(false);
+    };
+    
+    img.onerror = () => {
+      console.warn(`Attraction image failed to load: ${src}`);
+      setImageSrc(getFallbackImage('attraction', 'medium'));
+      setIsLoading(false);
+      setHasError(true);
+    };
+    
+    img.src = optimizedSrc;
+  }, [src]);
+
+  return (
+    <div className={`relative overflow-hidden ${className}`}>
+      {isLoading && (
+        <div className="absolute inset-0 bg-gray-200 animate-pulse flex items-center justify-center">
+          <div className="w-8 h-8 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
+        </div>
+      )}
+      {imageSrc && (
+        <img
+          src={imageSrc}
+          alt={alt}
+          className={`w-full h-full object-cover transition-all duration-500 group-hover:scale-110 ${
+            isLoading ? 'opacity-0' : 'opacity-100'
+          }`}
+          loading={priority ? 'eager' : 'lazy'}
+          decoding="async"
+        />
+      )}
+      {hasError && (
+        <div className="absolute top-2 right-2 bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded">
+          Fallback
+        </div>
+      )}
+    </div>
+  );
+};
 
 export default function LandingAttractions() {
   const { localize, t } = useLocale() || {};
@@ -26,12 +93,27 @@ export default function LandingAttractions() {
       .split(/\r?\n/)
       .map(s => s.trim())
       .filter(Boolean);
-    return imgs.map((img, i) => {
+    const processedCards = imgs.map((img, i) => {
       const src = /^https?:\/\//i.test(img) ? img : `${API_BASE}${img.startsWith('/') ? img : `/${img}`}`;
       const rawTitle = captions[i] || `Attraction ${i + 1}`;
       const title = localize ? localize(rawTitle) : rawTitle;
-      return { src, title };
+      return { src: makeAbsoluteImageUrl(src), title, category: 'attraction', priority: i < 3 };
     });
+    
+    // Preload first 3 attraction images
+    useEffect(() => {
+      if (processedCards.length > 0) {
+        const criticalImages = processedCards.slice(0, 3).map((card, index) => ({
+          url: card.src,
+          priority: 3 - index,
+          category: 'attraction'
+        }));
+        
+        preloadImages(criticalImages, { maxConcurrent: 2, timeout: 3000 });
+      }
+    }, [processedCards]);
+    
+    return processedCards;
   }, [section, localize]);
 
   if (!section || cards.length === 0) return null;

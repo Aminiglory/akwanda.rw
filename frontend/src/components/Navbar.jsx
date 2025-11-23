@@ -1041,7 +1041,7 @@ const Navbar = () => {
       <nav
         className={`w-full border-b navbar-shadow ${
           isAuthenticated && user?.userType === 'host' && isInAnyOwnerDashboard()
-            ? 'bg-[#8b5a35] border-[#7a4d2c] text-white'
+            ? 'bg-[#a06b42] border-[#8f5a32] text-white'
             : 'bg-[#f5f0e8] border-[#e0d5c7]'
         }`}
       >
