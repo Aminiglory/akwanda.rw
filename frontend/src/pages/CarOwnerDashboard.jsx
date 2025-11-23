@@ -63,8 +63,14 @@ export default function CarOwnerDashboard() {
   const [createPreviews, setCreatePreviews] = useState([]);
   const createFormRef = useRef(null);
   const bookingsRef = useRef(null);
-  const [bookingView, setBookingView] = useState('list');
-  const [calendarMonthOffset, setCalendarMonthOffset] = useState(0);
+  const [bookingView, setBookingView] = useState(() => {
+    const section = searchParams.get('section');
+    return section === 'calendar' ? 'calendar' : 'list';
+  });
+  const [calendarMonthOffset, setCalendarMonthOffset] = useState(() => {
+    const mo = parseInt(searchParams.get('monthOffset') || '0', 10);
+    return Number.isNaN(mo) ? 0 : mo;
+  });
 
   async function loadData() {
     try {
@@ -188,6 +194,28 @@ export default function CarOwnerDashboard() {
       avgRentalLength
     });
   }, [bookings, selectedCarId]);
+
+  // Keep filters and views in sync with URL query params (section, status, monthOffset)
+  useEffect(() => {
+    const section = searchParams.get('section');
+    const status = searchParams.get('status') || '';
+    const mo = parseInt(searchParams.get('monthOffset') || '0', 10);
+
+    if (section === 'calendar' && bookingView !== 'calendar') {
+      setBookingView('calendar');
+    } else if (section === 'reservations' && bookingView !== 'list') {
+      setBookingView('list');
+    }
+
+    setBookingFilters(prev => ({
+      ...prev,
+      status,
+    }));
+
+    if (!Number.isNaN(mo) && mo !== calendarMonthOffset) {
+      setCalendarMonthOffset(mo);
+    }
+  }, [searchParams, bookingView, calendarMonthOffset]);
 
   const financeStats = useMemo(() => {
     const baseList = Array.isArray(bookings) ? bookings : [];
@@ -465,7 +493,6 @@ export default function CarOwnerDashboard() {
           Your account is deactivated. Vehicle management is disabled until reactivated.
         </div>
       )}
-      <h1 className="text-2xl font-bold text-gray-900 mb-4">My Vehicles</h1>
 
       {Array.isArray(cars) && cars.length > 0 && (
         <>
@@ -888,19 +915,29 @@ export default function CarOwnerDashboard() {
 
       {/* Bookings */}
       <div className="mt-8" ref={bookingsRef}>
-        <div className="mb-2 flex items-center justify-between gap-2">
+        <div className="mb-2 flex items-center justify_between gap-2">
           <h2 className="text-xl font-semibold">Bookings</h2>
           <div className="inline-flex rounded-lg overflow-hidden border">
             <button
               type="button"
-              onClick={() => setBookingView('list')}
+              onClick={() => {
+                setBookingView('list');
+                const params = new URLSearchParams(location.search || '');
+                params.set('section', 'reservations');
+                setSearchParams(params);
+              }}
               className={`px-3 py-1.5 text-xs font-medium ${bookingView === 'list' ? 'bg-[#a06b42] text-white' : 'bg-white text-gray-700'}`}
             >
               List
             </button>
             <button
               type="button"
-              onClick={() => setBookingView('calendar')}
+              onClick={() => {
+                setBookingView('calendar');
+                const params = new URLSearchParams(location.search || '');
+                params.set('section', 'calendar');
+                setSearchParams(params);
+              }}
               className={`px-3 py-1.5 text-xs font-medium ${bookingView === 'calendar' ? 'bg-[#a06b42] text-white' : 'bg-white text-gray-700'}`}
             >
               Calendar
@@ -910,7 +947,17 @@ export default function CarOwnerDashboard() {
         <div className="mb-3 flex flex-wrap items-end gap-2">
           <div>
             <label className="block text-xs text-gray-600">Status</label>
-            <select value={bookingFilters.status} onChange={e => setBookingFilters({ ...bookingFilters, status: e.target.value })} className="px-3 py-2 border rounded">
+            <select
+              value={bookingFilters.status}
+              onChange={e => {
+                const value = e.target.value;
+                setBookingFilters({ ...bookingFilters, status: value });
+                const params = new URLSearchParams(location.search || '');
+                if (value) params.set('status', value); else params.delete('status');
+                setSearchParams(params);
+              }}
+              className="px-3 py-2 border rounded"
+            >
               <option value="">All</option>
               {['pending','confirmed','active','completed','cancelled'].map(s => <option key={s} value={s}>{s}</option>)}
             </select>
@@ -986,7 +1033,15 @@ export default function CarOwnerDashboard() {
             <div className="mb-3 flex items-center justify-between gap-2">
               <button
                 type="button"
-                onClick={() => setCalendarMonthOffset(o => o - 1)}
+                onClick={() => {
+                  setCalendarMonthOffset(o => {
+                    const next = o - 1;
+                    const params = new URLSearchParams(location.search || '');
+                    params.set('monthOffset', String(next));
+                    setSearchParams(params);
+                    return next;
+                  });
+                }}
                 className="px-2 py-1 text-xs rounded border bg-white hover:bg-gray-50"
               >
                 ◀
@@ -994,7 +1049,15 @@ export default function CarOwnerDashboard() {
               <div className="text-sm font-semibold text-gray-800">{calendarMeta.label}</div>
               <button
                 type="button"
-                onClick={() => setCalendarMonthOffset(o => o + 1)}
+                onClick={() => {
+                  setCalendarMonthOffset(o => {
+                    const next = o + 1;
+                    const params = new URLSearchParams(location.search || '');
+                    params.set('monthOffset', String(next));
+                    setSearchParams(params);
+                    return next;
+                  });
+                }}
                 className="px-2 py-1 text-xs rounded border bg-white hover:bg-gray-50"
               >
                 ▶

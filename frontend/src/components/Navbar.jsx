@@ -176,16 +176,32 @@ const Navbar = () => {
       label: t ? t('nav.vehiclesHome') : 'Vehicles',
       icon: FaHome,
       href: '/owner/cars',
+      children: [
+        { label: t ? t('nav.vehiclesHome') : 'Dashboard', href: '/owner/cars', icon: FaHome },
+        { label: t ? t('nav.myVehicles') : 'My vehicles', href: '/owner/cars', icon: FaCar },
+      ]
     },
     {
       label: t ? t('nav.reservations') : 'Reservations',
       icon: FaCalendarAlt,
       href: '/owner/cars?section=reservations',
+      children: [
+        { label: t ? t('nav.allReservations') : 'All reservations', href: '/owner/cars?section=reservations', icon: FaCalendarAlt },
+        { label: t ? t('nav.pendingReservations') : 'Pending', href: '/owner/cars?section=reservations&status=pending', icon: FaCalendarAlt },
+        { label: t ? t('nav.confirmedReservations') : 'Confirmed', href: '/owner/cars?section=reservations&status=confirmed', icon: FaCalendarAlt },
+        { label: t ? t('nav.activeReservations') : 'Active', href: '/owner/cars?section=reservations&status=active', icon: FaCalendarAlt },
+        { label: t ? t('nav.completedReservations') : 'Completed', href: '/owner/cars?section=reservations&status=completed', icon: FaCalendarAlt },
+        { label: t ? t('nav.cancelledReservations') : 'Cancelled', href: '/owner/cars?section=reservations&status=cancelled', icon: FaCalendarAlt },
+      ]
     },
     {
       label: t ? t('nav.calendar') : 'Calendar',
       icon: FaCalendarAlt,
       href: '/owner/cars?section=calendar',
+      children: [
+        { label: t ? t('nav.thisMonth') : 'This month', href: '/owner/cars?section=calendar&monthOffset=0', icon: FaCalendarAlt },
+        { label: t ? t('nav.nextMonth') : 'Next month', href: '/owner/cars?section=calendar&monthOffset=1', icon: FaCalendarAlt },
+      ]
     },
     {
       label: t ? t('nav.finance') : 'Finance',
