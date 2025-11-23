@@ -310,13 +310,6 @@ const ApartmentDetails = () => {
     return () => { cancelled = true; };
   }, [API_URL, id]);
 
-  // Auto-expand the first room for bookers so the calendar is visible immediately
-  useEffect(() => {
-    if (apartment && Array.isArray(apartment.rooms) && apartment.rooms.length > 0 && selectedRoom === null) {
-      setSelectedRoom(0);
-    }
-  }, [apartment, selectedRoom]);
-
   const handleDatesAvailability = async () => {
     if (!searchCheckIn || !searchCheckOut || !searchGuests || Number(searchGuests) < 1) {
       toast.error('Please select check-in, check-out, and number of guests to see available rooms.');
@@ -346,7 +339,23 @@ const ApartmentDetails = () => {
 
       if (available.length === 0) {
         try { toast.dismiss(); } catch (_) {}
-        toast('No rooms are available for these dates.', { icon: '\u2139\ufe0f' });
+        const guestCount = Number(searchGuests);
+        let maxCapacity = null;
+        if (apartment && Array.isArray(apartment.rooms) && apartment.rooms.length > 0) {
+          maxCapacity = apartment.rooms.reduce((max, room) => {
+            const cap = Number(room.capacity || 1);
+            return cap > max ? cap : max;
+          }, 0);
+        }
+
+        if (maxCapacity && guestCount > maxCapacity) {
+          toast(
+            `This property can host up to ${maxCapacity} guest${maxCapacity > 1 ? 's' : ''} in a single room. Try reducing the number of guests or choosing another property.`,
+            { icon: '\u2139\ufe0f' }
+          );
+        } else {
+          toast('No rooms are available for these dates.', { icon: '\u2139\ufe0f' });
+        }
       }
     } catch (e) {
       toast.error(e.message || 'Failed to check availability');
@@ -728,15 +737,15 @@ const ApartmentDetails = () => {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="relative">
-                        <FaUser className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                      <div className="field w-24">
+                        <FaUser className="icon-left" />
                         <input
                           type="number"
                           min={1}
                           value={searchGuests}
                           onChange={(e) => setSearchGuests(e.target.value)}
                           placeholder="Guests"
-                          className="pl-9 pr-3 py-2 w-24 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="pr-3 py-2 w-full border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           required
                         />
                       </div>
@@ -1199,7 +1208,7 @@ const ApartmentDetails = () => {
                 </div>
                 <div className="flex items-center justify-between">
                   <span>Guests</span>
-                  <span className="font-medium">{searchGuests || 1}</span>
+                  <span className="font-medium">{searchGuests || 'Select guests'}</span>
                 </div>
               </div>
 
