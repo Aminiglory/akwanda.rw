@@ -58,6 +58,11 @@ const ApartmentDetails = () => {
   const [reviews, setReviews] = useState([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [reviewsError, setReviewsError] = useState('');
+  const [searchCheckIn, setSearchCheckIn] = useState('');
+  const [searchCheckOut, setSearchCheckOut] = useState('');
+  const [searchGuests, setSearchGuests] = useState(1);
+  const [availabilityLoading, setAvailabilityLoading] = useState(false);
+  const [availabilityRooms, setAvailabilityRooms] = useState(null);
 
   const makeAbsolute = (u) => {
     if (!u) return u;
@@ -312,6 +317,44 @@ const ApartmentDetails = () => {
     }
   }, [apartment, selectedRoom]);
 
+  const handleDatesAvailability = async () => {
+    if (!searchCheckIn || !searchCheckOut) {
+      toast.error('Please select check-in and check-out dates to see available rooms.');
+      return;
+    }
+
+    try {
+      setAvailabilityLoading(true);
+      const res = await fetch(`${API_URL}/api/properties/${id}/availability`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          checkIn: searchCheckIn,
+          checkOut: searchCheckOut,
+          guests: searchGuests
+        })
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.message || 'Failed to check availability');
+      }
+
+      const available = Array.isArray(data.availableRooms) ? data.availableRooms : [];
+      setAvailabilityRooms(available);
+
+      if (available.length === 0) {
+        try { toast.dismiss(); } catch (_) {}
+        toast('No rooms are available for these dates.', { icon: '\u2139\ufe0f' });
+      }
+    } catch (e) {
+      toast.error(e.message || 'Failed to check availability');
+    } finally {
+      setAvailabilityLoading(false);
+    }
+  };
+
   const renderStars = (rating) => {
     return Array.from({ length: 5 }, (_, i) => {
       const full = i < Math.floor(rating);
@@ -390,6 +433,25 @@ const ApartmentDetails = () => {
       </div>
     );
   }
+
+  const roomsToDisplay = (() => {
+    const baseRooms = Array.isArray(apartment.rooms) ? apartment.rooms : [];
+    if (availabilityRooms === null) return baseRooms;
+    if (!Array.isArray(availabilityRooms) || availabilityRooms.length === 0) return [];
+
+    const idSet = new Set(
+      (availabilityRooms || []).map((r) =>
+        String(r._id || r.id || r.roomNumber || '')
+      )
+    );
+
+    const filtered = baseRooms.filter((r) => {
+      const key = String(r._id || r.id || r.roomNumber || '');
+      return key && idSet.has(key);
+    });
+
+    return filtered;
+  })();
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -601,154 +663,220 @@ const ApartmentDetails = () => {
             {/* Rooms Showcase */}
             {apartment.rooms && apartment.rooms.length > 0 && (
               <div className="bg-white rounded-2xl shadow-lg p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-xl font-bold text-gray-800">
-                    Available Rooms
-                  </h3>
-                  <div className="flex items-center space-x-2 text-sm text-gray-600">
-                    <FaBed className="text-blue-600" />
-                    <span>{apartment.rooms.length} Rooms Available</span>
+                <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6">
+                  <div className="flex items-center gap-3">
+                    <h3 className="text-xl font-bold text-gray-800">
+                      Available Rooms
+                    </h3>
+                    <div className="flex items-center space-x-2 text-sm text-gray-600">
+                      <FaBed className="text-blue-600" />
+                      <span>
+                        {roomsToDisplay.length}
+                        {availabilityRooms !== null && searchCheckIn && searchCheckOut
+                          ? ' room(s) available for your dates'
+                          : ' room(s) configured'}
+                      </span>
+                    </div>
                   </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {apartment.rooms.map((room, index) => (
-                    <div 
-                      key={index}
-                      className={`group rounded-2xl p-4 cursor-pointer bg-white shadow-sm transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 relative ${
-                        selectedRoom === index 
-                          ? 'ring-2 ring-primary surface-secondary' 
-                          : ''
-                      }`}
-                      onClick={(e) => {
-                        if (e.target.closest('[data-interactive="true"]')) return;
-                        setSelectedRoom(selectedRoom === index ? null : index);
-                      }}
-                    >
-                      {/* Room Header with Animation */}
+                  <div className="w-full md:w-auto flex flex-wrap items-center gap-2">
+                    <div className="flex items-center gap-2">
+                      <div className="relative">
+                        <FaCalendarAlt className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                        <input
+                          type="date"
+                          value={searchCheckIn}
+                          onChange={(e) => setSearchCheckIn(e.target.value)}
+                          className="pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+                      <span className="text-gray-400 text-sm">-</span>
+                      <div className="relative">
+                        <FaCalendarAlt className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                        <input
+                          type="date"
+                          value={searchCheckOut}
+                          onChange={(e) => setSearchCheckOut(e.target.value)}
+                          className="pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="relative">
+                        <FaUser className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                        <input
+                          type="number"
+                          min={1}
+                          value={searchGuests}
+                          onChange={(e) => setSearchGuests(Math.max(1, Number(e.target.value) || 1))}
+                          className="pl-9 pr-3 py-2 w-24 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
                       <button
                         type="button"
-                        className="w-full text-left flex items-start justify-between mb-3 focus:outline-none"
-                        aria-expanded={selectedRoom === index}
-                        aria-controls={`room-panel-${index}`}
-                        onClick={(e) => { e.stopPropagation(); setSelectedRoom(selectedRoom === index ? null : index); }}
+                        onClick={handleDatesAvailability}
+                        disabled={availabilityLoading}
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <div className="flex-1">
-                          <h4 className="font-semibold text-gray-800 text-lg group-hover:text-primary-700 transition-colors duration-300">
-                            {room.roomNumber}
-                          </h4>
-                          <p className="text-sm text-gray-600 capitalize font-medium">
-                            {room.roomType} Room
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-xl font-bold text-primary group-hover:text-primary-700 transition-colors duration-300">
-                            {formatCurrencyRWF ? formatCurrencyRWF(room.pricePerNight || room.price || 0) : `RWF ${(room.pricePerNight || room.price || 0).toLocaleString()}`}
-                          </div>
-                          <div className="text-sm text-gray-500">per night</div>
-                        </div>
+                        {availabilityLoading ? 'Checking…' : 'Show prices'}
                       </button>
-                      {/* Quick actions: open modals (calendar/details) */}
-                      <div
-                        className="flex items-center gap-2 mb-3"
-                        data-interactive="true"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <button
-                          type="button"
-                          aria-label="View availability"
-                          className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg btn-primary text-white transition-colors text-xs md:text-sm"
-                          onClick={() => { setCalendarRoom(room); setIsCalendarOpen(true); }}
-                          title="View availability"
-                        >
-                          <FaCalendarAlt />
-                          <span className="hidden md:inline">Availability</span>
-                        </button>
-                        <button
-                          type="button"
-                          aria-label="View details"
-                          className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors text-xs md:text-sm"
-                          onClick={() => { setDetailsRoom(room); setIsDetailsOpen(true); }}
-                          title="View details"
-                        >
-                          <FaHome />
-                          <span className="hidden md:inline">Details</span>
-                        </button>
-                      </div>
-                      
-                      {/* Room Info with Icons */}
-                      <div className="flex items-center space-x-3 text-xs text-gray-600 mb-3" data-interactive="true" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center bg-gray-100 px-3 py-1 rounded-full">
-                          <FaUser className="mr-1 text-blue-600" />
-                          <span className="font-medium">{room.capacity} guest{room.capacity > 1 ? 's' : ''}</span>
-                        </div>
-                        <div className={`px-3 py-1 rounded-full text-xs font-medium transition-all duration-300 ${
-                          room.isAvailable 
-                            ? 'bg-green-100 text-green-800 hover:bg-green-200' 
-                            : 'bg-red-100 text-red-800 hover:bg-red-200'
-                        }`}>
-                          {room.isAvailable ? '✓ Available' : '✗ Unavailable'}
-                        </div>
-                      </div>
-
-                      {/* Room Images with Enhanced Gallery */}
-                      {Array.isArray(room.images) && room.images.length > 0 ? (
-                        <div className="grid grid-cols-2 gap-2 mb-4" data-interactive="true" onClick={(e) => e.stopPropagation()}>
-                          {room.images.slice(0, 4).map((image, imgIndex) => {
-                            const src = makeAbsolute(image);
-                            return (
-                              <button key={imgIndex} type="button" className="overflow-hidden rounded-lg focus:outline-none"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <img
-                                  loading="lazy"
-                                  src={src}
-                                  alt={`${room.roomNumber} - Image ${imgIndex + 1}`}
-                                  className="w-full aspect-square object-cover"
-                                  onError={(e) => {
-                                    e.currentTarget.src = 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=200&h=150&fit=crop';
-                                  }}
-                                />
-                              </button>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <div className="mb-4 p-4 bg-gray-100 rounded-lg text-center text-gray-500">
-                          <FaBed className="mx-auto mb-2 text-2xl" />
-                          <p className="text-sm">No images available for this room</p>
-                        </div>
-                      )}
-
-                      {/* Room Amenities with Enhanced Design */}
-                      {room.amenities && room.amenities.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mb-3">
-                          {room.amenities.slice(0, 3).map((amenity, amenityIndex) => (
-                            <span 
-                              key={amenityIndex}
-                              className="px-3 py-1 chip-primary border border-subtle text-xs rounded-full font-medium transition-colors"
-                            >
-                              {amenity}
-                            </span>
-                          ))}
-                          {room.amenities.length > 3 && (
-                            <span className="px-3 py-1 bg-purple-50 text-purple-700 border border-purple-100 text-xs rounded-full font-medium hover:bg-purple-100 transition-colors">
-                              +{room.amenities.length - 3} more
-                            </span>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Removed in-card expanded details; details and availability open in modals */}
-
-                      {/* Selection Indicator */}
-                      {selectedRoom === index && (
-                        <div className="absolute top-2 right-2 w-6 h-6 bg-primary rounded-full flex items-center justify-center animate-pulse">
-                          <FaCheck className="text-white text-xs" />
-                        </div>
-                      )}
                     </div>
-                  ))}
+                  </div>
                 </div>
+                {availabilityRooms !== null && roomsToDisplay.length === 0 ? (
+                  <div className="border border-red-100 bg-red-50 rounded-xl p-4 text-sm text-red-700">
+                    {searchCheckIn && searchCheckOut ? (
+                      <span>
+                        No rooms are available for{' '}
+                        {new Date(searchCheckIn).toLocaleDateString()} to{' '}
+                        {new Date(searchCheckOut).toLocaleDateString()}.
+                      </span>
+                    ) : (
+                      <span>No rooms are available for the selected dates.</span>
+                    )}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {roomsToDisplay.map((room, index) => (
+                      <div 
+                        key={index}
+                        className={`group rounded-2xl p-4 cursor-pointer bg-white shadow-sm transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 relative ${
+                          selectedRoom === index 
+                            ? 'ring-2 ring-primary surface-secondary' 
+                            : ''
+                        }`}
+                        onClick={(e) => {
+                          if (e.target.closest('[data-interactive="true"]')) return;
+                          setSelectedRoom(selectedRoom === index ? null : index);
+                        }}
+                      >
+                        {/* Room Header with Animation */}
+                        <button
+                          type="button"
+                          className="w-full text-left flex items-start justify-between mb-3 focus:outline-none"
+                          aria-expanded={selectedRoom === index}
+                          aria-controls={`room-panel-${index}`}
+                          onClick={(e) => { e.stopPropagation(); setSelectedRoom(selectedRoom === index ? null : index); }}
+                        >
+                          <div className="flex-1">
+                            <h4 className="font-semibold text-gray-800 text-lg group-hover:text-primary-700 transition-colors duration-300">
+                              {room.roomNumber}
+                            </h4>
+                            <p className="text-sm text-gray-600 capitalize font-medium">
+                              {room.roomType} Room
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-xl font-bold text-primary group-hover:text-primary-700 transition-colors duration-300">
+                              {formatCurrencyRWF ? formatCurrencyRWF(room.pricePerNight || room.price || 0) : `RWF ${(room.pricePerNight || room.price || 0).toLocaleString()}`}
+                            </div>
+                            <div className="text-sm text-gray-500">per night</div>
+                          </div>
+                        </button>
+                        {/* Quick actions: open modals (calendar/details) */}
+                        <div
+                          className="flex items-center gap-2 mb-3"
+                          data-interactive="true"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <button
+                            type="button"
+                            aria-label="View availability"
+                            className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg btn-primary text-white transition-colors text-xs md:text-sm"
+                            onClick={() => { setCalendarRoom(room); setIsCalendarOpen(true); }}
+                            title="View availability"
+                          >
+                            <FaCalendarAlt />
+                            <span className="hidden md:inline">Availability</span>
+                          </button>
+                          <button
+                            type="button"
+                            aria-label="View details"
+                            className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors text-xs md:text-sm"
+                            onClick={() => { setDetailsRoom(room); setIsDetailsOpen(true); }}
+                            title="View details"
+                          >
+                            <FaHome />
+                            <span className="hidden md:inline">Details</span>
+                          </button>
+                        </div>
+                        
+                        {/* Room Info with Icons */}
+                        <div className="flex items-center space-x-3 text-xs text-gray-600 mb-3" data-interactive="true" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center bg-gray-100 px-3 py-1 rounded-full">
+                            <FaUser className="mr-1 text-blue-600" />
+                            <span className="font-medium">{room.capacity} guest{room.capacity > 1 ? 's' : ''}</span>
+                          </div>
+                          <div
+                            className={`px-3 py-1 rounded-full text-xs font-medium transition-all duration-300 ${
+                              availabilityRooms !== null && searchCheckIn && searchCheckOut
+                                ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                                : 'bg-gray-100 text-gray-700'
+                            }`}
+                          >
+                            {availabilityRooms !== null && searchCheckIn && searchCheckOut
+                              ? '✓ Available for your dates'
+                              : 'Select dates to check availability'}
+                          </div>
+                        </div>
+
+                        {/* Room Images with Enhanced Gallery */}
+                        {Array.isArray(room.images) && room.images.length > 0 ? (
+                          <div className="grid grid-cols-2 gap-2 mb-4" data-interactive="true" onClick={(e) => e.stopPropagation()}>
+                            {room.images.slice(0, 4).map((image, imgIndex) => {
+                              const src = makeAbsolute(image);
+                              return (
+                                <button key={imgIndex} type="button" className="overflow-hidden rounded-lg focus:outline-none"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <img
+                                    loading="lazy"
+                                    src={src}
+                                    alt={`${room.roomNumber} - Image ${imgIndex + 1}`}
+                                    className="w-full aspect-square object-cover"
+                                    onError={(e) => {
+                                      e.currentTarget.src = 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=200&h=150&fit=crop';
+                                    }}
+                                  />
+                                </button>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <div className="mb-4 p-4 bg-gray-100 rounded-lg text-center text-gray-500">
+                            <FaBed className="mx-auto mb-2 text-2xl" />
+                            <p className="text-sm">No images available for this room</p>
+                          </div>
+                        )}
+
+                        {/* Room Amenities with Enhanced Design */}
+                        {room.amenities && room.amenities.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mb-3">
+                            {room.amenities.slice(0, 3).map((amenity, amenityIndex) => (
+                              <span 
+                                key={amenityIndex}
+                                className="px-3 py-1 chip-primary border border-subtle text-xs rounded-full font-medium transition-colors"
+                              >
+                                {amenity}
+                              </span>
+                            ))}
+                            {room.amenities.length > 3 && (
+                              <span className="px-3 py-1 bg-purple-50 text-purple-700 border border-purple-100 text-xs rounded-full font-medium hover:bg-purple-100 transition-colors">
+                                +{room.amenities.length - 3} more
+                              </span>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Selection Indicator */}
+                        {selectedRoom === index && (
+                          <div className="absolute top-2 right-2 w-6 h-6 bg-primary rounded-full flex items-center justify-center animate-pulse">
+                            <FaCheck className="text-white text-xs" />
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
