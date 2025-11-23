@@ -62,6 +62,9 @@ export default function CarOwnerDashboard() {
   const [createImages, setCreateImages] = useState([]);
   const [createPreviews, setCreatePreviews] = useState([]);
   const createFormRef = useRef(null);
+  const bookingsRef = useRef(null);
+  const [bookingView, setBookingView] = useState('list');
+  const [calendarMonthOffset, setCalendarMonthOffset] = useState(0);
 
   async function loadData() {
     try {
@@ -139,6 +142,16 @@ export default function CarOwnerDashboard() {
   }, [cars, searchParams, selectedCarId]);
 
   useEffect(() => {
+    if (!selectedCarId) return;
+    try {
+      const params = new URLSearchParams(location.search || '');
+      if (String(params.get('car')) === String(selectedCarId)) return;
+      params.set('car', String(selectedCarId));
+      setSearchParams(params);
+    } catch (_) {}
+  }, [selectedCarId, location.search, setSearchParams]);
+
+  useEffect(() => {
     const baseList = Array.isArray(bookings) ? bookings : [];
     const vehicleFiltered = selectedCarId
       ? baseList.filter(b => String(b.car?._id) === String(selectedCarId))
@@ -175,6 +188,52 @@ export default function CarOwnerDashboard() {
       avgRentalLength
     });
   }, [bookings, selectedCarId]);
+
+  const financeStats = useMemo(() => {
+    const baseList = Array.isArray(bookings) ? bookings : [];
+    const now = new Date();
+    const start30 = new Date(now);
+    start30.setDate(start30.getDate() - 30);
+    const startYear = new Date(now.getFullYear(), 0, 1);
+
+    let rev30 = 0;
+    let revYtd = 0;
+    let bookings30 = 0;
+    let bookingsYtd = 0;
+
+    baseList.forEach(b => {
+      if (selectedCarId && String(b.car?._id) !== String(selectedCarId)) return;
+      const amount = Number(b.totalAmount || 0);
+      const start = new Date(b.pickupDate);
+      if (start >= start30 && start <= now) {
+        rev30 += amount;
+        bookings30 += 1;
+      }
+      if (start >= startYear && start <= now) {
+        revYtd += amount;
+        bookingsYtd += 1;
+      }
+    });
+
+    const avg30 = bookings30 > 0 ? rev30 / bookings30 : 0;
+    return { rev30, revYtd, bookings30, bookingsYtd, avg30 };
+  }, [bookings, selectedCarId]);
+
+  const calendarMeta = useMemo(() => {
+    const base = new Date();
+    const monthDate = new Date(base.getFullYear(), base.getMonth() + calendarMonthOffset, 1);
+    const year = monthDate.getFullYear();
+    const month = monthDate.getMonth();
+    const label = monthDate.toLocaleString(undefined, { month: 'long', year: 'numeric' });
+    const firstWeekday = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const cells = [];
+    for (let i = 0; i < firstWeekday; i++) cells.push(null);
+    for (let d = 1; d <= daysInMonth; d++) {
+      cells.push(new Date(year, month, d));
+    }
+    return { label, cells };
+  }, [calendarMonthOffset]);
 
   function resetForm() { setForm(emptyCar); }
 
@@ -408,6 +467,132 @@ export default function CarOwnerDashboard() {
       )}
       <h1 className="text-2xl font-bold text-gray-900 mb-4">My Vehicles</h1>
 
+      {Array.isArray(cars) && cars.length > 0 && (
+        <>
+          <div className="mb-4 max-w-xs">
+            <label className="block text-xs text-gray-600 mb-1">Selected vehicle</label>
+            <select
+              className="w-full px-3 py-2 border rounded text-sm"
+              value={selectedCarId || ''}
+              onChange={e => setSelectedCarId(e.target.value)}
+            >
+              {cars.map(c => (
+                <option key={c._id} value={c._id}>
+                  {c.vehicleName || `${c.brand || ''} ${c.model || ''}`.trim() || 'Untitled vehicle'}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="mb-4 grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2">
+              <div className="text-[11px] text-gray-500">Total bookings</div>
+              <div className="text-lg font-semibold text-gray-900">{stats.totalBookings}</div>
+            </div>
+            <div className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2">
+              <div className="text-[11px] text-gray-500">Active</div>
+              <div className="text-lg font-semibold text-emerald-700">{stats.active}</div>
+            </div>
+            <div className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2">
+              <div className="text-[11px] text-gray-500">Completed</div>
+              <div className="text-lg font-semibold text-blue-700">{stats.completed}</div>
+            </div>
+            <div className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2">
+              <div className="text-[11px] text-gray-500">Revenue (RWF)</div>
+              <div className="text-lg font-semibold text-gray-900">
+                {formatCurrencyRWF ? formatCurrencyRWF(stats.totalRevenue || 0) : `RWF ${Number(stats.totalRevenue || 0).toLocaleString()}`}
+              </div>
+            </div>
+          </div>
+
+          <div className="mb-6 grid grid-cols-2 md:grid-cols-4 gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                if (bookingsRef.current) bookingsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }}
+              className="text-left rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2 hover:border-[#a06b42] hover:shadow-md transition"
+            >
+              <div className="text-[11px] text-gray-500">Bookings</div>
+              <div className="text-sm font-semibold text-gray-900">Manage reservations</div>
+              <div className="mt-0.5 text-[11px] text-gray-500">View and update all vehicle bookings</div>
+            </button>
+            <a
+              href="/transactions"
+              className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2 hover:border-[#a06b42] hover:shadow-md transition"
+            >
+              <div className="text-[11px] text-gray-500">Finance</div>
+              <div className="text-sm font-semibold text-gray-900">Payments & transactions</div>
+              <div className="mt-0.5 text-[11px] text-gray-500">Track payouts and charges</div>
+            </a>
+            <a
+              href="/analytics"
+              className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2 hover:border-[#a06b42] hover:shadow-md transition"
+            >
+              <div className="text-[11px] text-gray-500">Analytics</div>
+              <div className="text-sm font-semibold text-gray-900">Performance overview</div>
+              <div className="mt-0.5 text-[11px] text-gray-500">See trends across your listings</div>
+            </a>
+            <a
+              href="/owner/promotions"
+              className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2 hover:border-[#a06b42] hover:shadow-md transition"
+            >
+              <div className="text-[11px] text-gray-500">Promotions</div>
+              <div className="text-sm font-semibold text-gray-900">Discounts & offers</div>
+              <div className="mt-0.5 text-[11px] text-gray-500">Manage deals for your listings</div>
+            </a>
+            <a
+              href="/owner/reviews"
+              className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2 hover:border-[#a06b42] hover:shadow-md transition"
+            >
+              <div className="text-[11px] text-gray-500">Reviews</div>
+              <div className="text-sm font-semibold text-gray-900">Guest reviews</div>
+              <div className="mt-0.5 text-[11px] text-gray-500">Read and reply to feedback</div>
+            </a>
+            <a
+              href="/messages?category=reservations"
+              className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2 hover:border-[#a06b42] hover:shadow-md transition"
+            >
+              <div className="text-[11px] text-gray-500">Messages</div>
+              <div className="text-sm font-semibold text-gray-900">Guest communication</div>
+              <div className="mt-0.5 text-[11px] text-gray-500">Open inbox with reservation auto-replies</div>
+            </a>
+            <a
+              href="/settings?tab=notifications"
+              className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2 hover:border-[#a06b42] hover:shadow-md transition"
+            >
+              <div className="text-[11px] text-gray-500">Settings</div>
+              <div className="text-sm font-semibold text-gray-900">Notifications & messaging</div>
+              <div className="mt-0.5 text-[11px] text-gray-500">Control how guests contact you</div>
+            </a>
+          </div>
+
+          <div className="mb-6 grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2">
+              <div className="text-[11px] text-gray-500">Last 30 days revenue</div>
+              <div className="text-sm font-semibold text-gray-900">
+                {formatCurrencyRWF ? formatCurrencyRWF(financeStats.rev30 || 0) : `RWF ${Number(financeStats.rev30 || 0).toLocaleString()}`}
+              </div>
+              <div className="mt-0.5 text-[11px] text-gray-500">{financeStats.bookings30} bookings</div>
+            </div>
+            <div className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2">
+              <div className="text-[11px] text-gray-500">Year-to-date revenue</div>
+              <div className="text-sm font-semibold text-gray-900">
+                {formatCurrencyRWF ? formatCurrencyRWF(financeStats.revYtd || 0) : `RWF ${Number(financeStats.revYtd || 0).toLocaleString()}`}
+              </div>
+              <div className="mt-0.5 text-[11px] text-gray-500">{financeStats.bookingsYtd} bookings</div>
+            </div>
+            <div className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2">
+              <div className="text-[11px] text-gray-500">Avg revenue / booking (30d)</div>
+              <div className="text-sm font-semibold text-gray-900">
+                {formatCurrencyRWF ? formatCurrencyRWF(financeStats.avg30 || 0) : `RWF ${Number(financeStats.avg30 || 0).toLocaleString()}`}
+              </div>
+              <div className="mt-0.5 text-[11px] text-gray-500">Based on last 30 days</div>
+            </div>
+          </div>
+        </>
+      )}
+
       {/* Create Vehicle */}
       {showCreateForm && (
       <form ref={createFormRef} onSubmit={createCar} className="bg-white rounded-lg shadow p-4 mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -593,18 +778,44 @@ export default function CarOwnerDashboard() {
       )}
 
       {/* Cars List */}
-      {loading ? <div>Loading...</div> : (
+      {loading ? (
+        <div>Loading...</div>
+      ) : (!Array.isArray(cars) || cars.length === 0) ? (
+        <div className="bg-white rounded-lg shadow p-6 text-center text-sm text-gray-600">
+          <p className="mb-3">You haven't listed any vehicles yet.</p>
+          <button
+            type="button"
+            onClick={() => setShowCreateForm(true)}
+            className="inline-flex items-center px-4 py-2 rounded-lg bg-[#a06b42] hover:bg-[#8f5a32] text-white text-sm font-medium"
+            disabled={user?.isBlocked}
+          >
+            List your first vehicle
+          </button>
+        </div>
+      ) : (
         viewMode === 'cards' ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {cars.map(car => (
-              <div key={car._id} className="bg-white rounded-lg shadow p-4">
+              <button
+                key={car._id}
+                type="button"
+                onClick={() => setSelectedCarId(String(car._id))}
+                className={`text-left bg-white rounded-lg shadow p-4 w-full border transition ${String(selectedCarId) === String(car._id) ? 'border-[#a06b42] ring-1 ring-[#a06b42]/50' : 'border-transparent hover:border-gray-300'}`}
+              >
                 <div className="flex gap-4">
                   <div className="w-32 h-24 bg-gray-100 rounded overflow-hidden">
                     {car.images?.[0] ? <img src={makeAbsolute(car.images[0])} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-400">No image</div>}
                   </div>
                   <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-semibold">{car.vehicleName} • {car.brand} {car.model}</h3>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        {String(selectedCarId) === String(car._id) && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-[#a06b42]/10 text-[#a06b42] text-[10px] font-semibold uppercase tracking-wide whitespace-nowrap">
+                            Selected
+                          </span>
+                        )}
+                        <h3 className="font-semibold truncate">{car.vehicleName} • {car.brand} {car.model}</h3>
+                      </div>
                       <button onClick={() => updateCar(car._id, { isAvailable: !car.isAvailable })} className={`px-2 py-1 rounded text-sm ${car.isAvailable ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-700'}`}>{car.isAvailable ? 'Available' : 'Unavailable'}</button>
                     </div>
                     <p className="text-sm text-gray-600">{car.location} • {car.vehicleType} • {car.transmission}</p>
@@ -625,7 +836,7 @@ export default function CarOwnerDashboard() {
                     ))}
                   </div>
                 )}
-              </div>
+              </button>
             ))}
           </div>
         ) : (
@@ -643,8 +854,21 @@ export default function CarOwnerDashboard() {
               </thead>
               <tbody>
                 {cars.map(car => (
-                  <tr key={car._id} className="border-t">
-                    <td className="p-3 font-medium">{car.vehicleName} • {car.brand} {car.model}</td>
+                  <tr
+                    key={car._id}
+                    className={`border-t cursor-pointer ${String(selectedCarId) === String(car._id) ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
+                    onClick={() => setSelectedCarId(String(car._id))}
+                  >
+                    <td className="p-3 font-medium">
+                      <div className="flex items-center gap-2">
+                        {String(selectedCarId) === String(car._id) && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[10px] font-semibold uppercase tracking-wide">
+                            Selected
+                          </span>
+                        )}
+                        <span>{car.vehicleName} • {car.brand} {car.model}</span>
+                      </div>
+                    </td>
                     <td className="p-3">{car.vehicleType}</td>
                     <td className="p-3">{car.location}</td>
                     <td className="p-3">{formatCurrencyRWF ? formatCurrencyRWF(car.pricePerDay || 0) : `RWF ${Number(car.pricePerDay || 0).toLocaleString()}`}</td>
@@ -663,9 +887,26 @@ export default function CarOwnerDashboard() {
       )}
 
       {/* Bookings */}
-      <div className="mt-8">
-        <h2 className="text-xl font-semibold mb-2">Bookings</h2>
-        {/* Filters */}
+      <div className="mt-8" ref={bookingsRef}>
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <h2 className="text-xl font-semibold">Bookings</h2>
+          <div className="inline-flex rounded-lg overflow-hidden border">
+            <button
+              type="button"
+              onClick={() => setBookingView('list')}
+              className={`px-3 py-1.5 text-xs font-medium ${bookingView === 'list' ? 'bg-[#a06b42] text-white' : 'bg-white text-gray-700'}`}
+            >
+              List
+            </button>
+            <button
+              type="button"
+              onClick={() => setBookingView('calendar')}
+              className={`px-3 py-1.5 text-xs font-medium ${bookingView === 'calendar' ? 'bg-[#a06b42] text-white' : 'bg-white text-gray-700'}`}
+            >
+              Calendar
+            </button>
+          </div>
+        </div>
         <div className="mb-3 flex flex-wrap items-end gap-2">
           <div>
             <label className="block text-xs text-gray-600">Status</label>
@@ -684,61 +925,121 @@ export default function CarOwnerDashboard() {
           </div>
           <button onClick={exportBookingsCsv} className="ml-auto px-3 py-2 bg-[#a06b42] hover:bg-[#8f5a32] text-white rounded">Export CSV</button>
         </div>
-        <div className="bg-white rounded-lg shadow overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead>
-              <tr className="bg-gray-50 text-left">
-                <th className="p-3">Vehicle</th>
-                <th className="p-3">Renter</th>
-                <th className="p-3">Dates</th>
-                <th className="p-3">Amount</th>
-                <th className="p-3">Status</th>
-                <th className="p-3">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {bookings.filter(b => {
-                if (selectedCarId && String(b.car?._id) !== String(selectedCarId)) return false;
-                if (bookingFilters.status && b.status !== bookingFilters.status) return false;
-                if (bookingFilters.from) {
-                  const from = new Date(bookingFilters.from);
-                  if (new Date(b.pickupDate) < from) return false;
-                }
-                if (bookingFilters.to) {
-                  const to = new Date(bookingFilters.to);
-                  if (new Date(b.returnDate) > to) return false;
-                }
-                return true;
-              }).map(b => (
-                <tr key={b._id} className="border-t">
-                  <td className="p-3">{b.car?.vehicleName}</td>
-                  <td className="p-3">{b.guest?.firstName} {b.guest?.lastName}</td>
-                  <td className="p-3">{new Date(b.pickupDate).toLocaleDateString()} → {new Date(b.returnDate).toLocaleDateString()}</td>
-                  <td className="p-3">{formatCurrencyRWF ? formatCurrencyRWF(b.totalAmount || 0) : `RWF ${Number(b.totalAmount || 0).toLocaleString()}`}</td>
-                  <td className="p-3"><span className="px-2 py-1 rounded bg-gray-100">{b.status}</span></td>
-                  <td className="p-3 flex items-center gap-2">
-                    {['pending','confirmed','active','completed','cancelled'].map(s => (
-                      <button key={s} onClick={async () => {
-                        const res = await fetch(`${API_URL}/api/car-bookings/${b._id}/status`, { method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: s }) });
-                        const data = await res.json();
-                        if (!res.ok) return toast.error(data.message || 'Failed');
-                        setBookings(list => list.map(x => x._id === b._id ? data.booking : x));
-                        toast.success('Status updated');
-                      }} className="px-2 py-1 bg-blue-600 text-white rounded text-xs">{s}</button>
-                    ))}
-                    <button onClick={() => setReceiptBooking(b)} className="px-2 py-1 bg-green-600 text-white rounded text-xs">Receipt</button>
-                    <a
-                      href={`/messages?to=${b.guest?._id || ''}&bookingId=${b._id}`}
-                      className="px-2 py-1 bg-gray-800 text-white rounded text-xs"
-                    >
-                      Message
-                    </a>
-                  </td>
+        {bookingView === 'list' ? (
+          <div className="bg-white rounded-lg shadow overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50 text-left">
+                  <th className="p-3">Vehicle</th>
+                  <th className="p-3">Renter</th>
+                  <th className="p-3">Dates</th>
+                  <th className="p-3">Amount</th>
+                  <th className="p-3">Status</th>
+                  <th className="p-3">Actions</th>
                 </tr>
+              </thead>
+              <tbody>
+                {bookings.filter(b => {
+                  if (selectedCarId && String(b.car?._id) !== String(selectedCarId)) return false;
+                  if (bookingFilters.status && b.status !== bookingFilters.status) return false;
+                  if (bookingFilters.from) {
+                    const from = new Date(bookingFilters.from);
+                    if (new Date(b.pickupDate) < from) return false;
+                  }
+                  if (bookingFilters.to) {
+                    const to = new Date(bookingFilters.to);
+                    if (new Date(b.returnDate) > to) return false;
+                  }
+                  return true;
+                }).map(b => (
+                  <tr key={b._id} className="border-t">
+                    <td className="p-3">{b.car?.vehicleName}</td>
+                    <td className="p-3">{b.guest?.firstName} {b.guest?.lastName}</td>
+                    <td className="p-3">{new Date(b.pickupDate).toLocaleDateString()} → {new Date(b.returnDate).toLocaleDateString()}</td>
+                    <td className="p-3">{formatCurrencyRWF ? formatCurrencyRWF(b.totalAmount || 0) : `RWF ${Number(b.totalAmount || 0).toLocaleString()}`}</td>
+                    <td className="p-3"><span className="px-2 py-1 rounded bg-gray-100">{b.status}</span></td>
+                    <td className="p-3 flex items-center gap-2">
+                      {['pending','confirmed','active','completed','cancelled'].map(s => (
+                        <button key={s} onClick={async () => {
+                          const res = await fetch(`${API_URL}/api/car-bookings/${b._id}/status`, { method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: s }) });
+                          const data = await res.json();
+                          if (!res.ok) return toast.error(data.message || 'Failed');
+                          setBookings(list => list.map(x => x._id === b._id ? data.booking : x));
+                          toast.success('Status updated');
+                        }} className="px-2 py-1 bg-blue-600 text-white rounded text-xs">{s}</button>
+                      ))}
+                      <button onClick={() => setReceiptBooking(b)} className="px-2 py-1 bg-green-600 text-white rounded text-xs">Receipt</button>
+                      <a
+                        href={`/messages?to=${b.guest?._id || ''}&booking=${b._id}`}
+                        className="px-2 py-1 bg-gray-800 text-white rounded text-xs"
+                      >
+                        Message
+                      </a>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="bg-white rounded-lg shadow p-4 overflow-x-auto">
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <button
+                type="button"
+                onClick={() => setCalendarMonthOffset(o => o - 1)}
+                className="px-2 py-1 text-xs rounded border bg-white hover:bg-gray-50"
+              >
+                ◀
+              </button>
+              <div className="text-sm font-semibold text-gray-800">{calendarMeta.label}</div>
+              <button
+                type="button"
+                onClick={() => setCalendarMonthOffset(o => o + 1)}
+                className="px-2 py-1 text-xs rounded border bg-white hover:bg-gray-50"
+              >
+                ▶
+              </button>
+            </div>
+            <div className="grid grid-cols-7 text-[11px] text-gray-500 mb-1">
+              {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => (
+                <div key={d} className="px-1 py-1 text-center">{d}</div>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </div>
+            <div className="grid grid-cols-7 gap-px text-xs">
+              {calendarMeta.cells.map((day, idx) => {
+                if (!day) {
+                  return <div key={idx} className="h-20 bg-gray-50 border" />;
+                }
+                const dayBookings = bookings.filter(b => {
+                  if (selectedCarId && String(b.car?._id) !== String(selectedCarId)) return false;
+                  if (bookingFilters.status && b.status !== bookingFilters.status) return false;
+                  if (bookingFilters.from) {
+                    const from = new Date(bookingFilters.from);
+                    if (new Date(b.pickupDate) < from) return false;
+                  }
+                  if (bookingFilters.to) {
+                    const to = new Date(bookingFilters.to);
+                    if (new Date(b.returnDate) > to) return false;
+                  }
+                  const start = new Date(b.pickupDate);
+                  const end = new Date(b.returnDate);
+                  return start <= day && end >= day;
+                });
+                const count = dayBookings.length;
+                return (
+                  <div key={idx} className="h-20 border bg-white flex flex-col px-1 py-1">
+                    <div className="text-[11px] font-semibold text-gray-800">{day.getDate()}</div>
+                    {count > 0 && (
+                      <div className="mt-auto text-[10px] font-medium text-[#a06b42]">
+                        {count} booking{count > 1 ? 's' : ''}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
       {receiptBooking && (
