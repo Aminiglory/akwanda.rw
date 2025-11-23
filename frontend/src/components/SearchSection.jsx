@@ -4,6 +4,14 @@ import { useLocale } from '../contexts/LocaleContext';
 
 const SearchSection = () => {
   const { t } = useLocale() || {};
+  const safeT = (key, fallback) => {
+    if (!t) return fallback;
+    const value = t(key);
+    if (!value || value === key || String(value).includes('.')) {
+      return fallback;
+    }
+    return value;
+  };
   const [activeTab, setActiveTab] = useState('stays'); // stays | cars | attractions
   const [searchData, setSearchData] = useState({
     location: '',
@@ -53,13 +61,13 @@ const SearchSection = () => {
           {/* Tabs */}
           <div className="flex items-center gap-3 mb-6">
             <button onClick={() => setActiveTab('stays')} type="button" className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold ${activeTab==='stays' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 border'}`}>
-              <FaHome /> {t ? t('search.staysTab') : 'Stays'}
+              <FaHome /> {safeT('search.staysTab', 'Stays')}
             </button>
             <button onClick={() => setActiveTab('cars')} type="button" className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold ${activeTab==='cars' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 border'}`}>
-              <FaCar /> {t ? t('search.carsTab') : 'Cars'}
+              <FaCar /> {safeT('search.carsTab', 'Cars')}
             </button>
             <button onClick={() => setActiveTab('attractions')} type="button" className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold ${activeTab==='attractions' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 border'}`}>
-              <FaUmbrellaBeach /> {t ? t('search.attractionsTab') : 'Attractions'}
+              <FaUmbrellaBeach /> {safeT('search.attractionsTab', 'Attractions')}
             </button>
           </div>
 
@@ -67,13 +75,13 @@ const SearchSection = () => {
             {/* Location */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                {activeTab==='cars' ? (t ? t('search.pickupLocation') : 'Pickup Location') : (t ? t('search.location') : 'Location')}
+                {activeTab==='cars' ? safeT('search.pickupLocation', 'Pickup Location') : safeT('search.location', 'Location')}
               </label>
               <div className="field">
                 <FaMapMarkerAlt className="icon-left" />
                 <input
                   type="text"
-                  placeholder={activeTab==='cars' ? (t ? t('search.wherePickup') : 'Where to pick up?') : (t ? t('search.whereGoing') : 'Where are you going?')}
+                  placeholder={activeTab==='cars' ? safeT('search.wherePickup', 'Where to pick up?') : safeT('search.whereGoing', 'Where are you going?')}
                   className="w-full pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
                   value={activeTab==='cars' ? searchData.pickupLocation : searchData.location}
                   onChange={(e) => handleInputChange(activeTab==='cars' ? 'pickupLocation' : 'location', e.target.value)}
@@ -84,7 +92,7 @@ const SearchSection = () => {
             {/* Check-in / Pickup Date */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                {activeTab==='cars' ? (t ? t('search.pickupDate') : 'Pickup Date') : (t ? t('search.checkIn') : 'Check-in')}
+                {activeTab==='cars' ? safeT('search.pickupDate', 'Pickup Date') : safeT('search.checkIn', 'Check-in')}
               </label>
               <div className="field">
                 <FaCalendarAlt className="icon-left" />
@@ -100,7 +108,7 @@ const SearchSection = () => {
             {/* Check-out / Return Date */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                {activeTab==='cars' ? (t ? t('search.returnDate') : 'Return Date') : (t ? t('search.checkOut') : 'Check-out')}
+                {activeTab==='cars' ? safeT('search.returnDate', 'Return Date') : safeT('search.checkOut', 'Check-out')}
               </label>
               <div className="field">
                 <FaCalendarAlt className="icon-left" />
@@ -117,7 +125,7 @@ const SearchSection = () => {
             {activeTab !== 'cars' ? (
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  {t ? t('search.guests') : 'Guests'}
+                  {safeT('search.guests', 'Guests')}
                 </label>
                 <div className="field">
                   <FaUser className="icon-left" />
@@ -128,26 +136,26 @@ const SearchSection = () => {
                     required
                   >
                     <option value="" disabled>
-                      {t ? t('search.guestsPlaceholder') : 'Select guests'}
+                      {safeT('search.guestsPlaceholder', 'Select guests')}
                     </option>
-                    <option value="1">1 {t ? t('search.guests') : 'Guests'}</option>
-                    <option value="2">2 {t ? t('search.guests') : 'Guests'}</option>
-                    <option value="3">3 {t ? t('search.guests') : 'Guests'}</option>
-                    <option value="4">4 {t ? t('search.guests') : 'Guests'}</option>
-                    <option value="5">5+ {t ? t('search.guests') : 'Guests'}</option>
+                    <option value="1">1 {safeT('search.guests', 'Guests')}</option>
+                    <option value="2">2 {safeT('search.guests', 'Guests')}</option>
+                    <option value="3">3 {safeT('search.guests', 'Guests')}</option>
+                    <option value="4">4 {safeT('search.guests', 'Guests')}</option>
+                    <option value="5">5+ {safeT('search.guests', 'Guests')}</option>
                   </select>
                 </div>
               </div>
             ) : (
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  {t ? t('search.returnLocationOptional') : 'Return Location (optional)'}
+                  {safeT('search.returnLocationOptional', 'Return Location (optional)')}
                 </label>
                 <div className="field">
                   <FaMapMarkerAlt className="icon-left" />
                   <input
                     type="text"
-                    placeholder={t ? t('search.returnDifferentPlace') : 'Return to a different place?'}
+                    placeholder={safeT('search.returnDifferentPlace', 'Return to a different place?')}
                     className="w-full pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
                     value={searchData.returnLocation}
                     onChange={(e) => handleInputChange('returnLocation', e.target.value)}
@@ -163,16 +171,20 @@ const SearchSection = () => {
                 className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-semibold flex items-center gap-2 transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl"
               >
                 <FaSearch />
-                {activeTab==='stays' ? (t ? t('search.searchStays') : 'Search Stays') : activeTab==='cars' ? (t ? t('search.searchCars') : 'Search Cars') : (t ? t('search.exploreAttractions') : 'Explore Attractions')}
+                {activeTab==='stays'
+                  ? safeT('search.searchStays', 'Search Stays')
+                  : activeTab==='cars'
+                    ? safeT('search.searchCars', 'Search Cars')
+                    : safeT('search.exploreAttractions', 'Explore Attractions')}
               </button>
             </div>
           </form>
         </div>
         {/* Quick links */}
         <div className={`mt-6 flex flex-wrap justify-center gap-3 transition-all duration-700 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}>
-          <a href="/cars" className="px-4 py-2 rounded-full bg-white/80 border hover:border-blue-300 hover:text-blue-700 transition">{t ? t('search.quickPopularCars') : 'Popular Cars'}</a>
-          <a href="/apartments" className="px-4 py-2 rounded-full bg-white/80 border hover:border-blue-300 hover:text-blue-700 transition">{t ? t('search.quickFeaturedStays') : 'Featured Stays'}</a>
-          <a href="/attractions" className="px-4 py-2 rounded-full bg-white/80 border hover:border-blue-300 hover:text-blue-700 transition">{t ? t('search.quickTopAttractions') : 'Top Attractions'}</a>
+          <a href="/cars" className="px-4 py-2 rounded-full bg-white/80 border hover:border-blue-300 hover:text-blue-700 transition">{safeT('search.quickPopularCars', 'Popular Cars')}</a>
+          <a href="/apartments" className="px-4 py-2 rounded-full bg-white/80 border hover:border-blue-300 hover:text-blue-700 transition">{safeT('search.quickFeaturedStays', 'Featured Stays')}</a>
+          <a href="/attractions" className="px-4 py-2 rounded-full bg-white/80 border hover:border-blue-300 hover:text-blue-700 transition">{safeT('search.quickTopAttractions', 'Top Attractions')}</a>
         </div>
       </div>
     </div>

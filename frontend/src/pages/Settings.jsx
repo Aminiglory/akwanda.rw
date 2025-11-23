@@ -9,6 +9,14 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 const Settings = () => {
   const { user, updateUser } = useAuth();
   const { t } = useLocale() || {};
+  const safeT = (key, fallback) => {
+    if (!t) return fallback;
+    const value = t(key);
+    if (!value || value === key || String(value).includes('.')) {
+      return fallback;
+    }
+    return value;
+  };
   const [activeTab, setActiveTab] = useState('profile');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -59,10 +67,10 @@ const Settings = () => {
   });
 
   const tabs = [
-    { id: 'profile', label: t ? t('settings.profile') : 'Profile', icon: FaUser },
-    { id: 'security', label: t ? t('settings.security') : 'Security', icon: FaLock },
-    { id: 'notifications', label: t ? t('settings.notifications') : 'Notifications', icon: FaBell },
-    ...(user?.userType === 'admin' ? [{ id: 'site', label: t ? t('settings.site') : 'Site', icon: FaUser }] : [])
+    { id: 'profile', label: safeT('settings.profile', 'Profile'), icon: FaUser },
+    { id: 'security', label: safeT('settings.security', 'Security'), icon: FaLock },
+    { id: 'notifications', label: safeT('settings.notifications', 'Notifications'), icon: FaBell },
+    ...(user?.userType === 'admin' ? [{ id: 'site', label: safeT('settings.site', 'Site'), icon: FaUser }] : [])
   ];
 
   const saveSiteSettings = () => {
@@ -191,8 +199,8 @@ const Settings = () => {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">{t ? t('settings.title') : 'Settings'}</h1>
-          <p className="text-gray-600 mt-2">{t ? t('settings.subtitle') : 'Manage your account settings and preferences'}</p>
+          <h1 className="text-3xl font-bold text-gray-900">{safeT('settings.title', 'Settings')}</h1>
+          <p className="text-gray-600 mt-2">{safeT('settings.subtitle', 'Manage your account settings and preferences')}</p>
         </div>
 
         {user?.isBlocked && (
@@ -253,15 +261,15 @@ const Settings = () => {
                     </label>
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900">{t ? t('settings.profilePhoto') : 'Profile Photo'}</h3>
-                    <p className="text-sm text-gray-600">{t ? t('settings.uploadNewPhoto') : 'Upload a new profile photo'}</p>
+                    <h3 className="text-lg font-semibold text-gray-900">{safeT('settings.profilePhoto', 'Profile Photo')}</h3>
+                    <p className="text-sm text-gray-600">{safeT('settings.uploadNewPhoto', 'Upload a new profile photo')}</p>
                   </div>
                 </div>
 
                 {/* Profile Form */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">{t ? t('settings.firstName') : 'First Name'}</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{safeT('settings.firstName', 'First Name')}</label>
                     <input
                       type="text"
                       value={profileData.firstName}
@@ -270,7 +278,7 @@ const Settings = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">{t ? t('settings.lastName') : 'Last Name'}</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{safeT('settings.lastName', 'Last Name')}</label>
                     <input
                       type="text"
                       value={profileData.lastName}
@@ -279,7 +287,7 @@ const Settings = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">{t ? t('auth.email') : 'Email'}</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{safeT('auth.email', 'Email')}</label>
                     <input
                       type="email"
                       value={profileData.email}
@@ -288,7 +296,7 @@ const Settings = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">{t ? t('settings.phone') : 'Phone'}</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{safeT('settings.phone', 'Phone')}</label>
                     <input
                       type="tel"
                       value={profileData.phone}
@@ -298,13 +306,13 @@ const Settings = () => {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">{t ? t('settings.bio') : 'Bio'}</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{safeT('settings.bio', 'Bio')}</label>
                   <textarea
                     value={profileData.bio}
                     onChange={(e) => setProfileData(prev => ({ ...prev, bio: e.target.value }))}
                     rows={4}
                     className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Tell us about yourself..."
+                    placeholder={safeT('settings.tellUsAboutYourself', 'Tell us about yourself...')}
                   />
                 </div>
                 <button
@@ -313,7 +321,7 @@ const Settings = () => {
                   className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center space-x-2"
                 >
                   <FaCheck className="text-sm" />
-                  <span>{loading ? (t ? t('settings.updating') : 'Updating...') : (t ? t('settings.updateProfile') : 'Update Profile')}</span>
+                  <span>{loading ? safeT('settings.updating', 'Updating...') : safeT('settings.updateProfile', 'Update Profile')}</span>
                 </button>
               </div>
             )}
@@ -321,10 +329,10 @@ const Settings = () => {
             {activeTab === 'security' && (
               <div className="space-y-6">
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">{t ? t('settings.changePassword') : 'Change Password'}</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">{safeT('settings.changePassword', 'Change Password')}</h3>
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">{t ? t('settings.currentPassword') : 'Current Password'}</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">{safeT('settings.currentPassword', 'Current Password')}</label>
                       <div className="field has-right">
                         <input
                           type={showPassword ? 'text' : 'password'}
@@ -342,7 +350,7 @@ const Settings = () => {
                       </div>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">{t ? t('settings.newPassword') : 'New Password'}</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">{safeT('settings.newPassword', 'New Password')}</label>
                       <input
                         type="password"
                         value={passwordData.newPassword}
@@ -351,7 +359,7 @@ const Settings = () => {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">{t ? t('settings.confirmNewPassword') : 'Confirm New Password'}</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">{safeT('settings.confirmPassword', 'Confirm Password')}</label>
                       <input
                         type="password"
                         value={passwordData.confirmPassword}
@@ -364,7 +372,7 @@ const Settings = () => {
                       disabled={loading}
                       className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
                     >
-                      {loading ? (t ? t('settings.updating') : 'Updating...') : (t ? t('settings.updatePassword') : 'Update Password')}
+                      <span>{loading ? safeT('settings.updating', 'Updating...') : safeT('settings.updatePassword', 'Update Password')}</span>
                     </button>
                   </div>
                 </div>
@@ -374,7 +382,7 @@ const Settings = () => {
             {activeTab === 'notifications' && (
               <div className="space-y-6">
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">{t ? t('settings.notificationPreferences') : 'Notification Preferences'}</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">{safeT('settings.notificationPreferences', 'Notification Preferences')}</h3>
                   <div className="space-y-4">
                     {Object.entries(notifications).map(([key, value]) => (
                       <div key={key} className="flex items-center justify-between">
