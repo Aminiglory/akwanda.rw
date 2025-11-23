@@ -5,7 +5,8 @@ import {
   preloadImages, 
   getFallbackImage,
   generateResponsiveImages,
-  processImagesForComponent 
+  processImagesForComponent,
+  trackImageLoad
 } from '../utils/imageUtils';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -136,6 +137,15 @@ export default function LandingAttractions() {
                 alt={c.title}
                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
                 loading="lazy"
+                decoding="async"
+                onLoad={() => {
+                  trackImageLoad(c.src, 'attraction');
+                }}
+                onError={(e) => {
+                  console.warn(`Attraction image failed to load: ${c.src}`);
+                  e.target.src = getFallbackImage('attraction', 'medium');
+                  trackImageLoad(c.src, 'attraction');
+                }}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/35 to-transparent opacity-80 group-hover:opacity-95 transition-opacity duration-500" aria-hidden="true"></div>
               <figcaption className="absolute inset-x-3 bottom-3 flex flex-col gap-1">

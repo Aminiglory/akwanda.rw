@@ -15,7 +15,8 @@ import {
   getImageLoadStats,
   getFallbackImage,
   setExpectedImageCount,
-  resetImageLoadStats 
+  resetImageLoadStats,
+  trackImageLoad 
 } from '../utils/imageUtils';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -193,9 +194,13 @@ const Home = () => {
                       className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                       loading="lazy"
                       decoding="async"
+                      onLoad={() => {
+                        trackImageLoad(d.img, 'attraction');
+                      }}
                       onError={(e) => {
                         console.warn(`Featured destination image failed to load: ${d.img}`);
                         e.target.src = getFallbackImage('attraction', 'medium');
+                        trackImageLoad(d.img, 'attraction');
                       }}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent" />
@@ -238,9 +243,13 @@ const Home = () => {
                           className="h-8 sm:h-10 w-auto object-contain"
                           loading="lazy"
                           decoding="async"
+                          onLoad={() => {
+                            trackImageLoad(p.img, 'default');
+                          }}
                           onError={(e) => {
                             console.warn(`Partner image failed to load: ${p.img}`);
                             e.target.src = getFallbackImage('default', 'small');
+                            trackImageLoad(p.img, 'default');
                           }}
                         />
                         <div className="flex flex-col">

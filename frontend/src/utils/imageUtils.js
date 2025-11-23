@@ -98,7 +98,11 @@ export const makeAbsoluteImageUrl = (imagePath) => {
     apiBase = apiBase.replace('http:', 'https:');
   }
   
-  return `${apiBase}${url}`;
+  // Remove double slashes except after protocol
+  const finalUrl = `${apiBase}${url}`.replace(/([^:]\/)\/+/g, '$1');
+  
+  console.log(`Image URL processed: ${imagePath} → ${finalUrl}`);
+  return finalUrl;
 };
 
 /**
@@ -203,6 +207,51 @@ export const setExpectedImageCount = (total) => {
 };
 
 /**
+ * Track individual image loading for progress bar
+ * @param {string} src - Image source URL
+ * @param {string} category - Image category for fallback
+ * @returns {Promise} - Promise that resolves when image loads or fails
+ */
+export const trackImageLoad = (src, category = 'default') => {
+  return new Promise((resolve) => {
+    if (!src) {
+      imageLoadStats.failed++;
+      resolve({ success: false, src, error: 'no_src' });
+      return;
+    }
+
+    const img = new Image();
+    
+    img.onload = () => {
+      imageLoadStats.loaded++;
+      
+      // Check if all expected images are loaded
+      const totalProcessed = imageLoadStats.loaded + imageLoadStats.failed;
+      if (totalProcessed >= imageLoadStats.totalExpected) {
+        imageLoadStats.isLoading = false;
+      }
+      
+      resolve({ success: true, src });
+    };
+    
+    img.onerror = () => {
+      imageLoadStats.failed++;
+      
+      // Check if all expected images are processed
+      const totalProcessed = imageLoadStats.loaded + imageLoadStats.failed;
+      if (totalProcessed >= imageLoadStats.totalExpected) {
+        imageLoadStats.isLoading = false;
+      }
+      
+      console.warn(`Image failed to load: ${src}`);
+      resolve({ success: false, src, error: 'load_failed' });
+    };
+    
+    img.src = src;
+  });
+};
+
+/**
  * Get responsive fallback image based on category and size
  * @param {string} category - Property category
  * @param {string} size - Image size (small, medium, large)
@@ -294,6 +343,14 @@ export const enhanceImageElement = (imgElement, fallbackCategory = 'default') =>
   
   // Handle load success
   imgElement.onload = () => {
+    imageLoadStats.loaded++;
+    
+    // Check if all expected images are loaded
+    const totalProcessed = imageLoadStats.loaded + imageLoadStats.failed;
+    if (totalProcessed >= imageLoadStats.totalExpected) {
+      imageLoadStats.isLoading = false;
+    }
+    
     if (loadingDiv.parentNode) {
       loadingDiv.parentNode.removeChild(loadingDiv);
     }
@@ -302,6 +359,14 @@ export const enhanceImageElement = (imgElement, fallbackCategory = 'default') =>
   
   // Handle load error
   imgElement.onerror = () => {
+    imageLoadStats.failed++;
+    
+    // Check if all expected images are processed
+    const totalProcessed = imageLoadStats.loaded + imageLoadStats.failed;
+    if (totalProcessed >= imageLoadStats.totalExpected) {
+      imageLoadStats.isLoading = false;
+    }
+    
     console.warn(`Image failed to load: ${originalSrc}`);
     imgElement.src = getFallbackImage(fallbackCategory);
     if (loadingDiv.parentNode) {
