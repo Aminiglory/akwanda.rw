@@ -2,10 +2,12 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useLocale } from '../contexts/LocaleContext';
 import { FaBuilding, FaSmile, FaThumbsUp } from 'react-icons/fa';
 import { 
+  initializeLandingPageOptimization, 
   makeAbsoluteImageUrl, 
   preloadImages, 
-  getFallbackImage,
-  generateResponsiveImages,
+  getFallbackImage, 
+  trackImageLoad, 
+  generateResponsiveImages, 
   getDeviceOptimizations 
 } from '../utils/imageUtils';
 
@@ -317,7 +319,7 @@ const Hero = () => {
       >
         {slides.length > 0 ? (
           slides.map((s, i) => {
-            const url = s.image;
+            const url = makeAbsoluteImageUrl(s.image) || getFallbackImage('hero', 'large');
             const active = i === index;
             
             return (
@@ -332,9 +334,13 @@ const Hero = () => {
                 loading={i === 0 ? 'eager' : 'lazy'}
                 decoding={i === 0 ? 'sync' : 'async'}
                 fetchpriority={i === 0 ? 'high' : 'auto'}
+                onLoad={() => {
+                  trackImageLoad(url, 'hero');
+                }}
                 onError={(e) => {
                   console.warn(`Hero image failed to load: ${url}`);
                   e.target.src = getFallbackImage('hero', 'large');
+                  trackImageLoad(url, 'hero');
                 }}
               />
             );

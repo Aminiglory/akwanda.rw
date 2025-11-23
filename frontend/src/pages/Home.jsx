@@ -74,13 +74,36 @@ const Home = () => {
             });
           }
           
-          // Add partners images
+          // Add partners images (count actual partners)
           if (partnersSec?.images?.length > 0) {
-            expectedTotal += Math.min(partnersSec.images.length, 4); // Estimate visible partners
+            expectedTotal += partnersSec.images.length; // Count all partner images
           }
           
-          // Estimate featured apartments (usually 4)
-          expectedTotal += 4;
+          // Add featured apartments (fetch actual count)
+          try {
+            const propertiesRes = await fetch(`${API_URL}/api/properties`);
+            if (propertiesRes.ok) {
+              const propertiesData = await propertiesRes.json();
+              const propertyCount = Math.min(propertiesData?.properties?.length || 4, 8); // Max 8 featured
+              expectedTotal += propertyCount;
+            } else {
+              expectedTotal += 4; // Fallback estimate
+            }
+          } catch (error) {
+            expectedTotal += 4; // Fallback estimate
+          }
+          
+          // Add landing attractions images
+          try {
+            const attractionsRes = await fetch(`${API_URL}/api/content/landing`);
+            if (attractionsRes.ok) {
+              const attractionsData = await attractionsRes.json();
+              const attractionImages = attractionsData?.content?.sections?.find(s => s.key === 'attractions')?.images?.length || 0;
+              expectedTotal += Math.min(attractionImages, 6); // Estimate visible attractions
+            }
+          } catch (error) {
+            expectedTotal += 3; // Fallback estimate
+          }
           
           // Set expected count and show loading bar
           setExpectedImageCount(expectedTotal);

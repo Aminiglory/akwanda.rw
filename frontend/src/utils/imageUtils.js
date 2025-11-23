@@ -101,8 +101,15 @@ export const makeAbsoluteImageUrl = (imagePath) => {
   // Remove double slashes except after protocol
   const finalUrl = `${apiBase}${url}`.replace(/([^:]\/)\/+/g, '$1');
   
-  console.log(`Image URL processed: ${imagePath} → ${finalUrl}`);
-  return finalUrl;
+  // Validate the final URL
+  try {
+    new URL(finalUrl);
+    console.log(`✅ Image URL processed: ${imagePath} → ${finalUrl}`);
+    return finalUrl;
+  } catch (error) {
+    console.error(`❌ Invalid URL generated: ${imagePath} → ${finalUrl}`, error);
+    return null;
+  }
 };
 
 /**
@@ -195,6 +202,8 @@ export const getImageLoadStats = () => ({ ...imageLoadStats });
  */
 export const resetImageLoadStats = () => {
   imageLoadStats = { loaded: 0, failed: 0, preloaded: 0, totalLoadTime: 0, totalExpected: 0, isLoading: false };
+  processedImages.clear(); // Clear processed images set
+  console.log('🔄 Image loading stats reset');
 };
 
 /**
@@ -204,7 +213,11 @@ export const resetImageLoadStats = () => {
 export const setExpectedImageCount = (total) => {
   imageLoadStats.totalExpected = total;
   imageLoadStats.isLoading = total > 0;
+  console.log(`🎯 Expected image count set to: ${total}`);
 };
+
+// Track processed images to avoid double counting
+const processedImages = new Set();
 
 /**
  * Track individual image loading for progress bar
@@ -215,11 +228,19 @@ export const setExpectedImageCount = (total) => {
 export const trackImageLoad = (src, category = 'default') => {
   return new Promise((resolve) => {
     if (!src) {
-      imageLoadStats.failed++;
+      console.warn('❌ trackImageLoad: No src provided');
       resolve({ success: false, src, error: 'no_src' });
       return;
     }
 
+    // Avoid double counting the same image
+    if (processedImages.has(src)) {
+      console.log(`🔄 Image already tracked: ${src}`);
+      resolve({ success: true, src, cached: true });
+      return;
+    }
+
+    processedImages.add(src);
     const img = new Image();
     
     img.onload = () => {
@@ -227,8 +248,11 @@ export const trackImageLoad = (src, category = 'default') => {
       
       // Check if all expected images are loaded
       const totalProcessed = imageLoadStats.loaded + imageLoadStats.failed;
+      console.log(`📊 Progress: ${totalProcessed}/${imageLoadStats.totalExpected} (${Math.round((totalProcessed/imageLoadStats.totalExpected)*100)}%)`);
+      
       if (totalProcessed >= imageLoadStats.totalExpected) {
         imageLoadStats.isLoading = false;
+        console.log('🎉 All images processed!');
       }
       
       resolve({ success: true, src });
@@ -239,11 +263,14 @@ export const trackImageLoad = (src, category = 'default') => {
       
       // Check if all expected images are processed
       const totalProcessed = imageLoadStats.loaded + imageLoadStats.failed;
+      console.log(`📊 Progress: ${totalProcessed}/${imageLoadStats.totalExpected} (${Math.round((totalProcessed/imageLoadStats.totalExpected)*100)}%) - Failed: ${src}`);
+      
       if (totalProcessed >= imageLoadStats.totalExpected) {
         imageLoadStats.isLoading = false;
+        console.log('🎉 All images processed!');
       }
       
-      console.warn(`Image failed to load: ${src}`);
+      console.warn(`❌ Image failed to load: ${src}`);
       resolve({ success: false, src, error: 'load_failed' });
     };
     
