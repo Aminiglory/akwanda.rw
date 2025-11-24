@@ -75,7 +75,7 @@ const Hero = () => {
     preloadCritical: [], // Will be set when slides are loaded
   });
 
-  const { preloadImages: preloadImagesHook } = useImagePreloader();
+  const { preloadImages } = useImagePreloader();
 
   useEffect(() => {
     setIsVisible(true);
