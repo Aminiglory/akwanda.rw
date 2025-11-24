@@ -506,7 +506,7 @@ const ApartmentsListing = () => {
               </div>
 
               {/* Dates & Guests */}
-              <div className="mb-6 grid grid-cols-1 gap-4">
+              <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Check-in</label>
                   <input type="date" className="w-full px-3 py-2 border rounded-lg"
