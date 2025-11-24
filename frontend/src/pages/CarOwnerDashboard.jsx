@@ -549,22 +549,28 @@ export default function CarOwnerDashboard() {
       </div>
 
       {/* Overview section (stats, quick links, finance) */}
-      {Array.isArray(cars) && cars.length > 0 && view === 'overview' && (
+      {view === 'overview' && (
         <>
-          <div className="mb-4 max-w-xs">
-            <label className="block text-xs text-gray-600 mb-1">Selected vehicle</label>
-            <select
-              className="w-full px-3 py-2 border rounded text-sm"
-              value={selectedCarId || ''}
-              onChange={e => setSelectedCarId(e.target.value)}
-            >
-              {cars.map(c => (
-                <option key={c._id} value={c._id}>
-                  {c.vehicleName || `${c.brand || ''} ${c.model || ''}`.trim() || 'Untitled vehicle'}
-                </option>
-              ))}
-            </select>
-          </div>
+          {Array.isArray(cars) && cars.length > 0 ? (
+            <div className="mb-4 max-w-xs">
+              <label className="block text-xs text-gray-600 mb-1">Selected vehicle</label>
+              <select
+                className="w-full px-3 py-2 border rounded text-sm"
+                value={selectedCarId || ''}
+                onChange={e => setSelectedCarId(e.target.value)}
+              >
+                {cars.map(c => (
+                  <option key={c._id} value={c._id}>
+                    {c.vehicleName || `${c.brand || ''} ${c.model || ''}`.trim() || 'Untitled vehicle'}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <div className="mb-4 text-xs text-gray-600 bg-white border border-[#e0d5c7] rounded-lg px-3 py-2">
+              Once you list vehicles, you'll see per-vehicle stats here. For now, the cards below show overall bookings and revenue.
+            </div>
+          )}
 
           <div className="mb-4 grid grid-cols-2 md:grid-cols-4 gap-3">
             <div className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2">
