@@ -113,9 +113,10 @@ const PropertyCard = ({
           <FaMapMarkerAlt className="mr-1" />
           <span className="line-clamp-1">{highlightText(location)}</span>
         </div>
-        {listing?.host && (
-          <div className="text-xs text-gray-500 mb-3">{t ? t('property.hostedBy') : 'Hosted by'} <span className="font-medium text-gray-700">{listing.host}</span></div>
-        )}
+        <div className="text-xs text-gray-500 mb-3">
+          {t ? t('property.hostedBy') : 'Hosted by'}{' '}
+          <span className="font-medium text-gray-700">{listing?.host || ''}</span>
+        </div>
         <div className="text-sm text-gray-600 mb-4">{bookings || 0} {t ? t('property.bookings') : 'bookings'}</div>
         <div className="grid grid-cols-3 gap-3 text-sm flex-none">
           <div className="flex items-center gap-2">

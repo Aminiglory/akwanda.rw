@@ -286,6 +286,13 @@ export default function CarsList() {
     ));
   };
 
+  const gridColsClass = (() => {
+    if (!cars || cars.length === 0) return 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3';
+    if (cars.length === 1) return 'grid-cols-1 max-w-md mx-auto';
+    if (cars.length === 2) return 'grid-cols-1 sm:grid-cols-2 max-w-3xl mx-auto';
+    return 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3';
+  })();
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 py-8">
@@ -527,13 +534,13 @@ export default function CarsList() {
               </table>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className={`grid gap-6 ${gridColsClass}`}>
               {cars.map(c => {
                 const firstImg = Array.isArray(c.images) && c.images.length ? makeAbsolute(c.images[0]) : null;
                 const title = c.vehicleName || `${c.brand || ''} ${c.model || ''}`.trim();
                 const wishlisted = favIds.some(x => String(x) === String(c._id));
                 return (
-                  <div key={c._id} className="h-full max-w-sm w-full mx-auto">
+                  <div key={c._id} className="h-full">
                     <PropertyCard
                       listing={{
                         id: c._id,
