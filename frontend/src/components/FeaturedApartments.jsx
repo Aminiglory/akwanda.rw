@@ -145,183 +145,42 @@ const FeaturedApartments = () => {
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-2 text-gray-900">
-            {(() => {
-              const hasPremium = apartments.some(a => a.isPremium);
-              if (!t) return hasPremium ? 'Premium Properties' : 'Featured Properties';
-              if (hasPremium) {
-                const val = t('featured.premiumTitle');
-                return val && val !== 'featured.premiumTitle' ? val : 'Premium Properties';
-              }
-              const val = t('featured.title');
-              return val && val !== 'featured.title' ? val : 'Featured Properties';
-            })()}
+            {t ? t('featured.title') : 'Featured Properties'}
           </h2>
           <p className="text-gray-600 text-lg">
-            {(() => {
-              const hasPremium = apartments.some(a => a.isPremium);
-              if (!t) return hasPremium
-                ? 'Top-performing stays with higher commission and visibility'
-                : 'Discover our most popular and highly-rated stays';
-              if (hasPremium) {
-                const val = t('featured.premiumSubtitle');
-                return val && val !== 'featured.premiumSubtitle'
-                  ? val
-                  : 'Top-performing stays with higher commission and visibility';
-              }
-              const val = t('featured.subtitle');
-              return val && val !== 'featured.subtitle'
-                ? val
-                : 'Discover our most popular and highly-rated stays';
-            })()}
+            {t ? t('featured.subtitle') : 'Discover our most popular and highly-rated stays'}
           </p>
         </div>
 
-        {/* Premium slider */}
-        {apartments.some(a => a.isPremium) && (
-          <div className="mb-10">
-            <h3 className="text-lg font-semibold text-[#4b2a00] mb-3">
-              {(() => {
-                if (!t) return 'Premium picks';
-                const val = t('featured.premiumStripTitle');
-                return val && val !== 'featured.premiumStripTitle' ? val : 'Premium picks';
-              })()}
-            </h3>
+        <div
+          ref={gridRef}
+          className={`${gridInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'} grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8`}
+        >
+          {apartments.map((apartment, index) => (
             <div
-              ref={gridRef}
-              className={`${gridInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'} transition-all duration-500`}
+              key={apartment.id}
+              className="h-full"
+              style={{ transition: 'all 500ms', transitionDelay: `${index * 80}ms` }}
             >
-              <div className="relative">
-                <div
-                  ref={premiumStripRef}
-                  className="flex gap-4 min-w-max overflow-x-auto pb-2 scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']"
-                >
-                  {apartments.filter(a => a.isPremium).map((apartment, index) => (
-                    <div
-                      key={apartment.id}
-                      data-premium-card="true"
-                      className="w-72 flex-shrink-0"
-                      style={{ transition: 'all 500ms', transitionDelay: `${index * 80}ms` }}
-                    >
-                      <PropertyCard
-                        listing={{
-                          id: apartment.id,
-                          title: apartment.title,
-                          location: apartment.location,
-                          image: (apartment.images && apartment.images.length ? apartment.images[0] : apartment.image),
-                          price: Number(apartment.price || 0),
-                          bedrooms: apartment.bedrooms,
-                          bathrooms: apartment.bathrooms,
-                          area: apartment.size,
-                          status: apartment.isAvailable ? 'active' : 'inactive',
-                          bookings: apartment.reviews,
-                          host: apartment.host,
-                          isPremium: true,
-                          isAd: false
-                        }}
-                        onView={() => (window.location.href = `/apartment/${apartment.id}`)}
-                      />
-                    </div>
-                  ))}
-                </div>
-
-                {/* Slider arrows */}
-                {apartments.filter(a => a.isPremium).length > 1 && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const premium = apartments.filter(a => a.isPremium);
-                        const count = premium.length;
-                        if (count <= 1) return;
-                        setPremiumIndex((prev) => {
-                          const next = (prev - 1 + count) % count;
-                          const container = premiumStripRef.current;
-                          if (container) {
-                            const items = Array.from(container.querySelectorAll('[data-premium-card="true"]'));
-                            const target = items[next];
-                            if (target && target.scrollIntoView) {
-                              target.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-                            }
-                          }
-                          return next;
-                        });
-                      }}
-                      className="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 w-9 h-9 rounded-full bg-white shadow border border-gray-200 items-center justify-center text-gray-700 hover:bg-gray-50"
-                      aria-label="Previous premium property"
-                    >
-                      ‹
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const premium = apartments.filter(a => a.isPremium);
-                        const count = premium.length;
-                        if (count <= 1) return;
-                        setPremiumIndex((prev) => {
-                          const next = (prev + 1) % count;
-                          const container = premiumStripRef.current;
-                          if (container) {
-                            const items = Array.from(container.querySelectorAll('[data-premium-card="true"]'));
-                            const target = items[next];
-                            if (target && target.scrollIntoView) {
-                              target.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-                            }
-                          }
-                          return next;
-                        });
-                      }}
-                      className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-9 h-9 rounded-full bg-white shadow border border-gray-200 items-center justify-center text-gray-700 hover:bg-gray-50"
-                      aria-label="Next premium property"
-                    >
-                      ›
-                    </button>
-                  </>
-                )}
-              </div>
+              <PropertyCard
+                listing={{
+                  id: apartment.id,
+                  title: apartment.title,
+                  location: apartment.location,
+                  image: (apartment.images && apartment.images.length ? apartment.images[0] : apartment.image),
+                  price: Number(apartment.price || 0),
+                  bedrooms: apartment.bedrooms,
+                  bathrooms: apartment.bathrooms,
+                  area: apartment.size,
+                  status: apartment.isAvailable ? 'active' : 'inactive',
+                  bookings: apartment.reviews,
+                  host: apartment.host
+                }}
+                onView={() => (window.location.href = `/apartment/${apartment.id}`)}
+              />
             </div>
-          </div>
-        )}
-
-        {/* Standard / Ad listings */}
-        {apartments.filter(a => !a.isPremium).length > 0 && (
-          <div>
-            <h3 className="text-sm font-semibold text-[#6b5744] mb-3">
-              {(() => {
-                if (!t) return 'More stays & ads';
-                const val = t('featured.standardTitle');
-                return val && val !== 'featured.standardTitle' ? val : 'More stays & ads';
-              })()}
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-              {apartments.filter(a => !a.isPremium).map((apartment, index) => (
-                <div
-                  key={apartment.id}
-                  className={`${gridInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'} h-full`}
-                  style={{ transition: 'all 500ms', transitionDelay: `${index * 60}ms` }}
-                >
-                  <PropertyCard
-                    listing={{
-                      id: apartment.id,
-                      title: apartment.title,
-                      location: apartment.location,
-                      image: (apartment.images && apartment.images.length ? apartment.images[0] : apartment.image),
-                      price: Number(apartment.price || 0),
-                      bedrooms: apartment.bedrooms,
-                      bathrooms: apartment.bathrooms,
-                      area: apartment.size,
-                      status: apartment.isAvailable ? 'active' : 'inactive',
-                      bookings: apartment.reviews,
-                      host: apartment.host,
-                      isPremium: false,
-                      isAd: true
-                    }}
-                    onView={() => (window.location.href = `/apartment/${apartment.id}`)}
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+          ))}
+        </div>
 
         <div className="mt-12">
           <div className="bg-primary rounded-2xl p-8 flex flex-col md:flex-row items-center justify-between text-white shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.02]">
