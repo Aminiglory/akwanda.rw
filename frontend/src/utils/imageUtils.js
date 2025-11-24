@@ -94,22 +94,14 @@ export const makeAbsoluteImageUrl = (imagePath) => {
   
   let apiBase = API_URL;
   // Ensure API_URL uses HTTPS if current page is HTTPS
-  if (typeof window !== 'undefined' && window.location.protocol === 'https:' && apiBase.startsWith('http:')) {
+  if (typeof window !== 'undefined' && apiBase.startsWith('http:')) {
     apiBase = apiBase.replace('http:', 'https:');
   }
   
-  // Remove double slashes except after protocol
+  // Remove double slashes except after protocol and return as-is
   const finalUrl = `${apiBase}${url}`.replace(/([^:]\/)\/+/g, '$1');
-  
-  // Validate the final URL
-  try {
-    new URL(finalUrl);
-    console.log(`✅ Image URL processed: ${imagePath} → ${finalUrl}`);
-    return finalUrl;
-  } catch (error) {
-    console.error(`❌ Invalid URL generated: ${imagePath} → ${finalUrl}`, error);
-    return null;
-  }
+  console.log(`✅ Image URL processed: ${imagePath} → ${finalUrl}`);
+  return finalUrl;
 };
 
 /**
