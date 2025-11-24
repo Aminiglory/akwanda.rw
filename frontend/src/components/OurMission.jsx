@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocale } from '../contexts/LocaleContext';
-import { LazyImage } from './LazyImage';
+import LazyImage from './LazyImage';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
