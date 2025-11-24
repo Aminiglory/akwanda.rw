@@ -1289,7 +1289,28 @@ router.put('/:id', requireAuth, requireWorkerPrivilege('canEditProperties'), upl
                 }
             }
             if (Array.isArray(addOns)) {
-                property.addOnServices = addOns;
+                const allowedScopes = ['per_booking', 'per_night', 'per_guest'];
+                const normalized = addOns.map(raw => {
+                    const addOn = { ...raw };
+                    // Normalize scope from UI values like "per-booking" to schema enum "per_booking"
+                    if (addOn.scope) {
+                        const s = String(addOn.scope).trim().toLowerCase().replace(/-/g, '_');
+                        if (allowedScopes.includes(s)) {
+                            addOn.scope = s;
+                        } else {
+                            // Fallback to default if invalid
+                            addOn.scope = 'per_booking';
+                        }
+                    }
+                    // Frontend may send includedItems as an object map; convert to array of enabled keys
+                    if (addOn.includedItems && !Array.isArray(addOn.includedItems) && typeof addOn.includedItems === 'object') {
+                        addOn.includedItems = Object.entries(addOn.includedItems)
+                            .filter(([, v]) => !!v)
+                            .map(([k]) => k);
+                    }
+                    return addOn;
+                });
+                property.addOnServices = normalized;
                 property.markModified('addOnServices');
             }
             delete updates.addOnServices;
