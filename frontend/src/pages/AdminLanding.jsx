@@ -264,116 +264,141 @@ export default function AdminLanding() {
         <div className="text-gray-600">Loading...</div>
       ) : (
         <div className="space-y-6">
-          {/* Our Mission CMS */}
+          {/* 1. Hero Section - First in landing page */}
           <div className="bg-white rounded-xl shadow p-5">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg font-semibold text-gray-900">Our Mission</h2>
-              <span className="text-xs text-gray-500">Key: ourMission</span>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Hero Section</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div>
+                <label className="block text-sm text-gray-700 mb-1">Hero Title</label>
+                <input
+                  value={content.heroTitle || ''}
+                  onChange={e => setContent({ ...content, heroTitle: e.target.value })}
+                  className="w-full px-4 py-2 rounded-lg bg-white shadow-sm ring-0 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Welcome to AKWANDA"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-700 mb-1">Hero Subtitle</label>
+                <input
+                  value={content.heroSubtitle || ''}
+                  onChange={e => setContent({ ...content, heroSubtitle: e.target.value })}
+                  className="w-full px-4 py-2 rounded-lg bg-white shadow-sm ring-0 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Find places to stay, cars, and attractions"
+                />
+              </div>
             </div>
 
-        {/* How It Works – Guests Media (images used in Guests tab slideshow) */}
-        <div className="bg-white rounded-xl shadow p-5">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-semibold text-gray-900">How It Works – Guests Media</h2>
-            <span className="text-xs text-gray-500">Key: howItWorksGuests</span>
-          </div>
-          {(() => {
-            const sec = getSectionByKey('howItWorksGuests') || { key: 'howItWorksGuests', images: [] };
-            return (
-              <div className="space-y-3">
-                <label className="block text-sm text-gray-700">Slideshow Images (Guests)</label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                  {(sec.images || []).map((img, i) => (
-                    <div key={i} className="relative w-full aspect-video rounded-lg overflow-hidden bg-gray-100">
-                      <img src={(img||'').startsWith('http') ? img : `${API_URL}${img}`} className="w-full h-full object-cover" />
-                      <button type="button" className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-red-600 text-white shadow flex items-center justify-center" onClick={() => setSectionByKey('howItWorksGuests', { ...sec, images: (sec.images||[]).filter((_, idx)=> idx!==i) })}>×</button>
+            <div className="mt-6">
+              <label className="block text-sm text-gray-700 mb-3">Hero Slideshow Images & Captions</label>
+              <div className="grid grid-cols-1 gap-4 mb-4">
+                {(content.heroSlides || []).map((slide, i) => (
+                  <div key={i} className="flex gap-4 items-start p-4 bg-white rounded-lg shadow-sm border border-gray-200">
+                    <div className="relative w-32 h-24 shrink-0 flex-none bg-gray-100 rounded-lg overflow-hidden">
+                      <img src={(slide.image || '').startsWith('http') ? slide.image : `${API_URL}${slide.image}`} className="w-full h-full object-cover bg-transparent" alt="Hero slide" />
+                      <button onClick={() => removeImage(i)} className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full w-7 h-7 flex items-center justify-center hover:bg-red-700 transition-colors shadow-md" type="button">×</button>
                     </div>
-                  ))}
-                  <label className="flex items-center justify-center border-2 border-dashed border-gray-300 rounded-lg h-28 cursor-pointer bg-white">
-                    <input type="file" className="hidden" accept="image/*" multiple onChange={async e => {
-                      try {
-                        const paths = await uploadAssets(e.target.files);
-                        setSectionByKey('howItWorksGuests', { ...sec, images: [...(sec.images||[]), ...paths] });
-                      } catch (err) { toast.error(err.message); }
-                    }} />
-                    <span className="text-sm text-gray-600">Add images</span>
-                  </label>
-                </div>
+                    <div className="flex-1 min-w-0">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Caption for Slide {i + 1}</label>
+                      <input
+                        value={slide.caption || ''}
+                        onChange={e => setContent(c => ({
+                          ...c,
+                          heroSlides: c.heroSlides.map((s, idx) => idx === i ? { ...s, caption: e.target.value } : s)
+                        }))}
+                        className="w-full px-4 py-2.5 rounded-lg bg-white shadow-sm border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Optional caption for this slide"
+                      />
+                    </div>
+                  </div>
+                ))}
+                {(!content.heroSlides || content.heroSlides.length === 0) && (
+                  <div className="text-gray-500 text-sm">No slides yet. Upload images to create slides.</div>
+                )}
               </div>
-            );
-          })()}
-        </div>
+              <label className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white shadow text-sm cursor-pointer">
+                <input type="file" className="hidden" multiple onChange={e => uploadImages(e.target.files)} disabled={uploading} />
+                {uploading ? 'Uploading…' : 'Add Slides'}
+              </label>
+            </div>
 
-        {/* How It Works – Hosts Media (images used in Hosts tab slideshow) */}
-        <div className="bg-white rounded-xl shadow p-5">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-semibold text-gray-900">How It Works – Hosts Media</h2>
-            <span className="text-xs text-gray-500">Key: howItWorksHosts</span>
-          </div>
-          {(() => {
-            const sec = getSectionByKey('howItWorksHosts') || { key: 'howItWorksHosts', images: [] };
-            return (
-              <div className="space-y-3">
-                <label className="block text-sm text-gray-700">Slideshow Images (Hosts)</label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                  {(sec.images || []).map((img, i) => (
-                    <div key={i} className="relative w-full aspect-video rounded-lg overflow-hidden bg-gray-100">
-                      <img src={(img||'').startsWith('http') ? img : `${API_URL}${img}`} className="w-full h-full object-cover" />
-                      <button type="button" className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-red-600 text-white shadow flex items-center justify-center" onClick={() => setSectionByKey('howItWorksHosts', { ...sec, images: (sec.images||[]).filter((_, idx)=> idx!==i) })}>×</button>
-                    </div>
-                  ))}
-                  <label className="flex items-center justify-center border-2 border-dashed border-gray-300 rounded-lg h-28 cursor-pointer bg-white">
-                    <input type="file" className="hidden" accept="image/*" multiple onChange={async e => {
-                      try {
-                        const paths = await uploadAssets(e.target.files);
-                        setSectionByKey('howItWorksHosts', { ...sec, images: [...(sec.images||[]), ...paths] });
-                      } catch (err) { toast.error(err.message); }
-                    }} />
-                    <span className="text-sm text-gray-600">Add images</span>
-                  </label>
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-6">
+              <div>
+                <label className="block text-sm text-gray-700 mb-1">Slideshow Transition</label>
+                <select
+                  value={content.heroTransition || 'fade'}
+                  onChange={e => setContent({ ...content, heroTransition: e.target.value })}
+                  className="w-full px-4 py-2 rounded-lg bg-white shadow-sm border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="fade">Fade</option>
+                  <option value="slide">Slide</option>
+                  <option value="zoom">Zoom</option>
+                </select>
               </div>
-            );
-          })()}
-        </div>
+              <div>
+                <label className="block text-sm text-gray-700 mb-1">Interval (ms)</label>
+                <input
+                  type="number"
+                  value={content.heroIntervalMs || 5000}
+                  onChange={e => setContent({ ...content, heroIntervalMs: parseInt(e.target.value) || 5000 })}
+                  className="w-full px-4 py-2 rounded-lg bg-white shadow-sm border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  min="1000"
+                  max="10000"
+                  step="500"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* 2. Featured Apartments - Second in landing page (managed separately) */}
+          <div className="bg-gray-50 rounded-xl p-5 border-2 border-dashed border-gray-300">
+            <h2 className="text-lg font-semibold text-gray-600 mb-2">Featured Apartments</h2>
+            <p className="text-sm text-gray-500">Automatically populated from property listings. No CMS management needed.</p>
+          </div>
+
+          {/* 3. Landing Attractions - Third in landing page */}
+          <div className="bg-white rounded-xl shadow p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-semibold text-gray-900">Landing Attractions</h2>
+              <span className="text-xs text-gray-500">Key: landingAttractions</span>
+            </div>
             {(() => {
-              const sec = getSectionByKey('ourMission') || { key: 'ourMission', title: '', body: '', images: [] };
+              const sec = getSectionByKey('landingAttractions') || { key: 'landingAttractions', title: '', body: '', images: [] };
               return (
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div>
-                      <label className="block text-sm text-gray-700 mb-1">Title</label>
+                      <label className="block text-sm text-gray-700 mb-1">Section Title</label>
                       <input
                         value={sec.title || ''}
-                        onChange={e => setSectionByKey('ourMission', { ...sec, title: e.target.value })}
+                        onChange={e => setSectionByKey('landingAttractions', { ...sec, title: e.target.value })}
                         className="w-full px-3 py-2 rounded-lg bg-white shadow-sm ring-0 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="Our Mission"
+                        placeholder="Top Attractions"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm text-gray-700 mb-1">Body</label>
+                      <label className="block text-sm text-gray-700 mb-1">Captions (one per line; aligns to images)</label>
                       <textarea
                         value={sec.body || ''}
-                        onChange={e => setSectionByKey('ourMission', { ...sec, body: e.target.value })}
+                        onChange={e => setSectionByKey('landingAttractions', { ...sec, body: e.target.value })}
                         className="w-full px-3 py-2 h-[92px] rounded-lg bg-white shadow-sm ring-1 ring-gray-200 ring-inset focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="Describe your mission"
+                        placeholder={"Kigali Genocide Memorial\nVolcanoes National Park\nLake Kivu"}
                       />
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm text-gray-700 mb-1">Slideshow Images</label>
+                    <label className="block text-sm text-gray-700 mb-1">Attraction Images</label>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                       {(sec.images || []).map((img, i) => (
                         <div key={i} className="relative w-full aspect-video rounded-lg overflow-hidden bg-gray-100">
                           <img src={(img||'').startsWith('http') ? img : `${API_URL}${img}`} className="w-full h-full object-cover" />
-                          <button type="button" className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-red-600 text-white shadow flex items-center justify-center" onClick={() => setSectionByKey('ourMission', { ...sec, images: (sec.images||[]).filter((_, idx)=> idx!==i) })}>×</button>
+                          <button type="button" className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-red-600 text-white shadow flex items-center justify-center" onClick={() => setSectionByKey('landingAttractions', { ...sec, images: (sec.images||[]).filter((_, idx)=> idx!==i) })}>×</button>
                         </div>
                       ))}
                       <label className="flex items-center justify-center border-2 border-dashed border-gray-300 rounded-lg h-28 cursor-pointer bg-white">
                         <input type="file" className="hidden" accept="image/*" multiple onChange={async e => {
                           try {
                             const paths = await uploadAssets(e.target.files);
-                            setSectionByKey('ourMission', { ...sec, images: [...(sec.images||[]), ...paths] });
+                            setSectionByKey('landingAttractions', { ...sec, images: [...(sec.images||[]), ...paths] });
                           } catch (err) { toast.error(err.message); }
                         }} />
                         <span className="text-sm text-gray-600">Add images</span>
@@ -384,6 +409,7 @@ export default function AdminLanding() {
               );
             })()}
           </div>
+          {/* 4. Featured Destinations - Fourth in landing page */}
           <div className="bg-white rounded-xl shadow p-5">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-lg font-semibold text-gray-900">Featured Destinations</h2>
@@ -438,6 +464,128 @@ export default function AdminLanding() {
             })()}
           </div>
 
+          {/* 5. How It Works – Guests Media (images used in Guests tab slideshow) */}
+          <div className="bg-white rounded-xl shadow p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-semibold text-gray-900">How It Works – Guests Media</h2>
+              <span className="text-xs text-gray-500">Key: howItWorksGuests</span>
+            </div>
+            {(() => {
+              const sec = getSectionByKey('howItWorksGuests') || { key: 'howItWorksGuests', images: [] };
+              return (
+                <div className="space-y-3">
+                  <label className="block text-sm text-gray-700">Slideshow Images (Guests)</label>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                    {(sec.images || []).map((img, i) => (
+                      <div key={i} className="relative w-full aspect-video rounded-lg overflow-hidden bg-gray-100">
+                        <img src={(img||'').startsWith('http') ? img : `${API_URL}${img}`} className="w-full h-full object-cover" />
+                        <button type="button" className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-red-600 text-white shadow flex items-center justify-center" onClick={() => setSectionByKey('howItWorksGuests', { ...sec, images: (sec.images||[]).filter((_, idx)=> idx!==i) })}>×</button>
+                      </div>
+                    ))}
+                    <label className="flex items-center justify-center border-2 border-dashed border-gray-300 rounded-lg h-28 cursor-pointer bg-white">
+                      <input type="file" className="hidden" accept="image/*" multiple onChange={async e => {
+                        try {
+                          const paths = await uploadAssets(e.target.files);
+                          setSectionByKey('howItWorksGuests', { ...sec, images: [...(sec.images||[]), ...paths] });
+                        } catch (err) { toast.error(err.message); }
+                      }} />
+                      <span className="text-sm text-gray-600">Add images</span>
+                    </label>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+
+          {/* 6. How It Works – Hosts Media (images used in Hosts tab slideshow) */}
+          <div className="bg-white rounded-xl shadow p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-semibold text-gray-900">How It Works – Hosts Media</h2>
+              <span className="text-xs text-gray-500">Key: howItWorksHosts</span>
+            </div>
+            {(() => {
+              const sec = getSectionByKey('howItWorksHosts') || { key: 'howItWorksHosts', images: [] };
+              return (
+                <div className="space-y-3">
+                  <label className="block text-sm text-gray-700">Slideshow Images (Hosts)</label>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                    {(sec.images || []).map((img, i) => (
+                      <div key={i} className="relative w-full aspect-video rounded-lg overflow-hidden bg-gray-100">
+                        <img src={(img||'').startsWith('http') ? img : `${API_URL}${img}`} className="w-full h-full object-cover" />
+                        <button type="button" className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-red-600 text-white shadow flex items-center justify-center" onClick={() => setSectionByKey('howItWorksHosts', { ...sec, images: (sec.images||[]).filter((_, idx)=> idx!==i) })}>×</button>
+                      </div>
+                    ))}
+                    <label className="flex items-center justify-center border-2 border-dashed border-gray-300 rounded-lg h-28 cursor-pointer bg-white">
+                      <input type="file" className="hidden" accept="image/*" multiple onChange={async e => {
+                        try {
+                          const paths = await uploadAssets(e.target.files);
+                          setSectionByKey('howItWorksHosts', { ...sec, images: [...(sec.images||[]), ...paths] });
+                        } catch (err) { toast.error(err.message); }
+                      }} />
+                      <span className="text-sm text-gray-600">Add images</span>
+                    </label>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+
+          {/* 7. Our Mission - Sixth in landing page */}
+          <div className="bg-white rounded-xl shadow p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-semibold text-gray-900">Our Mission</h2>
+              <span className="text-xs text-gray-500">Key: ourMission</span>
+            </div>
+            {(() => {
+              const sec = getSectionByKey('ourMission') || { key: 'ourMission', title: '', body: '', images: [] };
+              return (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div>
+                      <label className="block text-sm text-gray-700 mb-1">Title</label>
+                      <input
+                        value={sec.title || ''}
+                        onChange={e => setSectionByKey('ourMission', { ...sec, title: e.target.value })}
+                        className="w-full px-3 py-2 rounded-lg bg-white shadow-sm ring-0 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Our Mission"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-700 mb-1">Body</label>
+                      <textarea
+                        value={sec.body || ''}
+                        onChange={e => setSectionByKey('ourMission', { ...sec, body: e.target.value })}
+                        className="w-full px-3 py-2 h-[92px] rounded-lg bg-white shadow-sm ring-1 ring-gray-200 ring-inset focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Describe your mission"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-700 mb-1">Slideshow Images</label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                      {(sec.images || []).map((img, i) => (
+                        <div key={i} className="relative w-full aspect-video rounded-lg overflow-hidden bg-gray-100">
+                          <img src={(img||'').startsWith('http') ? img : `${API_URL}${img}`} className="w-full h-full object-cover" />
+                          <button type="button" className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-red-600 text-white shadow flex items-center justify-center" onClick={() => setSectionByKey('ourMission', { ...sec, images: (sec.images||[]).filter((_, idx)=> idx!==i) })}>×</button>
+                        </div>
+                      ))}
+                      <label className="flex items-center justify-center border-2 border-dashed border-gray-300 rounded-lg h-28 cursor-pointer bg-white">
+                        <input type="file" className="hidden" accept="image/*" multiple onChange={async e => {
+                          try {
+                            const paths = await uploadAssets(e.target.files);
+                            setSectionByKey('ourMission', { ...sec, images: [...(sec.images||[]), ...paths] });
+                          } catch (err) { toast.error(err.message); }
+                        }} />
+                        <span className="text-sm text-gray-600">Add images</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+
+          {/* 8. Partners - Seventh in landing page */}
           <div className="bg-white rounded-xl shadow p-5">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-lg font-semibold text-gray-900">Partners</h2>
@@ -492,436 +640,23 @@ export default function AdminLanding() {
             })()}
           </div>
 
-          {/* Landing Attractions CMS */}
+          {/* 9. Testimonials - Eighth in landing page (managed separately) */}
+          <div className="bg-gray-50 rounded-xl p-5 border-2 border-dashed border-gray-300">
+            <h2 className="text-lg font-semibold text-gray-600 mb-2">Testimonials</h2>
+            <p className="text-sm text-gray-500">Automatically populated from user reviews. No CMS management needed.</p>
+          </div>
+
+          {/* Save and Publish Controls */}
           <div className="bg-white rounded-xl shadow p-5">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg font-semibold text-gray-900">Landing Attractions</h2>
-              <span className="text-xs text-gray-500">Key: landingAttractions</span>
-            </div>
-            {(() => {
-              const sec = getSectionByKey('landingAttractions') || { key: 'landingAttractions', title: '', body: '', images: [] };
-              return (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    <div>
-                      <label className="block text-sm text-gray-700 mb-1">Section Title</label>
-                      <input
-                        value={sec.title || ''}
-                        onChange={e => setSectionByKey('landingAttractions', { ...sec, title: e.target.value })}
-                        className="w-full px-3 py-2 rounded-lg bg-white shadow-sm ring-0 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="Top Attractions"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm text-gray-700 mb-1">Captions (one per line; aligns to images)</label>
-                      <textarea
-                        value={sec.body || ''}
-                        onChange={e => setSectionByKey('landingAttractions', { ...sec, body: e.target.value })}
-                        className="w-full px-3 py-2 h-[92px] rounded-lg bg-white shadow-sm ring-1 ring-gray-200 ring-inset focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder={"Kigali Genocide Memorial\nVolcanoes National Park\nLake Kivu"}
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm text-gray-700 mb-1">Attraction Images</label>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                      {(sec.images || []).map((img, i) => (
-                        <div key={i} className="relative w-full aspect-video rounded-lg overflow-hidden bg-gray-100">
-                          <img src={(img||'').startsWith('http') ? img : `${API_URL}${img}`} className="w-full h-full object-cover" />
-                          <button type="button" className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-red-600 text-white shadow flex items-center justify-center" onClick={() => setSectionByKey('landingAttractions', { ...sec, images: (sec.images||[]).filter((_, idx)=> idx!==i) })}>×</button>
-                        </div>
-                      ))}
-                      <label className="flex items-center justify-center border-2 border-dashed border-gray-300 rounded-lg h-28 cursor-pointer bg-white">
-                        <input type="file" className="hidden" accept="image/*" multiple onChange={async e => {
-                          try {
-                            const paths = await uploadAssets(e.target.files);
-                            setSectionByKey('landingAttractions', { ...sec, images: [...(sec.images||[]), ...paths] });
-                          } catch (err) { toast.error(err.message); }
-                        }} />
-                        <span className="text-sm text-gray-600">Add images</span>
-                      </label>
-                    </div>
-                  </div>
-                </div>
-              );
-            })()}
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div>
-              <label className="block text-sm text-gray-700 mb-1">Hero Title</label>
-              <input
-                value={content.heroTitle || ''}
-                onChange={e => setContent({ ...content, heroTitle: e.target.value })}
-                className="w-full px-4 py-2 rounded-lg bg-white shadow-sm ring-0 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Welcome to AKWANDA"
-              />
-            </div>
-            <div>
-              <label className="block text-sm text-gray-700 mb-1">Hero Subtitle</label>
-              <input
-                value={content.heroSubtitle || ''}
-                onChange={e => setContent({ ...content, heroSubtitle: e.target.value })}
-                className="w-full px-4 py-2 rounded-lg bg-white shadow-sm ring-0 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Find places to stay, cars, and attractions"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm text-gray-700 mb-3">Hero Slideshow Images & Captions</label>
-            <div className="grid grid-cols-1 gap-4 mb-4">
-              {(content.heroSlides || []).map((slide, i) => (
-                <div key={i} className="flex gap-4 items-start p-4 bg-white rounded-lg shadow-sm border border-gray-200">
-                  <div className="relative w-32 h-24 shrink-0 flex-none bg-gray-100 rounded-lg overflow-hidden">
-                    <img src={(slide.image || '').startsWith('http') ? slide.image : `${API_URL}${slide.image}`} className="w-full h-full object-cover bg-transparent" alt="Hero slide" />
-                    <button onClick={() => removeImage(i)} className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full w-7 h-7 flex items-center justify-center hover:bg-red-700 transition-colors shadow-md" type="button">×</button>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Caption for Slide {i + 1}</label>
-                    <input
-                      value={slide.caption || ''}
-                      onChange={e => setContent(c => ({
-                        ...c,
-                        heroSlides: c.heroSlides.map((s, idx) => idx === i ? { ...s, caption: e.target.value } : s)
-                      }))}
-                      className="w-full px-4 py-2.5 rounded-lg bg-white shadow-sm border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Optional caption for this slide"
-                    />
-                  </div>
-                </div>
-              ))}
-              {(!content.heroSlides || content.heroSlides.length === 0) && (
-                <div className="text-gray-500 text-sm">No slides yet. Upload images to create slides.</div>
-              )}
-            </div>
-            <label className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white shadow text-sm cursor-pointer">
-              <input type="file" className="hidden" multiple onChange={e => uploadImages(e.target.files)} disabled={uploading} />
-              {uploading ? 'Uploading…' : 'Add Slides'}
-            </label>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div>
-              <label className="block text-sm text-gray-700 mb-1">Slideshow Transition</label>
-              <select
-                value={content.heroTransition || 'fade'}
-                onChange={e => setContent({ ...content, heroTransition: e.target.value })}
-                className="w-full px-4 py-2 rounded-lg bg-white shadow-sm ring-0 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="fade">Fade</option>
-                <option value="slide">Slide</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm text-gray-700 mb-1">Slideshow Interval (ms)</label>
-              <input
-                type="number"
-                min={2000}
-                step={500}
-                value={content.heroIntervalMs || 5000}
-                onChange={e => setContent({ ...content, heroIntervalMs: Number(e.target.value) })}
-                className="w-full px-4 py-2 rounded-lg bg-white shadow-sm ring-0 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="5000"
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <label className="flex items-center gap-2 text-sm text-gray-700">
-              <input type="checkbox" checked={!!content.published} onChange={e => setContent({ ...content, published: !!e.target.checked })} />
-              Published
-            </label>
-            <button onClick={saveContent} disabled={saving} className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white rounded-lg shadow">{saving ? 'Saving...' : 'Save'}</button>
-          </div>
-
-          {/* How It Works CMS */}
-          <div className="bg-white rounded-xl shadow p-5">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg font-semibold text-gray-900">How It Works</h2>
+            <div className="flex items-center gap-3">
               <label className="flex items-center gap-2 text-sm text-gray-700">
-                <input
-                  type="checkbox"
-                  checked={!!howItWorks.enabled}
-                  onChange={e => setHowItWorks({ ...howItWorks, enabled: !!e.target.checked })}
-                />
-                Enabled
+                <input type="checkbox" checked={!!content.published} onChange={e => setContent({ ...content, published: !!e.target.checked })} />
+                Published
               </label>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <div>
-                <label className="block text-sm text-gray-700 mb-1">Title</label>
-                <input
-                  value={howItWorks.title || ''}
-                  onChange={e => setHowItWorks({ ...howItWorks, title: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg bg-white shadow-sm ring-0 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="How AKWANDA.rw Works"
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-gray-700 mb-1">Subtitle</label>
-                <input
-                  value={howItWorks.subtitle || ''}
-                  onChange={e => setHowItWorks({ ...howItWorks, subtitle: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg bg-white shadow-sm ring-0 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Simple steps for both guests and hosts"
-                />
-              </div>
-            </div>
-            <div className="mt-4">
-              <label className="block text-sm text-gray-700 mb-1">Section Image</label>
-              <div
-                className="relative rounded-xl bg-white p-3 flex items-center gap-3 border border-gray-200"
-                onDragOver={e => e.preventDefault()}
-                onDrop={async e => {
-                  e.preventDefault();
-                  try {
-                    const files = Array.from(e.dataTransfer.files || []).filter(f => f.type.startsWith('image/'));
-                    if (!files.length) return;
-                    const imgs = await uploadAssets(files);
-                    if (imgs && imgs[0]) setHowItWorks({ ...howItWorks, image: imgs[0] });
-                  } catch (err) { toast.error(err.message); }
-                }}
-              >
-                {howItWorks.image ? (
-                  <div className="relative w-28 h-20 shrink-0 flex-none min-w-[7rem] min-h-[5rem]">
-                    <img src={howItWorks.image.startsWith('http') ? howItWorks.image : `${API_URL}${howItWorks.image}`} className="w-full h-full object-cover rounded block" />
-                    <button
-                      type="button"
-                      className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-white shadow text-gray-700 flex items-center justify-center"
-                      onClick={() => setHowItWorks({ ...howItWorks, image: '' })}
-                      title="Remove"
-                    >×</button>
-                  </div>
-                ) : (
-                  <div className="w-28 h-20 flex items-center justify-center text-gray-400 text-sm bg-white rounded">Drop image here</div>
-                )}
-                <div className="ml-auto">
-                  <label className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-white shadow text-sm cursor-pointer">
-                    <input type="file" className="hidden" accept="image/*" onChange={async e => {
-                      try {
-                        const imgs = await uploadAssets(e.target.files);
-                        if (imgs && imgs[0]) setHowItWorks({ ...howItWorks, image: imgs[0] });
-                      } catch (err) { toast.error(err.message); }
-                    }} />
-                    {uploading ? 'Uploading…' : 'Choose Image'}
-                  </label>
-                </div>
-              </div>
-            </div>
-            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm text-gray-700 mb-1">Media Autoplay Interval (ms)</label>
-                <input
-                  type="number"
-                  min={2000}
-                  step={500}
-                  value={Number.isFinite(howItWorks.mediaIntervalMs) ? howItWorks.mediaIntervalMs : 5000}
-                  onChange={e => setHowItWorks({ ...howItWorks, mediaIntervalMs: Number(e.target.value) })}
-                  className="w-full px-3 py-2 rounded-lg bg-white shadow-sm ring-0 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="5000"
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-gray-700 mb-1">Guests Tagline (optional)</label>
-                <input
-                  value={howItWorks.guestsTagline || ''}
-                  onChange={e => setHowItWorks({ ...howItWorks, guestsTagline: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg bg-white shadow-sm ring-0 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Short tagline shown for Guests tab"
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-gray-700 mb-1">Hosts Tagline (optional)</label>
-                <input
-                  value={howItWorks.hostsTagline || ''}
-                  onChange={e => setHowItWorks({ ...howItWorks, hostsTagline: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg bg-white shadow-sm ring-0 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Short tagline shown for Hosts tab"
-                />
-              </div>
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-semibold">Guest Steps</h3>
-                  <div className="flex items-center gap-3">
-                    <button
-                      className="text-gray-600 text-sm"
-                      type="button"
-                      title="Insert a sample image into the first guest step"
-                      onClick={() => setHowItWorks(prev => {
-                        const steps = [...(prev.guestSteps||[])];
-                        if (steps.length === 0) steps.push({ title: 'Step 1', description: '' });
-                        // Prefer an existing hero slide image if present
-                        const hs = Array.isArray(content.heroSlides) ? content.heroSlides : [];
-                        const first = hs.find(s => s?.image);
-                        const src = first ? (typeof first.image === 'string' ? first.image : (first.image?.path || first.image?.url || first.image?.src || first.image?.location || '')) : '/uploads/sample-guest.jpg';
-                        steps[0] = { ...steps[0], image: src };
-                        return { ...prev, guestSteps: steps };
-                      })}
-                    >Insert Test Image</button>
-                    <button className="text-blue-600 text-sm" onClick={() => setHowItWorks({ ...howItWorks, guestSteps: [...(howItWorks.guestSteps||[]), { title: '', description: '' }] })}>+ Add</button>
-                  </div>
-                </div>
-                <div className="space-y-3">
-                  {(howItWorks.guestSteps || []).map((s, i) => (
-                    <div key={i} className="rounded-xl p-3 bg-white shadow-sm">
-                      <div className="grid grid-cols-1 md:grid-cols-5 gap-2 mb-2">
-                        <input value={s.title} onChange={e => setHowItWorks({ ...howItWorks, guestSteps: howItWorks.guestSteps.map((x, idx)=> idx===i? { ...x, title: e.target.value }: x) })} className="md:col-span-3 w-full px-3 py-2 rounded-lg bg-white shadow-sm ring-0 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder={`Step ${i+1} title`} />
-                        <select value={s.icon || ''} onChange={e => setHowItWorks({ ...howItWorks, guestSteps: howItWorks.guestSteps.map((x, idx)=> idx===i? { ...x, icon: e.target.value }: x) })} className="md:col-span-2 w-full px-3 py-2 rounded-lg bg-white shadow-sm ring-0 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                          <option value="">Icon (auto)</option>
-                          <option value="search">Search</option>
-                          <option value="handshake">Handshake</option>
-                          <option value="creditcard">Credit Card</option>
-                          <option value="key">Key</option>
-                          <option value="upload">Upload</option>
-                          <option value="check">Check</option>
-                        </select>
-                      </div>
-                      <div
-                        className="flex items-center gap-3 mb-2 rounded-lg bg-gray-50 p-2"
-                        onDragOver={e => e.preventDefault()}
-                        onDrop={async e => {
-                          e.preventDefault();
-                          try {
-                            const files = Array.from(e.dataTransfer.files || []).filter(f => f.type.startsWith('image/'));
-                            if (!files.length) return;
-                            const imgs = await uploadAssets(files);
-                            if (imgs && imgs[0]) setHowItWorks({ ...howItWorks, guestSteps: howItWorks.guestSteps.map((x, idx)=> idx===i? { ...x, image: imgs[0] }: x) });
-                          } catch (err) { toast.error(err.message); }
-                        }}
-                      >
-                        {s.image ? (
-                          <div className="relative w-28 h-20 shrink-0 flex-none min-w-[7rem] min-h-[5rem]">
-                            <img src={s.image.startsWith('http') ? s.image : `${API_URL}${s.image}`} className="w-full h-full object-cover rounded block" />
-                            <button type="button" className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-white shadow text-gray-700 flex items-center justify-center" onClick={() => setHowItWorks({ ...howItWorks, guestSteps: howItWorks.guestSteps.map((x, idx)=> idx===i? { ...x, image: '' }: x) })}>×</button>
-                          </div>
-                        ) : (
-                          <div className="w-28 h-20 flex items-center justify-center text-gray-400 text-xs bg-white rounded">Drop image</div>
-                        )}
-                        <label className="ml-auto inline-flex items-center gap-2 px-3 py-1.5 rounded bg-white shadow-sm hover:shadow text-xs cursor-pointer">
-                          <input type="file" className="hidden" accept="image/*" onChange={async e => {
-                            try {
-                              const imgs = await uploadAssets(e.target.files);
-                              if (imgs && imgs[0]) setHowItWorks({ ...howItWorks, guestSteps: howItWorks.guestSteps.map((x, idx)=> idx===i? { ...x, image: imgs[0] }: x) });
-                            } catch (err) { toast.error(err.message); }
-                          }} />
-                          {uploading ? 'Uploading…' : 'Choose'}
-                        </label>
-                      </div>
-                      <div className="mb-2">
-                        <textarea value={s.description} onChange={e => setHowItWorks({ ...howItWorks, guestSteps: howItWorks.guestSteps.map((x, idx)=> idx===i? { ...x, description: e.target.value }: x) })} className="w-full px-3 py-2 h-[86px] rounded-lg bg-white shadow-sm ring-1 ring-gray-200 ring-inset focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Description" />
-                      </div>
-                      <div className="flex items-center justify-between mt-1 text-xs">
-                        <div className="flex gap-2">
-                          <button className="text-gray-600" disabled={i===0} onClick={() => setHowItWorks({ ...howItWorks, guestSteps: howItWorks.guestSteps.map((x, idx, arr)=> idx===i? arr[i-1] : idx===i-1? arr[i] : x) })}>↑ Up</button>
-                          <button className="text-gray-600" disabled={i===(howItWorks.guestSteps.length-1)} onClick={() => setHowItWorks({ ...howItWorks, guestSteps: howItWorks.guestSteps.map((x, idx, arr)=> idx===i? arr[i+1] : idx===i+1? arr[i] : x) })}>↓ Down</button>
-                        </div>
-                        <button className="text-red-600" onClick={() => setHowItWorks({ ...howItWorks, guestSteps: howItWorks.guestSteps.filter((_, idx)=> idx!==i) })}>Remove</button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-semibold">Host Steps</h3>
-                  <div className="flex items-center gap-3">
-                    <button
-                      className="text-gray-600 text-sm"
-                      type="button"
-                      title="Insert a sample image into the first host step"
-                      onClick={() => setHowItWorks(prev => {
-                        const steps = [...(prev.hostSteps||[])];
-                        if (steps.length === 0) steps.push({ title: 'Step 1', description: '' });
-                        // Prefer an existing hero slide image if present
-                        const hs = Array.isArray(content.heroSlides) ? content.heroSlides : [];
-                        const first = hs.find(s => s?.image);
-                        const src = first ? (typeof first.image === 'string' ? first.image : (first.image?.path || first.image?.url || first.image?.src || first.image?.location || '')) : '/uploads/sample-host.jpg';
-                        steps[0] = { ...steps[0], image: src };
-                        return { ...prev, hostSteps: steps };
-                      })}
-                    >Insert Test Image</button>
-                    <button className="text-blue-600 text-sm" onClick={() => setHowItWorks({ ...howItWorks, hostSteps: [...(howItWorks.hostSteps||[]), { title: '', description: '' }] })}>+ Add</button>
-                  </div>
-                </div>
-                <div className="space-y-3">
-                  {(howItWorks.hostSteps || []).map((s, i) => (
-                    <div key={i} className="rounded-xl p-3 bg-white shadow-sm">
-                      <div className="grid grid-cols-1 md:grid-cols-5 gap-2 mb-1">
-                        <input value={s.title} onChange={e => setHowItWorks({ ...howItWorks, hostSteps: howItWorks.hostSteps.map((x, idx)=> idx===i? { ...x, title: e.target.value }: x) })} className="md:col-span-3 w-full px-3 py-2 rounded-lg bg-white shadow-sm ring-0 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder={`Step ${i+1} title`} />
-                        <select value={s.icon || ''} onChange={e => setHowItWorks({ ...howItWorks, hostSteps: howItWorks.hostSteps.map((x, idx)=> idx===i? { ...x, icon: e.target.value }: x) })} className="md:col-span-2 w-full px-3 py-2 rounded-lg bg-white shadow-sm ring-0 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                          <option value="">Icon (auto)</option>
-                          <option value="search">Search</option>
-                          <option value="handshake">Handshake</option>
-                          <option value="creditcard">Credit Card</option>
-                          <option value="key">Key</option>
-                          <option value="upload">Upload</option>
-                          <option value="check">Check</option>
-                        </select>
-                      </div>
-                      <div
-                        className="flex items-center gap-3 mb-1 rounded-lg bg-gray-50 p-2"
-                        onDragOver={e => e.preventDefault()}
-                        onDrop={async e => {
-                          e.preventDefault();
-                          try {
-                            const files = Array.from(e.dataTransfer.files || []).filter(f => f.type.startsWith('image/'));
-                            if (!files.length) return;
-                            const imgs = await uploadAssets(files);
-                            if (imgs && imgs[0]) setHowItWorks({ ...howItWorks, hostSteps: howItWorks.hostSteps.map((x, idx)=> idx===i? { ...x, image: imgs[0] }: x) });
-                          } catch (err) { toast.error(err.message); }
-                        }}
-                      >
-                        {s.image ? (
-                          <div className="relative w-28 h-20 shrink-0 flex-none">
-                            <img src={s.image.startsWith('http') ? s.image : `${API_URL}${s.image}`} className="w-full h-full object-cover rounded" />
-                            <button type="button" className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-white shadow text-gray-700" onClick={() => setHowItWorks({ ...howItWorks, hostSteps: howItWorks.hostSteps.map((x, idx)=> idx===i? { ...x, image: '' }: x) })}>×</button>
-                          </div>
-                        ) : (
-                          <div className="w-24 h-16 flex items-center justify-center text-gray-400 text-xs bg-white rounded">Drop image</div>
-                        )}
-                        <label className="ml-auto inline-flex items-center gap-2 px-3 py-1.5 rounded bg-white shadow-sm hover:shadow text-xs cursor-pointer">
-                          <input type="file" className="hidden" accept="image/*" onChange={async e => {
-                            try {
-                              const imgs = await uploadAssets(e.target.files);
-                              if (imgs && imgs[0]) setHowItWorks({ ...howItWorks, hostSteps: howItWorks.hostSteps.map((x, idx)=> idx===i? { ...x, image: imgs[0] }: x) });
-                            } catch (err) { toast.error(err.message); }
-                          }} />
-                          {uploading ? 'Uploading…' : 'Choose'}
-                        </label>
-                      </div>
-                      <div className="mb-2">
-                        <textarea value={s.description} onChange={e => setHowItWorks({ ...howItWorks, hostSteps: howItWorks.hostSteps.map((x, idx)=> idx===i? { ...x, description: e.target.value }: x) })} className="w-full px-3 py-2 h-[86px] rounded-lg bg-white shadow-sm ring-1 ring-gray-200 ring-inset focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Description" />
-                      </div>
-                      <div className="flex items-center justify-between mt-1 text-xs">
-                        <div className="flex gap-2">
-                          <button className="text-gray-600" disabled={i===0} onClick={() => setHowItWorks({ ...howItWorks, hostSteps: howItWorks.hostSteps.map((x, idx, arr)=> idx===i? arr[i-1] : idx===i-1? arr[i] : x) })}>↑ Up</button>
-                          <button className="text-gray-600" disabled={i===(howItWorks.hostSteps.length-1)} onClick={() => setHowItWorks({ ...howItWorks, hostSteps: howItWorks.hostSteps.map((x, idx, arr)=> idx===i? arr[i+1] : idx===i+1? arr[i] : x) })}>↓ Down</button>
-                        </div>
-                        <button className="text-red-600" onClick={() => setHowItWorks({ ...howItWorks, hostSteps: howItWorks.hostSteps.filter((_, idx)=> idx!==i) })}>Remove</button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-            <div className="mt-4">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="font-semibold">FAQs</h3>
-                <button className="text-blue-600 text-sm" onClick={() => setHowItWorks({ ...howItWorks, faqs: [...(howItWorks.faqs||[]), { q: '', a: '' }] })}>+ Add</button>
-              </div>
-              <div className="space-y-3">
-                {(howItWorks.faqs || []).map((f, i) => (
-                  <div key={i} className="rounded-xl p-3 bg-white shadow-sm">
-                    <input value={f.q} onChange={e => setHowItWorks({ ...howItWorks, faqs: howItWorks.faqs.map((x, idx)=> idx===i? { ...x, q: e.target.value }: x) })} className="w-full px-3 py-2 rounded-lg bg-white shadow-sm ring-1 ring-gray-200 ring-inset focus:outline-none focus:ring-2 focus:ring-blue-500 mb-2" placeholder="Question" />
-                    <textarea value={f.a} onChange={e => setHowItWorks({ ...howItWorks, faqs: howItWorks.faqs.map((x, idx)=> idx===i? { ...x, a: e.target.value }: x) })} className="w-full px-3 py-2 rounded-lg bg-white shadow-sm ring-1 ring-gray-200 ring-inset focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Answer" />
-                    <div className="text-right mt-1">
-                      <button className="text-red-600 text-xs" onClick={() => setHowItWorks({ ...howItWorks, faqs: howItWorks.faqs.filter((_, idx)=> idx!==i) })}>Remove</button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <button onClick={saveContent} disabled={saving} className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white rounded-lg shadow">{saving ? 'Saving...' : 'Save'}</button>
             </div>
           </div>
+
         </div>
       )}
     </div>

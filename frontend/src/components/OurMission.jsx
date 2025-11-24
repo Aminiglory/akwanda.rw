@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocale } from '../contexts/LocaleContext';
+import { LazyImage } from './LazyImage';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -76,12 +77,14 @@ export default function OurMission() {
         >
           {images.length > 0 ? (
             images.map((src, i) => (
-              <img
+              <LazyImage
                 key={i}
                 src={src}
                 alt={section.title || 'Our mission'}
                 className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ${i === index ? 'opacity-100' : 'opacity-0'}`}
-                loading={i === 0 ? 'eager' : 'lazy'}
+                eager={i === 0}
+                category="default"
+                size="large"
               />
             ))
           ) : (

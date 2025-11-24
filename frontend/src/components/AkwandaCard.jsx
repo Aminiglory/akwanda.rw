@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FaHeart, FaMapMarkerAlt, FaStar, FaEnvelope } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
+import { LazyImage } from './LazyImage';
 import toast from 'react-hot-toast';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -104,11 +105,12 @@ export default function AkwandaCard({
       onMouseLeave={() => setHovered(false)}
     >
       <div className="relative h-48 overflow-hidden">
-        <img
-          loading="lazy"
+        <LazyImage
           src={imgList[index]}
           alt={title}
           className="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
+          category="property"
+          size="medium"
         />
         {!isAvailable && (
           <div className="absolute top-4 right-4 bg-[var(--ak-danger)] text-white px-3 py-1 rounded-full text-sm font-semibold">

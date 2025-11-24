@@ -7,15 +7,12 @@ import OurMission from '../components/OurMission';
 import HowItWorks from '../components/HowItWorks';
 import Testimonials from '../components/Testimonials';
 import ImageLoadingBar from '../components/ImageLoadingBar';
+import { LazyImage } from '../components/LazyImage';
 import { useLocale } from '../contexts/LocaleContext';
+import { useLazyLoading, useImagePreloader } from '../hooks/useLazyLoading';
 import { 
-  initializeLandingPageOptimization, 
   makeAbsoluteImageUrl, 
-  preloadImages,
-  getImageLoadStats,
   getFallbackImage,
-  setExpectedImageCount,
-  resetImageLoadStats,
   trackImageLoad 
 } from '../utils/imageUtils';
 
@@ -26,9 +23,25 @@ const Home = () => {
 
   const [featuredSection, setFeaturedSection] = useState(null);
   const [partnersSection, setPartnersSection] = useState(null);
-  const [imageOptimizationInitialized, setImageOptimizationInitialized] = useState(false);
   const [totalExpectedImages, setTotalExpectedImages] = useState(0);
   const [showLoadingBar, setShowLoadingBar] = useState(false);
+
+  // Initialize universal lazy loading system
+  const { stats, isInitialized } = useLazyLoading({
+    autoInit: true,
+    convertExisting: true, // Convert existing images to lazy loading
+    onStatsChange: (newStats) => {
+      // Update loading bar based on lazy loading progress
+      if (newStats.total > 0) {
+        const progress = (newStats.loaded + newStats.failed) / newStats.total;
+        if (progress >= 1) {
+          setTimeout(() => setShowLoadingBar(false), 1500);
+        }
+      }
+    }
+  });
+
+  const { preloadImages } = useImagePreloader();
 
   useEffect(() => {
     (async () => {
@@ -211,18 +224,17 @@ const Home = () => {
                   className="group relative rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 bg-gray-900/80"
                 >
                   <div className="relative aspect-[4/5] sm:aspect-[4/5] overflow-hidden">
-                    <img
+                    <LazyImage
                       src={d.img}
                       alt={d.name}
                       className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                      loading="lazy"
-                      decoding="async"
+                      category="attraction"
+                      size="medium"
                       onLoad={() => {
                         trackImageLoad(d.img, 'attraction');
                       }}
-                      onError={(e) => {
+                      onError={() => {
                         console.warn(`Featured destination image failed to load: ${d.img}`);
-                        e.target.src = getFallbackImage('attraction', 'medium');
                         trackImageLoad(d.img, 'attraction');
                       }}
                     />
@@ -260,18 +272,17 @@ const Home = () => {
                   {[...partners, ...partners].map((p, idx) => {
                     const content = (
                       <div className="h-12 sm:h-14 px-3 sm:px-4 bg-white rounded-lg border theme-chocolate-border flex items-center gap-2 sm:gap-3 shadow-sm">
-                        <img
+                        <LazyImage
                           src={p.img}
                           alt={p.name}
                           className="h-8 sm:h-10 w-auto object-contain"
-                          loading="lazy"
-                          decoding="async"
+                          category="default"
+                          size="small"
                           onLoad={() => {
                             trackImageLoad(p.img, 'default');
                           }}
-                          onError={(e) => {
+                          onError={() => {
                             console.warn(`Partner image failed to load: ${p.img}`);
-                            e.target.src = getFallbackImage('default', 'small');
                             trackImageLoad(p.img, 'default');
                           }}
                         />

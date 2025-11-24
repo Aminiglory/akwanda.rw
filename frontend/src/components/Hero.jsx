@@ -1,79 +1,12 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useLocale } from '../contexts/LocaleContext';
 import { FaBuilding, FaSmile, FaThumbsUp } from 'react-icons/fa';
+import { LazyHeroImage } from './LazyImage';
+import { useLazyLoading, useImagePreloader } from '../hooks/useLazyLoading';
 import { 
-  initializeLandingPageOptimization, 
   makeAbsoluteImageUrl, 
-  preloadImages, 
-  getFallbackImage, 
-  trackImageLoad, 
-  generateResponsiveImages, 
-  getDeviceOptimizations 
+  trackImageLoad
 } from '../utils/imageUtils';
-
-// Optimized Hero Image Component
-const OptimizedHeroImage = ({ src, alt, priority = false }) => {
-  const [imageSrc, setImageSrc] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [hasError, setHasError] = useState(false);
-
-  useEffect(() => {
-    if (!src) {
-      setImageSrc(getFallbackImage('hero', 'large'));
-      setIsLoading(false);
-      return;
-    }
-
-    const img = new Image();
-    const deviceOpts = getDeviceOptimizations();
-    
-    // Generate responsive image URL
-    const responsiveImages = generateResponsiveImages(src);
-    const optimizedSrc = responsiveImages ? responsiveImages.large : src;
-    
-    img.onload = () => {
-      setImageSrc(optimizedSrc);
-      setIsLoading(false);
-      setHasError(false);
-    };
-    
-    img.onerror = () => {
-      console.warn(`Hero image failed to load: ${src}`);
-      setImageSrc(getFallbackImage('hero', 'large'));
-      setIsLoading(false);
-      setHasError(true);
-    };
-    
-    img.src = optimizedSrc;
-  }, [src]);
-
-  return (
-    <div className="relative w-full h-full">
-      {isLoading && (
-        <div className="absolute inset-0 bg-gradient-to-br from-[#6b3f1f] via-[#a06b42] to-[#c59b77] animate-pulse flex items-center justify-center">
-          <div className="w-12 h-12 border-4 border-white/30 border-t-white rounded-full animate-spin"></div>
-        </div>
-      )}
-      {imageSrc && (
-        <img
-          src={imageSrc}
-          alt={alt}
-          className={`w-full h-full object-cover transition-opacity duration-500 ${
-            isLoading ? 'opacity-0' : 'opacity-100'
-          }`}
-          loading={priority ? 'eager' : 'lazy'}
-          decoding="async"
-          fetchpriority={priority ? 'high' : 'auto'}
-        />
-      )}
-      {hasError && (
-        <div className="absolute top-4 right-4 bg-yellow-500/90 text-white text-xs px-2 py-1 rounded">
-          Fallback Image
-        </div>
-      )}
-    </div>
-  );
-};
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 // Normalize API base to avoid mixed content on HTTPS (notably strict on mobile)
@@ -134,6 +67,15 @@ const Hero = () => {
   const [parallax, setParallax] = useState(0);
   const [paused, setPaused] = useState(false);
   const touchStartX = useRef(null);
+
+  // Initialize lazy loading for hero images
+  const { stats } = useLazyLoading({
+    autoInit: true,
+    convertExisting: false, // We're handling images manually
+    preloadCritical: [], // Will be set when slides are loaded
+  });
+
+  const { preloadImages: preloadImagesHook } = useImagePreloader();
 
   useEffect(() => {
     setIsVisible(true);
@@ -319,27 +261,24 @@ const Hero = () => {
       >
         {slides.length > 0 ? (
           slides.map((s, i) => {
-            const url = makeAbsoluteImageUrl(s.image) || getFallbackImage('hero', 'large');
+            const url = makeAbsoluteImageUrl(s.image);
             const active = i === index;
             
             return (
-              <img
+              <LazyHeroImage
                 key={i}
                 src={url}
                 alt={s.caption || `Slide ${i+1}`}
                 className={`absolute inset-0 w-full h-full object-cover object-center ${transition === 'fade' ? 'transition-opacity duration-700' : 'transition-transform duration-700'} ${active ? (transition === 'fade' ? 'opacity-100' : 'translate-x-0') : (transition === 'fade' ? 'opacity-0' : 'translate-x-full')}`}
                 width={1920}
                 height={1080}
-                sizes="100vw"
-                loading={i === 0 ? 'eager' : 'lazy'}
-                decoding={i === 0 ? 'sync' : 'async'}
-                fetchpriority={i === 0 ? 'high' : 'auto'}
+                eager={i === 0} // First image loads immediately
+                progressive={true} // Use progressive loading for better UX
                 onLoad={() => {
                   trackImageLoad(url, 'hero');
                 }}
-                onError={(e) => {
+                onError={() => {
                   console.warn(`Hero image failed to load: ${url}`);
-                  e.target.src = getFallbackImage('hero', 'large');
                   trackImageLoad(url, 'hero');
                 }}
               />

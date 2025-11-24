@@ -1,12 +1,10 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useLocale } from '../contexts/LocaleContext';
+import { LazyAttractionImage } from './LazyImage';
 import { 
   makeAbsoluteImageUrl, 
-  preloadImages, 
-  getFallbackImage,
-  generateResponsiveImages,
-  processImagesForComponent,
-  trackImageLoad
+  trackImageLoad, 
+  getFallbackImage 
 } from '../utils/imageUtils';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -132,18 +130,15 @@ export default function LandingAttractions() {
             className="group relative rounded-2xl overflow-hidden bg-white border theme-chocolate-border shadow-sm hover:shadow-2xl focus-within:shadow-2xl transform hover:-translate-y-1.5 transition-all duration-500"
           >
             <figure className="relative aspect-[4/3] overflow-hidden">
-              <img
+              <LazyAttractionImage
                 src={c.src}
                 alt={c.title}
                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
-                loading="lazy"
-                decoding="async"
                 onLoad={() => {
                   trackImageLoad(c.src, 'attraction');
                 }}
-                onError={(e) => {
+                onError={() => {
                   console.warn(`Attraction image failed to load: ${c.src}`);
-                  e.target.src = getFallbackImage('attraction', 'medium');
                   trackImageLoad(c.src, 'attraction');
                 }}
               />
