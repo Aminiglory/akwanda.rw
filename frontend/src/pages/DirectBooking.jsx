@@ -64,7 +64,7 @@ const DirectBooking = () => {
   }, [form.checkIn, form.checkOut]);
 
   const selectedRoom = rooms.find(r => String(r._id) === String(form.roomId));
-  const selectedProperty = properties.find(p => p.id === form.propertyId);
+  const selectedProperty = properties.find(p => String(p.id) === String(form.propertyId));
   const propertyAddOns = selectedProperty?.addOnServices || [];
   const nightly = selectedRoom?.pricePerNight || selectedProperty?.pricePerNight || 0;
   const roomCharge = useMemo(() => (nights > 0 ? nightly * nights : 0), [nightly, nights]);
