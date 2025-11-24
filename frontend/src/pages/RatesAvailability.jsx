@@ -167,7 +167,37 @@ export default function RatesAvailability() {
 
   const isClosed = (room, dateStr) => {
     const closed = room.closedDates || [];
-    return closed.some(c => c === dateStr || (c.date && c.date.startsWith(dateStr)));
+    if (!closed.length) return false;
+
+    return closed.some((c) => {
+      if (!c) return false;
+
+      // Legacy shapes: plain string "YYYY-MM-DD" or { date: 'YYYY-MM-DD...' }
+      if (typeof c === 'string') {
+        return c === dateStr;
+      }
+      if (typeof c.date === 'string') {
+        return c.date.startsWith(dateStr);
+      }
+
+      // New range shape from /api/rates/calendar: { startDate: Date, endDate: Date }
+      if (c.startDate && c.endDate) {
+        try {
+          const s = new Date(c.startDate);
+          const e = new Date(c.endDate);
+          if (isNaN(s) || isNaN(e)) return false;
+          const target = new Date(dateStr + 'T00:00:00Z');
+          // Treat closed range as [start, end) in local-day terms
+          const ts = new Date(s.getFullYear(), s.getMonth(), s.getDate());
+          const te = new Date(e.getFullYear(), e.getMonth(), e.getDate());
+          return target >= ts && target < te;
+        } catch {
+          return false;
+        }
+      }
+
+      return false;
+    });
   };
 
   const onDayClick = async (room, dayDate) => {
