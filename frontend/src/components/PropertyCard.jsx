@@ -69,12 +69,12 @@ const PropertyCard = ({
   const isCompact = variant === 'compact';
 
   return (
-    <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all border border-gray-100 overflow-hidden h-full flex flex-col">
+    <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all border border-gray-100 overflow-hidden h-full w-full max-w-sm mx-auto flex flex-col">
       <div className="relative bg-gray-100">
         <LazyPropertyImage
           src={makeAbsoluteImageUrl(image) || getFallbackImage('apartment', 'medium')}
           alt={title}
-          className={`w-full ${isCompact ? 'h-36 md:h-40' : 'h-44 md:h-48'} object-cover`}
+          className="w-full h-44 md:h-48 object-cover"
           onLoad={() => {
             // Track successful image load
             trackImageLoad(makeAbsoluteImageUrl(image) || getFallbackImage('apartment', 'medium'), 'apartment');
@@ -115,9 +115,9 @@ const PropertyCard = ({
           <FaMapMarkerAlt className="mr-1" />
           <span className="line-clamp-1">{highlightText(location)}</span>
         </div>
-        <div className="text-xs text-gray-500 mb-3">
+        <div className="text-xs text-gray-500 mb-3 line-clamp-1">
           {t ? t('property.hostedBy') : 'Hosted by'}{' '}
-          <span className="font-medium text-gray-700">{listing?.host || ''}</span>
+          <span className="font-medium text-gray-700">{listing?.host || '-'}</span>
         </div>
         <div className="text-sm text-gray-600 mb-4">{bookings || 0} {t ? t('property.bookings') : 'bookings'}</div>
         <div className="grid grid-cols-3 gap-3 text-sm flex-none">
