@@ -4,6 +4,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs').promises;
 const jwt = require('jsonwebtoken');
+const { uploadBuffer } = require('../utils/cloudinary');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
 
@@ -25,21 +26,7 @@ const verifyAdmin = (req, res, next) => {
 };
 
 // Configure multer for image uploads
-const storage = multer.diskStorage({
-  destination: async (req, file, cb) => {
-    const uploadDir = path.join(process.cwd(), 'uploads', 'landing');
-    try {
-      await fs.mkdir(uploadDir, { recursive: true });
-      cb(null, uploadDir);
-    } catch (err) {
-      cb(err);
-    }
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, 'landing-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
+const storage = multer.memoryStorage();
 
 const upload = multer({
   storage,
@@ -145,12 +132,25 @@ router.post('/landing-content/images', verifyAdmin, upload.array('images', 10), 
       return res.status(400).json({ message: 'No images uploaded' });
     }
 
-    // Return relative paths for the uploaded images
-    const imagePaths = req.files.map(file => `/uploads/landing/${file.filename}`);
-    
+    // Upload each image buffer to Cloudinary and return secure URLs
+    const uploadedUrls = [];
+    for (const file of req.files) {
+      try {
+        const result = await uploadBuffer(file.buffer, file.originalname, 'cms/landing');
+        const url = (result && (result.secure_url || result.url)) || null;
+        if (url) uploadedUrls.push(url);
+      } catch (err) {
+        console.error('Failed to upload landing image to Cloudinary:', err);
+      }
+    }
+
+    if (!uploadedUrls.length) {
+      return res.status(500).json({ message: 'Failed to upload images' });
+    }
+
     res.json({ 
       message: 'Images uploaded successfully',
-      images: imagePaths 
+      images: uploadedUrls 
     });
   } catch (e) {
     console.error('Failed to upload images:', e);
