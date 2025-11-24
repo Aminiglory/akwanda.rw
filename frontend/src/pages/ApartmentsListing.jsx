@@ -143,37 +143,9 @@ const ApartmentsListing = () => {
         hostId: p.host?._id || p.host?.id || null,
       });
       });
-      // Also fetch available cars and merge as a separate 'cars' category
-      let carsMapped = [];
-      try {
-        const carsRes = await fetch(`${API_URL}/api/cars`, { signal });
-        const carsData = await carsRes.json();
-        const cars = Array.isArray(carsData.cars) ? carsData.cars : [];
-        carsMapped = cars.map((c) => ({
-          id: c._id || c.id,
-          title: c.vehicleName || `${c.brand || ''} ${c.model || ''}`.trim() || 'Car',
-          location: c.location || '—',
-          price: Number(c.pricePerDay || 0),
-          pricePerNight: Number(c.pricePerDay || 0),
-          category: 'cars',
-          rating: Number(c.rating || 0),
-          reviews: Number(c.reviews || 0),
-          bedrooms: 0,
-          bathrooms: 0,
-          size: '—',
-          image: (Array.isArray(c.images) && c.images[0]) ? makeAbsolute(c.images[0]) : 'https://images.unsplash.com/photo-1549317336-206569e8475c?w=500&h=300&fit=crop',
-          images: Array.isArray(c.images) ? c.images.map(makeAbsolute) : [],
-          amenities: [c.vehicleType || c.type || 'car', c.transmission || '', c.fuelType || ''].filter(Boolean),
-          isAvailable: c.isAvailable !== false,
-          host: '—',
-          hostId: null,
-          href: `/cars/${c._id || c.id}`,
-        }));
-      } catch (_) {
-        carsMapped = [];
-      }
-
-      setApartments([...mapped, ...carsMapped]);
+      // Only use stay properties for this page; do not mix in vehicles/cars
+      const filtered = mapped.filter((p) => !['cars', 'car', 'vehicle', 'vehicles'].includes(String(p.category || '').toLowerCase()));
+      setApartments(filtered);
       
       // Auto-scale slider bounds from returned data
       if (mapped.length) {

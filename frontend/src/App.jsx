@@ -13,6 +13,7 @@ const Navbar = lazy(() => import('./components/Navbar'));
 
 const Home = lazy(() => import('./pages/Home'));
 const ApartmentsListing = lazy(() => import('./pages/ApartmentsListing'));
+const RentalsListing = lazy(() => import('./pages/RentalsListing'));
 const SettingsSection = lazy(() => import('./pages/SettingsSection'));
 const Flights = lazy(() => import('./pages/Flights'));
 const Attractions = lazy(() => import('./pages/Attractions'));
@@ -132,6 +133,7 @@ function App() {
             <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/apartments" element={<ApartmentsListing />} />
+            <Route path="/rentals" element={<RentalsListing />} />
             <Route path="/homes" element={<Homes />} />
             <Route path="/experiences" element={<Experiences />} />
             <Route path="/deals" element={<DealsPage />} />

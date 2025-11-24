@@ -149,9 +149,9 @@ const Navbar = () => {
     {
       label: t ? t('nav.rentals') : "Rentals",
       icon: FaCar,
-      href: "/cars",
+      href: "/rentals",
       children: [
-        { label: t ? t('nav.rentCar') : "Rent a car", href: "/cars", icon: FaCar },
+        { label: t ? t('nav.rentCar') : "Rent a car", href: "/rentals", icon: FaCar },
         { label: t ? t('nav.rentMotorcycle') : "Rent a motorcycle", href: "/cars?type=motorcycle", icon: FaMotorcycle },
         { label: t ? t('nav.rentBicycle') : "Rent a bicycle", href: "/cars?type=bicycle", icon: FaBicycle },
         { label: t ? t('nav.myCars') : "My Cars", href: "/owner/cars", icon: FaCar },
