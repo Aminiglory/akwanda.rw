@@ -25,6 +25,7 @@ export default function OwnerAttractionsDashboard() {
   const [successOpen, setSuccessOpen] = useState(false);
   const [successTitle, setSuccessTitle] = useState('Success');
   const [successMsg, setSuccessMsg] = useState('Action completed successfully.');
+  const [view, setView] = useState('overview'); // 'overview' | 'attractions' | 'bookings'
 
   const empty = useMemo(() => ({
     name: '',
@@ -193,49 +194,133 @@ export default function OwnerAttractionsDashboard() {
 
       <h1 className="text-2xl font-bold text-gray-900 mb-4">My Attractions</h1>
 
-      {/* Create */}
-      <form onSubmit={createItem} className="bg-white rounded-lg shadow p-4 mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div>
-          <label className="block text-xs text-gray-700 mb-1">Attraction name</label>
-          <input className="w-full px-3 py-2 border rounded" placeholder="e.g., Volcanoes National Park Tour" value={form.name} onChange={e=>setForm({ ...form, name: e.target.value })} />
-        </div>
-        <div>
-          <label className="block text-xs text-gray-700 mb-1">Category</label>
-          <input className="w-full px-3 py-2 border rounded" placeholder="e.g., tour, museum, park" value={form.category} onChange={e=>setForm({ ...form, category: e.target.value })} />
-        </div>
-        <div>
-          <label className="block text-xs text-gray-700 mb-1">City</label>
-          <input className="w-full px-3 py-2 border rounded" placeholder="e.g., Musanze" value={form.city} onChange={e=>setForm({ ...form, city: e.target.value })} />
-        </div>
-        <div>
-          <label className="block text-xs text-gray-700 mb-1">Location (address)</label>
-          <input className="w-full px-3 py-2 border rounded" placeholder="Address or meeting point" value={form.location} onChange={e=>setForm({ ...form, location: e.target.value })} />
-        </div>
-        <div>
-          <label className="block text-xs text-gray-700 mb-1">Price</label>
-          <input className="w-full px-3 py-2 border rounded" type="number" placeholder="e.g., 20000" value={form.price} onChange={e=>setForm({ ...form, price: e.target.value })} />
-        </div>
-        <div className="flex items-center gap-2">
-          <label className="text-sm">Active</label>
-          <input type="checkbox" checked={!!form.isActive} onChange={e=>setForm({ ...form, isActive: !!e.target.checked })} />
-        </div>
-        <div className="md:col-span-3">
-          <label className="block text-xs text-gray-700 mb-1">Description</label>
-          <textarea className="w-full px-3 py-2 border rounded" rows={3} placeholder="Describe the experience" value={form.description} onChange={e=>setForm({ ...form, description: e.target.value })} />
-        </div>
-        <div className="md:col-span-3">
-          <label className="block text-xs text-gray-700 mb-1">Highlights</label>
-          <input className="w-full px-3 py-2 border rounded" placeholder="Comma-separated, e.g., Gorilla trekking, Cultural tour" value={form.highlights} onChange={e=>setForm({ ...form, highlights: e.target.value })} />
-        </div>
-        <div className="md:col-span-3">
-          <label className="block text-xs text-gray-700 mb-1">Images</label>
-          <input type="file" multiple accept="image/*" onChange={e=>setCreateImages(Array.from(e.target.files || []))} className="w-full px-3 py-2 border rounded" />
-        </div>
-        <div className="md:col-span-3"><button disabled={saving} className="px-4 py-2 bg-[#a06b42] hover:bg-[#8f5a32] text-white rounded disabled:opacity-50">{saving ? 'Saving...' : 'Add Attraction'}</button></div>
-      </form>
+      {/* View selector similar to Property/Car dashboards */}
+      <div className="mb-4 flex flex-wrap gap-2 text-sm">
+        <button
+          type="button"
+          onClick={() => setView('overview')}
+          className={`px-3 py-1.5 rounded-full border ${view === 'overview' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+        >
+          Overview
+        </button>
+        <button
+          type="button"
+          onClick={() => setView('attractions')}
+          className={`px-3 py-1.5 rounded-full border ${view === 'attractions' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+        >
+          Attractions
+        </button>
+        <button
+          type="button"
+          onClick={() => setView('bookings')}
+          className={`px-3 py-1.5 rounded-full border ${view === 'bookings' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+        >
+          Bookings
+        </button>
+      </div>
 
-      {/* List */}
-      {loading ? <div>Loading...</div> : (
+      {/* Overview: basic stats + quick links */}
+      {view === 'overview' && (
+        <>
+          <div className="mb-4 grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2">
+              <div className="text-[11px] text-gray-500">Total attractions</div>
+              <div className="text-lg font-semibold text-gray-900">{items.length}</div>
+            </div>
+            <div className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2">
+              <div className="text-[11px] text-gray-500">Total bookings</div>
+              <div className="text-lg font-semibold text-gray-900">{bookings.length}</div>
+            </div>
+            <div className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2">
+              <div className="text-[11px] text-gray-500">Active attractions</div>
+              <div className="text-lg font-semibold text-emerald-700">{items.filter(a => a.isActive).length}</div>
+            </div>
+          </div>
+
+          <div className="mb-6 grid grid-cols-2 md:grid-cols-4 gap-3">
+            <button
+              type="button"
+              onClick={() => setView('attractions')}
+              className="text-left rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2 hover:border-[#a06b42] hover:shadow-md transition"
+            >
+              <div className="text-[11px] text-gray-500">Attractions</div>
+              <div className="text-sm font-semibold text-gray-900">Manage experiences</div>
+              <div className="mt-0.5 text-[11px] text-gray-500">Create and update your attractions</div>
+            </button>
+            <button
+              type="button"
+              onClick={() => setView('bookings')}
+              className="text-left rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2 hover:border-[#a06b42] hover:shadow-md transition"
+            >
+              <div className="text-[11px] text-gray-500">Bookings</div>
+              <div className="text-sm font-semibold text-gray-900">Reservations</div>
+              <div className="mt-0.5 text-[11px] text-gray-500">View and manage all attraction bookings</div>
+            </button>
+            <a
+              href="/transactions"
+              className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2 hover:border-[#a06b42] hover:shadow-md transition"
+            >
+              <div className="text-[11px] text-gray-500">Finance</div>
+              <div className="text-sm font-semibold text-gray-900">Payments & transactions</div>
+              <div className="mt-0.5 text-[11px] text-gray-500">Track payouts and charges</div>
+            </a>
+            <a
+              href="/analytics"
+              className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2 hover:border-[#a06b42] hover:shadow-md transition"
+            >
+              <div className="text-[11px] text-gray-500">Analytics</div>
+              <div className="text-sm font-semibold text-gray-900">Performance overview</div>
+              <div className="mt-0.5 text-[11px] text-gray-500">See trends across your listings</div>
+            </a>
+          </div>
+        </>
+      )}
+
+      {/* Create form: only in Attractions view */}
+      {view === 'attractions' && (
+        <form onSubmit={createItem} className="bg-white rounded-lg shadow p-4 mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-xs text-gray-700 mb-1">Attraction name</label>
+            <input className="w-full px-3 py-2 border rounded" placeholder="e.g., Volcanoes National Park Tour" value={form.name} onChange={e=>setForm({ ...form, name: e.target.value })} />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-700 mb-1">Category</label>
+            <input className="w-full px-3 py-2 border rounded" placeholder="e.g., tour, museum, park" value={form.category} onChange={e=>setForm({ ...form, category: e.target.value })} />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-700 mb-1">City</label>
+            <input className="w-full px-3 py-2 border rounded" placeholder="e.g., Musanze" value={form.city} onChange={e=>setForm({ ...form, city: e.target.value })} />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-700 mb-1">Location (address)</label>
+            <input className="w-full px-3 py-2 border rounded" placeholder="Address or meeting point" value={form.location} onChange={e=>setForm({ ...form, location: e.target.value })} />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-700 mb-1">Price</label>
+            <input className="w-full px-3 py-2 border rounded" type="number" placeholder="e.g., 20000" value={form.price} onChange={e=>setForm({ ...form, price: e.target.value })} />
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-sm">Active</label>
+            <input type="checkbox" checked={!!form.isActive} onChange={e=>setForm({ ...form, isActive: !!e.target.checked })} />
+          </div>
+          <div className="md:col-span-3">
+            <label className="block text-xs text-gray-700 mb-1">Description</label>
+            <textarea className="w-full px-3 py-2 border rounded" rows={3} placeholder="Describe the experience" value={form.description} onChange={e=>setForm({ ...form, description: e.target.value })} />
+          </div>
+          <div className="md:col-span-3">
+            <label className="block text-xs text-gray-700 mb-1">Highlights</label>
+            <input className="w-full px-3 py-2 border rounded" placeholder="Comma-separated, e.g., Gorilla trekking, Cultural tour" value={form.highlights} onChange={e=>setForm({ ...form, highlights: e.target.value })} />
+          </div>
+          <div className="md:col-span-3">
+            <label className="block text-xs text-gray-700 mb-1">Images</label>
+            <input type="file" multiple accept="image/*" onChange={e=>setCreateImages(Array.from(e.target.files || []))} className="w-full px-3 py-2 border rounded" />
+          </div>
+          <div className="md:col-span-3"><button disabled={saving} className="px-4 py-2 bg-[#a06b42] hover:bg-[#8f5a32] text-white rounded disabled:opacity-50">{saving ? 'Saving...' : 'Add Attraction'}</button></div>
+        </form>
+      )}
+
+      {/* List: only in Attractions view */}
+      {view === 'attractions' && (loading ? <div>Loading...</div> : (
         viewMode==='cards' ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {items.map(item => (
@@ -296,9 +381,10 @@ export default function OwnerAttractionsDashboard() {
             </table>
           </div>
         )
-      )}
+      ))}
 
-      {/* Bookings */}
+      {/* Bookings: only in Bookings view */}
+      {view === 'bookings' && (
       <div className="mt-8">
         <h2 className="text-xl font-semibold mb-2">Bookings</h2>
         <div className="mb-3 flex flex-wrap items-end gap-2">
@@ -370,7 +456,7 @@ export default function OwnerAttractionsDashboard() {
           </table>
         </div>
       </div>
-
+      )};
       {receiptBooking && (
         <ReceiptPreview
           title="Attraction Booking Receipt"

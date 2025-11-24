@@ -71,6 +71,7 @@ export default function CarOwnerDashboard() {
     const mo = parseInt(searchParams.get('monthOffset') || '0', 10);
     return Number.isNaN(mo) ? 0 : mo;
   });
+  const [view, setView] = useState('overview'); // 'overview' | 'vehicles' | 'bookings'
 
   async function loadData() {
     try {
@@ -493,8 +494,33 @@ export default function CarOwnerDashboard() {
           Your account is deactivated. Vehicle management is disabled until reactivated.
         </div>
       )}
+      {/* View selector to mirror PropertyManagement layout */}
+      <div className="mb-4 flex flex-wrap gap-2 text-sm">
+        <button
+          type="button"
+          onClick={() => setView('overview')}
+          className={`px-3 py-1.5 rounded-full border ${view === 'overview' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+        >
+          Overview
+        </button>
+        <button
+          type="button"
+          onClick={() => setView('vehicles')}
+          className={`px-3 py-1.5 rounded-full border ${view === 'vehicles' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+        >
+          Vehicles
+        </button>
+        <button
+          type="button"
+          onClick={() => setView('bookings')}
+          className={`px-3 py-1.5 rounded-full border ${view === 'bookings' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+        >
+          Bookings
+        </button>
+      </div>
 
-      {Array.isArray(cars) && cars.length > 0 && (
+      {/* Overview section (stats, quick links, finance) */}
+      {Array.isArray(cars) && cars.length > 0 && view === 'overview' && (
         <>
           <div className="mb-4 max-w-xs">
             <label className="block text-xs text-gray-600 mb-1">Selected vehicle</label>
@@ -536,6 +562,7 @@ export default function CarOwnerDashboard() {
             <button
               type="button"
               onClick={() => {
+                setView('bookings');
                 if (bookingsRef.current) bookingsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
               }}
               className="text-left rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2 hover:border-[#a06b42] hover:shadow-md transition"
@@ -620,8 +647,8 @@ export default function CarOwnerDashboard() {
         </>
       )}
 
-      {/* Create Vehicle */}
-      {showCreateForm && (
+      {/* Vehicles management: create + list, shown on Vehicles view */}
+      {view === 'vehicles' && showCreateForm && (
       <form ref={createFormRef} onSubmit={createCar} className="bg-white rounded-lg shadow p-4 mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <label className="block text-xs text-gray-700 mb-1">Listing category</label>
@@ -805,115 +832,118 @@ export default function CarOwnerDashboard() {
       )}
 
       {/* Cars List */}
-      {loading ? (
-        <div>Loading...</div>
-      ) : (!Array.isArray(cars) || cars.length === 0) ? (
-        <div className="bg-white rounded-lg shadow p-6 text-center text-sm text-gray-600">
-          <p className="mb-3">You haven't listed any vehicles yet.</p>
-          <button
-            type="button"
-            onClick={() => setShowCreateForm(true)}
-            className="inline-flex items-center px-4 py-2 rounded-lg bg-[#a06b42] hover:bg-[#8f5a32] text-white text-sm font-medium"
-            disabled={user?.isBlocked}
-          >
-            List your first vehicle
-          </button>
-        </div>
-      ) : (
-        viewMode === 'cards' ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {cars.map(car => (
+      {view === 'vehicles' && (
+        <>
+          {loading ? (
+            <div>Loading...</div>
+          ) : (!Array.isArray(cars) || cars.length === 0) ? (
+            <div className="bg-white rounded-lg shadow p-6 text-center text-sm text-gray-600">
+              <p className="mb-3">You haven't listed any vehicles yet.</p>
               <button
-                key={car._id}
                 type="button"
-                onClick={() => setSelectedCarId(String(car._id))}
-                className={`text-left bg-white rounded-lg shadow p-4 w-full border transition ${String(selectedCarId) === String(car._id) ? 'border-[#a06b42] ring-1 ring-[#a06b42]/50' : 'border-transparent hover:border-gray-300'}`}
+                onClick={() => setShowCreateForm(true)}
+                className="inline-flex items-center px-4 py-2 rounded-lg bg-[#a06b42] hover:bg-[#8f5a32] text-white text-sm font-medium"
+                disabled={user?.isBlocked}
               >
-                <div className="flex gap-4">
-                  <div className="w-32 h-24 bg-gray-100 rounded overflow-hidden">
-                    {car.images?.[0] ? <img src={makeAbsolute(car.images[0])} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-400">No image</div>}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2 min-w-0">
-                        {String(selectedCarId) === String(car._id) && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-[#a06b42]/10 text-[#a06b42] text-[10px] font-semibold uppercase tracking-wide whitespace-nowrap">
-                            Selected
-                          </span>
-                        )}
-                        <h3 className="font-semibold truncate">{car.vehicleName} • {car.brand} {car.model}</h3>
-                      </div>
-                      <button onClick={() => updateCar(car._id, { isAvailable: !car.isAvailable })} className={`px-2 py-1 rounded text-sm ${car.isAvailable ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-700'}`}>{car.isAvailable ? 'Available' : 'Unavailable'}</button>
-                    </div>
-                    <p className="text-sm text-gray-600">{car.location} • {car.vehicleType} • {car.transmission}</p>
-                    <p className="text-sm font-medium mt-1">{formatCurrencyRWF ? formatCurrencyRWF(car.pricePerDay || 0) : `RWF ${Number(car.pricePerDay || 0).toLocaleString()}`} / day</p>
-                  </div>
-                </div>
-
-                <div className="mt-3 flex items-center gap-2">
-                  <label className="text-sm">Upload Images:</label>
-                  <input type="file" multiple disabled={uploadingId === car._id} onChange={e => uploadImages(car._id, e.target.files)} />
-                  <button onClick={() => deleteCar(car._id)} className="ml-auto px-3 py-1 bg-red-600 text-white rounded text-sm">Delete</button>
-                </div>
-
-                {car.images?.length > 0 && (
-                  <div className="mt-3 grid grid-cols-4 gap-2">
-                    {car.images.map((img, i) => (
-                      <img key={i} src={makeAbsolute(img)} className="w-full h-20 object-cover rounded" />
-                    ))}
-                  </div>
-                )}
+                List your first vehicle
               </button>
-            ))}
-          </div>
-        ) : (
-          <div className="bg-white rounded-lg shadow overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead>
-                <tr className="bg-gray-50 text-left">
-                  <th className="p-3">Vehicle</th>
-                  <th className="p-3">Type</th>
-                  <th className="p-3">Location</th>
-                  <th className="p-3">Price/Day</th>
-                  <th className="p-3">Status</th>
-                  <th className="p-3">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {cars.map(car => (
-                  <tr
-                    key={car._id}
-                    className={`border-t cursor-pointer ${String(selectedCarId) === String(car._id) ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
-                    onClick={() => setSelectedCarId(String(car._id))}
-                  >
-                    <td className="p-3 font-medium">
-                      <div className="flex items-center gap-2">
-                        {String(selectedCarId) === String(car._id) && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[10px] font-semibold uppercase tracking-wide">
-                            Selected
-                          </span>
-                        )}
-                        <span>{car.vehicleName} • {car.brand} {car.model}</span>
+            </div>
+          ) : viewMode === 'cards' ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {cars.map(car => (
+                <button
+                  key={car._id}
+                  type="button"
+                  onClick={() => setSelectedCarId(String(car._id))}
+                  className={`text-left bg-white rounded-lg shadow p-4 w-full border transition ${String(selectedCarId) === String(car._id) ? 'border-[#a06b42] ring-1 ring-[#a06b42]/50' : 'border-transparent hover:border-gray-300'}`}
+                >
+                  <div className="flex gap-4">
+                    <div className="w-32 h-24 bg-gray-100 rounded overflow-hidden">
+                      {car.images?.[0] ? <img src={makeAbsolute(car.images[0])} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-400">No image</div>}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          {String(selectedCarId) === String(car._id) && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-[#a06b42]/10 text-[#a06b42] text-[10px] font-semibold uppercase tracking-wide whitespace-nowrap">
+                              Selected
+                            </span>
+                          )}
+                          <h3 className="font-semibold truncate">{car.vehicleName} • {car.brand} {car.model}</h3>
+                        </div>
+                        <button onClick={() => updateCar(car._id, { isAvailable: !car.isAvailable })} className={`px-2 py-1 rounded text-sm ${car.isAvailable ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-700'}`}>{car.isAvailable ? 'Available' : 'Unavailable'}</button>
                       </div>
-                    </td>
-                    <td className="p-3">{car.vehicleType}</td>
-                    <td className="p-3">{car.location}</td>
-                    <td className="p-3">{formatCurrencyRWF ? formatCurrencyRWF(car.pricePerDay || 0) : `RWF ${Number(car.pricePerDay || 0).toLocaleString()}`}</td>
-                    <td className="p-3">
-                      <button onClick={() => updateCar(car._id, { isAvailable: !car.isAvailable })} className={`px-2 py-1 rounded text-xs ${car.isAvailable ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-700'}`}>{car.isAvailable ? 'Available' : 'Unavailable'}</button>
-                    </td>
-                    <td className="p-3">
-                      <button onClick={() => deleteCar(car._id)} className="px-3 py-1 bg-red-600 text-white rounded text-xs">Delete</button>
-                    </td>
+                      <p className="text-sm text-gray-600">{car.location} • {car.vehicleType} • {car.transmission}</p>
+                      <p className="text-sm font-medium mt-1">{formatCurrencyRWF ? formatCurrencyRWF(car.pricePerDay || 0) : `RWF ${Number(car.pricePerDay || 0).toLocaleString()}`} / day</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 flex items-center gap-2">
+                    <label className="text-sm">Upload Images:</label>
+                    <input type="file" multiple disabled={uploadingId === car._id} onChange={e => uploadImages(car._id, e.target.files)} />
+                    <button onClick={() => deleteCar(car._id)} className="ml-auto px-3 py-1 bg-red-600 text-white rounded text-sm">Delete</button>
+                  </div>
+
+                  {car.images?.length > 0 && (
+                    <div className="mt-3 grid grid-cols-4 gap-2">
+                      {car.images.map((img, i) => (
+                        <img key={i} src={makeAbsolute(img)} className="w-full h-20 object-cover rounded" />
+                      ))}
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="bg-white rounded-lg shadow overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <thead>
+                  <tr className="bg-gray-50 text-left">
+                    <th className="p-3">Vehicle</th>
+                    <th className="p-3">Type</th>
+                    <th className="p-3">Location</th>
+                    <th className="p-3">Price/Day</th>
+                    <th className="p-3">Status</th>
+                    <th className="p-3">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )
+                </thead>
+                <tbody>
+                  {cars.map(car => (
+                    <tr
+                      key={car._id}
+                      className={`border-t cursor-pointer ${String(selectedCarId) === String(car._id) ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
+                      onClick={() => setSelectedCarId(String(car._id))}
+                    >
+                      <td className="p-3 font-medium">
+                        <div className="flex items-center gap-2">
+                          {String(selectedCarId) === String(car._id) && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[10px] font-semibold uppercase tracking-wide">
+                              Selected
+                            </span>
+                          )}
+                          <span>{car.vehicleName} • {car.brand} {car.model}</span>
+                        </div>
+                      </td>
+                      <td className="p-3">{car.vehicleType}</td>
+                      <td className="p-3">{car.location}</td>
+                      <td className="p-3">{formatCurrencyRWF ? formatCurrencyRWF(car.pricePerDay || 0) : `RWF ${Number(car.pricePerDay || 0).toLocaleString()}`}</td>
+                      <td className="p-3">
+                        <button onClick={() => updateCar(car._id, { isAvailable: !car.isAvailable })} className={`px-2 py-1 rounded text-xs ${car.isAvailable ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-700'}`}>{car.isAvailable ? 'Available' : 'Unavailable'}</button>
+                      </td>
+                      <td className="p-3">
+                        <button onClick={() => deleteCar(car._id)} className="px-3 py-1 bg-red-600 text-white rounded text-xs">Delete</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
       )}
 
       {/* Bookings */}
+      {view === 'bookings' && (
       <div className="mt-8" ref={bookingsRef}>
         <div className="mb-2 flex items-center justify_between gap-2">
           <h2 className="text-xl font-semibold">Bookings</h2>
@@ -1104,6 +1134,7 @@ export default function CarOwnerDashboard() {
           </div>
         )}
       </div>
+      )}
 
       {receiptBooking && (
         <ReceiptPreview
