@@ -175,8 +175,11 @@ const Hero = () => {
             const ok = await preloadOne(s.image);
             if (ok) validated.push(s);
           }
-          console.log('Validated slides:', validated);
-          setSlides(validated);
+
+          // If validation removed all slides, fall back to original list
+          const finalSlides = validated.length > 0 ? validated : fromSlides;
+          console.log('Validated slides:', validated, 'Final slides used:', finalSlides);
+          setSlides(finalSlides);
           setIntervalMs(typeof c.heroIntervalMs === 'number' && c.heroIntervalMs >= 2000 ? c.heroIntervalMs : 5000);
           setTransition(c.heroTransition === 'slide' ? 'slide' : 'fade');
           setHeroTitle(c.heroTitle || '');
