@@ -25,11 +25,11 @@ const DirectBooking = () => {
     services: { breakfast: false, airportTransfer: false, laundry: false },
   });
 
-  // Fetch properties owned by current host for selection
+  // Fetch properties owned by current host for selection (includes per-property add-on services)
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch(`${API_URL}/api/properties/mine`, { credentials: 'include' });
+        const res = await fetch(`${API_URL}/api/properties/my-properties`, { credentials: 'include' });
         const data = await res.json();
         if (!res.ok) throw new Error(data.message || 'Failed to load properties');
         const list = (data.properties || []).map(p => ({
@@ -277,7 +277,9 @@ const DirectBooking = () => {
                         .filter(k => addOn.includedItems[k])
                         .map(k => k.replace(/_/g, ' ').replace(/\s+/g, ' ').trim().replace(/^(.)/, m => m.toUpperCase()))
                     : [];
-                  const isFree = !addOn.price || Number(addOn.price) <= 0;
+                  const priceNum = Number(addOn.price || 0);
+                  const isFree = priceNum <= 0;
+                  const scope = addOn.scope || 'per-booking';
                   return (
                     <div key={key} className="space-y-0.5">
                       <label className="flex items-center gap-2 text-sm">
@@ -288,7 +290,9 @@ const DirectBooking = () => {
                         />
                         <span>{addOn.name}</span>
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${isFree ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'}`}>
-                          {isFree ? 'Free' : 'Paid (negotiable)'}
+                          {isFree
+                            ? 'Free'
+                            : `Approx. RWF ${priceNum.toLocaleString()} (${scope.replace(/-/g, ' ')}, negotiable)`}
                         </span>
                       </label>
                       {included.length > 0 && (
