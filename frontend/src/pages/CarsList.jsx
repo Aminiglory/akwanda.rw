@@ -533,34 +533,35 @@ export default function CarsList() {
                 const title = c.vehicleName || `${c.brand || ''} ${c.model || ''}`.trim();
                 const wishlisted = favIds.some(x => String(x) === String(c._id));
                 return (
-                  <PropertyCard
-                    key={c._id}
-                    listing={{
-                      id: c._id,
-                      title,
-                      location: c.location || '',
-                      image: firstImg,
-                      price: Number(c.pricePerDay || 0),
-                      bedrooms: c.capacity, // repurpose as capacity
-                      bathrooms: null,
-                      area: `${(c.vehicleType || c.type || '').toString()}`,
-                      status: 'active',
-                      bookings: Number(c.reviews || 0),
-                      host: c.ownerName || '',
-                      wishlisted
-                    }}
-                    onView={() => {
-                      const params = new URLSearchParams();
-                      if (searchForm.pickupLocation) params.set('pickupLocation', searchForm.pickupLocation);
-                      if (searchForm.pickupDate) params.set('pickupDate', searchForm.pickupDate);
-                      if (searchForm.returnDate) params.set('returnDate', searchForm.returnDate);
-                      if (searchForm.pickupTime) params.set('pickupTime', searchForm.pickupTime);
-                      if (searchForm.returnTime) params.set('returnTime', searchForm.returnTime);
-                      const qs = params.toString();
-                      navigate(`/cars/${c._id}${qs ? `?${qs}` : ''}`);
-                    }}
-                    onToggleWishlist={() => toggleWishlist(c._id)}
-                  />
+                  <div key={c._id} className="h-full max-w-sm w-full mx-auto">
+                    <PropertyCard
+                      listing={{
+                        id: c._id,
+                        title,
+                        location: c.location || '',
+                        image: firstImg,
+                        price: Number(c.pricePerDay || 0),
+                        bedrooms: c.capacity, // repurpose as capacity
+                        bathrooms: null,
+                        area: `${(c.vehicleType || c.type || '').toString()}`,
+                        status: 'active',
+                        bookings: Number(c.reviews || 0),
+                        host: c.ownerName || '',
+                        wishlisted
+                      }}
+                      onView={() => {
+                        const params = new URLSearchParams();
+                        if (searchForm.pickupLocation) params.set('pickupLocation', searchForm.pickupLocation);
+                        if (searchForm.pickupDate) params.set('pickupDate', searchForm.pickupDate);
+                        if (searchForm.returnDate) params.set('returnDate', searchForm.returnDate);
+                        if (searchForm.pickupTime) params.set('pickupTime', searchForm.pickupTime);
+                        if (searchForm.returnTime) params.set('returnTime', searchForm.returnTime);
+                        const qs = params.toString();
+                        navigate(`/cars/${c._id}${qs ? `?${qs}` : ''}`);
+                      }}
+                      onToggleWishlist={() => toggleWishlist(c._id)}
+                    />
+                  </div>
                 );
               })}
             </div>
