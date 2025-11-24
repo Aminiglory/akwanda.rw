@@ -67,9 +67,9 @@ const FeaturedApartments = () => {
           const ratingsArr = p.ratings || [];
           const avgRating = ratingsArr.length > 0 ? (ratingsArr.reduce((sum, r) => sum + r.rating, 0) / ratingsArr.length) : null;
           
-          // Commission-based premium logic: 12% ("higher") is considered premium
+          // Commission-based premium logic: 10%+ is considered premium (mid & higher tiers)
           const commissionRate = Number(p.commissionRate || 0);
-          const isPremium = commissionRate >= 12; // premium tier
+          const isPremium = commissionRate >= 10;
 
           // Process images with optimized utilities
           const primaryImage = p.images && p.images.length ? processImageUrl(p.images[0]) : null;
@@ -145,14 +145,34 @@ const FeaturedApartments = () => {
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-2 text-gray-900">
-            {apartments.some(a => a.isPremium)
-              ? (t ? t('featured.premiumTitle') : 'Premium Properties')
-              : (t ? t('featured.title') : 'Featured Properties')}
+            {(() => {
+              const hasPremium = apartments.some(a => a.isPremium);
+              if (!t) return hasPremium ? 'Premium Properties' : 'Featured Properties';
+              if (hasPremium) {
+                const val = t('featured.premiumTitle');
+                return val && val !== 'featured.premiumTitle' ? val : 'Premium Properties';
+              }
+              const val = t('featured.title');
+              return val && val !== 'featured.title' ? val : 'Featured Properties';
+            })()}
           </h2>
           <p className="text-gray-600 text-lg">
-            {apartments.some(a => a.isPremium)
-              ? (t ? t('featured.premiumSubtitle') : 'Top-performing stays with higher commission and visibility')
-              : (t ? t('featured.subtitle') : 'Discover our most popular and highly-rated stays')}
+            {(() => {
+              const hasPremium = apartments.some(a => a.isPremium);
+              if (!t) return hasPremium
+                ? 'Top-performing stays with higher commission and visibility'
+                : 'Discover our most popular and highly-rated stays';
+              if (hasPremium) {
+                const val = t('featured.premiumSubtitle');
+                return val && val !== 'featured.premiumSubtitle'
+                  ? val
+                  : 'Top-performing stays with higher commission and visibility';
+              }
+              const val = t('featured.subtitle');
+              return val && val !== 'featured.subtitle'
+                ? val
+                : 'Discover our most popular and highly-rated stays';
+            })()}
           </p>
         </div>
 
@@ -262,7 +282,11 @@ const FeaturedApartments = () => {
         {apartments.filter(a => !a.isPremium).length > 0 && (
           <div>
             <h3 className="text-sm font-semibold text-[#6b5744] mb-3">
-              {t ? t('featured.standardTitle') : 'More stays & ads'}
+              {(() => {
+                if (!t) return 'More stays & ads';
+                const val = t('featured.standardTitle');
+                return val && val !== 'featured.standardTitle' ? val : 'More stays & ads';
+              })()}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
               {apartments.filter(a => !a.isPremium).map((apartment, index) => (

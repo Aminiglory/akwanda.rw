@@ -180,36 +180,23 @@ export default function RatesAvailability() {
       const action = isCurrentlyClosed ? 'open' : 'close';
       
       try {
-        // Try primary API endpoint first
-        let res = await fetch(`${API_URL}/api/rates/calendar/single-date`, {
+        // Backend expects a startDate and endDate range; for a single day,
+        // we lock/unlock [date, nextDate)
+        const startDate = dateStr;
+        const next = new Date(dayDate.getFullYear(), dayDate.getMonth(), dayDate.getDate() + 1);
+        const endDate = fmt(next);
+
+        const endpoint = action === 'close'
+          ? `${API_URL}/api/properties/${selectedProperty}/rooms/${room._id}/lock`
+          : `${API_URL}/api/properties/${selectedProperty}/rooms/${room._id}/unlock`;
+
+        const res = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: JSON.stringify({
-            propertyId: selectedProperty,
-            roomId: room._id,
-            date: dateStr,
-            action: action,
-            available: action === 'open',
-            closed: action === 'close'
-          })
+          body: JSON.stringify({ startDate, endDate })
         });
-        
-        // If primary endpoint fails, try fallback
-        if (!res.ok && res.status === 404) {
-          console.log('Primary endpoint not found, trying fallback...');
-          res = await fetch(`${API_URL}/api/properties/${selectedProperty}/rooms/${room._id}/availability`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({
-              date: dateStr,
-              available: action === 'open',
-              closed: action === 'close'
-            })
-          });
-        }
-        
+
         if (res.ok) {
           toast.success(`Date ${action === 'close' ? 'locked 🔒' : 'unlocked 🔓'}`);
           // Refresh calendar to show changes immediately
