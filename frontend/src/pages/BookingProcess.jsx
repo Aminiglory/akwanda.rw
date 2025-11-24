@@ -811,7 +811,13 @@ const BookingProcess = () => {
                 {filteredRooms.length > 0 && (
                   <div className="flex justify-between mt-6">
                     <button
-                      onClick={() => setCurrentStep(1)}
+                      onClick={() => {
+                        if (cameFromProperty) {
+                          navigate(`/apartment/${id}`);
+                        } else {
+                          setCurrentStep(1);
+                        }
+                      }}
                       className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                     >
                       Back
@@ -989,10 +995,16 @@ const BookingProcess = () => {
 
                 <div className="flex justify-between mt-6">
                   <button
-                    onClick={() => setCurrentStep(2)}
+                    onClick={() => {
+                      if (cameFromProperty) {
+                        navigate(`/apartment/${id}`);
+                      } else {
+                        setCurrentStep(2);
+                      }
+                    }}
                     className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                   >
-                    Back to Rooms
+                    {cameFromProperty ? 'Back to Property' : 'Back to Rooms'}
                   </button>
                   <button
                     onClick={() => {
@@ -1119,7 +1131,13 @@ const BookingProcess = () => {
 
                 <div className="flex justify-between">
                   <button
-                    onClick={() => setCurrentStep(2)}
+                    onClick={() => {
+                      if (cameFromProperty) {
+                        setCurrentStep(3);
+                      } else {
+                        setCurrentStep(2);
+                      }
+                    }}
                     className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                   >
                     Back
