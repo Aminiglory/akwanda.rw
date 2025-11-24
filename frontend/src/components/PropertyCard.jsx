@@ -26,7 +26,8 @@ const PropertyCard = ({
   onView,
   onEditHref,
   onToggleWishlist,
-  highlight
+  highlight,
+  variant = 'default'
 }) => {
   const { formatCurrencyRWF, t } = useLocale() || {};
   const {
@@ -65,6 +66,7 @@ const PropertyCard = ({
   };
 
   const isWishlisted = !!(listing && listing.wishlisted);
+  const isCompact = variant === 'compact';
 
   return (
     <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all border border-gray-100 overflow-hidden h-full flex flex-col">
@@ -72,7 +74,7 @@ const PropertyCard = ({
         <LazyPropertyImage
           src={makeAbsoluteImageUrl(image) || getFallbackImage('apartment', 'medium')}
           alt={title}
-          className="w-full h-44 md:h-48 object-cover"
+          className={`w-full ${isCompact ? 'h-36 md:h-40' : 'h-44 md:h-48'} object-cover`}
           onLoad={() => {
             // Track successful image load
             trackImageLoad(makeAbsoluteImageUrl(image) || getFallbackImage('apartment', 'medium'), 'apartment');
@@ -104,7 +106,7 @@ const PropertyCard = ({
           <FaHeart />
         </button>
       </div>
-      <div className="p-5 flex-1 flex flex-col">
+      <div className={`${isCompact ? 'p-4' : 'p-5'} flex-1 flex flex-col`}>
         <div className="flex items-start justify-between mb-1">
           <h4 className="font-semibold text-gray-900 line-clamp-1">{highlightText(title)}</h4>
           <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(status)}`}>{status}</span>
@@ -142,7 +144,7 @@ const PropertyCard = ({
           </div>
         </div>
         <div className="mt-4 flex items-center justify-between flex-none">
-          <div className="text-teal-600 font-extrabold text-xl">{formatCurrencyRWF ? formatCurrencyRWF(price ?? 0) : `RWF ${(price ?? 0).toLocaleString()}`}</div>
+          <div className={`text-teal-600 font-extrabold ${isCompact ? 'text-lg' : 'text-xl'}`}>{formatCurrencyRWF ? formatCurrencyRWF(price ?? 0) : `RWF ${(price ?? 0).toLocaleString()}`}</div>
           <div className="flex items-center gap-2">
             <button type="button" onClick={onView} className="px-3 py-2 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors text-sm">
               {t ? t('property.viewDetails') : 'View Details'}

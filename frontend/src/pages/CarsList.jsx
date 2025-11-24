@@ -286,13 +286,6 @@ export default function CarsList() {
     ));
   };
 
-  const gridColsClass = (() => {
-    if (!cars || cars.length === 0) return 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3';
-    if (cars.length === 1) return 'grid-cols-1 max-w-md mx-auto';
-    if (cars.length === 2) return 'grid-cols-1 sm:grid-cols-2 max-w-3xl mx-auto';
-    return 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3';
-  })();
-
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 py-8">
@@ -461,7 +454,7 @@ export default function CarsList() {
         {popularLocations.length > 0 && (
           <section className="mb-8">
             <h2 className="text-xl font-semibold text-gray-900 mb-3">
-              {t ? t('vehicles.popularLocationsTitle') : 'Popular car rental locations'}
+              {popularTitle}
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {popularLocations.map(loc => (
@@ -534,13 +527,13 @@ export default function CarsList() {
               </table>
             </div>
           ) : (
-            <div className={`grid gap-6 ${gridColsClass}`}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {cars.map(c => {
                 const firstImg = Array.isArray(c.images) && c.images.length ? makeAbsolute(c.images[0]) : null;
                 const title = c.vehicleName || `${c.brand || ''} ${c.model || ''}`.trim();
                 const wishlisted = favIds.some(x => String(x) === String(c._id));
                 return (
-                  <div key={c._id} className="h-full">
+                  <div key={c._id} className="h-full max-w-xs w-full mx-auto">
                     <PropertyCard
                       listing={{
                         id: c._id,
@@ -556,6 +549,7 @@ export default function CarsList() {
                         host: c.ownerName || '',
                         wishlisted
                       }}
+                      variant="compact"
                       onView={() => {
                         const params = new URLSearchParams();
                         if (searchForm.pickupLocation) params.set('pickupLocation', searchForm.pickupLocation);
