@@ -1276,6 +1276,25 @@ router.put('/:id', requireAuth, requireWorkerPrivilege('canEditProperties'), upl
         if (updates.images) {
             updates.images = Array.from(new Set(updates.images.map(u => String(u).replace(/\\+/g, '/'))));
         }
+
+        // Handle add-on services explicitly so they persist reliably
+        if (updates.addOnServices != null) {
+            let addOns = updates.addOnServices;
+            // If coming as JSON string, parse it
+            if (typeof addOns === 'string') {
+                try {
+                    addOns = JSON.parse(addOns);
+                } catch (e) {
+                    console.error('Failed to parse addOnServices JSON:', e?.message || e);
+                }
+            }
+            if (Array.isArray(addOns)) {
+                property.addOnServices = addOns;
+                property.markModified('addOnServices');
+            }
+            delete updates.addOnServices;
+        }
+
         Object.assign(property, updates);
         clampCommission(property);
         await property.save();
