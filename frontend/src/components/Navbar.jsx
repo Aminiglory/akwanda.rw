@@ -165,7 +165,7 @@ const Navbar = () => {
       children: [
         { label: t ? t('nav.tours') : "Tours & Activities", href: "/experiences", icon: FaUmbrellaBeach },
         { label: t ? t('nav.restaurants') : "Restaurants", href: "/restaurants", icon: FaUtensils },
-        { label: t ? t('nav.deals') : "Deals", href: "/deals", icon: FaShoppingBag },
+        { label: labelOr('nav.deals', 'Deals'), href: "/deals", icon: FaShoppingBag },
       ]
     }
   ];
@@ -173,63 +173,63 @@ const Navbar = () => {
   // Vehicle owner navigation items (car dashboard scopes)
   const carOwnerNavItems = [
     {
-      label: t ? t('nav.vehiclesHome') : 'Vehicles',
+      label: labelOr('nav.vehiclesHome', 'Vehicles'),
       icon: FaHome,
       href: '/owner/cars',
       children: [
-        { label: t ? t('nav.vehiclesHome') : 'Dashboard', href: '/owner/cars', icon: FaHome },
-        { label: t ? t('nav.myVehicles') : 'My vehicles', href: '/owner/cars', icon: FaCar },
+        { label: labelOr('nav.vehiclesHome', 'Dashboard'), href: '/owner/cars', icon: FaHome },
+        { label: labelOr('nav.myVehicles', 'My vehicles'), href: '/owner/cars', icon: FaCar },
       ]
     },
     {
-      label: t ? t('nav.reservations') : 'Reservations',
+      label: labelOr('nav.reservations', 'Reservations'),
       icon: FaCalendarAlt,
       href: '/owner/cars?section=reservations',
       children: [
-        { label: t ? t('nav.allReservations') : 'All reservations', href: '/owner/cars?section=reservations', icon: FaCalendarAlt },
-        { label: t ? t('nav.pendingReservations') : 'Pending', href: '/owner/cars?section=reservations&status=pending', icon: FaCalendarAlt },
-        { label: t ? t('nav.confirmedReservations') : 'Confirmed', href: '/owner/cars?section=reservations&status=confirmed', icon: FaCalendarAlt },
-        { label: t ? t('nav.activeReservations') : 'Active', href: '/owner/cars?section=reservations&status=active', icon: FaCalendarAlt },
-        { label: t ? t('nav.completedReservations') : 'Completed', href: '/owner/cars?section=reservations&status=completed', icon: FaCalendarAlt },
-        { label: t ? t('nav.cancelledReservations') : 'Cancelled', href: '/owner/cars?section=reservations&status=cancelled', icon: FaCalendarAlt },
+        { label: labelOr('nav.allReservations', 'All reservations'), href: '/owner/cars?section=reservations', icon: FaCalendarAlt },
+        { label: labelOr('nav.pendingReservations', 'Pending'), href: '/owner/cars?section=reservations&status=pending', icon: FaCalendarAlt },
+        { label: labelOr('nav.confirmedReservations', 'Confirmed'), href: '/owner/cars?section=reservations&status=confirmed', icon: FaCalendarAlt },
+        { label: labelOr('nav.activeReservations', 'Active'), href: '/owner/cars?section=reservations&status=active', icon: FaCalendarAlt },
+        { label: labelOr('nav.completedReservations', 'Completed'), href: '/owner/cars?section=reservations&status=completed', icon: FaCalendarAlt },
+        { label: labelOr('nav.cancelledReservations', 'Cancelled'), href: '/owner/cars?section=reservations&status=cancelled', icon: FaCalendarAlt },
       ]
     },
     {
-      label: t ? t('nav.calendar') : 'Calendar',
+      label: labelOr('nav.calendar', 'Calendar'),
       icon: FaCalendarAlt,
       href: '/owner/cars?section=calendar',
       children: [
-        { label: t ? t('nav.thisMonth') : 'This month', href: '/owner/cars?section=calendar&monthOffset=0', icon: FaCalendarAlt },
-        { label: t ? t('nav.nextMonth') : 'Next month', href: '/owner/cars?section=calendar&monthOffset=1', icon: FaCalendarAlt },
+        { label: labelOr('nav.thisMonth', 'This month'), href: '/owner/cars?section=calendar&monthOffset=0', icon: FaCalendarAlt },
+        { label: labelOr('nav.nextMonth', 'Next month'), href: '/owner/cars?section=calendar&monthOffset=1', icon: FaCalendarAlt },
       ]
     },
     {
-      label: t ? t('nav.finance') : 'Finance',
+      label: labelOr('nav.finance', 'Finance'),
       icon: FaDollarSign,
       href: '/transactions',
     },
     {
-      label: t ? t('nav.analytics') : 'Analytics',
+      label: labelOr('nav.analytics', 'Analytics'),
       icon: FaChartLine,
       href: '/analytics',
     },
     {
-      label: t ? t('nav.promotions') : 'Promotions',
+      label: labelOr('nav.promotions', 'Promotions'),
       icon: FaShoppingBag,
       href: '/owner/promotions',
     },
     {
-      label: t ? t('nav.reviews') : 'Reviews',
+      label: labelOr('nav.reviews', 'Reviews'),
       icon: FaStar,
       href: '/owner/reviews',
     },
     {
-      label: t ? t('nav.messages') : 'Messages',
+      label: labelOr('nav.messages', 'Messages'),
       icon: FaEnvelope,
       href: '/messages?category=reservations',
     },
     {
-      label: t ? t('nav.settings') : 'Settings',
+      label: labelOr('nav.settings', 'Settings'),
       icon: FaSettings,
       href: '/settings?tab=notifications',
     },

@@ -33,7 +33,8 @@ const DirectBooking = () => {
         const data = await res.json();
         if (!res.ok) throw new Error(data.message || 'Failed to load properties');
         const list = (data.properties || []).map(p => ({
-          id: p._id,
+          // Always normalize id to string so comparisons with form.propertyId work
+          id: String(p._id || p.id || ''),
           title: p.title,
           address: p.address,
           city: p.city,
@@ -50,7 +51,7 @@ const DirectBooking = () => {
 
   // Set rooms when property changes
   useEffect(() => {
-    const prop = properties.find(p => p.id === form.propertyId);
+    const prop = properties.find(p => String(p.id) === String(form.propertyId));
     setRooms(prop ? (prop.rooms || []) : []);
     if (!prop) setForm(prev => ({ ...prev, roomId: '' }));
   }, [form.propertyId, properties]);
@@ -63,11 +64,14 @@ const DirectBooking = () => {
   }, [form.checkIn, form.checkOut]);
 
   const selectedRoom = rooms.find(r => String(r._id) === String(form.roomId));
-  const selectedProperty = properties.find(p => p.id === form.propertyId);
+  const selectedProperty = properties.find(p => String(p.id) === String(form.propertyId));
   const propertyAddOns = selectedProperty?.addOnServices || [];
   const nightly = selectedRoom?.pricePerNight || selectedProperty?.pricePerNight || 0;
   const roomCharge = useMemo(() => (nights > 0 ? nightly * nights : 0), [nightly, nights]);
-  const servicesTotal = 0; // Add-ons are negotiable and do not affect payment totals
+  // Add-on services are optional and negotiable; they do NOT change the calculated totals.
+  // We keep servicesTotal at 0 so the UI totals only reflect room/levy.
+  const servicesTotal = 0;
+
   const subtotal = useMemo(() => roomCharge + servicesTotal, [roomCharge, servicesTotal]);
   const levy3 = useMemo(() => Math.round(subtotal * 0.03), [subtotal]);
   // VAT removed for direct bookings – only levy applied
