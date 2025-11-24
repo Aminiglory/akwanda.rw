@@ -55,89 +55,33 @@ const Home = () => {
         setFeaturedSection(sec);
         setPartnersSection(partnersSec);
         
-        // Initialize comprehensive image optimization
-        if (!imageOptimizationInitialized) {
-          // Reset stats for fresh tracking
-          resetImageLoadStats();
-          
-          const criticalImages = [];
-          let expectedTotal = 0;
-          
-          // Add hero images
-          if (data?.content?.heroImages?.length > 0) {
-            data.content.heroImages.slice(0, 2).forEach((img, index) => {
-              criticalImages.push({
-                url: makeAbsoluteImageUrl(img),
-                priority: 10 - index,
-                category: 'hero'
-              });
-              expectedTotal++;
-            });
-          }
-          
-          // Add featured destinations images
-          if (sec?.images?.length > 0) {
-            sec.images.slice(0, 2).forEach((img, index) => {
-              criticalImages.push({
-                url: makeAbsoluteImageUrl(img),
-                priority: 8 - index,
-                category: 'attraction'
-              });
-              expectedTotal++;
-            });
-          }
-          
-          // Add partners images (count actual partners)
-          if (partnersSec?.images?.length > 0) {
-            expectedTotal += partnersSec.images.length; // Count all partner images
-          }
-          
-          // Add featured apartments (fetch actual count)
-          try {
-            const propertiesRes = await fetch(`${API_URL}/api/properties`);
-            if (propertiesRes.ok) {
-              const propertiesData = await propertiesRes.json();
-              const propertyCount = Math.min(propertiesData?.properties?.length || 4, 8); // Max 8 featured
-              expectedTotal += propertyCount;
-            } else {
-              expectedTotal += 4; // Fallback estimate
-            }
-          } catch (error) {
-            expectedTotal += 4; // Fallback estimate
-          }
-          
-          // Add landing attractions images
-          try {
-            const attractionsRes = await fetch(`${API_URL}/api/content/landing`);
-            if (attractionsRes.ok) {
-              const attractionsData = await attractionsRes.json();
-              const attractionImages = attractionsData?.content?.sections?.find(s => s.key === 'attractions')?.images?.length || 0;
-              expectedTotal += Math.min(attractionImages, 6); // Estimate visible attractions
-            }
-          } catch (error) {
-            expectedTotal += 3; // Fallback estimate
-          }
-          
-          // Set expected count and show loading bar
-          setExpectedImageCount(expectedTotal);
-          setTotalExpectedImages(expectedTotal);
-          setShowLoadingBar(true);
-          
-          // Initialize optimization with critical images
-          await initializeLandingPageOptimization(criticalImages);
-          setImageOptimizationInitialized(true);
-          
-          // Log performance stats after 3 seconds
-          setTimeout(() => {
-            const stats = getImageLoadStats();
-            console.log('Landing page image performance:', stats);
-          }, 3000);
+        // Estimate expected images for loading bar (simple heuristic)
+        let expectedTotal = 0;
+
+        if (data?.content?.heroImages?.length > 0) {
+          expectedTotal += Math.min(data.content.heroImages.length, 3);
         }
+
+        if (sec?.images?.length > 0) {
+          expectedTotal += Math.min(sec.images.length, 8);
+        }
+
+        if (partnersSec?.images?.length > 0) {
+          expectedTotal += partnersSec.images.length;
+        }
+
+        // Fallback baseline if nothing else
+        if (expectedTotal === 0) {
+          expectedTotal = 8;
+        }
+
+        setTotalExpectedImages(expectedTotal);
+        setShowLoadingBar(true);
       } catch (_) {
         setFeaturedSection(null);
       }
     })();
-  }, [imageOptimizationInitialized]);
+  }, []);
 
   const featuredCards = useMemo(() => {
     if (!featuredSection) return [];
