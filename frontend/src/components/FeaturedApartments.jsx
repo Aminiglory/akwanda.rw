@@ -10,26 +10,67 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const FeaturedApartments = () => {
   const { t } = useLocale() || {};
-  const [apartments, setApartments] = useState([]);
+  const [apartments, setApartments] = useState([]); // combined premium + standard
+  const [premiumIndex, setPremiumIndex] = useState(0);
   // Use optimized image URL processing
   const processImageUrl = (url) => {
     return makeAbsoluteImageUrl(url);
   };
 
+  // Auto-scroll premium slider
+  useEffect(() => {
+    const premium = apartments.filter(a => a.isPremium);
+    const count = premium.length;
+    if (count <= 1) return;
+
+    const container = premiumStripRef.current;
+    if (!container) return;
+
+    const cards = () => Array.from(container.querySelectorAll('[data-premium-card="true"]'));
+
+    const scrollToIndex = (idx) => {
+      const items = cards();
+      const target = items[idx];
+      if (target && target.scrollIntoView) {
+        target.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      }
+    };
+
+    const id = setInterval(() => {
+      setPremiumIndex((prev) => {
+        const next = (prev + 1) % count;
+        scrollToIndex(next);
+        return next;
+      });
+    }, 6000);
+
+    // Initial alignment
+    if (premiumIndex < count) {
+      scrollToIndex(premiumIndex);
+    }
+
+    return () => clearInterval(id);
+  }, [apartments, premiumIndex]);
+
   useEffect(() => {
     (async () => {
       const data = await safeApiGet('/api/properties', { properties: [] });
       if (data && data.properties) {
+        // Newest first
         const sorted = [...data.properties].sort((a, b) => {
           const da = a && a.createdAt ? new Date(a.createdAt) : new Date(0);
           const db = b && b.createdAt ? new Date(b.createdAt) : new Date(0);
           return db - da;
         });
-        const processedApartments = sorted.slice(0, 4).map(p => {
+        const processedApartments = sorted.map(p => {
           // Calculate average rating and review count from ratings array
           const ratingsArr = p.ratings || [];
           const avgRating = ratingsArr.length > 0 ? (ratingsArr.reduce((sum, r) => sum + r.rating, 0) / ratingsArr.length) : null;
           
+          // Commission-based premium logic: 10%+ is considered premium (mid & higher tiers)
+          const commissionRate = Number(p.commissionRate || 0);
+          const isPremium = commissionRate >= 10;
+
           // Process images with optimized utilities
           const primaryImage = p.images && p.images.length ? processImageUrl(p.images[0]) : null;
           const allImages = Array.isArray(p.images) ? p.images.map(processImageUrl).filter(Boolean) : [];
@@ -49,11 +90,17 @@ const FeaturedApartments = () => {
             isAvailable: p.isActive,
             discountPercent: p.discountPercent || 0,
             host: p.host ? `${p.host.firstName || ''} ${p.host.lastName || ''}`.trim() : '—',
-            category: p.category || 'apartment' // For fallback image selection
+            category: p.category || 'apartment', // For fallback image selection
+            commissionRate,
+            isPremium
           };
         });
-        
-        setApartments(processedApartments);
+        // Split into premium vs standard (ads) and order premium first
+        const premium = processedApartments.filter(a => a.isPremium);
+        const standard = processedApartments.filter(a => !a.isPremium);
+        const ordered = [...premium, ...standard].slice(0, 8); // show up to 8 cards total
+
+        setApartments(ordered);
         
         // Preload critical images using optimized preloading
         const criticalImages = processedApartments.slice(0, 2).map((apt, index) => ({
@@ -70,8 +117,9 @@ const FeaturedApartments = () => {
   }, []);
 
 
-  // Reveal animation on scroll
+  // Reveal animation on scroll & premium slider ref
   const gridRef = useRef(null);
+  const premiumStripRef = useRef(null);
   const [gridInView, setGridInView] = useState(false);
   useEffect(() => {
     const el = gridRef.current;
@@ -96,15 +144,22 @@ const FeaturedApartments = () => {
     <div className="bg-white py-16 px-4">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-2 text-gray-900">{t ? t('featured.title') : 'Featured Properties'}</h2>
-          <p className="text-gray-600 text-lg">{t ? t('featured.subtitle') : 'Discover our most popular and highly-rated stays'}</p>
+          <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-2 text-gray-900">
+            {t ? t('featured.title') : 'Featured Properties'}
+          </h2>
+          <p className="text-gray-600 text-lg">
+            {t ? t('featured.subtitle') : 'Discover our most popular and highly-rated stays'}
+          </p>
         </div>
 
-        <div ref={gridRef} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div
+          ref={gridRef}
+          className={`${gridInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'} grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8`}
+        >
           {apartments.map((apartment, index) => (
             <div
               key={apartment.id}
-              className={`${gridInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'} h-full`}
+              className="h-full"
               style={{ transition: 'all 500ms', transitionDelay: `${index * 80}ms` }}
             >
               <PropertyCard

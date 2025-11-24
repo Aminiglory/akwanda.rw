@@ -381,6 +381,39 @@ router.post('/', requireAuth, async (req, res) => {
       services: services && typeof services === 'object' ? services : {}
     });
 
+    // If this is a direct booking that is already confirmed/paid (e.g. cash at desk),
+    // immediately upsert an Invoice record so it appears in invoices without
+    // requiring a separate confirm step.
+    try {
+      if (booking.status === 'confirmed') {
+        await Invoice.findOneAndUpdate(
+          { booking: booking._id },
+          {
+            booking: booking._id,
+            property: property._id,
+            host: property.host,
+            guest: booking.guest,
+            confirmationCode: booking.confirmationCode,
+            propertyNumber: property.propertyNumber,
+            amountBeforeTax: booking.amountBeforeTax || 0,
+            taxAmount: booking.taxAmount || 0,
+            taxRate: booking.taxRate || 3,
+            totalAmount: booking.totalAmount || 0,
+            commissionAmount: booking.commissionAmount || 0,
+            commissionPaid: booking.commissionPaid || false,
+            paymentMethod: booking.paymentMethod,
+            paymentStatus: booking.paymentStatus,
+            issuedAt: booking.createdAt || new Date(),
+            paidAt: booking.paymentStatus === 'paid' ? new Date() : undefined
+          },
+          { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
+      }
+    } catch (e) {
+      console.error('Invoice upsert failed for direct booking:', e.message);
+      // Non-blocking: do not fail booking creation if invoice write fails
+    }
+
     await Notification.create({
       type: 'booking_created',
       title: 'New booking created',
@@ -607,6 +640,7 @@ router.get('/:id/receipt', requireAuth, async (req, res) => {
       status: b.status,
       guests: b.numberOfGuests || 1,
       createdAt: b.createdAt || new Date(),
+      isDirect: !!b.isDirect,
       dates: {
         checkIn: b.checkIn,
         checkOut: b.checkOut,
@@ -616,12 +650,16 @@ router.get('/:id/receipt', requireAuth, async (req, res) => {
         title: b.property?.title || '',
         address: b.property?.address || '',
         city: b.property?.city || '',
+        addOnServices: Array.isArray(b.property?.addOnServices) ? b.property.addOnServices : [],
       },
       guest: {
         name: `${b.guest?.firstName || ''} ${b.guest?.lastName || ''}`.trim(),
         email: b.guest?.email || '',
         phone: b.guest?.phone || '',
       },
+      room: b.room ? {
+        id: String(b.room),
+      } : null,
       pricing: {
         amountBeforeTax,
         discountApplied,
@@ -635,6 +673,10 @@ router.get('/:id/receipt', requireAuth, async (req, res) => {
         status: b.paymentStatus || 'pending',
         transactionId: b.paymentTransactionId || '',
       },
+      // Raw services/add-on selections stored on the booking, so the
+      // frontend receipt can render full add-on details and pricing
+      // based on the property's addOnServices configuration.
+      services: b.services && typeof b.services === 'object' ? b.services : {},
     };
 
     return res.json({ receipt });

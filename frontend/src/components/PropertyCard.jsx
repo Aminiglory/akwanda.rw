@@ -38,7 +38,9 @@ const PropertyCard = ({
     bookings,
     bedrooms,
     bathrooms,
-    area
+    area,
+    isPremium,
+    isAd
   } = listing || {};
 
   const highlightText = (text) => {
@@ -81,6 +83,17 @@ const PropertyCard = ({
             trackImageLoad(image, 'apartment');
           }}
         />
+        {isPremium && (
+          <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-[#f97316] text-white text-[11px] font-semibold shadow">
+            Premium
+          </span>
+        )}
+        {!isPremium && isAd && (
+          <span className="absolute top-3 left-3 px-2 py-1 rounded-full bg-black/70 text-white text-[10px] font-medium shadow">
+            Ad
+          </span>
+        )}
+
         <button
           type="button"
           onClick={(e) => { e.stopPropagation?.(); onToggleWishlist && onToggleWishlist(); }}

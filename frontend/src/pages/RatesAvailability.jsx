@@ -167,12 +167,44 @@ export default function RatesAvailability() {
 
   const isClosed = (room, dateStr) => {
     const closed = room.closedDates || [];
-    return closed.some(c => c === dateStr || (c.date && c.date.startsWith(dateStr)));
+    if (!closed.length) return false;
+
+    return closed.some((c) => {
+      if (!c) return false;
+
+      // Legacy shapes: plain string "YYYY-MM-DD" or { date: 'YYYY-MM-DD...' }
+      if (typeof c === 'string') {
+        return c === dateStr;
+      }
+      if (typeof c.date === 'string') {
+        return c.date.startsWith(dateStr);
+      }
+
+      // New range shape from /api/rates/calendar: { startDate: Date, endDate: Date }
+      if (c.startDate && c.endDate) {
+        try {
+          const s = new Date(c.startDate);
+          const e = new Date(c.endDate);
+          if (isNaN(s) || isNaN(e)) return false;
+          const target = new Date(dateStr + 'T00:00:00Z');
+          // Treat closed range as [start, end) in local-day terms
+          const ts = new Date(s.getFullYear(), s.getMonth(), s.getDate());
+          const te = new Date(e.getFullYear(), e.getMonth(), e.getDate());
+          return target >= ts && target < te;
+        } catch {
+          return false;
+        }
+      }
+
+      return false;
+    });
   };
 
   const onDayClick = async (room, dayDate) => {
     if (!dayDate) return;
     const dateStr = fmt(dayDate);
+    // calendarData items come from /api/rates/calendar and use roomId, not _id
+    const roomId = room.roomId || room._id;
     
     if (singleClickMode) {
       // Single-click mode: instantly toggle lock/unlock like Booking.com
@@ -180,36 +212,23 @@ export default function RatesAvailability() {
       const action = isCurrentlyClosed ? 'open' : 'close';
       
       try {
-        // Try primary API endpoint first
-        let res = await fetch(`${API_URL}/api/rates/calendar/single-date`, {
+        // Backend expects a startDate and endDate range; for a single day,
+        // we lock/unlock [date, nextDate)
+        const startDate = dateStr;
+        const next = new Date(dayDate.getFullYear(), dayDate.getMonth(), dayDate.getDate() + 1);
+        const endDate = fmt(next);
+
+        const endpoint = action === 'close'
+          ? `${API_URL}/api/properties/${selectedProperty}/rooms/${roomId}/lock`
+          : `${API_URL}/api/properties/${selectedProperty}/rooms/${roomId}/unlock`;
+
+        const res = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: JSON.stringify({
-            propertyId: selectedProperty,
-            roomId: room._id,
-            date: dateStr,
-            action: action,
-            available: action === 'open',
-            closed: action === 'close'
-          })
+          body: JSON.stringify({ startDate, endDate })
         });
-        
-        // If primary endpoint fails, try fallback
-        if (!res.ok && res.status === 404) {
-          console.log('Primary endpoint not found, trying fallback...');
-          res = await fetch(`${API_URL}/api/properties/${selectedProperty}/rooms/${room._id}/availability`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({
-              date: dateStr,
-              available: action === 'open',
-              closed: action === 'close'
-            })
-          });
-        }
-        
+
         if (res.ok) {
           toast.success(`Date ${action === 'close' ? 'locked 🔒' : 'unlocked 🔓'}`);
           // Refresh calendar to show changes immediately
@@ -619,16 +638,11 @@ export default function RatesAvailability() {
                                   } ${inSel ? 'ring-2 ring-[#a06b42] bg-[#f5f0e8] border-[#d4c4b0]' : ''} ${
                                     singleClickMode && d ? 'cursor-pointer hover:scale-105' : ''
                                   }`}
-                                  title={d && singleClickMode ? (closed ? 'Click to unlock date 🔓' : 'Click to lock date 🔒') : ''}
+                                  title={d && singleClickMode ? (closed ? 'Click to unlock date' : 'Click to lock date') : ''}
                                 >
                                   {d ? (
                                     <div className="flex flex-col items-center">
                                       <span>{d.getDate()}</span>
-                                      {singleClickMode && (
-                                        <span className="text-[10px] opacity-70">
-                                          {closed ? '🔒' : '🔓'}
-                                        </span>
-                                      )}
                                     </div>
                                   ) : ''}
                                 </button>
@@ -636,8 +650,8 @@ export default function RatesAvailability() {
                             })}
                           </div>
                           <div className="mt-2 flex items-center gap-2 text-xs">
-                            <span className="inline-flex items-center gap-1"><span className="w-3 h-3 inline-block bg-red-200 rounded border border-red-400"></span>🔒 Locked (Closed)</span>
-                            <span className="inline-flex items-center gap-1"><span className="w-3 h-3 inline-block bg-green-100 rounded border border-green-300"></span>🔓 Unlocked (Open)</span>
+                            <span className="inline-flex items-center gap-1"><span className="w-3 h-3 inline-block bg-red-200 rounded border border-red-400"></span>Locked (Closed)</span>
+                            <span className="inline-flex items-center gap-1"><span className="w-3 h-3 inline-block bg-green-100 rounded border border-green-300"></span>Unlocked (Open)</span>
                             {!singleClickMode && (
                               <span className="inline-flex items-center gap-1"><span className="w-3 h-3 inline-block bg-[#e8dcc8] rounded border border-[#d4c4b0]"></span>Selected range</span>
                             )}
@@ -669,7 +683,8 @@ export default function RatesAvailability() {
                       <tbody>
                         {calendarData.map((room) => {
                           const days = daysInMonth(activeMonth).filter(Boolean);
-                          const roomId = room._id;
+                          // rates calendar returns roomId field; fall back to _id if present
+                          const roomId = room.roomId || room._id;
                           const capacityUnits = Number(room.capacity || 1);
                           const getBookedForDay = (d) => {
                             const dayStart = new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -709,7 +724,15 @@ export default function RatesAvailability() {
                                     key={d.toISOString()}
                                     className={`px-1 py-1 text-center border-l border-[#f0e6d9] ${cls}`}
                                   >
-                                    <div className="text-[10px] font-semibold">{closed ? 'Closed' : 'Open'}</div>
+                                    <button
+                                      type="button"
+                                      disabled={!singleClickMode}
+                                      onClick={() => singleClickMode && onDayClick(room, d)}
+                                      className={`w-full h-full flex flex-col items-center justify-center ${singleClickMode ? 'cursor-pointer hover:opacity-90' : 'cursor-default'}`}
+                                      title={singleClickMode ? (closed ? 'Click to unlock date' : 'Click to lock date') : ''}
+                                    >
+                                      <span className="text-[10px] font-semibold">{closed ? 'Closed' : 'Open'}</span>
+                                    </button>
                                   </td>
                                 );
                               })}

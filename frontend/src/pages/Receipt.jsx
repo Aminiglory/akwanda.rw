@@ -64,6 +64,9 @@ export default function Receipt() {
   const dates = data.dates || {};
   const guest = data.guest || {};
   const property = data.property || {};
+  const services = data.services || {};
+  const propertyAddOns = Array.isArray(property.addOnServices) ? property.addOnServices : [];
+  const selectedAddOns = propertyAddOns.filter(a => a && a.key && services[a.key]);
 
   // For direct bookings, hide commission and show simplified pricing
   const showCommission = !isDirect && pricing.commissionAmount != null;
@@ -144,6 +147,23 @@ export default function Receipt() {
             )}
           </div>
         </div>
+
+        {/* Add-on services */}
+        {selectedAddOns.length > 0 && (
+          <div className="mt-6 border-t border-gray-200 pt-4">
+            <h2 className="text-lg font-semibold text-gray-900 mb-2">Add-on services</h2>
+            <ul className="text-sm text-gray-700 list-disc pl-5 space-y-1">
+              {selectedAddOns.map(addOn => (
+                <li key={addOn.key}>
+                  <span className="font-medium">{addOn.name}</span>
+                  {addOn.scope && (
+                    <span className="ml-1 text-gray-500 text-xs">({addOn.scope.replace(/_/g, ' ')})</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {/* Pricing */}
         <div className="mb-6">

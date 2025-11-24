@@ -14,6 +14,7 @@ const LazyImage = ({
   lowResSrc = null,
   placeholder = null,
   errorPlaceholder = null,
+  disableFallback = false,
   onLoad,
   onError,
   width,
@@ -115,8 +116,10 @@ const LazyImage = ({
   // Handle image load error
   const handleImageError = () => {
     console.warn(`Image failed to load: ${src}`);
-    const fallbackSrc = getFallbackImage(category, size);
-    setCurrentSrc(fallbackSrc);
+    if (!disableFallback) {
+      const fallbackSrc = getFallbackImage(category, size);
+      setCurrentSrc(fallbackSrc);
+    }
     setHasError(true);
     onError && onError();
   };
@@ -241,6 +244,7 @@ export const LazyHeroImage = (props) => (
     size="large"
     eager={true}
     progressive={true}
+    disableFallback={true}
   />
 );
 
