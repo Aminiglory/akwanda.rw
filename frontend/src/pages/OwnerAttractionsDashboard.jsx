@@ -418,36 +418,41 @@ export default function OwnerAttractionsDashboard() {
       {/* Bookings: only in Bookings view */}
       {view === 'bookings' && (
       <div className="mt-8">
-        <h2 className="text-xl font-semibold mb-2">Bookings</h2>
-        <div className="mb-3 flex flex-wrap items-end gap-2">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <label className="block text-xs text-gray-600">Status</label>
-            <select value={bookingFilters.status} onChange={e=>setBookingFilters({ ...bookingFilters, status: e.target.value })} className="px-3 py-2 border rounded">
+            <h2 className="text-xl font-semibold text-gray-900">Bookings</h2>
+            <p className="text-xs text-gray-500 mt-0.5">View and manage all reservations for your attractions.</p>
+          </div>
+        </div>
+        <div className="mb-4 bg-white rounded-xl shadow-sm border border-[#e0d5c7] px-3 py-3 flex flex-wrap items-end gap-3">
+          <div>
+            <label className="block text-[11px] text-gray-600 mb-1">Status</label>
+            <select value={bookingFilters.status} onChange={e=>setBookingFilters({ ...bookingFilters, status: e.target.value })} className="px-3 py-2 border border-[#d4c4b0] rounded-lg text-sm">
               <option value="">All</option>
               {['pending','confirmed','completed','cancelled'].map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-xs text-gray-600">From</label>
-            <input type="date" value={bookingFilters.from} onChange={e=>setBookingFilters({ ...bookingFilters, from: e.target.value })} className="px-3 py-2 border rounded" />
+            <label className="block text-[11px] text-gray-600 mb-1">From</label>
+            <input type="date" value={bookingFilters.from} onChange={e=>setBookingFilters({ ...bookingFilters, from: e.target.value })} className="px-3 py-2 border border-[#d4c4b0] rounded-lg text-sm" />
           </div>
           <div>
-            <label className="block text-xs text-gray-600">To</label>
-            <input type="date" value={bookingFilters.to} onChange={e=>setBookingFilters({ ...bookingFilters, to: e.target.value })} className="px-3 py-2 border rounded" />
+            <label className="block text-[11px] text-gray-600 mb-1">To</label>
+            <input type="date" value={bookingFilters.to} onChange={e=>setBookingFilters({ ...bookingFilters, to: e.target.value })} className="px-3 py-2 border border-[#d4c4b0] rounded-lg text-sm" />
           </div>
-          <button onClick={exportBookingsCsv} className="ml-auto px-3 py-2 bg-[#a06b42] hover:bg-[#8f5a32] text-white rounded">Export CSV</button>
+          <button onClick={exportBookingsCsv} className="ml-auto inline-flex items-center justify-center px-3 py-2 rounded-lg bg-[#a06b42] hover:bg-[#8f5a32] text-white text-xs font-medium shadow-sm">Export CSV</button>
         </div>
-        <div className="bg-white rounded-lg shadow overflow-x-auto">
+        <div className="bg-white rounded-xl shadow-sm border border-[#e0d5c7] overflow-x-auto">
           <table className="min-w-full text-sm">
             <thead>
-              <tr className="bg-gray-50 text-left">
-                <th className="p-3">Attraction</th>
-                <th className="p-3">Guest</th>
-                <th className="p-3">Visit Date</th>
-                <th className="p-3">Tickets</th>
-                <th className="p-3">Amount</th>
-                <th className="p-3">Status</th>
-                <th className="p-3">Actions</th>
+              <tr className="bg-[#f7efe4] text-left text-[11px] uppercase tracking-wide text-[#6b5744]">
+                <th className="px-4 py-2">Attraction</th>
+                <th className="px-4 py-2">Guest</th>
+                <th className="px-4 py-2">Visit Date</th>
+                <th className="px-4 py-2">Tickets</th>
+                <th className="px-4 py-2">Amount</th>
+                <th className="px-4 py-2">Status</th>
+                <th className="px-4 py-2">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -463,14 +468,23 @@ export default function OwnerAttractionsDashboard() {
                 }
                 return true;
               }).map(b => (
-                <tr key={b._id} className="border-t">
-                  <td className="p-3">{b.attraction?.name}</td>
-                  <td className="p-3">{b.guest?.firstName} {b.guest?.lastName}</td>
-                  <td className="p-3">{new Date(b.visitDate).toLocaleDateString()}</td>
-                  <td className="p-3">{b.numberOfPeople}</td>
-                  <td className="p-3">RWF {Number(b.totalAmount || 0).toLocaleString()}</td>
-                  <td className="p-3"><span className="px-2 py-1 rounded bg-gray-100">{b.status}</span></td>
-                  <td className="p-3 flex items-center gap-2">
+                <tr key={b._id} className="border-t border-[#f0e6d9] hover:bg-[#fffaf4]">
+                  <td className="px-4 py-3 text-sm font-medium text-[#3b2a18]">{b.attraction?.name}</td>
+                  <td className="px-4 py-3 text-sm text-gray-700">{b.guest?.firstName} {b.guest?.lastName}</td>
+                  <td className="px-4 py-3 text-xs text-gray-600">{new Date(b.visitDate).toLocaleDateString()}</td>
+                  <td className="px-4 py-3 text-sm text-gray-700">{b.numberOfPeople}</td>
+                  <td className="px-4 py-3 text-sm font-semibold text-[#4b2a00]">RWF {Number(b.totalAmount || 0).toLocaleString()}</td>
+                  <td className="px-4 py-3">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${
+                      b.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                      b.status === 'confirmed' ? 'bg-blue-100 text-blue-800' :
+                      b.status === 'completed' ? 'bg-gray-100 text-gray-800' :
+                      'bg-red-100 text-red-800'
+                    }`}>
+                      {b.status}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 flex flex-wrap items-center gap-1.5">
                     {['pending','confirmed','completed','cancelled'].map(s => (
                       <button key={s} onClick={async () => {
                         const res = await fetch(`${API_URL}/api/attraction-bookings/${b._id}/status`, { method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: s }) });
@@ -478,9 +492,9 @@ export default function OwnerAttractionsDashboard() {
                         if (!res.ok) return toast.error(data.message || 'Failed');
                         setBookings(list => list.map(x => x._id === b._id ? data.booking : x));
                         toast.success('Status updated');
-                      }} className="px-2 py-1 bg-blue-600 text-white rounded text-xs">{s}</button>
+                      }} className="px-2 py-1 rounded-full border border-[#d4c4b0] bg-white text-[11px] text-[#4b2a00] hover:bg-[#f5e6d5]">{s}</button>
                     ))}
-                    <button onClick={() => setReceiptBooking(b)} className="px-2 py-1 bg-green-600 text-white rounded text-xs">Receipt</button>
+                    <button onClick={() => setReceiptBooking(b)} className="px-2 py-1 rounded-full bg-emerald-600 text-white text-[11px] hover:bg-emerald-700">Receipt</button>
                   </td>
                 </tr>
               ))}
