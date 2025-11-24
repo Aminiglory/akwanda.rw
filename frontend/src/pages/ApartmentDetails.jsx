@@ -755,7 +755,7 @@ const ApartmentDetails = () => {
                         disabled={availabilityLoading}
                         className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        {availabilityLoading ? 'Checking…' : 'Show prices'}
+                        {availabilityLoading ? 'Checking…' : 'Show available rooms'}
                       </button>
                     </div>
                   </div>
