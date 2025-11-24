@@ -4,7 +4,7 @@ import { FaBuilding, FaSmile, FaThumbsUp, FaArrowRight } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 import { FaSearch, FaHandshake, FaCreditCard, FaKey, FaUpload, FaCheckCircle } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
-import { LazyImage } from './LazyImage';
+import LazyImage from './LazyImage';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 

@@ -7,7 +7,7 @@ import OurMission from '../components/OurMission';
 import HowItWorks from '../components/HowItWorks';
 import Testimonials from '../components/Testimonials';
 import ImageLoadingBar from '../components/ImageLoadingBar';
-import { LazyImage } from '../components/LazyImage';
+import LazyImage from '../components/LazyImage';
 import { useLocale } from '../contexts/LocaleContext';
 import { useLazyLoading, useImagePreloader } from '../hooks/useLazyLoading';
 import { 
