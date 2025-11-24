@@ -107,13 +107,13 @@ const Hero = () => {
           
           const fromSlides = (Array.isArray(c.heroSlides) && c.heroSlides.length > 0
             ? c.heroSlides.map(s => {
-                const absoluteUrl = makeAbsoluteUrl(s?.image);
+                const absoluteUrl = makeAbsoluteImageUrl(s?.image);
                 console.log('Processing slide:', s?.image, '→', absoluteUrl);
                 return absoluteUrl ? { image: absoluteUrl, caption: s?.caption || '' } : null;
               })
             : (Array.isArray(c.heroImages) && c.heroImages.length > 0
                 ? c.heroImages.map(imgPath => {
-                    const absoluteUrl = makeAbsoluteUrl(imgPath);
+                    const absoluteUrl = makeAbsoluteImageUrl(imgPath);
                     console.log('Processing image:', imgPath, '→', absoluteUrl);
                     return absoluteUrl ? { image: absoluteUrl, caption: '' } : null;
                   })
