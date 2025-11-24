@@ -1,8 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocale } from '../contexts/LocaleContext';
 import LazyImage from './LazyImage';
-
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+import { makeAbsoluteImageUrl } from '../utils/imageUtils';
 
 export default function OurMission() {
   const { localize, t } = useLocale() || {};
@@ -28,13 +27,7 @@ export default function OurMission() {
   const images = useMemo(() => {
     const list = Array.isArray(section?.images) ? section.images : [];
     return list
-      .map(img => {
-        if (!img) return null;
-        const s = String(img).trim();
-        if (/^https?:\/\//i.test(s)) return s;
-        const path = s.startsWith('/') ? s : `/${s}`;
-        return `${API_BASE}${path}`;
-      })
+      .map(img => makeAbsoluteImageUrl(img))
       .filter(Boolean);
   }, [section]);
 

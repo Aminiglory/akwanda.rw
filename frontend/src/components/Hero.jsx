@@ -18,38 +18,7 @@ const API_BASE = (() => {
   return base;
 })();
 
-// Helper function to construct absolute image URLs (robust against various stored formats)
-const makeAbsoluteUrl = (imagePath) => {
-  if (!imagePath) return null;
-  let path = String(imagePath).trim().replace(/\\/g, '/');
-  // Normalize accidental leading slashes (but keep protocol double slash)
-  path = path.replace(/^\/+/, '/');
-
-  // If already absolute URL
-  if (/^https?:\/\//i.test(path)) {
-    // Upgrade to https when current page is https to prevent mixed content (common on mobile)
-    if (typeof window !== 'undefined' && window.location.protocol === 'https:' && /^http:\/\//i.test(path)) {
-      return path.replace(/^http:\/\//i, 'https://');
-    }
-    return path;
-  }
-
-  // Ensure leading slash for server-served assets
-  if (!path.startsWith('/')) path = `/${path}`;
-
-  // Build from configured API_URL, upgrading to https if needed
-  if (API_URL) {
-    let base = API_URL;
-    if (typeof window !== 'undefined' && window.location.protocol === 'https:' && /^http:\/\//i.test(base)) {
-      base = base.replace(/^http:\/\//i, 'https://');
-    }
-    return `${base}${path}`;
-  }
-
-  // Fallback to same-origin if API_URL is not set
-  const origin = (typeof window !== 'undefined' && window.location?.origin) ? window.location.origin : '';
-  return `${origin}${path}`;
-};
+// We rely on makeAbsoluteImageUrl for robust URL construction from CMS values.
 
 const Hero = () => {
   const { localize, t } = useLocale() || {};
@@ -264,7 +233,7 @@ const Hero = () => {
       >
         {slides.length > 0 ? (
           slides.map((s, i) => {
-            const url = makeAbsoluteImageUrl(s.image);
+            const url = s.image; // already processed to absolute URL
             const active = i === index;
             
             return (
