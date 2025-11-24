@@ -527,13 +527,13 @@ export default function CarsList() {
               </table>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {cars.map(c => {
                 const firstImg = Array.isArray(c.images) && c.images.length ? makeAbsolute(c.images[0]) : null;
                 const title = c.vehicleName || `${c.brand || ''} ${c.model || ''}`.trim();
                 const wishlisted = favIds.some(x => String(x) === String(c._id));
                 return (
-                  <div key={c._id} className="h-full max-w-xs w-full mx-auto">
+                  <div key={c._id} className="h-full">
                     <PropertyCard
                       listing={{
                         id: c._id,
@@ -549,7 +549,6 @@ export default function CarsList() {
                         host: c.ownerName || '',
                         wishlisted
                       }}
-                      variant="compact"
                       onView={() => {
                         const params = new URLSearchParams();
                         if (searchForm.pickupLocation) params.set('pickupLocation', searchForm.pickupLocation);
