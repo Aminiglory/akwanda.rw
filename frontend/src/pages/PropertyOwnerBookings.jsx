@@ -629,13 +629,35 @@ const PropertyOwnerBookings = () => {
 
   const handleStatusChange = async (bookingId, newStatus) => {
     try {
-      // API call to update status
-      setBookings(prev => prev.map(b => 
+      if (!bookingId || !newStatus) return;
+
+      // For "ended" we use the same backend route as the guest dashboard, so dates are freed
+      if (newStatus === 'ended') {
+        const res = await fetch(`${API_URL}/api/bookings/${bookingId}/end`, {
+          method: 'POST',
+          credentials: 'include'
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.message || 'Failed to mark as ended');
+      } else {
+        // Generic status update (if supported by backend)
+        const res = await fetch(`${API_URL}/api/bookings/${bookingId}/status`, {
+          method: 'PATCH',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: newStatus })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.message || 'Failed to update status');
+      }
+
+      // Refresh local list
+      setBookings(prev => prev.map(b => (
         b._id === bookingId ? { ...b, status: newStatus } : b
-      ));
+      )));
       toast.success('Status updated successfully');
     } catch (error) {
-      toast.error('Failed to update status');
+      toast.error(error.message || 'Failed to update status');
     }
   };
 

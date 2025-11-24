@@ -117,10 +117,20 @@ const DirectBooking = () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to create booking');
 
+      const bookingId = data.booking && data.booking._id;
       toast.success('Direct booking created');
-      const id = data.booking._id;
-      // Navigate to booking confirmation; receipt can be previewed & printed from the owner dashboard
-      navigate(`/booking-confirmation/${id}`);
+
+      if (bookingId) {
+        const confirmPrint = window.confirm('Booking has been saved to reservations. Do you want to open the receipt now to print or save as PDF?');
+        if (confirmPrint) {
+          // Open owner receipt page which auto-triggers print; mark as direct for UI tweaks
+          const url = `/receipt/${bookingId}?direct=true`;
+          window.open(url, '_blank', 'noopener,noreferrer');
+        } else {
+          // Fallback: show confirmation screen
+          navigate(`/booking-confirmation/${bookingId}`);
+        }
+      }
     } catch (err) {
       toast.error(err.message);
     } finally {
