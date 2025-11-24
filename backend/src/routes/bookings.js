@@ -312,6 +312,8 @@ router.post('/', requireAuth, async (req, res) => {
       discountAmount = Math.round((basePrice * property.groupBookingDiscount) / 100);
     }
 
+    // Add-on services are stored on the booking for information only and do
+    // NOT change the calculated room/tax/commission amounts.
     const amountBeforeTax = Math.round(basePrice - discountAmount);
     const taxRate = 3;
     const taxAmount = Math.round((amountBeforeTax * taxRate) / (100 + taxRate));

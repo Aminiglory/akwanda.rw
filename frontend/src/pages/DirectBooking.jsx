@@ -68,7 +68,10 @@ const DirectBooking = () => {
   const propertyAddOns = selectedProperty?.addOnServices || [];
   const nightly = selectedRoom?.pricePerNight || selectedProperty?.pricePerNight || 0;
   const roomCharge = useMemo(() => (nights > 0 ? nightly * nights : 0), [nightly, nights]);
-  const servicesTotal = 0; // Add-ons are negotiable and do not affect payment totals
+  // Add-on services are optional and negotiable; they do NOT change the calculated totals.
+  // We keep servicesTotal at 0 so the UI totals only reflect room/levy.
+  const servicesTotal = 0;
+
   const subtotal = useMemo(() => roomCharge + servicesTotal, [roomCharge, servicesTotal]);
   const levy3 = useMemo(() => Math.round(subtotal * 0.03), [subtotal]);
   // VAT removed for direct bookings – only levy applied
