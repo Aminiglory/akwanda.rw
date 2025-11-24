@@ -33,7 +33,8 @@ const DirectBooking = () => {
         const data = await res.json();
         if (!res.ok) throw new Error(data.message || 'Failed to load properties');
         const list = (data.properties || []).map(p => ({
-          id: p._id,
+          // Always normalize id to string so comparisons with form.propertyId work
+          id: String(p._id || p.id || ''),
           title: p.title,
           address: p.address,
           city: p.city,
@@ -50,7 +51,7 @@ const DirectBooking = () => {
 
   // Set rooms when property changes
   useEffect(() => {
-    const prop = properties.find(p => p.id === form.propertyId);
+    const prop = properties.find(p => String(p.id) === String(form.propertyId));
     setRooms(prop ? (prop.rooms || []) : []);
     if (!prop) setForm(prev => ({ ...prev, roomId: '' }));
   }, [form.propertyId, properties]);

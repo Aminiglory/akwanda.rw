@@ -2107,7 +2107,10 @@ export default function PropertyManagement() {
         {/* Navigation Menu */}
         <div className="mb-6">
           <div className="border-b border-gray-200">
-            <nav className="-mb-px flex space-x-8 overflow-x-auto">
+            <nav
+              className="-mb-px flex space-x-8 overflow-x-auto overflow-y-hidden scrollbar-hide"
+              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            >
               {[
                 { key: 'general-info', label: 'General Info', icon: FaInfoCircle },
                 { key: 'quality-rating', label: 'Quality Rating', icon: FaStar },
@@ -2132,10 +2135,10 @@ export default function PropertyManagement() {
                     window.history.pushState({}, '', url);
                     window.location.reload();
                   }}
-                  className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+                  className={`whitespace-nowrap py-2 px-3 font-medium text-sm flex items-center gap-2 rounded-t-md border-b-2 ${
                     view === key
-                      ? 'border-[#a06b42] text-[#a06b42]'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      ? 'bg-[#a06b42] text-white border-[#a06b42] shadow-sm'
+                      : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-[#f6e9d8]'
                   }`}
                 >
                   <Icon className="w-4 h-4" />
