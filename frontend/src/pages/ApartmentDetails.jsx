@@ -55,6 +55,7 @@ const ApartmentDetails = () => {
   const [calendarRoom, setCalendarRoom] = useState(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [detailsRoom, setDetailsRoom] = useState(null);
+  const [expandedAmenitiesRooms, setExpandedAmenitiesRooms] = useState({});
   const [reviews, setReviews] = useState([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [reviewsError, setReviewsError] = useState('');
@@ -889,7 +890,7 @@ const ApartmentDetails = () => {
                         {/* Room Amenities with Enhanced Design */}
                         {room.amenities && room.amenities.length > 0 && (
                           <div className="flex flex-wrap gap-2 mb-3">
-                            {room.amenities.slice(0, 3).map((amenity, amenityIndex) => (
+                            {(expandedAmenitiesRooms[index] ? room.amenities : room.amenities.slice(0, 3)).map((amenity, amenityIndex) => (
                               <span 
                                 key={amenityIndex}
                                 className="px-3 py-1 chip-primary border border-subtle text-xs rounded-full font-medium transition-colors"
@@ -898,9 +899,21 @@ const ApartmentDetails = () => {
                               </span>
                             ))}
                             {room.amenities.length > 3 && (
-                              <span className="px-3 py-1 bg-purple-50 text-purple-700 border border-purple-100 text-xs rounded-full font-medium hover:bg-purple-100 transition-colors">
-                                +{room.amenities.length - 3} more
-                              </span>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setExpandedAmenitiesRooms((prev) => ({
+                                    ...prev,
+                                    [index]: !prev[index]
+                                  }));
+                                }}
+                                className="px-3 py-1 bg-purple-50 text-purple-700 border border-purple-100 text-xs rounded-full font-medium hover:bg-purple-100 transition-colors focus:outline-none"
+                              >
+                                {expandedAmenitiesRooms[index]
+                                  ? 'Show fewer'
+                                  : `+${room.amenities.length - 3} more`}
+                              </button>
                             )}
                           </div>
                         )}
