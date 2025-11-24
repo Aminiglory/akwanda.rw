@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { FaHeart, FaMapMarkerAlt, FaBed, FaBath, FaRulerCombined, FaEdit, FaTrash } from 'react-icons/fa';
 import { useLocale } from '../contexts/LocaleContext';
+import { LazyPropertyImage } from './LazyImage';
 import { getFallbackImage, makeAbsoluteImageUrl, trackImageLoad } from '../utils/imageUtils';
 
 const getStatusColor = (status) => {
@@ -66,9 +67,7 @@ const PropertyCard = ({
   return (
     <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all border border-gray-100 overflow-hidden h-full flex flex-col">
       <div className="relative bg-gray-100">
-        <img
-          loading="lazy"
-          decoding="async"
+        <LazyPropertyImage
           src={makeAbsoluteImageUrl(image) || getFallbackImage('apartment', 'medium')}
           alt={title}
           className="w-full h-44 md:h-48 object-cover"
@@ -76,10 +75,8 @@ const PropertyCard = ({
             // Track successful image load
             trackImageLoad(makeAbsoluteImageUrl(image) || getFallbackImage('apartment', 'medium'), 'apartment');
           }}
-          onError={(e) => {
+          onError={() => {
             console.warn(`Property image failed to load: ${image}`);
-            e.currentTarget.onerror = null;
-            e.currentTarget.src = getFallbackImage('apartment', 'medium');
             // Track failed image load
             trackImageLoad(image, 'apartment');
           }}

@@ -4,6 +4,7 @@ import { FaBuilding, FaSmile, FaThumbsUp, FaArrowRight } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 import { FaSearch, FaHandshake, FaCreditCard, FaKey, FaUpload, FaCheckCircle } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
+import { LazyImage } from './LazyImage';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -263,7 +264,13 @@ const HowItWorks = () => {
             </p>
             {s.image && (
               <div className="mt-4 overflow-hidden rounded-xl">
-                <img src={s.image.startsWith('http') ? s.image : `${API_URL}${s.image}`} alt={s.title} loading="lazy" decoding="async" className="w-full h-40 object-cover" />
+                <LazyImage 
+                  src={s.image.startsWith('http') ? s.image : `${API_URL}${s.image}`} 
+                  alt={s.title} 
+                  className="w-full h-40 object-cover"
+                  category="default"
+                  size="medium"
+                />
               </div>
             )}
             {/* CTA link removed for v1 */}
@@ -404,12 +411,14 @@ const HowItWorks = () => {
         >
           {currentImages.length > 0 ? (
             currentImages.map((src, i) => (
-              <img
+              <LazyImage
                 key={i}
                 src={src}
                 alt={activeTab === 'guests' ? 'How it works for guests' : 'How it works for hosts'}
                 className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ${i === slideIndex ? 'opacity-100' : 'opacity-0'}`}
-                loading={i === 0 ? 'eager' : 'lazy'}
+                eager={i === 0}
+                category="default"
+                size="large"
               />
             ))
           ) : (
@@ -461,7 +470,13 @@ const HowItWorks = () => {
               {howMedia.map((m, i) => (
                 <div key={i} className="bg-white rounded-xl shadow p-3 border border-gray-100">
                   <div className="aspect-video rounded-lg overflow-hidden bg-gray-100">
-                    <img src={(m.image && m.image.startsWith('http')) ? m.image : `${API_URL}${m.image}`} alt={m.title || 'How it works'} className="w-full h-full object-cover" />
+                    <LazyImage 
+                      src={(m.image && m.image.startsWith('http')) ? m.image : `${API_URL}${m.image}`} 
+                      alt={m.title || 'How it works'} 
+                      className="w-full h-full object-cover"
+                      category="default"
+                      size="medium"
+                    />
                   </div>
                   {(m.title || m.description) && (
                     <div className="mt-2">
