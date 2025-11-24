@@ -173,6 +173,8 @@ export default function RatesAvailability() {
   const onDayClick = async (room, dayDate) => {
     if (!dayDate) return;
     const dateStr = fmt(dayDate);
+    // calendarData items come from /api/rates/calendar and use roomId, not _id
+    const roomId = room.roomId || room._id;
     
     if (singleClickMode) {
       // Single-click mode: instantly toggle lock/unlock like Booking.com
@@ -187,8 +189,8 @@ export default function RatesAvailability() {
         const endDate = fmt(next);
 
         const endpoint = action === 'close'
-          ? `${API_URL}/api/properties/${selectedProperty}/rooms/${room._id}/lock`
-          : `${API_URL}/api/properties/${selectedProperty}/rooms/${room._id}/unlock`;
+          ? `${API_URL}/api/properties/${selectedProperty}/rooms/${roomId}/lock`
+          : `${API_URL}/api/properties/${selectedProperty}/rooms/${roomId}/unlock`;
 
         const res = await fetch(endpoint, {
           method: 'POST',
@@ -651,7 +653,8 @@ export default function RatesAvailability() {
                       <tbody>
                         {calendarData.map((room) => {
                           const days = daysInMonth(activeMonth).filter(Boolean);
-                          const roomId = room._id;
+                          // rates calendar returns roomId field; fall back to _id if present
+                          const roomId = room.roomId || room._id;
                           const capacityUnits = Number(room.capacity || 1);
                           const getBookedForDay = (d) => {
                             const dayStart = new Date(d.getFullYear(), d.getMonth(), d.getDate());

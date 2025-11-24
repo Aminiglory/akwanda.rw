@@ -180,7 +180,11 @@ const FeaturedApartments = () => {
         {apartments.some(a => a.isPremium) && (
           <div className="mb-10">
             <h3 className="text-lg font-semibold text-[#4b2a00] mb-3">
-              {t ? t('featured.premiumStripTitle') : 'Premium picks'}
+              {(() => {
+                if (!t) return 'Premium picks';
+                const val = t('featured.premiumStripTitle');
+                return val && val !== 'featured.premiumStripTitle' ? val : 'Premium picks';
+              })()}
             </h3>
             <div
               ref={gridRef}
@@ -189,7 +193,7 @@ const FeaturedApartments = () => {
               <div className="relative">
                 <div
                   ref={premiumStripRef}
-                  className="flex gap-4 min-w-max overflow-x-auto pb-2 scroll-smooth"
+                  className="flex gap-4 min-w-max overflow-x-auto pb-2 scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']"
                 >
                   {apartments.filter(a => a.isPremium).map((apartment, index) => (
                     <div
