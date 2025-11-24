@@ -619,16 +619,11 @@ export default function RatesAvailability() {
                                   } ${inSel ? 'ring-2 ring-[#a06b42] bg-[#f5f0e8] border-[#d4c4b0]' : ''} ${
                                     singleClickMode && d ? 'cursor-pointer hover:scale-105' : ''
                                   }`}
-                                  title={d && singleClickMode ? (closed ? 'Click to unlock date 🔓' : 'Click to lock date 🔒') : ''}
+                                  title={d && singleClickMode ? (closed ? 'Click to unlock date' : 'Click to lock date') : ''}
                                 >
                                   {d ? (
                                     <div className="flex flex-col items-center">
                                       <span>{d.getDate()}</span>
-                                      {singleClickMode && (
-                                        <span className="text-[10px] opacity-70">
-                                          {closed ? '🔒' : '🔓'}
-                                        </span>
-                                      )}
                                     </div>
                                   ) : ''}
                                 </button>
@@ -636,8 +631,8 @@ export default function RatesAvailability() {
                             })}
                           </div>
                           <div className="mt-2 flex items-center gap-2 text-xs">
-                            <span className="inline-flex items-center gap-1"><span className="w-3 h-3 inline-block bg-red-200 rounded border border-red-400"></span>🔒 Locked (Closed)</span>
-                            <span className="inline-flex items-center gap-1"><span className="w-3 h-3 inline-block bg-green-100 rounded border border-green-300"></span>🔓 Unlocked (Open)</span>
+                            <span className="inline-flex items-center gap-1"><span className="w-3 h-3 inline-block bg-red-200 rounded border border-red-400"></span>Locked (Closed)</span>
+                            <span className="inline-flex items-center gap-1"><span className="w-3 h-3 inline-block bg-green-100 rounded border border-green-300"></span>Unlocked (Open)</span>
                             {!singleClickMode && (
                               <span className="inline-flex items-center gap-1"><span className="w-3 h-3 inline-block bg-[#e8dcc8] rounded border border-[#d4c4b0]"></span>Selected range</span>
                             )}
@@ -709,7 +704,15 @@ export default function RatesAvailability() {
                                     key={d.toISOString()}
                                     className={`px-1 py-1 text-center border-l border-[#f0e6d9] ${cls}`}
                                   >
-                                    <div className="text-[10px] font-semibold">{closed ? 'Closed' : 'Open'}</div>
+                                    <button
+                                      type="button"
+                                      disabled={!singleClickMode}
+                                      onClick={() => singleClickMode && onDayClick(room, d)}
+                                      className={`w-full h-full flex flex-col items-center justify-center ${singleClickMode ? 'cursor-pointer hover:opacity-90' : 'cursor-default'}`}
+                                      title={singleClickMode ? (closed ? 'Click to unlock date' : 'Click to lock date') : ''}
+                                    >
+                                      <span className="text-[10px] font-semibold">{closed ? 'Closed' : 'Open'}</span>
+                                    </button>
                                   </td>
                                 );
                               })}
