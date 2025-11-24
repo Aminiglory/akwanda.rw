@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import ReceiptPreview from '../components/ReceiptPreview';
 import toast from 'react-hot-toast';
 import SuccessModal from '../components/SuccessModal';
@@ -13,6 +14,9 @@ const makeAbsolute = (u) => {
 };
 
 export default function OwnerAttractionsDashboard() {
+  const [searchParams] = useSearchParams();
+  const propertyContextId = searchParams.get('property') || '';
+  const [propertyContextLabel, setPropertyContextLabel] = useState('');
   const [items, setItems] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [bookingFilters, setBookingFilters] = useState({ status: '', from: '', to: '' });
@@ -93,6 +97,29 @@ export default function OwnerAttractionsDashboard() {
   }
 
   useEffect(() => { loadMine(); }, []);
+
+  // Load human-readable property context label when propertyContextId is present
+  useEffect(() => {
+    if (!propertyContextId) {
+      setPropertyContextLabel('');
+      return;
+    }
+    (async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/properties/${propertyContextId}`, { credentials: 'include' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Failed to load property');
+        const p = data.property || data;
+        const id = String(p._id || propertyContextId);
+        const code = p.propertyNumber || id.slice(-6) || 'N/A';
+        const name = p.title || p.name || 'Property';
+        setPropertyContextLabel(`#${code} - ${name}`);
+      } catch (e) {
+        console.error('[Attractions][propertyContext] error', e);
+        setPropertyContextLabel(propertyContextId);
+      }
+    })();
+  }, [propertyContextId]);
 
   function reset() { setForm(empty); }
 
@@ -180,17 +207,22 @@ export default function OwnerAttractionsDashboard() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-6">
-      {/* Owner tabs */}
+      {/* Owner section label */}
       <div className="mb-4 flex items-center justify-between gap-2">
-        <div className="inline-flex rounded-lg overflow-hidden border border-[#d4c4b0]">
-          <a href="/owner/cars" className={`px-3 py-2 text-sm ${isActiveTab('/owner/cars') ? 'bg-[#a06b42] text-white' : 'bg-[#f6e9d8] text-[#4b2a00] hover:bg-[#e8dcc8]'}`}>Vehicles</a>
-          <a href="/owner/attractions" className={`px-3 py-2 text-sm ${isActiveTab('/owner/attractions') ? 'bg-[#a06b42] text-white' : 'bg-[#f6e9d8] text-[#4b2a00] hover:bg-[#e8dcc8]'}`}>Attractions</a>
+        <div className="inline-flex rounded-lg overflow-hidden border border-[#d4c4b0] bg-[#a06b42] text-white px-3 py-2 text-sm">
+          Attractions
         </div>
         <div className="inline-flex rounded-lg overflow-hidden border">
           <button onClick={()=>setViewMode('cards')} className={`px-3 py-2 text-sm ${viewMode==='cards' ? 'bg-[#a06b42] text-white' : 'bg-white text-gray-700'}`}>Cards</button>
           <button onClick={()=>setViewMode('table')} className={`px-3 py-2 text-sm ${viewMode==='table' ? 'bg-[#a06b42] text-white' : 'bg-white text-gray-700'}`}>Table</button>
         </div>
       </div>
+
+      {propertyContextId && (
+        <div className="mb-2 text-xs text-gray-600">
+          You are managing property context: <span className="font-semibold">{propertyContextLabel || propertyContextId}</span>
+        </div>
+      )}
 
       <h1 className="text-2xl font-bold text-gray-900 mb-4">My Attractions</h1>
 

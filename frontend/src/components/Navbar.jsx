@@ -1062,16 +1062,23 @@ const Navbar = () => {
                 {/* Property selector (desktop) - next to logo in owner dashboard */}
                 {isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard() && myProperties.length > 0 && (
                   <div className="hidden lg:block">
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-2">
                       <select
                         className="px-3 py-2 border border-[#d4c4b0] rounded-lg bg-white text-sm text-[#4b2a00] focus:outline-none focus:ring-2 focus:ring-[#a06b42]"
                         title={t ? t('banner.choosePropertyToManage') : 'Choose property to manage'}
                         value={selectedPropertyId}
                         onChange={(e) => {
                           const id = e.target.value;
-                          if (id) {
-                            window.open(`/dashboard?property=${id}`, '_blank');
-                          }
+                          if (!id) return;
+                          // Persist selected property for all owner links by updating state and URL ?property=
+                          setSelectedPropertyId(id);
+                          try {
+                            const params = new URLSearchParams(location.search || '');
+                            params.set('property', String(id));
+                            navigate({ pathname: location.pathname, search: params.toString() }, { replace: true });
+                          } catch (_) {}
+                          // Also open the enhanced owner dashboard in a new tab for this property
+                          window.open(`/dashboard?property=${id}`, '_blank', 'noopener,noreferrer');
                         }}
                       >
                         {myProperties.map((p) => {
@@ -1083,93 +1090,26 @@ const Navbar = () => {
                           );
                         })}
                       </select>
-                    </div>
-                  </div>
-                )}
-                {/* Vehicle selector temporarily hidden - will be relocated later */}
-                {false && isAuthenticated && user?.userType === 'host' && isInAnyOwnerDashboard() && myCars.length > 0 && (
-                  <div className="hidden lg:block">
-                    <div className="flex items-center gap-1">
-                      <select
-                        className="px-3 py-2 border border-[#d4c4b0] rounded-lg bg-white text-sm text-[#4b2a00] focus:outline-none focus:ring-2 focus:ring-[#a06b42]"
-                        title={t ? t('banner.chooseCarToManage') : 'Choose car to manage'}
-                        defaultValue={myCars[0]?._id}
-                        onChange={(e) => {
-                          const id = e.target.value;
-                          if (id) {
-                            window.open(`/owner/cars?car=${id}`, '_blank');
-                          }
-                        }}
+
+                      {/* Dashboard categories for host management: Vehicles & Attractions */}
+                      <button
+                        type="button"
+                        className="px-3 py-2 rounded-lg border border-[#d4c4b0] bg-white text-xs font-medium text-[#4b2a00] hover:bg-[#f4e5d4]"
+                        onClick={() => window.open('/owner/cars', '_blank', 'noopener,noreferrer')}
                       >
-                        {myCars.map((c) => {
-                          const id = String(c._id || '');
-                          const code = c.vehicleNumber || id.slice(-6) || 'N/A';
-                          const name = c.title || c.name || 'Car';
-                          return (
-                            <option key={id} value={id}>{`#${code} - ${name}`}</option>
-                          );
-                        })}
-                      </select>
+                        Vehicles
+                      </button>
+                      <button
+                        type="button"
+                        className="px-3 py-2 rounded-lg border border-[#d4c4b0] bg-white text-xs font-medium text-[#4b2a00] hover:bg-[#f4e5d4]"
+                        onClick={() => window.open('/owner/attractions', '_blank', 'noopener,noreferrer')}
+                      >
+                        Attractions
+                      </button>
                     </div>
                   </div>
                 )}
 
-                {/* Main Navigation Items - Show for guests and hide for property owners in dashboard */}
-                {user?.userType !== "admin" && (user?.userType !== 'host' || !isInPropertyOwnerDashboard()) && (
-                  <div className="hidden lg:flex items-center space-x-1">
-                  {mainNavItems.map((item, index) => {
-                    const Icon = item.icon;
-                    const isActive = isActiveRoute(item.href);
-                    const isDropdownOpen = activeDropdown === item.label;
-
-                    return (
-                      <div key={index} className="relative group">
-                        <button
-                          onClick={() => toggleDropdown(item.label)}
-                          className={`flex items-center space-x-1 px-3 py-2 rounded-lg transition-all duration-300 font-medium text-sm ${isActive
-                              ? "bg-[#a06b42] text-white shadow-md"
-                              : "text-[#6b5744] hover:text-[#4b2a00] hover:bg-[#e8dcc8]"
-                            }`}
-                        >
-                          <Icon className="text-sm" />
-                          <span>{item.label}</span>
-                          <FaCaretDown className={`text-xs transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
-                        </button>
-
-                        {/* Dropdown Menu */}
-                        {isDropdownOpen && (
-                          <div className="main-nav-dropdown absolute top-full left-0 mt-1 w-64 bg-white rounded-xl shadow-2xl border border-gray-200 py-3">
-                            {item.children
-                              .filter((child) => {
-                                const href = String(child.href || '');
-                                const ownerOnly = href.startsWith('/owner');
-                                if (ownerOnly) return user?.userType === 'host' || user?.userType === 'admin';
-                                return true;
-                              })
-                              .map((child, childIndex) => {
-                                const ChildIcon = child.icon;
-                                const isChildActive = isActiveRoute(child.href);
-                                return (
-                                  <Link
-                                    key={childIndex}
-                                    to={child.href}
-                                    className={`flex items-center space-x-3 px-4 py-3 text-sm text-[#4b2a00] hover:bg-white transition-colors ${isChildActive ? 'bg-white text-[#4b2a00]' : 'text-[#4b2a00]'
-                                      }`}
-                                    onClick={() => setActiveDropdown(null)}
-                                  >
-                                    <ChildIcon className="text-sm" />
-                                    <span>{child.label}</span>
-                                    {isChildActive && <FaChevronRight className="text-xs ml-auto" />}
-                                  </Link>
-                                );
-                              })}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                  </div>
-                )}
               </div>
 
               {/* Right Side - Booking.com Style */}
@@ -1513,7 +1453,7 @@ const Navbar = () => {
           {user?.userType === 'host' && isInPropertyOwnerDashboard() && myProperties.length > 0 && (
             <div className="px-4 py-3">
               <div className="text-xs font-semibold text-[#6b5744] mb-2">{t ? t('banner.manageProperty') : 'Manage property'}</div>
-              <div className="grid grid-cols-1 gap-2">
+              <div className="grid grid-cols-1 gap-2 mb-3">
                 {myProperties.map((p) => (
                   <Link
                     key={p._id}
@@ -1524,6 +1464,24 @@ const Navbar = () => {
                     {p.title || p.name || p.propertyNumber}
                   </Link>
                 ))}
+              </div>
+
+              {/* Dashboard categories for host management: Vehicles & Attractions (mobile) */}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  className="flex-1 px-3 py-2 rounded-lg border border-[#d4c4b0] bg-white text-xs font-medium text-[#4b2a00] hover:bg-[#f4e5d4]"
+                  onClick={() => window.open('/owner/cars', '_blank', 'noopener,noreferrer')}
+                >
+                  Vehicles
+                </button>
+                <button
+                  type="button"
+                  className="flex-1 px-3 py-2 rounded-lg border border-[#d4c4b0] bg-white text-xs font-medium text-[#4b2a00] hover:bg-[#f4e5d4]"
+                  onClick={() => window.open('/owner/attractions', '_blank', 'noopener,noreferrer')}
+                >
+                  Attractions
+                </button>
               </div>
             </div>
           )}

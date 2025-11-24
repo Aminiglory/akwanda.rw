@@ -72,6 +72,8 @@ export default function CarOwnerDashboard() {
     return Number.isNaN(mo) ? 0 : mo;
   });
   const [view, setView] = useState('overview'); // 'overview' | 'vehicles' | 'bookings'
+  const propertyContextId = searchParams.get('property') || '';
+  const [propertyContextLabel, setPropertyContextLabel] = useState('');
 
   async function loadData() {
     try {
@@ -95,6 +97,29 @@ export default function CarOwnerDashboard() {
       setBookings([]);
     } finally { setLoading(false); }
   }
+
+  // Load human-readable property context label when propertyContextId is present
+  useEffect(() => {
+    if (!propertyContextId) {
+      setPropertyContextLabel('');
+      return;
+    }
+    (async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/properties/${propertyContextId}`, { credentials: 'include' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Failed to load property');
+        const p = data.property || data;
+        const id = String(p._id || propertyContextId);
+        const code = p.propertyNumber || id.slice(-6) || 'N/A';
+        const name = p.title || p.name || 'Property';
+        setPropertyContextLabel(`#${code} - ${name}`);
+      } catch (e) {
+        console.error('[Vehicles][propertyContext] error', e);
+        setPropertyContextLabel(propertyContextId);
+      }
+    })();
+  }, [propertyContextId]);
 
   function exportBookingsCsv() {
     const rows = [['Vehicle','Renter','Pickup','Return','Days','Amount','Status']];
@@ -440,13 +465,17 @@ export default function CarOwnerDashboard() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-6">
-      {/* Owner tabs */}
+      {/* Owner section label */}
       <div className="mb-4 flex items-center justify-between gap-2">
-        <div className="inline-flex rounded-lg overflow-hidden border border-[#d4c4b0]">
-          <a href="/owner/cars" className={`px-3 py-2 text-sm ${location.pathname.startsWith('/owner/cars') ? 'bg-[#a06b42] text-white' : 'bg-[#f6e9d8] text-[#4b2a00] hover:bg-[#e8dcc8]'}`}>Vehicles</a>
-          <a href="/owner/attractions" className={`px-3 py-2 text-sm ${location.pathname.startsWith('/owner/attractions') ? 'bg-[#a06b42] text-white' : 'bg-[#f6e9d8] text-[#4b2a00] hover:bg-[#e8dcc8]'}`}>Attractions</a>
+        <div className="inline-flex rounded-lg overflow-hidden border border-[#d4c4b0] bg-[#a06b42] text-white px-3 py-2 text-sm">
+          Vehicles
         </div>
       </div>
+      {propertyContextId && (
+        <div className="mb-2 text-xs text-gray-600">
+          You are managing property context: <span className="font-semibold">{propertyContextLabel || propertyContextId}</span>
+        </div>
+      )}
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-2xl font-bold text-gray-900">My Vehicles</h1>
         <div className="flex flex-wrap items-center gap-2">
