@@ -6,7 +6,6 @@ import LandingAttractions from '../components/LandingAttractions';
 import OurMission from '../components/OurMission';
 import HowItWorks from '../components/HowItWorks';
 import Testimonials from '../components/Testimonials';
-import ImageLoadingBar from '../components/ImageLoadingBar';
 import LazyImage from '../components/LazyImage';
 import { useLocale } from '../contexts/LocaleContext';
 import { useLazyLoading, useImagePreloader } from '../hooks/useLazyLoading';
@@ -23,22 +22,11 @@ const Home = () => {
 
   const [featuredSection, setFeaturedSection] = useState(null);
   const [partnersSection, setPartnersSection] = useState(null);
-  const [totalExpectedImages, setTotalExpectedImages] = useState(0);
-  const [showLoadingBar, setShowLoadingBar] = useState(false);
 
-  // Initialize universal lazy loading system
+  // Initialize universal lazy loading system (no loading bar UI)
   const { stats, isInitialized } = useLazyLoading({
     autoInit: true,
-    convertExisting: true, // Convert existing images to lazy loading
-    onStatsChange: (newStats) => {
-      // Update loading bar based on lazy loading progress
-      if (newStats.total > 0) {
-        const progress = (newStats.loaded + newStats.failed) / newStats.total;
-        if (progress >= 1) {
-          setTimeout(() => setShowLoadingBar(false), 1500);
-        }
-      }
-    }
+    convertExisting: true
   });
 
   const { preloadImages } = useImagePreloader();
@@ -54,29 +42,6 @@ const Home = () => {
         const partnersSec = sections.find((s) => s?.key === 'partners') || null;
         setFeaturedSection(sec);
         setPartnersSection(partnersSec);
-        
-        // Estimate expected images for loading bar (simple heuristic)
-        let expectedTotal = 0;
-
-        if (data?.content?.heroImages?.length > 0) {
-          expectedTotal += Math.min(data.content.heroImages.length, 3);
-        }
-
-        if (sec?.images?.length > 0) {
-          expectedTotal += Math.min(sec.images.length, 8);
-        }
-
-        if (partnersSec?.images?.length > 0) {
-          expectedTotal += partnersSec.images.length;
-        }
-
-        // Fallback baseline if nothing else
-        if (expectedTotal === 0) {
-          expectedTotal = 8;
-        }
-
-        setTotalExpectedImages(expectedTotal);
-        setShowLoadingBar(true);
       } catch (_) {
         setFeaturedSection(null);
       }
@@ -121,19 +86,6 @@ const Home = () => {
   }, [partnersSection]);
   return (
     <div>
-      {/* Image Loading Bar */}
-      <ImageLoadingBar 
-        isVisible={showLoadingBar}
-        totalImages={totalExpectedImages}
-        onComplete={() => {
-          console.log('All images loaded successfully!');
-          setTimeout(() => setShowLoadingBar(false), 1500);
-        }}
-        showPercentage={true}
-        autoHide={true}
-        hideDelay={1500}
-      />
-      
       {/* Hero Section with chocolate theme background */}
       <div className="bg-gradient-to-br from-[#6b3f1f] via-[#a06b42] to-[#c59b77]">
         <Hero />
@@ -148,7 +100,11 @@ const Home = () => {
         {featuredCards.length > 0 && (
           <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
             <div className="flex items-center justify-between mb-6 gap-4">
-              <h2 className="text-2xl md:text-3xl font-bold text-[#4b2a00]">{t ? t('home.featuredDestinations') : 'Featured destinations'}</h2>
+              <h2 className="text-2xl md:text-3xl font-bold text-[#4b2a00]">
+                {featuredSection?.title
+                  ? featuredSection.title
+                  : (t ? t('home.featuredDestinations') : 'Featured destinations')}
+              </h2>
               <a
                 href="/apartments"
                 className="hidden sm:inline-flex items-center text-sm font-medium text-[#a06b42] hover:text-[#8f5a32] hover:underline"

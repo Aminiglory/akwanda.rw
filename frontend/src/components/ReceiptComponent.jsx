@@ -113,6 +113,10 @@ const ReceiptComponent = ({ bookingId, userType }) => {
     );
   }
 
+  const services = receipt.services || {};
+  const propertyAddOns = Array.isArray(receipt.property?.addOnServices) ? receipt.property.addOnServices : [];
+  const selectedAddOns = propertyAddOns.filter(a => a && a.key && services[a.key]);
+
   // Begin JSX
   return (
     <div id="receipt-content" className="max-w-3xl mx-auto p-6 bg-white rounded-xl border">
