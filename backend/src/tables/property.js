@@ -50,6 +50,16 @@ const propertySchema = new mongoose.Schema(
     bathrooms: { type: Number, default: 1, min: 0 },
     maxGuests: { type: Number, default: 2, min: 1 },
     amenities: [{ type: String }],
+    // Per-property add-on services configuration (selected from global catalog)
+    addOnServices: [{
+      key: { type: String },    // catalog key, e.g. 'breakfast', 'airport_transfer'
+      name: { type: String },   // label shown to guests
+      description: { type: String },
+      enabled: { type: Boolean, default: true },
+      price: { type: Number, default: 0, min: 0 },
+      scope: { type: String, enum: ['per_booking','per_night','per_guest'], default: 'per_booking' },
+      includedItems: [{ type: String }]
+    }],
     images: [{ type: String }],
     host: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     isActive: { type: Boolean, default: true },
