@@ -96,9 +96,7 @@ const Home = () => {
       const [namePart, taglinePart] = raw.split('|');
       const name = (namePart || '').trim() || `Destination ${i + 1}`;
       const tagline = (taglinePart || '').trim();
-      const src = typeof img === 'string' && /^https?:\/\//i.test(img)
-        ? img
-        : `${API_URL}${String(img || '').startsWith('/') ? img : `/${img}`}`;
+      const src = makeAbsoluteImageUrl(img);
       return { name, tagline, img: src };
     });
   }, [featuredSection]);
@@ -117,9 +115,7 @@ const Home = () => {
       const name = (parts[0] || '').trim() || `Partner ${i + 1}`;
       const tagline = (parts[1] || '').trim();
       const url = (parts[2] || '').trim();
-      const src = typeof img === 'string' && /^https?:\/\//i.test(img)
-        ? img
-        : `${API_URL}${String(img || '').startsWith('/') ? img : `/${img}`}`;
+      const src = makeAbsoluteImageUrl(img);
       return { name, tagline, url, img: src };
     });
   }, [partnersSection]);
