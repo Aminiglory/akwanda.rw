@@ -16,6 +16,7 @@ import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import BookingCalendar from '../components/BookingCalendar';
 import { useLocale } from '../contexts/LocaleContext';
+import FinancePanel from '../components/FinancePanel';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -1836,24 +1837,28 @@ const PropertyOwnerBookings = () => {
 
         {activeTab === 'finance' && (
           <div className="space-y-8">
-            {/* Finance View Tabs */}
-            <div className="flex space-x-2 border-b border-gray-200 mb-6">
-              {['overview', 'invoices', 'statement'].map((view) => (
-                <button
-                  key={view}
-                  onClick={() => setFinanceView(view)}
-                  className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
-                    financeView === view
-                      ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  {view === 'overview' ? 'Financial Overview' : view === 'invoices' ? 'Invoices' : 'Reservations Statement'}
-                </button>
-              ))}
-            </div>
+            {financeView === 'expenses' ? (
+              <FinancePanel propertyOptions={properties} activeSection="expenses" />
+            ) : (
+              <>
+                {/* Finance View Tabs */}
+                <div className="flex space-x-2 border-b border-gray-200 mb-6">
+                  {['overview', 'invoices', 'statement'].map((view) => (
+                    <button
+                      key={view}
+                      onClick={() => setFinanceView(view)}
+                      className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
+                        financeView === view
+                          ? 'border-blue-500 text-blue-600'
+                          : 'border-transparent text-gray-500 hover:text-gray-700'
+                      }`}
+                    >
+                      {view === 'overview' ? 'Financial Overview' : view === 'invoices' ? 'Invoices' : 'Reservations Statement'}
+                    </button>
+                  ))}
+                </div>
 
-            {financeView === 'overview' && (
+                {financeView === 'overview' && (
               <div className="neu-card p-6 rounded-2xl border border-[#e0d5c7] bg-white">
                 <h2 className="text-xl font-semibold mb-6 text-[#4b2a00]">Financial overview</h2>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -2011,6 +2016,8 @@ const PropertyOwnerBookings = () => {
                   )}
                 </div>
               </div>
+            )}
+              </>
             )}
           </div>
         )}
