@@ -2,6 +2,7 @@ const { Router } = require('express');
 const jwt = require('jsonwebtoken');
 const Booking = require('../tables/booking');
 const Property = require('../tables/property');
+const Expense = require('../tables/expense');
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
@@ -135,6 +136,148 @@ router.get('/payouts', requireAuth, async (req, res) => {
     // No dedicated payout model yet; return placeholder list
     res.json({ payouts: [] });
   } catch (e) { res.status(500).json({ message: 'Failed to load payouts' }); }
+});
+
+// POST /api/finance/expenses
+router.post('/expenses', requireAuth, async (req, res) => {
+  try {
+    const { property: propertyId, date, amount, category, note } = req.body || {};
+    if (!propertyId || !date || !amount) {
+      return res.status(400).json({ message: 'property, date and amount are required' });
+    }
+
+    const property = await Property.findById(propertyId).select('host title');
+    if (!property) return res.status(404).json({ message: 'Property not found' });
+    const isOwner = String(property.host) === String(req.user.id);
+    const isAdmin = req.user.userType === 'admin';
+    if (!isOwner && !isAdmin) return res.status(403).json({ message: 'Forbidden' });
+
+    const exp = await Expense.create({
+      host: property.host,
+      property: property._id,
+      date: new Date(date),
+      amount: Number(amount),
+      category: category || 'general',
+      note: note || ''
+    });
+
+    return res.status(201).json({ expense: exp });
+  } catch (e) {
+    console.error('Expense create error', e);
+    return res.status(500).json({ message: 'Failed to record expense' });
+  }
+});
+
+// GET /api/finance/expenses?property=<id>&from=YYYY-MM-DD&to=YYYY-MM-DD
+router.get('/expenses', requireAuth, async (req, res) => {
+  try {
+    const { property: propertyId, from, to } = req.query;
+    if (!propertyId) return res.json({ expenses: [] });
+
+    const property = await Property.findById(propertyId).select('host title');
+    if (!property) return res.json({ expenses: [] });
+    const isOwner = String(property.host) === String(req.user.id);
+    const isAdmin = req.user.userType === 'admin';
+    if (!isOwner && !isAdmin) return res.status(403).json({ message: 'Forbidden' });
+
+    const query = { property: propertyId };
+    if (from || to) {
+      query.date = {};
+      if (from) query.date.$gte = new Date(from);
+      if (to) {
+        const end = new Date(to);
+        end.setHours(23, 59, 59, 999);
+        query.date.$lte = end;
+      }
+    }
+
+    const expenses = await Expense.find(query).sort({ date: -1, createdAt: -1 });
+    const total = expenses.reduce((s, e) => s + Number(e.amount || 0), 0);
+
+    return res.json({ expenses, total });
+  } catch (e) {
+    console.error('Expenses fetch error', e);
+    return res.status(500).json({ message: 'Failed to load expenses' });
+  }
+});
+
+// GET /api/finance/summary?property=<id>&range=weekly|monthly|annual&date=YYYY-MM-DD
+router.get('/summary', requireAuth, async (req, res) => {
+  try {
+    const { property: propertyId, range = 'monthly', date } = req.query;
+    if (!propertyId) return res.status(400).json({ message: 'property is required' });
+
+    const property = await Property.findById(propertyId).select('host title');
+    if (!property) return res.status(404).json({ message: 'Property not found' });
+    const isOwner = String(property.host) === String(req.user.id);
+    const isAdmin = req.user.userType === 'admin';
+    if (!isOwner && !isAdmin) return res.status(403).json({ message: 'Forbidden' });
+
+    const base = date ? new Date(date) : new Date();
+    let start;
+    let end;
+
+    if (range === 'weekly') {
+      // Use Monday as start of week
+      const day = base.getDay(); // 0 (Sun) - 6 (Sat)
+      const diffToMonday = (day + 6) % 7; // 0 if Monday
+      start = new Date(base);
+      start.setDate(base.getDate() - diffToMonday);
+      start.setHours(0, 0, 0, 0);
+      end = new Date(start);
+      end.setDate(start.getDate() + 7);
+    } else if (range === 'annual') {
+      start = new Date(base.getFullYear(), 0, 1);
+      end = new Date(base.getFullYear() + 1, 0, 1);
+    } else {
+      // monthly
+      start = new Date(base.getFullYear(), base.getMonth(), 1);
+      end = new Date(base.getFullYear(), base.getMonth() + 1, 1);
+    }
+
+    // Bookings in period
+    const bookings = await Booking.find({
+      property: propertyId,
+      status: { $nin: ['cancelled'] },
+      checkIn: { $lt: end },
+      checkOut: { $gt: start }
+    }).select('totalAmount amountBeforeTax commissionAmount');
+
+    const revenueTotal = bookings.reduce((s, b) => s + Number(b.totalAmount || 0), 0);
+    const earningsTotal = bookings.reduce((s, b) => {
+      const baseAmount = Number(b.amountBeforeTax || b.totalAmount || 0);
+      const commission = Number(b.commissionAmount || 0);
+      return s + (baseAmount - commission);
+    }, 0);
+
+    // Expenses in period
+    const expenses = await Expense.find({
+      property: propertyId,
+      date: { $gte: start, $lt: end }
+    }).select('amount');
+
+    const expensesTotal = expenses.reduce((s, e) => s + Number(e.amount || 0), 0);
+
+    const grossProfit = revenueTotal - expensesTotal;
+    const netProfit = earningsTotal - expensesTotal;
+
+    return res.json({
+      period: {
+        range,
+        start: start.toISOString(),
+        end: end.toISOString()
+      },
+      property: { _id: property._id, title: property.title },
+      revenueTotal,
+      earningsTotal,
+      expensesTotal,
+      grossProfit,
+      netProfit
+    });
+  } catch (e) {
+    console.error('Finance summary error', e);
+    return res.status(500).json({ message: 'Failed to load finance summary' });
+  }
 });
 
 module.exports = router;

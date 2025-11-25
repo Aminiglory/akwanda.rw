@@ -1,18 +1,55 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-const FinancePanel = ({ propertyOptions = [] }) => {
+const FinancePanel = ({ propertyOptions = [], activeSection = 'ledger' }) => {
   const [loading, setLoading] = useState(false);
   const [ledger, setLedger] = useState([]);
   const [invoices, setInvoices] = useState([]);
   const [payouts, setPayouts] = useState([]);
   const [filters, setFilters] = useState({ propertyId: '', month: '' });
+  const [section, setSection] = useState(activeSection || 'ledger');
+
+  const [expenseForm, setExpenseForm] = useState({ date: '', amount: '', category: '', note: '' });
+  const [savingExpense, setSavingExpense] = useState(false);
+  const [expenses, setExpenses] = useState([]);
+  const [expensesTotal, setExpensesTotal] = useState(0);
+  const [expenseFilters, setExpenseFilters] = useState({ from: '', to: '' });
+
+  const [summaryRange, setSummaryRange] = useState('monthly'); // weekly | monthly | annual
+  const [summaryDate, setSummaryDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [summary, setSummary] = useState(null);
+
+  const ledgerRef = useRef(null);
+  const invoicesRef = useRef(null);
+  const payoutsRef = useRef(null);
+
+  useEffect(() => {
+    setSection(activeSection || 'ledger');
+  }, [activeSection]);
 
   const formatCurrency = (n) => `RWF ${Number(n || 0).toLocaleString()}`;
 
-  const load = async () => {
+  const scrollToSection = (target) => {
+    const map = {
+      ledger: ledgerRef,
+      invoices: invoicesRef,
+      payouts: payoutsRef,
+    };
+    const ref = map[target];
+    if (ref && ref.current) {
+      try {
+        ref.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } catch (_) {}
+    }
+  };
+
+  useEffect(() => {
+    scrollToSection(section);
+  }, [section]);
+
+  const loadCoreFinance = async () => {
     setLoading(true);
     try {
       const q = new URLSearchParams();
@@ -27,13 +64,99 @@ const FinancePanel = ({ propertyOptions = [] }) => {
       if (!lRes.ok) throw new Error(lData.message || 'Failed to load ledger');
       if (!iRes.ok) throw new Error(iData.message || 'Failed to load invoices');
       if (!pRes.ok) throw new Error(pData.message || 'Failed to load payouts');
-      setLedger(lData.ledger || []);
+      setLedger(lData.entries || lData.ledger || []);
       setInvoices(iData.invoices || []);
       setPayouts(pData.payouts || []);
     } catch (e) { toast.error(e.message); } finally { setLoading(false); }
   };
 
-  useEffect(() => { load(); /* eslint-disable-line */ }, [filters.propertyId, filters.month]);
+  useEffect(() => { loadCoreFinance(); /* eslint-disable-line */ }, [filters.propertyId, filters.month]);
+
+  const loadExpenses = async () => {
+    if (!filters.propertyId) {
+      setExpenses([]);
+      setExpensesTotal(0);
+      return;
+    }
+    try {
+      const q = new URLSearchParams();
+      q.set('property', filters.propertyId);
+      if (expenseFilters.from) q.set('from', expenseFilters.from);
+      if (expenseFilters.to) q.set('to', expenseFilters.to);
+      const res = await fetch(`${API_URL}/api/finance/expenses?${q.toString()}`, { credentials: 'include' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || 'Failed to load expenses');
+      setExpenses(Array.isArray(data.expenses) ? data.expenses : []);
+      setExpensesTotal(Number(data.total || 0));
+    } catch (e) {
+      toast.error(e.message || 'Failed to load expenses');
+    }
+  };
+
+  const loadSummary = async () => {
+    if (!filters.propertyId) {
+      setSummary(null);
+      return;
+    }
+    try {
+      const q = new URLSearchParams();
+      q.set('property', filters.propertyId);
+      q.set('range', summaryRange);
+      if (summaryDate) q.set('date', summaryDate);
+      const res = await fetch(`${API_URL}/api/finance/summary?${q.toString()}`, { credentials: 'include' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || 'Failed to load summary');
+      setSummary(data);
+    } catch (e) {
+      toast.error(e.message || 'Failed to load summary');
+      setSummary(null);
+    }
+  };
+
+  useEffect(() => {
+    loadExpenses();
+    loadSummary();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.propertyId, summaryRange, summaryDate]);
+
+  const handleAddExpense = async (e) => {
+    e.preventDefault();
+    if (!filters.propertyId) {
+      toast.error('Select a property first');
+      return;
+    }
+    const amountNumber = Number(expenseForm.amount || 0);
+    if (!amountNumber || amountNumber <= 0) {
+      toast.error('Enter a valid amount');
+      return;
+    }
+    const date = expenseForm.date || new Date().toISOString().slice(0, 10);
+    try {
+      setSavingExpense(true);
+      const res = await fetch(`${API_URL}/api/finance/expenses`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          property: filters.propertyId,
+          date,
+          amount: amountNumber,
+          category: expenseForm.category || 'general',
+          note: expenseForm.note || '',
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || 'Failed to record expense');
+      toast.success('Expense recorded');
+      setExpenseForm({ date: '', amount: '', category: '', note: '' });
+      await loadExpenses();
+      await loadSummary();
+    } catch (err) {
+      toast.error(err.message || 'Failed to record expense');
+    } finally {
+      setSavingExpense(false);
+    }
+  };
 
   const totals = useMemo(() => {
     const commission = ledger.reduce((s, r) => s + (r.commissionAmount || 0), 0);
@@ -75,8 +198,66 @@ const FinancePanel = ({ propertyOptions = [] }) => {
         </div>
       </div>
 
-      {/* Ledger */}
+      {/* Profit / Loss Summary */}
       <div className="mb-8">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-3">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">Profit &amp; Loss</h3>
+            <p className="text-xs text-gray-500">Compare your revenue and expenses for a selected period.</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="inline-flex rounded-lg border border-gray-200 overflow-hidden text-xs">
+              {[{id:'weekly',label:'Weekly'},{id:'monthly',label:'Monthly'},{id:'annual',label:'Annual'}].map(opt => (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => setSummaryRange(opt.id)}
+                  className={`px-3 py-1.5 ${summaryRange === opt.id ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            <input
+              type="date"
+              className="border rounded-lg px-3 py-1.5 text-xs"
+              value={summaryDate}
+              onChange={e => setSummaryDate(e.target.value)}
+            />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-white border rounded-lg px-4 py-3">
+            <div className="text-xs text-gray-500 mb-1">Total Revenue</div>
+            <div className="text-lg font-semibold text-gray-900">{formatCurrency(summary?.revenueTotal || 0)}</div>
+          </div>
+          <div className="bg-white border rounded-lg px-4 py-3">
+            <div className="text-xs text-gray-500 mb-1">Total Expenses</div>
+            <div className="text-lg font-semibold text-gray-900">{formatCurrency(summary?.expensesTotal || 0)}</div>
+          </div>
+          <div className="bg-white border rounded-lg px-4 py-3">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs text-gray-500">Net Profit</span>
+              {summary && (
+                <span className={`text-[11px] px-2 py-0.5 rounded-full ${
+                  (summary.netProfit || 0) >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                }`}>
+                  {(summary.netProfit || 0) >= 0 ? 'Profit' : 'Loss'}
+                </span>
+              )}
+            </div>
+            <div className={`text-lg font-semibold ${(summary?.netProfit || 0) >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+              {formatCurrency(summary?.netProfit || 0)}
+            </div>
+            <div className="text-[11px] text-gray-500 mt-1">
+              Gross profit: {formatCurrency(summary?.grossProfit || 0)}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Ledger */}
+      <div className="mb-8" ref={ledgerRef}>
         <h3 className="text-lg font-semibold text-gray-900 mb-3">Commission Ledger</h3>
         {ledger.length === 0 ? (
           <div className="text-sm text-gray-600">No ledger entries.</div>
@@ -115,7 +296,7 @@ const FinancePanel = ({ propertyOptions = [] }) => {
 
       {/* Invoices & Payouts */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
+        <div ref={invoicesRef}>
           <h3 className="text-lg font-semibold text-gray-900 mb-3">Invoices</h3>
           {invoices.length === 0 ? (
             <div className="text-sm text-gray-600">No invoices.</div>
@@ -144,7 +325,7 @@ const FinancePanel = ({ propertyOptions = [] }) => {
             </div>
           )}
         </div>
-        <div>
+        <div ref={payoutsRef}>
           <h3 className="text-lg font-semibold text-gray-900 mb-3">Payouts</h3>
           {payouts.length === 0 ? (
             <div className="text-sm text-gray-600">No payouts.</div>
@@ -172,6 +353,132 @@ const FinancePanel = ({ propertyOptions = [] }) => {
               </table>
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Expenses */}
+      <div className="mt-8 border-t pt-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">Expenses</h3>
+            <p className="text-xs text-gray-500">Record your day-to-day costs to understand your real profit.</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            <input
+              type="date"
+              className="border rounded-lg px-2 py-1"
+              value={expenseFilters.from}
+              onChange={e => setExpenseFilters(prev => ({ ...prev, from: e.target.value }))}
+            />
+            <span className="text-gray-400">to</span>
+            <input
+              type="date"
+              className="border rounded-lg px-2 py-1"
+              value={expenseFilters.to}
+              onChange={e => setExpenseFilters(prev => ({ ...prev, to: e.target.value }))}
+            />
+            <button
+              type="button"
+              onClick={loadExpenses}
+              className="px-3 py-1 rounded-lg border text-gray-700 hover:bg-gray-50"
+            >
+              Apply
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <form onSubmit={handleAddExpense} className="bg-gray-50 rounded-lg p-4 border lg:col-span-1">
+            <div className="mb-3">
+              <label className="block text-xs font-medium text-gray-700 mb-1">Date</label>
+              <input
+                type="date"
+                className="w-full border rounded-lg px-3 py-2 text-sm"
+                value={expenseForm.date}
+                onChange={e => setExpenseForm(prev => ({ ...prev, date: e.target.value }))}
+              />
+            </div>
+            <div className="mb-3">
+              <label className="block text-xs font-medium text-gray-700 mb-1">Amount (RWF)</label>
+              <input
+                type="number"
+                min="0"
+                step="any"
+                className="w-full border rounded-lg px-3 py-2 text-sm"
+                value={expenseForm.amount}
+                onChange={e => setExpenseForm(prev => ({ ...prev, amount: e.target.value }))}
+              />
+            </div>
+            <div className="mb-3">
+              <label className="block text-xs font-medium text-gray-700 mb-1">Category</label>
+              <input
+                type="text"
+                placeholder="e.g. Cleaning, Staff, Utilities"
+                className="w-full border rounded-lg px-3 py-2 text-sm"
+                value={expenseForm.category}
+                onChange={e => setExpenseForm(prev => ({ ...prev, category: e.target.value }))}
+              />
+            </div>
+            <div className="mb-4">
+              <label className="block text-xs font-medium text-gray-700 mb-1">Note</label>
+              <textarea
+                rows={2}
+                className="w-full border rounded-lg px-3 py-2 text-sm"
+                value={expenseForm.note}
+                onChange={e => setExpenseForm(prev => ({ ...prev, note: e.target.value }))}
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={savingExpense}
+              className={`w-full inline-flex items-center justify-center px-4 py-2 rounded-lg text-sm font-medium text-white ${
+                savingExpense ? 'bg-blue-400' : 'bg-blue-600 hover:bg-blue-700'
+              }`}
+            >
+              {savingExpense ? 'Saving…' : 'Add Expense'}
+            </button>
+          </form>
+
+          <div className="lg:col-span-2 bg-white rounded-lg border p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="text-sm font-semibold text-gray-900">Recent Expenses</div>
+              <div className="text-xs text-gray-600">Total: {formatCurrency(expensesTotal)}</div>
+            </div>
+            {expenses.length === 0 ? (
+              <div className="text-sm text-gray-500">No expenses recorded for the selected period.</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Note</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {expenses.map(exp => (
+                      <tr key={exp._id} className="hover:bg-gray-50">
+                        <td className="px-4 py-2 text-xs text-gray-700">
+                          {exp.date ? new Date(exp.date).toLocaleDateString() : ''}
+                        </td>
+                        <td className="px-4 py-2 text-xs text-gray-800">
+                          {exp.category || 'general'}
+                        </td>
+                        <td className="px-4 py-2 text-xs text-gray-600">
+                          {exp.note || '-'}
+                        </td>
+                        <td className="px-4 py-2 text-xs text-right font-semibold text-gray-900">
+                          {formatCurrency(exp.amount)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

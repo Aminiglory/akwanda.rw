@@ -25,6 +25,7 @@ const EnhancedPropertyOwnerDashboard = () => {
   const { user } = useAuth();
   const { formatCurrency } = useLocale() || {};
   const [activeTab, setActiveTab] = useState('overview'); // overview, properties, bookings, analytics
+  const [financeView, setFinanceView] = useState('ledger'); // ledger | invoices | payouts
   const [properties, setProperties] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -51,6 +52,24 @@ const EnhancedPropertyOwnerDashboard = () => {
   const [showMasterCalendar, setShowMasterCalendar] = useState(false);
 
   useEffect(() => {
+    // Sync active tab and finance view from URL params (?tab= & ?view=)
+    try {
+      const params = new URLSearchParams(location.search || '');
+      const tab = params.get('tab');
+      const view = params.get('view');
+      if (tab) {
+        if (['overview', 'properties', 'bookings', 'analytics'].includes(tab)) {
+          setActiveTab(tab);
+        } else if (tab === 'finance') {
+          // Map dedicated Finance nav to Analytics tab where FinancePanel lives
+          setActiveTab('analytics');
+        }
+      }
+      if (view && ['ledger', 'invoices', 'payouts'].includes(view)) {
+        setFinanceView(view);
+      }
+    } catch (_) {}
+
     fetchDashboardData();
   }, [location.search]);
 
@@ -839,12 +858,12 @@ const EnhancedPropertyOwnerDashboard = () => {
           </div>
         )}
 
-        {/* Analytics Tab */}
+        {/* Analytics / Finance Tab */}
         {activeTab === 'analytics' && (
           <div className="space-y-6">
             <AnalyticsPanel propertyOptions={properties} />
             <PromotionsPanel propertyOptions={properties} onChanged={fetchDashboardData} />
-            <FinancePanel propertyOptions={properties} />
+            <FinancePanel propertyOptions={properties} activeSection={financeView} />
           </div>
         )}
       </div>
