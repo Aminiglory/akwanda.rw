@@ -312,7 +312,7 @@ const Navbar = () => {
       children: [
         { label: labelOr('nav.financialOverview', 'Financial overview'), href: attachPropertyParam('/dashboard?tab=finance'), icon: FaChartLine },
         { label: labelOr('nav.invoices', 'Invoices'), href: attachPropertyParam('/dashboard?tab=finance&view=invoices'), icon: FaFileAlt },
-        { label: labelOr('nav.payouts', 'Payouts'), href: attachPropertyParam('/dashboard?tab=finance&view=payouts'), icon: FaMoneyBillWave },
+        { label: labelOr('nav.payouts', 'Payouts'), href: '/transactions', icon: FaMoneyBillWave },
         { label: labelOr('nav.expenses', 'Expenses & profit'), href: attachPropertyParam('/dashboard?tab=finance&view=expenses'), icon: FaDollarSign },
         { label: labelOr('nav.paymentSettings', 'Payment settings'), href: '/settings?tab=payment', icon: FaCog },
       ]
