@@ -1046,7 +1046,7 @@ const Navbar = () => {
         >
           <div className="flex flex-col gap-3">
             <div className="flex justify-between items-center">
-              {/* Logo */}
+              {/* Logo + main navigation (client side) */}
               <div className="flex items-center space-x-4">
                 <Link
                   to="/"
@@ -1107,6 +1107,30 @@ const Navbar = () => {
                         Attractions
                       </button>
                     </div>
+                  </div>
+                )}
+
+                {/* Main Navigation Items - client side (desktop) */}
+                {user?.userType !== 'admin' && !isInAnyOwnerDashboard() && (
+                  <div className="hidden lg:flex items-center space-x-1 ml-4">
+                    {mainNavItems.map((item, index) => {
+                      const Icon = item.icon;
+                      const isActive = isActiveRoute(item.href);
+                      return (
+                        <Link
+                          key={index}
+                          to={item.href}
+                          className={`flex items-center space-x-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                            isActive
+                              ? 'bg-[#a06b42] text-white shadow-sm'
+                              : 'text-[#6b5744] hover:text-[#4b2a00] hover:bg-[#e8dcc8]'
+                          }`}
+                        >
+                          <Icon className="text-sm" />
+                          <span>{item.label}</span>
+                        </Link>
+                      );
+                    })}
                   </div>
                 )}
 
