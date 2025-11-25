@@ -24,6 +24,7 @@ const FinancePanel = ({ propertyOptions = [], activeSection = 'ledger' }) => {
   const ledgerRef = useRef(null);
   const invoicesRef = useRef(null);
   const payoutsRef = useRef(null);
+  const expensesRef = useRef(null);
 
   useEffect(() => {
     setSection(activeSection || 'ledger');
@@ -36,6 +37,7 @@ const FinancePanel = ({ propertyOptions = [], activeSection = 'ledger' }) => {
       ledger: ledgerRef,
       invoices: invoicesRef,
       payouts: payoutsRef,
+      expenses: expensesRef,
     };
     const ref = map[target];
     if (ref && ref.current) {
@@ -357,7 +359,7 @@ const FinancePanel = ({ propertyOptions = [], activeSection = 'ledger' }) => {
       </div>
 
       {/* Expenses */}
-      <div className="mt-8 border-t pt-6">
+      <div className="mt-8 border-t pt-6" ref={expensesRef}>
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
           <div>
             <h3 className="text-lg font-semibold text-gray-900">Expenses</h3>

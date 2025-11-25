@@ -65,7 +65,7 @@ const EnhancedPropertyOwnerDashboard = () => {
           setActiveTab('analytics');
         }
       }
-      if (view && ['ledger', 'invoices', 'payouts'].includes(view)) {
+      if (view && ['ledger', 'invoices', 'payouts', 'expenses'].includes(view)) {
         setFinanceView(view);
       }
     } catch (_) {}

@@ -313,6 +313,7 @@ const Navbar = () => {
         { label: labelOr('nav.financialOverview', 'Financial overview'), href: attachPropertyParam('/dashboard?tab=finance'), icon: FaChartLine },
         { label: labelOr('nav.invoices', 'Invoices'), href: attachPropertyParam('/dashboard?tab=finance&view=invoices'), icon: FaFileAlt },
         { label: labelOr('nav.payouts', 'Payouts'), href: attachPropertyParam('/dashboard?tab=finance&view=payouts'), icon: FaMoneyBillWave },
+        { label: labelOr('nav.expenses', 'Expenses & profit'), href: attachPropertyParam('/dashboard?tab=finance&view=expenses'), icon: FaDollarSign },
         { label: labelOr('nav.paymentSettings', 'Payment settings'), href: '/settings?tab=payment', icon: FaCog },
       ]
     },
@@ -365,6 +366,7 @@ const Navbar = () => {
         { label: t ? t('nav.last30Days') : "Last 30 days", href: "/my-bookings?tab=finance&view=last30" },
         { label: t ? t('nav.monthToDate') : "Month to date", href: "/my-bookings?tab=finance&view=mtd" },
         { label: t ? t('nav.yearToDate') : "Year to date", href: "/my-bookings?tab=finance&view=ytd" },
+        { label: t ? t('nav.expenses') : "Expenses & profit", href: "/dashboard?tab=finance&view=expenses" },
       ]
     },
     {
