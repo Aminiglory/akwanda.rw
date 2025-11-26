@@ -720,7 +720,7 @@ export default function CarOwnerDashboard() {
             <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-100">Basic Information</h3>
           </div>
           
-          <div>
+        <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Vehicle Name *</label>
             <input 
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#a06b42] focus:border-transparent transition-all" 
@@ -728,9 +728,9 @@ export default function CarOwnerDashboard() {
               value={form.vehicleName} 
               onChange={e => setForm({ ...form, vehicleName: e.target.value })} 
             />
-          </div>
+        </div>
           {category === 'car' && (
-            <div>
+          <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">Vehicle Type *</label>
               <select 
                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#a06b42] focus:border-transparent transition-all bg-white" 
@@ -740,11 +740,11 @@ export default function CarOwnerDashboard() {
                 {['economy','compact','mid-size','full-size','luxury','suv','minivan'].map(x => (
                   <option key={x} value={x}>{x.charAt(0).toUpperCase() + x.slice(1)}</option>
                 ))}
-              </select>
-            </div>
-          )}
+            </select>
+          </div>
+        )}
           
-          <div>
+        <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Brand *</label>
             <input 
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#a06b42] focus:border-transparent transition-all" 
@@ -752,8 +752,8 @@ export default function CarOwnerDashboard() {
               value={form.brand} 
               onChange={e => setForm({ ...form, brand: e.target.value })} 
             />
-          </div>
-          <div>
+        </div>
+        <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Model *</label>
             <input 
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#a06b42] focus:border-transparent transition-all" 
@@ -761,8 +761,8 @@ export default function CarOwnerDashboard() {
               value={form.model} 
               onChange={e => setForm({ ...form, model: e.target.value })} 
             />
-          </div>
-          <div>
+        </div>
+        <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Year</label>
             <input 
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#a06b42] focus:border-transparent transition-all" 
@@ -771,13 +771,13 @@ export default function CarOwnerDashboard() {
               value={form.year} 
               onChange={e => setForm({ ...form, year: Number(e.target.value) })} 
             />
-          </div>
+        </div>
           {/* Pricing & Location Section */}
           <div className="md:col-span-3 mt-4">
             <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-100">Pricing & Location</h3>
-          </div>
+        </div>
           
-          <div>
+        <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
               License Plate{category === 'car' ? ' *' : ''}
             </label>
@@ -787,8 +787,8 @@ export default function CarOwnerDashboard() {
               value={form.licensePlate} 
               onChange={e => setForm({ ...form, licensePlate: e.target.value })} 
             />
-          </div>
-          <div>
+        </div>
+        <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Capacity (Seats) *</label>
             <input 
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#a06b42] focus:border-transparent transition-all" 
@@ -797,8 +797,8 @@ export default function CarOwnerDashboard() {
               value={form.capacity} 
               onChange={e => setForm({ ...form, capacity: Number(e.target.value) })} 
             />
-          </div>
-          <div>
+        </div>
+        <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Price per Day (RWF) *</label>
             <input 
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#a06b42] focus:border-transparent transition-all" 
@@ -807,8 +807,8 @@ export default function CarOwnerDashboard() {
               value={form.pricePerDay} 
               onChange={e => setForm({ ...form, pricePerDay: Number(e.target.value) })} 
             />
-          </div>
-          <div>
+        </div>
+        <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Location *</label>
             <input 
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#a06b42] focus:border-transparent transition-all" 
@@ -816,13 +816,13 @@ export default function CarOwnerDashboard() {
               value={form.location} 
               onChange={e => setForm({ ...form, location: e.target.value })} 
             />
-          </div>
+        </div>
           {/* Policies Section */}
           <div className="md:col-span-3 mt-4">
             <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-100">Policies & Details</h3>
-          </div>
+        </div>
           
-          <div>
+        <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Fuel Policy</label>
             <input 
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#a06b42] focus:border-transparent transition-all" 
@@ -830,8 +830,8 @@ export default function CarOwnerDashboard() {
               value={form.fuelPolicy} 
               onChange={e => setForm({ ...form, fuelPolicy: e.target.value })} 
             />
-          </div>
-          <div>
+        </div>
+        <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Mileage Limit per Day (km)</label>
             <input 
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#a06b42] focus:border-transparent transition-all" 
@@ -840,7 +840,7 @@ export default function CarOwnerDashboard() {
               value={form.mileageLimitPerDayKm} 
               onChange={e => setForm({ ...form, mileageLimitPerDayKm: e.target.value })} 
             />
-          </div>
+        </div>
           <div className="md:col-span-2">
             <label className="block text-sm font-semibold text-gray-700 mb-2">Cancellation Policy</label>
             <textarea 
@@ -861,13 +861,13 @@ export default function CarOwnerDashboard() {
             />
           </div>
           {/* Car-Specific Features */}
-          {category === 'car' && (
-            <>
+        {category === 'car' && (
+          <>
               <div className="md:col-span-3 mt-4">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-100">Car Specifications</h3>
               </div>
               
-              <div>
+            <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Transmission *</label>
                 <select 
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#a06b42] focus:border-transparent transition-all bg-white" 
@@ -877,9 +877,9 @@ export default function CarOwnerDashboard() {
                   {['automatic','manual'].map(x => (
                     <option key={x} value={x}>{x.charAt(0).toUpperCase() + x.slice(1)}</option>
                   ))}
-                </select>
-              </div>
-              <div>
+              </select>
+            </div>
+            <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Fuel Type *</label>
                 <select 
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#a06b42] focus:border-transparent transition-all bg-white" 
@@ -889,9 +889,9 @@ export default function CarOwnerDashboard() {
                   {['petrol','diesel','hybrid','electric'].map(x => (
                     <option key={x} value={x}>{x.charAt(0).toUpperCase() + x.slice(1)}</option>
                   ))}
-                </select>
-              </div>
-              <div>
+              </select>
+            </div>
+            <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Number of Doors *</label>
                 <input 
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#a06b42] focus:border-transparent transition-all" 
@@ -900,7 +900,7 @@ export default function CarOwnerDashboard() {
                   value={form.doors} 
                   onChange={e => setForm({ ...form, doors: Number(e.target.value) })} 
                 />
-              </div>
+            </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Luggage Capacity</label>
                 <input 
@@ -910,7 +910,7 @@ export default function CarOwnerDashboard() {
                   value={form.luggageCapacity} 
                   onChange={e => setForm({ ...form, luggageCapacity: Number(e.target.value) })} 
                 />
-              </div>
+            </div>
               
               <div className="md:col-span-3">
                 <h4 className="text-sm font-semibold text-gray-700 mb-3">Features</h4>
@@ -933,18 +933,18 @@ export default function CarOwnerDashboard() {
                     />
                     <span className="text-sm font-medium text-gray-700">ABS</span>
                   </label>
-                </div>
-              </div>
-            </>
-          )}
+            </div>
+            </div>
+          </>
+        )}
           {/* Motorcycle-Specific Features */}
-          {category === 'motorcycle' && (
-            <>
+        {category === 'motorcycle' && (
+          <>
               <div className="md:col-span-3 mt-4">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-100">Motorcycle Specifications</h3>
               </div>
               
-              <div>
+            <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Engine Capacity (cc) *</label>
                 <input 
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#a06b42] focus:border-transparent transition-all" 
@@ -953,7 +953,7 @@ export default function CarOwnerDashboard() {
                   value={form.engineCapacityCc} 
                   onChange={e => setForm({ ...form, engineCapacityCc: e.target.value })} 
                 />
-              </div>
+            </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Transmission</label>
                 <input 
@@ -961,7 +961,7 @@ export default function CarOwnerDashboard() {
                   value="Manual" 
                   readOnly 
                 />
-              </div>
+            </div>
               
               <div className="md:col-span-3">
                 <h4 className="text-sm font-semibold text-gray-700 mb-3">Features</h4>
@@ -984,18 +984,18 @@ export default function CarOwnerDashboard() {
                     />
                     <span className="text-sm font-medium text-gray-700">ABS</span>
                   </label>
-                </div>
-              </div>
-            </>
-          )}
+            </div>
+            </div>
+          </>
+        )}
           {/* Bicycle-Specific Features */}
-          {category === 'bicycle' && (
-            <>
+        {category === 'bicycle' && (
+          <>
               <div className="md:col-span-3 mt-4">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-100">Bicycle Specifications</h3>
               </div>
               
-              <div>
+            <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Frame Size *</label>
                 <input 
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#a06b42] focus:border-transparent transition-all" 
@@ -1003,8 +1003,8 @@ export default function CarOwnerDashboard() {
                   value={form.frameSize} 
                   onChange={e => setForm({ ...form, frameSize: e.target.value })} 
                 />
-              </div>
-              <div>
+            </div>
+            <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Gear Count *</label>
                 <input 
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#a06b42] focus:border-transparent transition-all" 
@@ -1013,20 +1013,20 @@ export default function CarOwnerDashboard() {
                   value={form.gearCount} 
                   onChange={e => setForm({ ...form, gearCount: e.target.value })} 
                 />
-              </div>
-              <div>
+            </div>
+            <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Bicycle Type</label>
                 <select 
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#a06b42] focus:border-transparent transition-all bg-white" 
                   value={form.bicycleType} 
                   onChange={e => setForm({ ...form, bicycleType: e.target.value })}
                 >
-                  <option value="">Select type</option>
+                <option value="">Select type</option>
                   {['mountain','road','hybrid','city'].map(x => (
                     <option key={x} value={x}>{x.charAt(0).toUpperCase() + x.slice(1)}</option>
                   ))}
-                </select>
-              </div>
+              </select>
+            </div>
               
               <div className="md:col-span-3">
                 <h4 className="text-sm font-semibold text-gray-700 mb-3">Features</h4>
@@ -1041,9 +1041,9 @@ export default function CarOwnerDashboard() {
                     <span className="text-sm font-medium text-gray-700">Helmet Included</span>
                   </label>
                 </div>
-              </div>
-            </>
-          )}
+            </div>
+          </>
+        )}
           
           {/* Availability */}
           <div className="md:col-span-3 mt-4">
@@ -1056,22 +1056,22 @@ export default function CarOwnerDashboard() {
               />
               <span className="text-sm font-semibold text-gray-700">Make this vehicle available for booking</span>
             </label>
-          </div>
+        </div>
           {/* Images Section */}
           <div className="md:col-span-3 mt-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-100">Vehicle Images *</h3>
             <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 hover:border-[#a06b42] transition-colors">
-              <input
-                type="file"
-                multiple
-                accept="image/*"
-                onChange={e => {
-                  const files = Array.from(e.target.files || []);
-                  if (!files.length) return;
-                  setCreateImages(files);
-                  const urls = files.map(f => URL.createObjectURL(f));
-                  setCreatePreviews(urls);
-                }}
+          <input
+            type="file"
+            multiple
+            accept="image/*"
+            onChange={e => {
+              const files = Array.from(e.target.files || []);
+              if (!files.length) return;
+              setCreateImages(files);
+              const urls = files.map(f => URL.createObjectURL(f));
+              setCreatePreviews(urls);
+            }}
                 className="hidden"
                 id="vehicle-images"
               />
@@ -1086,9 +1086,9 @@ export default function CarOwnerDashboard() {
                 <span className="text-xs text-gray-500">PNG, JPG up to 10MB each</span>
               </label>
             </div>
-            {createPreviews?.length > 0 && (
+          {createPreviews?.length > 0 && (
               <div className="mt-4 grid grid-cols-3 md:grid-cols-5 gap-3">
-                {createPreviews.map((src, i) => (
+              {createPreviews.map((src, i) => (
                   <div key={i} className="relative group">
                     <div className="w-full h-24 bg-gray-100 rounded-lg overflow-hidden">
                       <img src={src} className="w-full h-full object-cover" alt={`Preview ${i + 1}`} />
@@ -1105,11 +1105,11 @@ export default function CarOwnerDashboard() {
                     >
                       ×
                     </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
           
           {/* Submit Button */}
           <div className="md:col-span-3 mt-6 flex items-center justify-end gap-4 pt-6 border-t border-gray-200">
