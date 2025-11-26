@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import LoadingIndicator from './LoadingIndicator';
 import toast from 'react-hot-toast';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -69,7 +70,11 @@ const AnalyticsPanel = ({ propertyOptions = [] }) => {
     <div className="bg-white rounded-xl shadow-lg p-6">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-bold text-gray-900">Analytics</h2>
-        {loading && <div className="text-sm text-gray-500">Loading...</div>}
+        {loading && (
+          <div className="ml-4">
+            <LoadingIndicator label="Loading analytics" />
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
