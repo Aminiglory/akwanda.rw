@@ -5,6 +5,14 @@ import toast from 'react-hot-toast';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
+// Lightweight timeout wrapper so calendar loads fail fast on very slow networks
+const fetchWithUiTimeout = (url, options = {}, timeoutMs = 8000) => {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+  return fetch(url, { ...options, signal: controller.signal })
+    .finally(() => clearTimeout(id));
+};
+
 const BookingCalendar = ({ propertyId, onBookingSelect, initialDate }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [bookings, setBookings] = useState([]);
@@ -39,7 +47,7 @@ const BookingCalendar = ({ propertyId, onBookingSelect, initialDate }) => {
   const fetchBookings = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`${API_URL}/api/bookings?propertyId=${propertyOverride}&month=${currentDate.getMonth() + 1}&year=${currentDate.getFullYear()}`, {
+      const res = await fetchWithUiTimeout(`${API_URL}/api/bookings?propertyId=${propertyOverride}&month=${currentDate.getMonth() + 1}&year=${currentDate.getFullYear()}`, {
         credentials: 'include'
       });
       const data = await res.json();
@@ -61,7 +69,7 @@ const BookingCalendar = ({ propertyId, onBookingSelect, initialDate }) => {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch(`${API_URL}/api/properties/my-properties`, { credentials: 'include' });
+        const res = await fetchWithUiTimeout(`${API_URL}/api/properties/my-properties`, { credentials: 'include' });
         const data = await res.json();
         if (res.ok) {
           const list = Array.isArray(data.properties) ? data.properties : [];
@@ -79,7 +87,7 @@ const BookingCalendar = ({ propertyId, onBookingSelect, initialDate }) => {
     if (!pid) { setRooms([]); setSelectedRoomId(''); return; }
     (async () => {
       try {
-        const res = await fetch(`${API_URL}/api/properties/${pid}`, { credentials: 'include' });
+        const res = await fetchWithUiTimeout(`${API_URL}/api/properties/${pid}`, { credentials: 'include' });
         const data = await res.json();
         if (res.ok) {
           const list = Array.isArray(data.property?.rooms) ? data.property.rooms : [];
@@ -99,7 +107,7 @@ const BookingCalendar = ({ propertyId, onBookingSelect, initialDate }) => {
     if (showAllRooms) { setClosedRanges([]); return; }
     try {
       const noCacheUrl = `${API_URL}/api/properties/${pid}?_=${Date.now()}`;
-      const res = await fetch(noCacheUrl, { credentials: 'include', cache: 'no-store', headers: { 'Cache-Control': 'no-cache' } });
+      const res = await fetchWithUiTimeout(noCacheUrl, { credentials: 'include', cache: 'no-store', headers: { 'Cache-Control': 'no-cache' } });
       const data = await res.json();
       if (!res.ok) { setClosedRanges([]); return; }
       const list = Array.isArray(data.property?.rooms) ? data.property.rooms : [];

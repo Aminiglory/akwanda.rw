@@ -48,6 +48,11 @@ const bookingSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// Indexes for faster lookups in owner dashboards, calendars, and guest lists
+bookingSchema.index({ property: 1, createdAt: -1 });
+bookingSchema.index({ guest: 1, createdAt: -1 });
+bookingSchema.index({ property: 1, status: 1, checkIn: 1, checkOut: 1 });
+
 // Generate confirmation code before saving
 bookingSchema.pre('save', function(next) {
   if (!this.confirmationCode) {

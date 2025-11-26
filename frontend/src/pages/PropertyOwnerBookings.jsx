@@ -20,6 +20,14 @@ import FinancePanel from '../components/FinancePanel';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
+// Lightweight UI-level timeout helper so dashboard doesn't hang indefinitely on slow networks
+const fetchWithUiTimeout = (url, options = {}, timeoutMs = 8000) => {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+  return fetch(url, { ...options, signal: controller.signal })
+    .finally(() => clearTimeout(id));
+};
+
 const PropertyOwnerBookings = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -156,9 +164,9 @@ const PropertyOwnerBookings = () => {
     setLoading(true);
     try {
       const [bookRes, propRes, occRes] = await Promise.all([
-        fetch(`${API_URL}/api/bookings/property-owner`, { credentials: 'include' }),
-        fetch(`${API_URL}/api/properties/my-properties`, { credentials: 'include' }),
-        fetch(`${API_URL}/api/bookings/owner/visitors-analytics`, { credentials: 'include' })
+        fetchWithUiTimeout(`${API_URL}/api/bookings/property-owner`, { credentials: 'include' }),
+        fetchWithUiTimeout(`${API_URL}/api/properties/my-properties`, { credentials: 'include' }),
+        fetchWithUiTimeout(`${API_URL}/api/bookings/owner/visitors-analytics`, { credentials: 'include' })
       ]);
       const [bookJson, propJson, occJson] = await Promise.all([bookRes.json(), propRes.json(), occRes.json()]);
       if (bookRes.ok) setBookings(bookJson.bookings || []);
@@ -260,7 +268,7 @@ const PropertyOwnerBookings = () => {
         setAnalyticsLoading(true);
         const params = new URLSearchParams();
         if (filters.property && filters.property !== 'all') params.set('property', filters.property);
-        const res = await fetch(`${API_URL}/api/analytics/owner?${params.toString()}`, { credentials: 'include' });
+        const res = await fetchWithUiTimeout(`${API_URL}/api/analytics/owner?${params.toString()}`, { credentials: 'include' });
         const data = await res.json();
         if (res.ok) setAnalyticsData(data || {});
       } catch (_) {
@@ -359,7 +367,7 @@ const PropertyOwnerBookings = () => {
 
   const loadOwnerProperties = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/properties/my-properties`, { credentials: 'include' });
+      const res = await fetchWithUiTimeout(`${API_URL}/api/properties/my-properties`, { credentials: 'include' });
       const data = await res.json();
       if (res.ok) setProperties(data.properties || []);
     } catch (_) {}

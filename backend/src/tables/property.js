@@ -129,6 +129,10 @@ const propertySchema = new mongoose.Schema(
   }, { timestamps: true }
 );
 
+// Indexes to optimize common queries (owner dashboards, search, visibility checks)
+propertySchema.index({ host: 1, createdAt: -1 });
+propertySchema.index({ isActive: 1, city: 1, pricePerNight: 1 });
+
 // Generate property number with 5 numbers and 5 capital letters (10 chars total)
 async function generateUniquePropertyNumber(Model) {
   const generatePropertyNumber = () => {

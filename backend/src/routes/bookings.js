@@ -769,7 +769,8 @@ router.get('/', requireAuth, async (req, res) => {
     const bookings = await Booking.find(query)
       .populate('property', 'title city address images host')
       .populate('guest', 'firstName lastName email phone')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
     res.json({ bookings });
   } catch (error) {
     console.error('List bookings error:', error);
@@ -779,7 +780,7 @@ router.get('/', requireAuth, async (req, res) => {
 
 // Guest bookings (simple)
 router.get('/mine', requireAuth, async (req, res) => {
-  const list = await Booking.find({ guest: req.user.id }).populate('property');
+  const list = await Booking.find({ guest: req.user.id }).populate('property').lean();
   res.json({ bookings: list });
 });
 
@@ -791,7 +792,8 @@ router.get('/property-owner', requireAuth, async (req, res) => {
     const bookings = await Booking.find({ property: { $in: propertyIds } })
       .populate('property', 'title city address')
       .populate('guest', 'firstName lastName email phone')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
     res.json({ bookings });
   } catch (error) {
     console.error('Property owner bookings error:', error);
