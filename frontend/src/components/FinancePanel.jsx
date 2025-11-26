@@ -201,14 +201,18 @@ const FinancePanel = ({ propertyOptions = [], activeSection = 'ledger' }) => {
     return { commission, earnings };
   }, [ledger]);
 
-  const downloadInvoice = async (id, code) => {
+  const downloadInvoice = async (id, fileLabel) => {
     try {
       const res = await fetch(`${API_URL}/api/finance/invoices/${id}/download`, { credentials: 'include' });
       if (!res.ok) throw new Error('Failed to download invoice');
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url; a.download = `invoice-${code || id}.pdf`; a.click();
+      a.href = url;
+      const base = (fileLabel || 'invoice').toString().trim() || 'invoice';
+      const safeBase = base.replace(/[^a-z0-9\-]+/gi, '-');
+      a.download = `${safeBase}.txt`;
+      a.click();
     } catch (e) { toast.error(e.message); }
   };
 
@@ -369,15 +373,19 @@ const FinancePanel = ({ propertyOptions = [], activeSection = 'ledger' }) => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {invoices.map(inv => (
+                  {invoices.map(inv => {
+                    const periodLabel = formatPeriod(inv.period);
+                    const friendlyName = `${inv.property?.title || 'Invoice'}${periodLabel ? `-${periodLabel}` : ''}`;
+                    return (
                     <tr key={inv._id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3">{inv.code || inv._id}<div className="text-xs text-gray-600">{formatPeriod(inv.period)}</div></td>
+                      <td className="px-4 py-3">{inv.code || inv._id}<div className="text-xs text-gray-600">{periodLabel}</div></td>
                       <td className="px-4 py-3">{formatCurrency(inv.amount)}</td>
                       <td className="px-4 py-3">
-                        <button onClick={() => downloadInvoice(inv._id, inv.code)} className="px-3 py-1 border rounded">Download</button>
+                        <button onClick={() => downloadInvoice(inv._id, friendlyName)} className="px-3 py-1 border rounded">Download</button>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
