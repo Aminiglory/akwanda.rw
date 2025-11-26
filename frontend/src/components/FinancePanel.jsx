@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
+import LoadingIndicator from './LoadingIndicator';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -25,6 +26,22 @@ const FinancePanel = ({ propertyOptions = [], activeSection = 'ledger' }) => {
   const invoicesRef = useRef(null);
   const payoutsRef = useRef(null);
   const expensesRef = useRef(null);
+
+  useEffect(() => {
+    try {
+      const search = typeof window !== 'undefined' ? window.location.search : '';
+      const params = new URLSearchParams(search || '');
+      const urlProperty = params.get('property');
+      if (urlProperty) {
+        setFilters(prev => ({ ...prev, propertyId: urlProperty }));
+        return;
+      }
+      const stored = localStorage.getItem('financeSelectedPropertyId');
+      if (stored && !filters.propertyId) {
+        setFilters(prev => ({ ...prev, propertyId: stored }));
+      }
+    } catch (_) {}
+  }, []);
 
   useEffect(() => {
     setSection(activeSection || 'ledger');
@@ -199,11 +216,32 @@ const FinancePanel = ({ propertyOptions = [], activeSection = 'ledger' }) => {
     <div className="bg-white rounded-xl shadow-lg p-6">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-bold text-gray-900">Finance</h2>
-        {loading && <div className="text-sm text-gray-500">Loading...</div>}
+        {loading && (
+          <div className="ml-4">
+            <LoadingIndicator label="Loading finance data" />
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
-        <select className="border rounded-lg px-3 py-2" value={filters.propertyId} onChange={e=>setFilters(prev=>({...prev, propertyId:e.target.value}))}>
+        <select className="border rounded-lg px-3 py-2" value={filters.propertyId} onChange={e=>{
+          const value = e.target.value;
+          setFilters(prev=>({...prev, propertyId:value}));
+          try {
+            localStorage.setItem('financeSelectedPropertyId', value || '');
+          } catch (_) {}
+          try {
+            if (typeof window !== 'undefined') {
+              const url = new URL(window.location.href);
+              if (value) {
+                url.searchParams.set('property', value);
+              } else {
+                url.searchParams.delete('property');
+              }
+              window.history.replaceState(null, '', url.toString());
+            }
+          } catch (_) {}
+        }}>
           <option value="">All Properties</option>
           {propertyOptions.map(p => <option key={p._id} value={p._id}>{p.title}</option>)}
         </select>

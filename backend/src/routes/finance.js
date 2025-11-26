@@ -13,6 +13,19 @@ function requireAuth(req, res, next) {
   try { req.user = jwt.verify(token, JWT_SECRET); return next(); } catch (e) { return res.status(401).json({ message: 'Invalid token' }); }
 }
 
+function parseMonthYear(monthParam, yearParam) {
+  const now = new Date();
+  if (monthParam && String(monthParam).includes('-') && !yearParam) {
+    const [yStr, mStr] = String(monthParam).split('-');
+    const parsedYear = Number(yStr) || now.getFullYear();
+    const parsedMonth = Number(mStr) || (now.getMonth() + 1);
+    return { m: parsedMonth - 1, y: parsedYear };
+  }
+  const m = monthParam ? Number(monthParam) - 1 : now.getMonth();
+  const y = yearParam ? Number(yearParam) : now.getFullYear();
+  return { m, y };
+}
+
 // GET /api/finance/ledger?property=<id>&month=1-12&year=YYYY
 router.get('/ledger', requireAuth, async (req, res) => {
   try {
@@ -26,9 +39,7 @@ router.get('/ledger', requireAuth, async (req, res) => {
     const isAdmin = req.user.userType === 'admin';
     if (!isOwner && !isAdmin) return res.status(403).json({ message: 'Forbidden' });
 
-    const now = new Date();
-    const m = month ? Number(month) - 1 : now.getMonth();
-    const y = year ? Number(year) : now.getFullYear();
+    const { m, y } = parseMonthYear(month, year);
     const start = new Date(y, m, 1);
     const end = new Date(y, m + 1, 1);
 

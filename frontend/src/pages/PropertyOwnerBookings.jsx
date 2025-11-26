@@ -17,6 +17,7 @@ import toast from 'react-hot-toast';
 import BookingCalendar from '../components/BookingCalendar';
 import { useLocale } from '../contexts/LocaleContext';
 import FinancePanel from '../components/FinancePanel';
+import LoadingIndicator from '../components/LoadingIndicator';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -1101,8 +1102,7 @@ const PropertyOwnerBookings = () => {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading dashboard...</p>
+          <LoadingIndicator label="Loading your owner dashboard" />
         </div>
       </div>
     );

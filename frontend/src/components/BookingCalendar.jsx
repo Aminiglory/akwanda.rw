@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import '../styles/calendar.css';
 import { FaCalendarAlt, FaChevronLeft, FaChevronRight, FaPlus, FaEdit, FaTrash, FaEye, FaClock, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
 import toast from 'react-hot-toast';
+import LoadingIndicator from './LoadingIndicator';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -660,8 +661,8 @@ const BookingCalendar = ({ propertyId, onBookingSelect, initialDate }) => {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-12">
-          <div className="w-8 h-8 border-4 border-[#a06b42] border-t-transparent rounded-full animate-spin"></div>
+        <div className="flex items-center justify-center py-10">
+          <LoadingIndicator label="Loading calendar" />
         </div>
       ) : (
         <>
