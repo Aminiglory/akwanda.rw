@@ -23,6 +23,7 @@ const ApartmentDetails = lazy(() => import('./pages/ApartmentDetails'));
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
 const OwnerRegister = lazy(() => import('./pages/OwnerRegister'));
+const ChooseListingType = lazy(() => import('./pages/ChooseListingType'));
 const BecomeHost = lazy(() => import('./pages/BecomeHost'));
 const OwnerLogin = lazy(() => import('./pages/OwnerLogin'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -159,6 +160,7 @@ function App() {
             <Route path="/owner-login" element={<OwnerLogin />} />
             <Route path="/register" element={<Register />} />
             <Route path="/owner-register" element={<OwnerRegister />} />
+            <Route path="/choose-listing-type" element={<HostRoute><ChooseListingType /></HostRoute>} />
             <Route path="/become-host" element={<ProtectedRoute><BecomeHost /></ProtectedRoute>} />
             <Route path="/dashboard" element={<HostRoute><div className="dashboard"><PropertyOwnerBookings /></div></HostRoute>} />
             <Route path="/user-dashboard" element={<HostRoute><div className="dashboard"><PropertyOwnerBookings /></div></HostRoute>} />

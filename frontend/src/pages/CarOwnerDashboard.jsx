@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useLocation, useSearchParams } from 'react-router-dom';
+import { useLocation, useSearchParams, Link } from 'react-router-dom';
 import { useLocale } from '../contexts/LocaleContext';
 import ReceiptPreview from '../components/ReceiptPreview';
 import toast from 'react-hot-toast';
@@ -606,54 +606,54 @@ export default function CarOwnerDashboard() {
               <div className="text-sm font-semibold text-gray-900">Manage reservations</div>
               <div className="mt-0.5 text-[11px] text-gray-500">View and update all vehicle bookings</div>
             </button>
-            <a
-              href="/transactions"
-              className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2 hover:border-[#a06b42] hover:shadow-md transition"
+            <Link
+              to="/transactions"
+              className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2 hover:border-[#a06b42] hover:shadow-md transition block"
             >
               <div className="text-[11px] text-gray-500">Finance</div>
               <div className="text-sm font-semibold text-gray-900">Payments & transactions</div>
               <div className="mt-0.5 text-[11px] text-gray-500">Track payouts and charges</div>
-            </a>
-            <a
-              href="/analytics"
-              className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2 hover:border-[#a06b42] hover:shadow-md transition"
+            </Link>
+            <Link
+              to="/analytics"
+              className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2 hover:border-[#a06b42] hover:shadow-md transition block"
             >
               <div className="text-[11px] text-gray-500">Analytics</div>
               <div className="text-sm font-semibold text-gray-900">Performance overview</div>
               <div className="mt-0.5 text-[11px] text-gray-500">See trends across your listings</div>
-            </a>
-            <a
-              href="/owner/promotions"
-              className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2 hover:border-[#a06b42] hover:shadow-md transition"
+            </Link>
+            <Link
+              to="/owner/promotions"
+              className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2 hover:border-[#a06b42] hover:shadow-md transition block"
             >
               <div className="text-[11px] text-gray-500">Promotions</div>
               <div className="text-sm font-semibold text-gray-900">Discounts & offers</div>
               <div className="mt-0.5 text-[11px] text-gray-500">Manage deals for your listings</div>
-            </a>
-            <a
-              href="/owner/reviews"
-              className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2 hover:border-[#a06b42] hover:shadow-md transition"
+            </Link>
+            <Link
+              to="/owner/reviews"
+              className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2 hover:border-[#a06b42] hover:shadow-md transition block"
             >
               <div className="text-[11px] text-gray-500">Reviews</div>
               <div className="text-sm font-semibold text-gray-900">Guest reviews</div>
               <div className="mt-0.5 text-[11px] text-gray-500">Read and reply to feedback</div>
-            </a>
-            <a
-              href="/messages?category=reservations"
-              className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2 hover:border-[#a06b42] hover:shadow-md transition"
+            </Link>
+            <Link
+              to="/messages?category=reservations"
+              className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2 hover:border-[#a06b42] hover:shadow-md transition block"
             >
               <div className="text-[11px] text-gray-500">Messages</div>
               <div className="text-sm font-semibold text-gray-900">Guest communication</div>
               <div className="mt-0.5 text-[11px] text-gray-500">Open inbox with reservation auto-replies</div>
-            </a>
-            <a
-              href="/settings?tab=notifications"
-              className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2 hover:border-[#a06b42] hover:shadow-md transition"
+            </Link>
+            <Link
+              to="/settings?tab=notifications"
+              className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2 hover:border-[#a06b42] hover:shadow-md transition block"
             >
               <div className="text-[11px] text-gray-500">Settings</div>
               <div className="text-sm font-semibold text-gray-900">Notifications & messaging</div>
               <div className="mt-0.5 text-[11px] text-gray-500">Control how guests contact you</div>
-            </a>
+            </Link>
           </div>
 
           <div className="mb-6 grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -684,184 +684,455 @@ export default function CarOwnerDashboard() {
 
       {/* Vehicles management: create + list, shown on Vehicles view */}
       {view === 'vehicles' && showCreateForm && (
-      <form ref={createFormRef} onSubmit={createCar} className="bg-white rounded-lg shadow p-4 mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div>
-          <label className="block text-xs text-gray-700 mb-1">Listing category</label>
-          <select className="w-full px-3 py-2 border rounded" value={category} onChange={e => {
-            const v = e.target.value; setCategory(v);
-            setForm(prev => ({ ...prev, vehicleType: v === 'car' ? (prev.vehicleType && !['motorcycle','bicycle'].includes(prev.vehicleType) ? prev.vehicleType : 'economy') : v }));
-          }}>
-            {['car','motorcycle','bicycle'].map(x => <option key={x} value={x}>{x}</option>)}
-          </select>
+      <form ref={createFormRef} onSubmit={createCar} className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6 md:p-8 mb-8">
+        <div className="mb-6 pb-4 border-b border-gray-200">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">List a New Vehicle</h2>
+          <p className="text-sm text-gray-600">Fill in the details below to add your vehicle to the platform</p>
         </div>
-        <div>
-          <label className="block text-xs text-gray-700 mb-1">Vehicle name</label>
-          <input className="w-full px-3 py-2 border rounded" placeholder="e.g., Toyota RAV4" value={form.vehicleName} onChange={e => setForm({ ...form, vehicleName: e.target.value })} />
-        </div>
-        {category === 'car' ? (
-          <div>
-            <label className="block text-xs text-gray-700 mb-1">Vehicle type</label>
-            <select className="w-full px-3 py-2 border rounded" value={form.vehicleType} onChange={e => setForm({ ...form, vehicleType: e.target.value })}>
-              {['economy','compact','mid-size','full-size','luxury','suv','minivan'].map(x => <option key={x} value={x}>{x}</option>)}
-            </select>
+        
+        {/* Category Selection */}
+        <div className="mb-8">
+          <label className="block text-sm font-semibold text-gray-700 mb-3">Vehicle Category *</label>
+          <div className="grid grid-cols-3 gap-3">
+            {['car', 'motorcycle', 'bicycle'].map(x => (
+              <button
+                key={x}
+                type="button"
+                onClick={() => {
+                  setCategory(x);
+                  setForm(prev => ({ ...prev, vehicleType: x === 'car' ? (prev.vehicleType && !['motorcycle','bicycle'].includes(prev.vehicleType) ? prev.vehicleType : 'economy') : x }));
+                }}
+                className={`px-4 py-3 rounded-xl border-2 transition-all duration-200 font-medium ${
+                  category === x
+                    ? 'border-[#a06b42] bg-[#a06b42]/10 text-[#a06b42]'
+                    : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                {x.charAt(0).toUpperCase() + x.slice(1)}
+              </button>
+            ))}
           </div>
-        ) : (
-          <div>
-            <label className="block text-xs text-gray-700 mb-1">Vehicle type</label>
-            <input className="w-full px-3 py-2 border rounded bg-gray-100" value={category} readOnly />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Basic Information Section */}
+          <div className="md:col-span-3">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-100">Basic Information</h3>
           </div>
-        )}
-        <div>
-          <label className="block text-xs text-gray-700 mb-1">Brand</label>
-          <input className="w-full px-3 py-2 border rounded" placeholder="e.g., Toyota" value={form.brand} onChange={e => setForm({ ...form, brand: e.target.value })} />
-        </div>
-        <div>
-          <label className="block text-xs text-gray-700 mb-1">Model</label>
-          <input className="w-full px-3 py-2 border rounded" placeholder="e.g., RAV4" value={form.model} onChange={e => setForm({ ...form, model: e.target.value })} />
-        </div>
-        <div>
-          <label className="block text-xs text-gray-700 mb-1">Year</label>
-          <input className="w-full px-3 py-2 border rounded" type="number" placeholder="e.g., 2022" value={form.year} onChange={e => setForm({ ...form, year: Number(e.target.value) })} />
-        </div>
-        {/* License plate & capacity / seats */}
-        <div>
-          <label className="block text-xs text-gray-700 mb-1">License plate{category==='car' ? ' (required)':''}</label>
-          <input className="w-full px-3 py-2 border rounded" placeholder="e.g., RAD 123 A" value={form.licensePlate} onChange={e => setForm({ ...form, licensePlate: e.target.value })} />
-        </div>
-        <div>
-          <label className="block text-xs text-gray-700 mb-1">Capacity (seats)</label>
-          <input className="w-full px-3 py-2 border rounded" type="number" placeholder="e.g., 5" value={form.capacity} onChange={e => setForm({ ...form, capacity: Number(e.target.value) })} />
-        </div>
-        <div>
-          <label className="block text-xs text-gray-700 mb-1">Price per day</label>
-          <input className="w-full px-3 py-2 border rounded" type="number" placeholder="e.g., 85000" value={form.pricePerDay} onChange={e => setForm({ ...form, pricePerDay: Number(e.target.value) })} />
-        </div>
-        <div>
-          <label className="block text-xs text-gray-700 mb-1">Location</label>
-          <input className="w-full px-3 py-2 border rounded" placeholder="e.g., Kigali" value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} />
-        </div>
-        <div>
-          <label className="block text-xs text-gray-700 mb-1">Fuel policy</label>
-          <input className="w-full px-3 py-2 border rounded" placeholder="e.g., Same-to-same" value={form.fuelPolicy} onChange={e => setForm({ ...form, fuelPolicy: e.target.value })} />
-        </div>
-        <div>
-          <label className="block text-xs text-gray-700 mb-1">Mileage limit per day (km)</label>
-          <input className="w-full px-3 py-2 border rounded" type="number" placeholder="e.g., 150" value={form.mileageLimitPerDayKm} onChange={e => setForm({ ...form, mileageLimitPerDayKm: e.target.value })} />
-        </div>
-        <div>
-          <label className="block text-xs text-gray-700 mb-1">Cancellation policy</label>
-          <input className="w-full px-3 py-2 border rounded" placeholder="Short description shown to guests" value={form.cancellationPolicy} onChange={e => setForm({ ...form, cancellationPolicy: e.target.value })} />
-        </div>
-        <div>
-          <label className="block text-xs text-gray-700 mb-1">Deposit information</label>
-          <input className="w-full px-3 py-2 border rounded" placeholder="e.g., No deposit required" value={form.depositInfo} onChange={e => setForm({ ...form, depositInfo: e.target.value })} />
-        </div>
-        {category === 'car' && (
-          <>
+          
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Vehicle Name *</label>
+            <input 
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#a06b42] focus:border-transparent transition-all" 
+              placeholder="e.g., Toyota RAV4" 
+              value={form.vehicleName} 
+              onChange={e => setForm({ ...form, vehicleName: e.target.value })} 
+            />
+          </div>
+          {category === 'car' && (
             <div>
-              <label className="block text-xs text-gray-700 mb-1">Transmission</label>
-              <select className="w-full px-3 py-2 border rounded" value={form.transmission} onChange={e => setForm({ ...form, transmission: e.target.value })}>
-                {['automatic','manual'].map(x => <option key={x} value={x}>{x}</option>)}
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Vehicle Type *</label>
+              <select 
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#a06b42] focus:border-transparent transition-all bg-white" 
+                value={form.vehicleType} 
+                onChange={e => setForm({ ...form, vehicleType: e.target.value })}
+              >
+                {['economy','compact','mid-size','full-size','luxury','suv','minivan'].map(x => (
+                  <option key={x} value={x}>{x.charAt(0).toUpperCase() + x.slice(1)}</option>
+                ))}
               </select>
-            </div>
-            <div>
-              <label className="block text-xs text-gray-700 mb-1">Fuel type</label>
-              <select className="w-full px-3 py-2 border rounded" value={form.fuelType} onChange={e => setForm({ ...form, fuelType: e.target.value })}>
-                {['petrol','diesel','hybrid','electric'].map(x => <option key={x} value={x}>{x}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs text-gray-700 mb-1">Doors</label>
-              <input className="w-full px-3 py-2 border rounded" type="number" placeholder="e.g., 4" value={form.doors} onChange={e => setForm({ ...form, doors: Number(e.target.value) })} />
-            </div>
-            <div className="flex items-center gap-2">
-              <label className="text-sm">Air conditioning</label>
-              <input type="checkbox" checked={!!form.airConditioning} onChange={e => setForm({ ...form, airConditioning: !!e.target.checked })} />
-            </div>
-            <div className="flex items-center gap-2">
-              <label className="text-sm">ABS (Anti-lock Braking System)</label>
-              <input type="checkbox" checked={!!form.abs} onChange={e => setForm({ ...form, abs: !!e.target.checked })} />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-700 mb-1">Luggage capacity</label>
-              <input className="w-full px-3 py-2 border rounded" type="number" placeholder="e.g., 2" value={form.luggageCapacity} onChange={e => setForm({ ...form, luggageCapacity: Number(e.target.value) })} />
-            </div>
-          </>
-        )}
-        {category === 'motorcycle' && (
-          <>
-            <div>
-              <label className="block text-xs text-gray-700 mb-1">Engine capacity (cc)</label>
-              <input className="w-full px-3 py-2 border rounded" type="number" placeholder="e.g., 150" value={form.engineCapacityCc} onChange={e => setForm({ ...form, engineCapacityCc: e.target.value })} />
-            </div>
-            <div className="flex items-center gap-2">
-              <label className="text-sm">Helmet included</label>
-              <input type="checkbox" checked={!!form.helmetIncluded} onChange={e => setForm({ ...form, helmetIncluded: !!e.target.checked })} />
-            </div>
-            <div className="flex items-center gap-2">
-              <label className="text-sm">ABS (Anti-lock Braking System)</label>
-              <input type="checkbox" checked={!!form.abs} onChange={e => setForm({ ...form, abs: !!e.target.checked })} />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-700 mb-1">Transmission</label>
-              <input className="w-full px-3 py-2 border rounded bg-gray-100" value="manual" readOnly />
-            </div>
-          </>
-        )}
-        {category === 'bicycle' && (
-          <>
-            <div>
-              <label className="block text-xs text-gray-700 mb-1">Frame size</label>
-              <input className="w-full px-3 py-2 border rounded" placeholder="e.g., M / 54cm" value={form.frameSize} onChange={e => setForm({ ...form, frameSize: e.target.value })} />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-700 mb-1">Gear count</label>
-              <input className="w-full px-3 py-2 border rounded" type="number" placeholder="e.g., 21" value={form.gearCount} onChange={e => setForm({ ...form, gearCount: e.target.value })} />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-700 mb-1">Type</label>
-              <select className="w-full px-3 py-2 border rounded" value={form.bicycleType} onChange={e => setForm({ ...form, bicycleType: e.target.value })}>
-                <option value="">Select type</option>
-                {['mountain','road','hybrid','city'].map(x => <option key={x} value={x}>{x}</option>)}
-              </select>
-            </div>
-            <div className="flex items-center gap-2">
-              <label className="text-sm">Helmet included</label>
-              <input type="checkbox" checked={!!form.helmetIncluded} onChange={e => setForm({ ...form, helmetIncluded: !!e.target.checked })} />
-            </div>
-          </>
-        )}
-        <div className="flex items-center gap-2">
-          <label className="text-sm">Available</label>
-          <input type="checkbox" checked={!!form.isAvailable} onChange={e => setForm({ ...form, isAvailable: !!e.target.checked })} />
-        </div>
-        <div className="md:col-span-3">
-          <label className="block text-xs text-gray-700 mb-1">Images</label>
-          <input
-            type="file"
-            multiple
-            accept="image/*"
-            onChange={e => {
-              const files = Array.from(e.target.files || []);
-              if (!files.length) return;
-              setCreateImages(files);
-              const urls = files.map(f => URL.createObjectURL(f));
-              setCreatePreviews(urls);
-            }}
-            className="w-full px-3 py-2 border rounded"
-          />
-          {createPreviews?.length > 0 && (
-            <div className="mt-2 grid grid-cols-3 md:grid-cols-5 gap-2">
-              {createPreviews.map((src, i) => (
-                <div key={i} className="w-full h-20 bg-gray-100 rounded overflow-hidden">
-                  <img src={src} className="w-full h-full object-cover" alt="Preview" />
-                </div>
-              ))}
             </div>
           )}
-        </div>
-        <div className="md:col-span-3">
-          <button disabled={saving || user?.isBlocked} className="px-4 py-2 bg-[#a06b42] hover:bg-[#8f5a32] text-white rounded disabled:opacity-50">{saving ? 'Saving...' : 'Add Vehicle'}</button>
+          
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Brand *</label>
+            <input 
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#a06b42] focus:border-transparent transition-all" 
+              placeholder="e.g., Toyota" 
+              value={form.brand} 
+              onChange={e => setForm({ ...form, brand: e.target.value })} 
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Model *</label>
+            <input 
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#a06b42] focus:border-transparent transition-all" 
+              placeholder="e.g., RAV4" 
+              value={form.model} 
+              onChange={e => setForm({ ...form, model: e.target.value })} 
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Year</label>
+            <input 
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#a06b42] focus:border-transparent transition-all" 
+              type="number" 
+              placeholder="e.g., 2022" 
+              value={form.year} 
+              onChange={e => setForm({ ...form, year: Number(e.target.value) })} 
+            />
+          </div>
+          {/* Pricing & Location Section */}
+          <div className="md:col-span-3 mt-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-100">Pricing & Location</h3>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              License Plate{category === 'car' ? ' *' : ''}
+            </label>
+            <input 
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#a06b42] focus:border-transparent transition-all" 
+              placeholder="e.g., RAD 123 A" 
+              value={form.licensePlate} 
+              onChange={e => setForm({ ...form, licensePlate: e.target.value })} 
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Capacity (Seats) *</label>
+            <input 
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#a06b42] focus:border-transparent transition-all" 
+              type="number" 
+              placeholder="e.g., 5" 
+              value={form.capacity} 
+              onChange={e => setForm({ ...form, capacity: Number(e.target.value) })} 
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Price per Day (RWF) *</label>
+            <input 
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#a06b42] focus:border-transparent transition-all" 
+              type="number" 
+              placeholder="e.g., 85000" 
+              value={form.pricePerDay} 
+              onChange={e => setForm({ ...form, pricePerDay: Number(e.target.value) })} 
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Location *</label>
+            <input 
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#a06b42] focus:border-transparent transition-all" 
+              placeholder="e.g., Kigali" 
+              value={form.location} 
+              onChange={e => setForm({ ...form, location: e.target.value })} 
+            />
+          </div>
+          {/* Policies Section */}
+          <div className="md:col-span-3 mt-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-100">Policies & Details</h3>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Fuel Policy</label>
+            <input 
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#a06b42] focus:border-transparent transition-all" 
+              placeholder="e.g., Same-to-same" 
+              value={form.fuelPolicy} 
+              onChange={e => setForm({ ...form, fuelPolicy: e.target.value })} 
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Mileage Limit per Day (km)</label>
+            <input 
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#a06b42] focus:border-transparent transition-all" 
+              type="number" 
+              placeholder="e.g., 150" 
+              value={form.mileageLimitPerDayKm} 
+              onChange={e => setForm({ ...form, mileageLimitPerDayKm: e.target.value })} 
+            />
+          </div>
+          <div className="md:col-span-2">
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Cancellation Policy</label>
+            <textarea 
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#a06b42] focus:border-transparent transition-all resize-none" 
+              rows="2"
+              placeholder="Short description shown to guests" 
+              value={form.cancellationPolicy} 
+              onChange={e => setForm({ ...form, cancellationPolicy: e.target.value })} 
+            />
+          </div>
+          <div className="md:col-span-3">
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Deposit Information</label>
+            <input 
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#a06b42] focus:border-transparent transition-all" 
+              placeholder="e.g., No deposit required" 
+              value={form.depositInfo} 
+              onChange={e => setForm({ ...form, depositInfo: e.target.value })} 
+            />
+          </div>
+          {/* Car-Specific Features */}
+          {category === 'car' && (
+            <>
+              <div className="md:col-span-3 mt-4">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-100">Car Specifications</h3>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Transmission *</label>
+                <select 
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#a06b42] focus:border-transparent transition-all bg-white" 
+                  value={form.transmission} 
+                  onChange={e => setForm({ ...form, transmission: e.target.value })}
+                >
+                  {['automatic','manual'].map(x => (
+                    <option key={x} value={x}>{x.charAt(0).toUpperCase() + x.slice(1)}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Fuel Type *</label>
+                <select 
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#a06b42] focus:border-transparent transition-all bg-white" 
+                  value={form.fuelType} 
+                  onChange={e => setForm({ ...form, fuelType: e.target.value })}
+                >
+                  {['petrol','diesel','hybrid','electric'].map(x => (
+                    <option key={x} value={x}>{x.charAt(0).toUpperCase() + x.slice(1)}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Number of Doors *</label>
+                <input 
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#a06b42] focus:border-transparent transition-all" 
+                  type="number" 
+                  placeholder="e.g., 4" 
+                  value={form.doors} 
+                  onChange={e => setForm({ ...form, doors: Number(e.target.value) })} 
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Luggage Capacity</label>
+                <input 
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#a06b42] focus:border-transparent transition-all" 
+                  type="number" 
+                  placeholder="e.g., 2" 
+                  value={form.luggageCapacity} 
+                  onChange={e => setForm({ ...form, luggageCapacity: Number(e.target.value) })} 
+                />
+              </div>
+              
+              <div className="md:col-span-3">
+                <h4 className="text-sm font-semibold text-gray-700 mb-3">Features</h4>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <label className="flex items-center gap-3 p-3 border border-gray-200 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors">
+                    <input 
+                      type="checkbox" 
+                      checked={!!form.airConditioning} 
+                      onChange={e => setForm({ ...form, airConditioning: !!e.target.checked })} 
+                      className="w-5 h-5 text-[#a06b42] border-gray-300 rounded focus:ring-[#a06b42]"
+                    />
+                    <span className="text-sm font-medium text-gray-700">Air Conditioning</span>
+                  </label>
+                  <label className="flex items-center gap-3 p-3 border border-gray-200 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors">
+                    <input 
+                      type="checkbox" 
+                      checked={!!form.abs} 
+                      onChange={e => setForm({ ...form, abs: !!e.target.checked })} 
+                      className="w-5 h-5 text-[#a06b42] border-gray-300 rounded focus:ring-[#a06b42]"
+                    />
+                    <span className="text-sm font-medium text-gray-700">ABS</span>
+                  </label>
+                </div>
+              </div>
+            </>
+          )}
+          {/* Motorcycle-Specific Features */}
+          {category === 'motorcycle' && (
+            <>
+              <div className="md:col-span-3 mt-4">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-100">Motorcycle Specifications</h3>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Engine Capacity (cc) *</label>
+                <input 
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#a06b42] focus:border-transparent transition-all" 
+                  type="number" 
+                  placeholder="e.g., 150" 
+                  value={form.engineCapacityCc} 
+                  onChange={e => setForm({ ...form, engineCapacityCc: e.target.value })} 
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Transmission</label>
+                <input 
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-50 text-gray-600" 
+                  value="Manual" 
+                  readOnly 
+                />
+              </div>
+              
+              <div className="md:col-span-3">
+                <h4 className="text-sm font-semibold text-gray-700 mb-3">Features</h4>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <label className="flex items-center gap-3 p-3 border border-gray-200 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors">
+                    <input 
+                      type="checkbox" 
+                      checked={!!form.helmetIncluded} 
+                      onChange={e => setForm({ ...form, helmetIncluded: !!e.target.checked })} 
+                      className="w-5 h-5 text-[#a06b42] border-gray-300 rounded focus:ring-[#a06b42]"
+                    />
+                    <span className="text-sm font-medium text-gray-700">Helmet Included</span>
+                  </label>
+                  <label className="flex items-center gap-3 p-3 border border-gray-200 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors">
+                    <input 
+                      type="checkbox" 
+                      checked={!!form.abs} 
+                      onChange={e => setForm({ ...form, abs: !!e.target.checked })} 
+                      className="w-5 h-5 text-[#a06b42] border-gray-300 rounded focus:ring-[#a06b42]"
+                    />
+                    <span className="text-sm font-medium text-gray-700">ABS</span>
+                  </label>
+                </div>
+              </div>
+            </>
+          )}
+          {/* Bicycle-Specific Features */}
+          {category === 'bicycle' && (
+            <>
+              <div className="md:col-span-3 mt-4">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-100">Bicycle Specifications</h3>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Frame Size *</label>
+                <input 
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#a06b42] focus:border-transparent transition-all" 
+                  placeholder="e.g., M / 54cm" 
+                  value={form.frameSize} 
+                  onChange={e => setForm({ ...form, frameSize: e.target.value })} 
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Gear Count *</label>
+                <input 
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#a06b42] focus:border-transparent transition-all" 
+                  type="number" 
+                  placeholder="e.g., 21" 
+                  value={form.gearCount} 
+                  onChange={e => setForm({ ...form, gearCount: e.target.value })} 
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Bicycle Type</label>
+                <select 
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#a06b42] focus:border-transparent transition-all bg-white" 
+                  value={form.bicycleType} 
+                  onChange={e => setForm({ ...form, bicycleType: e.target.value })}
+                >
+                  <option value="">Select type</option>
+                  {['mountain','road','hybrid','city'].map(x => (
+                    <option key={x} value={x}>{x.charAt(0).toUpperCase() + x.slice(1)}</option>
+                  ))}
+                </select>
+              </div>
+              
+              <div className="md:col-span-3">
+                <h4 className="text-sm font-semibold text-gray-700 mb-3">Features</h4>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <label className="flex items-center gap-3 p-3 border border-gray-200 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors">
+                    <input 
+                      type="checkbox" 
+                      checked={!!form.helmetIncluded} 
+                      onChange={e => setForm({ ...form, helmetIncluded: !!e.target.checked })} 
+                      className="w-5 h-5 text-[#a06b42] border-gray-300 rounded focus:ring-[#a06b42]"
+                    />
+                    <span className="text-sm font-medium text-gray-700">Helmet Included</span>
+                  </label>
+                </div>
+              </div>
+            </>
+          )}
+          
+          {/* Availability */}
+          <div className="md:col-span-3 mt-4">
+            <label className="flex items-center gap-3 p-4 border-2 border-gray-200 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors">
+              <input 
+                type="checkbox" 
+                checked={!!form.isAvailable} 
+                onChange={e => setForm({ ...form, isAvailable: !!e.target.checked })} 
+                className="w-5 h-5 text-[#a06b42] border-gray-300 rounded focus:ring-[#a06b42]"
+              />
+              <span className="text-sm font-semibold text-gray-700">Make this vehicle available for booking</span>
+            </label>
+          </div>
+          {/* Images Section */}
+          <div className="md:col-span-3 mt-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-100">Vehicle Images *</h3>
+            <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 hover:border-[#a06b42] transition-colors">
+              <input
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={e => {
+                  const files = Array.from(e.target.files || []);
+                  if (!files.length) return;
+                  setCreateImages(files);
+                  const urls = files.map(f => URL.createObjectURL(f));
+                  setCreatePreviews(urls);
+                }}
+                className="hidden"
+                id="vehicle-images"
+              />
+              <label 
+                htmlFor="vehicle-images" 
+                className="flex flex-col items-center justify-center cursor-pointer"
+              >
+                <svg className="w-12 h-12 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <span className="text-sm font-medium text-gray-700 mb-1">Click to upload images</span>
+                <span className="text-xs text-gray-500">PNG, JPG up to 10MB each</span>
+              </label>
+            </div>
+            {createPreviews?.length > 0 && (
+              <div className="mt-4 grid grid-cols-3 md:grid-cols-5 gap-3">
+                {createPreviews.map((src, i) => (
+                  <div key={i} className="relative group">
+                    <div className="w-full h-24 bg-gray-100 rounded-lg overflow-hidden">
+                      <img src={src} className="w-full h-full object-cover" alt={`Preview ${i + 1}`} />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newFiles = createImages.filter((_, idx) => idx !== i);
+                        const newPreviews = createPreviews.filter((_, idx) => idx !== i);
+                        setCreateImages(newFiles);
+                        setCreatePreviews(newPreviews);
+                      }}
+                      className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          
+          {/* Submit Button */}
+          <div className="md:col-span-3 mt-6 flex items-center justify-end gap-4 pt-6 border-t border-gray-200">
+            <button
+              type="button"
+              onClick={() => {
+                setShowCreateForm(false);
+                resetForm();
+                setCreateImages([]);
+                setCreatePreviews([]);
+              }}
+              className="px-6 py-3 text-gray-700 font-medium border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors"
+            >
+              Cancel
+            </button>
+            <button 
+              type="submit"
+              disabled={saving || user?.isBlocked} 
+              className="px-8 py-3 bg-[#a06b42] hover:bg-[#8f5a32] text-white font-semibold rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+            >
+              {saving ? 'Creating...' : 'Create Vehicle Listing'}
+            </button>
+          </div>
         </div>
       </form>
       )}
@@ -1094,12 +1365,12 @@ export default function CarOwnerDashboard() {
                         }} className="px-2 py-1 rounded-full border border-[#d4c4b0] bg-white text-[11px] text-[#4b2a00] hover:bg-[#f5e6d5]">{s}</button>
                       ))}
                       <button onClick={() => setReceiptBooking(b)} className="px-2 py-1 rounded-full bg-emerald-600 text-white text-[11px] hover:bg-emerald-700">Receipt</button>
-                      <a
-                        href={`/messages?to=${b.guest?._id || ''}&booking=${b._id}`}
+                      <Link
+                        to={`/messages?to=${b.guest?._id || ''}&booking=${b._id}`}
                         className="px-2 py-1 rounded-full bg-[#4b2a00] text-white text-[11px] hover:bg-[#2f1905]"
                       >
                         Message
-                      </a>
+                      </Link>
                     </td>
                   </tr>
                 ))}

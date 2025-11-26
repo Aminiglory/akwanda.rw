@@ -51,7 +51,7 @@ import { useLocale } from "../contexts/LocaleContext";
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const Navbar = () => {
-  const { user, logout, isAuthenticated } = useAuth();
+  const { user, logout, isAuthenticated, refreshUser } = useAuth();
   const { language, setLanguage, currency, setCurrency, t, formatCurrencyRWF } = useLocale() || {};
   const location = useLocation();
   const navigate = useNavigate();
@@ -853,6 +853,8 @@ const Navbar = () => {
         toast.error(t ? t('msg.notOwnerAccount') : 'That account is not a property owner');
         return;
       }
+      // Refresh user state to maintain state
+      await refreshUser();
       toast.success(t ? t('msg.switchToOwnerSuccess') : 'Switched to Property Owner');
       setShowOwnerSwitch(false);
       setOwnerPassword('');

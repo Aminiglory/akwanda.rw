@@ -44,7 +44,7 @@ const Register = () => {
       toast.success('Account created');
       const role = (formData.userType || '').toLowerCase();
       if (role === 'host') {
-        navigate('/user-dashboard');
+        navigate('/choose-listing-type');
       } else {
         navigate('/dashboard');
       }

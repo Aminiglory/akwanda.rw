@@ -73,22 +73,36 @@ const Attractions = () => {
     (async () => {
       try {
         setLoading(true);
-        const res = await fetch(`${API_URL}/api/content/attractions`, { credentials: 'include' });
-        const data = await res.json();
-        const content = data?.content || {};
-        if (res.ok) {
+        // Load page content from CMS
+        const contentRes = await fetch(`${API_URL}/api/content/attractions`, { credentials: 'include' });
+        const contentData = await contentRes.json();
+        const content = contentData?.content || {};
+        if (contentRes.ok) {
           setPageContent({
             pageTitle: content.pageTitle || 'Local Amenities Near Your Apartment',
             introText: content.introText || 'Discover what is around your apartment in Rwanda',
             heroImages: Array.isArray(content.heroImages) ? content.heroImages : [],
             published: !!content.published,
           });
-          // AdminAttractions saves attractions as an array on content.attractions
-          setItems(Array.isArray(content.attractions) ? content.attractions : []);
-        } else {
-          setItems([]);
         }
-      } catch (_) { setItems([]); } finally { setLoading(false); }
+        
+        // Load actual attractions from API
+        const attractionsRes = await fetch(`${API_URL}/api/attractions`, { credentials: 'include' });
+        const attractionsData = await attractionsRes.json();
+        if (attractionsRes.ok) {
+          // Use API attractions if available, otherwise fall back to CMS content
+          const apiAttractions = Array.isArray(attractionsData?.attractions) ? attractionsData.attractions : [];
+          const cmsAttractions = Array.isArray(content.attractions) ? content.attractions : [];
+          setItems(apiAttractions.length > 0 ? apiAttractions : cmsAttractions);
+        } else {
+          // Fallback to CMS content if API fails
+          setItems(Array.isArray(content.attractions) ? content.attractions : []);
+        }
+      } catch (_) { 
+        setItems([]); 
+      } finally { 
+        setLoading(false); 
+      }
     })();
   }, []);
 
@@ -106,7 +120,10 @@ const Attractions = () => {
 
   const filteredAttractions = selectedCategory === 'all' 
     ? attractions 
-    : attractions.filter(attraction => attraction.category === selectedCategory);
+    : attractions.filter(attraction => {
+        const cat = (attraction.category || '').toLowerCase();
+        return cat === selectedCategory.toLowerCase();
+      });
 
   const renderStars = (rating) => {
     return Array.from({ length: 5 }, (_, i) => (
@@ -189,7 +206,13 @@ const Attractions = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
             {filteredAttractions.map((a, index) => {
               const id = a.id || a._id || index;
-              const image = a.image ? makeAbsolute(a.image) : null;
+              // Handle images - can be single image string or array
+              let image = null;
+              if (a.images && Array.isArray(a.images) && a.images.length > 0) {
+                image = makeAbsolute(a.images[0]);
+              } else if (a.image) {
+                image = makeAbsolute(a.image);
+              }
               const wishlisted = favIds.some(x => String(x) === String(id));
               return (
                 <div
@@ -201,16 +224,16 @@ const Attractions = () => {
                     listing={{
                       id,
                       title: a.title || a.name || 'Attraction',
-                      location: a.location || '',
+                      location: a.location || a.city || '',
                       image,
-                      price: 0,
+                      price: a.price || 0,
                       bedrooms: null,
                       bathrooms: null,
                       area: a.category || '',
-                      status: 'active',
+                      status: a.isActive !== false ? 'active' : 'inactive',
                       bookings: 0,
                       host: '',
-                      description: a.shortDesc || '',
+                      description: a.description || a.shortDesc || '',
                       wishlisted
                     }}
                     onView={() => {

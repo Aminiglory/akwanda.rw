@@ -136,7 +136,7 @@ const OwnerRegister = () => {
     
     if (result.success) {
       toast.success('Property Owner account created successfully!');
-      navigate('/upload'); // Redirect to property upload
+      navigate('/choose-listing-type'); // Redirect to listing type selection
     } else {
       const message = result.error || 'Registration failed. Please try again.';
       setError(message);
