@@ -37,6 +37,7 @@ const reportsRouter = require('./src/routes/reports');
 const workersRouter = require('./src/routes/workers');
 const reviewsRouter = require('./src/routes/reviews');
 const addOnsRouter = require('./src/routes/addOns');
+const translateRouter = require('./src/routes/translate');
 let dealsRouter, seedDealsRouter;
 try {
   dealsRouter = require('./src/routes/deals');
@@ -226,6 +227,7 @@ app.use('/api/how-it-works', howItWorksRouter);
 app.use('/api/testimonials', testimonialsRouter);
 app.use('/api/reviews', reviewsRouter);
 app.use('/api/add-ons', addOnsRouter);
+app.use('/api/translate', translateRouter);
 
 // Create HTTP server and bind Socket.IO
 const server = http.createServer(app);

@@ -386,85 +386,86 @@ const UserProfile = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="relative">
-                <img
-                  src={avatarPreviewUrl || profileData.avatar || '/default-avatar.png'}
-                  alt="Profile"
-                  className="w-12 h-12 md:w-16 md:h-16 rounded-full object-cover border-4 border-white shadow-lg"
-                />
-                <label className="absolute bottom-0 right-0 bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700 cursor-pointer">
-                  <FaCamera className="text-xs" />
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        if (avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl);
-                        setAvatarPreviewUrl(URL.createObjectURL(file));
-                        setAvatarFile(file);
-                      }
-                    }}
-                    className="hidden"
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
+      {/* Modern Header with Gradient */}
+      <div className="relative bg-gradient-to-r from-[#a06b42] via-[#8f5a32] to-[#a06b42] shadow-xl overflow-hidden">
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.05"%3E%3Cpath d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-20"></div>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+            <div className="flex items-center gap-6">
+              <div className="relative group">
+                <div className="absolute inset-0 bg-white/20 rounded-full blur-xl group-hover:blur-2xl transition-all duration-300"></div>
+                <div className="relative">
+                  <img
+                    src={avatarPreviewUrl || profileData.avatar || '/default-avatar.png'}
+                    alt="Profile"
+                    className="w-20 h-20 md:w-28 md:h-28 rounded-full object-cover border-4 border-white/30 shadow-2xl ring-4 ring-white/20 transition-transform duration-300 group-hover:scale-105"
                   />
-                </label>
+                  <label className="absolute bottom-0 right-0 bg-white text-[#a06b42] p-2.5 rounded-full hover:bg-gray-100 cursor-pointer shadow-lg transform hover:scale-110 transition-all duration-300">
+                    <FaCamera className="text-sm" />
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          if (avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl);
+                          setAvatarPreviewUrl(URL.createObjectURL(file));
+                          setAvatarFile(file);
+                        }
+                      }}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
               </div>
-              <div>
-                <h1 className="text-xl md:text-2xl font-bold text-gray-900">
+              <div className="text-white">
+                <h1 className="text-2xl md:text-4xl font-bold mb-2 drop-shadow-lg">
                   {profileData.firstName} {profileData.lastName}
                 </h1>
-                <p className="text-sm md:text-base text-gray-600">{user?.userType === 'host' ? 'Property Owner' : 'Guest'}</p>
-                <div className="flex items-center flex-wrap gap-2 md:space-x-4 mt-2">
-                  <span className="text-xs md:text-sm text-gray-500 flex items-center">
-                    <FaEnvelope className="mr-1" /> {profileData.email}
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-sm font-medium">
+                    {user?.userType === 'host' ? '🏠 Property Owner' : '👤 Guest'}
                   </span>
                   {profileData.phone && (
-                    <span className="text-xs md:text-sm text-gray-500 flex items-center">
-                      <FaPhone className="mr-1" /> {profileData.phone}
+                    <span className="text-sm opacity-90 flex items-center gap-1.5">
+                      <FaPhone className="text-xs" /> {profileData.phone}
                     </span>
                   )}
                 </div>
+                <p className="text-sm opacity-90 flex items-center gap-2">
+                  <FaEnvelope className="text-xs" /> {profileData.email}
+                </p>
               </div>
             </div>
-            <div className="flex items-center gap-2 md:space-x-3 flex-wrap justify-end">
+            <div className="flex items-center gap-3 flex-wrap">
               <button
                 onClick={updateProfile}
-                className="px-3 py-1.5 md:px-4 md:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center space-x-2 text-sm"
+                className="px-5 py-2.5 bg-white text-[#a06b42] rounded-xl hover:bg-gray-50 flex items-center gap-2 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
               >
-                <FaEdit className="text-sm" />
-                <span className="hidden sm:inline">Edit Profile</span>
+                <FaEdit />
+                <span>Edit Profile</span>
               </button>
               {avatarFile && (
                 <>
                   <button
                     onClick={uploadAvatar}
-                    className="px-3 py-1.5 md:px-4 md:py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
+                    className="px-4 py-2.5 bg-emerald-500 text-white rounded-xl hover:bg-emerald-600 text-sm font-medium shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300"
                   >Save Avatar</button>
                   <button
-                    onClick={cropAvatarToSquare}
-                    type="button"
-                    className="px-3 py-1.5 md:px-4 md:py-2 border rounded-lg text-sm"
-                  >Crop to square</button>
-                  <button
                     onClick={() => { if (avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl); setAvatarPreviewUrl(null); setAvatarFile(null); }}
-                    className="px-3 py-1.5 md:px-4 md:py-2 border rounded-lg text-sm"
+                    className="px-4 py-2.5 bg-white/10 backdrop-blur-sm text-white rounded-xl hover:bg-white/20 text-sm font-medium transition-all duration-300"
                   >Cancel</button>
                 </>
               )}
               {user?.userType === 'host' && (
                 <Link
                   to="/owner/workers"
-                  className="px-3 py-1.5 md:px-4 md:py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center space-x-2 text-sm"
+                  className="px-5 py-2.5 bg-white/10 backdrop-blur-sm text-white rounded-xl hover:bg-white/20 flex items-center gap-2 font-semibold border border-white/20 transition-all duration-300"
                   title="Create and manage your workers"
                 >
-                  <FaUsers className="text-sm" />
-                  <span className="hidden sm:inline">Manage Workers</span>
+                  <FaUsers />
+                  <span>Workers</span>
                 </Link>
               )}
             </div>
@@ -472,24 +473,24 @@ const UserProfile = () => {
         </div>
       </div>
 
-      {/* Navigation Tabs */}
-      <div className="bg-white border-b">
+      {/* Modern Navigation Tabs */}
+      <div className="bg-white/80 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-10 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <nav className="flex space-x-4 md:space-x-8 overflow-x-auto">
+          <nav className="flex space-x-1 md:space-x-2 overflow-x-auto scrollbar-hide">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center space-x-2 py-2 md:py-4 px-1 border-b-2 font-medium text-xs md:text-sm ${
+                  className={`flex items-center gap-2 py-4 px-4 md:px-6 border-b-3 font-semibold text-sm md:text-base transition-all duration-300 whitespace-nowrap ${
                     activeTab === tab.id
-                      ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      ? 'border-[#a06b42] text-[#a06b42] bg-[#a06b42]/5'
+                      : 'border-transparent text-gray-600 hover:text-[#a06b42] hover:bg-gray-50'
                   }`}
                 >
-                  <Icon className="text-base md:text-lg" />
-                  <span className="whitespace-nowrap">{tab.label}</span>
+                  <Icon className={`text-lg transition-transform duration-300 ${activeTab === tab.id ? 'scale-110' : ''}`} />
+                  <span>{tab.label}</span>
                 </button>
               );
             })}
@@ -498,90 +499,111 @@ const UserProfile = () => {
       </div>
 
       {/* Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
         {activeTab === 'overview' && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Stats Cards */}
-            <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-white rounded-lg shadow-sm p-4">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
+            {/* Modern Stats Cards with Animations */}
+            <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
+              <div className="group bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl shadow-lg p-6 hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 border border-blue-200/50">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Total Properties</p>
-                    <p className="text-3xl font-bold text-gray-900">{properties.length}</p>
+                    <p className="text-sm font-semibold text-blue-700 mb-2 uppercase tracking-wide">Total Properties</p>
+                    <p className="text-4xl font-bold text-blue-900">{properties.length}</p>
+                    <p className="text-xs text-blue-600 mt-1">Active listings</p>
                   </div>
-                  <FaHome className="text-3xl text-blue-600" />
+                  <div className="w-16 h-16 bg-blue-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                    <FaHome className="text-3xl text-blue-600" />
+                  </div>
                 </div>
               </div>
-              <div className="bg-white rounded-lg shadow-sm p-4">
+              <div className="group bg-gradient-to-br from-green-50 to-emerald-100 rounded-2xl shadow-lg p-6 hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 border border-green-200/50">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Total Bookings</p>
-                    <p className="text-3xl font-bold text-gray-900">{reports.totalBookings || 0}</p>
+                    <p className="text-sm font-semibold text-green-700 mb-2 uppercase tracking-wide">Total Bookings</p>
+                    <p className="text-4xl font-bold text-green-900">{reports.totalBookings || 0}</p>
+                    <p className="text-xs text-green-600 mt-1">All time</p>
                   </div>
-                  <FaCalendarAlt className="text-3xl text-green-600" />
+                  <div className="w-16 h-16 bg-green-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                    <FaCalendarAlt className="text-3xl text-green-600" />
+                  </div>
                 </div>
               </div>
-              <div className="bg-white rounded-lg shadow-sm p-4">
+              <div className="group bg-gradient-to-br from-amber-50 to-yellow-100 rounded-2xl shadow-lg p-6 hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 border border-amber-200/50">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Total Revenue</p>
-                    <p className="text-3xl font-bold text-gray-900">{formatCurrencyRWF ? formatCurrencyRWF(reports.totalRevenue || 0) : `RWF ${Number(reports.totalRevenue || 0).toLocaleString()}`}</p>
+                    <p className="text-sm font-semibold text-amber-700 mb-2 uppercase tracking-wide">Total Revenue</p>
+                    <p className="text-2xl font-bold text-amber-900">{formatCurrencyRWF ? formatCurrencyRWF(reports.totalRevenue || 0) : `RWF ${Number(reports.totalRevenue || 0).toLocaleString()}`}</p>
+                    <p className="text-xs text-amber-600 mt-1">Earnings</p>
                   </div>
-                  <FaDollarSign className="text-3xl text-yellow-600" />
+                  <div className="w-16 h-16 bg-amber-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                    <FaDollarSign className="text-3xl text-amber-600" />
+                  </div>
                 </div>
               </div>
-              <div className="bg-white rounded-lg shadow-sm p-4">
+              <div className="group bg-gradient-to-br from-purple-50 to-pink-100 rounded-2xl shadow-lg p-6 hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 border border-purple-200/50">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Average Rating</p>
-                    <p className="text-3xl font-bold text-gray-900">{reports.averageRating || 0}</p>
+                    <p className="text-sm font-semibold text-purple-700 mb-2 uppercase tracking-wide">Average Rating</p>
+                    <p className="text-4xl font-bold text-purple-900">{reports.averageRating || '0.0'}</p>
+                    <p className="text-xs text-purple-600 mt-1">Guest satisfaction</p>
                   </div>
-                  <FaStar className="text-3xl text-orange-600" />
+                  <div className="w-16 h-16 bg-purple-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                    <FaStar className="text-3xl text-purple-600" />
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Profile Info */}
-            <div className="bg-white rounded-xl shadow-sm p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Profile Information</h3>
-              <div className="space-y-4">
+            {/* Modern Profile Info Card */}
+            <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8 border border-gray-100 hover:shadow-2xl transition-all duration-300">
+              <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                <FaUser className="text-[#a06b42]" />
+                <span>Profile Information</span>
+              </h3>
+              <div className="space-y-5">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">First Name</label>
                   <input
                     type="text"
                     value={profileData.firstName}
                     onChange={(e) => setProfileData(prev => ({ ...prev, firstName: e.target.value }))}
-                    className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#a06b42] focus:border-[#a06b42] transition-all duration-300"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Last Name</label>
                   <input
                     type="text"
                     value={profileData.lastName}
                     onChange={(e) => setProfileData(prev => ({ ...prev, lastName: e.target.value }))}
-                    className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#a06b42] focus:border-[#a06b42] transition-all duration-300"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Phone</label>
                   <input
                     type="tel"
                     value={profileData.phone}
                     onChange={(e) => setProfileData(prev => ({ ...prev, phone: e.target.value }))}
-                    className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#a06b42] focus:border-[#a06b42] transition-all duration-300"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Bio</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Bio</label>
                   <textarea
                     value={profileData.bio}
                     onChange={(e) => setProfileData(prev => ({ ...prev, bio: e.target.value }))}
-                    rows={3}
-                    className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    rows={4}
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#a06b42] focus:border-[#a06b42] transition-all duration-300 resize-none"
                     placeholder="Tell us about yourself..."
                   />
                 </div>
+                <button
+                  onClick={updateProfile}
+                  className="w-full px-6 py-3 bg-gradient-to-r from-[#a06b42] to-[#8f5a32] text-white rounded-xl hover:from-[#8f5a32] hover:to-[#7d4a22] font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
+                >
+                  Save Changes
+                </button>
               </div>
             </div>
           </div>
@@ -604,58 +626,80 @@ const UserProfile = () => {
             </div>
 
             {propView === 'cards' ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {properties.map((property) => (
-                  <div key={property._id} className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-lg transition-shadow">
-                    <div className="relative">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+                {properties.map((property, index) => (
+                  <div 
+                    key={property._id} 
+                    className="group bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 border border-gray-100"
+                    style={{ animationDelay: `${index * 50}ms` }}
+                  >
+                    <div className="relative overflow-hidden">
                       <img
                         src={makeAbsolute(property.images?.[0]) || 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=600&h=400&fit=crop'}
                         alt={property.title}
-                        className="w-full h-48 object-cover"
+                        className="w-full h-56 object-cover group-hover:scale-110 transition-transform duration-500"
                       />
-                      <div className="absolute top-3 right-3">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${property.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                          {property.isActive ? 'Active' : 'Inactive'}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+                      <div className="absolute top-4 right-4">
+                        <span className={`px-3 py-1.5 rounded-full text-xs font-bold shadow-lg backdrop-blur-sm ${
+                          property.isActive 
+                            ? 'bg-emerald-500/90 text-white' 
+                            : 'bg-red-500/90 text-white'
+                        }`}>
+                          {property.isActive ? '✓ Active' : '✗ Inactive'}
                         </span>
+                      </div>
+                      <div className="absolute bottom-4 left-4 right-4">
+                        <h3 className="font-bold text-white text-lg mb-1 drop-shadow-lg">{property.title}</h3>
+                        <p className="text-sm text-white/90 flex items-center gap-1.5 drop-shadow-md">
+                          <FaMapMarkerAlt className="text-xs" />
+                          {property.city}, {property.country}
+                        </p>
                       </div>
                     </div>
-                    <div className="p-4">
-                      <h3 className="font-semibold text-gray-900 mb-2">{property.title}</h3>
-                      <p className="text-sm text-gray-600 mb-2 flex items-center">
-                        <FaMapMarkerAlt className="mr-1" />
-                        {property.city}, {property.country}
-                      </p>
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="text-lg font-bold text-blue-600">
-                          {formatCurrencyRWF ? formatCurrencyRWF(property.pricePerNight || 0) : `RWF ${Number(property.pricePerNight || 0).toLocaleString()}`}/night
+                    <div className="p-5">
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <span className="text-2xl font-bold text-[#a06b42]">
+                            {formatCurrencyRWF ? formatCurrencyRWF(property.pricePerNight || 0) : `RWF ${Number(property.pricePerNight || 0).toLocaleString()}`}
+                          </span>
+                          <span className="text-sm text-gray-500 ml-1">/night</span>
+                        </div>
+                        <div className="flex items-center gap-1 bg-amber-50 px-2 py-1 rounded-lg">
+                          <FaStar className="text-amber-400 text-sm" />
+                          <span className="text-sm font-semibold text-gray-700">{property.rating || 'New'}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4 text-sm text-gray-600 mb-5 pb-4 border-b border-gray-200">
+                        <span className="flex items-center gap-1.5">
+                          <FaBed className="text-[#a06b42]" />
+                          <span className="font-medium">{property.bedrooms} beds</span>
                         </span>
-                        <div className="flex items-center space-x-1">
-                          <FaStar className="text-yellow-400 text-sm" />
-                          <span className="text-sm text-gray-600">{property.rating || 'New'}</span>
-                        </div>
+                        <span className="flex items-center gap-1.5">
+                          <FaUsers className="text-[#a06b42]" />
+                          <span className="font-medium">{property.maxGuests} guests</span>
+                        </span>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2 text-sm text-gray-600">
-                          <FaBed className="text-xs" />
-                          <span>{property.bedrooms} beds</span>
-                          <FaUsers className="text-xs ml-2" />
-                          <span>{property.maxGuests} guests</span>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-2 mt-4">
-                        <button onClick={()=>navigate(`/apartment/${property._id}`)} className="flex-1 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm flex items-center justify-center space-x-1">
-                          <FaEye className="text-xs" />
+                      <div className="flex items-center gap-2">
+                        <button 
+                          onClick={()=>navigate(`/apartment/${property._id}`)} 
+                          className="flex-1 px-4 py-2.5 bg-gradient-to-r from-[#a06b42] to-[#8f5a32] text-white rounded-xl hover:from-[#8f5a32] hover:to-[#7d4a22] text-sm font-semibold flex items-center justify-center gap-2 shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300"
+                        >
+                          <FaEye />
                           <span>View</span>
                         </button>
-                        <button onClick={()=>navigate(`/edit-property/${property._id}`)} className="flex-1 px-3 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm flex items-center justify-center space-x-1">
-                          <FaEdit className="text-xs" />
-                          <span>Edit</span>
+                        <button 
+                          onClick={()=>navigate(`/edit-property/${property._id}`)} 
+                          className="px-4 py-2.5 border-2 border-[#a06b42] text-[#a06b42] rounded-xl hover:bg-[#a06b42] hover:text-white text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-300"
+                        >
+                          <FaEdit />
+                          <span className="hidden sm:inline">Edit</span>
                         </button>
                         <button
                           onClick={() => deleteProperty(property._id)}
-                          className="px-3 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 text-sm"
+                          className="px-4 py-2.5 border-2 border-red-300 text-red-600 rounded-xl hover:bg-red-50 text-sm transition-all duration-300"
                         >
-                          <FaTrash className="text-xs" />
+                          <FaTrash />
                         </button>
                       </div>
                     </div>

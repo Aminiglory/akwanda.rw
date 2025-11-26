@@ -8,6 +8,7 @@ import { Toaster } from 'react-hot-toast'
 import { ProtectedRoute, AdminRoute, HostRoute } from './components/ProtectedRoute'
 import ErrorBoundary from './components/ErrorBoundary'
 import Footer from './components/Footer'
+import GlobalTranslationProvider from './components/GlobalTranslationProvider'
 
 const Navbar = lazy(() => import('./components/Navbar'));
 
@@ -122,6 +123,7 @@ function App() {
       <SocketProvider user={user} isAuthenticated={isAuthenticated}>
         <Router>
           <ErrorBoundary>
+            <GlobalTranslationProvider>
             <div className="min-h-screen bg-gray-50">
             <Toaster position="top-right" />
             {/* Header */}
@@ -218,6 +220,7 @@ function App() {
             </Routes>
             </Suspense>
               </div>
+            </GlobalTranslationProvider>
             </ErrorBoundary>
           </Router>
       </SocketProvider>

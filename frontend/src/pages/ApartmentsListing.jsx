@@ -270,48 +270,38 @@ const ApartmentsListing = () => {
   // Do not gate this page by authentication; allow guest browsing
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            <div>
-              <h1 className="text-4xl font-bold text-gray-900 uppercase tracking-wide">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
+      {/* Modern Header with Gradient */}
+      <div className="relative bg-gradient-to-r from-[#a06b42] via-[#8f5a32] to-[#a06b42] shadow-xl overflow-hidden">
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.05"%3E%3Cpath d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-20"></div>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+            <div className="text-white">
+              <h1 className="text-3xl md:text-5xl font-bold mb-3 drop-shadow-lg">
                 Find Your Perfect Stay
               </h1>
-              <p className="text-gray-600 mt-2 text-lg font-medium">
+              <p className="text-lg md:text-xl text-white/90 font-medium">
                 Discover Amazing Stays Across Rwanda
               </p>
             </div>
 
-            {/* Search Bar */}
-            <div className="flex items-center w-full lg:w-auto space-x-2">
-              <div className="relative flex-1">
-                <FaMapMarkerAlt className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-primary" />
+            {/* Modern Search Bar */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
+              <div className="relative flex-1 bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg">
+                <FaMapMarkerAlt className="absolute left-4 top-1/2 -translate-y-1/2 text-[#a06b42] text-lg" />
                 <input
                   type="text"
-                  placeholder="Search by location..."
-                  className="w-full h-10 pl-10 pr-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Search by location, city..."
+                  className="w-full h-12 pl-12 pr-4 bg-transparent border-none outline-none text-gray-900 placeholder:text-gray-400 text-base"
                   value={filters.location}
-                  onChange={(e) =>
-                    handleFilterChange("location", e.target.value)
-                  }
+                  onChange={(e) => handleFilterChange("location", e.target.value)}
                 />
               </div>
               <button
-                onClick={() =>
-                  setFilters({ ...filters, location: filters.location })
-                }
-                className="flex items-center btn-primary px-4 py-2 rounded-lg transition-colors"
-              >
-                <FaSearch className="mr-2" />
-                Search
-              </button>
-              <button
                 onClick={() => setShowFilters(!showFilters)}
-                className="flex items-center space-x-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors"
+                className="px-6 py-3 bg-white/10 backdrop-blur-sm text-white rounded-2xl hover:bg-white/20 font-semibold flex items-center justify-center gap-2 border border-white/20 transition-all duration-300 shadow-lg hover:shadow-xl"
               >
-                <FaFilter />
+                <FaFilter className="text-lg" />
                 <span>Filters</span>
               </button>
             </div>
@@ -320,30 +310,36 @@ const ApartmentsListing = () => {
       </div>
 
       {/* Body */}
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Sidebar Filters */}
-          <div className="lg:col-span-1">
-            <div
-              className={`modern-card p-6 ${
-                showFilters ? "block" : "hidden lg:block"
-              }`}
-            >
-              <h3 className="text-lg font-semibold text-gray-800 mb-6">
-                Filters
-              </h3>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 md:gap-8">
+          {/* Modern Sidebar Filters */}
+          <div className={`lg:col-span-1 transition-all duration-300 ${showFilters ? "block" : "hidden lg:block"}`}>
+            <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100 sticky top-24">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <FaFilter className="text-[#a06b42]" />
+                  <span>Filters</span>
+                </h3>
+                <button
+                  onClick={() => setShowFilters(false)}
+                  className="lg:hidden text-gray-400 hover:text-gray-600"
+                >
+                  ×
+                </button>
+              </div>
 
-              {/* Location inside Filters too */}
+              {/* Location Filter */}
               <div className="mb-6">
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Location
+                <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                  <FaMapMarkerAlt className="text-[#a06b42]" />
+                  <span>Location</span>
                 </label>
                 <div className="relative">
-                  <FaMapMarkerAlt className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-blue-600" />
+                  <FaMapMarkerAlt className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                   <input
                     type="text"
                     placeholder="Enter location"
-                    className="w-full h-10 pl-10 pr-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full h-12 pl-11 pr-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#a06b42] focus:border-[#a06b42] transition-all duration-300"
                     value={filters.location}
                     onChange={(e) =>
                       handleFilterChange("location", e.target.value)
@@ -352,9 +348,12 @@ const ApartmentsListing = () => {
                 </div>
               </div>
 
-              {/* Budget Range Slider (Booking.com-like) */}
+              {/* Modern Budget Range Slider */}
               <div className="mb-6">
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Budget</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                  <FaDollarSign className="text-[#a06b42]" />
+                  <span>Budget Range</span>
+                </label>
                 <div className="px-1">
                   <div className="flex items-center justify-between text-xs text-gray-600 mb-1">
                     <span>{formatCurrencyRWF ? formatCurrencyRWF(filters.priceMin || 0) : `RWF ${Number(filters.priceMin || 0).toLocaleString()}`}</span>
@@ -583,48 +582,70 @@ const ApartmentsListing = () => {
                     guests: 1,
                   })
                 }
-                className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 rounded-lg transition-colors"
+                className="w-full bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 text-gray-700 py-3 rounded-xl font-semibold transition-all duration-300 shadow-md hover:shadow-lg transform hover:scale-105"
               >
                 Clear All Filters
               </button>
             </div>
           </div>
 
-          {/* Apartments Grid */}
+          {/* Modern Apartments Grid */}
           <div className="lg:col-span-3">
-            {/* Sort and Results */}
-            <div className="flex items-center justify-between mb-6">
-              <p className="text-gray-600">
-                {loading ? "Loading..." : `${apartments.length} stays found`}
-              </p>
-              <div className="flex items-center space-x-2">
-                <FaSortAmountDown className="text-gray-400" />
-                <select
-                  className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  value={filters.sortBy}
-                  onChange={(e) => handleFilterChange("sortBy", e.target.value)}
-                >
-                  <option value="price-asc">Price: Low to High</option>
-                  <option value="price-desc">Price: High to Low</option>
-                  <option value="rating-desc">Highest Rated</option>
-                  <option value="newest">Newest First</option>
-                </select>
-                {/* View mode toggle (large screens) */}
-                <div className="hidden lg:flex items-center gap-2 ml-4">
-                  <button
-                    onClick={() => setViewMode('grid')}
-                    className={`${viewMode==='grid' ? 'btn-primary text-white' : 'bg-gray-100 text-gray-700'} px-3 py-2 rounded-lg`}
-                    title="Grid view"
-                  >
-                    Grid
-                  </button>
-                  <button
-                    onClick={() => setViewMode('table')}
-                    className={`${viewMode==='table' ? 'btn-primary text-white' : 'bg-gray-100 text-gray-700'} px-3 py-2 rounded-lg`}
-                    title="Table view (large screens)"
-                  >
-                    Table
-                  </button>
+            {/* Modern Sort and Results Header */}
+            <div className="bg-white rounded-2xl shadow-lg p-4 md:p-6 mb-6 border border-gray-100">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <p className="text-lg font-bold text-gray-900">
+                    {loading ? (
+                      <span className="flex items-center gap-2">
+                        <span className="animate-spin rounded-full h-4 w-4 border-2 border-[#a06b42] border-t-transparent"></span>
+                        Loading...
+                      </span>
+                    ) : (
+                      <span className="text-[#a06b42]">{apartments.length}</span>
+                    )}
+                    <span className="text-gray-600 ml-2">stays found</span>
+                  </p>
+                </div>
+                <div className="flex items-center gap-3 w-full sm:w-auto">
+                  <div className="relative flex-1 sm:flex-initial">
+                    <FaSortAmountDown className="absolute left-3 top-1/2 -translate-y-1/2 text-[#a06b42] pointer-events-none" />
+                    <select
+                      className="w-full sm:w-auto pl-10 pr-8 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#a06b42] focus:border-[#a06b42] bg-white font-medium text-gray-700 transition-all duration-300 appearance-none cursor-pointer"
+                      value={filters.sortBy}
+                      onChange={(e) => handleFilterChange("sortBy", e.target.value)}
+                    >
+                      <option value="price-asc">Price: Low to High</option>
+                      <option value="price-desc">Price: High to Low</option>
+                      <option value="rating-desc">Highest Rated</option>
+                      <option value="newest">Newest First</option>
+                    </select>
+                  </div>
+                  {/* Modern View mode toggle */}
+                  <div className="hidden lg:flex items-center gap-2 bg-gray-100 rounded-xl p-1">
+                    <button
+                      onClick={() => setViewMode('grid')}
+                      className={`px-4 py-2 rounded-lg font-semibold transition-all duration-300 ${
+                        viewMode==='grid' 
+                          ? 'bg-gradient-to-r from-[#a06b42] to-[#8f5a32] text-white shadow-md' 
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                      title="Grid view"
+                    >
+                      Grid
+                    </button>
+                    <button
+                      onClick={() => setViewMode('table')}
+                      className={`px-4 py-2 rounded-lg font-semibold transition-all duration-300 ${
+                        viewMode==='table' 
+                          ? 'bg-gradient-to-r from-[#a06b42] to-[#8f5a32] text-white shadow-md' 
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                      title="Table view"
+                    >
+                      Table
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

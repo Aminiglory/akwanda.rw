@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaHome, FaCar, FaMountain, FaUsers } from 'react-icons/fa';
+import { FaHome, FaCar, FaMountain, FaPlane } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
 
 const ChooseListingType = () => {
@@ -39,13 +39,13 @@ const ChooseListingType = () => {
       available: true
     },
     {
-      id: 'worker',
-      title: 'Manage Workers',
-      description: 'Add and manage staff for your properties',
-      icon: FaUsers,
-      color: 'from-orange-500 to-orange-600',
-      hoverColor: 'hover:from-orange-600 hover:to-orange-700',
-      route: '/owner/workers',
+      id: 'flight',
+      title: 'List Flights',
+      description: 'Offer flight bookings and travel services',
+      icon: FaPlane,
+      color: 'from-indigo-500 to-indigo-600',
+      hoverColor: 'hover:from-indigo-600 hover:to-indigo-700',
+      route: '/flights',
       available: true
     }
   ];

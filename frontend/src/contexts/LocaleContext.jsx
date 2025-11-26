@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { translateText, translateObject } from '../utils/translator';
 
 const DEFAULT_LANG = 'en';
 const DEFAULT_CURRENCY = 'RWF';
@@ -832,7 +833,7 @@ export const LocaleProvider = ({ children }) => {
   const dict = dictionaries[language] || dictionaries[DEFAULT_LANG];
 
   const t = useMemo(() => {
-    const fn = (path, ...args) => {
+    const fn = async (path, ...args) => {
       const parts = String(path).split('.');
       let cur = dict;
       for (const p of parts) {
@@ -845,37 +846,153 @@ export const LocaleProvider = ({ children }) => {
             else { fb = null; break; }
           }
           if (fb != null) {
-            if (typeof fb === 'function') return fb(...args);
+            if (typeof fb === 'function') {
+              const result = fb(...args);
+              // If language is not English, try to translate the result
+              if (language !== 'en' && typeof result === 'string') {
+                try {
+                  return await translateText(result, language, 'en');
+                } catch {
+                  return result;
+                }
+              }
+              return result;
+            }
+            // If language is not English, try to translate
+            if (language !== 'en' && typeof fb === 'string') {
+              try {
+                return await translateText(fb, language, 'en');
+              } catch {
+                return fb;
+              }
+            }
             return fb;
+          }
+          // If path not found in dictionary, try to translate the path itself
+          if (language !== 'en') {
+            try {
+              return await translateText(path, language, 'en');
+            } catch {
+              return path;
+            }
           }
           return path;
         }
       }
-      if (typeof cur === 'function') return cur(...args);
+      if (typeof cur === 'function') {
+        const result = cur(...args);
+        // If language is not English, try to translate the result
+        if (language !== 'en' && typeof result === 'string') {
+          try {
+            return await translateText(result, language, 'en');
+          } catch {
+            return result;
+          }
+        }
+        return result;
+      }
+      // If language is not English, try to translate
+      if (language !== 'en' && typeof cur === 'string') {
+        try {
+          return await translateText(cur, language, 'en');
+        } catch {
+          return cur;
+        }
+      }
       return cur;
     };
     return fn;
-  }, [dict]);
+  }, [dict, language]);
 
   // Localize dynamic values coming from Admin CMS or backend
   // Accepts:
-  // - string: returned as-is
-  // - object: tries value[language] -> value[DEFAULT_LANG] -> first string value
-  const localize = (value) => {
+  // - string: tries to translate if language is not English
+  // - object: tries value[language] -> value[DEFAULT_LANG] -> first string value, then translates
+  const localize = async (value) => {
     if (value == null) return '';
-    if (typeof value === 'string') return value;
+    if (typeof value === 'string') {
+      if (language !== 'en') {
+        try {
+          return await translateText(value, language, 'en');
+        } catch {
+          return value;
+        }
+      }
+      return value;
+    }
     if (typeof value === 'object') {
       const v = value[language] ?? value[DEFAULT_LANG];
-      if (typeof v === 'string') return v;
+      if (typeof v === 'string') {
+        // If it's already in the target language, return as-is
+        if (value[language]) return v;
+        // Otherwise, translate if needed
+        if (language !== 'en') {
+          try {
+            return await translateText(v, language, 'en');
+          } catch {
+            return v;
+          }
+        }
+        return v;
+      }
       // Try to find any string entry
       for (const k in value) {
-        if (typeof value[k] === 'string') return value[k];
+        if (typeof value[k] === 'string') {
+          const result = value[k];
+          if (language !== 'en' && k !== language) {
+            try {
+              return await translateText(result, language, 'en');
+            } catch {
+              return result;
+            }
+          }
+          return result;
+        }
       }
     }
-    return String(value);
+    const strValue = String(value);
+    if (language !== 'en') {
+      try {
+        return await translateText(strValue, language, 'en');
+      } catch {
+        return strValue;
+      }
+    }
+    return strValue;
   };
 
-  const value = useMemo(() => ({ language, setLanguage, currency, setCurrency, t, rates, formatCurrencyRWF, formatCurrency, localize }), [language, currency, t, rates]);
+  // Synchronous translation function for immediate use (uses dictionary first, then falls back to async)
+  const translateSync = useMemo(() => {
+    return (text, fallback = null) => {
+      if (!text || typeof text !== 'string') return fallback || text;
+      if (language === 'en') return text;
+      
+      // Try dictionary first (synchronous)
+      try {
+        const dictResult = t(text);
+        if (dictResult && dictResult !== text && typeof dictResult === 'string') {
+          return dictResult;
+        }
+      } catch {}
+      
+      // Return original text - global translator will handle async translation
+      return text;
+    };
+  }, [language, t]);
+
+  const value = useMemo(() => ({ 
+    language, 
+    setLanguage, 
+    currency, 
+    setCurrency, 
+    t, 
+    rates, 
+    formatCurrencyRWF, 
+    formatCurrency, 
+    localize,
+    translateSync // Add synchronous translation function
+  }), [language, currency, t, rates, translateSync]);
+  
   return <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>;
 };
 

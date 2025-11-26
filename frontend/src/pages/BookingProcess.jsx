@@ -594,14 +594,59 @@ const BookingProcess = () => {
     }
   };
 
+  const steps = [
+    { number: 1, title: 'Budget', icon: FaDollarSign },
+    { number: 2, title: 'Select Room', icon: FaBed },
+    { number: 3, title: 'Dates', icon: FaCalendarAlt },
+    { number: 4, title: 'Contact', icon: FaUsers },
+    { number: 5, title: 'Payment', icon: FaShieldAlt }
+  ];
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+        {/* Modern Step Indicator */}
+        <div className="mb-8 md:mb-12">
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6 md:mb-8">Book Your Stay</h1>
+          <div className="flex items-center justify-between relative px-4">
+            {/* Progress Line */}
+            <div className="absolute top-5 left-4 right-4 h-0.5 bg-gray-200 -z-10 hidden md:block">
+              <div 
+                className="h-full bg-gradient-to-r from-[#a06b42] to-[#8f5a32] transition-all duration-500"
+                style={{ width: `${((currentStep - 1) / (steps.length - 1)) * 100}%` }}
+              />
+            </div>
+            {steps.map((step) => {
+              const isActive = currentStep === step.number;
+              const isCompleted = currentStep > step.number;
+              const Icon = step.icon;
+              return (
+                <div key={step.number} className="flex flex-col items-center flex-1 relative z-10">
+                  <div className={`w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center font-bold text-sm md:text-base transition-all duration-300 ${
+                    isCompleted 
+                      ? 'bg-gradient-to-r from-[#a06b42] to-[#8f5a32] text-white shadow-lg scale-110' 
+                      : isActive 
+                        ? 'bg-[#a06b42] text-white shadow-md scale-110 ring-4 ring-[#a06b42]/20' 
+                        : 'bg-gray-200 text-gray-500'
+                  }`}>
+                    {isCompleted ? <FaCheck className="text-white text-xs" /> : <Icon className="text-xs md:text-sm" />}
+                  </div>
+                  <span className={`mt-2 text-xs md:text-sm font-medium text-center hidden sm:block ${
+                    isActive || isCompleted ? 'text-[#a06b42]' : 'text-gray-500'
+                  }`}>
+                    {step.title}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
         <div className="grid lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2">
             {currentStep === 1 && (
-              <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">Start Your Booking</h2>
+              <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8 mb-6 border border-gray-100">
+                <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-6">Start Your Booking</h2>
                 <p className="text-gray-600 mb-6">Select a room first, then choose your dates</p>
                 
                 <div className="flex justify-center">

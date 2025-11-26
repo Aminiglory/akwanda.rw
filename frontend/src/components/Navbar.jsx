@@ -161,9 +161,9 @@ const Navbar = () => {
     {
       label: t ? t('nav.attractions') : "Attractions",
       icon: FaUmbrellaBeach,
-      href: "/experiences",
+      href: "/attractions",
       children: [
-        { label: t ? t('nav.tours') : "Tours & Activities", href: "/experiences", icon: FaUmbrellaBeach },
+        { label: t ? t('nav.tours') : "Tours & Activities", href: "/attractions", icon: FaUmbrellaBeach },
         { label: t ? t('nav.restaurants') : "Restaurants", href: "/restaurants", icon: FaUtensils },
         { label: labelOr('nav.deals', 'Deals'), href: "/deals", icon: FaShoppingBag },
       ]
@@ -1063,15 +1063,32 @@ const Navbar = () => {
                 </Link>
 
                 {/* Property selector (desktop) - next to logo in owner dashboard */}
-                {isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard() && myProperties.length > 0 && (
+                {isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard() && (
                   <div className="hidden lg:block">
                     <div className="flex items-center gap-2">
                       <select
-                        className="px-3 py-2 border border-[#d4c4b0] rounded-lg bg-white text-sm text-[#4b2a00] focus:outline-none focus:ring-2 focus:ring-[#a06b42]"
+                        className="px-4 py-2.5 border-2 border-[#d4c4b0] rounded-xl bg-white text-sm font-medium text-[#4b2a00] focus:outline-none focus:ring-2 focus:ring-[#a06b42] focus:border-[#a06b42] transition-all shadow-sm hover:shadow-md"
                         title={t ? t('banner.choosePropertyToManage') : 'Choose property to manage'}
-                        value={selectedPropertyId}
+                        value={selectedPropertyId || 'all'}
                         onChange={(e) => {
                           const id = e.target.value;
+                          if (id === 'vehicles') {
+                            navigate('/owner/cars');
+                            return;
+                          }
+                          if (id === 'attractions') {
+                            navigate('/owner/attractions');
+                            return;
+                          }
+                          if (id === 'all') {
+                            setSelectedPropertyId('');
+                            try {
+                              const params = new URLSearchParams(location.search || '');
+                              params.delete('property');
+                              navigate({ pathname: location.pathname, search: params.toString() }, { replace: true });
+                            } catch (_) {}
+                            return;
+                          }
                           if (!id) return;
                           // Persist selected property for all owner links by updating state and URL ?property=
                           setSelectedPropertyId(id);
@@ -1080,10 +1097,9 @@ const Navbar = () => {
                             params.set('property', String(id));
                             navigate({ pathname: location.pathname, search: params.toString() }, { replace: true });
                           } catch (_) {}
-                          // Also open the enhanced owner dashboard in a new tab for this property
-                          window.open(`/dashboard?property=${id}`, '_blank', 'noopener,noreferrer');
                         }}
                       >
+                        <option value="all">All Properties</option>
                         {myProperties.map((p) => {
                           const id = String(p._id || '');
                           const code = p.propertyNumber || id.slice(-6) || 'N/A';
@@ -1092,46 +1108,54 @@ const Navbar = () => {
                             <option key={id} value={id}>{`#${code} - ${name}`}</option>
                           );
                         })}
+                        <optgroup label="Other Categories">
+                          <option value="vehicles">🚗 Vehicles</option>
+                          <option value="attractions">🏔️ Attractions</option>
+                        </optgroup>
                       </select>
-
-                      {/* Dashboard categories for host management: Vehicles & Attractions */}
-                      <button
-                        type="button"
-                        className="px-3 py-2 rounded-lg border border-[#d4c4b0] bg-white text-xs font-medium text-[#4b2a00] hover:bg-[#f4e5d4]"
-                        onClick={() => window.open('/owner/cars', '_blank', 'noopener,noreferrer')}
-                      >
-                        Vehicles
-                      </button>
-                      <button
-                        type="button"
-                        className="px-3 py-2 rounded-lg border border-[#d4c4b0] bg-white text-xs font-medium text-[#4b2a00] hover:bg-[#f4e5d4]"
-                        onClick={() => window.open('/owner/attractions', '_blank', 'noopener,noreferrer')}
-                      >
-                        Attractions
-                      </button>
                     </div>
                   </div>
                 )}
 
-                {/* Main Navigation Items - client side (desktop) */}
+                {/* Main Navigation Items - client side (desktop only, mobile goes to dropdown) */}
                 {user?.userType !== 'admin' && !isInAnyOwnerDashboard() && (
                   <div className="hidden lg:flex items-center space-x-1 ml-4">
                     {mainNavItems.map((item, index) => {
                       const Icon = item.icon;
                       const isActive = isActiveRoute(item.href);
+                      const hasChildren = item.children && item.children.length > 0;
                       return (
-                        <Link
-                          key={index}
-                          to={item.href}
-                          className={`flex items-center space-x-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                            isActive
-                              ? 'bg-[#a06b42] text-white shadow-sm'
-                              : 'text-[#6b5744] hover:text-[#4b2a00] hover:bg-[#e8dcc8]'
-                          }`}
-                        >
-                          <Icon className="text-sm" />
-                          <span>{item.label}</span>
-                        </Link>
+                        <div key={index} className="relative group">
+                          <Link
+                            to={item.href}
+                            className={`flex items-center space-x-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                              isActive
+                                ? 'bg-[#a06b42] text-white shadow-sm'
+                                : 'text-[#6b5744] hover:text-[#4b2a00] hover:bg-[#e8dcc8]'
+                            }`}
+                          >
+                            <Icon className="text-sm" />
+                            <span>{item.label}</span>
+                            {hasChildren && <FaChevronDown className="text-xs ml-1" />}
+                          </Link>
+                          {hasChildren && (
+                            <div className="absolute left-0 top-full mt-2 w-56 bg-white rounded-xl shadow-2xl border border-gray-200 py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50">
+                              {item.children.map((child, cidx) => {
+                                const ChildIcon = child.icon;
+                                return (
+                                  <Link
+                                    key={cidx}
+                                    to={child.href || item.href}
+                                    className="flex items-center gap-3 px-4 py-2 text-sm text-[#4b2a00] hover:bg-gray-50"
+                                  >
+                                    {ChildIcon && <ChildIcon className="text-sm" />}
+                                    <span>{child.label}</span>
+                                  </Link>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
                       );
                     })}
                   </div>
@@ -1141,23 +1165,23 @@ const Navbar = () => {
 
               {/* Right Side - Booking.com Style */}
               <div className="flex flex-nowrap items-center gap-1 lg:gap-2">
-              {/* Global search in main navbar (public / non-owner dashboard context) */}
+              {/* Modern Global search in main navbar (public / non-owner dashboard context) */}
               {(!isAuthenticated || !isInAnyOwnerDashboard()) && (
                 <form
                   onSubmit={handleGlobalSearch}
-                  className="hidden lg:flex items-center bg-white border border-gray-300 rounded-lg px-2 py-1.5 mr-1 max-w-xs"
+                  className="hidden lg:flex items-center bg-white border-2 border-gray-200 rounded-xl px-4 py-2.5 mr-2 max-w-md shadow-sm hover:border-[#a06b42] focus-within:border-[#a06b42] focus-within:shadow-md transition-all duration-300"
                 >
-                  <FaSearch className="text-xs text-gray-500 mr-1" />
+                  <FaSearch className="text-sm text-gray-400 mr-2 flex-shrink-0" />
                   <input
                     type="text"
                     value={globalSearchTerm}
                     onChange={(e) => setGlobalSearchTerm(e.target.value)}
-                    placeholder="Search..."
-                    className="flex-1 text-xs bg-transparent outline-none placeholder:text-gray-400 text-gray-800"
+                    placeholder="Search properties, vehicles, attractions..."
+                    className="flex-1 text-sm bg-transparent outline-none placeholder:text-gray-400 text-gray-800"
                   />
                   <button
                     type="submit"
-                    className="ml-1 px-2 py-1 text-[11px] rounded-md bg-[#a06b42] text-white hover:bg-[#8f5a32] whitespace-nowrap"
+                    className="ml-2 px-4 py-1.5 text-sm rounded-lg bg-gradient-to-r from-[#a06b42] to-[#8f5a32] text-white hover:from-[#8f5a32] hover:to-[#7d4a22] whitespace-nowrap font-medium transition-all duration-300 shadow-sm hover:shadow-md"
                   >
                     Search
                   </button>
@@ -1556,19 +1580,56 @@ const Navbar = () => {
             </div>
           )}
 
-          {/* Guest/General quick links (subset for mobile) */}
+          {/* Guest/General quick links (mobile dropdown - all links here) */}
           {!isInPropertyOwnerDashboard() && (
             <div className="px-2 pb-4">
-              {mainNavItems.map((m, i) => (
-                <Link
-                  key={i}
-                  to={m.href}
-                  className="block px-4 py-3 rounded-lg bg-white border border-[#e0d5c7] text-[#4b2a00] mb-2"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  {m.label}
-                </Link>
-              ))}
+              {mainNavItems.map((m, i) => {
+                const hasChildren = m.children && m.children.length > 0;
+                const isExpanded = expandedMobileItems[`main-${i}`];
+                return (
+                  <div key={i} className="mb-2">
+                    {hasChildren ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => setExpandedMobileItems((s) => ({ ...s, [`main-${i}`]: !isExpanded }))}
+                          className="w-full flex items-center justify-between px-4 py-3 rounded-lg bg-white border border-[#e0d5c7] text-[#4b2a00]"
+                        >
+                          <span className="flex items-center gap-2">
+                            {m.icon && <m.icon className="text-sm" />}
+                            <span>{m.label}</span>
+                          </span>
+                          <FaCaretDown className={`text-xs transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                        </button>
+                        {isExpanded && (
+                          <div className="mt-1 rounded-lg bg-[#fff8f1] border border-[#e0d5c7] overflow-hidden">
+                            {m.children.map((child, cidx) => (
+                              <Link
+                                key={cidx}
+                                to={child.href || m.href}
+                                className="flex items-center gap-3 px-4 py-3 text-sm text-[#4b2a00] hover:bg-white border-t border-[#f0e6d9] first:border-t-0"
+                                onClick={() => setIsMenuOpen(false)}
+                              >
+                                {child.icon && <child.icon className="text-sm" />}
+                                <span>{child.label}</span>
+                              </Link>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <Link
+                        to={m.href}
+                        className="flex items-center gap-2 px-4 py-3 rounded-lg bg-white border border-[#e0d5c7] text-[#4b2a00]"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        {m.icon && <m.icon className="text-sm" />}
+                        <span>{m.label}</span>
+                      </Link>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
