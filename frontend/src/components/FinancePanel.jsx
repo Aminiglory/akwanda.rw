@@ -32,6 +32,24 @@ const FinancePanel = ({ propertyOptions = [], activeSection = 'ledger' }) => {
 
   const formatCurrency = (n) => `RWF ${Number(n || 0).toLocaleString()}`;
 
+  const formatPeriod = (p) => {
+    if (!p) return '';
+    if (typeof p === 'string') return p;
+    if (typeof p === 'object') {
+      const month = p.month != null ? String(p.month).padStart(2, '0') : '';
+      const year = p.year != null ? String(p.year) : '';
+      if (year || month) {
+        return year && month ? `${year}-${month}` : (year || month);
+      }
+      try {
+        return JSON.stringify(p);
+      } catch (_) {
+        return String(p);
+      }
+    }
+    return String(p);
+  };
+
   const scrollToSection = (target) => {
     const map = {
       ledger: ledgerRef,
@@ -315,7 +333,7 @@ const FinancePanel = ({ propertyOptions = [], activeSection = 'ledger' }) => {
                 <tbody className="divide-y divide-gray-200">
                   {invoices.map(inv => (
                     <tr key={inv._id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3">{inv.code || inv._id}<div className="text-xs text-gray-600">{inv.period || ''}</div></td>
+                      <td className="px-4 py-3">{inv.code || inv._id}<div className="text-xs text-gray-600">{formatPeriod(inv.period)}</div></td>
                       <td className="px-4 py-3">{formatCurrency(inv.amount)}</td>
                       <td className="px-4 py-3">
                         <button onClick={() => downloadInvoice(inv._id, inv.code)} className="px-3 py-1 border rounded">Download</button>
