@@ -177,16 +177,6 @@ const Hero = () => {
     return () => clearInterval(timerRef.current);
   }, [slides, intervalMs, reduceMotion, paused]);
 
-  // Parallax effect on scroll
-  useEffect(() => {
-    const onScroll = () => {
-      const y = window.scrollY || 0;
-      setParallax(Math.max(-20, Math.min(20, y * 0.05)));
-    };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
-
   // Count-up animation for metrics
   useEffect(() => {
     const start = performance.now();
