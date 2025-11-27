@@ -439,30 +439,48 @@ const Navbar = () => {
   }, [socket, isAuthenticated]);
 
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated) {
+      // Reset counts when user logs out
+      setUnreadNotifCount(0);
+      setUnreadMsgCount(0);
+      setUserStats({ properties: 0, bookings: 0, rating: 0 });
+      return;
+    }
     let timer;
     const loadUnread = async () => {
-      const data = await safeApiGet('/api/notifications/unread-count', { count: 0 });
-      setUnreadNotifCount(Number(data.count || 0));
+      try {
+        const data = await safeApiGet('/api/notifications/unread-count', { count: 0 });
+        setUnreadNotifCount(Number(data?.count || 0));
+      } catch (error) {
+        // Silently handle errors for unauthenticated users
+      }
     };
 
     const loadUnreadMessages = async () => {
-      const data = await safeApiGet('/api/messages/unread-count', { count: 0 });
-      setUnreadMsgCount(Number(data.count || 0));
+      try {
+        const data = await safeApiGet('/api/messages/unread-count', { count: 0 });
+        setUnreadMsgCount(Number(data?.count || 0));
+      } catch (error) {
+        // Silently handle errors for unauthenticated users
+      }
     };
     const loadUserStats = async () => {
       if (user?.userType === 'host') {
-        // Try stats endpoint first, fallback to dashboard
-        let data = await safeApiGet('/api/reports/stats', null);
-        if (!data) {
-          data = await safeApiGet('/api/reports/dashboard', { properties: 0, bookings: 0, rating: 0 });
-        }
+        try {
+          // Try stats endpoint first, fallback to dashboard
+          let data = await safeApiGet('/api/reports/stats', null);
+          if (!data) {
+            data = await safeApiGet('/api/reports/dashboard', { properties: 0, bookings: 0, rating: 0 });
+          }
 
-        setUserStats({
-          properties: data.totalProperties || 0,
-          bookings: data.totalBookings || 0,
-          rating: data.averageRating || 0
-        });
+          setUserStats({
+            properties: data?.totalProperties || 0,
+            bookings: data?.totalBookings || 0,
+            rating: data?.averageRating || 0
+          });
+        } catch (error) {
+          // Silently handle errors
+        }
       }
     };
 
@@ -678,18 +696,22 @@ const Navbar = () => {
   useEffect(() => {
     if (!isAuthenticated || !isProfileOpen) return;
     (async () => {
-      const unreadNotif = await safeApiGet('/api/notifications/unread-count', { count: 0 });
-      setUnreadNotifCount(Number(unreadNotif.count || 0));
-      const unreadMsgs = await safeApiGet('/api/messages/unread-count', { count: 0 });
-      setUnreadMsgCount(Number(unreadMsgs.count || 0));
-      if (user?.userType === 'host') {
-        let data = await safeApiGet('/api/reports/stats', null);
-        if (!data) data = await safeApiGet('/api/reports/dashboard', { properties: 0, bookings: 0, rating: 0 });
-        setUserStats({
-          properties: data.totalProperties || 0,
-          bookings: data.totalBookings || 0,
-          rating: data.averageRating || 0
-        });
+      try {
+        const unreadNotif = await safeApiGet('/api/notifications/unread-count', { count: 0 });
+        setUnreadNotifCount(Number(unreadNotif?.count || 0));
+        const unreadMsgs = await safeApiGet('/api/messages/unread-count', { count: 0 });
+        setUnreadMsgCount(Number(unreadMsgs?.count || 0));
+        if (user?.userType === 'host') {
+          let data = await safeApiGet('/api/reports/stats', null);
+          if (!data) data = await safeApiGet('/api/reports/dashboard', { properties: 0, bookings: 0, rating: 0 });
+          setUserStats({
+            properties: data?.totalProperties || 0,
+            bookings: data?.totalBookings || 0,
+            rating: data?.averageRating || 0
+          });
+        }
+      } catch (error) {
+        // Silently handle errors - user might not be authenticated
       }
     })();
   }, [isAuthenticated, isProfileOpen, user?.userType]);
@@ -1045,7 +1067,7 @@ const Navbar = () => {
             isAuthenticated && user?.userType === 'host' && isInAnyOwnerDashboard()
               ? 'w-full px-2 sm:px-3'
               : 'max-w-7xl px-4 sm:px-6 lg:px-8'
-          } mx-auto py-4`}
+          } mx-auto py-2`}
         >
           <div className="flex flex-col gap-3">
             <div className="flex justify-between items-center">
@@ -1053,7 +1075,7 @@ const Navbar = () => {
               <div className="flex items-center space-x-4">
                 <Link
                   to="/"
-                  className={`text-xl font-bold tracking-tight ${
+                  className={`text-base font-bold tracking-tight ${
                     isAuthenticated && user?.userType === 'host' && isInAnyOwnerDashboard()
                       ? 'text-white hover:text-[#fdf2e9]'
                       : 'text-[#4b2a00] hover:text-[#6b3f1f]'
@@ -1067,7 +1089,7 @@ const Navbar = () => {
                   <div className="hidden lg:block">
                     <div className="flex items-center gap-2">
                       <select
-                        className="px-4 py-2.5 border-2 border-[#d4c4b0] rounded-xl bg-white text-sm font-medium text-[#4b2a00] focus:outline-none focus:ring-2 focus:ring-[#a06b42] focus:border-[#a06b42] transition-all shadow-sm hover:shadow-md"
+                        className="px-2 py-1.5 border border-[#d4c4b0] rounded-lg bg-white text-xs font-medium text-[#4b2a00] focus:outline-none focus:ring-1 focus:ring-[#a06b42] focus:border-[#a06b42] transition-all"
                         title={t ? t('banner.choosePropertyToManage') : 'Choose property to manage'}
                         value={selectedPropertyId || 'all'}
                         onChange={(e) => {
@@ -1128,27 +1150,27 @@ const Navbar = () => {
                         <div key={index} className="relative group">
                           <Link
                             to={item.href}
-                            className={`flex items-center space-x-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                            className={`flex items-center space-x-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${
                               isActive
-                                ? 'bg-[#a06b42] text-white shadow-sm'
+                                ? 'bg-[#a06b42] text-white'
                                 : 'text-[#6b5744] hover:text-[#4b2a00] hover:bg-[#e8dcc8]'
                             }`}
                           >
-                            <Icon className="text-sm" />
+                            <Icon className="text-xs" />
                             <span>{item.label}</span>
-                            {hasChildren && <FaChevronDown className="text-xs ml-1" />}
+                            {hasChildren && <FaChevronDown className="text-[10px] ml-0.5" />}
                           </Link>
                           {hasChildren && (
-                            <div className="absolute left-0 top-full mt-2 w-56 bg-white rounded-xl shadow-2xl border border-gray-200 py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50">
+                            <div className="absolute left-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50">
                               {item.children.map((child, cidx) => {
                                 const ChildIcon = child.icon;
                                 return (
                                   <Link
                                     key={cidx}
                                     to={child.href || item.href}
-                                    className="flex items-center gap-3 px-4 py-2 text-sm text-[#4b2a00] hover:bg-gray-50"
+                                    className="flex items-center gap-2 px-3 py-1.5 text-xs text-[#4b2a00] hover:bg-gray-50"
                                   >
-                                    {ChildIcon && <ChildIcon className="text-sm" />}
+                                    {ChildIcon && <ChildIcon className="text-xs" />}
                                     <span>{child.label}</span>
                                   </Link>
                                 );
@@ -1169,19 +1191,19 @@ const Navbar = () => {
               {(!isAuthenticated || !isInAnyOwnerDashboard()) && (
                 <form
                   onSubmit={handleGlobalSearch}
-                  className="hidden lg:flex items-center bg-white border-2 border-gray-200 rounded-xl px-4 py-2.5 mr-2 max-w-md shadow-sm hover:border-[#a06b42] focus-within:border-[#a06b42] focus-within:shadow-md transition-all duration-300"
+                  className="hidden lg:flex items-center bg-white border border-gray-200 rounded-lg px-2 py-1.5 mr-2 max-w-xs shadow-sm hover:border-[#a06b42] focus-within:border-[#a06b42] transition-all duration-300"
                 >
-                  <FaSearch className="text-sm text-gray-400 mr-2 flex-shrink-0" />
+                  <FaSearch className="text-xs text-gray-400 mr-1.5 flex-shrink-0" />
                   <input
                     type="text"
                     value={globalSearchTerm}
                     onChange={(e) => setGlobalSearchTerm(e.target.value)}
-                    placeholder="Search properties, vehicles, attractions..."
-                    className="flex-1 text-sm bg-transparent outline-none placeholder:text-gray-400 text-gray-800"
+                    placeholder="Search..."
+                    className="flex-1 text-xs bg-transparent outline-none placeholder:text-gray-400 text-gray-800"
                   />
                   <button
                     type="submit"
-                    className="ml-2 px-4 py-1.5 text-sm rounded-lg bg-gradient-to-r from-[#a06b42] to-[#8f5a32] text-white hover:from-[#8f5a32] hover:to-[#7d4a22] whitespace-nowrap font-medium transition-all duration-300 shadow-sm hover:shadow-md"
+                    className="ml-1.5 px-2 py-1 text-xs rounded-md bg-[#a06b42] text-white hover:bg-[#8f5a32] whitespace-nowrap font-medium transition-all duration-300"
                   >
                     Search
                   </button>
@@ -1207,10 +1229,10 @@ const Navbar = () => {
               {isAuthenticated && !isInAnyOwnerDashboard() && (
                 <Link
                   to="/favorites"
-                  className="hidden lg:flex items-center px-3 py-2 rounded-lg text-[#6b5744] hover:text-[#4b2a00] hover:bg-[#e8dcc8] transition-colors"
+                  className="hidden lg:flex items-center px-2 py-1.5 rounded-md text-[#6b5744] hover:text-[#4b2a00] hover:bg-[#e8dcc8] transition-colors"
                   title={t ? t('nav.favorites') : 'Favorites'}
                 >
-                  <FaHeart className="text-lg" />
+                  <FaHeart className="text-sm" />
                 </Link>
               )}
 
@@ -1218,16 +1240,16 @@ const Navbar = () => {
               {isAuthenticated && (user?.userType !== 'worker' ? true : !!user?.privileges?.canMessageGuests) && (
                 <Link
                   to="/messages"
-                  className={`flex items-center px-3 py-2 rounded-lg relative transition-colors ${
+                  className={`flex items-center px-2 py-1.5 rounded-md relative transition-colors ${
                     isAuthenticated && user?.userType === 'host' && isInAnyOwnerDashboard()
                       ? 'text-white hover:text-white/90 hover:bg-[#6b3f1f]'
                       : 'text-[#6b5744] hover:text-[#4b2a00] hover:bg-[#e8dcc8]'
                   }`}
                   title={t ? t('nav.messages') : 'Messages'}
                 >
-                  <FaEnvelope className="text-lg" />
+                  <FaEnvelope className="text-sm" />
                   {unreadMsgCount > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs rounded-full px-2 py-1 min-w-[18px] text-center">
+                    <span className="absolute -top-0.5 -right-0.5 bg-red-600 text-white text-[10px] rounded-full px-1 py-0.5 min-w-[14px] text-center">
                       {unreadMsgCount}
                     </span>
                   )}
@@ -1236,19 +1258,18 @@ const Navbar = () => {
 
               {/* Show Login / Sign Up when not authenticated */}
               {!isAuthenticated && (
-                <div className="flex items-center space-x-1 lg:space-x-2">
+                <div className="flex items-center space-x-1">
                   <Link
                     to="/login"
-                    className="px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium text-[#6b5744] hover:text-[#4b2a00] whitespace-nowrap"
+                    className="px-2 py-1.5 text-xs font-medium text-[#6b5744] hover:text-[#4b2a00] whitespace-nowrap"
                   >
                     {t ? t('nav.login') : 'Login'}
                   </Link>
                   <Link
                     to="/register"
-                    className="px-2 lg:px-3 py-2 bg-[#a06b42] text-white text-xs lg:text-sm font-medium rounded-lg hover:bg-[#8f5a32] transition-colors whitespace-nowrap shadow-md"
+                    className="px-2 py-1.5 bg-[#a06b42] text-white text-xs font-medium rounded-md hover:bg-[#8f5a32] transition-colors whitespace-nowrap"
                   >
-                    <span className="hidden sm:inline">{t ? t('nav.signUp') : 'Sign Up'}</span>
-                    <span className="sm:hidden">{t ? t('nav.signUp') : 'Join'}</span>
+                    {t ? t('nav.signUp') : 'Sign Up'}
                   </Link>
                 </div>
               )}
@@ -1268,20 +1289,20 @@ const Navbar = () => {
                           : 'text-[#6b5744] hover:text-[#4b2a00] hover:bg-[#e8dcc8]'
                     }`}
                   >
-                    <FaBell className="text-lg" />
+                    <FaBell className="text-sm" />
                     {unreadNotifCount > 0 && (
-                      <span className="absolute -top-1 -right-1 bg-green-600 text-white text-xs rounded-full px-2 py-1 min-w-[18px] text-center">
+                      <span className="absolute -top-0.5 -right-0.5 bg-green-600 text-white text-[10px] rounded-full px-1 py-0.5 min-w-[14px] text-center">
                         {unreadNotifCount}
                       </span>
                     )}
                   </button>
                   {isNotificationOpen && (
-                    <div className="notification-dropdown absolute top-full right-0 sm:right-0 left-0 sm:left-auto mt-2 w-[calc(100vw-1rem)] sm:w-80 max-w-md mx-2 sm:mx-0 bg-white rounded-xl shadow-2xl border border-gray-200 py-2 z-[99999]">
-                      <div className="px-4 py-2 border-b border-gray-100 font-semibold text-sm flex items-center justify-between">
+                    <div className="notification-dropdown absolute top-full right-0 sm:right-0 left-0 sm:left-auto mt-1 w-[calc(100vw-1rem)] sm:w-72 max-w-sm mx-2 sm:mx-0 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-[99999]">
+                      <div className="px-3 py-1.5 border-b border-gray-100 font-semibold text-xs flex items-center justify-between">
                         <span>{t ? t('nav.notifications') : 'Notifications'}</span>
                         <Link
                           to="/notifications"
-                          className="text-xs text-gray-700 hover:text-gray-900"
+                          className="text-[10px] text-gray-700 hover:text-gray-900"
                           onClick={() => setIsNotificationOpen(false)}
                         >
                           {t ? t('nav.viewAll') : 'View All'}
@@ -1289,11 +1310,11 @@ const Navbar = () => {
                       </div>
                       <div className="max-h-80 overflow-y-auto">
                         {notifications.length === 0 ? (
-                          <div className="px-4 py-8 text-center text-gray-500 text-sm">No notifications</div>
+                          <div className="px-3 py-6 text-center text-gray-500 text-xs">No notifications</div>
                         ) : (
                           Object.entries(groupedNotifications()).map(([category, notifs]) => (
-                            <div key={category} className="px-4 py-2">
-                              <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                            <div key={category} className="px-3 py-1.5">
+                              <div className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">
                                 {category}
                               </div>
                               {notifs.slice(0, 3).map((n) => (
@@ -1304,13 +1325,13 @@ const Navbar = () => {
                                     markNotificationRead(n.id);
                                     setIsNotificationOpen(false);
                                   }}
-                                  className={`block text-xs py-2 rounded hover:bg-gray-50 ${!n.isRead ? 'font-semibold' : 'text-gray-600'}`}
+                                  className={`block text-[10px] py-1.5 rounded hover:bg-gray-50 ${!n.isRead ? 'font-semibold' : 'text-gray-600'}`}
                                 >
-                                  <div className="flex items-start gap-2">
-                                    <div className={`${!n.isRead ? 'bg-blue-600' : 'bg-gray-300'} w-2 h-2 mt-1 rounded-full`}></div>
+                                  <div className="flex items-start gap-1.5">
+                                    <div className={`${!n.isRead ? 'bg-blue-600' : 'bg-gray-300'} w-1.5 h-1.5 mt-0.5 rounded-full`}></div>
                                     <div className="min-w-0">
-                                      <div className="text-gray-800 break-words whitespace-normal text-[12px] leading-snug">{n.title || n.message}</div>
-                                      <div className="text-[10px] text-gray-500 break-words">{n.createdAt ? new Date(n.createdAt).toLocaleString() : ''}</div>
+                                      <div className="text-gray-800 break-words whitespace-normal text-[11px] leading-snug">{n.title || n.message}</div>
+                                      <div className="text-[9px] text-gray-500 break-words">{n.createdAt ? new Date(n.createdAt).toLocaleString() : ''}</div>
                                     </div>
                                   </div>
                                 </Link>
@@ -1334,7 +1355,7 @@ const Navbar = () => {
                 <div className="relative inline-flex items-center">
                   <button
                     onClick={toggleProfile}
-                    className={`profile-button flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${isProfileOpen
+                    className={`profile-button flex items-center gap-1.5 px-2 py-1.5 rounded-md transition-colors ${isProfileOpen
                         ? 'bg-[#a06b42] text-white'
                         : 'text-[#6b5744] hover:text-[#4b2a00] hover:bg-[#e8dcc8]'
                       }`}
@@ -1344,31 +1365,31 @@ const Navbar = () => {
                       <img
                         src={avatarUrl}
                         alt="avatar"
-                        className="w-6 h-6 rounded-full object-cover"
+                        className="w-5 h-5 rounded-full object-cover"
                         onError={() => setAvatarOk(false)}
                         style={{ display: avatarOk ? 'block' : 'none' }}
                       />
                     ) : null}
                     {!avatarOk || !avatarUrl ? (
-                      <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center border border-gray-200">
-                        <FaUserCircle className="text-base text-gray-500" />
+                      <div className="w-5 h-5 rounded-full bg-white flex items-center justify-center border border-gray-200">
+                        <FaUserCircle className="text-xs text-gray-500" />
                       </div>
                     ) : null}
                     <FaCaretDown className="text-[10px]" />
                   </button>
                   {isProfileOpen && (
-                    <div className="profile-dropdown absolute top-full right-0 mt-2 w-56 bg-white rounded-xl shadow-2xl border border-gray-200 py-2 z-[99999]">
-                      <div className="px-4 py-2 border-b border-gray-100 text-sm">
+                    <div className="profile-dropdown absolute top-full right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-[99999]">
+                      <div className="px-3 py-1.5 border-b border-gray-100 text-xs">
                         <div className="font-semibold text-[#4b2a00] truncate">{user?.firstName || user?.email}</div>
-                        <div className="text-xs text-gray-600 truncate">{user?.email}</div>
+                        <div className="text-[10px] text-gray-600 truncate">{user?.email}</div>
                       </div>
-                      <Link to="/profile" className="block px-4 py-2 text-sm text-[#4b2a00] hover:bg-white">{t ? t('nav.profile') : 'Profile'}</Link>
-                      <Link to="/settings" className="block px-4 py-2 text-sm text-[#4b2a00] hover:bg-white">{t ? t('nav.accountSettings') : 'Account settings'}</Link>
-                      <Link to="/my-bookings" className="block px-4 py-2 text-sm text-[#4b2a00] hover:bg-white">{t ? t('nav.reservations') : 'My bookings'}</Link>
+                      <Link to="/profile" className="block px-3 py-1.5 text-xs text-[#4b2a00] hover:bg-gray-50">{t ? t('nav.profile') : 'Profile'}</Link>
+                      <Link to="/settings" className="block px-3 py-1.5 text-xs text-[#4b2a00] hover:bg-gray-50">{t ? t('nav.accountSettings') : 'Account settings'}</Link>
+                      <Link to="/my-bookings" className="block px-3 py-1.5 text-xs text-[#4b2a00] hover:bg-gray-50">{t ? t('nav.reservations') : 'My bookings'}</Link>
                       {user?.userType === 'host' && (
-                        <Link to="/dashboard" className="block px-4 py-2 text-sm text-[#4b2a00] hover:bg-white">{t ? t('nav.dashboard') : 'Owner dashboard'}</Link>
+                        <Link to="/dashboard" className="block px-3 py-1.5 text-xs text-[#4b2a00] hover:bg-gray-50">{t ? t('nav.dashboard') : 'Owner dashboard'}</Link>
                       )}
-                      <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-sm text-red-700 hover:bg-white flex items-center gap-2">
+                      <button onClick={handleLogout} className="w-full text-left px-3 py-1.5 text-xs text-red-700 hover:bg-gray-50 flex items-center gap-2">
                         <FaSignOutAlt /> <span>{t ? t('nav.logout') : 'Log out'}</span>
                       </button>
                     </div>
@@ -1428,9 +1449,9 @@ const Navbar = () => {
             {isAuthenticated && (
               <button
                 onClick={toggleMenu}
-                className="lg:hidden p-2 text-[#6b5744] hover:text-[#4b2a00]"
+                className="lg:hidden p-1.5 text-[#6b5744] hover:text-[#4b2a00]"
                 >
-                  {isMenuOpen ? <FaTimes className="text-xl" /> : <FaBars className="text-xl" />}
+                  {isMenuOpen ? <FaTimes className="text-base" /> : <FaBars className="text-base" />}
                 </button>
               )}
               </div>
@@ -1455,19 +1476,19 @@ const Navbar = () => {
                             toggleDropdown(item.label);
                           }
                         }}
-                        className={`owner-nav-dropdown-button inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-colors border ${isOpen || isParentActive ? 'bg-[#e8dcc8] border-gray-200 text-[#4b2a00]' : 'bg-white border-gray-200 text-[#6b5744] hover:bg-[#f2e5d3]'}`}
+                        className={`owner-nav-dropdown-button inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-medium transition-colors border ${isOpen || isParentActive ? 'bg-[#e8dcc8] border-gray-200 text-[#4b2a00]' : 'bg-white border-gray-200 text-[#6b5744] hover:bg-[#f2e5d3]'}`}
                       >
-                        <Icon className="text-sm" />
+                        <Icon className="text-xs" />
                         <span>{item.label}</span>
                         {item.badge && (
-                          <span className="ml-1 inline-flex items-center justify-center text-[10px] px-2 py-0.5 rounded-full bg-[#a06b42] text-white">{item.badge}</span>
+                          <span className="ml-0.5 inline-flex items-center justify-center text-[9px] px-1 py-0.5 rounded-full bg-[#a06b42] text-white">{item.badge}</span>
                         )}
                         {item.children && item.children.length > 0 && (
-                          <FaCaretDown className={`text-[10px] ml-1 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                          <FaCaretDown className={`text-[9px] ml-0.5 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
                         )}
                       </button>
                       {isOpen && item.children && item.children.length > 0 && (
-                        <div className="main-nav-dropdown absolute left-0 mt-2 w-64 bg-white rounded-xl shadow-2xl border border-gray-200 py-2 z-[2000]">
+                        <div className="main-nav-dropdown absolute left-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-[2000]">
                           {item.children.map((child, cidx) => {
                             const ChildIcon = child.icon;
                             const href = child.href || item.href;
@@ -1477,12 +1498,12 @@ const Navbar = () => {
                                 key={cidx}
                                 type="button"
                                 onClick={() => { navigate(href); setActiveDropdown(null); }}
-                                className={`w-full flex items-center gap-3 px-4 py-2 text-xs text-left hover:bg-white ${isChildActive ? 'bg-white text-[#4b2a00]' : 'text-[#4b2a00]'}`}
+                                className={`w-full flex items-center gap-2 px-3 py-1.5 text-[10px] text-left hover:bg-gray-50 ${isChildActive ? 'bg-gray-50 text-[#4b2a00]' : 'text-[#4b2a00]'}`}
                               >
-                                {ChildIcon && <ChildIcon className="text-sm" />}
+                                {ChildIcon && <ChildIcon className="text-xs" />}
                                 <span className="flex-1">{child.label}</span>
                                 {child.badge && (
-                                  <span className="ml-auto inline-flex items-center justify-center text-[10px] px-2 py-0.5 rounded-full bg-[#a06b42] text-white">{child.badge}</span>
+                                  <span className="ml-auto inline-flex items-center justify-center text-[9px] px-1 py-0.5 rounded-full bg-[#a06b42] text-white">{child.badge}</span>
                                 )}
                               </button>
                             );
@@ -1502,14 +1523,14 @@ const Navbar = () => {
         <div className="lg:hidden border-t border-[#e0d5c7] bg-[#f9f4ee]">
           {/* Mobile property selector */}
           {user?.userType === 'host' && isInPropertyOwnerDashboard() && myProperties.length > 0 && (
-            <div className="px-4 py-3">
-              <div className="text-xs font-semibold text-[#6b5744] mb-2">{t ? t('banner.manageProperty') : 'Manage property'}</div>
-              <div className="grid grid-cols-1 gap-2 mb-3">
+            <div className="px-2 py-2">
+              <div className="text-[10px] font-semibold text-[#6b5744] mb-1.5">{t ? t('banner.manageProperty') : 'Manage property'}</div>
+              <div className="grid grid-cols-1 gap-1.5 mb-2">
                 {myProperties.map((p) => (
                   <Link
                     key={p._id}
                     to={`/my-bookings?tab=calendar&property=${p._id}`}
-                    className="block px-3 py-2 rounded-lg bg-white border border-[#e0d5c7] text-[#4b2a00] hover:bg-[#fffaf5]"
+                    className="block px-2 py-1.5 rounded-md bg-white border border-[#e0d5c7] text-[10px] text-[#4b2a00] hover:bg-[#fffaf5]"
                     onClick={() => setIsMenuOpen(false)}
                   >
                     {p.title || p.name || p.propertyNumber}
@@ -1518,17 +1539,17 @@ const Navbar = () => {
               </div>
 
               {/* Dashboard categories for host management: Vehicles & Attractions (mobile) */}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 <button
                   type="button"
-                  className="flex-1 px-3 py-2 rounded-lg border border-[#d4c4b0] bg-white text-xs font-medium text-[#4b2a00] hover:bg-[#f4e5d4]"
+                  className="flex-1 px-2 py-1.5 rounded-md border border-[#d4c4b0] bg-white text-[10px] font-medium text-[#4b2a00] hover:bg-[#f4e5d4]"
                   onClick={() => window.open('/owner/cars', '_blank', 'noopener,noreferrer')}
                 >
                   Vehicles
                 </button>
                 <button
                   type="button"
-                  className="flex-1 px-3 py-2 rounded-lg border border-[#d4c4b0] bg-white text-xs font-medium text-[#4b2a00] hover:bg-[#f4e5d4]"
+                  className="flex-1 px-2 py-1.5 rounded-md border border-[#d4c4b0] bg-white text-[10px] font-medium text-[#4b2a00] hover:bg-[#f4e5d4]"
                   onClick={() => window.open('/owner/attractions', '_blank', 'noopener,noreferrer')}
                 >
                   Attractions
@@ -1548,26 +1569,26 @@ const Navbar = () => {
                     <button
                       type="button"
                       onClick={() => setExpandedMobileItems((s) => ({ ...s, [item.label]: !open }))}
-                      className="w-full flex items-center justify-between px-4 py-3 rounded-lg bg-white border border-[#e0d5c7] text-[#4b2a00]"
+                      className="w-full flex items-center justify-between px-2 py-1.5 rounded-md bg-white border border-[#e0d5c7] text-[#4b2a00]"
                     >
-                      <span className="flex items-center gap-3"><Icon className="text-sm" />{item.label}</span>
-                      <FaCaretDown className={`text-xs transition-transform ${open ? 'rotate-180' : ''}`} />
+                      <span className="flex items-center gap-2"><Icon className="text-xs" />{item.label}</span>
+                      <FaCaretDown className={`text-[10px] transition-transform ${open ? 'rotate-180' : ''}`} />
                     </button>
                     {open && (
-                      <div className="mt-1 rounded-lg bg-[#fff8f1] border border-[#e0d5c7] overflow-hidden">
+                      <div className="mt-1 rounded-md bg-[#fff8f1] border border-[#e0d5c7] overflow-hidden">
                         {(item.children && item.children.length > 0 ? item.children : [{ label: item.label, href: item.href, icon: item.icon }]).map((child, cidx) => {
                           const ChildIcon = child.icon;
                           return (
                             <Link
                               key={cidx}
                               to={child.href}
-                              className="flex items-center gap-3 px-4 py-3 text-sm text-[#4b2a00] hover:bg-white border-t border-[#f0e6d9] first:border-t-0"
+                              className="flex items-center gap-2 px-2 py-1.5 text-[10px] text-[#4b2a00] hover:bg-white border-t border-[#f0e6d9] first:border-t-0"
                               onClick={() => setIsMenuOpen(false)}
                             >
-                              <ChildIcon className="text-sm" />
+                              <ChildIcon className="text-xs" />
                               <span className="flex-1">{child.label}</span>
                               {child.badge ? (
-                                <span className="ml-auto inline-flex items-center justify-center text-[10px] px-2 py-0.5 rounded-full bg-[#a06b42] text-white">{child.badge}</span>
+                                <span className="ml-auto inline-flex items-center justify-center text-[9px] px-1 py-0.5 rounded-full bg-[#a06b42] text-white">{child.badge}</span>
                               ) : null}
                             </Link>
                           );
@@ -1593,24 +1614,24 @@ const Navbar = () => {
                         <button
                           type="button"
                           onClick={() => setExpandedMobileItems((s) => ({ ...s, [`main-${i}`]: !isExpanded }))}
-                          className="w-full flex items-center justify-between px-4 py-3 rounded-lg bg-white border border-[#e0d5c7] text-[#4b2a00]"
+                          className="w-full flex items-center justify-between px-2 py-1.5 rounded-md bg-white border border-[#e0d5c7] text-[#4b2a00]"
                         >
-                          <span className="flex items-center gap-2">
-                            {m.icon && <m.icon className="text-sm" />}
-                            <span>{m.label}</span>
+                          <span className="flex items-center gap-1.5">
+                            {m.icon && <m.icon className="text-xs" />}
+                            <span className="text-[10px]">{m.label}</span>
                           </span>
-                          <FaCaretDown className={`text-xs transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                          <FaCaretDown className={`text-[10px] transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                         </button>
                         {isExpanded && (
-                          <div className="mt-1 rounded-lg bg-[#fff8f1] border border-[#e0d5c7] overflow-hidden">
+                          <div className="mt-1 rounded-md bg-[#fff8f1] border border-[#e0d5c7] overflow-hidden">
                             {m.children.map((child, cidx) => (
                               <Link
                                 key={cidx}
                                 to={child.href || m.href}
-                                className="flex items-center gap-3 px-4 py-3 text-sm text-[#4b2a00] hover:bg-white border-t border-[#f0e6d9] first:border-t-0"
+                                className="flex items-center gap-2 px-2 py-1.5 text-[10px] text-[#4b2a00] hover:bg-white border-t border-[#f0e6d9] first:border-t-0"
                                 onClick={() => setIsMenuOpen(false)}
                               >
-                                {child.icon && <child.icon className="text-sm" />}
+                                {child.icon && <child.icon className="text-xs" />}
                                 <span>{child.label}</span>
                               </Link>
                             ))}
@@ -1620,11 +1641,11 @@ const Navbar = () => {
                     ) : (
                       <Link
                         to={m.href}
-                        className="flex items-center gap-2 px-4 py-3 rounded-lg bg-white border border-[#e0d5c7] text-[#4b2a00]"
+                        className="flex items-center gap-1.5 px-2 py-1.5 rounded-md bg-white border border-[#e0d5c7] text-[#4b2a00]"
                         onClick={() => setIsMenuOpen(false)}
                       >
-                        {m.icon && <m.icon className="text-sm" />}
-                        <span>{m.label}</span>
+                        {m.icon && <m.icon className="text-xs" />}
+                        <span className="text-[10px]">{m.label}</span>
                       </Link>
                     )}
                   </div>

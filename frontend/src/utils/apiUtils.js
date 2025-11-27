@@ -37,7 +37,10 @@ export const fetchWithRetry = async (url, options = {}, maxRetries = 3) => {
       
       // Handle specific error statuses
       if (response.status === 401) {
-        console.warn('Unauthorized request to:', url);
+        // Only log 401 errors in development, not in production
+        if (import.meta.env.DEV) {
+          console.warn('Unauthorized request to:', url);
+        }
         throw new Error('Unauthorized');
       }
       
@@ -94,7 +97,10 @@ export const apiGet = async (endpoint, options = {}) => {
       ...options,
     });
   } catch (error) {
-    console.error(`GET ${endpoint} failed:`, error);
+    // Don't log 401 errors as they're expected for unauthenticated users
+    if (error.message !== 'Unauthorized') {
+      console.error(`GET ${endpoint} failed:`, error);
+    }
     return null;
   }
 };
@@ -204,7 +210,13 @@ export const safeApiGet = async (endpoint, defaultValue = null, options = {}) =>
     const result = await apiGet(endpoint, options);
     return result !== null ? result : defaultValue;
   } catch (error) {
-    console.warn(`Safe API call to ${endpoint} failed, returning default:`, defaultValue);
+    // Don't log warnings for 401 errors (expected for unauthenticated users)
+    if (error.message !== 'Unauthorized') {
+      // Only log in development
+      if (import.meta.env.DEV) {
+        console.warn(`Safe API call to ${endpoint} failed, returning default:`, defaultValue);
+      }
+    }
     return defaultValue;
   }
 };
