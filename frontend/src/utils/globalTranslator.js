@@ -11,6 +11,7 @@ import { translateText } from './translator';
 let currentLanguage = 'en';
 let translationObserver = null;
 let isObserving = false;
+let translatedNodes = new WeakSet();
 
 // Text nodes that should NOT be translated (e.g., code, numbers, URLs)
 const shouldSkipTranslation = (text) => {
@@ -46,12 +47,12 @@ const shouldSkipTranslation = (text) => {
  */
 const translateTextNode = async (node) => {
   if (node.nodeType !== Node.TEXT_NODE) return;
-  
+
   const text = node.textContent?.trim();
   if (!text || shouldSkipTranslation(text)) return;
-  
+
   // Skip if already translated
-  if (node.dataset?.translated === 'true') return;
+  if (translatedNodes.has(node)) return;
   
   // Skip if parent has data-no-translate attribute
   let parent = node.parentElement;
@@ -64,7 +65,7 @@ const translateTextNode = async (node) => {
     const translated = await translateText(text, currentLanguage, 'en');
     if (translated !== text && translated) {
       node.textContent = translated;
-      node.dataset.translated = 'true';
+      translatedNodes.add(node);
     }
   } catch (error) {
     console.warn('Translation failed for text node:', error);
@@ -87,9 +88,6 @@ const translateElement = async (element) => {
       acceptNode: (node) => {
         const text = node.textContent?.trim();
         if (!text || shouldSkipTranslation(text)) {
-          return NodeFilter.FILTER_REJECT;
-        }
-        if (node.dataset?.translated === 'true') {
           return NodeFilter.FILTER_REJECT;
         }
         // Check parent chain for no-translate
@@ -122,6 +120,7 @@ export const startGlobalTranslation = (language = 'en') => {
   if (isObserving && currentLanguage === language) return;
   
   currentLanguage = language;
+  translatedNodes = new WeakSet();
   
   // Stop existing observer
   if (translationObserver) {
@@ -177,11 +176,11 @@ export const stopGlobalTranslation = () => {
  * Update language and retranslate
  */
 export const updateGlobalTranslation = (language) => {
-  // Clear all translated markers
+  translatedNodes = new WeakSet();
   document.querySelectorAll('[data-translated="true"]').forEach((el) => {
     delete el.dataset.translated;
   });
-  
+
   // Restart with new language
   startGlobalTranslation(language);
 };
