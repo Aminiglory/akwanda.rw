@@ -32,7 +32,14 @@ export const SocketProvider = ({ children, user, isAuthenticated }) => {
         if (closed) return;
         const newSocket = mod.io(API_URL, {
           withCredentials: true,
-          transports: ['websocket', 'polling']
+          transports: ['websocket', 'polling'],
+          // Be more tolerant before declaring a timeout
+          timeout: 20000,
+          // Keep trying in the background instead of failing hard
+          reconnection: true,
+          reconnectionAttempts: Infinity,
+          reconnectionDelay: 1000,
+          reconnectionDelayMax: 5000,
         });
 
         newSocket.on('connect', () => {
@@ -46,7 +53,13 @@ export const SocketProvider = ({ children, user, isAuthenticated }) => {
         });
 
         newSocket.on('connect_error', (error) => {
-          console.error('Connection error:', error);
+          // Timeouts and transient errors are expected on sleeping/slow hosts;
+          // log them as warnings and let socket.io retry in the background.
+          if (error && error.message === 'timeout') {
+            console.warn('Socket connection timeout, will retry automatically.');
+          } else {
+            console.error('Connection error:', error);
+          }
           setIsConnected(false);
         });
 
