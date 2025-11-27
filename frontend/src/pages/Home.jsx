@@ -26,7 +26,7 @@ const Home = () => {
   // Initialize universal lazy loading system (no loading bar UI)
   const { stats, isInitialized } = useLazyLoading({
     autoInit: true,
-    convertExisting: true
+    convertExisting: false
   });
 
   const { preloadImages } = useImagePreloader();
