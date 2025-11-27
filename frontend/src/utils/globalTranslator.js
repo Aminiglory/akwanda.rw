@@ -279,8 +279,20 @@ export const enableFetchInterception = () => {
     const response = await originalFetch.apply(this, args);
     
     // Only intercept JSON responses from our API
-    const url = args[0];
-    if (typeof url === 'string' && url.includes('/api/') && response.headers.get('content-type')?.includes('application/json')) {
+    let url = args[0];
+    if (typeof url !== 'string' && url?.url) {
+      url = url.url;
+    }
+    
+    // Skip translation endpoint itself to avoid recursive interception loops
+    const isTranslationEndpoint = typeof url === 'string' && url.includes('/api/translate');
+    
+    if (
+      !isTranslationEndpoint &&
+      typeof url === 'string' &&
+      url.includes('/api/') &&
+      response.headers.get('content-type')?.includes('application/json')
+    ) {
       const clonedResponse = response.clone();
       try {
         const data = await clonedResponse.json();
