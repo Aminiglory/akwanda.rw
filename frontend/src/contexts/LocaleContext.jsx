@@ -742,17 +742,17 @@ export const LocaleProvider = ({ children }) => {
   // Fetch FX rates (base RWF) for simple client-side conversion
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+    const controller = new AbortController();
+    let timeoutId;
+
+    const fetchRates = async () => {
       try {
-        // Use exchangerate.host (no API key) with base RWF
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
-        
+        timeoutId = setTimeout(() => controller.abort('timeout'), 8000); // allow more time before abort
+
         const res = await fetch('https://api.exchangerate.host/latest?base=RWF&symbols=USD,EUR,RWF', {
           signal: controller.signal
         });
-        clearTimeout(timeoutId);
-        
+
         if (!res.ok) {
           console.warn('Exchange rate API returned non-OK status, using fallback rates');
           if (!cancelled) {
@@ -766,14 +766,25 @@ export const LocaleProvider = ({ children }) => {
           try { localStorage.setItem('fx_rates', JSON.stringify(data.rates)); } catch {}
         }
       } catch (err) {
-        // Network error or timeout - use fallback rates
-        console.warn('Exchange rate fetch failed, using fallback rates:', err.message);
+        if (err.name === 'AbortError') {
+          console.warn('Exchange rate fetch aborted, falling back to cached/default rates.');
+        } else {
+          console.warn('Exchange rate fetch failed, using fallback rates:', err.message);
+        }
         if (!cancelled) {
           setRates({ RWF: 1, USD: 0.00077, EUR: 0.00071 }); // Fallback rates (approximate)
         }
+      } finally {
+        if (timeoutId) clearTimeout(timeoutId);
       }
-    })();
-    return () => { cancelled = true; };
+    };
+
+    fetchRates();
+    return () => {
+      cancelled = true;
+      if (timeoutId) clearTimeout(timeoutId);
+      controller.abort('cleanup');
+    };
   }, []);
 
   const formatCurrencyRWF = (amountRwf) => {
