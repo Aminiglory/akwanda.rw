@@ -4,6 +4,20 @@
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 // Device and connection detection
+const lazyDebugEnabled = (() => {
+  if (typeof import.meta !== 'undefined' && import.meta.env) {
+    return !!import.meta.env.DEV;
+  }
+  if (typeof process !== 'undefined' && process.env) {
+    return process.env.NODE_ENV !== 'production';
+  }
+  return false;
+})();
+
+const lazyDebugLog = (...args) => {
+  if (!lazyDebugEnabled) return;
+  console.log(...args);
+};
 const getDeviceCapabilities = () => {
   if (typeof window === 'undefined') {
     return { isSlowConnection: false, isLowEndDevice: false, supportsIntersectionObserver: false };
@@ -304,10 +318,10 @@ export const initializeLazyLoading = () => {
   }
   
   const capabilities = getDeviceCapabilities();
-  console.log('Device capabilities:', capabilities);
+  lazyDebugLog('Device capabilities:', capabilities);
   
   if (capabilities.supportsIntersectionObserver) {
-    console.log('Using Intersection Observer for lazy loading');
+    lazyDebugLog('Using Intersection Observer for lazy loading');
     lazyLoadingState.observer = createIntersectionObserver();
     
     // Observe existing images
@@ -315,12 +329,12 @@ export const initializeLazyLoading = () => {
       lazyLoadingState.observer?.observe(img);
     });
   } else {
-    console.log('Using fallback lazy loading for older browsers');
+    lazyDebugLog('Using fallback lazy loading for older browsers');
     fallbackLazyLoading();
   }
   
   lazyLoadingState.isInitialized = true;
-  console.log('✅ Universal lazy loading initialized');
+  lazyDebugLog('✅ Universal lazy loading initialized');
 };
 
 /**
@@ -416,7 +430,7 @@ export const convertToLazyLoading = (selector = 'img') => {
     }
   });
   
-  console.log(`✅ Converted ${images.length} images to lazy loading`);
+  lazyDebugLog(`✅ Converted ${images.length} images to lazy loading`);
 };
 
 /**
@@ -480,7 +494,7 @@ export const resetLazyLoading = () => {
     isInitialized: false
   };
   
-  console.log('🔄 Lazy loading state reset');
+  lazyDebugLog('🔄 Lazy loading state reset');
 };
 
 // Auto-initialize when DOM is ready
