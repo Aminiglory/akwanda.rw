@@ -254,6 +254,13 @@ const Hero = () => {
                 onError={() => {
                   console.warn(`Hero image failed to load: ${url}`);
                   trackImageLoad(url, 'hero');
+                  setSlides((prev) => {
+                    if (!prev || !prev.length) return DEFAULT_HERO_SLIDES;
+                    const replacement = DEFAULT_HERO_SLIDES[i % DEFAULT_HERO_SLIDES.length];
+                    const next = [...prev];
+                    next[i] = replacement;
+                    return next;
+                  });
                 }}
               />
             );
