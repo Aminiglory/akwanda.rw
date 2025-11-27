@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useLocale } from '../contexts/LocaleContext';
 import { FaBuilding, FaSmile, FaThumbsUp } from 'react-icons/fa';
 import { LazyHeroImage } from './LazyImage';
-import { useLazyLoading, useImagePreloader } from '../hooks/useLazyLoading';
 import { 
   makeAbsoluteImageUrl, 
-  trackImageLoad
+  trackImageLoad,
+  validateImageUrl
 } from '../utils/imageUtils';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -18,16 +18,32 @@ const API_BASE = (() => {
   return base;
 })();
 
+const DEFAULT_HERO_INTERVAL = 5000;
+const DEFAULT_HERO_SLIDES = [
+  {
+    image: 'https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=1920&h=1080&auto=format&q=80',
+    caption: 'Discover warm Rwandan hospitality'
+  },
+  {
+    image: 'https://images.unsplash.com/photo-1489515217757-5fd1be406fef?w=1920&h=1080&auto=format&q=80',
+    caption: 'Drive across scenic landscapes'
+  },
+  {
+    image: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1920&h=1080&auto=format&q=80',
+    caption: 'Explore unforgettable attractions'
+  }
+];
+
 // We rely on makeAbsoluteImageUrl for robust URL construction from CMS values.
 
 const Hero = () => {
   const { localize, t } = useLocale() || {};
   const [isVisible, setIsVisible] = useState(false);
   const [metrics, setMetrics] = useState({ activeListings: 0, happyGuests: 0, satisfactionRate: 0 });
-  const [slides, setSlides] = useState([]); // array of { image, caption }
+  const [slides, setSlides] = useState(DEFAULT_HERO_SLIDES); // array of { image, caption }
   const [index, setIndex] = useState(0);
   const timerRef = useRef(null);
-  const [intervalMs, setIntervalMs] = useState(5000);
+  const [intervalMs, setIntervalMs] = useState(DEFAULT_HERO_INTERVAL);
   const [transition, setTransition] = useState('fade');
   const [heroTitle, setHeroTitle] = useState('');
   const [heroSubtitle, setHeroSubtitle] = useState('');
@@ -36,15 +52,6 @@ const Hero = () => {
   const [parallax, setParallax] = useState(0);
   const [paused, setPaused] = useState(false);
   const touchStartX = useRef(null);
-
-  // Initialize lazy loading for hero images
-  const { stats } = useLazyLoading({
-    autoInit: true,
-    convertExisting: false, // We're handling images manually
-    preloadCritical: [], // Will be set when slides are loaded
-  });
-
-  const { preloadImages } = useImagePreloader();
 
   useEffect(() => {
     setIsVisible(true);
@@ -80,88 +87,83 @@ const Hero = () => {
 
   // Load published landing content (hero images/slides managed by admin)
   useEffect(() => {
-    (async () => {
-      try {
-        console.log('Fetching landing content from:', `${API_BASE}/api/content/landing`);
-        const res = await fetch(`${API_BASE}/api/content/landing`);
-        console.log('Response status:', res.status, res.statusText);
-        
-        if (!res.ok) { 
-          console.warn('Failed to fetch landing content - Status:', res.status);
-          setSlides([]); 
-          return; 
-        }
-        
-        const data = await res.json();
-        console.log('Landing content loaded:', JSON.stringify(data, null, 2));
-        
-        if (data?.content) {
-          const c = data.content;
-          console.log('Content object:', {
-            hasHeroSlides: Array.isArray(c.heroSlides),
-            heroSlidesLength: c.heroSlides?.length,
-            hasHeroImages: Array.isArray(c.heroImages),
-            heroImagesLength: c.heroImages?.length,
-            published: c.published
-          });
-          
-          const fromSlides = (Array.isArray(c.heroSlides) && c.heroSlides.length > 0
-            ? c.heroSlides.map(s => {
-                const absoluteUrl = makeAbsoluteImageUrl(s?.image);
-                console.log('Processing slide:', s?.image, '→', absoluteUrl);
-                return absoluteUrl ? { image: absoluteUrl, caption: s?.caption || '' } : null;
-              })
-            : (Array.isArray(c.heroImages) && c.heroImages.length > 0
-                ? c.heroImages.map(imgPath => {
-                    const absoluteUrl = makeAbsoluteImageUrl(imgPath);
-                    console.log('Processing image:', imgPath, '→', absoluteUrl);
-                    return absoluteUrl ? { image: absoluteUrl, caption: '' } : null;
-                  })
-                : [])
-          ).filter(Boolean);
-          
-          console.log('Final processed slides (pre-validate):', fromSlides);
-          // Preload images and filter out any that fail to load to avoid console errors
-          // Use optimized preloading from imageUtils
-          const imageData = fromSlides.map((slide, index) => ({
-            url: slide.image,
-            priority: fromSlides.length - index, // First images have higher priority
-            category: 'hero'
-          }));
-          
-          const preloadResults = await preloadImages(imageData, {
-            maxConcurrent: 2,
-            timeout: 4000
-          });
-          
-          const preloadOne = (u) => {
-            const result = preloadResults.find(r => r.url === u);
-            return Promise.resolve(result ? result.success : false);
-          };
-          const validated = [];
-          for (const s of fromSlides) {
-            // eslint-disable-next-line no-await-in-loop
-            const ok = await preloadOne(s.image);
-            if (ok) validated.push(s);
-          }
+    let cancelled = false;
 
-          // If validation removed all slides, fall back to original list
-          const finalSlides = validated.length > 0 ? validated : fromSlides;
-          console.log('Validated slides:', validated, 'Final slides used:', finalSlides);
-          setSlides(finalSlides);
-          setIntervalMs(typeof c.heroIntervalMs === 'number' && c.heroIntervalMs >= 2000 ? c.heroIntervalMs : 5000);
-          setTransition(c.heroTransition === 'slide' ? 'slide' : 'fade');
-          setHeroTitle(c.heroTitle || '');
-          setHeroSubtitle(c.heroSubtitle || '');
-        } else {
-          console.warn('No content found in response. Data:', data);
-          setSlides([]);
-        }
-      } catch (err) {
-        console.error('Error loading landing content:', err);
-        setSlides([]);
+    const pickSlides = (content) => {
+      if (!content) return [];
+      if (Array.isArray(content.heroSlides) && content.heroSlides.length) {
+        return content.heroSlides
+          .map((s) => {
+            const absoluteUrl = makeAbsoluteImageUrl(s?.image);
+            return absoluteUrl ? { image: absoluteUrl, caption: s?.caption || '' } : null;
+          })
+          .filter(Boolean);
       }
-    })();
+      if (Array.isArray(content.heroImages) && content.heroImages.length) {
+        return content.heroImages
+          .map((imgPath) => {
+            const absoluteUrl = makeAbsoluteImageUrl(imgPath);
+            return absoluteUrl ? { image: absoluteUrl, caption: '' } : null;
+          })
+          .filter(Boolean);
+      }
+      return [];
+    };
+
+    const loadContent = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/content/landing`);
+        if (!res.ok) {
+          if (!cancelled) {
+            setSlides(DEFAULT_HERO_SLIDES);
+            setIntervalMs(DEFAULT_HERO_INTERVAL);
+            setTransition('fade');
+            setHeroTitle('');
+            setHeroSubtitle('');
+          }
+          return;
+        }
+
+        const data = await res.json();
+        const rawSlides = pickSlides(data?.content);
+
+        const validatedSlides = (
+          await Promise.all(
+            rawSlides.map(async (slide) => {
+              const isValid = await validateImageUrl(slide.image, 4500);
+              return isValid ? slide : null;
+            })
+          )
+        ).filter(Boolean);
+
+        if (cancelled) return;
+
+        const finalSlides = validatedSlides.length ? validatedSlides : (rawSlides.length ? rawSlides : DEFAULT_HERO_SLIDES);
+        setSlides(finalSlides);
+        const heroConfig = data?.content || {};
+        setIntervalMs(
+          typeof heroConfig.heroIntervalMs === 'number' && heroConfig.heroIntervalMs >= 2000
+            ? heroConfig.heroIntervalMs
+            : DEFAULT_HERO_INTERVAL
+        );
+        setTransition(heroConfig.heroTransition === 'slide' ? 'slide' : 'fade');
+        setHeroTitle(heroConfig.heroTitle || '');
+        setHeroSubtitle(heroConfig.heroSubtitle || '');
+      } catch (_) {
+        if (!cancelled) {
+          setSlides(DEFAULT_HERO_SLIDES);
+          setIntervalMs(DEFAULT_HERO_INTERVAL);
+          setTransition('fade');
+          setHeroTitle('');
+          setHeroSubtitle('');
+        }
+      }
+    };
+
+    loadContent();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Autoplay slideshow

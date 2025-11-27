@@ -2,21 +2,6 @@
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-const imageDebugEnabled = (() => {
-  if (typeof import.meta !== 'undefined' && import.meta.env) {
-    return Boolean(import.meta.env.DEV);
-  }
-  if (typeof process !== 'undefined' && process.env) {
-    return process.env.NODE_ENV !== 'production';
-  }
-  return false;
-})();
-
-const imageDebugLog = (...args) => {
-  if (!imageDebugEnabled) return;
-  console.log(...args);
-};
-
 // Global image loading performance tracking
 let imageLoadStats = {
   loaded: 0,
@@ -115,7 +100,6 @@ export const makeAbsoluteImageUrl = (imagePath) => {
   
   // Remove double slashes except after protocol and return as-is
   const finalUrl = `${apiBase}${url}`.replace(/([^:]\/)\/+/g, '$1');
-  imageDebugLog(`✅ Image URL processed: ${imagePath} → ${finalUrl}`);
   return finalUrl;
 };
 
@@ -210,7 +194,6 @@ export const getImageLoadStats = () => ({ ...imageLoadStats });
 export const resetImageLoadStats = () => {
   imageLoadStats = { loaded: 0, failed: 0, preloaded: 0, totalLoadTime: 0, totalExpected: 0, isLoading: false };
   processedImages.clear(); // Clear processed images set
-  imageDebugLog('🔄 Image loading stats reset');
 };
 
 /**
@@ -220,7 +203,6 @@ export const resetImageLoadStats = () => {
 export const setExpectedImageCount = (total) => {
   imageLoadStats.totalExpected = total;
   imageLoadStats.isLoading = total > 0;
-  imageDebugLog(`🎯 Expected image count set to: ${total}`);
 };
 
 // Track processed images to avoid double counting
@@ -242,7 +224,6 @@ export const trackImageLoad = (src, category = 'default') => {
 
     // Avoid double counting the same image
     if (processedImages.has(src)) {
-      imageDebugLog(`🔄 Image already tracked: ${src}`);
       resolve({ success: true, src, cached: true });
       return;
     }
@@ -255,11 +236,10 @@ export const trackImageLoad = (src, category = 'default') => {
       
       // Check if all expected images are loaded
       const totalProcessed = imageLoadStats.loaded + imageLoadStats.failed;
-      imageDebugLog(`📊 Progress: ${totalProcessed}/${imageLoadStats.totalExpected} (${Math.round((totalProcessed/imageLoadStats.totalExpected)*100)}%)`);
+      // Progress logging removed to keep console clean
       
       if (totalProcessed >= imageLoadStats.totalExpected) {
         imageLoadStats.isLoading = false;
-        imageDebugLog('🎉 All images processed!');
       }
       
       resolve({ success: true, src });
@@ -270,11 +250,10 @@ export const trackImageLoad = (src, category = 'default') => {
       
       // Check if all expected images are processed
       const totalProcessed = imageLoadStats.loaded + imageLoadStats.failed;
-      imageDebugLog(`📊 Progress: ${totalProcessed}/${imageLoadStats.totalExpected} (${Math.round((totalProcessed/imageLoadStats.totalExpected)*100)}%) - Failed: ${src}`);
+      // Progress logging removed to keep console clean
       
       if (totalProcessed >= imageLoadStats.totalExpected) {
         imageLoadStats.isLoading = false;
-        imageDebugLog('🎉 All images processed!');
       }
       
       console.warn(`❌ Image failed to load: ${src}`);
@@ -282,6 +261,38 @@ export const trackImageLoad = (src, category = 'default') => {
     };
     
     img.src = src;
+  });
+};
+
+/**
+ * Validate that an image URL is reachable within a timeout window.
+ * Falls back to false during SSR to avoid reference errors.
+ * @param {string} url
+ * @param {number} timeout
+ * @returns {Promise<boolean>}
+ */
+export const validateImageUrl = (url, timeout = 5000) => {
+  if (!url || typeof window === 'undefined') {
+    return Promise.resolve(false);
+  }
+
+  return new Promise((resolve) => {
+    const img = new Image();
+    let settled = false;
+
+    const finalize = (result) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      img.onload = null;
+      img.onerror = null;
+      resolve(result);
+    };
+
+    const timer = setTimeout(() => finalize(false), timeout);
+    img.onload = () => finalize(true);
+    img.onerror = () => finalize(false);
+    img.src = url;
   });
 };
 
@@ -530,17 +541,14 @@ export const initializeLandingPageOptimization = async (criticalImages = []) => 
   
   // Preload critical images
   if (criticalImages.length > 0) {
-    imageDebugLog('Preloading critical images for landing page...');
     const results = await preloadImages(criticalImages, {
       maxConcurrent: 3,
       timeout: 3000,
       onProgress: (loaded, total) => {
-        imageDebugLog(`Preloaded ${loaded}/${total} critical images`);
       }
     });
     
     const successful = results.filter(r => r.success).length;
-    imageDebugLog(`Successfully preloaded ${successful}/${results.length} critical images`);
   }
   
   // Add intersection observer for lazy loading optimization

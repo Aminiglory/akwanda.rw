@@ -10,6 +10,7 @@ import {
   FaFilter,
   FaSearch,
   FaSortAmountDown,
+  FaDollarSign,
 } from "react-icons/fa";
 import toast from "react-hot-toast";
 // Auth not required to view listings
