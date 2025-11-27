@@ -153,27 +153,27 @@ const Attractions = () => {
             backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
           }}
         ></div>
-        {heroImage && (
+          {heroImage && (
           <div className="absolute inset-0 opacity-30">
-            <img
-              src={heroImage}
-              alt={pageContent.pageTitle}
-              className="w-full h-full object-cover"
-            />
+              <img
+                src={heroImage}
+                alt={pageContent.pageTitle}
+                className="w-full h-full object-cover"
+              />
             <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/30 to-transparent" />
-          </div>
-        )}
+            </div>
+          )}
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
           <div className="max-w-3xl mx-auto text-center text-white">
             <span className="inline-flex items-center px-4 py-2 mb-6 rounded-full bg-white/10 backdrop-blur-sm border border-white/30 text-xs uppercase tracking-wider text-white/90 font-semibold">
               🏔️ Rwanda Experiences
-            </span>
+              </span>
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 md:mb-6 drop-shadow-lg">
-              {pageContent.pageTitle}
-            </h1>
+                {pageContent.pageTitle}
+              </h1>
             <p className="text-lg md:text-xl lg:text-2xl text-white/90 leading-relaxed font-medium">
-              {pageContent.introText}
-            </p>
+                {pageContent.introText}
+              </p>
           </div>
         </div>
       </div>

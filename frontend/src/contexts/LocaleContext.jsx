@@ -841,79 +841,46 @@ export const LocaleProvider = ({ children }) => {
     }
   };
 
-  const dict = dictionaries[language] || dictionaries[DEFAULT_LANG];
+const dict = dictionaries[language] || dictionaries[DEFAULT_LANG];
 
-  const t = useMemo(() => {
-    const fn = async (path, ...args) => {
-      const parts = String(path).split('.');
-      let cur = dict;
-      for (const p of parts) {
-        if (cur && typeof cur === 'object' && p in cur) cur = cur[p];
-        else {
-          // Fallback: try resolving from root-level dictionaries object (for misplaced keys)
-          let fb = dictionaries;
-          for (const pp of parts) {
-            if (fb && typeof fb === 'object' && pp in fb) fb = fb[pp];
-            else { fb = null; break; }
-          }
-          if (fb != null) {
-            if (typeof fb === 'function') {
-              const result = fb(...args);
-              // If language is not English, try to translate the result
-              if (language !== 'en' && typeof result === 'string') {
-                try {
-                  return await translateText(result, language, 'en');
-                } catch {
-                  return result;
-                }
-              }
-              return result;
-            }
-            // If language is not English, try to translate
-            if (language !== 'en' && typeof fb === 'string') {
-              try {
-                return await translateText(fb, language, 'en');
-              } catch {
-                return fb;
-              }
-            }
-            return fb;
-          }
-          // If path not found in dictionary, try to translate the path itself
-          if (language !== 'en') {
-            try {
-              return await translateText(path, language, 'en');
-            } catch {
-              return path;
-            }
-          }
-          return path;
-        }
-      }
-      if (typeof cur === 'function') {
-        const result = cur(...args);
-        // If language is not English, try to translate the result
-        if (language !== 'en' && typeof result === 'string') {
-          try {
-            return await translateText(result, language, 'en');
-          } catch {
-            return result;
-          }
-        }
-        return result;
-      }
-      // If language is not English, try to translate
-      if (language !== 'en' && typeof cur === 'string') {
-        try {
-          return await translateText(cur, language, 'en');
-        } catch {
-          return cur;
-        }
-      }
-      return cur;
-    };
-    return fn;
-  }, [dict, language]);
+const resolveDictValue = (dictionary, path, args = []) => {
+  if (!dictionary || !path) return null;
+  const parts = String(path).split('.');
+  let cur = dictionary;
+  for (const part of parts) {
+    if (cur && typeof cur === 'object' && part in cur) {
+      cur = cur[part];
+    } else {
+      return null;
+    }
+  }
+  if (typeof cur === 'function') {
+    try {
+      return cur(...args);
+    } catch {
+      return null;
+    }
+  }
+  return cur ?? null;
+};
+
+const t = useMemo(() => {
+  return (path, ...args) => {
+    if (!path) return '';
+    const primary = resolveDictValue(dict, path, args);
+    if (primary !== null && primary !== undefined) return primary;
+
+    const fallbackDict = dictionaries[DEFAULT_LANG];
+    const fallback = resolveDictValue(fallbackDict, path, args);
+    if (fallback !== null && fallback !== undefined) return fallback;
+
+    if (typeof path === 'string') {
+      const parts = path.split('.');
+      return parts[parts.length - 1] || '';
+    }
+    return '';
+  };
+}, [dict]);
 
   // Localize dynamic values coming from Admin CMS or backend
   // Accepts:
@@ -972,24 +939,18 @@ export const LocaleProvider = ({ children }) => {
     return strValue;
   };
 
-  // Synchronous translation function for immediate use (uses dictionary first, then falls back to async)
-  const translateSync = useMemo(() => {
-    return (text, fallback = null) => {
-      if (!text || typeof text !== 'string') return fallback || text;
-      if (language === 'en') return text;
-      
-      // Try dictionary first (synchronous)
-      try {
-        const dictResult = t(text);
-        if (dictResult && dictResult !== text && typeof dictResult === 'string') {
-          return dictResult;
-        }
-      } catch {}
-      
-      // Return original text - global translator will handle async translation
-      return text;
-    };
-  }, [language, t]);
+// Synchronous helper for placeholders / immediate render paths
+const translateSync = useMemo(() => {
+  return (pathOrText, fallback = null) => {
+    if (pathOrText == null) return fallback ?? '';
+    if (typeof pathOrText !== 'string') return pathOrText;
+
+    const resolved = resolveDictValue(dict, pathOrText) ?? resolveDictValue(dictionaries[DEFAULT_LANG], pathOrText);
+    if (resolved !== null && resolved !== undefined) return resolved;
+
+    return fallback ?? pathOrText;
+  };
+}, [dict]);
 
   const value = useMemo(() => ({ 
     language, 
