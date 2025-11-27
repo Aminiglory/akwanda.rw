@@ -10,10 +10,18 @@ import { startGlobalTranslation, updateGlobalTranslation, enableFetchInterceptio
  * 2. Intercepts API responses and translates them
  * 3. Works automatically without needing to wrap every component
  */
+const ENABLE_GLOBAL_TRANSLATION = false;
+
 const GlobalTranslationProvider = ({ children }) => {
   const { language } = useLocale() || { language: 'en' };
 
   useEffect(() => {
+    if (!ENABLE_GLOBAL_TRANSLATION) {
+      // Ensure any previous interception is turned off
+      disableFetchInterception();
+      return;
+    }
+
     // Small delay to ensure DOM is ready
     const timer = setTimeout(() => {
       // Start global translation observer
