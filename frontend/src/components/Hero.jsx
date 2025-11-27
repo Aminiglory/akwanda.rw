@@ -138,7 +138,7 @@ const Hero = () => {
 
         if (cancelled) return;
 
-        const finalSlides = validatedSlides.length ? validatedSlides : (rawSlides.length ? rawSlides : DEFAULT_HERO_SLIDES);
+        const finalSlides = validatedSlides.length ? validatedSlides : DEFAULT_HERO_SLIDES;
         setSlides(finalSlides);
         const heroConfig = data?.content || {};
         setIntervalMs(

@@ -271,15 +271,34 @@ export const trackImageLoad = (src, category = 'default') => {
  * @param {number} timeout
  * @returns {Promise<boolean>}
  */
-export const validateImageUrl = (url, timeout = 5000) => {
-  if (!url || typeof window === 'undefined') {
-    return Promise.resolve(false);
+export const validateImageUrl = async (url, timeout = 5000) => {
+  if (!url) return false;
+
+  if (typeof fetch !== 'undefined') {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeout);
+    try {
+      const res = await fetch(url, { method: 'HEAD', mode: 'cors', signal: controller.signal });
+      clearTimeout(timer);
+      if (!res.ok) return false;
+      const contentType = res.headers.get('content-type') || '';
+      // Some file servers omit content-type for static files; treat empty as acceptable
+      return contentType === '' || contentType.includes('image');
+    } catch (err) {
+      clearTimeout(timer);
+      if (err.name !== 'AbortError') {
+        // Fallback to Image-based validation below
+      } else {
+        return false;
+      }
+    }
   }
+
+  if (typeof window === 'undefined') return false;
 
   return new Promise((resolve) => {
     const img = new Image();
     let settled = false;
-
     const finalize = (result) => {
       if (settled) return;
       settled = true;
