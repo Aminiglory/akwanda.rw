@@ -9,6 +9,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 const ListProperty = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [listingType, setListingType] = useState('stay'); // 'stay' | 'rental' | 'attraction' | 'flight'
   const [currentStep, setCurrentStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
 
@@ -28,29 +29,12 @@ const ListProperty = () => {
     checkInTime: '14:00', checkOutTime: '11:00',
     cancellationPolicy: 'flexible', houseRules: ''
   });
-  const [selectedType, setSelectedType] = useState('stay');
-  const [rentalForm, setRentalForm] = useState({
-    title: '', location: '', pricePerDay: '', description: ''
-  });
-  const [attractionForm, setAttractionForm] = useState({
-    name: '', city: '', price: '', highlights: ''
-  });
-  const [flightForm, setFlightForm] = useState({
-    airline: '', from: '', to: '', price: ''
-  });
 
   const steps = [
     { number: 1, title: 'Property details', description: 'The basics: Add your property name, address, facilities and more', icon: FaBuilding },
     { number: 2, title: 'Units', description: 'Add amenities and add your layouts, bed options and more', icon: FaBed },
     { number: 3, title: 'Photos', description: 'Showcase photos of your property so guests know what to expect', icon: FaCamera },
     { number: 4, title: 'Final steps', description: 'Set up payments and invoicing before you open for bookings', icon: FaClipboardCheck }
-  ];
-
-  const listingOptions = [
-    { id: 'stay', label: 'Stay / Property', description: 'Rent apartments, homes, or rooms', icon: FaBuilding, color: 'border-blue-500 bg-blue-50' },
-    { id: 'rental', label: 'Rental', description: 'List cars, motorcycles, or bikes', icon: FaCar, color: 'border-green-500 bg-green-50' },
-    { id: 'attraction', label: 'Attraction', description: 'Share tours, experiences, or events', icon: FaMapMarkerAlt, color: 'border-purple-500 bg-purple-50' },
-    { id: 'flight', label: 'Flight services', description: 'Offer packaged flight/air transfers', icon: FaPlane, color: 'border-orange-500 bg-orange-50' }
   ];
 
   const amenitiesList = ['wifi', 'parking', 'pool', 'gym', 'restaurant', 'bar', 'spa', 'air_conditioning', 'heating', 'kitchen', 'laundry', 'tv'];
@@ -86,159 +70,94 @@ const ListProperty = () => {
   const nextStep = () => validateStep(currentStep) && setCurrentStep(prev => Math.min(prev + 1, 4));
   const prevStep = () => setCurrentStep(prev => Math.max(prev - 1, 1));
 
-  const handleSubmit = async () => {
-    if (!validateStep(currentStep)) return;
-    
-    try {
-      setSubmitting(true);
-      const formData = new FormData();
-      Object.entries(propertyData).forEach(([k, v]) => {
-        if (k === 'amenities') v.forEach(a => formData.append('amenities', a));
-        else formData.append(k, v);
-      });
-      
-      propertyImages.forEach(img => formData.append('images', img));
-      
-      const commissionRate = finalDetails.commissionChoice === 'higher' ? 12 : (finalDetails.commissionChoice === 'mid' ? 10 : 8);
-      formData.append('commissionRate', commissionRate);
-      formData.append('discountPercent', finalDetails.discountPercent);
-      formData.append('rooms', JSON.stringify(units.map(u => ({
-        roomNumber: u.roomNumber, roomType: u.roomType, pricePerNight: Number(u.pricePerNight),
-        capacity: Number(u.capacity), beds: Number(u.beds), bathrooms: Number(u.bathrooms), amenities: u.amenities
-      }))));
-
-      const res = await fetch(`${API_URL}/api/properties`, {
-        method: 'POST', body: formData, credentials: 'include'
-      });
-      
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message);
-
-      // Upload room images
-      for (let i = 0; i < units.length; i++) {
-        if (units[i].images.length > 0 && data.property.rooms[i]) {
-          const roomFormData = new FormData();
-          units[i].images.forEach(img => roomFormData.append('images', img));
-          await fetch(`${API_URL}/api/properties/${data.property._id}/rooms/${data.property.rooms[i]._id}/images`, {
-            method: 'POST', body: roomFormData, credentials: 'include'
-          });
-        }
-      }
-
-      toast.success('Property listed successfully!');
-      navigate('/my-bookings');
-    } catch (error) {
-      toast.error(error.message || 'Failed to list property');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleRentalSubmit = (e) => {
-    e.preventDefault();
-    toast.success(`Rental "${rentalForm.title || 'Untitled'}" ready for review (stub).`);
-    console.log('Submitted rental form', rentalForm);
-  };
-
-  const handleAttractionSubmit = (e) => {
-    e.preventDefault();
-    toast.success(`Attraction "${attractionForm.name || 'Unnamed'}" submitted stub.`);
-    console.log('Submitted attraction form', attractionForm);
-  };
-
-  const handleFlightSubmit = (e) => {
-    e.preventDefault();
-    toast.success(`Flight route ${flightForm.from || 'N/A'} → ${flightForm.to || 'N/A'} logged.`);
-    console.log('Submitted flight form', flightForm);
-  };
-
-  const renderOtherForm = () => {
-    if (selectedType === 'rental') {
-      return (
-        <form onSubmit={handleRentalSubmit} className="space-y-6">
-          <h2 className="text-2xl font-bold">List a Rental</h2>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Title</label>
-            <input value={rentalForm.title} onChange={(e) => setRentalForm(prev => ({ ...prev, title: e.target.value }))}
-              className="w-full px-4 py-3 border rounded-lg" placeholder="e.g., Compact SUV" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
-            <input value={rentalForm.location} onChange={(e) => setRentalForm(prev => ({ ...prev, location: e.target.value }))}
-              className="w-full px-4 py-3 border rounded-lg" placeholder="City or area" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Price / day (RWF)</label>
-            <input type="number" value={rentalForm.pricePerDay} onChange={(e) => setRentalForm(prev => ({ ...prev, pricePerDay: e.target.value }))}
-              className="w-full px-4 py-3 border rounded-lg" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Highlights</label>
-            <textarea value={rentalForm.description} onChange={(e) => setRentalForm(prev => ({ ...prev, description: e.target.value }))}
-              className="w-full px-4 py-3 border rounded-lg" rows={4} placeholder="Add key features" />
-          </div>
-          <button type="submit" className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Save Rental Stub</button>
-        </form>
-      );
-    }
-    if (selectedType === 'attraction') {
-      return (
-        <form onSubmit={handleAttractionSubmit} className="space-y-6">
-          <h2 className="text-2xl font-bold">List an Attraction</h2>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Name</label>
-            <input value={attractionForm.name} onChange={(e) => setAttractionForm(prev => ({ ...prev, name: e.target.value }))}
-              className="w-full px-4 py-3 border rounded-lg" placeholder="Name of attraction" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">City / Location</label>
-            <input value={attractionForm.city} onChange={(e) => setAttractionForm(prev => ({ ...prev, city: e.target.value }))}
-              className="w-full px-4 py-3 border rounded-lg" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Price per person (RWF)</label>
-            <input type="number" value={attractionForm.price} onChange={(e) => setAttractionForm(prev => ({ ...prev, price: e.target.value }))}
-              className="w-full px-4 py-3 border rounded-lg" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Highlights</label>
-            <textarea value={attractionForm.highlights} onChange={(e) => setAttractionForm(prev => ({ ...prev, highlights: e.target.value }))}
-              className="w-full px-4 py-3 border rounded-lg" rows={4} placeholder="What makes it special?" />
-          </div>
-          <button type="submit" className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700">Save Attraction Stub</button>
-        </form>
-      );
-    }
-    if (selectedType === 'flight') {
-      return (
-        <form onSubmit={handleFlightSubmit} className="space-y-6">
-          <h2 className="text-2xl font-bold">List a Flight Service</h2>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Airline / Provider</label>
-            <input value={flightForm.airline} onChange={(e) => setFlightForm(prev => ({ ...prev, airline: e.target.value }))}
-              className="w-full px-4 py-3 border rounded-lg" placeholder="Airline or travel partner" />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">From</label>
-              <input value={flightForm.from} onChange={(e) => setFlightForm(prev => ({ ...prev, from: e.target.value }))}
-                className="w-full px-4 py-3 border rounded-lg" />
+  const renderListingTypeSelector = () => (
+    <div className="mb-6">
+      <h2 className="text-xl font-semibold text-gray-900 mb-2">What would you like to list?</h2>
+      <p className="text-sm text-gray-600 mb-4">
+        Choose the type of listing you want to create. Stays, rentals, attractions and flights each have their own flow.
+      </p>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          { id: 'stay', label: 'Stay', desc: 'Apartments, hotels, homes', color: 'from-blue-500 to-blue-600' },
+          { id: 'rental', label: 'Rental', desc: 'Cars & vehicles', color: 'from-green-500 to-green-600' },
+          { id: 'attraction', label: 'Attraction', desc: 'Tours & activities', color: 'from-purple-500 to-purple-600' },
+          { id: 'flight', label: 'Flight', desc: 'Flight services', color: 'from-indigo-500 to-indigo-600' },
+        ].map((type) => (
+          <button
+            key={type.id}
+            type="button"
+            onClick={() => setListingType(type.id)}
+            className={`relative rounded-xl p-3 text-left text-sm border transition-all duration-200
+              ${listingType === type.id
+                ? 'border-blue-600 bg-blue-50 shadow-sm'
+                : 'border-gray-200 hover:border-blue-400 hover:bg-gray-50'}`}
+          >
+            <div className={`w-8 h-8 mb-2 rounded-lg bg-gradient-to-br ${type.color} flex items-center justify-center text-white text-xs font-semibold`}>
+              {type.label[0]}
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">To</label>
-              <input value={flightForm.to} onChange={(e) => setFlightForm(prev => ({ ...prev, to: e.target.value }))}
-                className="w-full px-4 py-3 border rounded-lg" />
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Price (RWF)</label>
-            <input type="number" value={flightForm.price} onChange={(e) => setFlightForm(prev => ({ ...prev, price: e.target.value }))}
-              className="w-full px-4 py-3 border rounded-lg" />
-          </div>
-          <button type="submit" className="px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700">Save Flight Stub</button>
-        </form>
+            <div className="font-semibold text-gray-900 text-sm">{type.label}</div>
+            <div className="text-xs text-gray-500 mt-1">{type.desc}</div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
+  const renderNonStayContent = () => {
+    if (listingType === 'rental') {
+      return (
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+          <h2 className="text-2xl font-bold mb-2">List a vehicle rental</h2>
+          <p className="text-gray-600 mb-4 text-sm">
+            Vehicle listings are managed from the vehicles dashboard, where you can add cars, set prices, and manage bookings.
+          </p>
+          <button
+            type="button"
+            onClick={() => navigate('/owner/cars')}
+            className="inline-flex items-center px-5 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors"
+          >
+            Go to vehicles dashboard
+          </button>
+        </div>
       );
     }
+
+    if (listingType === 'attraction') {
+      return (
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+          <h2 className="text-2xl font-bold mb-2">List an attraction</h2>
+          <p className="text-gray-600 mb-4 text-sm">
+            Use the attractions dashboard to create tours, experiences and activities, configure pricing, and manage reservations.
+          </p>
+          <button
+            type="button"
+            onClick={() => navigate('/owner/attractions')}
+            className="inline-flex items-center px-5 py-2.5 rounded-lg bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700 transition-colors"
+          >
+            Go to attractions dashboard
+          </button>
+        </div>
+      );
+    }
+
+    if (listingType === 'flight') {
+      return (
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+          <h2 className="text-2xl font-bold mb-2">List flights</h2>
+          <p className="text-gray-600 mb-4 text-sm">
+            Flight listing is handled from the flights workspace. Use the flights section to manage flight-related services.
+          </p>
+          <button
+            type="button"
+            onClick={() => navigate('/flights')}
+            className="inline-flex items-center px-5 py-2.5 rounded-lg bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 transition-colors"
+          >
+            Go to flights
+          </button>
+        </div>
+      );
+    }
+
     return null;
   };
 
@@ -246,32 +165,13 @@ const ListProperty = () => {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">List an item on AKWANDA.rw</h1>
-          <p className="text-gray-600">Pick the category you want to list, then complete the relevant form right below.</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">List your property</h1>
+          <p className="text-gray-600">Choose what you want to list, then follow the steps to publish it on AKWANDA.rw.</p>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Select what you are listing</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {listingOptions.map((option) => {
-              const Icon = option.icon;
-              return (
-                <button key={option.id} type="button" onClick={() => setSelectedType(option.id)}
-                  className={`border rounded-xl p-4 text-left flex items-center gap-3 transition-shadow ${option.color} ${selectedType === option.id ? 'shadow-xl' : 'shadow hover:shadow-lg'}`}>
-                  <span className="p-2 rounded-lg bg-white shadow-sm">
-                    <Icon className="text-xl text-gray-700" />
-                  </span>
-                  <div>
-                    <p className="font-semibold text-gray-900">{option.label}</p>
-                    <p className="text-sm text-gray-600">{option.description}</p>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
+        {renderListingTypeSelector()}
 
-        {selectedType === 'stay' ? (
+        {listingType === 'stay' ? (
           <>
             {/* Progress Steps */}
             <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
@@ -434,9 +334,7 @@ const ListProperty = () => {
             </div>
           </>
         ) : (
-          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-            {renderOtherForm()}
-          </div>
+          renderNonStayContent()
         )}
       </div>
     </div>

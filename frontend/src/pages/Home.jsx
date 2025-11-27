@@ -26,7 +26,7 @@ const Home = () => {
   // Initialize universal lazy loading system (no loading bar UI)
   const { stats, isInitialized } = useLazyLoading({
     autoInit: true,
-    convertExisting: true
+    convertExisting: false
   });
 
   const { preloadImages } = useImagePreloader();
@@ -120,17 +120,18 @@ const Home = () => {
                   className="group relative rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 bg-gray-900/80"
                 >
                   <div className="relative aspect-[4/5] sm:aspect-[4/5] overflow-hidden">
-                    <LazyImage
+                    <img
                       src={d.img}
                       alt={d.name}
                       className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                      category="attraction"
-                      size="medium"
+                      loading="eager"
+                      decoding="async"
                       onLoad={() => {
                         trackImageLoad(d.img, 'attraction');
                       }}
-                      onError={() => {
+                      onError={(e) => {
                         console.warn(`Featured destination image failed to load: ${d.img}`);
+                        e.currentTarget.style.opacity = '0.4';
                         trackImageLoad(d.img, 'attraction');
                       }}
                     />
