@@ -23,8 +23,7 @@ const SearchSection = () => {
     pickupDate: '',
     returnDate: ''
   });
-  const [visible, setVisible] = useState(false);
-  useEffect(() => { const t = setTimeout(() => setVisible(true), 50); return () => clearTimeout(t); }, []);
+  // Render statically without scroll/entry animation
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -57,7 +56,7 @@ const SearchSection = () => {
   return (
     <div className="relative py-10 px-4">
       <div className="max-w-6xl mx-auto -mt-16 md:-mt-20">
-        <div className={`mx-auto backdrop-blur-md bg-white/90 rounded-2xl modern-card-elevated p-6 md:p-8 border border-white/60 transition-all duration-700 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}>
+        <div className="mx-auto backdrop-blur-md bg-white/90 rounded-2xl modern-card-elevated p-6 md:p-8 border border-white/60">
           {/* Tabs */}
           <div className="flex items-center gap-3 mb-6">
             <button onClick={() => setActiveTab('stays')} type="button" className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold ${activeTab==='stays' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 border'}`}>
@@ -181,7 +180,7 @@ const SearchSection = () => {
           </form>
         </div>
         {/* Quick links */}
-        <div className={`mt-6 flex flex-wrap justify-center gap-3 transition-all duration-700 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}>
+        <div className="mt-6 flex flex-wrap justify-center gap-3">
           <a href="/cars" className="px-4 py-2 rounded-full bg-white/80 border hover:border-blue-300 hover:text-blue-700 transition">{safeT('search.quickPopularCars', 'Popular Cars')}</a>
           <a href="/apartments" className="px-4 py-2 rounded-full bg-white/80 border hover:border-blue-300 hover:text-blue-700 transition">{safeT('search.quickFeaturedStays', 'Featured Stays')}</a>
           <a href="/attractions" className="px-4 py-2 rounded-full bg-white/80 border hover:border-blue-300 hover:text-blue-700 transition">{safeT('search.quickTopAttractions', 'Top Attractions')}</a>

@@ -12,9 +12,6 @@ const HowItWorks = () => {
   const { user } = useAuth();
   const { localize, t } = useLocale() || {};
   const [metrics, setMetrics] = useState({ activeListings: 0, happyGuests: 0, satisfactionRate: 0 });
-  const [animated, setAnimated] = useState({ activeListings: 0, happyGuests: 0, satisfactionRate: 0 });
-  const statsRef = useRef(null);
-  const [statsInView, setStatsInView] = useState(false);
   const [how, setHow] = useState({
     enabled: true,
     title: 'How AKWANDA.rw Works',
@@ -135,45 +132,7 @@ const HowItWorks = () => {
     })();
   }, []);
 
-  // Count-up animation for stats
-  useEffect(() => {
-    if (!statsInView) return;
-    const start = performance.now();
-    const duration = 1200;
-    const from = { ...animated };
-    const to = {
-      activeListings: Number(metrics.activeListings || 0),
-      happyGuests: Number(metrics.happyGuests || 0),
-      satisfactionRate: Number(metrics.satisfactionRate || 0)
-    };
-    let rafId;
-    const tick = (t) => {
-      const elapsed = Math.min(1, (t - start) / duration);
-      const ease = 1 - Math.pow(1 - elapsed, 3);
-      setAnimated({
-        activeListings: Math.round(from.activeListings + (to.activeListings - from.activeListings) * ease),
-        happyGuests: Math.round(from.happyGuests + (to.happyGuests - from.happyGuests) * ease),
-        satisfactionRate: Math.round(from.satisfactionRate + (to.satisfactionRate - from.satisfactionRate) * ease),
-      });
-      if (elapsed < 1) rafId = requestAnimationFrame(tick);
-    };
-    rafId = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(rafId);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [metrics.activeListings, metrics.happyGuests, metrics.satisfactionRate, statsInView]);
-
-  // Observe stats section visibility
-  useEffect(() => {
-    const el = statsRef.current;
-    if (!el) return;
-    const obs = new IntersectionObserver((entries) => {
-      entries.forEach(e => {
-        if (e.isIntersecting) setStatsInView(true);
-      });
-    }, { threshold: 0.3 });
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, []);
+  // Render stats directly without scroll-triggered count-up animation
   const guestSteps = [
     {
       icon: FaSearch,
@@ -503,27 +462,24 @@ const HowItWorks = () => {
           </p>
         </div>
 
-        {/* Stats Section */}
-        <div ref={statsRef} className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className={`relative p-6 rounded-2xl text-center bg-[#FFF9F3] shadow-xl hover:shadow-2xl transition-all duration-500 ${statsInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}
-               style={{ transitionDelay: '0ms' }}>
+        {/* Stats Section (static) */}
+        <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="relative p-6 rounded-2xl text-center bg-[#FFF9F3] shadow-xl">
             <div className="absolute top-3 left-3 w-2 h-2 bg-[#CDAF8B] rounded"></div>
             <div className="mx-auto mb-2 w-10 h-10 rounded-full bg-[#F2E8DC] text-[#8B5E34] flex items-center justify-center"><FaBuilding /></div>
-            <div className="text-4xl font-extrabold text-[#8B5E34] tracking-tight">{Number(animated.activeListings != null ? animated.activeListings : 0).toLocaleString()}</div>
+            <div className="text-4xl font-extrabold text-[#8B5E34] tracking-tight">{Number(metrics.activeListings || 0).toLocaleString()}</div>
             <div className="text-xs mt-1 text-[#6F4E2C] uppercase tracking-wide">{t ? t('hero.activeListings') : 'Active Listings'}</div>
           </div>
-          <div className={`relative p-6 rounded-2xl text-center bg-[#FFF9F3] shadow-xl hover:shadow-2xl transition-all duration-500 ${statsInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}
-               style={{ transitionDelay: '120ms' }}>
+          <div className="relative p-6 rounded-2xl text-center bg-[#FFF9F3] shadow-xl">
             <div className="absolute top-3 left-3 w-2 h-2 bg-[#CDAF8B] rounded"></div>
             <div className="mx-auto mb-2 w-10 h-10 rounded-full bg-[#F2E8DC] text-[#8B5E34] flex items-center justify-center"><FaSmile /></div>
-            <div className="text-4xl font-extrabold text-[#8B5E34] tracking-tight">{Number(animated.happyGuests != null ? animated.happyGuests : 0).toLocaleString()}</div>
+            <div className="text-4xl font-extrabold text-[#8B5E34] tracking-tight">{Number(metrics.happyGuests || 0).toLocaleString()}</div>
             <div className="text-xs mt-1 text-[#6F4E2C] uppercase tracking-wide">{t ? t('hero.happyGuests') : 'Happy Guests'}</div>
           </div>
-          <div className={`relative p-6 rounded-2xl text-center bg-[#FFF9F3] shadow-xl hover:shadow-2xl transition-all duration-500 ${statsInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}
-               style={{ transitionDelay: '240ms' }}>
+          <div className="relative p-6 rounded-2xl text-center bg-[#FFF9F3] shadow-xl">
             <div className="absolute top-3 left-3 w-2 h-2 bg-[#CDAF8B] rounded"></div>
             <div className="mx-auto mb-2 w-10 h-10 rounded-full bg-[#F2E8DC] text-[#8B5E34] flex items-center justify-center"><FaThumbsUp /></div>
-            <div className="text-4xl font-extrabold text-[#8B5E34] tracking-tight">{(animated.satisfactionRate != null ? animated.satisfactionRate : 0)}%</div>
+            <div className="text-4xl font-extrabold text-[#8B5E34] tracking-tight">{Number(metrics.satisfactionRate || 0)}%</div>
             <div className="text-xs mt-1 text-[#6F4E2C] uppercase tracking-wide">{t ? t('hero.satisfactionRate') : 'Satisfaction Rate'}</div>
           </div>
         </div>

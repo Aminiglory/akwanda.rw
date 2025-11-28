@@ -117,19 +117,8 @@ const FeaturedApartments = () => {
   }, []);
 
 
-  // Reveal animation on scroll & premium slider ref
-  const gridRef = useRef(null);
+  // Premium slider ref (no scroll-triggered reveal animation)
   const premiumStripRef = useRef(null);
-  const [gridInView, setGridInView] = useState(false);
-  useEffect(() => {
-    const el = gridRef.current;
-    if (!el) return;
-    const obs = new IntersectionObserver((entries) => {
-      entries.forEach(e => { if (e.isIntersecting) setGridInView(true); });
-    }, { threshold: 0.2 });
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, []);
 
   const renderStars = (rating) => {
     return Array.from({ length: 5 }, (_, i) => (
@@ -152,15 +141,11 @@ const FeaturedApartments = () => {
           </p>
         </div>
 
-        <div
-          ref={gridRef}
-          className={`${gridInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'} grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8`}
-        >
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {apartments.map((apartment, index) => (
             <div
               key={apartment.id}
               className="h-full"
-              style={{ transition: 'all 500ms', transitionDelay: `${index * 80}ms` }}
             >
               <PropertyCard
                 listing={{
