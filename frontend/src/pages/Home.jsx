@@ -19,6 +19,7 @@ const Home = () => {
 
   const [featuredSection, setFeaturedSection] = useState(null);
   const [partnersSection, setPartnersSection] = useState(null);
+  const showFeaturedDestinations = false; // Temporarily hide Featured Destinations to avoid jumping
 
   useEffect(() => {
     (async () => {
@@ -90,7 +91,7 @@ const Home = () => {
         <FeaturedApartments />
         <LandingAttractions />
 
-        {featuredCards.length > 0 && (
+        {showFeaturedDestinations && featuredCards.length > 0 && (
           <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
             <div className="flex items-center justify-between mb-6 gap-4">
               <h2 className="text-2xl md:text-3xl font-bold text-[#4b2a00]">{t ? t('home.featuredDestinations') : 'Featured destinations'}</h2>
