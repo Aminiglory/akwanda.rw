@@ -6,7 +6,6 @@ import LandingAttractions from '../components/LandingAttractions';
 import OurMission from '../components/OurMission';
 import HowItWorks from '../components/HowItWorks';
 import Testimonials from '../components/Testimonials';
-import ImageLoadingBar from '../components/ImageLoadingBar';
 import { useLocale } from '../contexts/LocaleContext';
 import { 
   makeAbsoluteImageUrl, 
@@ -21,8 +20,6 @@ const Home = () => {
 
   const [featuredSection, setFeaturedSection] = useState(null);
   const [partnersSection, setPartnersSection] = useState(null);
-  const [totalExpectedImages, setTotalExpectedImages] = useState(0);
-  const [showLoadingBar, setShowLoadingBar] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -83,19 +80,6 @@ const Home = () => {
   }, [partnersSection]);
   return (
     <div>
-      {/* Image Loading Bar */}
-      <ImageLoadingBar 
-        isVisible={showLoadingBar}
-        totalImages={totalExpectedImages}
-        onComplete={() => {
-          console.log('All images loaded successfully!');
-          setTimeout(() => setShowLoadingBar(false), 1500);
-        }}
-        showPercentage={true}
-        autoHide={true}
-        hideDelay={1500}
-      />
-      
       {/* Hero Section with chocolate theme background */}
       <div className="bg-gradient-to-br from-[#6b3f1f] via-[#a06b42] to-[#c59b77]">
         <Hero />

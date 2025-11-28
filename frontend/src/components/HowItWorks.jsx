@@ -4,7 +4,6 @@ import { FaBuilding, FaSmile, FaThumbsUp, FaArrowRight } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 import { FaSearch, FaHandshake, FaCreditCard, FaKey, FaUpload, FaCheckCircle } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
-import LazyImage from './LazyImage';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -199,7 +198,7 @@ const HowItWorks = () => {
       {steps.map((s, i) => {
         const Icon = s.icon;
         return (
-          <div key={i} className="group relative modern-card-elevated p-6 hover:scale-105 transition-all duration-300">
+          <div key={i} className="group relative modern-card-elevated p-6">
             {/* Decorative blob */}
             <div className="pointer-events-none absolute -top-6 -right-6 w-24 h-24 bg-blue-50 rounded-full opacity-60"></div>
             <div className="relative mb-6">
@@ -207,8 +206,8 @@ const HowItWorks = () => {
                 <span className={`inline-block w-2 h-2 rounded-full ${forGuest ? 'bg-blue-600' : 'bg-indigo-600'}`}></span>
                 {forGuest ? 'Guest step' : 'Host step'}
               </div>
-              <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto group-hover:bg-blue-600 transition-all duration-300 group-hover:scale-110">
-                <Icon className="text-blue-600 text-2xl group-hover:text-white transition-colors duration-300" />
+              <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto">
+                <Icon className="text-blue-600 text-2xl" />
               </div>
               <div className="absolute -top-2 -right-2 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
                 {s.step}
@@ -223,12 +222,12 @@ const HowItWorks = () => {
             </p>
             {s.image && (
               <div className="mt-4 overflow-hidden rounded-xl">
-                <LazyImage 
-                  src={s.image.startsWith('http') ? s.image : `${API_URL}${s.image}`} 
-                  alt={s.title} 
+                <img
+                  src={s.image.startsWith('http') ? s.image : `${API_URL}${s.image}`}
+                  alt={s.title}
                   className="w-full h-40 object-cover"
-                  category="default"
-                  size="medium"
+                  loading="eager"
+                  decoding="async"
                 />
               </div>
             )}
@@ -370,14 +369,13 @@ const HowItWorks = () => {
         >
           {currentImages.length > 0 ? (
             currentImages.map((src, i) => (
-              <LazyImage
+              <img
                 key={i}
                 src={src}
                 alt={activeTab === 'guests' ? 'How it works for guests' : 'How it works for hosts'}
                 className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ${i === slideIndex ? 'opacity-100' : 'opacity-0'}`}
-                eager={i === 0}
-                category="default"
-                size="large"
+                loading="eager"
+                decoding="async"
               />
             ))
           ) : (
@@ -429,12 +427,12 @@ const HowItWorks = () => {
               {howMedia.map((m, i) => (
                 <div key={i} className="bg-white rounded-xl shadow p-3 border border-gray-100">
                   <div className="aspect-video rounded-lg overflow-hidden bg-gray-100">
-                    <LazyImage 
-                      src={(m.image && m.image.startsWith('http')) ? m.image : `${API_URL}${m.image}`} 
-                      alt={m.title || 'How it works'} 
+                    <img
+                      src={(m.image && m.image.startsWith('http')) ? m.image : `${API_URL}${m.image}`}
+                      alt={m.title || 'How it works'}
                       className="w-full h-full object-cover"
-                      category="default"
-                      size="medium"
+                      loading="eager"
+                      decoding="async"
                     />
                   </div>
                   {(m.title || m.description) && (

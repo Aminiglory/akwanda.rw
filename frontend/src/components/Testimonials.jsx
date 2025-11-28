@@ -197,8 +197,7 @@ export default function Testimonials() {
                     {page.map((testimonial, idx) => (
                       <div
                         key={testimonial._id || testimonial.id}
-                        className={`bg-white rounded-xl shadow-lg p-6 hover:scale-105 hover:shadow-xl transition-all duration-500 relative ${pIdx === index ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}
-                        style={{ transitionDelay: `${idx * 80}ms` }}
+                        className="bg-white rounded-xl shadow-lg p-6 relative"
                       >
                         <div className="absolute inset-0 -z-10">
                           <div className="absolute inset-0 translate-x-2 translate-y-2 rounded-xl bg-white"></div>
