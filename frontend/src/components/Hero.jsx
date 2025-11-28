@@ -242,19 +242,6 @@ const Hero = () => {
                 onError={() => {
                   console.warn(`Hero image failed to load: ${url}`);
                   trackImageLoad(url, 'hero');
-                  if (!url || url.includes('images.unsplash.com')) {
-                    return;
-                  }
-                  if (slideErrorTracker.current.has(url)) return;
-                  slideErrorTracker.current.add(url);
-                  setSlides((prev) => {
-                    if (!prev || !prev.length) return DEFAULT_HERO_SLIDES;
-                    const replacement = DEFAULT_HERO_SLIDES[i % DEFAULT_HERO_SLIDES.length];
-                    if (prev[i]?.image === replacement.image) return prev;
-                    const next = [...prev];
-                    next[i] = replacement;
-                    return next;
-                  });
                 }}
               />
             );
