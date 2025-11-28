@@ -449,7 +449,7 @@ const Navbar = () => {
     let timer;
     const loadUnread = async () => {
       try {
-        const data = await safeApiGet('/api/notifications/unread-count', { count: 0 });
+      const data = await safeApiGet('/api/notifications/unread-count', { count: 0 });
         setUnreadNotifCount(Number(data?.count || 0));
       } catch (error) {
         // Silently handle errors for unauthenticated users
@@ -458,7 +458,7 @@ const Navbar = () => {
 
     const loadUnreadMessages = async () => {
       try {
-        const data = await safeApiGet('/api/messages/unread-count', { count: 0 });
+      const data = await safeApiGet('/api/messages/unread-count', { count: 0 });
         setUnreadMsgCount(Number(data?.count || 0));
       } catch (error) {
         // Silently handle errors for unauthenticated users
@@ -467,13 +467,13 @@ const Navbar = () => {
     const loadUserStats = async () => {
       if (user?.userType === 'host') {
         try {
-          // Try stats endpoint first, fallback to dashboard
-          let data = await safeApiGet('/api/reports/stats', null);
-          if (!data) {
-            data = await safeApiGet('/api/reports/dashboard', { properties: 0, bookings: 0, rating: 0 });
-          }
+        // Try stats endpoint first, fallback to dashboard
+        let data = await safeApiGet('/api/reports/stats', null);
+        if (!data) {
+          data = await safeApiGet('/api/reports/dashboard', { properties: 0, bookings: 0, rating: 0 });
+        }
 
-          setUserStats({
+        setUserStats({
             properties: data?.totalProperties || 0,
             bookings: data?.totalBookings || 0,
             rating: data?.averageRating || 0
@@ -697,14 +697,14 @@ const Navbar = () => {
     if (!isAuthenticated || !isProfileOpen) return;
     (async () => {
       try {
-        const unreadNotif = await safeApiGet('/api/notifications/unread-count', { count: 0 });
+      const unreadNotif = await safeApiGet('/api/notifications/unread-count', { count: 0 });
         setUnreadNotifCount(Number(unreadNotif?.count || 0));
-        const unreadMsgs = await safeApiGet('/api/messages/unread-count', { count: 0 });
+      const unreadMsgs = await safeApiGet('/api/messages/unread-count', { count: 0 });
         setUnreadMsgCount(Number(unreadMsgs?.count || 0));
-        if (user?.userType === 'host') {
-          let data = await safeApiGet('/api/reports/stats', null);
-          if (!data) data = await safeApiGet('/api/reports/dashboard', { properties: 0, bookings: 0, rating: 0 });
-          setUserStats({
+      if (user?.userType === 'host') {
+        let data = await safeApiGet('/api/reports/stats', null);
+        if (!data) data = await safeApiGet('/api/reports/dashboard', { properties: 0, bookings: 0, rating: 0 });
+        setUserStats({
             properties: data?.totalProperties || 0,
             bookings: data?.totalBookings || 0,
             rating: data?.averageRating || 0
@@ -1148,16 +1148,16 @@ const Navbar = () => {
                       const hasChildren = item.children && item.children.length > 0;
                       return (
                         <div key={index} className="relative group">
-                          <Link
-                            to={item.href}
+                        <Link
+                          to={item.href}
                             className={`flex items-center space-x-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                              isActive
+                            isActive
                                 ? 'bg-[#a06b42] text-white'
-                                : 'text-[#6b5744] hover:text-[#4b2a00] hover:bg-[#e8dcc8]'
-                            }`}
-                          >
+                              : 'text-[#6b5744] hover:text-[#4b2a00] hover:bg-[#e8dcc8]'
+                          }`}
+                        >
                             <Icon className="text-xs" />
-                            <span>{item.label}</span>
+                          <span>{item.label}</span>
                             {hasChildren && <FaChevronDown className="text-[10px] ml-0.5" />}
                           </Link>
                           {hasChildren && (
@@ -1172,7 +1172,7 @@ const Navbar = () => {
                                   >
                                     {ChildIcon && <ChildIcon className="text-xs" />}
                                     <span>{child.label}</span>
-                                  </Link>
+                        </Link>
                                 );
                               })}
                             </div>
@@ -1625,17 +1625,17 @@ const Navbar = () => {
                         {isExpanded && (
                           <div className="mt-1 rounded-md bg-[#fff8f1] border border-[#e0d5c7] overflow-hidden">
                             {m.children.map((child, cidx) => (
-                              <Link
+                <Link
                                 key={cidx}
                                 to={child.href || m.href}
                                 className="flex items-center gap-2 px-2 py-1.5 text-[10px] text-[#4b2a00] hover:bg-white border-t border-[#f0e6d9] first:border-t-0"
-                                onClick={() => setIsMenuOpen(false)}
-                              >
+                  onClick={() => setIsMenuOpen(false)}
+                >
                                 {child.icon && <child.icon className="text-xs" />}
                                 <span>{child.label}</span>
-                              </Link>
-                            ))}
-                          </div>
+                </Link>
+              ))}
+            </div>
                         )}
                       </>
                     ) : (

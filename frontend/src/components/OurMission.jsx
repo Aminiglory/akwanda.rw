@@ -7,6 +7,7 @@ const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 export default function OurMission() {
   const { localize, t } = useLocale() || {};
   const [section, setSection] = useState(null); // { key, title, body, images }
+  const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
     (async () => {
@@ -28,15 +29,28 @@ export default function OurMission() {
       .filter(Boolean);
   }, [section]);
 
+  useEffect(() => {
+    if (!images || images.length <= 1) {
+      setCurrentIndex(0);
+      return;
+    }
+    let i = 0;
+    const interval = setInterval(() => {
+      i = (i + 1) % images.length;
+      setCurrentIndex(i);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [images]);
+
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
         <div className="relative w-full h-64 sm:h-80 md:h-96 rounded-2xl overflow-hidden shadow">
           {images.length > 0 ? (
             <img
-              src={images[0]}
+              src={images[currentIndex]}
               alt={(section && section.title) || 'Our mission'}
-              className="absolute inset-0 w-full h-full object-cover"
+              className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700"
               loading="eager"
               decoding="async"
             />

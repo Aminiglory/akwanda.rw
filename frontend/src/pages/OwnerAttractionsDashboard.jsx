@@ -322,7 +322,7 @@ export default function OwnerAttractionsDashboard() {
               <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-100">Basic Information</h3>
             </div>
             
-            <div>
+          <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">Attraction Name *</label>
               <input 
                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#a06b42] focus:border-transparent transition-all" 
@@ -330,8 +330,8 @@ export default function OwnerAttractionsDashboard() {
                 value={form.name} 
                 onChange={e=>setForm({ ...form, name: e.target.value })} 
               />
-            </div>
-            <div>
+          </div>
+          <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">Category *</label>
               <select 
                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#a06b42] focus:border-transparent transition-all bg-white" 
@@ -348,8 +348,8 @@ export default function OwnerAttractionsDashboard() {
                 <option value="religious">Religious</option>
                 <option value="entertainment">Entertainment</option>
               </select>
-            </div>
-            <div>
+          </div>
+          <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">City *</label>
               <input 
                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#a06b42] focus:border-transparent transition-all" 
@@ -372,8 +372,8 @@ export default function OwnerAttractionsDashboard() {
                 value={form.location} 
                 onChange={e=>setForm({ ...form, location: e.target.value })} 
               />
-            </div>
-            <div>
+          </div>
+          <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">Price (RWF) *</label>
               <input 
                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#a06b42] focus:border-transparent transition-all" 
@@ -382,14 +382,14 @@ export default function OwnerAttractionsDashboard() {
                 value={form.price} 
                 onChange={e=>setForm({ ...form, price: e.target.value })} 
               />
-            </div>
+          </div>
             
             {/* Description */}
             <div className="md:col-span-3 mt-4">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-100">Description</h3>
-            </div>
+          </div>
             
-            <div className="md:col-span-3">
+          <div className="md:col-span-3">
               <label className="block text-sm font-semibold text-gray-700 mb-2">Description *</label>
               <textarea 
                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#a06b42] focus:border-transparent transition-all resize-none" 
@@ -398,9 +398,9 @@ export default function OwnerAttractionsDashboard() {
                 value={form.description} 
                 onChange={e=>setForm({ ...form, description: e.target.value })} 
               />
-            </div>
+          </div>
             
-            <div className="md:col-span-3">
+          <div className="md:col-span-3">
               <label className="block text-sm font-semibold text-gray-700 mb-2">Highlights</label>
               <input 
                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#a06b42] focus:border-transparent transition-all" 
@@ -471,7 +471,7 @@ export default function OwnerAttractionsDashboard() {
               >
                 {saving ? 'Creating...' : 'Create Attraction Listing'}
               </button>
-            </div>
+          </div>
           </div>
         </form>
       )}

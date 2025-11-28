@@ -322,8 +322,8 @@ export const validateImageUrl = async (url, timeout = 5000) => {
  * @returns {string} - Optimized fallback image URL
  */
 export const getFallbackImage = (category = 'default', size = 'medium') => {
-  // Fallback images disabled; return empty string so callers do not swap in external placeholders.
-  return '';
+  const categoryImages = FALLBACK_IMAGES[category.toLowerCase()] || FALLBACK_IMAGES.default;
+  return typeof categoryImages === 'object' ? categoryImages[size] || categoryImages.medium : categoryImages;
 };
 
 /**
@@ -369,8 +369,12 @@ export const createOptimizedImage = (src, alt, className = '', fallbackCategory 
     
     img.onload = () => resolve(img);
     img.onerror = () => {
-      // Do not swap to any fallback image; just fail
-      reject(new Error('Image failed to load'));
+      // Try fallback image
+      const fallbackSrc = getFallbackImage(fallbackCategory);
+      const fallbackImg = new Image();
+      fallbackImg.onload = () => resolve(fallbackImg);
+      fallbackImg.onerror = () => reject(new Error('Both primary and fallback images failed'));
+      fallbackImg.src = fallbackSrc;
     };
     
     img.src = src;
@@ -428,6 +432,7 @@ export const enhanceImageElement = (imgElement, fallbackCategory = 'default') =>
     }
     
     console.warn(`Image failed to load: ${originalSrc}`);
+    imgElement.src = getFallbackImage(fallbackCategory);
     if (loadingDiv.parentNode) {
       loadingDiv.parentNode.removeChild(loadingDiv);
     }
@@ -472,6 +477,15 @@ export const processImagesForComponent = (items, options = {}) => {
       processed[`${imageProperty}Responsive`] = generateResponsiveImages(absoluteUrl);
     }
     
+    // Add fallback images if requested
+    if (addFallbacks) {
+      processed[`${imageProperty}Fallback`] = {
+        small: getFallbackImage(category, 'small'),
+        medium: getFallbackImage(category, 'medium'),
+        large: getFallbackImage(category, 'large')
+      };
+    }
+    
     // Add loading priority for preloading
     processed.imagePriority = index < prioritizeFirst ? (prioritizeFirst - index) : 0;
     processed.imageCategory = category;
@@ -498,6 +512,7 @@ export const createOptimizedImageElement = (config) => {
   } = config;
   
   const img = document.createElement('img');
+  const fallbackUrl = getFallbackImage(category, size);
   
   // Set basic attributes
   img.alt = alt;
@@ -511,7 +526,8 @@ export const createOptimizedImageElement = (config) => {
   
   // Add error handling
   img.onerror = () => {
-    console.warn(`Image failed to load: ${src}`);
+    console.warn(`Image failed to load: ${src}, using fallback`);
+    img.src = fallbackUrl;
     imageLoadStats.failed++;
     onError && onError();
   };
@@ -528,8 +544,8 @@ export const createOptimizedImageElement = (config) => {
     onLoad && onLoad();
   };
   
-  // Set source (primary only)
-  img.src = src || '';
+  // Set source (primary or fallback)
+  img.src = src || fallbackUrl;
   
   return img;
 };

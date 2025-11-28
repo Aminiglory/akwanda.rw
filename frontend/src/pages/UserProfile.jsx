@@ -400,29 +400,29 @@ const UserProfile = () => {
             <div className="flex items-center gap-6">
               <div className="relative group">
                 <div className="absolute inset-0 bg-white/20 rounded-full blur-xl group-hover:blur-2xl transition-all duration-300"></div>
-                <div className="relative">
-                  <img
-                    src={avatarPreviewUrl || profileData.avatar || '/default-avatar.png'}
-                    alt="Profile"
+              <div className="relative">
+                <img
+                  src={avatarPreviewUrl || profileData.avatar || '/default-avatar.png'}
+                  alt="Profile"
                     className="w-20 h-20 md:w-28 md:h-28 rounded-full object-cover border-4 border-white/30 shadow-2xl ring-4 ring-white/20 transition-transform duration-300 group-hover:scale-105"
-                  />
+                />
                   <label className="absolute bottom-0 right-0 bg-white text-[#a06b42] p-2.5 rounded-full hover:bg-gray-100 cursor-pointer shadow-lg transform hover:scale-110 transition-all duration-300">
                     <FaCamera className="text-sm" />
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          if (avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl);
-                          setAvatarPreviewUrl(URL.createObjectURL(file));
-                          setAvatarFile(file);
-                        }
-                      }}
-                      className="hidden"
-                    />
-                  </label>
-                </div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        if (avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl);
+                        setAvatarPreviewUrl(URL.createObjectURL(file));
+                        setAvatarFile(file);
+                      }
+                    }}
+                    className="hidden"
+                  />
+                </label>
+              </div>
               </div>
               <div className="text-white">
                 <h1 className="text-2xl md:text-4xl font-bold mb-2 drop-shadow-lg">
@@ -517,9 +517,9 @@ const UserProfile = () => {
                     <p className="text-xs text-blue-600 mt-1">Active listings</p>
                   </div>
                   <div className="w-16 h-16 bg-blue-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                    <FaHome className="text-3xl text-blue-600" />
-                  </div>
+                  <FaHome className="text-3xl text-blue-600" />
                 </div>
+              </div>
               </div>
               <div className="group bg-gradient-to-br from-green-50 to-emerald-100 rounded-2xl shadow-lg p-6 hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 border border-green-200/50">
                 <div className="flex items-center justify-between">
@@ -529,9 +529,9 @@ const UserProfile = () => {
                     <p className="text-xs text-green-600 mt-1">All time</p>
                   </div>
                   <div className="w-16 h-16 bg-green-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                    <FaCalendarAlt className="text-3xl text-green-600" />
-                  </div>
+                  <FaCalendarAlt className="text-3xl text-green-600" />
                 </div>
+              </div>
               </div>
               <div className="group bg-gradient-to-br from-amber-50 to-yellow-100 rounded-2xl shadow-lg p-6 hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 border border-amber-200/50">
                 <div className="flex items-center justify-between">
@@ -542,8 +542,8 @@ const UserProfile = () => {
                   </div>
                   <div className="w-16 h-16 bg-amber-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                     <FaDollarSign className="text-3xl text-amber-600" />
-                  </div>
                 </div>
+              </div>
               </div>
               <div className="group bg-gradient-to-br from-purple-50 to-pink-100 rounded-2xl shadow-lg p-6 hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 border border-purple-200/50">
                 <div className="flex items-center justify-between">
@@ -658,8 +658,8 @@ const UserProfile = () => {
                         <h3 className="font-bold text-white text-lg mb-1 drop-shadow-lg">{property.title}</h3>
                         <p className="text-sm text-white/90 flex items-center gap-1.5 drop-shadow-md">
                           <FaMapMarkerAlt className="text-xs" />
-                          {property.city}, {property.country}
-                        </p>
+                        {property.city}, {property.country}
+                      </p>
                       </div>
                     </div>
                     <div className="p-5">
@@ -667,14 +667,14 @@ const UserProfile = () => {
                         <div>
                           <span className="text-2xl font-bold text-[#a06b42]">
                             {formatCurrencyRWF ? formatCurrencyRWF(property.pricePerNight || 0) : `RWF ${Number(property.pricePerNight || 0).toLocaleString()}`}
-                          </span>
+                        </span>
                           <span className="text-sm text-gray-500 ml-1">/night</span>
                         </div>
                         <div className="flex items-center gap-1 bg-amber-50 px-2 py-1 rounded-lg">
                           <FaStar className="text-amber-400 text-sm" />
                           <span className="text-sm font-semibold text-gray-700">{property.rating || 'New'}</span>
-                        </div>
                       </div>
+                        </div>
                       <div className="flex items-center gap-4 text-sm text-gray-600 mb-5 pb-4 border-b border-gray-200">
                         <span className="flex items-center gap-1.5">
                           <FaBed className="text-[#a06b42]" />

@@ -1,57 +1,120 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
-import EnhancedUploadProperty from './EnhancedUploadProperty';
-import VehicleListingForm from '../components/VehicleListingForm';
+import { FaCheck, FaBuilding, FaBed, FaCamera, FaClipboardCheck } from 'react-icons/fa';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const ListProperty = () => {
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [listingType, setListingType] = useState('stay'); // 'stay' | 'rental' | 'attraction' | 'flight'
-  const [flightStep, setFlightStep] = useState(1);
-  const [flightData, setFlightData] = useState({
-    title: '', origin: '', destination: '', aircraft: '', departure: '', arrival: '', price: '', stops: '', description: '', seats: ''
+  const [currentStep, setCurrentStep] = useState(1);
+  const [submitting, setSubmitting] = useState(false);
+
+  const [propertyData, setPropertyData] = useState({
+    title: '', description: '', address: '', city: '', country: 'Rwanda',
+    category: 'apartment', bedrooms: 1, bathrooms: 1, size: '', amenities: []
   });
-  const [attractionForm, setAttractionForm] = useState({
-    name: '', category: '', shortDescription: '', fullDescription: '', highlights: '', country: '', city: '', address: '', gps: '', landmarks: '', directions: '',
-    coverPhotoFiles: [], galleryFiles: [], video: '', openingDays: '', openingHoursStart: '', openingHoursEnd: '', seasonality: '', duration: '', minAge: '', accessibility: '',
-    ticketAdult: '', ticketChild: '', ticketStudent: '', ticketGroup: '', discounts: '', currency: 'RWF', paymentMethods: '', cancellationPolicy: '', refundPolicy: '',
-    capacity: '', minGuests: '', bookingRequired: 'yes', timeSlots: '', checkinInstructions: '', amenities: [], guideAvailable: 'yes', audioGuideLanguages: '', safetyEquipment: '',
-    rules: '', dressCode: '', safetyInstructions: '', liability: '', contactName: '', contactPhone: '', contactEmail: '', contactWebsite: '', contactEmergency: '',
-    locationMap: '', latitude: '', longitude: ''
+
+  const [units, setUnits] = useState([{
+    roomNumber: '', roomType: 'single', pricePerNight: '',
+    capacity: 1, beds: 1, bathrooms: 1, amenities: [], images: []
+  }]);
+
+  const [propertyImages, setPropertyImages] = useState([]);
+  const [finalDetails, setFinalDetails] = useState({
+    commissionChoice: 'standard', discountPercent: 0,
+    checkInTime: '14:00', checkOutTime: '11:00',
+    cancellationPolicy: 'flexible', houseRules: ''
   });
-  const categoryOptions = ['Museum', 'Park', 'Hiking trail', 'City tour', 'Amusement park', 'Cultural site'];
-  const amenitiesOptions = ['Parking', 'Restrooms', 'WiFi', 'Food & Drinks', 'Souvenir Shop', 'Parking', 'Guided Tours'];
-  const yesNoOptions = [
-    { label: 'Yes', value: 'yes' },
-    { label: 'No', value: 'no' }
+
+  const steps = [
+    { number: 1, title: 'Property details', description: 'The basics: Add your property name, address, facilities and more', icon: FaBuilding },
+    { number: 2, title: 'Units', description: 'Add amenities and add your layouts, bed options and more', icon: FaBed },
+    { number: 3, title: 'Photos', description: 'Showcase photos of your property so guests know what to expect', icon: FaCamera },
+    { number: 4, title: 'Final steps', description: 'Set up payments and invoicing before you open for bookings', icon: FaClipboardCheck }
   ];
 
-  const handleCoverUpload = (files) => {
-    setAttractionForm(prev => ({ ...prev, coverPhotoFiles: Array.from(files) }));
+  const amenitiesList = ['wifi', 'parking', 'pool', 'gym', 'restaurant', 'bar', 'spa', 'air_conditioning', 'heating', 'kitchen', 'laundry', 'tv'];
+  const categories = [
+    { value: 'apartment', label: 'Apartment' }, { value: 'hotel', label: 'Hotel' },
+    { value: 'villa', label: 'Villa' }, { value: 'hostel', label: 'Hostel' }
+  ];
+  const roomTypes = [
+    { value: 'single', label: 'Single Room' }, { value: 'double', label: 'Double Room' },
+    { value: 'suite', label: 'Suite' }, { value: 'family', label: 'Family Room' }
+  ];
+
+  const validateStep = (step) => {
+    if (step === 1 && (!propertyData.title || !propertyData.address || !propertyData.city)) {
+      toast.error('Please fill required fields');
+      return false;
+    }
+    if (step === 2) {
+      for (let unit of units) {
+        if (!unit.roomNumber || !unit.pricePerNight) {
+          toast.error('Complete all unit details');
+          return false;
+        }
+      }
+    }
+    if (step === 3 && propertyImages.length === 0) {
+      toast.error('Upload at least one photo');
+      return false;
+    }
+    return true;
   };
 
-  const handleGalleryUpload = (files) => {
-    setAttractionForm(prev => ({ ...prev, galleryFiles: Array.from(files) }));
-  };
+  const nextStep = () => validateStep(currentStep) && setCurrentStep(prev => Math.min(prev + 1, 4));
+  const prevStep = () => setCurrentStep(prev => Math.max(prev - 1, 1));
 
-  const toggleAmenity = (amenity) => {
-    setAttractionForm(prev => {
-      const exists = prev.amenities.includes(amenity);
-      const next = exists ? prev.amenities.filter(a => a !== amenity) : [...prev.amenities, amenity];
-      return { ...prev, amenities: next };
-    });
-  };
+  const handleSubmit = async () => {
+    if (!validateStep(currentStep)) return;
+    
+    try {
+      setSubmitting(true);
+      const formData = new FormData();
+      Object.entries(propertyData).forEach(([k, v]) => {
+        if (k === 'amenities') v.forEach(a => formData.append('amenities', a));
+        else formData.append(k, v);
+      });
+      
+      propertyImages.forEach(img => formData.append('images', img));
+      
+      const commissionRate = finalDetails.commissionChoice === 'higher' ? 12 : (finalDetails.commissionChoice === 'mid' ? 10 : 8);
+      formData.append('commissionRate', commissionRate);
+      formData.append('discountPercent', finalDetails.discountPercent);
+      formData.append('rooms', JSON.stringify(units.map(u => ({
+        roomNumber: u.roomNumber, roomType: u.roomType, pricePerNight: Number(u.pricePerNight),
+        capacity: Number(u.capacity), beds: Number(u.beds), bathrooms: Number(u.bathrooms), amenities: u.amenities
+      }))));
 
-  const handleMapSelect = () => {
-    const lat = window.prompt('Enter latitude (e.g., -1.9499):');
-    const lng = window.prompt('Enter longitude (e.g., 30.0588):');
-    if (lat && lng) {
-      setAttractionForm(prev => ({
-        ...prev,
-        latitude: lat,
-        longitude: lng,
-        locationMap: `Lat ${lat}, Lng ${lng}`
-      }));
+      const res = await fetch(`${API_URL}/api/properties`, {
+        method: 'POST', body: formData, credentials: 'include'
+      });
+      
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
+
+      // Upload room images
+      for (let i = 0; i < units.length; i++) {
+        if (units[i].images.length > 0 && data.property.rooms[i]) {
+          const roomFormData = new FormData();
+          units[i].images.forEach(img => roomFormData.append('images', img));
+          await fetch(`${API_URL}/api/properties/${data.property._id}/rooms/${data.property.rooms[i]._id}/images`, {
+            method: 'POST', body: roomFormData, credentials: 'include'
+          });
+        }
+      }
+
+      toast.success('Property listed successfully!');
+      navigate('/my-bookings');
+    } catch (error) {
+      toast.error(error.message || 'Failed to list property');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -88,331 +151,59 @@ const ListProperty = () => {
     </div>
   );
 
-  const handleAttractionSubmit = (e) => {
-    e.preventDefault();
-    if (!attractionForm.name || !attractionForm.category || !attractionForm.country || !attractionForm.city) {
-      toast.error('Name, category, country, and city are required before continuing.');
-      return;
-    }
-    toast.success('Attraction checklist saved. Continue in the attraction workspace to finalize multimedia.');
-  };
-
-  const validateFlightStep = (step) => {
-    if (step === 1 && (!flightData.title || !flightData.origin || !flightData.destination)) {
-      toast.error('Add a flight title, origin, and destination');
-      return false;
-    }
-    if (step === 2 && (!flightData.aircraft || !flightData.departure || !flightData.arrival || !flightData.price)) {
-      toast.error('Provide aircraft, departure/arrival, and pricing for the route');
-      return false;
-    }
-    if (step === 3 && (!flightData.seats || !flightData.stops || !flightData.description)) {
-      toast.error('Add seat count, stops, and description');
-      return false;
-    }
-    return true;
-  };
-
-  const handleFlightSubmit = (e) => {
-    e.preventDefault();
-    if (!validateFlightStep(flightStep)) return;
-    if (flightStep < 3) {
-      setFlightStep(prev => prev + 1);
-      return;
-    }
-    toast.success('Flight itinerary saved. Continue in the flights workspace to add pricing tiers.');
-  };
-
-  const renderAttractionForm = () => {
-    const section = (title, helper, children) => (
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
-        <div>
-          <p className="text-xl font-semibold text-gray-900">{title}</p>
-          {helper && <p className="text-sm text-gray-500">{helper}</p>}
-        </div>
-        <div className="grid gap-4 md:grid-cols-2">
-          {children}
-        </div>
-      </div>
-    );
-
-  const renderField = ({ label, name, type = 'text', placeholder = '', description = '', options = [] }) => {
-      const value = attractionForm[name];
-      if (type === 'textarea') {
-        return (
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-gray-700">{label}</label>
-            <textarea
-              rows="3"
-              value={value}
-              onChange={e => setAttractionForm(prev => ({ ...prev, [name]: e.target.value }))}
-              placeholder={placeholder}
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-[#a06b42]"
-            />
-            {description && <p className="text-xs text-gray-500">{description}</p>}
-          </div>
-        );
-      }
-
-      if (type === 'select') {
-        return (
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-gray-700">{label}</label>
-            <select
-              value={value}
-              onChange={e => setAttractionForm(prev => ({ ...prev, [name]: e.target.value }))}
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-[#a06b42] bg-white"
-            >
-              <option value="">Select {label}</option>
-              {options.map(opt => (
-                <option key={opt} value={opt}>{opt}</option>
-              ))}
-            </select>
-            {description && <p className="text-xs text-gray-500">{description}</p>}
-          </div>
-        );
-      }
-
-      return (
-        <div className="space-y-1">
-          <label className="text-sm font-medium text-gray-700">{label}</label>
-          <input
-            type={type}
-            value={value}
-            onChange={e => setAttractionForm(prev => ({ ...prev, [name]: e.target.value }))}
-            placeholder={placeholder}
-            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-[#a06b42]"
-          />
-          {description && <p className="text-xs text-gray-500">{description}</p>}
-        </div>
-      );
-  };
-
-    const renderRadioGroup = (label, name) => (
-      <div className="space-y-1">
-        <p className="text-sm font-medium text-gray-700">{label}</p>
-        <div className="flex gap-4">
-          {yesNoOptions.map(option => (
-            <label key={option.value} className="inline-flex items-center gap-2">
-              <input
-                type="radio"
-                name={name}
-                value={option.value}
-                checked={attractionForm[name] === option.value}
-                onChange={() => setAttractionForm(prev => ({ ...prev, [name]: option.value }))}
-                className="form-radio text-[#a06b42] h-4 w-4"
-              />
-              {option.label}
-            </label>
-          ))}
-        </div>
-      </div>
-    );
-
-    return (
-      <form className="space-y-6" onSubmit={handleAttractionSubmit}>
-        {section('1. Basic Information', 'Required to identify the attraction.',
-          <>
-            {renderField({ label: 'Attraction Name', name: 'name', placeholder: 'Kigali Cultural Walk' })}
-            {renderField({ label: 'Category / Type', name: 'category', type: 'select', options: categoryOptions })}
-            {renderField({ label: 'Short Description', name: 'shortDescription', type: 'textarea', placeholder: '1–2 sentence summary' })}
-            {renderField({ label: 'Full Description', name: 'fullDescription', type: 'textarea', placeholder: 'Detailed highlight narrative' })}
-            {renderField({ label: 'Highlights / Key Features', name: 'highlights', type: 'textarea', placeholder: 'Bullet points separated by commas' })}
-          </>
-        )}
-        {section('2. Location Details', 'Precision helps guests arrive smoothly.',
-          <>
-            {renderField({ label: 'Country', name: 'country', placeholder: 'Rwanda' })}
-            {renderField({ label: 'City / Town / District', name: 'city', placeholder: 'Kigali' })}
-            {renderField({ label: 'Exact Address', name: 'address', placeholder: 'Street, building name...' })}
-            {renderField({ label: 'GPS Coordinates', name: 'gps', placeholder: 'Latitude, Longitude' })}
-            {renderField({ label: 'Landmarks Nearby', name: 'landmarks', placeholder: 'University, hotel, park (optional)' })}
-            {renderField({ label: 'Directions / How to get there', name: 'directions', type: 'textarea', placeholder: 'Describe transport options (optional)' })}
-          </>
-        )}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-3">
-          <p className="text-sm font-semibold text-gray-700">Location Map</p>
-          <div className="rounded-xl bg-gray-50 border border-dashed border-gray-300 h-32 flex items-center justify-center text-sm text-gray-500">
-            {attractionForm.locationMap || 'Click to pick exact location on map'}
-          </div>
-          <div className="flex gap-3">
-            <button type="button" onClick={handleMapSelect} className="px-4 py-2 rounded-xl bg-[#a06b42] text-white text-sm">Select on map</button>
-            <div className="text-sm text-gray-500">Lat: {attractionForm.latitude || '-'}, Lng: {attractionForm.longitude || '-'}</div>
-          </div>
-        </div>
-        {section('3. Photos & Media', 'Visuals bring the experience to life.',
-          <>
-            <div className="space-y-1">
-              <label className="text-sm font-medium text-gray-700">Cover Photo *</label>
-              <input type="file" accept="image/*" onChange={e => handleCoverUpload(e.target.files)} className="w-full" />
-              <p className="text-xs text-gray-500">{attractionForm.coverPhotoFiles.length ? `${attractionForm.coverPhotoFiles.length} file(s) ready` : 'Upload one cover photo.'}</p>
-            </div>
-            <div className="space-y-1">
-              <label className="text-sm font-medium text-gray-700">Gallery Images *</label>
-              <input type="file" accept="image/*" multiple onChange={e => handleGalleryUpload(e.target.files)} className="w-full" />
-              <p className="text-xs text-gray-500">{attractionForm.galleryFiles.length ? `${attractionForm.galleryFiles.length} file(s) ready` : 'Upload 3-20 images.'}</p>
-            </div>
-            {renderField({ label: 'Video URL (optional)', name: 'video', placeholder: 'YouTube / Vimeo link' })}
-          </>
-        )}
-        {section('4. Operating Details', 'Schedule, seasonality, and accessibility.',
-          <>
-            {renderField({ label: 'Opening Days (Mon–Sun)', name: 'openingDays', placeholder: 'Mon–Sun' })}
-            {renderField({ label: 'Opening Hour Start', name: 'openingHoursStart', type: 'time' })}
-            {renderField({ label: 'Opening Hour End', name: 'openingHoursEnd', type: 'time' })}
-            {renderField({ label: 'Seasonality Notes', name: 'seasonality', placeholder: 'Open all year / high season...' })}
-            {renderField({ label: 'Duration', name: 'duration', placeholder: '2 hours, half-day...' })}
-            {renderField({ label: 'Minimum Age Requirement', name: 'minAge', placeholder: 'e.g., 12+' })}
-            {renderField({ label: 'Accessibility Info', name: 'accessibility', type: 'textarea', placeholder: 'Wheelchair access, stroller-friendly...' })}
-            {renderField({ label: 'Available Time Slots', name: 'timeSlots', placeholder: '9:00, 11:00, 14:00' })}
-          </>
-        )}
-        {section('5. Pricing & Ticketing', 'Cover all financial expectations.',
-          <>
-            {renderField({ label: 'Ticket Price (Adult)', name: 'ticketAdult', type: 'number', placeholder: 'RWF' })}
-            {renderField({ label: 'Ticket Price (Child)', name: 'ticketChild', type: 'number', placeholder: 'RWF' })}
-            {renderField({ label: 'Ticket Price (Student)', name: 'ticketStudent', type: 'number', placeholder: 'RWF' })}
-            {renderField({ label: 'Ticket Price (Group)', name: 'ticketGroup', type: 'number', placeholder: 'RWF' })}
-            {renderField({ label: 'Discounts', name: 'discounts', placeholder: 'Seasonal, promo codes...' })}
-            {renderField({ label: 'Currency', name: 'currency', placeholder: 'RWF' })}
-            {renderField({ label: 'Payment Methods', name: 'paymentMethods', placeholder: 'Card, mobile money...' })}
-            {renderField({ label: 'Cancellation Policy', name: 'cancellationPolicy', type: 'textarea', placeholder: 'Free cancellation? deadline?' })}
-            {renderField({ label: 'Refund Policy', name: 'refundPolicy', type: 'textarea', placeholder: 'Full refund within 24h...' })}
-          </>
-        )}
-        {section('6. Capacity & Requirements', 'Understand how many guests you can host.',
-          <>
-            {renderField({ label: 'Maximum Capacity', name: 'capacity', type: 'number', placeholder: 'Guests per day/session' })}
-            {renderField({ label: 'Minimum Number of Guests', name: 'minGuests', type: 'number', placeholder: 'Minimum booking size' })}
-            {renderField({ label: 'Booking Required?', name: 'bookingRequired', placeholder: 'Yes / No' })}
-            {renderField({ label: 'Check-in Instructions / Meeting Point', name: 'checkinInstructions', type: 'textarea', placeholder: 'Meet at the red gate...' })}
-          </>
-        )}
-        {section('7. Amenities & Facilities', 'Let guests know what comforts you offer.',
-          <>
-            {renderField({ label: 'Amenities', name: 'amenities', type: 'textarea', placeholder: 'Parking, restrooms, WiFi...' })}
-            {renderField({ label: 'Guide Available', name: 'guideAvailable', placeholder: 'Yes/No' })}
-            {renderField({ label: 'Audio Guide Languages', name: 'audioGuideLanguages', placeholder: 'English, French...' })}
-            {renderField({ label: 'Safety Equipment', name: 'safetyEquipment', placeholder: 'Life vests, helmets...' })}
-          </>
-        )}
-        {section('8. Rules & Restrictions', 'Clarify expectations for guests.',
-          <>
-            {renderField({ label: 'Allowed / Not Allowed', name: 'rules', type: 'textarea', placeholder: 'Pets, smoking, photography...' })}
-            {renderField({ label: 'Dress Code', name: 'dressCode', placeholder: 'Modest clothing, swimwear...' })}
-            {renderField({ label: 'Safety Instructions', name: 'safetyInstructions', type: 'textarea', placeholder: 'Stay behind rope barriers...' })}
-            {renderField({ label: 'Liability / Waiver Requirements', name: 'liability', type: 'textarea', placeholder: 'Guests must sign release...' })}
-          </>
-        )}
-        {section('9. Contact Information', 'How to reach the manager/owner.',
-          <>
-            {renderField({ label: 'Owner / Manager Name', name: 'contactName', placeholder: 'John Doe' })}
-            {renderField({ label: 'Phone Number', name: 'contactPhone', placeholder: '+250 78...' })}
-            {renderField({ label: 'Email Address', name: 'contactEmail', type: 'email', placeholder: 'owner@example.com' })}
-            {renderField({ label: 'Website (optional)', name: 'contactWebsite', placeholder: 'https://...' })}
-            {renderField({ label: 'Emergency Contact (optional)', name: 'contactEmergency', placeholder: '+250 7...' })}
-          </>
-        )}
-        <div className="text-right">
-          <button type="submit" className="px-5 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700">Save attraction info</button>
-        </div>
-      </form>
-    );
-  };
-
-  const renderFlightForm = () => (
-    <form className="space-y-6" onSubmit={handleFlightSubmit}>
-      {flightStep === 1 && (
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Flight title</label>
-            <input value={flightData.title} onChange={(e) => setFlightData(prev => ({ ...prev, title: e.target.value }))}
-              className="w-full px-4 py-2 border rounded-lg" placeholder="Kigali ↔ Nairobi" />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Origin</label>
-              <input value={flightData.origin} onChange={(e) => setFlightData(prev => ({ ...prev, origin: e.target.value }))}
-                className="w-full px-4 py-2 border rounded-lg" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Destination</label>
-              <input value={flightData.destination} onChange={(e) => setFlightData(prev => ({ ...prev, destination: e.target.value }))}
-                className="w-full px-4 py-2 border rounded-lg" />
-            </div>
-          </div>
-        </div>
-      )}
-      {flightStep === 2 && (
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Aircraft / Operator</label>
-            <input value={flightData.aircraft} onChange={(e) => setFlightData(prev => ({ ...prev, aircraft: e.target.value }))}
-              className="w-full px-4 py-2 border rounded-lg" />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Departure</label>
-              <input type="datetime-local" value={flightData.departure} onChange={(e) => setFlightData(prev => ({ ...prev, departure: e.target.value }))}
-                className="w-full px-4 py-2 border rounded-lg" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Arrival</label>
-              <input type="datetime-local" value={flightData.arrival} onChange={(e) => setFlightData(prev => ({ ...prev, arrival: e.target.value }))}
-                className="w-full px-4 py-2 border rounded-lg" />
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Price (RWF)</label>
-            <input type="number" value={flightData.price} onChange={(e) => setFlightData(prev => ({ ...prev, price: e.target.value }))}
-              className="w-full px-4 py-2 border rounded-lg" />
-          </div>
-        </div>
-      )}
-      {flightStep === 3 && (
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Stops</label>
-            <input value={flightData.stops} onChange={(e) => setFlightData(prev => ({ ...prev, stops: e.target.value }))}
-              className="w-full px-4 py-2 border rounded-lg" placeholder="Direct / 1 stop" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Seats available</label>
-            <input type="number" value={flightData.seats} onChange={(e) => setFlightData(prev => ({ ...prev, seats: e.target.value }))}
-              className="w-full px-4 py-2 border rounded-lg" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Description</label>
-            <textarea value={flightData.description} onChange={(e) => setFlightData(prev => ({ ...prev, description: e.target.value }))}
-              className="w-full px-4 py-2 border rounded-lg" rows="3" placeholder="Add service notes, baggage rules, etc." />
-          </div>
-        </div>
-      )}
-      <div className="flex items-center justify-between">
-        {flightStep > 1 && (
-          <button type="button" onClick={() => setFlightStep(prev => Math.max(prev - 1, 1))}
-            className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">
-            Back
-          </button>
-        )}
-        <button type="submit" className="ml-auto px-5 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
-          {flightStep < 3 ? 'Continue' : 'Save flight info'}
-        </button>
-      </div>
-    </form>
-  );
-
   const renderNonStayContent = () => {
     if (listingType === 'rental') {
-      return <VehicleListingForm />;
+      return (
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+          <h2 className="text-2xl font-bold mb-2">List a vehicle rental</h2>
+          <p className="text-gray-600 mb-4 text-sm">
+            Vehicle listings are managed from the vehicles dashboard, where you can add cars, set prices, and manage bookings.
+          </p>
+          <button
+            type="button"
+            onClick={() => navigate('/owner/cars')}
+            className="inline-flex items-center px-5 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors"
+          >
+            Go to vehicles dashboard
+          </button>
+        </div>
+      );
     }
 
     if (listingType === 'attraction') {
-      return renderAttractionForm();
+      return (
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+          <h2 className="text-2xl font-bold mb-2">List an attraction</h2>
+          <p className="text-gray-600 mb-4 text-sm">
+            Use the attractions dashboard to create tours, experiences and activities, configure pricing, and manage reservations.
+          </p>
+          <button
+            type="button"
+            onClick={() => navigate('/owner/attractions')}
+            className="inline-flex items-center px-5 py-2.5 rounded-lg bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700 transition-colors"
+          >
+            Go to attractions dashboard
+          </button>
+        </div>
+      );
     }
 
     if (listingType === 'flight') {
-      return renderFlightForm();
+      return (
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+          <h2 className="text-2xl font-bold mb-2">List flights</h2>
+          <p className="text-gray-600 mb-4 text-sm">
+            Flight listing is handled from the flights workspace. Use the flights section to manage flight-related services.
+          </p>
+          <button
+            type="button"
+            onClick={() => navigate('/flights')}
+            className="inline-flex items-center px-5 py-2.5 rounded-lg bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 transition-colors"
+          >
+            Go to flights
+          </button>
+        </div>
+      );
     }
 
     return null;
@@ -428,12 +219,170 @@ const ListProperty = () => {
 
         {renderListingTypeSelector()}
 
-        {listingType === 'stay' ? (
-          <div className="bg-white rounded-xl shadow-md overflow-hidden">
-            <EnhancedUploadProperty />
+        {listingType !== 'stay' && renderNonStayContent()}
+
+        {listingType === 'stay' && (
+        <>
+        {/* Progress Steps (stays) */}
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+          <div className="space-y-4">
+            {steps.map((step) => {
+              const Icon = step.icon;
+              const isActive = currentStep === step.number;
+              const isCompleted = currentStep > step.number;
+
+              return (
+                <div key={step.number} className="flex items-start gap-4">
+                  <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center ${
+                    isCompleted ? 'bg-green-500' : isActive ? 'bg-blue-600' : 'bg-gray-200'
+                  }`}>
+                    {isCompleted ? <FaCheck className="text-white text-xl" /> : 
+                     <Icon className={`text-xl ${isActive ? 'text-white' : 'text-gray-500'}`} />}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className={`text-sm font-medium ${isActive ? 'text-blue-600' : 'text-gray-500'}`}>
+                        Step {step.number}
+                      </span>
+                      {isCompleted && <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Completed</span>}
+                    </div>
+                    <h3 className={`text-lg font-semibold ${isActive ? 'text-gray-900' : 'text-gray-600'}`}>{step.title}</h3>
+                    <p className="text-sm text-gray-500 mt-1">{step.description}</p>
+                    {isCompleted && (
+                      <button onClick={() => setCurrentStep(step.number)} className="text-blue-600 hover:text-blue-700 font-medium text-sm mt-2">
+                        Edit
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        ) : (
-          renderNonStayContent()
+        </div>
+
+        {/* Step Content (stays only) */}
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+          {currentStep === 1 && (
+            <div className="space-y-6">
+              <h2 className="text-2xl font-bold mb-4">Property Details</h2>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Property Name <span className="text-red-500">*</span></label>
+                <input type="text" value={propertyData.title} onChange={(e) => setPropertyData(prev => ({ ...prev, title: e.target.value }))}
+                  placeholder="e.g., Luxury Apartment in Kigali" className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                <select value={propertyData.category} onChange={(e) => setPropertyData(prev => ({ ...prev, category: e.target.value }))}
+                  className="w-full px-4 py-2 border rounded-lg">
+                  {categories.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Address <span className="text-red-500">*</span></label>
+                  <input type="text" value={propertyData.address} onChange={(e) => setPropertyData(prev => ({ ...prev, address: e.target.value }))}
+                    className="w-full px-4 py-2 border rounded-lg" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">City <span className="text-red-500">*</span></label>
+                  <input type="text" value={propertyData.city} onChange={(e) => setPropertyData(prev => ({ ...prev, city: e.target.value }))}
+                    className="w-full px-4 py-2 border rounded-lg" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">Amenities</label>
+                <div className="grid grid-cols-3 gap-3">
+                  {amenitiesList.map(amenity => (
+                    <label key={amenity} className="flex items-center space-x-2">
+                      <input type="checkbox" checked={propertyData.amenities.includes(amenity)}
+                        onChange={() => setPropertyData(prev => ({
+                          ...prev, amenities: prev.amenities.includes(amenity) ? prev.amenities.filter(a => a !== amenity) : [...prev.amenities, amenity]
+                        }))} className="w-4 h-4 text-blue-600 rounded" />
+                      <span className="text-sm capitalize">{amenity}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {currentStep === 2 && (
+            <div className="space-y-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-bold">Units / Rooms</h2>
+                <button onClick={() => setUnits(prev => [...prev, { roomNumber: '', roomType: 'single', pricePerNight: '', capacity: 1, beds: 1, bathrooms: 1, amenities: [], images: [] }])}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Add Unit</button>
+              </div>
+              {units.map((unit, idx) => (
+                <div key={idx} className="border rounded-lg p-6 space-y-4">
+                  <div className="flex justify-between">
+                    <h3 className="text-lg font-semibold">Unit {idx + 1}</h3>
+                    {units.length > 1 && <button onClick={() => setUnits(prev => prev.filter((_, i) => i !== idx))} className="text-red-600 text-sm">Delete</button>}
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Room Number <span className="text-red-500">*</span></label>
+                      <input type="text" value={unit.roomNumber} onChange={(e) => setUnits(prev => prev.map((u, i) => i === idx ? { ...u, roomNumber: e.target.value } : u))}
+                        className="w-full px-4 py-2 border rounded-lg" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Price/Night (RWF) <span className="text-red-500">*</span></label>
+                      <input type="number" value={unit.pricePerNight} onChange={(e) => setUnits(prev => prev.map((u, i) => i === idx ? { ...u, pricePerNight: e.target.value } : u))}
+                        className="w-full px-4 py-2 border rounded-lg" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {currentStep === 3 && (
+            <div className="space-y-6">
+              <h2 className="text-2xl font-bold mb-4">Property Photos</h2>
+              <input type="file" multiple accept="image/*" onChange={(e) => setPropertyImages(prev => [...prev, ...Array.from(e.target.files)])}
+                className="w-full px-4 py-2 border rounded-lg" />
+              {propertyImages.length > 0 && (
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {propertyImages.map((img, idx) => (
+                    <div key={idx} className="relative">
+                      <img src={URL.createObjectURL(img)} alt="" className="w-full h-32 object-cover rounded-lg" />
+                      <button onClick={() => setPropertyImages(prev => prev.filter((_, i) => i !== idx))}
+                        className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6">×</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {currentStep === 4 && (
+            <div className="space-y-6">
+              <h2 className="text-2xl font-bold mb-4">Final Details</h2>
+              <div>
+                <label className="block text-sm font-medium mb-2">Commission Rate</label>
+                <select value={finalDetails.commissionChoice} onChange={(e) => setFinalDetails(prev => ({ ...prev, commissionChoice: e.target.value }))}
+                  className="w-full px-4 py-2 border rounded-lg">
+                  <option value="standard">Standard - 8%</option>
+                  <option value="mid">Mid - 10%</option>
+                  <option value="higher">Higher - 12%</option>
+                </select>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Navigation (stays) */}
+        <div className="flex justify-between">
+          <button onClick={prevStep} disabled={currentStep === 1} className="px-6 py-3 border rounded-lg disabled:opacity-50">Back</button>
+          {currentStep < 4 ? (
+            <button onClick={nextStep} className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Continue</button>
+          ) : (
+            <button onClick={handleSubmit} disabled={submitting} className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50">
+              {submitting ? 'Submitting...' : 'Complete & List Property'}
+            </button>
+          )}
+        </div>
+        </>
         )}
       </div>
     </div>
