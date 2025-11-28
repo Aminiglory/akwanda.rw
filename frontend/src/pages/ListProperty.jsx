@@ -2,43 +2,19 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import EnhancedUploadProperty from './EnhancedUploadProperty';
+import VehicleListingForm from '../components/VehicleListingForm';
 
 const ListProperty = () => {
   const navigate = useNavigate();
   const [listingType, setListingType] = useState('stay'); // 'stay' | 'rental' | 'attraction' | 'flight'
-  const [rentalForm, setRentalForm] = useState({ vehicleName: '', location: '', pricePerDay: '' });
-  const [attractionForm, setAttractionForm] = useState({ name: '', city: '', price: '', duration: '' });
-  const [flightForm, setFlightForm] = useState({ title: '', origin: '', destination: '', price: '', date: '' });
-
-  const handleRentalSubmit = (event) => {
-    event.preventDefault();
-    if (!rentalForm.vehicleName || !rentalForm.location || !rentalForm.pricePerDay) {
-      toast.error('Please fill vehicle name, location, and price per day');
-      return;
-    }
-    toast.success('Rental listing data captured. Continue in the vehicle dashboard to finalize.');
-    setRentalForm({ vehicleName: '', location: '', pricePerDay: '' });
-  };
-
-  const handleAttractionSubmit = (event) => {
-    event.preventDefault();
-    if (!attractionForm.name || !attractionForm.city || !attractionForm.price) {
-      toast.error('Please fill name, city, and price for your attraction');
-      return;
-    }
-    toast.success('Attraction info captured. Continue in the attractions workspace to finish.');
-    setAttractionForm({ name: '', city: '', price: '', duration: '' });
-  };
-
-  const handleFlightSubmit = (event) => {
-    event.preventDefault();
-    if (!flightForm.title || !flightForm.origin || !flightForm.destination || !flightForm.price) {
-      toast.error('Please provide flight title, origin, destination, and price');
-      return;
-    }
-    toast.success('Flight listing details saved locally. Finalize in the flights area.');
-    setFlightForm({ title: '', origin: '', destination: '', price: '', date: '' });
-  };
+  const [attractionStep, setAttractionStep] = useState(1);
+  const [flightStep, setFlightStep] = useState(1);
+  const [attractionData, setAttractionData] = useState({
+    name: '', description: '', city: '', duration: '', price: '', capacity: '', highlights: '', languages: '', scheduleNotes: ''
+  });
+  const [flightData, setFlightData] = useState({
+    title: '', origin: '', destination: '', aircraft: '', departure: '', arrival: '', price: '', stops: '', description: '', seats: ''
+  });
 
   const renderListingTypeSelector = () => (
     <div className="mb-6">
@@ -73,108 +49,236 @@ const ListProperty = () => {
     </div>
   );
 
-  const renderNonStayContent = () => {
-    const baseCard = (title, description, children) => (
-      <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-        <h2 className="text-2xl font-semibold mb-3">{title}</h2>
-        <p className="text-sm text-gray-600 mb-4">{description}</p>
-        {children}
-      </div>
-    );
+  const validateAttractionStep = (step) => {
+    if (step === 1 && (!attractionData.name || !attractionData.city || !attractionData.description)) {
+      toast.error('Please provide the attraction name, description, and city');
+      return false;
+    }
+    if (step === 2 && (!attractionData.price || !attractionData.duration || !attractionData.capacity)) {
+      toast.error('Provide pricing, duration, and capacity to continue');
+      return false;
+    }
+    if (step === 3 && !attractionData.scheduleNotes) {
+      toast.error('Add schedule notes or highlights before submitting');
+      return false;
+    }
+    return true;
+  };
 
-    if (listingType === 'rental') {
-      return baseCard(
-        'List a vehicle rental',
-        'Capture vehicle details here before continuing in the vehicles workspace to finish pricing, availability, and images.',
-        <form className="space-y-4" onSubmit={handleRentalSubmit}>
+  const handleAttractionSubmit = (e) => {
+    e.preventDefault();
+    if (!validateAttractionStep(attractionStep)) return;
+    if (attractionStep < 3) {
+      setAttractionStep(prev => prev + 1);
+      return;
+    }
+    toast.success('Attraction details captured. Continue in the attractions workspace to finalize scheduling.');
+  };
+
+  const validateFlightStep = (step) => {
+    if (step === 1 && (!flightData.title || !flightData.origin || !flightData.destination)) {
+      toast.error('Add a flight title, origin, and destination');
+      return false;
+    }
+    if (step === 2 && (!flightData.aircraft || !flightData.departure || !flightData.arrival || !flightData.price)) {
+      toast.error('Provide aircraft, departure/arrival, and pricing for the route');
+      return false;
+    }
+    if (step === 3 && (!flightData.seats || !flightData.stops || !flightData.description)) {
+      toast.error('Add seat count, stops, and description');
+      return false;
+    }
+    return true;
+  };
+
+  const handleFlightSubmit = (e) => {
+    e.preventDefault();
+    if (!validateFlightStep(flightStep)) return;
+    if (flightStep < 3) {
+      setFlightStep(prev => prev + 1);
+      return;
+    }
+    toast.success('Flight itinerary saved. Continue in the flights workspace to add pricing tiers.');
+  };
+
+  const baseCard = (title, description, children) => (
+    <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
+      <h2 className="text-2xl font-semibold mb-3">{title}</h2>
+      <p className="text-sm text-gray-600 mb-4">{description}</p>
+      {children}
+    </div>
+  );
+
+  const renderAttractionForm = () => (
+    <form className="space-y-6" onSubmit={handleAttractionSubmit}>
+      {attractionStep === 1 && (
+        <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700">Vehicle name <span className="text-red-500">*</span></label>
-            <input value={rentalForm.vehicleName} onChange={(e) => setRentalForm(prev => ({ ...prev, vehicleName: e.target.value }))}
-              className="w-full px-4 py-2 border rounded-lg" placeholder="e.g., Safari Cruiser" />
+            <label className="block text-sm font-medium text-gray-700">Attraction name</label>
+            <input value={attractionData.name} onChange={(e) => setAttractionData(prev => ({ ...prev, name: e.target.value }))}
+              className="w-full px-4 py-2 border rounded-lg" placeholder="Kigali Cultural Tour" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">Location</label>
-            <input value={rentalForm.location} onChange={(e) => setRentalForm(prev => ({ ...prev, location: e.target.value }))}
-              className="w-full px-4 py-2 border rounded-lg" placeholder="Kigali" />
+            <label className="block text-sm font-medium text-gray-700">Description</label>
+            <textarea value={attractionData.description} onChange={(e) => setAttractionData(prev => ({ ...prev, description: e.target.value }))}
+              className="w-full px-4 py-2 border rounded-lg" rows="3" placeholder="Explain what makes this experience unique" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">Price per day (RWF) <span className="text-red-500">*</span></label>
-            <input type="number" value={rentalForm.pricePerDay} onChange={(e) => setRentalForm(prev => ({ ...prev, pricePerDay: e.target.value }))}
+            <label className="block text-sm font-medium text-gray-700">City</label>
+            <input value={attractionData.city} onChange={(e) => setAttractionData(prev => ({ ...prev, city: e.target.value }))}
               className="w-full px-4 py-2 border rounded-lg" />
           </div>
-          <button type="submit" className="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Save rental info</button>
-        </form>
+        </div>
+      )}
+      {attractionStep === 2 && (
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Duration</label>
+            <input value={attractionData.duration} onChange={(e) => setAttractionData(prev => ({ ...prev, duration: e.target.value }))}
+              className="w-full px-4 py-2 border rounded-lg" placeholder="e.g., 3h" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Price (RWF)</label>
+            <input value={attractionData.price} onChange={(e) => setAttractionData(prev => ({ ...prev, price: e.target.value }))}
+              type="number" className="w-full px-4 py-2 border rounded-lg" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Capacity</label>
+            <input value={attractionData.capacity} onChange={(e) => setAttractionData(prev => ({ ...prev, capacity: e.target.value }))}
+              type="number" className="w-full px-4 py-2 border rounded-lg" />
+          </div>
+        </div>
+      )}
+      {attractionStep === 3 && (
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Highlights / Schedule notes</label>
+            <textarea value={attractionData.scheduleNotes} onChange={(e) => setAttractionData(prev => ({ ...prev, scheduleNotes: e.target.value }))}
+              className="w-full px-4 py-2 border rounded-lg" rows="3" placeholder="Daily itinerary details" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Languages Offered</label>
+            <input value={attractionData.languages} onChange={(e) => setAttractionData(prev => ({ ...prev, languages: e.target.value }))}
+              className="w-full px-4 py-2 border rounded-lg" placeholder="English, French" />
+          </div>
+        </div>
+      )}
+      <div className="flex items-center justify-between">
+        {attractionStep > 1 && (
+          <button type="button" onClick={() => setAttractionStep(prev => Math.max(prev - 1, 1))}
+            className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">
+            Back
+          </button>
+        )}
+        <button type="submit" className="ml-auto px-5 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
+          {attractionStep < 3 ? 'Continue' : 'Save attraction info'}
+        </button>
+      </div>
+    </form>
+  );
+
+  const renderFlightForm = () => (
+    <form className="space-y-6" onSubmit={handleFlightSubmit}>
+      {flightStep === 1 && (
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Flight title</label>
+            <input value={flightData.title} onChange={(e) => setFlightData(prev => ({ ...prev, title: e.target.value }))}
+              className="w-full px-4 py-2 border rounded-lg" placeholder="Kigali ↔ Nairobi" />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Origin</label>
+              <input value={flightData.origin} onChange={(e) => setFlightData(prev => ({ ...prev, origin: e.target.value }))}
+                className="w-full px-4 py-2 border rounded-lg" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Destination</label>
+              <input value={flightData.destination} onChange={(e) => setFlightData(prev => ({ ...prev, destination: e.target.value }))}
+                className="w-full px-4 py-2 border rounded-lg" />
+            </div>
+          </div>
+        </div>
+      )}
+      {flightStep === 2 && (
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Aircraft / Operator</label>
+            <input value={flightData.aircraft} onChange={(e) => setFlightData(prev => ({ ...prev, aircraft: e.target.value }))}
+              className="w-full px-4 py-2 border rounded-lg" />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Departure</label>
+              <input type="datetime-local" value={flightData.departure} onChange={(e) => setFlightData(prev => ({ ...prev, departure: e.target.value }))}
+                className="w-full px-4 py-2 border rounded-lg" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Arrival</label>
+              <input type="datetime-local" value={flightData.arrival} onChange={(e) => setFlightData(prev => ({ ...prev, arrival: e.target.value }))}
+                className="w-full px-4 py-2 border rounded-lg" />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Price (RWF)</label>
+            <input type="number" value={flightData.price} onChange={(e) => setFlightData(prev => ({ ...prev, price: e.target.value }))}
+              className="w-full px-4 py-2 border rounded-lg" />
+          </div>
+        </div>
+      )}
+      {flightStep === 3 && (
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Stops</label>
+            <input value={flightData.stops} onChange={(e) => setFlightData(prev => ({ ...prev, stops: e.target.value }))}
+              className="w-full px-4 py-2 border rounded-lg" placeholder="Direct / 1 stop" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Seats available</label>
+            <input type="number" value={flightData.seats} onChange={(e) => setFlightData(prev => ({ ...prev, seats: e.target.value }))}
+              className="w-full px-4 py-2 border rounded-lg" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Description</label>
+            <textarea value={flightData.description} onChange={(e) => setFlightData(prev => ({ ...prev, description: e.target.value }))}
+              className="w-full px-4 py-2 border rounded-lg" rows="3" placeholder="Add service notes, baggage rules, etc." />
+          </div>
+        </div>
+      )}
+      <div className="flex items-center justify-between">
+        {flightStep > 1 && (
+          <button type="button" onClick={() => setFlightStep(prev => Math.max(prev - 1, 1))}
+            className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">
+            Back
+          </button>
+        )}
+        <button type="submit" className="ml-auto px-5 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+          {flightStep < 3 ? 'Continue' : 'Save flight info'}
+        </button>
+      </div>
+    </form>
+  );
+
+  const renderNonStayContent = () => {
+    if (listingType === 'rental') {
+      return (
+        <VehicleListingForm />
       );
     }
 
     if (listingType === 'attraction') {
       return baseCard(
         'List an attraction',
-        'Start describing your tour or experience. You can continue in the attractions workspace to add itineraries, galleries, and pricing.',
-        <form className="space-y-4" onSubmit={handleAttractionSubmit}>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Attraction name <span className="text-red-500">*</span></label>
-            <input value={attractionForm.name} onChange={(e) => setAttractionForm(prev => ({ ...prev, name: e.target.value }))}
-              className="w-full px-4 py-2 border rounded-lg" placeholder="Kigali Cultural Tour" />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">City <span className="text-red-500">*</span></label>
-              <input value={attractionForm.city} onChange={(e) => setAttractionForm(prev => ({ ...prev, city: e.target.value }))}
-                className="w-full px-4 py-2 border rounded-lg" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Duration</label>
-              <input value={attractionForm.duration} onChange={(e) => setAttractionForm(prev => ({ ...prev, duration: e.target.value }))}
-                className="w-full px-4 py-2 border rounded-lg" placeholder="3h" />
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Price (RWF) <span className="text-red-500">*</span></label>
-            <input type="number" value={attractionForm.price} onChange={(e) => setAttractionForm(prev => ({ ...prev, price: e.target.value }))}
-              className="w-full px-4 py-2 border rounded-lg" />
-          </div>
-          <button type="submit" className="px-5 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700">Save attraction info</button>
-        </form>
+        'Capture detailed attraction metadata before advancing to the dedicated attractions workspace.',
+        renderAttractionForm()
       );
     }
 
     if (listingType === 'flight') {
       return baseCard(
-        'List a flight service',
-        'Describe your flight route and pricing so you can continue in the flights workspace to add schedules, aircraft, and seat maps.',
-        <form className="space-y-4" onSubmit={handleFlightSubmit}>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Flight title <span className="text-red-500">*</span></label>
-            <input value={flightForm.title} onChange={(e) => setFlightForm(prev => ({ ...prev, title: e.target.value }))}
-              className="w-full px-4 py-2 border rounded-lg" placeholder="Rwanda to Nairobi" />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Origin <span className="text-red-500">*</span></label>
-              <input value={flightForm.origin} onChange={(e) => setFlightForm(prev => ({ ...prev, origin: e.target.value }))}
-                className="w-full px-4 py-2 border rounded-lg" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Destination <span className="text-red-500">*</span></label>
-              <input value={flightForm.destination} onChange={(e) => setFlightForm(prev => ({ ...prev, destination: e.target.value }))}
-                className="w-full px-4 py-2 border rounded-lg" />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Price (RWF) <span className="text-red-500">*</span></label>
-              <input type="number" value={flightForm.price} onChange={(e) => setFlightForm(prev => ({ ...prev, price: e.target.value }))}
-                className="w-full px-4 py-2 border rounded-lg" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Date</label>
-              <input type="date" value={flightForm.date} onChange={(e) => setFlightForm(prev => ({ ...prev, date: e.target.value }))}
-                className="w-full px-4 py-2 border rounded-lg" />
-            </div>
-          </div>
-          <button type="submit" className="px-5 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">Save flight info</button>
-        </form>
+        'List a flight',
+        'Enter your flight route, schedule, pricing, and service notes so the flights workspace can take over.',
+        renderFlightForm()
       );
     }
 
