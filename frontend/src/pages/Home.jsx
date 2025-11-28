@@ -21,6 +21,17 @@ const Home = () => {
   const [partnersSection, setPartnersSection] = useState(null);
   const showFeaturedDestinations = false; // Temporarily hide Featured Destinations to avoid jumping
 
+  // Ensure the landing page starts from a stable scroll position on initial load/refresh
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      if ('scrollRestoration' in window.history) {
+        window.history.scrollRestoration = 'manual';
+      }
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    } catch (_) {}
+  }, []);
+
   useEffect(() => {
     (async () => {
       try {
