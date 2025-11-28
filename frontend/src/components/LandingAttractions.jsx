@@ -10,7 +10,6 @@ const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 export default function LandingAttractions() {
   const { localize, t } = useLocale() || {};
   const [section, setSection] = useState(null); // { key,title,body,images }
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
@@ -21,11 +20,7 @@ export default function LandingAttractions() {
         const sections = Array.isArray(data?.content?.sections) ? data.content.sections : [];
         const s = sections.find(x => x?.key === 'landingAttractions');
         setSection(s || null);
-      } catch (_) {
-        setSection(null);
-      } finally {
-        setLoading(false);
-      }
+      } catch (_) {}
     })();
   }, []);
 
@@ -44,28 +39,6 @@ export default function LandingAttractions() {
     
     return processedCards;
   }, [section, localize]);
-
-  if (loading && !section) {
-    return (
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="flex items-center justify-between mb-6">
-          <div className="h-7 w-40 bg-gray-200 rounded animate-pulse" />
-          <div className="h-4 w-24 bg-gray-200 rounded animate-pulse" />
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="rounded-2xl border theme-chocolate-border shadow-sm overflow-hidden animate-pulse">
-              <div className="aspect-[4/3] bg-gray-200" />
-              <div className="p-4 flex items-center justify-between">
-                <div className="h-4 w-24 bg-gray-200 rounded" />
-                <div className="h-4 w-16 bg-gray-100 rounded" />
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-    );
-  }
 
   if (!section || cards.length === 0) return null;
 

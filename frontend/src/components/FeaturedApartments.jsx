@@ -11,7 +11,6 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 const FeaturedApartments = () => {
   const { t } = useLocale() || {};
   const [apartments, setApartments] = useState([]); // combined premium + standard
-  const [loading, setLoading] = useState(true);
   // Use optimized image URL processing
   const processImageUrl = (url) => {
     return makeAbsoluteImageUrl(url);
@@ -19,9 +18,8 @@ const FeaturedApartments = () => {
 
   useEffect(() => {
     (async () => {
-      try {
-        const data = await safeApiGet('/api/properties', { properties: [] });
-        if (data && data.properties) {
+      const data = await safeApiGet('/api/properties', { properties: [] });
+      if (data && data.properties) {
         // Newest first
         const sorted = [...data.properties].sort((a, b) => {
           const da = a && a.createdAt ? new Date(a.createdAt) : new Date(0);
@@ -79,9 +77,6 @@ const FeaturedApartments = () => {
           preloadImages(criticalImages, { maxConcurrent: 2, timeout: 3000 });
         }
       }
-      } finally {
-        setLoading(false);
-      }
     })();
   }, []);
 
@@ -106,43 +101,32 @@ const FeaturedApartments = () => {
             {t ? t('featured.subtitle') : 'Discover our most popular and highly-rated stays'}
           </p>
         </div>
-        {(loading && apartments.length === 0) ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-full animate-pulse">
-                <div className="rounded-2xl bg-gray-200 aspect-[4/5] mb-4" />
-                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2" />
-                <div className="h-3 bg-gray-100 rounded w-1/2" />
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {apartments.map((apartment, index) => (
-              <div
-                key={apartment.id}
-                className="h-full"
-              >
-                <PropertyCard
-                  listing={{
-                    id: apartment.id,
-                    title: apartment.title,
-                    location: apartment.location,
-                    image: (apartment.images && apartment.images.length ? apartment.images[0] : apartment.image),
-                    price: Number(apartment.price || 0),
-                    bedrooms: apartment.bedrooms,
-                    bathrooms: apartment.bathrooms,
-                    area: apartment.size,
-                    status: apartment.isAvailable ? 'active' : 'inactive',
-                    bookings: apartment.reviews,
-                    host: apartment.host
-                  }}
-                  onView={() => (window.location.href = `/apartment/${apartment.id}`)}
-                />
-              </div>
-            ))}
-          </div>
-        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          {apartments.map((apartment, index) => (
+            <div
+              key={apartment.id}
+              className="h-full"
+            >
+              <PropertyCard
+                listing={{
+                  id: apartment.id,
+                  title: apartment.title,
+                  location: apartment.location,
+                  image: (apartment.images && apartment.images.length ? apartment.images[0] : apartment.image),
+                  price: Number(apartment.price || 0),
+                  bedrooms: apartment.bedrooms,
+                  bathrooms: apartment.bathrooms,
+                  area: apartment.size,
+                  status: apartment.isAvailable ? 'active' : 'inactive',
+                  bookings: apartment.reviews,
+                  host: apartment.host
+                }}
+                onView={() => (window.location.href = `/apartment/${apartment.id}`)}
+              />
+            </div>
+          ))}
+        </div>
 
         <div className="mt-12">
           <div className="bg-primary rounded-2xl p-8 flex flex-col md:flex-row items-center justify-between text-white shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.02]">
