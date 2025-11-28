@@ -248,19 +248,28 @@ const HowItWorks = () => {
       })
     : hostSteps;
 
-  // Compute slideshow images using OurMission pattern (per tab)
+  // Compute media images once, independent of active tab, to avoid layout jumps on tab switch
   const currentImages = useMemo(() => {
-    const tabImages = activeTab === 'guests' ? sectionImagesGuests : sectionImagesHosts;
-    // 1) Prefer tab-specific images (uploaded via AdminLanding)
-    let list = Array.isArray(tabImages) ? tabImages.slice() : [];
-    // 2) If empty, try server-provided howMedia
+    // 1) Prefer guest section images
+    let list = Array.isArray(sectionImagesGuests) && sectionImagesGuests.length
+      ? sectionImagesGuests.slice()
+      : [];
+
+    // 2) If empty, try host section images
+    if (!list.length && Array.isArray(sectionImagesHosts) && sectionImagesHosts.length) {
+      list = sectionImagesHosts.slice();
+    }
+
+    // 3) If still empty, try server-provided howMedia
     if (!list.length && Array.isArray(howMedia) && howMedia.length) {
       list = howMedia.map(m => m?.image).filter(Boolean);
     }
-    // 3) If still empty, fallback to heroSlides
+
+    // 4) If still empty, fallback to heroSlides
     if (!list.length && Array.isArray(heroSlides) && heroSlides.length) {
       list = heroSlides.map(s => s?.image).filter(Boolean);
     }
+
     // Normalize to full URLs compatible with <img src>
     return list
       .map(img => {
@@ -271,7 +280,7 @@ const HowItWorks = () => {
         return `${API_URL}${path}`;
       })
       .filter(Boolean);
-  }, [activeTab, sectionImagesGuests, sectionImagesHosts, howMedia, heroSlides]);
+  }, [sectionImagesGuests, sectionImagesHosts, howMedia, heroSlides]);
 
   return (
     <div className="px-4 py-8">

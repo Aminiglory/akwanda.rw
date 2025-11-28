@@ -28,8 +28,6 @@ export default function OurMission() {
       .filter(Boolean);
   }, [section]);
 
-  if (!section) return null;
-
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
@@ -37,7 +35,7 @@ export default function OurMission() {
           {images.length > 0 ? (
             <img
               src={images[0]}
-              alt={section.title || 'Our mission'}
+              alt={(section && section.title) || 'Our mission'}
               className="absolute inset-0 w-full h-full object-cover"
               loading="eager"
               decoding="async"
@@ -48,8 +46,12 @@ export default function OurMission() {
           <div className="absolute inset-0 bg-black/10" />
         </div>
         <div>
-          <h2 className="text-2xl md:text-3xl font-bold text-[#4b2a00]">{localize ? localize(section.title || 'Our Mission') : (section.title || 'Our Mission')}</h2>
-          {section.body && (
+          <h2 className="text-2xl md:text-3xl font-bold text-[#4b2a00]">
+            {localize
+              ? localize((section && section.title) || 'Our Mission')
+              : ((section && section.title) || 'Our Mission')}
+          </h2>
+          {section && section.body && (
             <p className="mt-4 text-gray-700 whitespace-pre-line">{localize ? localize(section.body) : section.body}</p>
           )}
           <div className="mt-6 flex flex-wrap gap-3">
