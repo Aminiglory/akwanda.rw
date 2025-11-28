@@ -170,7 +170,7 @@ function App() {
             <Route path="/profile" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
             <Route path="/account/:section" element={<ProtectedRoute><SettingsSection /></ProtectedRoute>} />
-            <Route path="/list-property" element={<Navigate to="/upload" replace />} />
+            <Route path="/list-property" element={<HostRoute><ListProperty /></HostRoute>} />
             <Route path="/upload" element={<HostRoute><EnhancedUploadProperty /></HostRoute>} />
             <Route path="/upload-property" element={<HostRoute><EnhancedUploadProperty /></HostRoute>} />
             <Route path="/upload-legacy" element={<HostRoute><UploadProperty /></HostRoute>} />
