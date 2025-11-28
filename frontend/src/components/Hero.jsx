@@ -18,28 +18,15 @@ const API_BASE = (() => {
 })();
 
 const DEFAULT_HERO_INTERVAL = 5000;
-const DEFAULT_HERO_SLIDES = [
-  {
-    image: 'https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=1920&h=1080&auto=format&q=80',
-    caption: 'Discover warm Rwandan hospitality'
-  },
-  {
-    image: 'https://images.unsplash.com/photo-1489515217757-5fd1be406fef?w=1920&h=1080&auto=format&q=80',
-    caption: 'Drive across scenic landscapes'
-  },
-  {
-    image: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1920&h=1080&auto=format&q=80',
-    caption: 'Explore unforgettable attractions'
-  }
-];
+// No default remote hero images: if CMS does not provide slides, we show a static gradient skeleton.
+const DEFAULT_HERO_SLIDES = [];
 
 // We rely on makeAbsoluteImageUrl for robust URL construction from CMS values.
 
 const Hero = () => {
   const { localize, t } = useLocale() || {};
-  const [isVisible, setIsVisible] = useState(false);
   const [metrics, setMetrics] = useState({ activeListings: 0, happyGuests: 0, satisfactionRate: 0 });
-  const [slides, setSlides] = useState(DEFAULT_HERO_SLIDES); // array of { image, caption }
+  const [slides, setSlides] = useState([]); // array of { image, caption }
   const [index, setIndex] = useState(0);
   const timerRef = useRef(null);
   const [intervalMs, setIntervalMs] = useState(DEFAULT_HERO_INTERVAL);
@@ -52,10 +39,6 @@ const Hero = () => {
   const [paused, setPaused] = useState(false);
   const slideErrorTracker = useRef(new Set());
   const touchStartX = useRef(null);
-
-  useEffect(() => {
-    setIsVisible(true);
-  }, []);
 
   // Detect prefers-reduced-motion
   useEffect(() => {
@@ -115,7 +98,7 @@ const Hero = () => {
         const res = await fetch(`${API_BASE}/api/content/landing`);
         if (!res.ok) {
           if (!cancelled) {
-            setSlides(DEFAULT_HERO_SLIDES);
+            setSlides([]);
             setIntervalMs(DEFAULT_HERO_INTERVAL);
             setTransition('fade');
             setHeroTitle('');
@@ -138,7 +121,7 @@ const Hero = () => {
 
         if (cancelled) return;
 
-        const finalSlides = validatedSlides.length ? validatedSlides : DEFAULT_HERO_SLIDES;
+        const finalSlides = validatedSlides.length ? validatedSlides : [];
         setSlides(finalSlides);
         const heroConfig = data?.content || {};
         setIntervalMs(
@@ -151,7 +134,7 @@ const Hero = () => {
         setHeroSubtitle(heroConfig.heroSubtitle || '');
       } catch (_) {
         if (!cancelled) {
-          setSlides(DEFAULT_HERO_SLIDES);
+          setSlides([]);
           setIntervalMs(DEFAULT_HERO_INTERVAL);
           setTransition('fade');
           setHeroTitle('');
@@ -247,7 +230,7 @@ const Hero = () => {
             );
           })
         ) : (
-          <div className="absolute inset-0 bg-gradient-to-br from-gray-200 via-gray-100 to-white animate-pulse" />
+          <div className="absolute inset-0 bg-gradient-to-br from-gray-200 via-gray-100 to-white" />
         )}
         {/* Dark overlay for readability */}
         {slides.length > 0 && <div className="absolute inset-0 bg-[#4b2a00]/40"></div>}
@@ -255,7 +238,7 @@ const Hero = () => {
 
       {/* Overlay content */}
       <div
-        className={`relative z-10 max-w-7xl mx-auto px-4 py-20 md:py-28 lg:py-36 transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'}`}
+        className="relative z-10 max-w-7xl mx-auto px-4 py-20 md:py-28 lg:py-36"
         role="region"
         aria-label="Hero slideshow"
         tabIndex={0}
