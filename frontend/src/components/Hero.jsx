@@ -43,11 +43,19 @@ const Hero = ({ onReady }) => {
         setHeroTitle(content.heroTitle || '');
         setHeroSubtitle(content.heroSubtitle || '');
 
+        // Normalize hero media from CMS and ignore empty entries
+        const slides = Array.isArray(content.heroSlides)
+          ? content.heroSlides.filter(s => s && typeof s.image === 'string' && s.image.trim().length > 0)
+          : [];
+        const images = Array.isArray(content.heroImages)
+          ? content.heroImages.filter(img => typeof img === 'string' && img.trim().length > 0)
+          : [];
+
         let img = null;
-        if (Array.isArray(content.heroSlides) && content.heroSlides.length) {
-          img = makeAbsoluteImageUrl(content.heroSlides[0]?.image);
-        } else if (Array.isArray(content.heroImages) && content.heroImages.length) {
-          img = makeAbsoluteImageUrl(content.heroImages[0]);
+        if (slides.length) {
+          img = makeAbsoluteImageUrl(slides[0].image);
+        } else if (images.length) {
+          img = makeAbsoluteImageUrl(images[0]);
         }
         setHeroImage(img || null);
       } catch (_) {}
