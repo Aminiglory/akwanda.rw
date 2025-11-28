@@ -322,7 +322,7 @@ export const validateImageUrl = async (url, timeout = 5000) => {
  * @returns {string} - Optimized fallback image URL
  */
 export const getFallbackImage = (category = 'default', size = 'medium') => {
-  // Fallback images disabled; return empty string so callers do not swap in external placeholders.
+  // Fallbacks disabled: return empty string so callers do not load external placeholder images.
   return '';
 };
 
@@ -369,8 +369,8 @@ export const createOptimizedImage = (src, alt, className = '', fallbackCategory 
     
     img.onload = () => resolve(img);
     img.onerror = () => {
-      // Do not swap to any fallback image; just fail
-      reject(new Error('Image failed to load'));
+      // Fallbacks disabled: reject when primary image fails instead of loading external placeholders
+      reject(new Error('Primary image failed to load'));
     };
     
     img.src = src;
@@ -472,6 +472,15 @@ export const processImagesForComponent = (items, options = {}) => {
       processed[`${imageProperty}Responsive`] = generateResponsiveImages(absoluteUrl);
     }
     
+    // Add fallback images if requested
+    if (addFallbacks) {
+      processed[`${imageProperty}Fallback`] = {
+        small: getFallbackImage(category, 'small'),
+        medium: getFallbackImage(category, 'medium'),
+        large: getFallbackImage(category, 'large')
+      };
+    }
+    
     // Add loading priority for preloading
     processed.imagePriority = index < prioritizeFirst ? (prioritizeFirst - index) : 0;
     processed.imageCategory = category;
@@ -498,6 +507,7 @@ export const createOptimizedImageElement = (config) => {
   } = config;
   
   const img = document.createElement('img');
+  const fallbackUrl = '';
   
   // Set basic attributes
   img.alt = alt;
@@ -528,7 +538,7 @@ export const createOptimizedImageElement = (config) => {
     onLoad && onLoad();
   };
   
-  // Set source (primary only)
+  // Set source (primary or fallback)
   img.src = src || '';
   
   return img;

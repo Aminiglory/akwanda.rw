@@ -20,13 +20,30 @@ const HowItWorks = () => {
     hostSteps: [],
     faqs: []
   });
-  const [activeTab, setActiveTab] = useState('guests'); // guests | hosts
+  const [activeTab, setActiveTab] = useState(() => {
+    if (typeof window === 'undefined') return 'guests';
+    try {
+      const saved = window.localStorage.getItem('howTab');
+      return saved === 'hosts' ? 'hosts' : 'guests';
+    } catch (_) {
+      return 'guests';
+    }
+  }); // guests | hosts, persisted
   const [heroSlides, setHeroSlides] = useState([]);
   const [openFaq, setOpenFaq] = useState(null);
   const [sectionImagesGuests, setSectionImagesGuests] = useState([]);
   const [sectionImagesHosts, setSectionImagesHosts] = useState([]);
   const [howMedia, setHowMedia] = useState([]); // server-provided media items
   const [testimonials, setTestimonials] = useState([]);
+
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    try {
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem('howTab', tab);
+      }
+    } catch (_) {}
+  };
   useEffect(() => {
     (async () => {
       try {
@@ -287,8 +304,8 @@ const HowItWorks = () => {
       <div className="max-w-6xl mx-auto">
         <div className="flex items-center justify-center mb-2">
           <div className="inline-flex items-center bg-[#F2E8DC] rounded-full p-1">
-            <button onClick={() => setActiveTab('guests')} className={`px-5 py-2 rounded-full text-sm font-semibold transition-all ${activeTab==='guests' ? 'bg-white text-[#2B1B0E] shadow' : 'text-[#6F4E2C] hover:text-[#2B1B0E]'}`}>{t ? t('how.forGuests') : 'For Guests'}</button>
-            <button onClick={() => setActiveTab('hosts')} className={`px-5 py-2 rounded-full text-sm font-semibold transition-all ${activeTab==='hosts' ? 'bg-white text-[#2B1B0E] shadow' : 'text-[#6F4E2C] hover:text-[#2B1B0E]'}`}>{t ? t('how.forHosts') : 'For Hosts'}</button>
+            <button onClick={() => handleTabChange('guests')} className={`px-5 py-2 rounded-full text-sm font-semibold transition-all ${activeTab==='guests' ? 'bg-white text-[#2B1B0E] shadow' : 'text-[#6F4E2C] hover:text-[#2B1B0E]'}`}>{t ? t('how.forGuests') : 'For Guests'}</button>
+            <button onClick={() => handleTabChange('hosts')} className={`px-5 py-2 rounded-full text-sm font-semibold transition-all ${activeTab==='hosts' ? 'bg-white text-[#2B1B0E] shadow' : 'text-[#6F4E2C] hover:text-[#2B1B0E]'}`}>{t ? t('how.forHosts') : 'For Hosts'}</button>
           </div>
         </div>
         {(activeTab==='guests' ? (localize ? localize(how.guestsTagline) : how.guestsTagline) : (localize ? localize(how.hostsTagline) : how.hostsTagline)) && (
@@ -299,7 +316,7 @@ const HowItWorks = () => {
 
         {/* Section media (static) */}
         <div
-          className="relative rounded-2xl overflow-hidden bg-white/70 backdrop-blur shadow-md mb-8"
+          className="relative rounded-2xl overflow-hidden bg-white/70 backdrop-blur shadow-md mb-8 aspect-video"
           role="region"
           aria-label="How it works media"
         >
@@ -312,7 +329,7 @@ const HowItWorks = () => {
               decoding="async"
             />
           ) : (
-            <div className="aspect-video bg-[#F2E8DC] flex items-center justify-center text-[#8B5E34]">Section Media</div>
+            <div className="w-full h-full bg-[#F2E8DC] flex items-center justify-center text-[#8B5E34]">Section Media</div>
           )}
         </div>
 

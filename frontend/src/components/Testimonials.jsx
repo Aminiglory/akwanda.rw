@@ -128,7 +128,26 @@ export default function Testimonials() {
 
         {/* Static grid of testimonials */}
         {(loading && items.length === 0) ? (
-          <div className="p-6 text-center text-gray-500">Loading testimonials…</div>
+          <div
+            role="status"
+            aria-label="Loading testimonials"
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+          >
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="bg-white rounded-xl shadow-lg p-6 relative animate-pulse">
+                <div className="h-4 w-24 bg-gray-200 rounded mb-4" />
+                <div className="h-3 w-full bg-gray-200 rounded mb-2" />
+                <div className="h-3 w-5/6 bg-gray-200 rounded mb-6" />
+                <div className="flex items-center mt-auto">
+                  <div className="w-12 h-12 rounded-full bg-gray-200 mr-4" />
+                  <div>
+                    <div className="h-3 w-24 bg-gray-200 rounded mb-2" />
+                    <div className="h-3 w-32 bg-gray-100 rounded" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         ) : (
           <div
             role="region"

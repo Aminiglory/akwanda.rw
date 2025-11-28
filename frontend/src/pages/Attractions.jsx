@@ -18,26 +18,6 @@ const Attractions = () => {
     heroImages: [],
     published: true,
   });
-  const [attractionSearch, setAttractionSearch] = useState({ destination: '', dates: '' });
-  const [selectedFilters, setSelectedFilters] = useState({ location: [], category: [] });
-
-  const topDestinations = [
-    { city: 'Kigali', experiences: 58 },
-    { city: 'Nyungwe', experiences: 24 },
-    { city: 'Akagera', experiences: 17 },
-    { city: 'Lake Kivu', experiences: 33 }
-  ];
-
-  const attractionDeals = [
-    { title: 'Kigali Cultural Mosaic Tour', price: 'RWF 45,000', duration: '3h', discount: '15% off', badge: 'Local favorite' },
-    { title: 'Luxury Sunset Cruise - Lake Kivu', price: 'RWF 85,000', duration: '2h', discount: '20% off', badge: 'Limited seats' },
-    { title: 'Nyungwe Canopy Walk & Coffee', price: 'RWF 120,000', duration: '4h', discount: '25% off', badge: 'Eco adventure' }
-  ];
-
-  const filterGroups = {
-    location: ['Kigali', 'Nyungwe', 'Akagera', 'Lake Kivu'],
-    category: ['Culture', 'Adventure', 'Nature', 'Relaxation']
-  };
 
   const makeAbsolute = (u) => {
     if (!u) return null;
@@ -126,24 +106,6 @@ const Attractions = () => {
     })();
   }, []);
 
-  const handleAttractionPreview = (e) => {
-    e.preventDefault();
-    if (!attractionSearch.destination || !attractionSearch.dates) {
-      toast.error('Select a destination and dates to preview curated highlights.');
-      return;
-    }
-    toast.success(`Previewing ${attractionSearch.destination} highlights for ${attractionSearch.dates}`);
-  };
-
-  const toggleFilter = (group, value) => {
-    setSelectedFilters(prev => ({
-      ...prev,
-      [group]: prev[group].includes(value)
-        ? prev[group].filter(item => item !== value)
-        : [...prev[group], value]
-    }));
-  };
-
   const categories = useMemo(() => {
     const all = new Map();
     for (const a of items) {
@@ -216,78 +178,9 @@ const Attractions = () => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-10 md:py-12 space-y-8">
-        {/* Attractions marketplace preview */}
-        <div className="bg-white rounded-3xl shadow-xl border border-[#f0e2cf] p-6 md:p-8 space-y-6">
-          <div className="flex flex-col gap-1">
-            <p className="text-xs font-semibold uppercase tracking-widest text-[#a06b42]">Discover experiences</p>
-            <h2 className="text-2xl md:text-3xl font-bold text-[#3a1e10]">Top priorities you can visit</h2>
-            <p className="text-gray-600">Search attractions the way guests expect—destination, date, and curated deals all in one place.</p>
-          </div>
-          <form className="grid gap-3 sm:grid-cols-3" onSubmit={handleAttractionPreview}>
-            <input
-              value={attractionSearch.destination}
-              onChange={e => setAttractionSearch(prev => ({ ...prev, destination: e.target.value }))}
-              placeholder="Destination"
-              className="rounded-2xl border border-[#e8d6c1] px-4 py-3 text-sm focus:border-[#a06b42] focus:outline-none"
-            />
-            <input
-              value={attractionSearch.dates}
-              onChange={e => setAttractionSearch(prev => ({ ...prev, dates: e.target.value }))}
-              placeholder="Dates"
-              className="rounded-2xl border border-[#e8d6c1] px-4 py-3 text-sm focus:border-[#a06b42] focus:outline-none"
-            />
-            <button type="submit" className="rounded-2xl bg-gradient-to-r from-[#a06b42] to-[#c68b4c] text-white font-semibold px-4 py-3 text-sm shadow-lg">Preview highlights</button>
-          </form>
-          <div className="flex flex-wrap gap-3">
-            {topDestinations.map(dest => (
-              <div key={dest.city} className="flex-1 min-w-[150px] rounded-2xl border border-[#fde5cc] bg-[#fff9f2] px-4 py-3">
-                <p className="text-sm font-semibold text-[#a06b42]">{dest.city}</p>
-                <p className="text-xs text-[#7a5a3a]">{dest.experiences} experiences</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="grid gap-6 lg:grid-cols-[300px,1fr]">
-          <div className="bg-white rounded-3xl border border-[#f0e2cf] p-5 space-y-5 shadow-sm">
-            <h3 className="text-lg font-semibold text-[#3a1e10]">Filters</h3>
-            {Object.entries(filterGroups).map(([group, items]) => (
-              <div key={group} className="space-y-2">
-                <p className="text-sm font-semibold text-gray-700 capitalize">{group}</p>
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  {items.map(item => (
-                    <label key={item} className="flex items-center gap-2 text-sm font-medium text-gray-700">
-                      <input
-                        type="checkbox"
-                        checked={selectedFilters[group].includes(item)}
-                        onChange={() => toggleFilter(group, item)}
-                        className="h-4 w-4 rounded border-gray-300 text-[#a06b42] focus:ring-[#a06b42]"
-                      />
-                      {item}
-                    </label>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="space-y-6">
-            <div className="grid gap-4 sm:grid-cols-2">
-              {attractionDeals.map(deal => (
-                <div key={deal.title} className="bg-white rounded-3xl border border-[#f0e2cf] p-5 shadow-sm">
-                  <p className="text-xs uppercase font-semibold tracking-wide text-[#a06b42] mb-2">{deal.badge}</p>
-                  <h4 className="text-xl font-semibold text-[#3a1e10] mb-1">{deal.title}</h4>
-                  <p className="text-sm text-gray-500 mb-3">{deal.duration} • {deal.discount}</p>
-                  <div className="text-base font-semibold text-[#3a1e10]">{deal.price}</div>
-                  <button className="mt-3 text-sm font-semibold text-[#a06b42]">See deal →</button>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
+      <div className="max-w-7xl mx-auto px-4 py-10 md:py-12">
         {/* Category Filter */}
-        <div className="space-y-4">
+        <div className="mb-10">
           <div className="flex flex-wrap gap-3 md:gap-4 justify-center">
             {categories.map((category) => (
               <button
