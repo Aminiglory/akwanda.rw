@@ -1,8 +1,49 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import L from 'leaflet';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import EnhancedUploadProperty from './EnhancedUploadProperty';
 import VehicleListingForm from '../components/VehicleListingForm';
+import 'leaflet/dist/leaflet.css';
+
+const redPinSvg = encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="48" viewBox="0 0 32 48" fill="none"><path d="M16 2C10 2 5 7 5 13c0 8 11 18 11 18s11-10 11-18C27 7 22 2 16 2z" fill="#FF5A5F"/><circle cx="16" cy="13" r="4" fill="white"/></svg>'
+);
+
+const redPinIcon = new L.Icon({
+  iconUrl: `data:image/svg+xml;charset=UTF-8,${redPinSvg}`,
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+  iconSize: [32, 48],
+  iconAnchor: [16, 48],
+  shadowSize: [41, 41]
+});
+
+const DEFAULT_MAP_CENTER = { lat: -1.9536, lng: 30.0606 };
+
+const LocationMapPicker = ({ position, onPositionChange }) => {
+  const map = useMapEvents({
+    click(e) {
+      onPositionChange(e.latlng);
+    }
+  });
+
+  useEffect(() => {
+    if (position) {
+      map.setView(position);
+    }
+  }, [position, map]);
+
+  if (!position) return null;
+  return (
+    <Marker position={position} icon={redPinIcon} draggable eventHandlers={{
+      dragend(event) {
+        const latlng = event.target.getLatLng();
+        onPositionChange(latlng);
+      }
+    }} />
+  );
+};
 
 const ListProperty = () => {
   const navigate = useNavigate();
@@ -42,16 +83,27 @@ const ListProperty = () => {
     });
   };
 
-  const handleMapSelect = () => {
-    const lat = window.prompt('Enter latitude (e.g., -1.9499):');
-    const lng = window.prompt('Enter longitude (e.g., 30.0588):');
-    if (lat && lng) {
+  const handleLocationSelected = async ({ lat, lng }) => {
+    setAttractionForm(prev => ({
+      ...prev,
+      latitude: lat,
+      longitude: lng,
+      locationMap: `Lat ${lat.toFixed(6)}, Lng ${lng.toFixed(6)}`,
+      gps: `${lat.toFixed(6)}, ${lng.toFixed(6)}`
+    }));
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`);
+      const data = await res.json().catch(() => null);
+      if (!data || !data.address) return;
       setAttractionForm(prev => ({
         ...prev,
-        latitude: lat,
-        longitude: lng,
-        locationMap: `Lat ${lat}, Lng ${lng}`
+        address: data.display_name || prev.address,
+        country: data.address.country || prev.country,
+        city: data.address.city || data.address.town || data.address.village || prev.city,
+        landmarks: `${data.address.suburb || data.address.neighbourhood || ''}${data.address.hamlet ? `, ${data.address.hamlet}` : ''}`.trim()
       }));
+    } catch {
+      toast.error('Unable to fetch address details from the selected location. You can still continue.');
     }
   };
 
@@ -226,19 +278,21 @@ const ListProperty = () => {
             {renderField({ label: 'City / Town / District', name: 'city', placeholder: 'Kigali' })}
             {renderField({ label: 'Exact Address', name: 'address', placeholder: 'Street, building name...' })}
             {renderField({ label: 'GPS Coordinates', name: 'gps', placeholder: 'Latitude, Longitude' })}
-            {renderField({ label: 'Landmarks Nearby', name: 'landmarks', placeholder: 'University, hotel, park (optional)' })}
+            {renderField({ label: 'Landmarks Nearby', name: 'landmarks', placeholder: 'University, hotel, park (auto filled from map)' })}
             {renderField({ label: 'Directions / How to get there', name: 'directions', type: 'textarea', placeholder: 'Describe transport options (optional)' })}
           </>
         )}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-3">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
           <p className="text-sm font-semibold text-gray-700">Location Map</p>
-          <div className="rounded-xl bg-gray-50 border border-dashed border-gray-300 h-32 flex items-center justify-center text-sm text-gray-500">
-            {attractionForm.locationMap || 'Click to pick exact location on map'}
-          </div>
-          <div className="flex gap-3">
-            <button type="button" onClick={handleMapSelect} className="px-4 py-2 rounded-xl bg-[#a06b42] text-white text-sm">Select on map</button>
-            <div className="text-sm text-gray-500">Lat: {attractionForm.latitude || '-'}, Lng: {attractionForm.longitude || '-'}</div>
-          </div>
+          <MapContainer center={attractionForm.latitude && attractionForm.longitude ? [attractionForm.latitude, attractionForm.longitude] : [DEFAULT_MAP_CENTER.lat, DEFAULT_MAP_CENTER.lng]} zoom={13} scrollWheelZoom={false} className="h-64 rounded-2xl">
+            <TileLayer
+              attribution='&copy; OpenStreetMap contributors'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
+            <LocationMapPicker position={attractionForm.latitude && attractionForm.longitude ? [attractionForm.latitude, attractionForm.longitude] : [DEFAULT_MAP_CENTER.lat, DEFAULT_MAP_CENTER.lng]} onPositionChange={handleLocationSelected} />
+          </MapContainer>
+          <p className="text-xs text-gray-500">Click or drag the marker to auto-fill country, city, GPS, and landmarks.</p>
+          <div className="text-sm text-gray-500">Lat: {attractionForm.latitude || '-'}, Lng: {attractionForm.longitude || '-'}</div>
         </div>
         {section('3. Photos & Media', 'Visuals bring the experience to life.',
           <>
