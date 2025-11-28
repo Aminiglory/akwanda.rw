@@ -2,11 +2,6 @@ import React, { useState, useEffect, useRef } from "react";
 import { useLocale } from '../contexts/LocaleContext';
 import { FaBuilding, FaSmile, FaThumbsUp } from 'react-icons/fa';
 import { LazyHeroImage } from './LazyImage';
-import { 
-  makeAbsoluteImageUrl, 
-  trackImageLoad,
-  validateImageUrl
-} from '../utils/imageUtils';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 // Normalize API base to avoid mixed content on HTTPS (notably strict on mobile)
@@ -82,16 +77,17 @@ const Hero = () => {
       if (Array.isArray(content.heroSlides) && content.heroSlides.length) {
         return content.heroSlides
           .map((s) => {
-            const absoluteUrl = makeAbsoluteImageUrl(s?.image);
-            return absoluteUrl ? { image: absoluteUrl, caption: s?.caption || '' } : null;
+            const raw = s?.image;
+            const url = typeof raw === 'string' ? raw : '';
+            return url ? { image: url, caption: s?.caption || '' } : null;
           })
           .filter(Boolean);
       }
       if (Array.isArray(content.heroImages) && content.heroImages.length) {
         return content.heroImages
           .map((imgPath) => {
-            const absoluteUrl = makeAbsoluteImageUrl(imgPath);
-            return absoluteUrl ? { image: absoluteUrl, caption: '' } : null;
+            const url = typeof imgPath === 'string' ? imgPath : '';
+            return url ? { image: url, caption: '' } : null;
           })
           .filter(Boolean);
       }
@@ -114,21 +110,11 @@ const Hero = () => {
         }
 
         const data = await res.json();
-        const rawSlides = pickSlides(data?.content);
-
-        const validatedSlides = (
-          await Promise.all(
-            rawSlides.map(async (slide) => {
-              const isValid = await validateImageUrl(slide.image, 4500);
-              return isValid ? slide : null;
-            })
-          )
-        ).filter(Boolean);
+        const rawSlides = pickSlides(data?.content) || [];
 
         if (cancelled) return;
 
-        const finalSlides = validatedSlides.length ? validatedSlides : [];
-        setSlides(finalSlides);
+        setSlides(rawSlides);
         const heroConfig = data?.content || {};
         setIntervalMs(
           typeof heroConfig.heroIntervalMs === 'number' && heroConfig.heroIntervalMs >= 2000
@@ -236,16 +222,8 @@ const Hero = () => {
                 className={`absolute inset-0 w-full h-full object-cover object-center ${transition === 'fade' ? 'transition-opacity duration-700' : 'transition-transform duration-700'} ${active ? (transition === 'fade' ? 'opacity-100' : 'translate-x-0') : (transition === 'fade' ? 'opacity-0' : 'translate-x-full')}`}
                 width={1920}
                 height={1080}
-                eager={i === 0} // First image loads immediately
-                progressive={true} // Use progressive loading for better UX
-                onLoad={() => {
-                  trackImageLoad(url, 'hero');
-                }}
-                onError={() => {
-                  console.warn(`Hero image failed to load: ${url}`);
-                  trackImageLoad(url, 'hero');
-                  // Fallback slides disabled: do not swap in external placeholders.
-                }}
+                eager={i === 0}
+                progressive={true}
               />
             );
           })

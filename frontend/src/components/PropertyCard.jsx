@@ -2,7 +2,6 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { FaHeart, FaMapMarkerAlt, FaBed, FaBath, FaRulerCombined, FaEdit, FaTrash } from 'react-icons/fa';
 import { useLocale } from '../contexts/LocaleContext';
-import { makeAbsoluteImageUrl, trackImageLoad } from '../utils/imageUtils';
 
 const getStatusColor = (status) => {
   switch (status) {
@@ -71,21 +70,11 @@ const PropertyCard = ({
     <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all border border-gray-100 overflow-hidden h-full w-full max-w-sm mx-auto flex flex-col">
       <div className="relative bg-gray-100">
         <img
-          src={makeAbsoluteImageUrl(image) || ''}
+          src={image || ''}
           alt={title}
           className="w-full h-44 md:h-48 object-cover"
           loading="eager"
           decoding="async"
-          onLoad={() => {
-            const src = makeAbsoluteImageUrl(image) || '';
-            if (src) {
-              trackImageLoad(src, 'apartment');
-            }
-          }}
-          onError={() => {
-            console.warn(`Property image failed to load: ${image}`);
-            trackImageLoad(makeAbsoluteImageUrl(image) || '', 'apartment');
-          }}
         />
         {isPremium && (
           <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-[#f97316] text-white text-[11px] font-semibold shadow">

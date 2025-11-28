@@ -4,17 +4,14 @@ import { FaStar } from 'react-icons/fa';
 import PropertyCard from './PropertyCard';
 import { useLocale } from '../contexts/LocaleContext';
 import { safeApiGet } from '../utils/apiUtils';
-import { makeAbsoluteImageUrl, preloadImages, processImagesForComponent } from '../utils/imageUtils';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const FeaturedApartments = () => {
   const { t } = useLocale() || {};
   const [apartments, setApartments] = useState([]); // combined premium + standard
-  // Use optimized image URL processing
-  const processImageUrl = (url) => {
-    return makeAbsoluteImageUrl(url);
-  };
+  // Simple image URL passthrough
+  const processImageUrl = (url) => url;
 
   useEffect(() => {
     (async () => {
@@ -67,15 +64,6 @@ const FeaturedApartments = () => {
         setApartments(ordered);
         
         // Preload critical images using optimized preloading
-        const criticalImages = processedApartments.slice(0, 2).map((apt, index) => ({
-          url: apt.image,
-          priority: 2 - index,
-          category: apt.category || 'apartment'
-        })).filter(item => item.url);
-        
-        if (criticalImages.length > 0) {
-          preloadImages(criticalImages, { maxConcurrent: 2, timeout: 3000 });
-        }
       }
     })();
   }, []);

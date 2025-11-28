@@ -1,9 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useLocale } from '../contexts/LocaleContext';
-import { 
-  makeAbsoluteImageUrl, 
-  trackImageLoad
-} from '../utils/imageUtils';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useLocale } from '../contexts/LocaleContext';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -34,7 +32,7 @@ export default function LandingAttractions() {
       const src = /^https?:\/\//i.test(img) ? img : `${API_BASE}${img.startsWith('/') ? img : `/${img}`}`;
       const rawTitle = captions[i] || `Attraction ${i + 1}`;
       const title = localize ? localize(rawTitle) : rawTitle;
-      return { src: makeAbsoluteImageUrl(src), title, category: 'attraction', priority: i < 3 };
+      return { src, title, category: 'attraction', priority: i < 3 };
     });
     
     return processedCards;
@@ -61,14 +59,6 @@ export default function LandingAttractions() {
                 className="w-full h-full object-cover"
                 loading="eager"
                 decoding="async"
-                onLoad={() => {
-                  trackImageLoad(c.src, 'attraction');
-                }}
-                onError={(e) => {
-                  console.warn(`Attraction image failed to load: ${c.src}`);
-                  e.currentTarget.style.opacity = '0.4';
-                  trackImageLoad(c.src, 'attraction');
-                }}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/35 to-transparent opacity-80 group-hover:opacity-95 transition-opacity duration-500" aria-hidden="true"></div>
               <figcaption className="absolute inset-x-3 bottom-3 flex flex-col gap-1">
