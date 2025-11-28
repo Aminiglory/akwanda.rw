@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { FaHeart, FaMapMarkerAlt, FaBed, FaBath, FaRulerCombined, FaEdit, FaTrash } from 'react-icons/fa';
 import { useLocale } from '../contexts/LocaleContext';
-import { getFallbackImage, makeAbsoluteImageUrl, trackImageLoad } from '../utils/imageUtils';
+import { makeAbsoluteImageUrl, trackImageLoad } from '../utils/imageUtils';
 
 const getStatusColor = (status) => {
   switch (status) {
@@ -71,18 +71,20 @@ const PropertyCard = ({
     <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all border border-gray-100 overflow-hidden h-full w-full max-w-sm mx-auto flex flex-col">
       <div className="relative bg-gray-100">
         <img
-          src={makeAbsoluteImageUrl(image) || getFallbackImage('apartment', 'medium')}
+          src={makeAbsoluteImageUrl(image) || ''}
           alt={title}
           className="w-full h-44 md:h-48 object-cover"
           loading="eager"
           decoding="async"
           onLoad={() => {
-            trackImageLoad(makeAbsoluteImageUrl(image) || getFallbackImage('apartment', 'medium'), 'apartment');
+            const src = makeAbsoluteImageUrl(image) || '';
+            if (src) {
+              trackImageLoad(src, 'apartment');
+            }
           }}
-          onError={(e) => {
+          onError={() => {
             console.warn(`Property image failed to load: ${image}`);
-            e.currentTarget.src = getFallbackImage('apartment', 'medium');
-            trackImageLoad(image, 'apartment');
+            trackImageLoad(makeAbsoluteImageUrl(image) || '', 'apartment');
           }}
         />
         {isPremium && (

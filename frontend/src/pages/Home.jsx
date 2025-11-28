@@ -9,7 +9,6 @@ import Testimonials from '../components/Testimonials';
 import { useLocale } from '../contexts/LocaleContext';
 import { 
   makeAbsoluteImageUrl, 
-  getFallbackImage,
   trackImageLoad 
 } from '../utils/imageUtils';
 
