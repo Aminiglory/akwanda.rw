@@ -7,34 +7,17 @@ import VehicleListingForm from '../components/VehicleListingForm';
 const ListProperty = () => {
   const navigate = useNavigate();
   const [listingType, setListingType] = useState('stay'); // 'stay' | 'rental' | 'attraction' | 'flight'
-  const [attractionStep, setAttractionStep] = useState(1);
   const [flightStep, setFlightStep] = useState(1);
-  const [attractionData, setAttractionData] = useState({
-    name: '', description: '', city: '', duration: '', price: '', capacity: '', highlights: '', languages: '', scheduleNotes: ''
-  });
   const [flightData, setFlightData] = useState({
     title: '', origin: '', destination: '', aircraft: '', departure: '', arrival: '', price: '', stops: '', description: '', seats: ''
   });
-  const [attractionSearch, setAttractionSearch] = useState({ destination: '', dates: '' });
-  const [selectedFilters, setSelectedFilters] = useState({ location: [], category: [] });
-
-  const topDestinations = [
-    { city: 'Kigali', experiences: 42 },
-    { city: 'Nyungwe', experiences: 28 },
-    { city: 'Lake Kivu', experiences: 31 },
-    { city: 'Akagera', experiences: 19 }
-  ];
-
-  const attractionDeals = [
-    { title: 'Kigali City Cultural Walk', price: 'RWF 45,000', duration: '3h', discount: '15% off', badge: 'Local favorite' },
-    { title: 'Sunset Cruise on Lake Kivu', price: 'RWF 85,000', duration: '2h', discount: '25% off', badge: 'Limited seats' },
-    { title: 'Nyungwe Canopy Adventure', price: 'RWF 120,000', duration: '4h', discount: '20% off', badge: 'Best review' }
-  ];
-
-  const filterGroups = {
-    location: ['Kigali', 'Nyungwe', 'Lake Kivu', 'Akagera'],
-    category: ['Eco tour', 'Culture', 'Adventure', 'Relaxation']
-  };
+  const [attractionForm, setAttractionForm] = useState({
+    name: '', category: '', shortDescription: '', fullDescription: '', highlights: '', country: '', city: '', address: '', gps: '', landmarks: '', directions: '',
+    coverPhoto: '', gallery: '', video: '', openingDays: '', openingHoursStart: '', openingHoursEnd: '', seasonality: '', duration: '', minAge: '', accessibility: '',
+    ticketAdult: '', ticketChild: '', ticketStudent: '', ticketGroup: '', discounts: '', currency: 'RWF', paymentMethods: '', cancellationPolicy: '', refundPolicy: '',
+    capacity: '', minGuests: '', bookingRequired: 'yes', timeSlots: '', checkinInstructions: '', amenities: '', guideAvailable: '', audioGuideLanguages: '', safetyEquipment: '',
+    rules: '', dressCode: '', safetyInstructions: '', liability: '', contactName: '', contactPhone: '', contactEmail: '', contactWebsite: '', contactEmergency: ''
+  });
 
   const renderListingTypeSelector = () => (
     <div className="mb-6">
@@ -69,48 +52,13 @@ const ListProperty = () => {
     </div>
   );
 
-  const validateAttractionStep = (step) => {
-    if (step === 1 && (!attractionData.name || !attractionData.city || !attractionData.description)) {
-      toast.error('Please provide the attraction name, description, and city');
-      return false;
-    }
-    if (step === 2 && (!attractionData.price || !attractionData.duration || !attractionData.capacity)) {
-      toast.error('Provide pricing, duration, and capacity to continue');
-      return false;
-    }
-    if (step === 3 && !attractionData.scheduleNotes) {
-      toast.error('Add schedule notes or highlights before submitting');
-      return false;
-    }
-    return true;
-  };
-
   const handleAttractionSubmit = (e) => {
     e.preventDefault();
-    if (!validateAttractionStep(attractionStep)) return;
-    if (attractionStep < 3) {
-      setAttractionStep(prev => prev + 1);
+    if (!attractionForm.name || !attractionForm.category || !attractionForm.country || !attractionForm.city) {
+      toast.error('Name, category, country, and city are required before continuing.');
       return;
     }
-    toast.success('Attraction details captured. Continue in the attractions workspace to finalize scheduling.');
-  };
-
-  const handleAttractionPreview = (e) => {
-    e.preventDefault();
-    if (!attractionSearch.destination || !attractionSearch.dates) {
-      toast.error('Share a destination and tentative dates to preview curated experiences.');
-      return;
-    }
-    toast.success(`Previewing ${attractionSearch.destination} highlights for ${attractionSearch.dates}`);
-    setAttractionData(prev => ({ ...prev, city: attractionSearch.destination }));
-  };
-
-  const toggleFilter = (group, value) => {
-    setSelectedFilters(prev => {
-      const has = prev[group].includes(value);
-      const updated = has ? prev[group].filter(item => item !== value) : [...prev[group], value];
-      return { ...prev, [group]: updated };
-    });
+    toast.success('Attraction checklist saved. Continue in the attraction workspace to finalize multimedia.');
   };
 
   const validateFlightStep = (step) => {
@@ -139,81 +87,135 @@ const ListProperty = () => {
     toast.success('Flight itinerary saved. Continue in the flights workspace to add pricing tiers.');
   };
 
-  const baseCard = (title, description, children) => (
-    <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-      <h2 className="text-2xl font-semibold mb-3">{title}</h2>
-      <p className="text-sm text-gray-600 mb-4">{description}</p>
-      {children}
-    </div>
-  );
-
-  const renderAttractionForm = () => (
-    <form className="space-y-6" onSubmit={handleAttractionSubmit}>
-      {attractionStep === 1 && (
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Attraction name</label>
-            <input value={attractionData.name} onChange={(e) => setAttractionData(prev => ({ ...prev, name: e.target.value }))}
-              className="w-full px-4 py-2 border rounded-lg" placeholder="Kigali Cultural Tour" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Description</label>
-            <textarea value={attractionData.description} onChange={(e) => setAttractionData(prev => ({ ...prev, description: e.target.value }))}
-              className="w-full px-4 py-2 border rounded-lg" rows="3" placeholder="Explain what makes this experience unique" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">City</label>
-            <input value={attractionData.city} onChange={(e) => setAttractionData(prev => ({ ...prev, city: e.target.value }))}
-              className="w-full px-4 py-2 border rounded-lg" />
-          </div>
+  const renderAttractionForm = () => {
+    const section = (title, helper, children) => (
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
+        <div>
+          <p className="text-xl font-semibold text-gray-900">{title}</p>
+          {helper && <p className="text-sm text-gray-500">{helper}</p>}
         </div>
-      )}
-      {attractionStep === 2 && (
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Duration</label>
-            <input value={attractionData.duration} onChange={(e) => setAttractionData(prev => ({ ...prev, duration: e.target.value }))}
-              className="w-full px-4 py-2 border rounded-lg" placeholder="e.g., 3h" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Price (RWF)</label>
-            <input value={attractionData.price} onChange={(e) => setAttractionData(prev => ({ ...prev, price: e.target.value }))}
-              type="number" className="w-full px-4 py-2 border rounded-lg" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Capacity</label>
-            <input value={attractionData.capacity} onChange={(e) => setAttractionData(prev => ({ ...prev, capacity: e.target.value }))}
-              type="number" className="w-full px-4 py-2 border rounded-lg" />
-          </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          {children}
         </div>
-      )}
-      {attractionStep === 3 && (
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Highlights / Schedule notes</label>
-            <textarea value={attractionData.scheduleNotes} onChange={(e) => setAttractionData(prev => ({ ...prev, scheduleNotes: e.target.value }))}
-              className="w-full px-4 py-2 border rounded-lg" rows="3" placeholder="Daily itinerary details" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Languages Offered</label>
-            <input value={attractionData.languages} onChange={(e) => setAttractionData(prev => ({ ...prev, languages: e.target.value }))}
-              className="w-full px-4 py-2 border rounded-lg" placeholder="English, French" />
-          </div>
-        </div>
-      )}
-      <div className="flex items-center justify-between">
-        {attractionStep > 1 && (
-          <button type="button" onClick={() => setAttractionStep(prev => Math.max(prev - 1, 1))}
-            className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">
-            Back
-          </button>
-        )}
-        <button type="submit" className="ml-auto px-5 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
-          {attractionStep < 3 ? 'Continue' : 'Save attraction info'}
-        </button>
       </div>
-    </form>
-  );
+    );
+
+    const renderField = ({ label, name, type = 'text', placeholder = '', description = '' }) => (
+      <div className="space-y-1">
+        <label className="text-sm font-medium text-gray-700">{label}</label>
+        {type === 'textarea' ? (
+          <textarea
+            rows="3"
+            value={attractionForm[name]}
+            onChange={e => setAttractionForm(prev => ({ ...prev, [name]: e.target.value }))}
+            placeholder={placeholder}
+            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-[#a06b42]"
+          />
+        ) : (
+          <input
+            type={type}
+            value={attractionForm[name]}
+            onChange={e => setAttractionForm(prev => ({ ...prev, [name]: e.target.value }))}
+            placeholder={placeholder}
+            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-[#a06b42]"
+          />
+        )}
+        {description && <p className="text-xs text-gray-500">{description}</p>}
+      </div>
+    );
+
+    return (
+      <form className="space-y-6" onSubmit={handleAttractionSubmit}>
+        {section('1. Basic Information', 'Required to identify the attraction.',
+          <>
+            {renderField({ label: 'Attraction Name', name: 'name', placeholder: 'Kigali Cultural Walk' })}
+            {renderField({ label: 'Category / Type', name: 'category', placeholder: 'Museum, park, tour...' })}
+            {renderField({ label: 'Short Description', name: 'shortDescription', type: 'textarea', placeholder: '1–2 sentence summary' })}
+            {renderField({ label: 'Full Description', name: 'fullDescription', type: 'textarea', placeholder: 'Detailed highlight narrative' })}
+            {renderField({ label: 'Highlights / Key Features', name: 'highlights', type: 'textarea', placeholder: 'Bullet points separated by commas' })}
+          </>
+        )}
+        {section('2. Location Details', 'Precision helps guests arrive smoothly.',
+          <>
+            {renderField({ label: 'Country', name: 'country', placeholder: 'Rwanda' })}
+            {renderField({ label: 'City / Town / District', name: 'city', placeholder: 'Kigali' })}
+            {renderField({ label: 'Exact Address', name: 'address', placeholder: 'Street, building name...' })}
+            {renderField({ label: 'GPS Coordinates', name: 'gps', placeholder: 'Latitude, Longitude' })}
+            {renderField({ label: 'Landmarks Nearby', name: 'landmarks', placeholder: 'University, hotel, park (optional)' })}
+            {renderField({ label: 'Directions / How to get there', name: 'directions', type: 'textarea', placeholder: 'Describe transport options (optional)' })}
+          </>
+        )}
+        {section('3. Photos & Media', 'Visuals bring the experience to life.',
+          <>
+            {renderField({ label: 'Cover Photo URL', name: 'coverPhoto', placeholder: 'https://...' })}
+            {renderField({ label: 'Gallery Images (comma separated)', name: 'gallery', placeholder: 'image1.jpg, image2.jpg, ...' })}
+            {renderField({ label: 'Video URL (optional)', name: 'video', placeholder: 'YouTube / Vimeo link' })}
+          </>
+        )}
+        {section('4. Operating Details', 'Schedule, seasonality, and accessibility.',
+          <>
+            {renderField({ label: 'Opening Days (Mon–Sun)', name: 'openingDays', placeholder: 'Mon–Sun' })}
+            {renderField({ label: 'Opening Hour Start', name: 'openingHoursStart', type: 'time' })}
+            {renderField({ label: 'Opening Hour End', name: 'openingHoursEnd', type: 'time' })}
+            {renderField({ label: 'Seasonality Notes', name: 'seasonality', placeholder: 'Open all year / high season...' })}
+            {renderField({ label: 'Duration', name: 'duration', placeholder: '2 hours, half-day...' })}
+            {renderField({ label: 'Minimum Age Requirement', name: 'minAge', placeholder: 'e.g., 12+' })}
+            {renderField({ label: 'Accessibility Info', name: 'accessibility', type: 'textarea', placeholder: 'Wheelchair access, stroller-friendly...' })}
+            {renderField({ label: 'Available Time Slots', name: 'timeSlots', placeholder: '9:00, 11:00, 14:00' })}
+          </>
+        )}
+        {section('5. Pricing & Ticketing', 'Cover all financial expectations.',
+          <>
+            {renderField({ label: 'Ticket Price (Adult)', name: 'ticketAdult', type: 'number', placeholder: 'RWF' })}
+            {renderField({ label: 'Ticket Price (Child)', name: 'ticketChild', type: 'number', placeholder: 'RWF' })}
+            {renderField({ label: 'Ticket Price (Student)', name: 'ticketStudent', type: 'number', placeholder: 'RWF' })}
+            {renderField({ label: 'Ticket Price (Group)', name: 'ticketGroup', type: 'number', placeholder: 'RWF' })}
+            {renderField({ label: 'Discounts', name: 'discounts', placeholder: 'Seasonal, promo codes...' })}
+            {renderField({ label: 'Currency', name: 'currency', placeholder: 'RWF' })}
+            {renderField({ label: 'Payment Methods', name: 'paymentMethods', placeholder: 'Card, mobile money...' })}
+            {renderField({ label: 'Cancellation Policy', name: 'cancellationPolicy', type: 'textarea', placeholder: 'Free cancellation? deadline?' })}
+            {renderField({ label: 'Refund Policy', name: 'refundPolicy', type: 'textarea', placeholder: 'Full refund within 24h...' })}
+          </>
+        )}
+        {section('6. Capacity & Requirements', 'Understand how many guests you can host.',
+          <>
+            {renderField({ label: 'Maximum Capacity', name: 'capacity', type: 'number', placeholder: 'Guests per day/session' })}
+            {renderField({ label: 'Minimum Number of Guests', name: 'minGuests', type: 'number', placeholder: 'Minimum booking size' })}
+            {renderField({ label: 'Booking Required?', name: 'bookingRequired', placeholder: 'Yes / No' })}
+            {renderField({ label: 'Check-in Instructions / Meeting Point', name: 'checkinInstructions', type: 'textarea', placeholder: 'Meet at the red gate...' })}
+          </>
+        )}
+        {section('7. Amenities & Facilities', 'Let guests know what comforts you offer.',
+          <>
+            {renderField({ label: 'Amenities', name: 'amenities', type: 'textarea', placeholder: 'Parking, restrooms, WiFi...' })}
+            {renderField({ label: 'Guide Available', name: 'guideAvailable', placeholder: 'Yes/No' })}
+            {renderField({ label: 'Audio Guide Languages', name: 'audioGuideLanguages', placeholder: 'English, French...' })}
+            {renderField({ label: 'Safety Equipment', name: 'safetyEquipment', placeholder: 'Life vests, helmets...' })}
+          </>
+        )}
+        {section('8. Rules & Restrictions', 'Clarify expectations for guests.',
+          <>
+            {renderField({ label: 'Allowed / Not Allowed', name: 'rules', type: 'textarea', placeholder: 'Pets, smoking, photography...' })}
+            {renderField({ label: 'Dress Code', name: 'dressCode', placeholder: 'Modest clothing, swimwear...' })}
+            {renderField({ label: 'Safety Instructions', name: 'safetyInstructions', type: 'textarea', placeholder: 'Stay behind rope barriers...' })}
+            {renderField({ label: 'Liability / Waiver Requirements', name: 'liability', type: 'textarea', placeholder: 'Guests must sign release...' })}
+          </>
+        )}
+        {section('9. Contact Information', 'How to reach the manager/owner.',
+          <>
+            {renderField({ label: 'Owner / Manager Name', name: 'contactName', placeholder: 'John Doe' })}
+            {renderField({ label: 'Phone Number', name: 'contactPhone', placeholder: '+250 78...' })}
+            {renderField({ label: 'Email Address', name: 'contactEmail', type: 'email', placeholder: 'owner@example.com' })}
+            {renderField({ label: 'Website (optional)', name: 'contactWebsite', placeholder: 'https://...' })}
+            {renderField({ label: 'Emergency Contact (optional)', name: 'contactEmergency', placeholder: '+250 7...' })}
+          </>
+        )}
+        <div className="text-right">
+          <button type="submit" className="px-5 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700">Save attraction info</button>
+        </div>
+      </form>
+    );
+  };
 
   const renderFlightForm = () => (
     <form className="space-y-6" onSubmit={handleFlightSubmit}>
@@ -299,91 +301,15 @@ const ListProperty = () => {
 
   const renderNonStayContent = () => {
     if (listingType === 'rental') {
-      return (
-        <VehicleListingForm />
-      );
+      return <VehicleListingForm />;
     }
 
     if (listingType === 'attraction') {
-      const filtersPanel = (
-        <div className="bg-white rounded-2xl border border-gray-200 p-4 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">Filters</h3>
-            <span className="text-sm text-gray-500">{selectedFilters.location.length + selectedFilters.category.length} selected</span>
-          </div>
-          <div className="grid grid-cols-2 gap-4 text-sm text-gray-700">
-            {Object.entries(filterGroups).map(([group, items]) => (
-              <div key={group}>
-                <p className="font-semibold text-gray-800 mb-2 capitalize">{group}</p>
-                <div className="space-y-2">
-                  {items.map(item => (
-                    <label key={item} className="inline-flex items-center gap-2">
-                      <input type="checkbox" checked={selectedFilters[group].includes(item)} onChange={() => toggleFilter(group, item)} className="text-purple-600 border-gray-300" />
-                      {item}
-                    </label>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      );
-
-      const dealsPanel = (
-        <div className="grid gap-4 sm:grid-cols-2">
-          {attractionDeals.map(deal => (
-            <div key={deal.title} className="bg-white rounded-2xl border border-gray-200 p-4 shadow-sm">
-              <p className="text-xs uppercase tracking-wide text-purple-600 font-semibold mb-1">{deal.badge}</p>
-              <h4 className="text-lg font-semibold text-gray-900 mb-1">{deal.title}</h4>
-              <p className="text-sm text-gray-500 mb-3">{deal.duration} • {deal.discount}</p>
-              <div className="text-base font-semibold text-gray-900">{deal.price}</div>
-            </div>
-          ))}
-        </div>
-      );
-
-      const attractionPreview = (
-        <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-2xl p-6 mb-6 shadow-xl">
-          <h3 className="text-xl font-semibold">List attractions like a marketplace pro</h3>
-          <p className="text-sm text-purple-100 mt-1">Inspire guests with curated top spots, deals, and itineraries before capturing the formal details below.</p>
-          <form className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3" onSubmit={handleAttractionPreview}>
-            <input
-              value={attractionSearch.destination}
-              onChange={e => setAttractionSearch(prev => ({ ...prev, destination: e.target.value }))}
-              placeholder="Destination"
-              className="w-full rounded-lg px-4 py-3 text-sm text-gray-900"
-            />
-            <input
-              value={attractionSearch.dates}
-              onChange={e => setAttractionSearch(prev => ({ ...prev, dates: e.target.value }))}
-              placeholder="Dates"
-              className="w-full rounded-lg px-4 py-3 text-sm text-gray-900"
-            />
-            <button type="submit" className="bg-white text-purple-700 font-semibold rounded-xl px-4 py-3 mt-2 sm:mt-0">Preview highlights</button>
-          </form>
-        </div>
-      );
-
-      return (
-        <>
-          {attractionPreview}
-          {filtersPanel}
-          {dealsPanel}
-          {baseCard(
-            'List an attraction',
-            'Capture detailed attraction metadata before advancing to the dedicated attractions workspace.',
-            renderAttractionForm()
-          )}
-        </>
-      );
+      return renderAttractionForm();
     }
 
     if (listingType === 'flight') {
-      return baseCard(
-        'List a flight',
-        'Enter your flight route, schedule, pricing, and service notes so the flights workspace can take over.',
-        renderFlightForm()
-      );
+      return renderFlightForm();
     }
 
     return null;
