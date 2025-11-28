@@ -7,9 +7,7 @@ import OurMission from '../components/OurMission';
 import HowItWorks from '../components/HowItWorks';
 import Testimonials from '../components/Testimonials';
 import ImageLoadingBar from '../components/ImageLoadingBar';
-import LazyImage from '../components/LazyImage';
 import { useLocale } from '../contexts/LocaleContext';
-import { useLazyLoading, useImagePreloader } from '../hooks/useLazyLoading';
 import { 
   makeAbsoluteImageUrl, 
   getFallbackImage,
@@ -25,14 +23,6 @@ const Home = () => {
   const [partnersSection, setPartnersSection] = useState(null);
   const [totalExpectedImages, setTotalExpectedImages] = useState(0);
   const [showLoadingBar, setShowLoadingBar] = useState(false);
-
-  // Initialize universal lazy loading system (do NOT convert existing images to avoid reflows)
-  const { stats, isInitialized } = useLazyLoading({
-    autoInit: true,
-    convertExisting: false
-  });
-
-  const { preloadImages } = useImagePreloader();
 
   useEffect(() => {
     (async () => {
@@ -133,20 +123,21 @@ const Home = () => {
                 <a
                   key={i}
                   href="/apartments"
-                  className="group relative rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 bg-gray-900/80"
+                  className="group relative rounded-2xl overflow-hidden shadow-sm bg-gray-900/80"
                 >
                   <div className="relative aspect-[4/5] sm:aspect-[4/5] overflow-hidden">
-                    <LazyImage
+                    <img
                       src={d.img}
                       alt={d.name}
-                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                      category="attraction"
-                      size="medium"
+                      className="absolute inset-0 w-full h-full object-cover"
+                      loading="eager"
+                      decoding="async"
                       onLoad={() => {
                         trackImageLoad(d.img, 'attraction');
                       }}
-                      onError={() => {
+                      onError={(e) => {
                         console.warn(`Featured destination image failed to load: ${d.img}`);
+                        e.currentTarget.style.opacity = '0.4';
                         trackImageLoad(d.img, 'attraction');
                       }}
                     />
@@ -161,7 +152,7 @@ const Home = () => {
                       )}
                       <span className="mt-2 inline-flex items-center text-xs sm:text-sm font-semibold text-white/90">
                         {t ? t('home.explore') : 'Explore'}
-                        <span className="ml-1 group-hover:translate-x-0.5 transition-transform">→</span>
+                        <span className="ml-1">→</span>
                       </span>
                     </div>
                   </div>
@@ -184,17 +175,18 @@ const Home = () => {
                   {[...partners, ...partners].map((p, idx) => {
                     const content = (
                       <div className="h-12 sm:h-14 px-3 sm:px-4 bg-white rounded-lg border theme-chocolate-border flex items-center gap-2 sm:gap-3 shadow-sm">
-                        <LazyImage
+                        <img
                           src={p.img}
                           alt={p.name}
                           className="h-8 sm:h-10 w-auto object-contain"
-                          category="default"
-                          size="small"
+                          loading="eager"
+                          decoding="async"
                           onLoad={() => {
                             trackImageLoad(p.img, 'default');
                           }}
-                          onError={() => {
+                          onError={(e) => {
                             console.warn(`Partner image failed to load: ${p.img}`);
+                            e.currentTarget.style.opacity = '0.4';
                             trackImageLoad(p.img, 'default');
                           }}
                         />

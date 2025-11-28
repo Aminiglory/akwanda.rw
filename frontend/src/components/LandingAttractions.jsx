@@ -1,73 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useLocale } from '../contexts/LocaleContext';
-import { LazyAttractionImage } from './LazyImage';
 import { 
   makeAbsoluteImageUrl, 
-  trackImageLoad, 
-  getFallbackImage 
+  trackImageLoad
 } from '../utils/imageUtils';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-
-// Optimized Attraction Image Component
-const OptimizedAttractionImage = ({ src, alt, className, priority = false }) => {
-  const [imageSrc, setImageSrc] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [hasError, setHasError] = useState(false);
-
-  useEffect(() => {
-    if (!src) {
-      setImageSrc(getFallbackImage('attraction', 'medium'));
-      setIsLoading(false);
-      return;
-    }
-
-    const img = new Image();
-    const responsiveImages = generateResponsiveImages(src);
-    const optimizedSrc = responsiveImages ? responsiveImages.medium : src;
-    
-    img.onload = () => {
-      setImageSrc(optimizedSrc);
-      setIsLoading(false);
-      setHasError(false);
-    };
-    
-    img.onerror = () => {
-      console.warn(`Attraction image failed to load: ${src}`);
-      setImageSrc(getFallbackImage('attraction', 'medium'));
-      setIsLoading(false);
-      setHasError(true);
-    };
-    
-    img.src = optimizedSrc;
-  }, [src]);
-
-  return (
-    <div className={`relative overflow-hidden ${className}`}>
-      {isLoading && (
-        <div className="absolute inset-0 bg-gray-200 animate-pulse flex items-center justify-center">
-          <div className="w-8 h-8 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
-        </div>
-      )}
-      {imageSrc && (
-        <img
-          src={imageSrc}
-          alt={alt}
-          className={`w-full h-full object-cover transition-all duration-500 group-hover:scale-110 ${
-            isLoading ? 'opacity-0' : 'opacity-100'
-          }`}
-          loading={priority ? 'eager' : 'lazy'}
-          decoding="async"
-        />
-      )}
-      {hasError && (
-        <div className="absolute top-2 right-2 bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded">
-          Fallback
-        </div>
-      )}
-    </div>
-  );
-};
 
 export default function LandingAttractions() {
   const { localize, t } = useLocale() || {};
@@ -102,19 +40,6 @@ export default function LandingAttractions() {
     return processedCards;
   }, [section, localize]);
 
-  // Preload first 3 attraction images
-  useEffect(() => {
-    if (cards.length > 0) {
-      const criticalImages = cards.slice(0, 3).map((card, index) => ({
-        url: card.src,
-        priority: 3 - index,
-        category: 'attraction'
-      }));
-      
-      preloadImages(criticalImages, { maxConcurrent: 2, timeout: 3000 });
-    }
-  }, [cards]);
-
   if (!section || cards.length === 0) return null;
 
   return (
@@ -127,18 +52,21 @@ export default function LandingAttractions() {
         {cards.map((c, i) => (
           <article
             key={i}
-            className="group relative rounded-2xl overflow-hidden bg-white border theme-chocolate-border shadow-sm hover:shadow-2xl focus-within:shadow-2xl transform hover:-translate-y-1.5 transition-all duration-500"
+            className="group relative rounded-2xl overflow-hidden bg-white border theme-chocolate-border shadow-sm"
           >
             <figure className="relative aspect-[4/3] overflow-hidden">
-              <LazyAttractionImage
+              <img
                 src={c.src}
                 alt={c.title}
-                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
+                className="w-full h-full object-cover"
+                loading="eager"
+                decoding="async"
                 onLoad={() => {
                   trackImageLoad(c.src, 'attraction');
                 }}
-                onError={() => {
+                onError={(e) => {
                   console.warn(`Attraction image failed to load: ${c.src}`);
+                  e.currentTarget.style.opacity = '0.4';
                   trackImageLoad(c.src, 'attraction');
                 }}
               />
@@ -162,7 +90,7 @@ export default function LandingAttractions() {
                 aria-label={`Explore attractions including ${c.title}`}
               >
                 {t ? t('landing.viewAll') : 'View all'}
-                <span className="ml-1 group-hover:translate-x-1 transition-transform duration-300">→</span>
+                <span className="ml-1">→</span>
               </a>
             </div>
           </article>

@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useLocale } from '../contexts/LocaleContext';
 import { FaBuilding, FaSmile, FaThumbsUp } from 'react-icons/fa';
-import { LazyHeroImage } from './LazyImage';
 import { 
   makeAbsoluteImageUrl, 
   trackImageLoad,
@@ -230,15 +229,13 @@ const Hero = () => {
             const active = i === index;
             
             return (
-              <LazyHeroImage
+              <img
                 key={i}
                 src={url}
                 alt={s.caption || `Slide ${i+1}`}
                 className={`absolute inset-0 w-full h-full object-cover object-center ${transition === 'fade' ? 'transition-opacity duration-700' : 'transition-transform duration-700'} ${active ? (transition === 'fade' ? 'opacity-100' : 'translate-x-0') : (transition === 'fade' ? 'opacity-0' : 'translate-x-full')}`}
-                width={1920}
-                height={1080}
-                eager={i === 0} // First image loads immediately
-                progressive={true} // Use progressive loading for better UX
+                loading="eager"
+                decoding="async"
                 onLoad={() => {
                   trackImageLoad(url, 'hero');
                 }}
