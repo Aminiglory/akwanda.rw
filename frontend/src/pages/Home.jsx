@@ -6,6 +6,7 @@ import LandingAttractions from '../components/LandingAttractions';
 import OurMission from '../components/OurMission';
 import HowItWorks from '../components/HowItWorks';
 import Testimonials from '../components/Testimonials';
+import ImageLoadingBar from '../components/ImageLoadingBar';
 import LazyImage from '../components/LazyImage';
 import { useLocale } from '../contexts/LocaleContext';
 import { useLazyLoading, useImagePreloader } from '../hooks/useLazyLoading';
@@ -22,11 +23,22 @@ const Home = () => {
 
   const [featuredSection, setFeaturedSection] = useState(null);
   const [partnersSection, setPartnersSection] = useState(null);
+  const [totalExpectedImages, setTotalExpectedImages] = useState(0);
+  const [showLoadingBar, setShowLoadingBar] = useState(false);
 
-  // Initialize universal lazy loading system (no loading bar UI)
+  // Initialize universal lazy loading system
   const { stats, isInitialized } = useLazyLoading({
     autoInit: true,
-    convertExisting: false
+    convertExisting: true, // Convert existing images to lazy loading
+    onStatsChange: (newStats) => {
+      // Update loading bar based on lazy loading progress
+      if (newStats.total > 0) {
+        const progress = (newStats.loaded + newStats.failed) / newStats.total;
+        if (progress >= 1) {
+          setTimeout(() => setShowLoadingBar(false), 1500);
+        }
+      }
+    }
   });
 
   const { preloadImages } = useImagePreloader();
@@ -42,11 +54,90 @@ const Home = () => {
         const partnersSec = sections.find((s) => s?.key === 'partners') || null;
         setFeaturedSection(sec);
         setPartnersSection(partnersSec);
+        
+        // Initialize comprehensive image optimization
+        if (!imageOptimizationInitialized) {
+          // Reset stats for fresh tracking
+          resetImageLoadStats();
+          
+          const criticalImages = [];
+          let expectedTotal = 0;
+          
+          // Add hero images
+          if (data?.content?.heroImages?.length > 0) {
+            data.content.heroImages.slice(0, 2).forEach((img, index) => {
+              criticalImages.push({
+                url: makeAbsoluteImageUrl(img),
+                priority: 10 - index,
+                category: 'hero'
+              });
+              expectedTotal++;
+            });
+          }
+          
+          // Add featured destinations images
+          if (sec?.images?.length > 0) {
+            sec.images.slice(0, 2).forEach((img, index) => {
+              criticalImages.push({
+                url: makeAbsoluteImageUrl(img),
+                priority: 8 - index,
+                category: 'attraction'
+              });
+              expectedTotal++;
+            });
+          }
+          
+          // Add partners images (count actual partners)
+          if (partnersSec?.images?.length > 0) {
+            expectedTotal += partnersSec.images.length; // Count all partner images
+          }
+          
+          // Add featured apartments (fetch actual count)
+          try {
+            const propertiesRes = await fetch(`${API_URL}/api/properties`);
+            if (propertiesRes.ok) {
+              const propertiesData = await propertiesRes.json();
+              const propertyCount = Math.min(propertiesData?.properties?.length || 4, 8); // Max 8 featured
+              expectedTotal += propertyCount;
+            } else {
+              expectedTotal += 4; // Fallback estimate
+            }
+          } catch (error) {
+            expectedTotal += 4; // Fallback estimate
+          }
+          
+          // Add landing attractions images
+          try {
+            const attractionsRes = await fetch(`${API_URL}/api/content/landing`);
+            if (attractionsRes.ok) {
+              const attractionsData = await attractionsRes.json();
+              const attractionImages = attractionsData?.content?.sections?.find(s => s.key === 'attractions')?.images?.length || 0;
+              expectedTotal += Math.min(attractionImages, 6); // Estimate visible attractions
+            }
+          } catch (error) {
+            expectedTotal += 3; // Fallback estimate
+          }
+          
+          // Set expected count and show loading bar
+          setExpectedImageCount(expectedTotal);
+          setTotalExpectedImages(expectedTotal);
+          setShowLoadingBar(true);
+          
+          // Initialize optimization with critical images
+          await initializeLandingPageOptimization(criticalImages);
+          setImageOptimizationInitialized(true);
+          
+          // Log performance stats after 3 seconds
+          setTimeout(() => {
+            const stats = getImageLoadStats();
+            console.log('Landing page image performance:', stats);
+          }, 3000);
+        }
       } catch (_) {
         setFeaturedSection(null);
       }
     })();
-  }, []);
+  }, [imageOptimizationInitialized]);
 
   const featuredCards = useMemo(() => {
     if (!featuredSection) return [];
@@ -61,7 +152,9 @@ const Home = () => {
       const [namePart, taglinePart] = raw.split('|');
       const name = (namePart || '').trim() || `Destination ${i + 1}`;
       const tagline = (taglinePart || '').trim();
-      const src = makeAbsoluteImageUrl(img);
+      const src = typeof img === 'string' && /^https?:\/\//i.test(img)
+        ? img
+        : `${API_URL}${String(img || '').startsWith('/') ? img : `/${img}`}`;
       return { name, tagline, img: src };
     });
   }, [featuredSection]);
@@ -80,12 +173,27 @@ const Home = () => {
       const name = (parts[0] || '').trim() || `Partner ${i + 1}`;
       const tagline = (parts[1] || '').trim();
       const url = (parts[2] || '').trim();
-      const src = makeAbsoluteImageUrl(img);
+      const src = typeof img === 'string' && /^https?:\/\//i.test(img)
+        ? img
+        : `${API_URL}${String(img || '').startsWith('/') ? img : `/${img}`}`;
       return { name, tagline, url, img: src };
     });
   }, [partnersSection]);
   return (
     <div>
+      {/* Image Loading Bar */}
+      <ImageLoadingBar 
+        isVisible={showLoadingBar}
+        totalImages={totalExpectedImages}
+        onComplete={() => {
+          console.log('All images loaded successfully!');
+          setTimeout(() => setShowLoadingBar(false), 1500);
+        }}
+        showPercentage={true}
+        autoHide={true}
+        hideDelay={1500}
+      />
+      
       {/* Hero Section with chocolate theme background */}
       <div className="bg-gradient-to-br from-[#6b3f1f] via-[#a06b42] to-[#c59b77]">
         <Hero />
@@ -100,11 +208,7 @@ const Home = () => {
         {featuredCards.length > 0 && (
           <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
             <div className="flex items-center justify-between mb-6 gap-4">
-              <h2 className="text-2xl md:text-3xl font-bold text-[#4b2a00]">
-                {featuredSection?.title
-                  ? featuredSection.title
-                  : (t ? t('home.featuredDestinations') : 'Featured destinations')}
-              </h2>
+              <h2 className="text-2xl md:text-3xl font-bold text-[#4b2a00]">{t ? t('home.featuredDestinations') : 'Featured destinations'}</h2>
               <a
                 href="/apartments"
                 className="hidden sm:inline-flex items-center text-sm font-medium text-[#a06b42] hover:text-[#8f5a32] hover:underline"
@@ -117,21 +221,20 @@ const Home = () => {
                 <a
                   key={i}
                   href="/apartments"
-                  className="group relative rounded-2xl overflow-hidden shadow-sm bg-gray-900/80"
+                  className="group relative rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 bg-gray-900/80"
                 >
                   <div className="relative aspect-[4/5] sm:aspect-[4/5] overflow-hidden">
-                    <img
+                    <LazyImage
                       src={d.img}
                       alt={d.name}
-                      className="absolute inset-0 w-full h-full object-cover"
-                      loading="eager"
-                      decoding="async"
+                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      category="attraction"
+                      size="medium"
                       onLoad={() => {
                         trackImageLoad(d.img, 'attraction');
                       }}
-                      onError={(e) => {
+                      onError={() => {
                         console.warn(`Featured destination image failed to load: ${d.img}`);
-                        e.currentTarget.style.opacity = '0.4';
                         trackImageLoad(d.img, 'attraction');
                       }}
                     />
@@ -146,7 +249,7 @@ const Home = () => {
                       )}
                       <span className="mt-2 inline-flex items-center text-xs sm:text-sm font-semibold text-white/90">
                         {t ? t('home.explore') : 'Explore'}
-                        <span className="ml-1">→</span>
+                        <span className="ml-1 group-hover:translate-x-0.5 transition-transform">→</span>
                       </span>
                     </div>
                   </div>
