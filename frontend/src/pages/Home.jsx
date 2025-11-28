@@ -117,13 +117,13 @@ const Home = () => {
                 <a
                   key={i}
                   href="/apartments"
-                  className="group relative rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 bg-gray-900/80"
+                  className="group relative rounded-2xl overflow-hidden shadow-sm bg-gray-900/80"
                 >
                   <div className="relative aspect-[4/5] sm:aspect-[4/5] overflow-hidden">
                     <img
                       src={d.img}
                       alt={d.name}
-                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      className="absolute inset-0 w-full h-full object-cover"
                       loading="eager"
                       decoding="async"
                       onLoad={() => {
@@ -146,7 +146,7 @@ const Home = () => {
                       )}
                       <span className="mt-2 inline-flex items-center text-xs sm:text-sm font-semibold text-white/90">
                         {t ? t('home.explore') : 'Explore'}
-                        <span className="ml-1 group-hover:translate-x-0.5 transition-transform">→</span>
+                        <span className="ml-1">→</span>
                       </span>
                     </div>
                   </div>
