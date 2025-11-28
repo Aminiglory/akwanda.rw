@@ -19,20 +19,7 @@ const API_BASE = (() => {
 })();
 
 const DEFAULT_HERO_INTERVAL = 5000;
-const DEFAULT_HERO_SLIDES = [
-  {
-    image: 'https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=1920&h=1080&auto=format&q=80',
-    caption: 'Discover warm Rwandan hospitality'
-  },
-  {
-    image: 'https://images.unsplash.com/photo-1489515217757-5fd1be406fef?w=1920&h=1080&auto=format&q=80',
-    caption: 'Drive across scenic landscapes'
-  },
-  {
-    image: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1920&h=1080&auto=format&q=80',
-    caption: 'Explore unforgettable attractions'
-  }
-];
+const DEFAULT_HERO_SLIDES = [];
 
 // We rely on makeAbsoluteImageUrl for robust URL construction from CMS values.
 
@@ -116,7 +103,8 @@ const Hero = () => {
         const res = await fetch(`${API_BASE}/api/content/landing`);
         if (!res.ok) {
           if (!cancelled) {
-            setSlides(DEFAULT_HERO_SLIDES);
+            // No external fallback slides: keep existing slides (likely empty) and default configs
+            setSlides([]);
             setIntervalMs(DEFAULT_HERO_INTERVAL);
             setTransition('fade');
             setHeroTitle('');
@@ -139,7 +127,7 @@ const Hero = () => {
 
         if (cancelled) return;
 
-        const finalSlides = validatedSlides.length ? validatedSlides : DEFAULT_HERO_SLIDES;
+        const finalSlides = validatedSlides.length ? validatedSlides : [];
         setSlides(finalSlides);
         const heroConfig = data?.content || {};
         setIntervalMs(
@@ -152,7 +140,8 @@ const Hero = () => {
         setHeroSubtitle(heroConfig.heroSubtitle || '');
       } catch (_) {
         if (!cancelled) {
-          setSlides(DEFAULT_HERO_SLIDES);
+          // On failure, show gradient background only (no external fallback slides)
+          setSlides([]);
           setIntervalMs(DEFAULT_HERO_INTERVAL);
           setTransition('fade');
           setHeroTitle('');
@@ -255,19 +244,7 @@ const Hero = () => {
                 onError={() => {
                   console.warn(`Hero image failed to load: ${url}`);
                   trackImageLoad(url, 'hero');
-                  if (!url || url.includes('images.unsplash.com')) {
-                    return;
-                  }
-                  if (slideErrorTracker.current.has(url)) return;
-                  slideErrorTracker.current.add(url);
-                  setSlides((prev) => {
-                    if (!prev || !prev.length) return DEFAULT_HERO_SLIDES;
-                    const replacement = DEFAULT_HERO_SLIDES[i % DEFAULT_HERO_SLIDES.length];
-                    if (prev[i]?.image === replacement.image) return prev;
-                    const next = [...prev];
-                    next[i] = replacement;
-                    return next;
-                  });
+                  // Fallback slides disabled: do not swap in external placeholders.
                 }}
               />
             );

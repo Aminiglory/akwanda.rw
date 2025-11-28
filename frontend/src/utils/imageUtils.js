@@ -322,8 +322,8 @@ export const validateImageUrl = async (url, timeout = 5000) => {
  * @returns {string} - Optimized fallback image URL
  */
 export const getFallbackImage = (category = 'default', size = 'medium') => {
-  const categoryImages = FALLBACK_IMAGES[category.toLowerCase()] || FALLBACK_IMAGES.default;
-  return typeof categoryImages === 'object' ? categoryImages[size] || categoryImages.medium : categoryImages;
+  // Fallbacks disabled: return empty string so callers do not load external placeholder images.
+  return '';
 };
 
 /**
@@ -369,12 +369,8 @@ export const createOptimizedImage = (src, alt, className = '', fallbackCategory 
     
     img.onload = () => resolve(img);
     img.onerror = () => {
-      // Try fallback image
-      const fallbackSrc = getFallbackImage(fallbackCategory);
-      const fallbackImg = new Image();
-      fallbackImg.onload = () => resolve(fallbackImg);
-      fallbackImg.onerror = () => reject(new Error('Both primary and fallback images failed'));
-      fallbackImg.src = fallbackSrc;
+      // Fallbacks disabled: reject when primary image fails instead of loading external placeholders
+      reject(new Error('Primary image failed to load'));
     };
     
     img.src = src;
@@ -432,7 +428,6 @@ export const enhanceImageElement = (imgElement, fallbackCategory = 'default') =>
     }
     
     console.warn(`Image failed to load: ${originalSrc}`);
-    imgElement.src = getFallbackImage(fallbackCategory);
     if (loadingDiv.parentNode) {
       loadingDiv.parentNode.removeChild(loadingDiv);
     }
@@ -512,7 +507,7 @@ export const createOptimizedImageElement = (config) => {
   } = config;
   
   const img = document.createElement('img');
-  const fallbackUrl = getFallbackImage(category, size);
+  const fallbackUrl = '';
   
   // Set basic attributes
   img.alt = alt;
@@ -526,8 +521,7 @@ export const createOptimizedImageElement = (config) => {
   
   // Add error handling
   img.onerror = () => {
-    console.warn(`Image failed to load: ${src}, using fallback`);
-    img.src = fallbackUrl;
+    console.warn(`Image failed to load: ${src}`);
     imageLoadStats.failed++;
     onError && onError();
   };
@@ -545,7 +539,7 @@ export const createOptimizedImageElement = (config) => {
   };
   
   // Set source (primary or fallback)
-  img.src = src || fallbackUrl;
+  img.src = src || '';
   
   return img;
 };
