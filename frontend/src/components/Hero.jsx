@@ -5,7 +5,7 @@ import { makeAbsoluteImageUrl } from '../utils/imageUtils';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-const Hero = () => {
+const Hero = ({ onReady }) => {
   const { localize, t } = useLocale() || {};
   const [metrics, setMetrics] = useState({ activeListings: 0, happyGuests: 0, satisfactionRate: 0 });
   const [heroTitle, setHeroTitle] = useState('');
@@ -53,6 +53,26 @@ const Hero = () => {
       } catch (_) {}
     })();
   }, []);
+
+  useEffect(() => {
+    if (!onReady) return;
+    if (!heroImage) {
+      onReady();
+      return;
+    }
+    let cancelled = false;
+    const img = new Image();
+    img.src = heroImage;
+    img.onload = () => {
+      if (!cancelled) onReady();
+    };
+    img.onerror = () => {
+      if (!cancelled) onReady();
+    };
+    return () => {
+      cancelled = true;
+    };
+  }, [heroImage, onReady]);
 
   const bgStyle = heroImage
     ? {
