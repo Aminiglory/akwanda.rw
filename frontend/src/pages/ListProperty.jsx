@@ -13,11 +13,47 @@ const ListProperty = () => {
   });
   const [attractionForm, setAttractionForm] = useState({
     name: '', category: '', shortDescription: '', fullDescription: '', highlights: '', country: '', city: '', address: '', gps: '', landmarks: '', directions: '',
-    coverPhoto: '', gallery: '', video: '', openingDays: '', openingHoursStart: '', openingHoursEnd: '', seasonality: '', duration: '', minAge: '', accessibility: '',
+    coverPhotoFiles: [], galleryFiles: [], video: '', openingDays: '', openingHoursStart: '', openingHoursEnd: '', seasonality: '', duration: '', minAge: '', accessibility: '',
     ticketAdult: '', ticketChild: '', ticketStudent: '', ticketGroup: '', discounts: '', currency: 'RWF', paymentMethods: '', cancellationPolicy: '', refundPolicy: '',
-    capacity: '', minGuests: '', bookingRequired: 'yes', timeSlots: '', checkinInstructions: '', amenities: '', guideAvailable: '', audioGuideLanguages: '', safetyEquipment: '',
-    rules: '', dressCode: '', safetyInstructions: '', liability: '', contactName: '', contactPhone: '', contactEmail: '', contactWebsite: '', contactEmergency: ''
+    capacity: '', minGuests: '', bookingRequired: 'yes', timeSlots: '', checkinInstructions: '', amenities: [], guideAvailable: 'yes', audioGuideLanguages: '', safetyEquipment: '',
+    rules: '', dressCode: '', safetyInstructions: '', liability: '', contactName: '', contactPhone: '', contactEmail: '', contactWebsite: '', contactEmergency: '',
+    locationMap: '', latitude: '', longitude: ''
   });
+  const categoryOptions = ['Museum', 'Park', 'Hiking trail', 'City tour', 'Amusement park', 'Cultural site'];
+  const amenitiesOptions = ['Parking', 'Restrooms', 'WiFi', 'Food & Drinks', 'Souvenir Shop', 'Parking', 'Guided Tours'];
+  const yesNoOptions = [
+    { label: 'Yes', value: 'yes' },
+    { label: 'No', value: 'no' }
+  ];
+
+  const handleCoverUpload = (files) => {
+    setAttractionForm(prev => ({ ...prev, coverPhotoFiles: Array.from(files) }));
+  };
+
+  const handleGalleryUpload = (files) => {
+    setAttractionForm(prev => ({ ...prev, galleryFiles: Array.from(files) }));
+  };
+
+  const toggleAmenity = (amenity) => {
+    setAttractionForm(prev => {
+      const exists = prev.amenities.includes(amenity);
+      const next = exists ? prev.amenities.filter(a => a !== amenity) : [...prev.amenities, amenity];
+      return { ...prev, amenities: next };
+    });
+  };
+
+  const handleMapSelect = () => {
+    const lat = window.prompt('Enter latitude (e.g., -1.9499):');
+    const lng = window.prompt('Enter longitude (e.g., 30.0588):');
+    if (lat && lng) {
+      setAttractionForm(prev => ({
+        ...prev,
+        latitude: lat,
+        longitude: lng,
+        locationMap: `Lat ${lat}, Lng ${lng}`
+      }));
+    }
+  };
 
   const renderListingTypeSelector = () => (
     <div className="mb-6">
@@ -100,27 +136,76 @@ const ListProperty = () => {
       </div>
     );
 
-    const renderField = ({ label, name, type = 'text', placeholder = '', description = '' }) => (
-      <div className="space-y-1">
-        <label className="text-sm font-medium text-gray-700">{label}</label>
-        {type === 'textarea' ? (
-          <textarea
-            rows="3"
-            value={attractionForm[name]}
-            onChange={e => setAttractionForm(prev => ({ ...prev, [name]: e.target.value }))}
-            placeholder={placeholder}
-            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-[#a06b42]"
-          />
-        ) : (
+  const renderField = ({ label, name, type = 'text', placeholder = '', description = '', options = [] }) => {
+      const value = attractionForm[name];
+      if (type === 'textarea') {
+        return (
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-gray-700">{label}</label>
+            <textarea
+              rows="3"
+              value={value}
+              onChange={e => setAttractionForm(prev => ({ ...prev, [name]: e.target.value }))}
+              placeholder={placeholder}
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-[#a06b42]"
+            />
+            {description && <p className="text-xs text-gray-500">{description}</p>}
+          </div>
+        );
+      }
+
+      if (type === 'select') {
+        return (
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-gray-700">{label}</label>
+            <select
+              value={value}
+              onChange={e => setAttractionForm(prev => ({ ...prev, [name]: e.target.value }))}
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-[#a06b42] bg-white"
+            >
+              <option value="">Select {label}</option>
+              {options.map(opt => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+            </select>
+            {description && <p className="text-xs text-gray-500">{description}</p>}
+          </div>
+        );
+      }
+
+      return (
+        <div className="space-y-1">
+          <label className="text-sm font-medium text-gray-700">{label}</label>
           <input
             type={type}
-            value={attractionForm[name]}
+            value={value}
             onChange={e => setAttractionForm(prev => ({ ...prev, [name]: e.target.value }))}
             placeholder={placeholder}
             className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-[#a06b42]"
           />
-        )}
-        {description && <p className="text-xs text-gray-500">{description}</p>}
+          {description && <p className="text-xs text-gray-500">{description}</p>}
+        </div>
+      );
+  };
+
+    const renderRadioGroup = (label, name) => (
+      <div className="space-y-1">
+        <p className="text-sm font-medium text-gray-700">{label}</p>
+        <div className="flex gap-4">
+          {yesNoOptions.map(option => (
+            <label key={option.value} className="inline-flex items-center gap-2">
+              <input
+                type="radio"
+                name={name}
+                value={option.value}
+                checked={attractionForm[name] === option.value}
+                onChange={() => setAttractionForm(prev => ({ ...prev, [name]: option.value }))}
+                className="form-radio text-[#a06b42] h-4 w-4"
+              />
+              {option.label}
+            </label>
+          ))}
+        </div>
       </div>
     );
 
@@ -129,7 +214,7 @@ const ListProperty = () => {
         {section('1. Basic Information', 'Required to identify the attraction.',
           <>
             {renderField({ label: 'Attraction Name', name: 'name', placeholder: 'Kigali Cultural Walk' })}
-            {renderField({ label: 'Category / Type', name: 'category', placeholder: 'Museum, park, tour...' })}
+            {renderField({ label: 'Category / Type', name: 'category', type: 'select', options: categoryOptions })}
             {renderField({ label: 'Short Description', name: 'shortDescription', type: 'textarea', placeholder: '1–2 sentence summary' })}
             {renderField({ label: 'Full Description', name: 'fullDescription', type: 'textarea', placeholder: 'Detailed highlight narrative' })}
             {renderField({ label: 'Highlights / Key Features', name: 'highlights', type: 'textarea', placeholder: 'Bullet points separated by commas' })}
@@ -145,10 +230,28 @@ const ListProperty = () => {
             {renderField({ label: 'Directions / How to get there', name: 'directions', type: 'textarea', placeholder: 'Describe transport options (optional)' })}
           </>
         )}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-3">
+          <p className="text-sm font-semibold text-gray-700">Location Map</p>
+          <div className="rounded-xl bg-gray-50 border border-dashed border-gray-300 h-32 flex items-center justify-center text-sm text-gray-500">
+            {attractionForm.locationMap || 'Click to pick exact location on map'}
+          </div>
+          <div className="flex gap-3">
+            <button type="button" onClick={handleMapSelect} className="px-4 py-2 rounded-xl bg-[#a06b42] text-white text-sm">Select on map</button>
+            <div className="text-sm text-gray-500">Lat: {attractionForm.latitude || '-'}, Lng: {attractionForm.longitude || '-'}</div>
+          </div>
+        </div>
         {section('3. Photos & Media', 'Visuals bring the experience to life.',
           <>
-            {renderField({ label: 'Cover Photo URL', name: 'coverPhoto', placeholder: 'https://...' })}
-            {renderField({ label: 'Gallery Images (comma separated)', name: 'gallery', placeholder: 'image1.jpg, image2.jpg, ...' })}
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-gray-700">Cover Photo *</label>
+              <input type="file" accept="image/*" onChange={e => handleCoverUpload(e.target.files)} className="w-full" />
+              <p className="text-xs text-gray-500">{attractionForm.coverPhotoFiles.length ? `${attractionForm.coverPhotoFiles.length} file(s) ready` : 'Upload one cover photo.'}</p>
+            </div>
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-gray-700">Gallery Images *</label>
+              <input type="file" accept="image/*" multiple onChange={e => handleGalleryUpload(e.target.files)} className="w-full" />
+              <p className="text-xs text-gray-500">{attractionForm.galleryFiles.length ? `${attractionForm.galleryFiles.length} file(s) ready` : 'Upload 3-20 images.'}</p>
+            </div>
             {renderField({ label: 'Video URL (optional)', name: 'video', placeholder: 'YouTube / Vimeo link' })}
           </>
         )}
