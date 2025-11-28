@@ -171,8 +171,8 @@ function App() {
             <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
             <Route path="/account/:section" element={<ProtectedRoute><SettingsSection /></ProtectedRoute>} />
             <Route path="/list-property" element={<HostRoute><ListProperty /></HostRoute>} />
-            <Route path="/upload" element={<HostRoute><EnhancedUploadProperty /></HostRoute>} />
-            <Route path="/upload-property" element={<HostRoute><EnhancedUploadProperty /></HostRoute>} />
+            <Route path="/upload" element={<HostRoute><ListProperty /></HostRoute>} />
+            <Route path="/upload-property" element={<HostRoute><ListProperty /></HostRoute>} />
             <Route path="/upload-legacy" element={<HostRoute><UploadProperty /></HostRoute>} />
             <Route path="/admin" element={<AdminRoute><div className="dashboard"><AdminDashboard /></div></AdminRoute>} />
             <Route path="/admin/profile" element={<AdminRoute><div className="dashboard"><AdminProfile /></div></AdminRoute>} />
