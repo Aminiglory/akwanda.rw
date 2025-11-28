@@ -5,6 +5,36 @@ import toast from 'react-hot-toast';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
+const policyDefaults = {
+  fuelPolicy: 'Full to full',
+  mileageLimit: '200',
+  cancellationPolicy: 'Flexible (24h notice)',
+  depositInfo: 'Security deposit on request'
+};
+
+const presetFuelPolicies = [
+  'Full to full',
+  'Full to empty',
+  'Prepaid fuel',
+  'Owner covers fuel'
+];
+
+const presetMileageLimits = ['100', '150', '200', 'Unlimited'];
+
+const presetCancellationPolicies = [
+  'Flexible (24h notice)',
+  'Moderate (72h notice)',
+  'Strict (7 days)',
+  'Non-refundable'
+];
+
+const presetDepositOptions = [
+  'Security deposit on request',
+  'No deposit',
+  'Full amount hold',
+  'Percentage of rental'
+];
+
 const emptyCarState = {
   vehicleName: '',
   vehicleType: 'economy',
@@ -32,10 +62,10 @@ const emptyCarState = {
   gearCount: '',
   bicycleType: '',
   abs: false,
-  fuelPolicy: '',
-  mileageLimitPerDayKm: '',
-  cancellationPolicy: '',
-  depositInfo: '',
+  fuelPolicy: policyDefaults.fuelPolicy,
+  mileageLimitPerDayKm: policyDefaults.mileageLimit,
+  cancellationPolicy: policyDefaults.cancellationPolicy,
+  depositInfo: policyDefaults.depositInfo,
   vehicleNumber: ''
 };
 
@@ -255,18 +285,62 @@ const VehicleListingForm = forwardRef(({ onCreated, onSuccess }, ref) => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <div>
           <label className="block text-sm font-semibold text-gray-700 mb-2">Fuel Policy</label>
+          <select
+            value={form.fuelPolicy}
+            onChange={e => setForm({ ...form, fuelPolicy: e.target.value })}
+            className="w-full px-4 py-2 border border-gray-300 rounded-xl bg-white text-sm text-gray-700 mb-2"
+          >
+            {presetFuelPolicies.map(option => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
           <input className="w-full px-4 py-3 border border-gray-300 rounded-xl" value={form.fuelPolicy} onChange={e => setForm({ ...form, fuelPolicy: e.target.value })} />
         </div>
         <div>
           <label className="block text-sm font-semibold text-gray-700 mb-2">Mileage Limit/day (km)</label>
+          <select
+            value={form.mileageLimitPerDayKm}
+            onChange={e => setForm({ ...form, mileageLimitPerDayKm: e.target.value })}
+            className="w-full px-4 py-2 border border-gray-300 rounded-xl bg-white text-sm text-gray-700 mb-2"
+          >
+            {presetMileageLimits.map(option => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
           <input type="number" className="w-full px-4 py-3 border border-gray-300 rounded-xl" value={form.mileageLimitPerDayKm} onChange={e => setForm({ ...form, mileageLimitPerDayKm: e.target.value })} />
         </div>
         <div>
           <label className="block text-sm font-semibold text-gray-700 mb-2">Cancellation Policy</label>
+          <select
+            value={form.cancellationPolicy}
+            onChange={e => setForm({ ...form, cancellationPolicy: e.target.value })}
+            className="w-full px-4 py-2 border border-gray-300 rounded-xl bg-white text-sm text-gray-700 mb-2"
+          >
+            {presetCancellationPolicies.map(option => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
           <textarea rows="2" className="w-full px-4 py-3 border border-gray-300 rounded-xl" value={form.cancellationPolicy} onChange={e => setForm({ ...form, cancellationPolicy: e.target.value })} />
         </div>
         <div>
           <label className="block text-sm font-semibold text-gray-700 mb-2">Deposit Info</label>
+          <select
+            value={form.depositInfo}
+            onChange={e => setForm({ ...form, depositInfo: e.target.value })}
+            className="w-full px-4 py-2 border border-gray-300 rounded-xl bg-white text-sm text-gray-700 mb-2"
+          >
+            {presetDepositOptions.map(option => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
           <input className="w-full px-4 py-3 border border-gray-300 rounded-xl" value={form.depositInfo} onChange={e => setForm({ ...form, depositInfo: e.target.value })} />
         </div>
         <div className="md:col-span-3">
