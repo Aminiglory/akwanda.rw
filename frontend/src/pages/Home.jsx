@@ -26,19 +26,10 @@ const Home = () => {
   const [totalExpectedImages, setTotalExpectedImages] = useState(0);
   const [showLoadingBar, setShowLoadingBar] = useState(false);
 
-  // Initialize universal lazy loading system
+  // Initialize universal lazy loading system (do NOT convert existing images to avoid reflows)
   const { stats, isInitialized } = useLazyLoading({
     autoInit: true,
-    convertExisting: true, // Convert existing images to lazy loading
-    onStatsChange: (newStats) => {
-      // Update loading bar based on lazy loading progress
-      if (newStats.total > 0) {
-        const progress = (newStats.loaded + newStats.failed) / newStats.total;
-        if (progress >= 1) {
-          setTimeout(() => setShowLoadingBar(false), 1500);
-        }
-      }
-    }
+    convertExisting: false
   });
 
   const { preloadImages } = useImagePreloader();
@@ -54,90 +45,11 @@ const Home = () => {
         const partnersSec = sections.find((s) => s?.key === 'partners') || null;
         setFeaturedSection(sec);
         setPartnersSection(partnersSec);
-        
-        // Initialize comprehensive image optimization
-        if (!imageOptimizationInitialized) {
-          // Reset stats for fresh tracking
-          resetImageLoadStats();
-          
-          const criticalImages = [];
-          let expectedTotal = 0;
-          
-          // Add hero images
-          if (data?.content?.heroImages?.length > 0) {
-            data.content.heroImages.slice(0, 2).forEach((img, index) => {
-              criticalImages.push({
-                url: makeAbsoluteImageUrl(img),
-                priority: 10 - index,
-                category: 'hero'
-              });
-              expectedTotal++;
-            });
-          }
-          
-          // Add featured destinations images
-          if (sec?.images?.length > 0) {
-            sec.images.slice(0, 2).forEach((img, index) => {
-              criticalImages.push({
-                url: makeAbsoluteImageUrl(img),
-                priority: 8 - index,
-                category: 'attraction'
-              });
-              expectedTotal++;
-            });
-          }
-          
-          // Add partners images (count actual partners)
-          if (partnersSec?.images?.length > 0) {
-            expectedTotal += partnersSec.images.length; // Count all partner images
-          }
-          
-          // Add featured apartments (fetch actual count)
-          try {
-            const propertiesRes = await fetch(`${API_URL}/api/properties`);
-            if (propertiesRes.ok) {
-              const propertiesData = await propertiesRes.json();
-              const propertyCount = Math.min(propertiesData?.properties?.length || 4, 8); // Max 8 featured
-              expectedTotal += propertyCount;
-            } else {
-              expectedTotal += 4; // Fallback estimate
-            }
-          } catch (error) {
-            expectedTotal += 4; // Fallback estimate
-          }
-          
-          // Add landing attractions images
-          try {
-            const attractionsRes = await fetch(`${API_URL}/api/content/landing`);
-            if (attractionsRes.ok) {
-              const attractionsData = await attractionsRes.json();
-              const attractionImages = attractionsData?.content?.sections?.find(s => s.key === 'attractions')?.images?.length || 0;
-              expectedTotal += Math.min(attractionImages, 6); // Estimate visible attractions
-            }
-          } catch (error) {
-            expectedTotal += 3; // Fallback estimate
-          }
-          
-          // Set expected count and show loading bar
-          setExpectedImageCount(expectedTotal);
-          setTotalExpectedImages(expectedTotal);
-          setShowLoadingBar(true);
-          
-          // Initialize optimization with critical images
-          await initializeLandingPageOptimization(criticalImages);
-          setImageOptimizationInitialized(true);
-          
-          // Log performance stats after 3 seconds
-          setTimeout(() => {
-            const stats = getImageLoadStats();
-            console.log('Landing page image performance:', stats);
-          }, 3000);
-        }
       } catch (_) {
         setFeaturedSection(null);
       }
     })();
-  }, [imageOptimizationInitialized]);
+  }, []);
 
   const featuredCards = useMemo(() => {
     if (!featuredSection) return [];
