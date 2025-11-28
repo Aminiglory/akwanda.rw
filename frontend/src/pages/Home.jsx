@@ -155,7 +155,7 @@ const Home = () => {
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
               <h3 className="text-lg md:text-xl font-semibold text-[#4b2a00] mb-4">{t ? t('home.trustedByPartners') : 'Trusted by partners'}</h3>
               <div className="overflow-x-auto">
-                <div className="flex gap-4 md:gap-6 items-center min-w-max animate-[scroll-horizontal_40s_linear_infinite]">
+                <div className="flex gap-4 md:gap-6 items-center min-w-max">
                   {[...partners, ...partners].map((p, idx) => {
                     const content = (
                       <div className="h-12 sm:h-14 px-3 sm:px-4 bg-white rounded-lg border theme-chocolate-border flex items-center gap-2 sm:gap-3 shadow-sm">

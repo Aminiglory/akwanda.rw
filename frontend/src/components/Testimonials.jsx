@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FaStar, FaQuoteLeft } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
@@ -55,12 +55,6 @@ const mockTestimonials = [
 
 export default function Testimonials() {
   const { user } = useAuth();
-  const [index, setIndex] = useState(0);
-  const timerRef = useRef(null);
-  const [paused, setPaused] = useState(false);
-  const [reduceMotion, setReduceMotion] = useState(false);
-  const touchStartX = useRef(null);
-
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -118,34 +112,7 @@ export default function Testimonials() {
       />
     ));
   };
-
-  // Reduced motion
-  useEffect(() => {
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const handler = () => setReduceMotion(!!mq.matches);
-    handler();
-    mq.addEventListener?.('change', handler);
-    return () => mq.removeEventListener?.('change', handler);
-  }, []);
-
-  // Autoplay
-  useEffect(() => {
-    if (paused || reduceMotion) return;
-    const pagesCount = Math.max(1, Math.ceil(items.length / 3));
-    timerRef.current = setInterval(() => {
-      setIndex(i => (i + 1) % pagesCount);
-    }, 6000);
-    return () => clearInterval(timerRef.current);
-  }, [paused, reduceMotion, items.length]);
-
-  const pageSize = 3; // show 3 cards on desktop
-  const pages = [];
-  for (let i = 0; i < items.length; i += pageSize) {
-    pages.push(items.slice(i, i + pageSize));
-  }
-
-  // Hide section entirely if no real testimonials
-  if (!loading && items.length === 0) return null;
+  const list = items.length > 0 ? items : mockTestimonials;
 
   return (
     <div className="bg-white py-16 px-4">
@@ -159,46 +126,20 @@ export default function Testimonials() {
           </p>
         </div>
 
-        {/* Carousel */}
-        <div className="relative">
+        {/* Static grid of testimonials */}
+        {(loading && items.length === 0) ? (
+          <div className="p-6 text-center text-gray-500">Loading testimonials…</div>
+        ) : (
           <div
-            className="overflow-hidden"
-            onMouseEnter={() => setPaused(true)}
-            onMouseLeave={() => setPaused(false)}
-            onFocusCapture={() => setPaused(true)}
-            onBlurCapture={() => setPaused(false)}
-            onTouchStart={(e) => { touchStartX.current = e.touches[0].clientX; }}
-            onTouchEnd={(e) => {
-              const endX = e.changedTouches[0].clientX;
-              const delta = (touchStartX.current ?? endX) - endX;
-              if (Math.abs(delta) > 40) {
-                if (delta > 0) setIndex(i => (i + 1) % pages.length);
-                else setIndex(i => (i - 1 + pages.length) % pages.length);
-              }
-              touchStartX.current = null;
-            }}
+            role="region"
+            aria-label="User testimonials"
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
           >
-            <div
-              role="region"
-              aria-label="User testimonials"
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === 'ArrowRight') setIndex(i => (i + 1) % pages.length);
-                if (e.key === 'ArrowLeft') setIndex(i => (i - 1 + pages.length) % pages.length);
-              }}
-              className="whitespace-nowrap transition-transform duration-500"
-              style={{ transform: `translateX(-${index * 100}%)` }}
-            >
-              {(loading && items.length === 0) ? (
-                <div className="p-6 text-center text-gray-500">Loading testimonials…</div>
-              ) : (
-                pages.map((page, pIdx) => (
-                  <div className="inline-grid w-full align-top grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pr-0 md:pr-8" key={pIdx} style={{ width: '100%' }}>
-                    {page.map((testimonial, idx) => (
-                      <div
-                        key={testimonial._id || testimonial.id}
-                        className="bg-white rounded-xl shadow-lg p-6 relative"
-                      >
+            {list.map((testimonial) => (
+              <div
+                key={testimonial._id || testimonial.id}
+                className="bg-white rounded-xl shadow-lg p-6 relative"
+              >
                         <div className="absolute inset-0 -z-10">
                           <div className="absolute inset-0 translate-x-2 translate-y-2 rounded-xl bg-white"></div>
                           <div className="absolute inset-0 translate-x-4 translate-y-4 rounded-xl bg-white"></div>
@@ -212,62 +153,58 @@ export default function Testimonials() {
                           {renderStars(testimonial.rating)}
                         </div>
 
-                        {/* Testimonial Text */}
-                        <p className="text-gray-700 mb-6 leading-relaxed text-sm md:text-base break-words whitespace-normal max-w-full">
-                          "{testimonial.content || testimonial.text}"
-                        </p>
+                {/* Testimonial Text */}
+                <p className="text-gray-700 mb-6 leading-relaxed text-sm md:text-base break-words whitespace-normal max-w-full">
+                  "{testimonial.content || testimonial.text}"
+                </p>
 
-                        {/* User Info */}
-                        <div className="flex items-center">
-                          {testimonial.image || testimonial.avatar ? (
-                            <img
-                              src={testimonial.image || testimonial.avatar}
-                              alt={testimonial.name}
-                              className="w-12 h-12 rounded-full object-cover mr-4"
-                              onError={(e) => {
-                                e.target.style.display = 'none';
-                                e.target.nextSibling.style.display = 'flex';
-                              }}
-                            />
-                          ) : null}
-                          <div className={`w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-lg font-semibold mr-4 ${testimonial.image || testimonial.avatar ? 'hidden' : ''}`}>
-                            {testimonial.name.charAt(0).toUpperCase()}
-                          </div>
-                          <div>
-                            <h4 className="font-semibold text-gray-800">{testimonial.name}</h4>
-                            <p className="text-sm text-gray-600">{testimonial.role}</p>
-                            {testimonial.location && (
-                              <p className="text-sm text-[#a06b42]">📍 {testimonial.location}</p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+                {/* User Info */}
+                <div className="flex items-center">
+                  {testimonial.image || testimonial.avatar ? (
+                    <img
+                      src={testimonial.image || testimonial.avatar}
+                      alt={testimonial.name}
+                      className="w-12 h-12 rounded-full object-cover mr-4"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        e.target.nextSibling.style.display = 'flex';
+                      }}
+                    />
+                  ) : null}
+                  <div className={`w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-lg font-semibold mr-4 ${testimonial.image || testimonial.avatar ? 'hidden' : ''}`}>
+                    {testimonial.name.charAt(0).toUpperCase()}
                   </div>
-                ))
-              )}
-            </div>
+                  <div>
+                    <h4 className="font-semibold text-gray-800">{testimonial.name}</h4>
+                    <p className="text-sm text-gray-600">{testimonial.role}</p>
+                    {testimonial.location && (
+                      <p className="text-sm text-[#a06b42]">📍 {testimonial.location}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
-        </div>
-        {/* Call to Action */}
-        <div className="text-center mt-12">
-          <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-200">
-            <h3 className="text-2xl font-bold mb-4 text-gray-900">Ready to Join Our Community?</h3>
-            <p className="text-gray-700 mb-6 text-base">Whether you're looking for a place to stay or want to earn from your space, AKWANDA.rw is here for you.</p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link
-                to="/apartments"
-                className="px-8 py-3 rounded-xl font-semibold bg-blue-600 text-white hover:bg-blue-700 shadow-md hover:shadow-lg transition-all duration-300 text-center"
-              >
-                Find Properties
-              </Link>
-              <Link
-                to={user ? "/upload-property" : "/register"}
-                className="bg-white text-gray-900 px-8 py-3 rounded-xl font-semibold hover:bg-gray-100 shadow-md hover:shadow-lg transition-all duration-300 text-center border border-gray-200"
-              >
-                {user ? "List Your Property" : "Sign Up to Host"}
-              </Link>
-            </div>
+        )}
+      </div>
+      {/* Call to Action */}
+      <div className="text-center mt-12">
+        <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-200">
+          <h3 className="text-2xl font-bold mb-4 text-gray-900">Ready to Join Our Community?</h3>
+          <p className="text-gray-700 mb-6 text-base">Whether you're looking for a place to stay or want to earn from your space, AKWANDA.rw is here for you.</p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link
+              to="/apartments"
+              className="px-8 py-3 rounded-xl font-semibold bg-blue-600 text-white hover:bg-blue-700 shadow-md hover:shadow-lg transition-all duration-300 text-center"
+            >
+              Find Properties
+            </Link>
+            <Link
+              to={user ? "/upload-property" : "/register"}
+              className="bg-white text-gray-900 px-8 py-3 rounded-xl font-semibold hover:bg-gray-100 shadow-md hover:shadow-lg transition-all duration-300 text-center border border-gray-200"
+            >
+              {user ? "List Your Property" : "Sign Up to Host"}
+            </Link>
           </div>
         </div>
       </div>

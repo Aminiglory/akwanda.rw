@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FaStar } from 'react-icons/fa';
 import PropertyCard from './PropertyCard';
@@ -11,46 +11,10 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 const FeaturedApartments = () => {
   const { t } = useLocale() || {};
   const [apartments, setApartments] = useState([]); // combined premium + standard
-  const [premiumIndex, setPremiumIndex] = useState(0);
   // Use optimized image URL processing
   const processImageUrl = (url) => {
     return makeAbsoluteImageUrl(url);
   };
-
-  // Auto-scroll premium slider
-  useEffect(() => {
-    const premium = apartments.filter(a => a.isPremium);
-    const count = premium.length;
-    if (count <= 1) return;
-
-    const container = premiumStripRef.current;
-    if (!container) return;
-
-    const cards = () => Array.from(container.querySelectorAll('[data-premium-card="true"]'));
-
-    const scrollToIndex = (idx) => {
-      const items = cards();
-      const target = items[idx];
-      if (target && target.scrollIntoView) {
-        target.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-      }
-    };
-
-    const id = setInterval(() => {
-      setPremiumIndex((prev) => {
-        const next = (prev + 1) % count;
-        scrollToIndex(next);
-        return next;
-      });
-    }, 6000);
-
-    // Initial alignment
-    if (premiumIndex < count) {
-      scrollToIndex(premiumIndex);
-    }
-
-    return () => clearInterval(id);
-  }, [apartments, premiumIndex]);
 
   useEffect(() => {
     (async () => {
@@ -116,9 +80,6 @@ const FeaturedApartments = () => {
     })();
   }, []);
 
-
-  // Premium slider ref (no scroll-triggered reveal animation)
-  const premiumStripRef = useRef(null);
 
   const renderStars = (rating) => {
     return Array.from({ length: 5 }, (_, i) => (

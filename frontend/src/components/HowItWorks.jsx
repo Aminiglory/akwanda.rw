@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useLocale } from '../contexts/LocaleContext';
 import { FaBuilding, FaSmile, FaThumbsUp, FaArrowRight } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
@@ -23,13 +23,6 @@ const HowItWorks = () => {
   const [activeTab, setActiveTab] = useState('guests'); // guests | hosts
   const [heroSlides, setHeroSlides] = useState([]);
   const [openFaq, setOpenFaq] = useState(null);
-  const [slideIndex, setSlideIndex] = useState(0);
-  const slideTimer = useRef(null);
-  const [paused, setPaused] = useState(false);
-  const slideshowRef = useRef(null);
-  const [slideshowInView, setSlideshowInView] = useState(true);
-  const [reduceMotion, setReduceMotion] = useState(false);
-  const touchStartX = useRef(null);
   const [sectionImagesGuests, setSectionImagesGuests] = useState([]);
   const [sectionImagesHosts, setSectionImagesHosts] = useState([]);
   const [howMedia, setHowMedia] = useState([]); // server-provided media items
@@ -55,8 +48,6 @@ const HowItWorks = () => {
         const data = await res.json();
         const items = Array.isArray(data.items) ? data.items : [];
         setHowMedia(items);
-        // Reset slide to first when switching source
-        setSlideIndex(0);
       } catch (_) {
         setHowMedia([]);
       }
@@ -73,26 +64,6 @@ const HowItWorks = () => {
         setTestimonials(Array.isArray(data.testimonials) ? data.testimonials : []);
       } catch (_) {}
     })();
-  }, []);
-
-  // Reduced motion preference
-  useEffect(() => {
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const h = () => setReduceMotion(!!mq.matches);
-    h();
-    if (mq && typeof mq.addEventListener === 'function') {
-      mq.addEventListener('change', h);
-    } else if (mq && typeof mq.addListener === 'function') {
-      // Safari/older browsers
-      mq.addListener(h);
-    }
-    return () => {
-      if (mq && typeof mq.removeEventListener === 'function') {
-        mq.removeEventListener('change', h);
-      } else if (mq && typeof mq.removeListener === 'function') {
-        mq.removeListener(h);
-      }
-    };
   }, []);
 
   // Load CMS how-it-works content
@@ -277,17 +248,6 @@ const HowItWorks = () => {
       })
     : hostSteps;
 
-  // Observe slideshow visibility to pause when offscreen
-  useEffect(() => {
-    const el = slideshowRef.current;
-    if (!el) return;
-    const obs = new IntersectionObserver((entries) => {
-      entries.forEach(e => setSlideshowInView(!!e.isIntersecting));
-    }, { threshold: 0.25 });
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, []);
-
   // Compute slideshow images using OurMission pattern (per tab)
   const currentImages = useMemo(() => {
     const tabImages = activeTab === 'guests' ? sectionImagesGuests : sectionImagesHosts;
@@ -313,18 +273,6 @@ const HowItWorks = () => {
       .filter(Boolean);
   }, [activeTab, sectionImagesGuests, sectionImagesHosts, howMedia, heroSlides]);
 
-  // Autoplay for media slideshow (OurMission-like)
-  useEffect(() => {
-    const count = currentImages.length;
-    // Reset to first slide when tab or images change
-    setSlideIndex(0);
-    if (reduceMotion || paused || !slideshowInView || count <= 1) return;
-    slideTimer.current = setInterval(() => {
-      setSlideIndex((i) => (i + 1) % count);
-    }, (typeof how.mediaIntervalMs === 'number' && Number.isFinite(how.mediaIntervalMs)) ? how.mediaIntervalMs : 5000);
-    return () => { if (slideTimer.current) clearInterval(slideTimer.current); };
-  }, [activeTab, currentImages, paused, reduceMotion, slideshowInView, how.mediaIntervalMs]);
-
   return (
     <div className="px-4 py-8">
       <div className="max-w-6xl mx-auto">
@@ -340,78 +288,22 @@ const HowItWorks = () => {
           </div>
         )}
 
-        {/* Section media slideshow on top (OurMission-like) */}
+        {/* Section media (static) */}
         <div
-          ref={slideshowRef}
           className="relative rounded-2xl overflow-hidden bg-white/70 backdrop-blur shadow-md mb-8"
           role="region"
-          aria-label="How it works slideshow"
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (currentImages.length <= 1) return;
-            if (e.key === 'ArrowRight') setSlideIndex(i => (i + 1) % currentImages.length);
-            if (e.key === 'ArrowLeft') setSlideIndex(i => (i - 1 + currentImages.length) % currentImages.length);
-          }}
-          onMouseEnter={() => setPaused(true)}
-          onMouseLeave={() => setPaused(false)}
-          onFocus={() => setPaused(true)}
-          onBlur={() => setPaused(false)}
-          onTouchStart={(e) => { touchStartX.current = e.touches[0].clientX; }}
-          onTouchEnd={(e) => {
-            const endX = e.changedTouches[0].clientX;
-            const delta = (touchStartX.current ?? endX) - endX;
-            if (Math.abs(delta) > 40) {
-              if (delta > 0) setSlideIndex(i => (i + 1) % currentImages.length);
-              else setSlideIndex(i => (i - 1 + currentImages.length) % currentImages.length);
-            }
-            touchStartX.current = null;
-          }}
+          aria-label="How it works media"
         >
           {currentImages.length > 0 ? (
-            currentImages.map((src, i) => (
-              <img
-                key={i}
-                src={src}
-                alt={activeTab === 'guests' ? 'How it works for guests' : 'How it works for hosts'}
-                className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ${i === slideIndex ? 'opacity-100' : 'opacity-0'}`}
-                loading="eager"
-                decoding="async"
-              />
-            ))
+            <img
+              src={currentImages[0]}
+              alt={activeTab === 'guests' ? 'How it works for guests' : 'How it works for hosts'}
+              className="w-full h-full object-cover"
+              loading="eager"
+              decoding="async"
+            />
           ) : (
             <div className="aspect-video bg-[#F2E8DC] flex items-center justify-center text-[#8B5E34]">Section Media</div>
-          )}
-
-          {currentImages.length > 1 && (
-            <div className="absolute bottom-3 left-0 right-0 flex items-center justify-center gap-2 z-10">
-              {currentImages.map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setSlideIndex(i)}
-                  aria-label={`Go to media ${i+1}`}
-                  className={`w-2.5 h-2.5 rounded-full ${i === slideIndex ? 'bg-[#8B5E34]' : 'bg-white/70'} focus:outline-none focus:ring-2 focus:ring-[#8B5E34]`}
-                />
-              ))}
-            </div>
-          )}
-
-          {currentImages.length > 1 && (
-            <>
-              <button
-                aria-label="Previous media"
-                onClick={() => setSlideIndex(i => (i - 1 + currentImages.length) % currentImages.length)}
-                className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 text-[#2B1B0E] shadow hover:bg-white z-10 focus:outline-none focus:ring-2 focus:ring-[#8B5E34]"
-              >
-                {'<'}
-              </button>
-              <button
-                aria-label="Next media"
-                onClick={() => setSlideIndex(i => (i + 1) % currentImages.length)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 text-[#2B1B0E] shadow hover:bg-white z-10 focus:outline-none focus:ring-2 focus:ring-[#8B5E34]"
-              >
-                {'>'}
-              </button>
-            </>
           )}
         </div>
 
