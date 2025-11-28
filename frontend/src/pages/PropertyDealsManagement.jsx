@@ -51,7 +51,7 @@ const PropertyDealsManagement = () => {
           <h2 className="text-2xl font-bold text-gray-700 mb-2">No Properties Yet</h2>
           <p className="text-gray-600 mb-4">Create a property first to manage deals</p>
           <a
-            href="/upload-property"
+            href="/list-property"
             className="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700"
           >
             Add Your First Property
