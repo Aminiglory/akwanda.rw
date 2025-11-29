@@ -193,7 +193,7 @@ const Hero = () => {
       {/* Slides */}
       <div
         className="absolute inset-0"
-        style={{ transform: `translateY(${reduceMotion ? 0 : parallax}px)`, willChange: 'transform' }}
+        style={{ transform: 'translateY(0px)', willChange: 'transform' }}
         onMouseEnter={() => setPaused(true)}
         onMouseLeave={() => setPaused(false)}
         onFocusCapture={() => setPaused(true)}
