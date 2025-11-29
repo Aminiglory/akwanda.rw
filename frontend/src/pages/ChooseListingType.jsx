@@ -73,7 +73,7 @@ const ChooseListingType = () => {
 
         {/* Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          {listingTypes.map((type) => {
+          {listingTypes.slice(0, 1).map((type) => {
             const Icon = type.icon;
             return (
               <button
