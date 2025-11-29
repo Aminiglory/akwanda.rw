@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useLocale } from '../contexts/LocaleContext';
-import { makeAbsoluteImageUrl } from '../utils/imageUtils';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -25,7 +24,12 @@ export default function OurMission() {
   const images = useMemo(() => {
     const list = Array.isArray(section?.images) ? section.images : [];
     return list
-      .map(img => makeAbsoluteImageUrl(img))
+      .map((img) => {
+        const s = String(img || '').trim();
+        if (!s) return null;
+        if (/^https?:\/\//i.test(s)) return s;
+        return `${API_BASE}${s.startsWith('/') ? s : `/${s}`}`;
+      })
       .filter(Boolean);
   }, [section]);
 
