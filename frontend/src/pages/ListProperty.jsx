@@ -157,13 +157,48 @@ const ListProperty = () => {
     </div>
   );
 
+  const reverseGeocode = async (lat, lng) => {
+    try {
+      const params = new URLSearchParams({
+        format: 'json',
+        lat: String(lat),
+        lon: String(lng),
+        addressdetails: '1'
+      });
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?${params.toString()}`, {
+        headers: {
+          'User-Agent': 'AKWANDA/1.0',
+          Accept: 'application/json'
+        }
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      return data.address || null;
+    } catch (error) {
+      console.error('Failed to reverse geocode:', error);
+      return null;
+    }
+  };
+
   const handleLocationSelected = async ({ lat, lng }) => {
+    const address = await reverseGeocode(lat, lng);
+    const cityOrDistrict = address?.city || address?.town || address?.village || address?.county || '';
+    const districtHint = address?.state_district || address?.city_district || address?.suburb || '';
+    const road = address?.road || '';
+    const houseNumber = address?.house_number || '';
+    const exactAddress = [houseNumber, road, address?.neighbourhood, address?.quarter].filter(Boolean).join(' ').trim();
+    const directionsHint = address?.display_name || road || '';
     setAttractionForm((prev) => ({
       ...prev,
       latitude: lat,
       longitude: lng,
       gps: `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
-      locationMap: `Lat ${lat.toFixed(5)}, Lng ${lng.toFixed(5)}`
+      locationMap: `Lat ${lat.toFixed(5)}, Lng ${lng.toFixed(5)}`,
+      country: address?.country || prev.country,
+      city: cityOrDistrict || prev.city,
+      address: exactAddress || prev.address,
+      directions: directionsHint || prev.directions,
+      cityDistrict: districtHint || prev.cityDistrict
     }));
   };
 
