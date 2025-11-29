@@ -133,10 +133,10 @@ const OwnerRegister = () => {
     }
     
     const result = await register(formData);
-    
+
     if (result.success) {
       toast.success('Property Owner account created successfully!');
-      navigate('/choose-listing-type'); // Redirect to listing type selection
+      navigate('/upload');
     } else {
       const message = result.error || 'Registration failed. Please try again.';
       setError(message);

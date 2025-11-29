@@ -586,16 +586,6 @@ const ListProperty = () => {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4">
-        <div className="mb-4 flex justify-between items-center">
-          <button
-            type="button"
-            onClick={() => navigate('/choose-listing-type')}
-            className="inline-flex items-center px-3 py-1.5 rounded-full bg-white hover:bg-gray-50 text-xs font-medium text-gray-700 border border-gray-200 shadow-sm transition-colors"
-          >
-            <span className="mr-1">←</span>
-            Back to listing options
-          </button>
-        </div>
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">List your property</h1>
           <p className="text-gray-600">Choose what you want to list, then follow the steps to publish it on AKWANDA.rw.</p>

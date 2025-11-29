@@ -72,16 +72,6 @@ const Flights = () => {
       {/* Hero Section */}
       <div className="bg-[#a06b42] text-white py-12 md:py-16">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="flex items-center justify-between mb-6">
-            <button
-              type="button"
-              onClick={() => navigate('/choose-listing-type')}
-              className="inline-flex items-center px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-xs md:text-sm font-medium text-white border border-white/30 transition-colors"
-            >
-              <span className="mr-2">←</span>
-              Back to listing options
-            </button>
-          </div>
           <div className="text-center mb-8">
             <h1 className="text-2xl md:text-4xl font-bold mb-2 md:mb-4">Flights for Your Apartment Stay</h1>
             <p className="text-base md:text-xl text-white/90">Book flights to reach your apartment destination in Rwanda</p>
