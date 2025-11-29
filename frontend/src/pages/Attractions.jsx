@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaStar } from 'react-icons/fa';
 import PropertyCard from '../components/PropertyCard';
+import FeaturedDestinationsSection from '../components/FeaturedDestinationsSection';
 import { useAuth } from '../contexts/AuthContext';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -18,6 +19,7 @@ const Attractions = () => {
     heroImages: [],
     published: true,
   });
+  const [landingFeatured, setLandingFeatured] = useState(null);
 
   const makeAbsolute = (u) => {
     if (!u) return null;
@@ -84,6 +86,15 @@ const Attractions = () => {
             heroImages: Array.isArray(content.heroImages) ? content.heroImages : [],
             published: !!content.published,
           });
+        }
+
+        // Load featured landing section
+        const landingRes = await fetch(`${API_URL}/api/content/landing`);
+        if (landingRes.ok) {
+          const landingData = await landingRes.json();
+          const sections = Array.isArray(landingData?.content?.sections) ? landingData.content.sections : [];
+          const featured = sections.find((s) => s?.key === 'featuredDestinations');
+          setLandingFeatured(featured || null);
         }
         
         // Load actual attractions from API
@@ -198,6 +209,9 @@ const Attractions = () => {
             ))}
           </div>
         </div>
+
+        {/* Featured landing destinations */}
+        <FeaturedDestinationsSection section={landingFeatured} showExploreLink />
 
         {/* Attractions Grid */}
         {loading ? (
