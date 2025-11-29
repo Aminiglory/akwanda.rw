@@ -649,7 +649,8 @@ export default function OwnerAttractionsDashboard() {
           </table>
         </div>
       </div>
-      )};
+      )}
+
       {receiptBooking && (
         <ReceiptPreview
           title="Attraction Booking Receipt"
@@ -668,7 +669,15 @@ export default function OwnerAttractionsDashboard() {
           onClose={() => setReceiptBooking(null)}
         />
       )}
-      <SuccessModal open={successOpen} title={successTitle} message={successMsg} onClose={() => setSuccessOpen(false)} />
+
+      <SuccessModal
+        open={successOpen}
+        title={successTitle}
+        message={successMsg}
+        onClose={() => setSuccessOpen(false)}
+      />
     </div>
   );
-}
+  </div>
+  )}
+
