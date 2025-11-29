@@ -56,34 +56,51 @@ export default function OurMission() {
   }, [currentIndex, images && images.length]);
 
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-        <div className="relative w-full h-64 sm:h-80 md:h-96 rounded-2xl overflow-hidden shadow">
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center rounded-3xl bg-gradient-to-br from-[#FFF3E4] via-[#FFE7D0] to-[#F8D9B8] px-6 sm:px-8 lg:px-10 py-10 shadow-[0_18px_40px_rgba(75,46,5,0.18)]">
+        <div className="relative w-full h-64 sm:h-80 md:h-96 rounded-2xl overflow-hidden shadow-xl bg-black/5">
           {images.length > 0 ? (
             <img
               src={images[currentIndex]}
               alt={(section && section.title) || 'Our mission'}
-              className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700"
+              className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out will-change-transform hover:scale-[1.02]"
               loading="eager"
               decoding="async"
             />
           ) : (
             <div className="absolute inset-0 bg-gradient-to-br from-gray-200 via-gray-100 to-white" />
           )}
-          <div className="absolute inset-0 bg-black/10" />
+          <div className="absolute inset-0 bg-black/20 mix-blend-multiply" />
+          <div className="absolute inset-4 rounded-2xl border border-white/40" />
         </div>
-        <div>
-          <h2 className="text-2xl md:text-3xl font-bold text-[#4b2a00]">
+        <div className="relative">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/80 text-xs font-semibold text-[#8b5e34] shadow-sm mb-3">
+            <span className="inline-block w-2 h-2 rounded-full bg-[#a06b42]" />
+            Our mission at AKWANDA.rw
+          </div>
+          <h2 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-[#2b1b0e] leading-snug">
             {localize
               ? localize((section && section.title) || 'Our Mission')
               : ((section && section.title) || 'Our Mission')}
           </h2>
           {section && section.body && (
-            <p className="mt-4 text-gray-700 whitespace-pre-line">{localize ? localize(section.body) : section.body}</p>
+            <p className="mt-4 text-sm md:text-base text-[#4b2a00]/90 whitespace-pre-line leading-relaxed">
+              {localize ? localize(section.body) : section.body}
+            </p>
           )}
           <div className="mt-6 flex flex-wrap gap-3">
-            <a href="/about" className="px-5 py-2.5 rounded-lg bg-[#a06b42] text-white font-semibold hover:bg-[#8f5d36] transition-colors">{t ? t('cta.learnMore') : 'Learn more'}</a>
-            <a href="/contact" className="px-5 py-2.5 rounded-lg border theme-chocolate-border text-[#4b2a00] font-semibold hover:bg-[#fff7ee] transition-colors">{t ? t('cta.contactUs') : 'Contact us'}</a>
+            <a
+              href="/about"
+              className="px-5 py-2.5 rounded-xl bg-[#a06b42] text-white font-semibold shadow-md shadow-[#a06b42]/40 hover:bg-[#8f5d36] hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300"
+            >
+              {t ? t('cta.learnMore') : 'Learn more'}
+            </a>
+            <a
+              href="/contact"
+              className="px-5 py-2.5 rounded-xl border border-[#e0c7a8] bg-white/80 text-[#4b2a00] font-semibold hover:bg-[#fff7ee] hover:border-[#d0ab7f] transition-all duration-300 shadow-sm"
+            >
+              {t ? t('cta.contactUs') : 'Contact us'}
+            </a>
           </div>
         </div>
       </div>

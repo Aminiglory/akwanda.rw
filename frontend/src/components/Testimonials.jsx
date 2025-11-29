@@ -120,7 +120,7 @@ export default function Testimonials() {
   console.log('[Testimonials] render list size', { listSize: list.length, loading });
 
   return (
-    <div className="bg-white py-16 px-4">
+    <div className="bg-white py-16 px-4 animate-fade-in-up">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold text-gray-800 mb-4">
@@ -143,7 +143,7 @@ export default function Testimonials() {
             {list.map((testimonial) => (
               <div
                 key={testimonial._id || testimonial.id}
-                className="bg-white rounded-xl shadow-lg p-6 relative"
+                className="bg-white rounded-xl shadow-lg p-6 relative transition-transform duration-300 ease-out hover:-translate-y-0.5"
               >
                         <div className="absolute inset-0 -z-10">
                           <div className="absolute inset-0 translate-x-2 translate-y-2 rounded-xl bg-white"></div>

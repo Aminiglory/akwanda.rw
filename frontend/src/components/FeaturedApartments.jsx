@@ -86,7 +86,7 @@ const FeaturedApartments = () => {
   };
 
   return (
-    <div className="bg-white py-16 px-4">
+    <div className="bg-white py-16 px-4 animate-fade-in-up">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-2 text-gray-900">
@@ -101,7 +101,7 @@ const FeaturedApartments = () => {
           {apartments.map((apartment, index) => (
             <div
               key={apartment.id}
-              className="h-full"
+              className="h-full transition-transform duration-300 ease-out hover:-translate-y-0.5"
             >
               <PropertyCard
                 listing={{

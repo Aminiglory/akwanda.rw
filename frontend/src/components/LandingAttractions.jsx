@@ -42,7 +42,7 @@ export default function LandingAttractions() {
   if (!section || cards.length === 0) return null;
 
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 animate-fade-in-up">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl md:text-3xl font-bold text-[#4b2a00]">{localize ? localize(section.title || 'Top Attractions') : (section.title || 'Top Attractions')}</h2>
         <a href="/attractions" className="text-[#a06b42] font-semibold hover:underline">{t ? t('landing.viewAll') : 'View all'}</a>
@@ -51,7 +51,7 @@ export default function LandingAttractions() {
         {cards.map((c, i) => (
           <article
             key={i}
-            className="group relative rounded-2xl overflow-hidden bg-white border theme-chocolate-border shadow-sm"
+            className="group relative rounded-2xl overflow-hidden bg-white border theme-chocolate-border shadow-sm transition-transform duration-300 ease-out hover:-translate-y-0.5"
           >
             <figure className="relative aspect-[4/3] overflow-hidden">
               <img

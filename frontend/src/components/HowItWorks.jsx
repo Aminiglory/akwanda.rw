@@ -308,7 +308,7 @@ const HowItWorks = () => {
   }, [sectionImagesGuests, sectionImagesHosts, howMedia, heroSlides]);
 
   return (
-    <div className="px-4 py-8">
+    <div className="px-4 py-8 animate-fade-in-up">
       <div className="max-w-6xl mx-auto">
         <div className="flex items-center justify-center mb-2">
           <div className="inline-flex items-center bg-[#F2E8DC] rounded-full p-1">

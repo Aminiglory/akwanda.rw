@@ -232,7 +232,7 @@ img[loading="lazy"].loaded {
 }
 
 .animate-fade-in-up {
-  animation: fadeInUp 0.8s ease-out;
+  animation: fadeInUp 1.2s ease-out;
 }
 
 .animate-fade-in-up-delayed {
