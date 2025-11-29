@@ -828,6 +828,33 @@ const Navbar = () => {
     navigate(`/search?${params.toString()}`);
   };
 
+  const mergeHrefQueryParameters = (params, href) => {
+    if (!href) return;
+    const queryIndex = href.indexOf('?');
+    if (queryIndex < 0) return;
+    const fragment = href.substring(queryIndex + 1);
+    const extras = new URLSearchParams(fragment);
+    extras.forEach((value, key) => {
+      params.set(key, value);
+    });
+  };
+
+  const handleNavFilter = (item) => {
+    if (!item) return;
+    const params = new URLSearchParams();
+    mergeHrefQueryParameters(params, item.href);
+    const term = String(item.query || item.label || '').trim();
+    if (term) {
+      params.set('query', term);
+    }
+    if (!term && !params.has('category')) {
+      return;
+    }
+    params.set('mode', isAuthenticated && user?.userType === 'host' ? 'owner' : 'user');
+    setGlobalSearchTerm(term);
+    navigate(`/search?${params.toString()}`);
+  };
+
   const handleGlobalSearch = (e) => {
     e?.preventDefault?.();
     const term = String(globalSearchTerm || '').trim();
@@ -1144,35 +1171,32 @@ const Navbar = () => {
                   <div className="hidden lg:flex items-center space-x-1 ml-4">
                     {mainNavItems.map((item, index) => {
                       const Icon = item.icon;
-                      const isActive = isActiveRoute(item.href);
                       const hasChildren = item.children && item.children.length > 0;
                       return (
                         <div key={index} className="relative group">
-                        <Link
-                          to={item.href}
-                            className={`flex items-center space-x-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                            isActive
-                                ? 'bg-[#a06b42] text-white'
-                              : 'text-[#6b5744] hover:text-[#4b2a00] hover:bg-[#e8dcc8]'
-                          }`}
-                        >
+                          <button
+                            type="button"
+                            onClick={() => handleNavFilter(item)}
+                            className={`flex items-center space-x-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors text-[#6b5744] hover:text-[#4b2a00] hover:bg-[#e8dcc8]`}
+                          >
                             <Icon className="text-xs" />
-                          <span>{item.label}</span>
+                            <span>{item.label}</span>
                             {hasChildren && <FaChevronDown className="text-[10px] ml-0.5" />}
-                          </Link>
+                          </button>
                           {hasChildren && (
                             <div className="absolute left-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50">
                               {item.children.map((child, cidx) => {
                                 const ChildIcon = child.icon;
                                 return (
-                                  <Link
+                                  <button
                                     key={cidx}
-                                    to={child.href || item.href}
-                                    className="flex items-center gap-2 px-3 py-1.5 text-xs text-[#4b2a00] hover:bg-gray-50"
+                                    type="button"
+                                    onClick={() => handleNavFilter(child)}
+                                    className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-[#4b2a00] hover:bg-gray-50"
                                   >
                                     {ChildIcon && <ChildIcon className="text-xs" />}
                                     <span>{child.label}</span>
-                        </Link>
+                                  </button>
                                 );
                               })}
                             </div>
@@ -1187,269 +1211,269 @@ const Navbar = () => {
 
               {/* Right Side - Booking.com Style */}
               <div className="flex flex-nowrap items-center gap-1 lg:gap-2">
-              {/* Modern Global search in main navbar (public / non-owner dashboard context) */}
-              {(!isAuthenticated || !isInAnyOwnerDashboard()) && (
-                <form
-                  onSubmit={handleGlobalSearch}
-                  className="hidden lg:flex items-center bg-white border border-gray-200 rounded-lg px-2 py-1.5 mr-2 max-w-xs shadow-sm hover:border-[#a06b42] focus-within:border-[#a06b42] transition-all duration-300"
-                >
-                  <FaSearch className="text-xs text-gray-400 mr-1.5 flex-shrink-0" />
-                  <input
-                    type="text"
-                    value={globalSearchTerm}
-                    onChange={(e) => setGlobalSearchTerm(e.target.value)}
-                    placeholder="Search..."
-                    className="flex-1 text-xs bg-transparent outline-none placeholder:text-gray-400 text-gray-800"
-                  />
-                  <button
-                    type="submit"
-                    className="ml-1.5 px-2 py-1 text-xs rounded-md bg-[#a06b42] text-white hover:bg-[#8f5a32] whitespace-nowrap font-medium transition-all duration-300"
+                {/* Modern Global search in main navbar (public / non-owner dashboard context) */}
+                {(!isAuthenticated || !isInAnyOwnerDashboard()) && (
+                  <form
+                    onSubmit={handleGlobalSearch}
+                    className="hidden lg:flex items-center bg-white border border-gray-200 rounded-lg px-2 py-1.5 mr-2 max-w-xs shadow-sm hover:border-[#a06b42] focus-within:border-[#a06b42] transition-all duration-300"
                   >
-                    Search
-                  </button>
-                </form>
-              )}
+                    <FaSearch className="text-xs text-gray-400 mr-1.5 flex-shrink-0" />
+                    <input
+                      type="text"
+                      value={globalSearchTerm}
+                      onChange={(e) => setGlobalSearchTerm(e.target.value)}
+                      placeholder="Search..."
+                      className="flex-1 text-xs bg-transparent outline-none placeholder:text-gray-400 text-gray-800"
+                    />
+                    <button
+                      type="submit"
+                      className="ml-1.5 px-2 py-1 text-xs rounded-md bg-[#a06b42] text-white hover:bg-[#8f5a32] whitespace-nowrap font-medium transition-all duration-300"
+                    >
+                      Search
+                    </button>
+                  </form>
+                )}
 
-              {/* Global search within owner dashboard */}
-              {isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard() && (
-                <div className="hidden lg:flex items-center bg-white border border-gray-300 rounded-lg px-2 py-1.5 ml-1 max-w-xs">
-                  <FaSearch className="text-xs text-gray-500 mr-1" />
-                  <input
-                    type="text"
-                    value={ownerSearchTerm}
-                    onChange={(e) => setOwnerSearchTerm(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') handleOwnerSearch(); }}
-                    placeholder="Search..."
-                    className="flex-1 text-xs bg-transparent outline-none placeholder:text-gray-400"
-                  />
-                </div>
-              )}
+                {/* Global search within owner dashboard */}
+                {isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard() && (
+                  <div className="hidden lg:flex items-center bg-white border border-gray-300 rounded-lg px-2 py-1.5 ml-1 max-w-xs">
+                    <FaSearch className="text-xs text-gray-500 mr-1" />
+                    <input
+                      type="text"
+                      value={ownerSearchTerm}
+                      onChange={(e) => setOwnerSearchTerm(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') handleOwnerSearch(); }}
+                      placeholder="Search..."
+                      className="flex-1 text-xs bg-transparent outline-none placeholder:text-gray-400"
+                    />
+                  </div>
+                )}
 
-              {/* Favorites */}
-              {isAuthenticated && !isInAnyOwnerDashboard() && (
-                <Link
-                  to="/favorites"
-                  className="hidden lg:flex items-center px-2 py-1.5 rounded-md text-[#6b5744] hover:text-[#4b2a00] hover:bg-[#e8dcc8] transition-colors"
-                  title={t ? t('nav.favorites') : 'Favorites'}
-                >
-                  <FaHeart className="text-sm" />
-                </Link>
-              )}
-
-              {/* Messages */}
-              {isAuthenticated && (user?.userType !== 'worker' ? true : !!user?.privileges?.canMessageGuests) && (
-                <Link
-                  to="/messages"
-                  className={`flex items-center px-2 py-1.5 rounded-md relative transition-colors ${
-                    isAuthenticated && user?.userType === 'host' && isInAnyOwnerDashboard()
-                      ? 'text-white hover:text-white/90 hover:bg-[#6b3f1f]'
-                      : 'text-[#6b5744] hover:text-[#4b2a00] hover:bg-[#e8dcc8]'
-                  }`}
-                  title={t ? t('nav.messages') : 'Messages'}
-                >
-                  <FaEnvelope className="text-sm" />
-                  {unreadMsgCount > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 bg-red-600 text-white text-[10px] rounded-full px-1 py-0.5 min-w-[14px] text-center">
-                      {unreadMsgCount}
-                    </span>
-                  )}
-                </Link>
-              )}
-
-              {/* Show Login / Sign Up when not authenticated */}
-              {!isAuthenticated && (
-                <div className="flex items-center space-x-1">
+                {/* Favorites */}
+                {isAuthenticated && !isInAnyOwnerDashboard() && (
                   <Link
-                    to="/login"
-                    className="px-2 py-1.5 text-xs font-medium text-[#6b5744] hover:text-[#4b2a00] whitespace-nowrap"
+                    to="/favorites"
+                    className="hidden lg:flex items-center px-2 py-1.5 rounded-md text-[#6b5744] hover:text-[#4b2a00] hover:bg-[#e8dcc8] transition-colors"
+                    title={t ? t('nav.favorites') : 'Favorites'}
                   >
-                    {t ? t('nav.login') : 'Login'}
+                    <FaHeart className="text-sm" />
                   </Link>
-                  <Link
-                    to="/register"
-                    className="px-2 py-1.5 bg-[#a06b42] text-white text-xs font-medium rounded-md hover:bg-[#8f5a32] transition-colors whitespace-nowrap"
-                  >
-                    {t ? t('nav.signUp') : 'Sign Up'}
-                  </Link>
-                </div>
-              )}
+                )}
 
-              {/* Notifications (admin and host) */}
-              {(user?.userType === "admin" || user?.userType === 'host') && (
-                <div className="relative inline-flex items-center">
-                  <button
-                    onClick={toggleNotifications}
-                    className={`notification-button relative px-3 py-2 rounded-lg transition-colors cursor-pointer ${
+                {/* Messages */}
+                {isAuthenticated && (user?.userType !== 'worker' ? true : !!user?.privileges?.canMessageGuests) && (
+                  <Link
+                    to="/messages"
+                    className={`flex items-center px-2 py-1.5 rounded-md relative transition-colors ${
                       isAuthenticated && user?.userType === 'host' && isInAnyOwnerDashboard()
-                        ? isNotificationOpen
-                          ? 'bg-[#a06b42] text-white'
-                          : 'text-white hover:text-white/90 hover:bg-[#6b3f1f]'
-                        : isNotificationOpen
-                          ? 'bg-[#a06b42] text-white'
-                          : 'text-[#6b5744] hover:text-[#4b2a00] hover:bg-[#e8dcc8]'
+                        ? 'text-white hover:text-white/90 hover:bg-[#6b3f1f]'
+                        : 'text-[#6b5744] hover:text-[#4b2a00] hover:bg-[#e8dcc8]'
                     }`}
+                    title={t ? t('nav.messages') : 'Messages'}
                   >
-                    <FaBell className="text-sm" />
-                    {unreadNotifCount > 0 && (
-                      <span className="absolute -top-0.5 -right-0.5 bg-green-600 text-white text-[10px] rounded-full px-1 py-0.5 min-w-[14px] text-center">
-                        {unreadNotifCount}
+                    <FaEnvelope className="text-sm" />
+                    {unreadMsgCount > 0 && (
+                      <span className="absolute -top-0.5 -right-0.5 bg-red-600 text-white text-[10px] rounded-full px-1 py-0.5 min-w-[14px] text-center">
+                        {unreadMsgCount}
                       </span>
                     )}
-                  </button>
-                  {isNotificationOpen && (
-                    <div className="notification-dropdown absolute top-full right-0 sm:right-0 left-0 sm:left-auto mt-1 w-[calc(100vw-1rem)] sm:w-72 max-w-sm mx-2 sm:mx-0 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-[99999]">
-                      <div className="px-3 py-1.5 border-b border-gray-100 font-semibold text-xs flex items-center justify-between">
-                        <span>{t ? t('nav.notifications') : 'Notifications'}</span>
-                        <Link
-                          to="/notifications"
-                          className="text-[10px] text-gray-700 hover:text-gray-900"
-                          onClick={() => setIsNotificationOpen(false)}
-                        >
-                          {t ? t('nav.viewAll') : 'View All'}
-                        </Link>
-                      </div>
-                      <div className="max-h-80 overflow-y-auto">
-                        {notifications.length === 0 ? (
-                          <div className="px-3 py-6 text-center text-gray-500 text-xs">No notifications</div>
-                        ) : (
-                          Object.entries(groupedNotifications()).map(([category, notifs]) => (
-                            <div key={category} className="px-3 py-1.5">
-                              <div className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">
-                                {category}
-                              </div>
-                              {notifs.slice(0, 3).map((n) => (
-                                <Link
-                                  key={n.id}
-                                  to={getNotificationLink(n)}
-                                  onClick={() => {
-                                    markNotificationRead(n.id);
-                                    setIsNotificationOpen(false);
-                                  }}
-                                  className={`block text-[10px] py-1.5 rounded hover:bg-gray-50 ${!n.isRead ? 'font-semibold' : 'text-gray-600'}`}
-                                >
-                                  <div className="flex items-start gap-1.5">
-                                    <div className={`${!n.isRead ? 'bg-blue-600' : 'bg-gray-300'} w-1.5 h-1.5 mt-0.5 rounded-full`}></div>
-                                    <div className="min-w-0">
-                                      <div className="text-gray-800 break-words whitespace-normal text-[11px] leading-snug">{n.title || n.message}</div>
-                                      <div className="text-[9px] text-gray-500 break-words">{n.createdAt ? new Date(n.createdAt).toLocaleString() : ''}</div>
-                                    </div>
-                                  </div>
-                                </Link>
-                              ))}
-                              {notifs.length > 3 && (
-                                <div className="text-xs text-gray-500 text-center py-1">
-                                  +{notifs.length - 3} more in {category}
-                                </div>
-                              )}
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
+                  </Link>
+                )}
 
-              {/* Profile menu */}
-              {isAuthenticated && (
-                <div className="relative inline-flex items-center">
-                  <button
-                    onClick={toggleProfile}
-                    className={`profile-button flex items-center gap-1.5 px-2 py-1.5 rounded-md transition-colors ${isProfileOpen
-                        ? 'bg-[#a06b42] text-white'
-                        : 'text-[#6b5744] hover:text-[#4b2a00] hover:bg-[#e8dcc8]'
+                {/* Show Login / Sign Up when not authenticated */}
+                {!isAuthenticated && (
+                  <div className="flex items-center space-x-1">
+                    <Link
+                      to="/login"
+                      className="px-2 py-1.5 text-xs font-medium text-[#6b5744] hover:text-[#4b2a00] whitespace-nowrap"
+                    >
+                      {t ? t('nav.login') : 'Login'}
+                    </Link>
+                    <Link
+                      to="/register"
+                      className="px-2 py-1.5 bg-[#a06b42] text-white text-xs font-medium rounded-md hover:bg-[#8f5a32] transition-colors whitespace-nowrap"
+                    >
+                      {t ? t('nav.signUp') : 'Sign Up'}
+                    </Link>
+                  </div>
+                )}
+
+                {/* Notifications (admin and host) */}
+                {(user?.userType === "admin" || user?.userType === 'host') && (
+                  <div className="relative inline-flex items-center">
+                    <button
+                      onClick={toggleNotifications}
+                      className={`notification-button relative px-3 py-2 rounded-lg transition-colors cursor-pointer ${
+                        isAuthenticated && user?.userType === 'host' && isInAnyOwnerDashboard()
+                          ? isNotificationOpen
+                            ? 'bg-[#a06b42] text-white'
+                            : 'text-white hover:text-white/90 hover:bg-[#6b3f1f]'
+                          : isNotificationOpen
+                            ? 'bg-[#a06b42] text-white'
+                            : 'text-[#6b5744] hover:text-[#4b2a00] hover:bg-[#e8dcc8]'
                       }`}
-                    title={user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : 'Account'}
-                  >
-                    {avatarUrl ? (
-                      <img
-                        src={avatarUrl}
-                        alt="avatar"
-                        className="w-5 h-5 rounded-full object-cover"
-                        onError={() => setAvatarOk(false)}
-                        style={{ display: avatarOk ? 'block' : 'none' }}
-                      />
-                    ) : null}
-                    {!avatarOk || !avatarUrl ? (
-                      <div className="w-5 h-5 rounded-full bg-white flex items-center justify-center border border-gray-200">
-                        <FaUserCircle className="text-xs text-gray-500" />
-                      </div>
-                    ) : null}
-                    <FaCaretDown className="text-[10px]" />
-                  </button>
-                  {isProfileOpen && (
-                    <div className="profile-dropdown absolute top-full right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-[99999]">
-                      <div className="px-3 py-1.5 border-b border-gray-100 text-xs">
-                        <div className="font-semibold text-[#4b2a00] truncate">{user?.firstName || user?.email}</div>
-                        <div className="text-[10px] text-gray-600 truncate">{user?.email}</div>
-                      </div>
-                      <Link to="/profile" className="block px-3 py-1.5 text-xs text-[#4b2a00] hover:bg-gray-50">{t ? t('nav.profile') : 'Profile'}</Link>
-                      <Link to="/settings" className="block px-3 py-1.5 text-xs text-[#4b2a00] hover:bg-gray-50">{t ? t('nav.accountSettings') : 'Account settings'}</Link>
-                      <Link to="/my-bookings" className="block px-3 py-1.5 text-xs text-[#4b2a00] hover:bg-gray-50">{t ? t('nav.reservations') : 'My bookings'}</Link>
-                      {user?.userType === 'host' && (
-                        <Link to="/dashboard" className="block px-3 py-1.5 text-xs text-[#4b2a00] hover:bg-gray-50">{t ? t('nav.dashboard') : 'Owner dashboard'}</Link>
+                    >
+                      <FaBell className="text-sm" />
+                      {unreadNotifCount > 0 && (
+                        <span className="absolute -top-0.5 -right-0.5 bg-green-600 text-white text-[10px] rounded-full px-1 py-0.5 min-w-[14px] text-center">
+                          {unreadNotifCount}
+                        </span>
                       )}
-                      <button onClick={handleLogout} className="w-full text-left px-3 py-1.5 text-xs text-red-700 hover:bg-gray-50 flex items-center gap-2">
-                        <FaSignOutAlt /> <span>{t ? t('nav.logout') : 'Log out'}</span>
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
+                    </button>
+                    {isNotificationOpen && (
+                      <div className="notification-dropdown absolute top-full right-0 sm:right-0 left-0 sm:left-auto mt-1 w-[calc(100vw-1rem)] sm:w-72 max-w-sm mx-2 sm:mx-0 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-[99999]">
+                        <div className="px-3 py-1.5 border-b border-gray-100 font-semibold text-xs flex items-center justify-between">
+                          <span>{t ? t('nav.notifications') : 'Notifications'}</span>
+                          <Link
+                            to="/notifications"
+                            className="text-[10px] text-gray-700 hover:text-gray-900"
+                            onClick={() => setIsNotificationOpen(false)}
+                          >
+                            {t ? t('nav.viewAll') : 'View All'}
+                          </Link>
+                        </div>
+                        <div className="max-h-80 overflow-y-auto">
+                          {notifications.length === 0 ? (
+                            <div className="px-3 py-6 text-center text-gray-500 text-xs">No notifications</div>
+                          ) : (
+                            Object.entries(groupedNotifications()).map(([category, notifs]) => (
+                              <div key={category} className="px-3 py-1.5">
+                                <div className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                                  {category}
+                                </div>
+                                {notifs.slice(0, 3).map((n) => (
+                                  <Link
+                                    key={n.id}
+                                    to={getNotificationLink(n)}
+                                    onClick={() => {
+                                      markNotificationRead(n.id);
+                                      setIsNotificationOpen(false);
+                                    }}
+                                    className={`block text-[10px] py-1.5 rounded hover:bg-gray-50 ${!n.isRead ? 'font-semibold' : 'text-gray-600'}`}
+                                  >
+                                    <div className="flex items-start gap-1.5">
+                                      <div className={`${!n.isRead ? 'bg-blue-600' : 'bg-gray-300'} w-1.5 h-1.5 mt-0.5 rounded-full`}></div>
+                                      <div className="min-w-0">
+                                        <div className="text-gray-800 break-words whitespace-normal text-[11px] leading-snug">{n.title || n.message}</div>
+                                        <div className="text-[9px] text-gray-500 break-words">{n.createdAt ? new Date(n.createdAt).toLocaleString() : ''}</div>
+                                      </div>
+                                    </div>
+                                  </Link>
+                                ))}
+                                {notifs.length > 3 && (
+                                  <div className="text-xs text-gray-500 text-center py-1">
+                                    +{notifs.length - 3} more in {category}
+                                  </div>
+                                )}
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
 
-              {/* Language & Currency selectors (click to open) */}
-              <div className="hidden lg:flex items-center space-x-4 ml-2">
-                {/* Language selector */}
-                <div className="relative lang-selector-second">
-                  <button
-                    type="button"
-                    onClick={() => { setLangOpenSecond(o=>!o); setCurrOpenSecond(false); }}
-                    className={`flex items-center space-x-2 cursor-pointer ${
-                      isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard()
-                        ? ''
-                        : 'hover:text-[#4b2a00]'
-                    }`}
-                  >
-                    <FaGlobe className="text-sm" />
-                    <span className="hidden sm:inline">{(language || 'en').toUpperCase()}</span>
-                    <FaCaretDown className="text-[10px] hidden sm:inline" />
-                  </button>
-                  {langOpenSecond && (
-                    <div className="main-nav-dropdown absolute right-0 mt-2 bg-white text-[#4b2a00] rounded-md shadow-lg border border-gray-200">
-                      <button onClick={() => { setLanguage && setLanguage('en'); setLangOpenSecond(false); }} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">English</button>
-                      <button onClick={() => { setLanguage && setLanguage('fr'); setLangOpenSecond(false); }} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">Français</button>
-                    </div>
-                  )}
-                </div>
-                {/* Currency selector */}
-                <div className="relative currency-selector-second">
-                  <button
-                    type="button"
-                    onClick={() => { setCurrOpenSecond(o=>!o); setLangOpenSecond(false); }}
-                    className={`flex items-center space-x-2 cursor-pointer ${
-                      isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard()
-                        ? ''
-                        : 'hover:text-[#4b2a00]'
-                    }`}
-                  >
-                    <span className="font-semibold">{(currency || 'RWF').toUpperCase()}</span>
-                    <FaCaretDown className="text-[10px]" />
-                  </button>
-                  {currOpenSecond && (
-                    <div className="main-nav-dropdown absolute right-0 mt-2 bg-white text-[#4b2a00] rounded-md shadow-lg border border-gray-200 min-w-[120px]">
-                      <button onClick={() => { setCurrency && setCurrency('RWF'); setCurrOpenSecond(false); }} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">RWF</button>
-                      <button onClick={() => { setCurrency && setCurrency('USD'); setCurrOpenSecond(false); }} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">USD</button>
-                      <button onClick={() => { setCurrency && setCurrency('EUR'); setCurrOpenSecond(false); }} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">EUR</button>
-                    </div>
-                  )}
-                </div>
-              </div>
+                {/* Profile menu */}
+                {isAuthenticated && (
+                  <div className="relative inline-flex items-center">
+                    <button
+                      onClick={toggleProfile}
+                      className={`profile-button flex items-center gap-1.5 px-2 py-1.5 rounded-md transition-colors ${isProfileOpen
+                          ? 'bg-[#a06b42] text-white'
+                          : 'text-[#6b5744] hover:text-[#4b2a00] hover:bg-[#e8dcc8]'
+                        }`}
+                      title={user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : 'Account'}
+                    >
+                      {avatarUrl ? (
+                        <img
+                          src={avatarUrl}
+                          alt="avatar"
+                          className="w-5 h-5 rounded-full object-cover"
+                          onError={() => setAvatarOk(false)}
+                          style={{ display: avatarOk ? 'block' : 'none' }}
+                        />
+                      ) : null}
+                      {!avatarOk || !avatarUrl ? (
+                        <div className="w-5 h-5 rounded-full bg-white flex items-center justify-center border border-gray-200">
+                          <FaUserCircle className="text-xs text-gray-500" />
+                        </div>
+                      ) : null}
+                      <FaCaretDown className="text-[10px]" />
+                    </button>
+                    {isProfileOpen && (
+                      <div className="profile-dropdown absolute top-full right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-[99999]">
+                        <div className="px-3 py-1.5 border-b border-gray-100 text-xs">
+                          <div className="font-semibold text-[#4b2a00] truncate">{user?.firstName || user?.email}</div>
+                          <div className="text-[10px] text-gray-600 truncate">{user?.email}</div>
+                        </div>
+                        <Link to="/profile" className="block px-3 py-1.5 text-xs text-[#4b2a00] hover:bg-gray-50">{t ? t('nav.profile') : 'Profile'}</Link>
+                        <Link to="/settings" className="block px-3 py-1.5 text-xs text-[#4b2a00] hover:bg-gray-50">{t ? t('nav.accountSettings') : 'Account settings'}</Link>
+                        <Link to="/my-bookings" className="block px-3 py-1.5 text-xs text-[#4b2a00] hover:bg-gray-50">{t ? t('nav.reservations') : 'My bookings'}</Link>
+                        {user?.userType === 'host' && (
+                          <Link to="/dashboard" className="block px-3 py-1.5 text-xs text-[#4b2a00] hover:bg-gray-50">{t ? t('nav.dashboard') : 'Owner dashboard'}</Link>
+                        )}
+                        <button onClick={handleLogout} className="w-full text-left px-3 py-1.5 text-xs text-red-700 hover:bg-gray-50 flex items-center gap-2">
+                          <FaSignOutAlt /> <span>{t ? t('nav.logout') : 'Log out'}</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
 
-            {/* Mobile Menu Button - only for authenticated users */}
-            {isAuthenticated && (
-              <button
-                onClick={toggleMenu}
-                className="lg:hidden p-1.5 text-[#6b5744] hover:text-[#4b2a00]"
+                {/* Language & Currency selectors (click to open) */}
+                <div className="hidden lg:flex items-center space-x-4 ml-2">
+                  {/* Language selector */}
+                  <div className="relative lang-selector-second">
+                    <button
+                      type="button"
+                      onClick={() => { setLangOpenSecond(o=>!o); setCurrOpenSecond(false); }}
+                      className={`flex items-center space-x-2 cursor-pointer ${
+                        isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard()
+                          ? ''
+                          : 'hover:text-[#4b2a00]'
+                      }`}
+                    >
+                      <FaGlobe className="text-sm" />
+                      <span className="hidden sm:inline">{(language || 'en').toUpperCase()}</span>
+                      <FaCaretDown className="text-[10px] hidden sm:inline" />
+                    </button>
+                    {langOpenSecond && (
+                      <div className="main-nav-dropdown absolute right-0 mt-2 bg-white text-[#4b2a00] rounded-md shadow-lg border border-gray-200">
+                        <button onClick={() => { setLanguage && setLanguage('en'); setLangOpenSecond(false); }} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">English</button>
+                        <button onClick={() => { setLanguage && setLanguage('fr'); setLangOpenSecond(false); }} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">Français</button>
+                      </div>
+                    )}
+                  </div>
+                  {/* Currency selector */}
+                  <div className="relative currency-selector-second">
+                    <button
+                      type="button"
+                      onClick={() => { setCurrOpenSecond(o=>!o); setLangOpenSecond(false); }}
+                      className={`flex items-center space-x-2 cursor-pointer ${
+                        isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard()
+                          ? ''
+                          : 'hover:text-[#4b2a00]'
+                      }`}
+                    >
+                      <span className="font-semibold">{(currency || 'RWF').toUpperCase()}</span>
+                      <FaCaretDown className="text-[10px]" />
+                    </button>
+                    {currOpenSecond && (
+                      <div className="main-nav-dropdown absolute right-0 mt-2 bg-white text-[#4b2a00] rounded-md shadow-lg border border-gray-200 min-w-[120px]">
+                        <button onClick={() => { setCurrency && setCurrency('RWF'); setCurrOpenSecond(false); }} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">RWF</button>
+                        <button onClick={() => { setCurrency && setCurrency('USD'); setCurrOpenSecond(false); }} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">USD</button>
+                        <button onClick={() => { setCurrency && setCurrency('EUR'); setCurrOpenSecond(false); }} className="block px-3 py-2 text-left w-full hover:bg-[#fff7ef]">EUR</button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+              {/* Mobile Menu Button - only for authenticated users */}
+              {isAuthenticated && (
+                <button
+                  onClick={toggleMenu}
+                  className="lg:hidden p-1.5 text-[#6b5744] hover:text-[#4b2a00]"
                 >
                   {isMenuOpen ? <FaTimes className="text-base" /> : <FaBars className="text-base" />}
                 </button>
@@ -1579,18 +1603,18 @@ const Navbar = () => {
                         {(item.children && item.children.length > 0 ? item.children : [{ label: item.label, href: item.href, icon: item.icon }]).map((child, cidx) => {
                           const ChildIcon = child.icon;
                           return (
-                            <Link
+                            <button
                               key={cidx}
-                              to={child.href}
-                              className="flex items-center gap-2 px-2 py-1.5 text-[10px] text-[#4b2a00] hover:bg-white border-t border-[#f0e6d9] first:border-t-0"
-                              onClick={() => setIsMenuOpen(false)}
+                              type="button"
+                              onClick={() => {
+                                handleNavFilter(child);
+                                setIsMenuOpen(false);
+                              }}
+                              className="w-full flex items-center gap-2 px-2 py-1.5 text-[10px] text-[#4b2a00] hover:bg-white border-t border-[#f0e6d9] first:border-t-0"
                             >
-                              <ChildIcon className="text-xs" />
-                              <span className="flex-1">{child.label}</span>
-                              {child.badge ? (
-                                <span className="ml-auto inline-flex items-center justify-center text-[9px] px-1 py-0.5 rounded-full bg-[#a06b42] text-white">{child.badge}</span>
-                              ) : null}
-                            </Link>
+                              {ChildIcon && <ChildIcon className="text-xs" />}
+                              <span>{child.label}</span>
+                            </button>
                           );
                         })}
                       </div>
@@ -1625,28 +1649,34 @@ const Navbar = () => {
                         {isExpanded && (
                           <div className="mt-1 rounded-md bg-[#fff8f1] border border-[#e0d5c7] overflow-hidden">
                             {m.children.map((child, cidx) => (
-                <Link
+                              <button
                                 key={cidx}
-                                to={child.href || m.href}
-                                className="flex items-center gap-2 px-2 py-1.5 text-[10px] text-[#4b2a00] hover:bg-white border-t border-[#f0e6d9] first:border-t-0"
-                  onClick={() => setIsMenuOpen(false)}
-                >
+                                type="button"
+                                onClick={() => {
+                                  handleNavFilter(child);
+                                  setIsMenuOpen(false);
+                                }}
+                                className="w-full flex items-center gap-2 px-2 py-1.5 text-[10px] text-[#4b2a00] hover:bg-white border-t border-[#f0e6d9] first:border-t-0"
+                              >
                                 {child.icon && <child.icon className="text-xs" />}
                                 <span>{child.label}</span>
-                </Link>
-              ))}
-            </div>
+                              </button>
+                            ))}
+                          </div>
                         )}
                       </>
                     ) : (
-                      <Link
-                        to={m.href}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleNavFilter(m);
+                          setIsMenuOpen(false);
+                        }}
                         className="flex items-center gap-1.5 px-2 py-1.5 rounded-md bg-white border border-[#e0d5c7] text-[#4b2a00]"
-                        onClick={() => setIsMenuOpen(false)}
                       >
                         {m.icon && <m.icon className="text-xs" />}
                         <span className="text-[10px]">{m.label}</span>
-                      </Link>
+                      </button>
                     )}
                   </div>
                 );
