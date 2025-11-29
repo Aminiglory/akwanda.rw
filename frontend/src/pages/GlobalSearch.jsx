@@ -26,6 +26,23 @@ const GlobalSearch = () => {
     return (sp.get('mode') || '').toLowerCase() === 'owner' || (isAuthenticated && user?.userType === 'host');
   }, [location.search, isAuthenticated, user]);
 
+  const extractPriorityParams = () => {
+    const sp = new URLSearchParams(location.search || '');
+    return {
+      propertyCategory: (sp.get('category') || '').trim().toLowerCase(),
+      carType: (sp.get('type') || '').trim().toLowerCase(),
+      attractionCategory: (sp.get('category') || '').trim().toLowerCase(),
+    };
+  };
+
+  const reorderByPriority = (list, field, priority) => {
+    if (!priority) return list;
+    const normalizedPriority = priority.toLowerCase();
+    const matches = list.filter((item) => String(item[field] || '').toLowerCase() === normalizedPriority);
+    const others = list.filter((item) => String(item[field] || '').toLowerCase() !== normalizedPriority);
+    return [...matches, ...others];
+  };
+
   useEffect(() => {
     setQuery(searchTerm);
   }, [searchTerm]);
@@ -39,6 +56,7 @@ const GlobalSearch = () => {
       return;
     }
     let cancelled = false;
+    const priorityParams = extractPriorityParams();
     (async () => {
       try {
         setLoading(true);
@@ -59,12 +77,12 @@ const GlobalSearch = () => {
             const city = String(p.city || '').toLowerCase();
             return title.includes(lower) || address.includes(lower) || city.includes(lower);
           });
-          if (!cancelled) setProperties(propsList);
+          if (!cancelled) setProperties(reorderByPriority(propsList, 'category', priorityParams.propertyCategory));
         } else {
           const propRes = await fetch(`${API_URL}/api/properties?${propParams.toString()}`);
           const propData = await propRes.json().catch(() => ({}));
           const propsList = Array.isArray(propData.properties) ? propData.properties : [];
-          if (!cancelled) setProperties(propsList);
+          if (!cancelled) setProperties(reorderByPriority(propsList, 'category', priorityParams.propertyCategory));
         }
 
         // Cars: fetch and filter
@@ -77,7 +95,7 @@ const GlobalSearch = () => {
             const loc = String(c.location || '').toLowerCase();
             return title.includes(lower) || loc.includes(lower);
           });
-          if (!cancelled) setCars(filteredCars);
+          if (!cancelled) setCars(reorderByPriority(filteredCars, 'type', priorityParams.carType));
         } else {
           const carsRes = await fetch(`${API_URL}/api/cars`);
           const carsData = await carsRes.json().catch(() => ({}));
@@ -87,7 +105,7 @@ const GlobalSearch = () => {
             const loc = String(c.location || '').toLowerCase();
             return title.includes(lower) || loc.includes(lower);
           });
-          if (!cancelled) setCars(filteredCars);
+          if (!cancelled) setCars(reorderByPriority(filteredCars, 'type', priorityParams.carType));
         }
 
         // Attractions: fetch and filter
@@ -102,7 +120,7 @@ const GlobalSearch = () => {
             const cat = String(a.category || '').toLowerCase();
             return name.includes(lower) || desc.includes(lower) || loc.includes(lower) || cat.includes(lower);
           });
-          if (!cancelled) setAttractions(filteredAttrs);
+          if (!cancelled) setAttractions(reorderByPriority(filteredAttrs, 'category', priorityParams.attractionCategory));
         } else {
           const attrParams = new URLSearchParams();
           attrParams.set('q', term);
@@ -116,7 +134,7 @@ const GlobalSearch = () => {
             const cat = String(a.category || '').toLowerCase();
             return name.includes(lower) || desc.includes(lower) || loc.includes(lower) || cat.includes(lower);
           });
-          if (!cancelled) setAttractions(filteredAttrs);
+          if (!cancelled) setAttractions(reorderByPriority(filteredAttrs, 'category', priorityParams.attractionCategory));
         }
       } catch (e) {
         if (!cancelled) setError('Failed to run global search.');
