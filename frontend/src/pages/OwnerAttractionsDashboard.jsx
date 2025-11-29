@@ -206,13 +206,21 @@ export default function OwnerAttractionsDashboard() {
   const isActiveTab = (path) => location.pathname.startsWith(path);
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-6">
-      {/* Owner section label */}
-      <div className="mb-4 flex items-center justify-between gap-2">
-        <div className="inline-flex rounded-lg overflow-hidden border border-[#d4c4b0] bg-[#a06b42] text-white px-3 py-2 text-sm">
-          Attractions
+    <div className="min-h-screen bg-[#f9f5ef] py-6">
+      <div className="max-w-6xl mx-auto px-4">
+        <div className="mb-4 flex justify-between items-center">
+          <button
+            type="button"
+            onClick={() => window.location.assign('/choose-listing-type')}
+            className="inline-flex items-center px-3 py-1.5 rounded-full bg-white/70 hover:bg-white text-xs font-medium text-[#4b2a00] border border-[#e0d5c7] shadow-sm transition-colors"
+          >
+            <span className="mr-1">←</span>
+            Back to listing options
+          </button>
         </div>
-        <div className="inline-flex rounded-lg overflow-hidden border">
+        <div className="mb-4 flex items-center justify-between gap-2">
+          <div className="inline-flex rounded-lg overflow-hidden border border-[#d4c4b0] bg-[#a06b42] text-white px-3 py-2 text-sm">
+            Attractions
           <button onClick={()=>setViewMode('cards')} className={`px-3 py-2 text-sm ${viewMode==='cards' ? 'bg-[#a06b42] text-white' : 'bg-white text-gray-700'}`}>Cards</button>
           <button onClick={()=>setViewMode('table')} className={`px-3 py-2 text-sm ${viewMode==='table' ? 'bg-[#a06b42] text-white' : 'bg-white text-gray-700'}`}>Table</button>
         </div>

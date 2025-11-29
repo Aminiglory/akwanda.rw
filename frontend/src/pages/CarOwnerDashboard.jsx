@@ -464,24 +464,13 @@ export default function CarOwnerDashboard() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-6">
-      {/* Owner section label */}
-      <div className="mb-4 flex items-center justify-between gap-2">
-        <div className="inline-flex rounded-lg overflow-hidden border border-[#d4c4b0] bg-[#a06b42] text-white px-3 py-2 text-sm">
-          Vehicles
-        </div>
-      </div>
-      {propertyContextId && (
-        <div className="mb-2 text-xs text-gray-600">
-          You are managing property context: <span className="font-semibold">{propertyContextLabel || propertyContextId}</span>
-        </div>
-      )}
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-2xl font-bold text-gray-900">My Vehicles</h1>
-        <div className="flex flex-wrap items-center gap-2">
+    <div className="min-h-screen bg-[#f9f5ef] py-6">
+      <div className="max-w-6xl mx-auto px-4">
+        <div className="mb-4 flex justify-between items-center">
           <button
             type="button"
-            onClick={() => {
+            onClick={() => window.location.assign('/choose-listing-type')}
+            className="inline-flex items-center px-3 py-1.5 rounded-full bg-white/70 hover:bg-white text-xs font-medium text-[#4b2a00] border border-[#e0d5c7] shadow-sm transition-colors"
               setShowCreateForm(prev => {
                 const next = !prev;
                 if (!prev && next) {

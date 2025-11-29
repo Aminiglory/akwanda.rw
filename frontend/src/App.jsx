@@ -213,6 +213,7 @@ function App() {
               <Route path="/profile" element={null} />
               <Route path="/login" element={null} />
               <Route path="/register" element={null} />
+              <Route path="/choose-listing-type" element={null} />
               <Route path="/quick-login" element={null} />
               <Route path="*" element={<Footer />} />
             </Routes>
