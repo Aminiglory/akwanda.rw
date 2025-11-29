@@ -25,6 +25,14 @@ const SearchSection = () => {
   });
   // Render statically without scroll/entry animation
 
+  useEffect(() => {
+    console.log('[SearchSection] mount');
+  }, []);
+
+  useEffect(() => {
+    console.log('[SearchSection] activeTab changed', { activeTab });
+  }, [activeTab]);
+
   const handleSearch = (e) => {
     e.preventDefault();
     if (activeTab === 'stays') {

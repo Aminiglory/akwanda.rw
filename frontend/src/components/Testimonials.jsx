@@ -59,6 +59,7 @@ export default function Testimonials() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log('[Testimonials] mount');
     let cancelled = false;
 
     (async () => {
@@ -81,13 +82,16 @@ export default function Testimonials() {
 
         if (!cancelled) {
           if (mapped.length > 0) {
+            console.log('[Testimonials] API reviews loaded', { count: mapped.length });
             setItems(mapped);
           } else {
+            console.log('[Testimonials] using mock testimonials (no API data)');
             setItems(mockTestimonials);
           }
         }
       } catch (_) {
         if (!cancelled) {
+          console.log('[Testimonials] fetch failed, falling back to mock data');
           setItems(mockTestimonials);
         }
       } finally {
@@ -113,6 +117,7 @@ export default function Testimonials() {
     ));
   };
   const list = items.length > 0 ? items : mockTestimonials;
+  console.log('[Testimonials] render list size', { listSize: list.length, loading });
 
   return (
     <div className="bg-white py-16 px-4">

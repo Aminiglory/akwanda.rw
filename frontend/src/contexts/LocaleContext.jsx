@@ -329,59 +329,6 @@ const dictionaries = {
     coords: (lat, lon) => `Coords: ${lat ?? '—'}, ${lon ?? '—'}`,
     uploadTitle: 'Télécharger un appartement',
   },
-  // ... (rest of the code remains the same)
-
-  msg: {
-    mustLoginToList: 'Veuillez vous connecter pour répertorier une propriété',
-    ownerOnly: 'Seuls les propriétaires peuvent répertorier des propriétés. Veuillez utiliser la connexion propriétaire.',
-    fillRequiredFields: 'Veuillez remplir tous les champs obligatoires',
-    propertyUpdated: 'Propriété mise à jour',
-    propertyCreated: 'Propriété créée',
-    saveFailed: 'Échec de l\'enregistrement',
-    draftSaved: 'Brouillon enregistré',
-    draftSaveFailed: 'Impossible d\'enregistrer le brouillon',
-    loadingPropertyData: 'Chargement des données de propriété...',
-    contactSaveFailed: 'Échec de l\'enregistrement des coordonnées',
-    completeRequiredInfo: 'Veuillez compléter les informations requises',
-    authRequired: 'Autorisation requise. Veuillez vous connecter en tant qu\'hôte et réessayer.',
-    switchToOwnerSuccess: 'Basculé vers le propriétaire',
-    ownerLoginFailed: 'Échec de la connexion propriétaire',
-    notOwnerAccount: 'Ce compte n\'est pas un propriétaire',
-    enterOwnerCredentials: 'Entrez l\'adresse e-mail et le mot de passe du propriétaire',
-    couldNotSwitchAccount: 'Impossible de basculer de compte',
-    roomImagesUploaded: 'Images de chambres téléchargées',
-    roomImagesUploadFailed: 'Échec du téléchargement des images de chambres',
-    accountDeactivatedNotice: 'Votre compte est actuellement désactivé. Vous ne pouvez pas créer ou modifier des annonces jusqu\'à réactivation.',
-    attractionsTab: 'Attractions',
-    location: 'Location',
-    pickupLocation: 'Pickup Location',
-    whereGoing: 'Where are you going?',
-    wherePickup: 'Where to pick up?',
-    checkIn: 'Check-in',
-    checkOut: 'Check-out',
-    pickupDate: 'Pickup Date',
-    returnDate: 'Return Date',
-    guests: 'Guests',
-    returnLocationOptional: 'Return Location (optional)',
-    returnDifferentPlace: 'Return to a different place?',
-    searchStays: 'Search Stays',
-    searchCars: 'Search Cars',
-    exploreAttractions: 'Explore Attractions',
-    quickPopularCars: 'Popular Cars',
-    quickFeaturedStays: 'Featured Stays',
-    quickTopAttractions: 'Top Attractions'
-  },
-  // Landing attractions section
-  landing: {
-    viewAll: 'View all',
-    curatedBy: 'Curated by AKWANDA.rw',
-    explore: 'Explore'
-  },
-  // Generic CTAs
-  cta: {
-    learnMore: 'Learn more',
-    contactUs: 'Contact us'
-  },
   fr: {
     brand: 'AKWANDA.rw',
     nav: {
@@ -646,73 +593,6 @@ const dictionaries = {
       subtitle: 'Gérez les paramètres et préférences de votre compte'
     }
   },
-  // Messages communs (toasts, messages)
-  msg: {
-    mustLoginToList: 'Veuillez vous connecter pour référencer une propriété',
-    ownerOnly: 'Seuls les propriétaires peuvent référencer des propriétés. Utilisez la connexion Propriétaire.',
-    fillRequiredFields: 'Veuillez remplir tous les champs obligatoires',
-    propertyUpdated: 'Propriété mise à jour',
-    propertyCreated: 'Propriété créée',
-    saveFailed: 'Échec de l’enregistrement',
-    draftSaved: 'Brouillon enregistré',
-    draftSaveFailed: 'Impossible d’enregistrer le brouillon',
-    loadingPropertyData: 'Chargement des données de la propriété…',
-    contactSaveFailed: 'Échec de l’enregistrement des coordonnées',
-    completeRequiredInfo: 'Complétez les informations requises',
-    authRequired: 'Autorisation requise. Connectez-vous en tant qu’hôte et réessayez.',
-    switchToOwnerSuccess: 'Passé en mode Propriétaire',
-    ownerLoginFailed: 'Échec de la connexion Propriétaire',
-    notOwnerAccount: 'Ce compte n’est pas un propriétaire',
-    enterOwnerCredentials: 'Saisissez l’e-mail et le mot de passe du propriétaire',
-    couldNotSwitchAccount: 'Impossible de changer de compte',
-    roomImagesUploaded: 'Images de chambre téléchargées',
-    roomImagesUploadFailed: 'Échec du téléchargement des images de chambre',
-    accountDeactivatedNotice: 'Votre compte est actuellement désactivé. Vous ne pouvez pas créer ou modifier des annonces tant qu’il n’est pas réactivé.',
-  },
-  // Clés minimales pour le flux d'annonce (utilisées dans EnhancedUploadProperty)
-  listing: {
-    propertyLocation: 'Localisation de la propriété',
-    country: 'Pays',
-    findYourAddress: 'Trouvez votre adresse',
-    city: 'Ville',
-    searching: 'Recherche…',
-    coords: (lat, lon) => `Coordonnées : ${lat ?? '—'}, ${lon ?? '—'}`,
-    uploadTitle: 'Téléverser un appartement',
-  },
-  // Section de recherche (page d'accueil)
-  search: {
-    staysTab: 'Séjours',
-    carsTab: 'Voitures',
-    attractionsTab: 'Attractions',
-    location: 'Lieu',
-    pickupLocation: 'Lieu de prise en charge',
-    whereGoing: 'Où allez-vous ?',
-    wherePickup: 'Où récupérer ?',
-    checkIn: 'Arrivée',
-    checkOut: 'Départ',
-    pickupDate: 'Date de prise en charge',
-    returnDate: 'Date de retour',
-    guests: 'Voyageurs',
-    returnLocationOptional: 'Lieu de retour (optionnel)',
-    returnDifferentPlace: 'Retour à un autre endroit ?',
-    searchStays: 'Rechercher des séjours',
-    searchCars: 'Rechercher des voitures',
-    exploreAttractions: 'Explorer les attractions',
-    quickPopularCars: 'Voitures populaires',
-    quickFeaturedStays: 'Séjours à la une',
-    quickTopAttractions: 'Attractions incontournables'
-  },
-  // Section attractions de la page d'accueil
-  landing: {
-    viewAll: 'Tout voir',
-    curatedBy: 'Sélection AKWANDA.rw',
-    explore: 'Explorer'
-  },
-  // Appels à l'action génériques
-  cta: {
-    learnMore: 'En savoir plus',
-    contactUs: 'Nous contacter'
-  },
 };
 
 const LocaleContext = createContext(null);
@@ -851,6 +731,7 @@ const resolveDictValue = (dictionary, path, args = []) => {
     if (cur && typeof cur === 'object' && part in cur) {
       cur = cur[part];
     } else {
+      console.log('[Locale] Missing key segment in dictionary', { path: String(path), missingPart: part });
       return null;
     }
   }
@@ -868,13 +749,20 @@ const t = useMemo(() => {
   return (path, ...args) => {
     if (!path) return '';
     const primary = resolveDictValue(dict, path, args);
-    if (primary !== null && primary !== undefined) return primary;
+    if (primary !== null && primary !== undefined) {
+      console.log('[Locale.t] primary hit', { language, path: String(path) });
+      return primary;
+    }
 
     const fallbackDict = dictionaries[DEFAULT_LANG];
     const fallback = resolveDictValue(fallbackDict, path, args);
-    if (fallback !== null && fallback !== undefined) return fallback;
+    if (fallback !== null && fallback !== undefined) {
+      console.log('[Locale.t] fallback hit', { path: String(path) });
+      return fallback;
+    }
 
     if (typeof path === 'string') {
+      console.log('[Locale.t] missing key in all dictionaries', { path });
       const parts = path.split('.');
       return parts[parts.length - 1] || '';
     }
@@ -891,6 +779,7 @@ const t = useMemo(() => {
     if (typeof value === 'string') {
       if (language !== 'en') {
         try {
+          console.log('[Locale.localize] translating string', { language, value });
           return await translateText(value, language, 'en');
         } catch {
           return value;
@@ -906,6 +795,7 @@ const t = useMemo(() => {
         // Otherwise, translate if needed
         if (language !== 'en') {
           try {
+            console.log('[Locale.localize] translating object value', { language, value: v });
             return await translateText(v, language, 'en');
           } catch {
             return v;
@@ -919,6 +809,7 @@ const t = useMemo(() => {
           const result = value[k];
           if (language !== 'en' && k !== language) {
             try {
+              console.log('[Locale.localize] translating fallback entry from object', { language, key: k, value: result });
               return await translateText(result, language, 'en');
             } catch {
               return result;
@@ -931,6 +822,7 @@ const t = useMemo(() => {
     const strValue = String(value);
     if (language !== 'en') {
       try {
+        console.log('[Locale.localize] translating non-string value coerced to string', { language, value: strValue });
         return await translateText(strValue, language, 'en');
       } catch {
         return strValue;
@@ -946,11 +838,15 @@ const translateSync = useMemo(() => {
     if (typeof pathOrText !== 'string') return pathOrText;
 
     const resolved = resolveDictValue(dict, pathOrText) ?? resolveDictValue(dictionaries[DEFAULT_LANG], pathOrText);
-    if (resolved !== null && resolved !== undefined) return resolved;
+    if (resolved !== null && resolved !== undefined) {
+      console.log('[Locale.translateSync] resolved key', { language, key: pathOrText });
+      return resolved;
+    }
 
+    console.log('[Locale.translateSync] missing key, returning fallback/text', { language, key: pathOrText });
     return fallback ?? pathOrText;
   };
-}, [dict]);
+}, [dict, language]);
 
   const value = useMemo(() => ({ 
     language, 
@@ -963,7 +859,7 @@ const translateSync = useMemo(() => {
     formatCurrency, 
     localize,
     translateSync // Add synchronous translation function
-  }), [language, currency, t, rates, translateSync]);
+  }), [language, currency, t, rates, formatCurrencyRWF, formatCurrency, localize, translateSync]);
   
   return <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>;
 };

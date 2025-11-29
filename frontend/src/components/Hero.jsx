@@ -37,6 +37,7 @@ const Hero = () => {
   const touchStartX = useRef(null);
 
   useEffect(() => {
+    console.log('[Hero] mount');
     setIsVisible(true);
   }, []);
 
@@ -187,6 +188,11 @@ const Hero = () => {
     return () => cancelAnimationFrame(rafId);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [metrics.activeListings, metrics.happyGuests, metrics.satisfactionRate]);
+
+  useEffect(() => {
+    if (!slides || !slides.length) return;
+    console.log('[Hero] slide index changed', { index, totalSlides: slides.length });
+  }, [index, slides && slides.length]);
 
   return (
     <div className="relative w-full h-[450px] sm:h-[500px] md:h-[550px] lg:h-[600px] overflow-hidden">

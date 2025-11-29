@@ -36,6 +36,10 @@ const HowItWorks = () => {
   const [howMedia, setHowMedia] = useState([]); // server-provided media items
   const [testimonials, setTestimonials] = useState([]);
 
+  useEffect(() => {
+    console.log('[HowItWorks] mount');
+  }, []);
+
   const handleTabChange = (tab) => {
     setActiveTab(tab);
     try {
@@ -60,10 +64,12 @@ const HowItWorks = () => {
     (async () => {
       try {
         const audience = activeTab === 'hosts' ? 'hosts' : 'guests';
+        console.log('[HowItWorks] fetching media', { audience });
         const res = await fetch(`${API_URL}/api/how-it-works?audience=${audience}`);
         if (!res.ok) return;
         const data = await res.json();
         const items = Array.isArray(data.items) ? data.items : [];
+        console.log('[HowItWorks] media items loaded', { count: items.length });
         setHowMedia(items);
       } catch (_) {
         setHowMedia([]);
@@ -78,7 +84,9 @@ const HowItWorks = () => {
         const res = await fetch(`${API_URL}/api/testimonials?limit=12`);
         if (!res.ok) return;
         const data = await res.json();
-        setTestimonials(Array.isArray(data.testimonials) ? data.testimonials : []);
+        const list = Array.isArray(data.testimonials) ? data.testimonials : [];
+        console.log('[HowItWorks] testimonials loaded', { count: list.length });
+        setTestimonials(list);
       } catch (_) {}
     })();
   }, []);

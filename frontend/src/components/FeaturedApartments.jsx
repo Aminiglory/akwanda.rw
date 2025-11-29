@@ -14,6 +14,7 @@ const FeaturedApartments = () => {
   const processImageUrl = (url) => url;
 
   useEffect(() => {
+    console.log('[FeaturedApartments] mount');
     (async () => {
       const data = await safeApiGet('/api/properties', { properties: [] });
       if (data && data.properties) {
@@ -61,6 +62,12 @@ const FeaturedApartments = () => {
         const standard = processedApartments.filter(a => !a.isPremium);
         const ordered = [...premium, ...standard].slice(0, 8); // show up to 8 cards total
 
+        console.log('[FeaturedApartments] apartments processed', {
+          total: processedApartments.length,
+          premium: premium.length,
+          standard: standard.length,
+          rendered: ordered.length,
+        });
         setApartments(ordered);
         
         // Preload critical images using optimized preloading

@@ -17,17 +17,31 @@ const Home = () => {
   const [partnersSection, setPartnersSection] = useState(null);
 
   useEffect(() => {
+    console.log('[Home] mount', { API_URL });
+  }, []);
+
+  useEffect(() => {
     (async () => {
       try {
+        console.log('[Home] fetching landing content', { endpoint: `${API_URL}/api/content/landing` });
         const res = await fetch(`${API_URL}/api/content/landing`);
-        if (!res.ok) return;
+        if (!res.ok) {
+          console.log('[Home] landing content fetch non-OK status', { status: res.status });
+          return;
+        }
         const data = await res.json();
         const sections = Array.isArray(data?.content?.sections) ? data.content.sections : [];
         const sec = sections.find((s) => s?.key === 'featuredDestinations') || null;
         const partnersSec = sections.find((s) => s?.key === 'partners') || null;
+        console.log('[Home] landing content parsed', {
+          sectionsCount: sections.length,
+          hasFeatured: !!sec,
+          hasPartners: !!partnersSec,
+        });
         setFeaturedSection(sec);
         setPartnersSection(partnersSec);
-      } catch (_) {
+      } catch (err) {
+        console.log('[Home] landing content fetch error', { message: err?.message });
         setFeaturedSection(null);
       }
     })();
@@ -41,7 +55,7 @@ const Home = () => {
       .map((s) => s.trim())
       .filter(Boolean);
 
-    return imgs.map((img, i) => {
+    const cards = imgs.map((img, i) => {
       const raw = lines[i] || '';
       const [namePart, taglinePart] = raw.split('|');
       const name = (namePart || '').trim() || `Destination ${i + 1}`;
@@ -51,6 +65,8 @@ const Home = () => {
         : `${API_URL}${String(img || '').startsWith('/') ? img : `/${img}`}`;
       return { name, tagline, img: src };
     });
+    console.log('[Home] featuredCards computed', { count: cards.length });
+    return cards;
   }, [featuredSection]);
 
   const partners = useMemo(() => {
@@ -72,6 +88,8 @@ const Home = () => {
         : `${API_URL}${String(img || '').startsWith('/') ? img : `/${img}`}`;
       return { name, tagline, url, img: src };
     });
+    console.log('[Home] partners computed', { count: list.length });
+    return list;
   }, [partnersSection]);
   return (
     <div>

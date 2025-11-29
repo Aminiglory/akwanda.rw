@@ -9,6 +9,7 @@ export default function OurMission() {
   const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
+    console.log('[OurMission] mount');
     (async () => {
       try {
         const res = await fetch(`${API_BASE}/api/content/landing`);
@@ -16,6 +17,7 @@ export default function OurMission() {
         const data = await res.json();
         const sections = Array.isArray(data?.content?.sections) ? data.content.sections : [];
         const our = sections.find(s => s?.key === 'ourMission');
+        console.log('[OurMission] section resolved', { hasSection: !!our });
         setSection(our || null);
       } catch (_) {}
     })();
@@ -23,7 +25,7 @@ export default function OurMission() {
 
   const images = useMemo(() => {
     const list = Array.isArray(section?.images) ? section.images : [];
-    return list
+    const processed = list
       .map((img) => {
         const s = String(img || '').trim();
         if (!s) return null;
@@ -31,6 +33,8 @@ export default function OurMission() {
         return `${API_BASE}${s.startsWith('/') ? s : `/${s}`}`;
       })
       .filter(Boolean);
+    console.log('[OurMission] images computed', { count: processed.length });
+    return processed;
   }, [section]);
 
   useEffect(() => {
@@ -45,6 +49,11 @@ export default function OurMission() {
     }, 5000);
     return () => clearInterval(interval);
   }, [images]);
+
+  useEffect(() => {
+    if (!images || images.length === 0) return;
+    console.log('[OurMission] slide index changed', { index: currentIndex, total: images.length });
+  }, [currentIndex, images && images.length]);
 
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">

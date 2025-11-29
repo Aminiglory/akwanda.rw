@@ -8,13 +8,16 @@ export default function LandingAttractions() {
   const [section, setSection] = useState(null); // { key,title,body,images }
 
   useEffect(() => {
+    console.log('[LandingAttractions] mount');
     (async () => {
       try {
+        console.log('[LandingAttractions] fetching landing content', { endpoint: `${API_BASE}/api/content/landing` });
         const res = await fetch(`${API_BASE}/api/content/landing`);
         if (!res.ok) return;
         const data = await res.json();
         const sections = Array.isArray(data?.content?.sections) ? data.content.sections : [];
         const s = sections.find(x => x?.key === 'landingAttractions');
+        console.log('[LandingAttractions] section resolved', { hasSection: !!s });
         setSection(s || null);
       } catch (_) {}
     })();
@@ -32,7 +35,7 @@ export default function LandingAttractions() {
       const title = localize ? localize(rawTitle) : rawTitle;
       return { src, title, category: 'attraction', priority: i < 3 };
     });
-    
+    console.log('[LandingAttractions] cards computed', { count: processedCards.length });
     return processedCards;
   }, [section, localize]);
 

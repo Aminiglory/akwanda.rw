@@ -14,7 +14,9 @@ const Footer = () => {
   const { t } = useLocale() || {};
 
   useEffect(() => {
+    console.log('[Footer] mount');
     const handler = (e) => {
+      console.log('[Footer] siteSettingsUpdated event', { hasDetail: !!e.detail });
       setSite(e.detail || null);
     };
     window.addEventListener('siteSettingsUpdated', handler);
