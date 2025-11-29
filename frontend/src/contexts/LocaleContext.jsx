@@ -770,65 +770,31 @@ const t = useMemo(() => {
   };
 }, [dict]);
 
-  // Localize dynamic values coming from Admin CMS or backend
+  // Localize dynamic values coming from Admin CMS or backend (synchronous, no network calls)
   // Accepts:
-  // - string: tries to translate if language is not English
-  // - object: tries value[language] -> value[DEFAULT_LANG] -> first string value, then translates
-  const localize = async (value) => {
+  // - string: returns as-is
+  // - object: returns value[language] -> value[DEFAULT_LANG] -> first string value
+  const localize = (value) => {
     if (value == null) return '';
+
     if (typeof value === 'string') {
-      if (language !== 'en') {
-        try {
-          console.log('[Locale.localize] translating string', { language, value });
-          return await translateText(value, language, 'en');
-        } catch {
-          return value;
-        }
-      }
       return value;
     }
+
     if (typeof value === 'object') {
-      const v = value[language] ?? value[DEFAULT_LANG];
-      if (typeof v === 'string') {
-        // If it's already in the target language, return as-is
-        if (value[language]) return v;
-        // Otherwise, translate if needed
-        if (language !== 'en') {
-          try {
-            console.log('[Locale.localize] translating object value', { language, value: v });
-            return await translateText(v, language, 'en');
-          } catch {
-            return v;
-          }
-        }
-        return v;
-      }
-      // Try to find any string entry
+      // Prefer per-language fields
+      const direct = value[language] ?? value[DEFAULT_LANG];
+      if (typeof direct === 'string') return direct;
+
+      // Otherwise pick the first string field
       for (const k in value) {
         if (typeof value[k] === 'string') {
-          const result = value[k];
-          if (language !== 'en' && k !== language) {
-            try {
-              console.log('[Locale.localize] translating fallback entry from object', { language, key: k, value: result });
-              return await translateText(result, language, 'en');
-            } catch {
-              return result;
-            }
-          }
-          return result;
+          return value[k];
         }
       }
     }
-    const strValue = String(value);
-    if (language !== 'en') {
-      try {
-        console.log('[Locale.localize] translating non-string value coerced to string', { language, value: strValue });
-        return await translateText(strValue, language, 'en');
-      } catch {
-        return strValue;
-      }
-    }
-    return strValue;
+
+    return String(value);
   };
 
 // Synchronous helper for placeholders / immediate render paths
