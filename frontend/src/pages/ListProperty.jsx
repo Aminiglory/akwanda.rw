@@ -188,6 +188,7 @@ const ListProperty = () => {
     const houseNumber = address?.house_number || '';
     const exactAddress = [houseNumber, road, address?.neighbourhood, address?.quarter].filter(Boolean).join(' ').trim();
     const directionsHint = address?.display_name || road || '';
+    const landmarkHint = address?.attraction || address?.tourism || address?.leisure || address?.building || address?.shop || '';
     setAttractionForm((prev) => ({
       ...prev,
       latitude: lat,
@@ -198,6 +199,7 @@ const ListProperty = () => {
       city: cityOrDistrict || prev.city,
       address: exactAddress || prev.address,
       directions: directionsHint || prev.directions,
+      landmarks: landmarkHint || prev.landmarks,
       cityDistrict: districtHint || prev.cityDistrict
     }));
   };
