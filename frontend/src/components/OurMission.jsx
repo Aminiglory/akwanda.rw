@@ -56,8 +56,8 @@ export default function OurMission() {
   }, [currentIndex, images && images.length]);
 
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center rounded-3xl bg-gradient-to-br from-[#FFF3E4] via-[#FFE7D0] to-[#F8D9B8] px-6 sm:px-8 lg:px-10 py-10 shadow-[0_18px_40px_rgba(75,46,5,0.18)]">
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 bg-white">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center rounded-3xl px-4 sm:px-6 lg:px-8 py-8 shadow-[0_14px_32px_rgba(75,46,5,0.12)] bg-white">
         <div className="relative w-full h-64 sm:h-80 md:h-96 rounded-2xl overflow-hidden shadow-xl bg-black/5">
           {images.length > 0 ? (
             <img
@@ -74,11 +74,11 @@ export default function OurMission() {
           <div className="absolute inset-4 rounded-2xl border border-white/40" />
         </div>
         <div className="relative">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/80 text-xs font-semibold text-[#8b5e34] shadow-sm mb-3">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#FFF3E4] text-xs font-semibold text-[#8b5e34] shadow-sm mb-3">
             <span className="inline-block w-2 h-2 rounded-full bg-[#a06b42]" />
             Our mission at AKWANDA.rw
           </div>
-          <h2 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-[#2b1b0e] leading-snug">
+          <h2 className="text-xl md:text-2xl lg:text-3xl font-extrabold text-[#2b1b0e] leading-snug">
             {localize
               ? localize((section && section.title) || 'Our Mission')
               : ((section && section.title) || 'Our Mission')}

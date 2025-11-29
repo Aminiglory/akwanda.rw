@@ -121,13 +121,13 @@ const ChooseListingType = () => {
           })}
         </div>
 
-        {/* Skip Option */}
+        {/* Skip / Do it later Option */}
         <div className="text-center">
           <button
-            onClick={() => navigate('/dashboard')}
+            onClick={() => navigate('/apartments')}
             className="text-gray-500 hover:text-gray-700 text-sm font-medium transition-colors"
           >
-            Skip for now, go to dashboard →
+            Do it later, browse properties
           </button>
         </div>
       </div>

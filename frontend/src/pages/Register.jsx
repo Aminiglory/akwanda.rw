@@ -39,15 +39,10 @@ const Register = () => {
     }
     
     const result = await register(formData);
-    
+
     if (result.success) {
       toast.success('Account created');
-      const role = (formData.userType || '').toLowerCase();
-      if (role === 'host') {
-        navigate('/choose-listing-type');
-      } else {
-        navigate('/dashboard');
-      }
+      navigate('/choose-listing-type');
     } else {
       const message = result.error || 'Registration failed. Please try again.';
       setError(message);
