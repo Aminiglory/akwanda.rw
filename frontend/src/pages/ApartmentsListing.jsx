@@ -293,12 +293,12 @@ const ApartmentsListing = () => {
 
             {/* Modern Search Bar */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
-              <div className="relative flex-1 bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg">
-                <FaMapMarkerAlt className="absolute left-4 top-1/2 -translate-y-1/2 text-[#a06b42] text-lg" />
+              <div className="search-input-with-icon relative flex-1 bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg">
+                <FaMapMarkerAlt className="input-icon text-[#a06b42] text-lg" />
                 <input
                   type="text"
                   placeholder="Search by location, city..."
-                  className="w-full h-12 pl-12 pr-4 bg-transparent border-none outline-none text-gray-900 placeholder:text-gray-400 text-base"
+                  className="w-full h-12 pr-4 bg-transparent border-none outline-none text-gray-900 placeholder:text-gray-400 text-base"
                   value={filters.location}
                   onChange={(e) => handleFilterChange("location", e.target.value)}
                 />
@@ -340,12 +340,12 @@ const ApartmentsListing = () => {
                   <FaMapMarkerAlt className="text-[#a06b42]" />
                   <span>Location</span>
                 </label>
-                <div className="relative">
-                  <FaMapMarkerAlt className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                <div className="search-input-with-icon relative">
+                  <FaMapMarkerAlt className="input-icon text-gray-400 pointer-events-none" />
                   <input
                     type="text"
                     placeholder="Enter location"
-                    className="w-full h-12 pl-11 pr-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#a06b42] focus:border-[#a06b42] transition-all duration-300"
+                    className="w-full h-12 pr-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#a06b42] focus:border-[#a06b42] transition-all duration-300"
                     value={filters.location}
                     onChange={(e) =>
                       handleFilterChange("location", e.target.value)

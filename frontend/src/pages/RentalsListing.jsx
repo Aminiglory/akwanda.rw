@@ -223,12 +223,12 @@ const RentalsListing = () => {
             </div>
 
             <div className="flex items-center w-full lg:w-auto space-x-2">
-              <div className="relative flex-1">
-                <FaMapMarkerAlt className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-primary" />
+              <div className="search-input-with-icon relative flex-1">
+                <FaMapMarkerAlt className="input-icon text-primary pointer-events-none" />
                 <input
                   type="text"
                   placeholder="Search by pick-up location..."
-                  className="w-full h-10 pl-10 pr-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full h-10 pr-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   value={filters.location}
                   onChange={(e) => handleFilterChange("location", e.target.value)}
                 />
@@ -264,12 +264,12 @@ const RentalsListing = () => {
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Pick-up Location
                 </label>
-                <div className="relative">
-                  <FaMapMarkerAlt className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-blue-600" />
+                <div className="search-input-with-icon relative">
+                  <FaMapMarkerAlt className="input-icon text-blue-600 pointer-events-none" />
                   <input
                     type="text"
                     placeholder="Enter location"
-                    className="w-full h-10 pl-10 pr-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full h-10 pr-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     value={filters.location}
                     onChange={(e) => handleFilterChange("location", e.target.value)}
                   />

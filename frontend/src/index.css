@@ -381,6 +381,26 @@ textarea::placeholder {
   padding-left: 2.5rem !important; /* space for left icon */
 }
 
+/* Consistent wrapper for icon-left inputs outside the SearchSection tabbed form */
+.search-input-with-icon {
+  position: relative;
+}
+
+.search-input-with-icon .input-icon {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: inherit;
+}
+
+.search-input-with-icon input,
+.search-input-with-icon select,
+.search-input-with-icon textarea {
+  padding-left: 3rem !important;
+}
+
 .field.has-right input,
 .field.has-right select,
 .field.has-right textarea {
