@@ -1080,7 +1080,7 @@ const PropertyOwnerBookings = () => {
 
   return (
     <div className="min-h-screen bg-[#f5f0e8]">
-      {/* {activeTab === 'calendar' && (
+       {activeTab === 'calendar' && (
         <div>
           <div className="neu-card p-6 mb-8">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
@@ -1352,7 +1352,7 @@ const PropertyOwnerBookings = () => {
             })()}
           </div>
         </div>
-      )} */}
+      )}
 
       {activeTab === 'finance' && (
         <div className="space-y-8">
