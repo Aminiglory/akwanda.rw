@@ -312,7 +312,7 @@ const Navbar = () => {
       children: [
         { label: labelOr('nav.financialOverview', 'Financial overview'), href: attachPropertyParam('/dashboard?tab=finance'), icon: FaChartLine },
         { label: labelOr('nav.invoices', 'Invoices'), href: attachPropertyParam('/dashboard?tab=finance&view=invoices'), icon: FaFileAlt },
-        { label: labelOr('nav.payouts', 'Payouts'), href: '/transactions', icon: FaMoneyBillWave },
+        { label: labelOr('nav.payouts', 'Payouts'), href: attachPropertyParam('/dashboard?tab=finance&view=payouts'), icon: FaMoneyBillWave },
         { label: labelOr('nav.expenses', 'Expenses & profit'), href: attachPropertyParam('/dashboard?tab=finance&view=expenses'), icon: FaDollarSign },
         { label: labelOr('nav.paymentSettings', 'Payment settings'), href: '/settings?tab=payment', icon: FaCog },
       ]
@@ -1385,9 +1385,11 @@ const Navbar = () => {
                       </div>
                       <Link to="/profile" className="block px-3 py-1.5 text-xs text-[#4b2a00] hover:bg-gray-50">{t ? t('nav.profile') : 'Profile'}</Link>
                       <Link to="/settings" className="block px-3 py-1.5 text-xs text-[#4b2a00] hover:bg-gray-50">{t ? t('nav.accountSettings') : 'Account settings'}</Link>
-                      <Link to="/my-bookings" className="block px-3 py-1.5 text-xs text-[#4b2a00] hover:bg-gray-50">{t ? t('nav.reservations') : 'My bookings'}</Link>
                       {user?.userType === 'host' && (
-                        <Link to="/dashboard" className="block px-3 py-1.5 text-xs text-[#4b2a00] hover:bg-gray-50">{t ? t('nav.dashboard') : 'Owner dashboard'}</Link>
+                        <>
+                          <Link to="/my-bookings" className="block px-3 py-1.5 text-xs text-[#4b2a00] hover:bg-gray-50">{t ? t('nav.reservations') : 'My bookings'}</Link>
+                          <Link to="/dashboard" className="block px-3 py-1.5 text-xs text-[#4b2a00] hover:bg-gray-50">{t ? t('nav.dashboard') : 'Owner dashboard'}</Link>
+                        </>
                       )}
                       <button onClick={handleLogout} className="w-full text-left px-3 py-1.5 text-xs text-red-700 hover:bg-gray-50 flex items-center gap-2">
                         <FaSignOutAlt /> <span>{t ? t('nav.logout') : 'Log out'}</span>

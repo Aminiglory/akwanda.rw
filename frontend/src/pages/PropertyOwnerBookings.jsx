@@ -83,7 +83,7 @@ const PropertyOwnerBookings = () => {
   });
   const [ownerView, setOwnerView] = useState('table'); // 'table' | 'calendar'
   const [calendarViewMode, setCalendarViewMode] = useState('monthly'); // 'monthly' | 'yearly' | 'matrix'
-  // Default to 'dashboard' to show summary cards first; 'dashboard' shows summary cards + calendar
+  // Default to 'dashboard' to show summary cards first; calendar is now only on the dedicated calendar tab
   const initialTab = searchParams.get('tab') || 'dashboard';
   const [activeTab, setActiveTab] = useState(initialTab);
   const [activeNavDropdown, setActiveNavDropdown] = useState(null);
@@ -1182,7 +1182,7 @@ const PropertyOwnerBookings = () => {
         </div>
       )}
       
-       {(activeTab === 'calendar' || activeTab === 'dashboard') && (
+       {activeTab === 'calendar' && (
         <div>
           <div className="neu-card p-6 mb-8">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
@@ -1453,6 +1453,154 @@ const PropertyOwnerBookings = () => {
               );
             })()}
           </div>
+        </div>
+      )}
+
+      {activeTab === 'reservations' && (
+        <div className="space-y-6 max-w-7xl mx-auto px-4 pb-10">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-semibold text-[#4b2a00]">Reservations</h2>
+              <p className="text-xs text-gray-600">
+                View and manage all reservations for your selected property.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <select
+                value={filters.status}
+                onChange={(e) => { setCurrentPage(1); setFilters(prev => ({ ...prev, status: e.target.value })); }}
+                className="modern-input text-xs"
+              >
+                <option value="all">All statuses</option>
+                <option value="confirmed">Confirmed</option>
+                <option value="pending">Pending</option>
+                <option value="unpaid">Unpaid</option>
+                <option value="cancelled">Cancelled</option>
+                <option value="ended">Ended</option>
+              </select>
+              <select
+                value={filters.dateRange}
+                onChange={(e) => { setCurrentPage(1); setFilters(prev => ({ ...prev, dateRange: e.target.value })); }}
+                className="modern-input text-xs"
+              >
+                <option value="all">All dates</option>
+                <option value="upcoming">Upcoming</option>
+                <option value="checked-in">Checked in</option>
+                <option value="checked-out">Checked out</option>
+              </select>
+              <input
+                type="text"
+                value={filters.search}
+                onChange={(e) => { setCurrentPage(1); setFilters(prev => ({ ...prev, search: e.target.value })); }}
+                placeholder="Search by guest name"
+                className="modern-input text-xs w-40"
+              />
+            </div>
+          </div>
+
+          <div className="neu-card p-4 rounded-2xl border border-[#e0d5c7] bg-white overflow-x-auto">
+            <table className="min-w-full divide-y divide-[#eee0cf] text-xs">
+              <thead className="bg-[#fdf7f0] text-[#4b2a00]">
+                <tr>
+                  <th className="px-3 py-2 text-left font-semibold">Guest</th>
+                  <th className="px-3 py-2 text-left font-semibold">Property</th>
+                  <th className="px-3 py-2 text-left font-semibold">Dates</th>
+                  <th className="px-3 py-2 text-center font-semibold">Guests</th>
+                  <th className="px-3 py-2 text-right font-semibold">Total</th>
+                  <th className="px-3 py-2 text-left font-semibold">Status</th>
+                  <th className="px-3 py-2 text-right font-semibold">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-[#f1e2d3]">
+                {currentBookings.map((b) => (
+                  <tr key={b._id} className="hover:bg-[#fff7ef] transition-colors">
+                    <td className="px-3 py-2 align-top">
+                      <div className="text-[11px] font-semibold text-[#4b2a00]">
+                        {`${b.guest?.firstName || ''} ${b.guest?.lastName || ''}`.trim() || b.guest?.email || 'Guest'}
+                      </div>
+                      <div className="text-[10px] text-gray-500">{b.guest?.email}</div>
+                      <div className="text-[10px] text-gray-500">{b.guest?.phone}</div>
+                    </td>
+                    <td className="px-3 py-2 align-top text-[11px] text-[#4b2a00]">
+                      <div className="font-medium">{b.property?.title || b.property?.name || 'Property'}</div>
+                      <div className="text-[10px] text-gray-500">{b.property?.city || b.property?.address}</div>
+                    </td>
+                    <td className="px-3 py-2 align-top text-[11px] text-[#4b2a00]">
+                      <div>{b.checkIn} → {b.checkOut}</div>
+                    </td>
+                    <td className="px-3 py-2 align-top text-center text-[11px] text-[#4b2a00]">
+                      {b.numberOfGuests || b.guests || 1}
+                    </td>
+                    <td className="px-3 py-2 align-top text-right text-[11px] font-semibold text-[#4b2a00]">
+                      {formatCurrencyRWF
+                        ? formatCurrencyRWF(b.totalAmount || 0)
+                        : `RWF ${(b.totalAmount || 0).toLocaleString()}`}
+                    </td>
+                    <td className="px-3 py-2 align-top text-[11px]">
+                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 font-medium ${
+                        (b.paymentStatus || b.status) === 'paid'
+                          ? 'bg-green-50 text-green-800 border border-green-200'
+                          : (b.paymentStatus || b.status) === 'pending'
+                            ? 'bg-yellow-50 text-yellow-800 border border-yellow-200'
+                            : (b.status === 'cancelled'
+                              ? 'bg-red-50 text-red-800 border border-red-200'
+                              : 'bg-gray-50 text-gray-700 border border-gray-200')
+                      }`}>
+                        {b.paymentStatus || b.status}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2 align-top text-right text-[11px] space-x-1 whitespace-nowrap">
+                      <button
+                        onClick={() => handleViewDetails(b)}
+                        className="inline-flex items-center px-2 py-1 rounded border border-gray-200 hover:bg-gray-50"
+                      >
+                        <FaEye className="mr-1" />
+                        Details
+                      </button>
+                      <button
+                        onClick={() => handleViewReceipt(b)}
+                        className="inline-flex items-center px-2 py-1 rounded border border-green-200 text-green-700 hover:bg-green-50"
+                      >
+                        <FaFileInvoice className="mr-1" />
+                        Receipt
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {currentBookings.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="px-4 py-10 text-center text-sm text-[#8a745e]">
+                      No reservations match your current filters.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between text-xs text-gray-600">
+              <span>
+                Page {currentPage} of {totalPages}
+              </span>
+              <div className="flex gap-2">
+                <button
+                  disabled={currentPage <= 1}
+                  onClick={() => paginate(Math.max(1, currentPage - 1))}
+                  className="px-3 py-1 rounded border disabled:opacity-50"
+                >
+                  Prev
+                </button>
+                <button
+                  disabled={currentPage >= totalPages}
+                  onClick={() => paginate(Math.min(totalPages, currentPage + 1))}
+                  className="px-3 py-1 rounded border disabled:opacity-50"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
