@@ -1084,8 +1084,11 @@ const Navbar = () => {
                   AKWANDA.rw
                 </Link>
 
-                {/* Property selector (desktop) - next to logo in owner dashboard */}
-                {isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard() && (
+                {/* Property selector (desktop) - next to logo in owner dashboard (hidden on group-home) */}
+                {isAuthenticated &&
+                  user?.userType === 'host' &&
+                  isInPropertyOwnerDashboard() &&
+                  !location.pathname.startsWith('/group-home') && (
                   <div className="hidden lg:block">
                     <div className="flex items-center gap-2">
                       <select

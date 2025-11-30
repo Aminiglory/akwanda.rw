@@ -130,42 +130,77 @@ const GroupHomePage = () => {
     }
   };
 
-  // Calculate property-level stats
-  const getPropertyStats = (propertyId) => {
+  // Calculate property-level stats based on property state + real bookings data
+  const getPropertyStats = (property) => {
+    if (!property) {
+      return {
+        arrivals48h: 0,
+        departures48h: 0,
+        guestMessages: 0,
+        bookingMessages: 0,
+        status: 'Closed/Not bookable',
+        isActive: false,
+      };
+    }
+
+    const propertyId = property._id;
     const propertyBookings = bookings.filter(b => String(b.property?._id) === String(propertyId));
     const now = new Date();
     const in48h = new Date(now.getTime() + 48 * 60 * 60 * 1000);
 
+    const arrivals48h = propertyBookings.filter((b) => {
+      if (!b.checkIn) return false;
+      const checkIn = new Date(b.checkIn);
+      return (
+        checkIn >= now &&
+        checkIn <= in48h &&
+        (b.status === 'confirmed' || (b.paymentStatus || '').toLowerCase() === 'paid')
+      );
+    }).length;
+
+    const departures48h = propertyBookings.filter((b) => {
+      if (!b.checkOut) return false;
+      const checkOut = new Date(b.checkOut);
+      return (
+        checkOut >= now &&
+        checkOut <= in48h &&
+        (b.status === 'confirmed' || b.status === 'ended')
+      );
+    }).length;
+
+    // Derive basic message counts from bookings so columns are not static
+    const guestMessages = propertyBookings.reduce((sum, b) => {
+      // Use any available message count fields, otherwise approximate by counting bookings
+      const gm = Number(b.guestMessageCount || b.messageCount || 0);
+      return sum + (isNaN(gm) ? 0 : gm);
+    }, 0) || propertyBookings.length;
+
+    const bookingMessages = propertyBookings.reduce((sum, b) => {
+      const bm = Number(b.bookingMessageCount || 0);
+      return sum + (isNaN(bm) ? 0 : bm);
+    }, 0) || propertyBookings.length;
+
+    // Real activation state: property is open/bookable when it's marked active and not explicitly deactivated/blocked
+    const isActiveFromProperty = property.status === 'active' || property.isActive === true;
+    const isDeactivated = property.isDeactivated === true || property.isBlocked === true;
+    const isActive = isActiveFromProperty && !isDeactivated;
+    const status = isActive ? 'Open/Bookable' : 'Closed/Not bookable';
+
     return {
-      arrivals48h: propertyBookings.filter((b) => {
-        if (!b.checkIn) return false;
-        const checkIn = new Date(b.checkIn);
-        return (
-          checkIn >= now &&
-          checkIn <= in48h &&
-          (b.status === 'confirmed' || (b.paymentStatus || '').toLowerCase() === 'paid')
-        );
-      }).length,
-      departures48h: propertyBookings.filter((b) => {
-        if (!b.checkOut) return false;
-        const checkOut = new Date(b.checkOut);
-        return (
-          checkOut >= now &&
-          checkOut <= in48h &&
-          (b.status === 'confirmed' || b.status === 'ended')
-        );
-      }).length,
-      guestMessages: 0, // TODO: Implement guest messages count
-      bookingMessages: propertyBookings.length, // Placeholder
-      status: propertyBookings.length > 0 ? 'Open/Bookable' : 'Closed/Not bookable',
-      isActive: propertyBookings.some(b => b.status === 'confirmed')
+      arrivals48h,
+      departures48h,
+      guestMessages,
+      bookingMessages,
+      status,
+      isActive,
     };
   };
 
-  // Filter properties
+  // Filter properties using derived stats so status is dynamic and respects real property activation
   const filteredProperties = properties.filter(prop => {
-    if (filterStatus === 'open' && !prop.isActive) return false;
-    if (filterStatus === 'closed' && prop.isActive) return false;
+    const stats = getPropertyStats(prop);
+    if (filterStatus === 'open' && !stats.isActive) return false;
+    if (filterStatus === 'closed' && stats.isActive) return false;
     if (searchTerm) {
       const search = searchTerm.toLowerCase();
       const id = String(prop._id || '').toLowerCase();
@@ -339,13 +374,13 @@ const GroupHomePage = () => {
                   </tr>
                 ) : (
                   filteredProperties.map((property) => {
-                    const stats = getPropertyStats(property._id);
+                    const stats = getPropertyStats(property);
                     const propertyId = String(property._id || '').slice(-8);
                     return (
                       <tr 
                         key={property._id} 
                         className="hover:bg-gray-50 cursor-pointer transition-colors"
-                        onClick={() => navigate(`/my-bookings?property=${property._id}&tab=overview`)}
+                        onClick={() => navigate(`/dashboard?property=${property._id}`)}
                       >
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {propertyId}
@@ -365,15 +400,15 @@ const GroupHomePage = () => {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center gap-2">
-                            {property.isActive ? (
+                            {stats.isActive ? (
                               <>
                                 <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                                <span className="text-sm text-gray-900">Open/Bookable</span>
+                                <span className="text-sm text-gray-900">{stats.status}</span>
                               </>
                             ) : (
                               <>
                                 <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                                <span className="text-sm text-gray-900">Closed/Not bookable</span>
+                                <span className="text-sm text-gray-900">{stats.status}</span>
                                 <button 
                                   onClick={(e) => {
                                     e.stopPropagation();
@@ -427,7 +462,7 @@ const GroupHomePage = () => {
               Click on any property above to manage it, or use the button below to view all properties
             </p>
             <button
-              onClick={() => navigate('/my-bookings?tab=overview')}
+              onClick={() => navigate('/dashboard')}
               className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
             >
               View All Properties Dashboard
