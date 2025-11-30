@@ -83,9 +83,9 @@ const PropertyOwnerBookings = () => {
   });
   const [ownerView, setOwnerView] = useState('table'); // 'table' | 'calendar'
   const [calendarViewMode, setCalendarViewMode] = useState('monthly'); // 'monthly' | 'yearly' | 'matrix'
-  // Default to 'calendar' so /my-bookings always shows content; treat 'dashboard' as alias of 'calendar'.
-  const initialTab = searchParams.get('tab') || 'calendar';
-  const [activeTab, setActiveTab] = useState(initialTab === 'dashboard' ? 'calendar' : initialTab);
+  // Default to 'dashboard' to show summary cards first; 'dashboard' shows summary cards + calendar
+  const initialTab = searchParams.get('tab') || 'dashboard';
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [activeNavDropdown, setActiveNavDropdown] = useState(null);
   const [financeFilter, setFinanceFilter] = useState(searchParams.get('finance_status') || 'all'); // all|paid|pending|unpaid
   const [financeView, setFinanceView] = useState(searchParams.get('view') || 'all'); // all|last30|mtd|ytd|invoices|statement|overview
@@ -160,14 +160,15 @@ const PropertyOwnerBookings = () => {
   // Removed mock data. We will fetch live data from the backend.
 
   useEffect(() => {
-    // If accessing /dashboard directly, redirect to group-home to show summary cards first
-    if (location.pathname === '/dashboard' && !location.search) {
-      navigate('/group-home', { replace: true });
-      return;
-    }
     console.log('[PropertyOwnerBookings] useEffect mount -> loadData');
+    
+    // When accessing /dashboard route, set tab to 'dashboard' to show summary cards
+    if (location.pathname === '/dashboard' && !location.search) {
+      setActiveTab('dashboard');
+    }
+    
     loadData();
-  }, [location.pathname, location.search]);
+  }, [location.pathname]);
 
   useEffect(() => {
     if (activeTab === 'reviews') {
@@ -433,9 +434,9 @@ const PropertyOwnerBookings = () => {
         setActiveTab('reservations');
         // Expand reservations section
         setExpandedSections(prev => ({ ...prev, reservations: true }));
-      } else if (tab === 'rates') {
+      } else if (tab === 'rates' || tab === 'dashboard') {
         setActiveTab('dashboard');
-        // Rates & Availability goes to dashboard
+        // Rates & Availability and Dashboard both show summary cards + calendar
       } else if (tab === 'boost') {
         setActiveTab('promotions');
         // Boost performance goes to promotions
@@ -1106,6 +1107,81 @@ const PropertyOwnerBookings = () => {
       properties: Array.isArray(properties) ? properties.length : 'not-array',
     }),
     <div className="min-h-screen bg-[#f5f0e8]">
+      {/* Summary Cards - Happening Today - Always shown on dashboard route or when dashboard/calendar tab is active */}
+      {(location.pathname === '/dashboard' || activeTab === 'calendar' || activeTab === 'dashboard' || !activeTab) && (
+        <div className="max-w-7xl mx-auto px-4 py-6">
+          <div className="mb-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Happening today</h2>
+            {filters.property && filters.property !== 'all' && (
+              <p className="text-sm text-gray-600 mb-4">
+                Showing data for selected property
+              </p>
+            )}
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+              <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">Reservations</p>
+                    <p className="text-3xl font-bold text-gray-900">{ownerOpsStats.reservations}</p>
+                  </div>
+                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <FaCalendarAlt className="text-2xl text-blue-600" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">Arrival</p>
+                    <p className="text-3xl font-bold text-gray-900">{ownerOpsStats.arrivals48h}</p>
+                  </div>
+                  <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                    <FaCheckCircle className="text-2xl text-green-600" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">Departures</p>
+                    <p className="text-3xl font-bold text-gray-900">{ownerOpsStats.departures48h}</p>
+                  </div>
+                  <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+                    <FaUsers className="text-2xl text-yellow-600" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">Reviews</p>
+                    <p className="text-3xl font-bold text-gray-900">{ownerOpsStats.reviews}</p>
+                  </div>
+                  <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                    <FaStar className="text-2xl text-purple-600" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">Cancellations</p>
+                    <p className="text-3xl font-bold text-gray-900">{ownerOpsStats.cancellations48h}</p>
+                  </div>
+                  <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                    <FaTimes className="text-2xl text-red-600" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
        {(activeTab === 'calendar' || activeTab === 'dashboard') && (
         <div>
           <div className="neu-card p-6 mb-8">

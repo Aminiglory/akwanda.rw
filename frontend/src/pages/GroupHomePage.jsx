@@ -35,33 +35,47 @@ const GroupHomePage = () => {
   }, []);
 
   const fetchGroupData = async () => {
+    setLoading(true);
+    let propsList = [];
+    let bookingsList = [];
+    let reviewsList = [];
+    
     try {
-      setLoading(true);
-      
       // Fetch properties
-      const propsRes = await fetch(`${API_URL}/api/properties/my-properties`, {
-        credentials: 'include'
-      });
-      const propsData = await propsRes.json();
-      const propsList = Array.isArray(propsData.properties) ? propsData.properties : [];
-      setProperties(propsList);
+      try {
+        const propsRes = await fetch(`${API_URL}/api/properties/my-properties`, {
+          credentials: 'include'
+        });
+        const propsData = await propsRes.json().catch(() => ({ properties: [] }));
+        propsList = Array.isArray(propsData.properties) ? propsData.properties : [];
+        setProperties(propsList);
+      } catch (e) {
+        console.error('Failed to fetch properties:', e);
+        setProperties([]);
+      }
 
       // Fetch bookings
-      const bookingsRes = await fetch(`${API_URL}/api/bookings/property-owner`, {
-        credentials: 'include'
-      });
-      const bookingsData = await bookingsRes.json();
-      const bookingsList = Array.isArray(bookingsData.bookings) ? bookingsData.bookings : [];
-      setBookings(bookingsList);
+      try {
+        const bookingsRes = await fetch(`${API_URL}/api/bookings/property-owner`, {
+          credentials: 'include'
+        });
+        const bookingsData = await bookingsRes.json().catch(() => ({ bookings: [] }));
+        bookingsList = Array.isArray(bookingsData.bookings) ? bookingsData.bookings : [];
+        setBookings(bookingsList);
+      } catch (e) {
+        console.error('Failed to fetch bookings:', e);
+        setBookings([]);
+      }
 
       // Fetch reviews
       try {
         const reviewsRes = await fetch(`${API_URL}/api/bookings/owner/reviews`, {
           credentials: 'include'
         });
-        const reviewsData = await reviewsRes.json();
+        const reviewsData = await reviewsRes.json().catch(() => ({ reviews: [] }));
         if (reviewsRes.ok) {
-          setReviews(Array.isArray(reviewsData.reviews) ? reviewsData.reviews : []);
+          reviewsList = Array.isArray(reviewsData.reviews) ? reviewsData.reviews : [];
+          setReviews(reviewsList);
         }
       } catch (e) {
         console.error('Failed to fetch reviews:', e);
@@ -92,7 +106,7 @@ const GroupHomePage = () => {
           (b.status === 'confirmed' || b.status === 'ended')
         );
       }).length;
-      const reviewsCount = Array.isArray(reviewsData?.reviews) ? reviewsData.reviews.length : 0;
+      const reviewsCount = reviewsList.length;
       const cancellations = bookingsList.filter((b) => {
         if (b.status !== 'cancelled') return false;
         const ts = b.updatedAt || b.cancelledAt || b.createdAt;
@@ -110,7 +124,7 @@ const GroupHomePage = () => {
       });
     } catch (error) {
       console.error('Failed to fetch group data:', error);
-      toast.error('Failed to load group data');
+      toast.error('Failed to load some data. Please refresh the page.');
     } finally {
       setLoading(false);
     }
@@ -300,7 +314,7 @@ const GroupHomePage = () => {
                     Property
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status on Booking.com
+                    Status on Akwanda.rw
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Arrivals in next 48 hours
@@ -312,7 +326,7 @@ const GroupHomePage = () => {
                     Guest messages
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Booking.com messages
+                    Akwanda.rw messages
                   </th>
                 </tr>
               </thead>

@@ -840,11 +840,11 @@ const Navbar = () => {
 
   const goToPropertyDashboard = () => {
     if (!isAuthenticated) {
-      navigate('/login?redirect=/group-home');
+      navigate('/login?redirect=/dashboard');
       return;
     }
     if (user?.userType === 'host') {
-      navigate('/group-home');
+      navigate('/dashboard');
       return;
     }
     // Non-host trying to access dashboard: open pre-confirm modal
@@ -880,8 +880,8 @@ const Navbar = () => {
       toast.success(t ? t('msg.switchToOwnerSuccess') : 'Switched to Property Owner');
       setShowOwnerSwitch(false);
       setOwnerPassword('');
-      // Redirect to group homepage
-      navigate('/group-home');
+      // Redirect to dashboard with summary cards
+      navigate('/dashboard');
     } catch (err) {
       toast.error(err.message || (t ? t('msg.couldNotSwitchAccount') : 'Could not switch account'));
     } finally {
