@@ -749,8 +749,10 @@ const Navbar = () => {
     return location.pathname === path;
   };
 
-  // Check if user is in property owner dashboard context
+  // Check if user is in property owner dashboard context (host only)
   const isInPropertyOwnerDashboard = () => {
+    if (!(isAuthenticated && user?.userType === 'host')) return false;
+
     const ownerRoutes = ['/dashboard', '/user-dashboard', '/my-bookings', '/upload', '/owner', '/messages', '/notifications'];
     if (ownerRoutes.some(route => location.pathname.startsWith(route))) {
       return true;

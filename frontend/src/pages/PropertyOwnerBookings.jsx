@@ -945,8 +945,8 @@ const PropertyOwnerBookings = () => {
           </p>
         </div>
         <span className={`px-3 py-1 rounded-full text-[11px] md:text-xs font-medium ${booking.status === 'paid' ? 'bg-green-100 text-green-800' :
-            booking.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-              'bg-red-100 text-red-800'
+          booking.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+            'bg-red-100 text-red-800'
           }`}>
           {booking.status}
         </span>
@@ -1018,10 +1018,10 @@ const PropertyOwnerBookings = () => {
                     <td className="px-4 py-3 text-xs md:text-sm text-[#6b5744]">{tr.paymentMethod}</td>
                     <td className="px-4 py-3 text-xs md:text-sm">
                       <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium ${(tr.paymentStatus || tr.status) === 'paid'
-                          ? 'bg-green-50 text-green-800 border border-green-200'
-                          : (tr.paymentStatus || tr.status) === 'pending'
-                            ? 'bg-yellow-50 text-yellow-800 border border-yellow-200'
-                            : 'bg-gray-50 text-gray-700 border border-gray-200'
+                        ? 'bg-green-50 text-green-800 border border-green-200'
+                        : (tr.paymentStatus || tr.status) === 'pending'
+                          ? 'bg-yellow-50 text-yellow-800 border border-yellow-200'
+                          : 'bg-gray-50 text-gray-700 border border-gray-200'
                         }`}>
                         {tr.paymentStatus || tr.status}
                       </span>
@@ -1080,7 +1080,7 @@ const PropertyOwnerBookings = () => {
 
   return (
     <div className="min-h-screen bg-[#f5f0e8]">
-      /* {activeTab === 'calendar' && (
+      {/* {activeTab === 'calendar' && (
         <div>
           <div className="neu-card p-6 mb-8">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
@@ -1352,7 +1352,7 @@ const PropertyOwnerBookings = () => {
             })()}
           </div>
         </div>
-      )} */
+      )} */}
 
       {activeTab === 'finance' && (
         <div className="space-y-8">
@@ -1367,8 +1367,8 @@ const PropertyOwnerBookings = () => {
                     key={view}
                     onClick={() => setFinanceView(view)}
                     className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${financeView === view
-                        ? 'border-blue-500 text-blue-600'
-                        : 'border-transparent text-gray-500 hover:text-gray-700'
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
                       }`}
                   >
                     {view === 'overview' ? 'Financial Overview' : view === 'invoices' ? 'Invoices' : 'Reservations Statement'}
@@ -1428,8 +1428,8 @@ const PropertyOwnerBookings = () => {
                                 <div className="text-right">
                                   <div className="text-lg font-bold text-gray-900">{formatCurrencyRWF ? formatCurrencyRWF(booking.totalAmount || 0) : `RWF ${(booking.totalAmount || 0).toLocaleString()}`}</div>
                                   <span className={`inline-block px-2 py-1 text-xs rounded-full ${booking.paymentStatus === 'paid' ? 'bg-green-100 text-green-800' :
-                                      booking.paymentStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                                        'bg-red-100 text-red-800'
+                                    booking.paymentStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                      'bg-red-100 text-red-800'
                                     }`}>
                                     {booking.paymentStatus || booking.status}
                                   </span>
@@ -1506,8 +1506,8 @@ const PropertyOwnerBookings = () => {
                                 <td className="px-4 py-3 text-sm text-right font-bold text-green-600">RWF {net.toLocaleString()}</td>
                                 <td className="px-4 py-3 text-sm">
                                   <span className={`inline-block px-2 py-1 text-xs rounded-full ${booking.paymentStatus === 'paid' ? 'bg-green-100 text-green-800' :
-                                      booking.paymentStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                                        'bg-red-100 text-red-800'
+                                    booking.paymentStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                      'bg-red-100 text-red-800'
                                     }`}>
                                     {booking.paymentStatus || booking.status}
                                   </span>
@@ -2430,261 +2430,258 @@ const PropertyOwnerBookings = () => {
         </div>
       )}
 
-    </div>
-  );
-
-{/* Modals */ }
-{ showBookingDetails && renderBookingDetails() }
-{ showReceipt && renderReceipt() }
-{
-  showSalesConfirm && (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl max-w-lg w-full overflow-hidden shadow-xl">
-        <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900">Review booking before printing</h3>
-            <p className="text-xs text-gray-500 mt-1">Check the key details below. When you confirm, the receipt preview will open and you can print from there.</p>
-          </div>
-          <button onClick={onCancelSalesConfirm} className="text-gray-500 hover:text-gray-700">
-            <FaTimes />
-          </button>
-        </div>
-        <div className="p-6 space-y-4">
-          {salesNewBooking && (
-            <div className="text-sm text-gray-700 bg-gray-50 p-4 rounded-xl space-y-2">
-              <div className="flex justify-between gap-4">
-                <div>
-                  <div className="text-[11px] uppercase tracking-wide text-gray-500">Property</div>
-                  <div className="font-medium text-gray-900">{salesNewBooking.property?.title || salesNewBooking.property?.name || 'Property'}</div>
-                </div>
-                <div className="text-right">
-                  <div className="text-[11px] uppercase tracking-wide text-gray-500">Booking ID</div>
-                  <div className="font-mono text-xs">{salesNewBooking.confirmationCode || salesNewBooking._id}</div>
-                </div>
+      {/* Modals */}
+      {showBookingDetails && renderBookingDetails()}
+      {showReceipt && renderReceipt()}
+      {showSalesConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full overflow-hidden shadow-xl">
+            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Review booking before printing</h3>
+                <p className="text-xs text-gray-500 mt-1">Check the key details below. When you confirm, the receipt preview will open and you can print from there.</p>
               </div>
-              <div className="grid grid-cols-2 gap-3 text-xs mt-2">
-                <div>
-                  <div className="text-[11px] uppercase tracking-wide text-gray-500">Guest</div>
-                  <div className="font-medium text-gray-900">{salesNewBooking.guest?.firstName || salesNewBooking.guest?.name || 'Guest'} {salesNewBooking.guest?.lastName || ''}</div>
-                </div>
-                <div className="text-right">
-                  <div className="text-[11px] uppercase tracking-wide text-gray-500">Dates</div>
-                  <div className="font-medium text-gray-900">
-                    {salesNewBooking.checkIn ? new Date(salesNewBooking.checkIn).toLocaleDateString() : ''}
-                    {' '}–{' '}
-                    {salesNewBooking.checkOut ? new Date(salesNewBooking.checkOut).toLocaleDateString() : ''}
+              <button onClick={onCancelSalesConfirm} className="text-gray-500 hover:text-gray-700">
+                <FaTimes />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              {salesNewBooking && (
+                <div className="text-sm text-gray-700 bg-gray-50 p-4 rounded-xl space-y-2">
+                  <div className="flex justify-between gap-4">
+                    <div>
+                      <div className="text-[11px] uppercase tracking-wide text-gray-500">Property</div>
+                      <div className="font-medium text-gray-900">{salesNewBooking.property?.title || salesNewBooking.property?.name || 'Property'}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-[11px] uppercase tracking-wide text-gray-500">Booking ID</div>
+                      <div className="font-mono text-xs">{salesNewBooking.confirmationCode || salesNewBooking._id}</div>
+                    </div>
                   </div>
-                  <div className="text-[11px] text-gray-500">{salesNewBooking.numberOfGuests || salesNewBooking.guests || 1} guests</div>
-                </div>
-              </div>
-              <div className="border-t border-dashed border-gray-200 pt-3 mt-2 flex items-center justify-between text-sm">
-                <div>
-                  <div className="text-[11px] uppercase tracking-wide text-gray-500">Payment</div>
-                  <div className="text-xs text-gray-700">
-                    {salesNewBooking.paymentMethod || 'Cash'} · {salesNewBooking.paymentStatus || 'paid'}
+                  <div className="grid grid-cols-2 gap-3 text-xs mt-2">
+                    <div>
+                      <div className="text-[11px] uppercase tracking-wide text-gray-500">Guest</div>
+                      <div className="font-medium text-gray-900">{salesNewBooking.guest?.firstName || salesNewBooking.guest?.name || 'Guest'} {salesNewBooking.guest?.lastName || ''}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-[11px] uppercase tracking-wide text-gray-500">Dates</div>
+                      <div className="font-medium text-gray-900">
+                        {salesNewBooking.checkIn ? new Date(salesNewBooking.checkIn).toLocaleDateString() : ''}
+                        {' '}–{' '}
+                        {salesNewBooking.checkOut ? new Date(salesNewBooking.checkOut).toLocaleDateString() : ''}
+                      </div>
+                      <div className="text-[11px] text-gray-500">{salesNewBooking.numberOfGuests || salesNewBooking.guests || 1} guests</div>
+                    </div>
+                  </div>
+                  <div className="border-t border-dashed border-gray-200 pt-3 mt-2 flex items-center justify-between text-sm">
+                    <div>
+                      <div className="text-[11px] uppercase tracking-wide text-gray-500">Payment</div>
+                      <div className="text-xs text-gray-700">
+                        {salesNewBooking.paymentMethod || 'Cash'} · {salesNewBooking.paymentStatus || 'paid'}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-[11px] uppercase tracking-wide text-gray-500">Total</div>
+                      <div className="text-base font-semibold text-gray-900">
+                        {formatCurrencyRWF
+                          ? formatCurrencyRWF(salesNewBooking.totalAmount || 0)
+                          : `RWF ${(salesNewBooking.totalAmount || 0).toLocaleString()}`}
+                      </div>
+                    </div>
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="text-[11px] uppercase tracking-wide text-gray-500">Total</div>
-                  <div className="text-base font-semibold text-gray-900">
-                    {formatCurrencyRWF
-                      ? formatCurrencyRWF(salesNewBooking.totalAmount || 0)
-                      : `RWF ${(salesNewBooking.totalAmount || 0).toLocaleString()}`}
-                  </div>
-                </div>
+              )}
+              <div className="flex items-center justify-end gap-3">
+                <button onClick={onCancelSalesConfirm} className="px-5 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 text-sm">Cancel</button>
+                <button onClick={onConfirmSalesAndPrint} className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium">Confirm &amp; open receipt</button>
               </div>
             </div>
-          )}
-          <div className="flex items-center justify-end gap-3">
-            <button onClick={onCancelSalesConfirm} className="px-5 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 text-sm">Cancel</button>
-            <button onClick={onConfirmSalesAndPrint} className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium">Confirm &amp; open receipt</button>
           </div>
         </div>
-      </div>
+      )}
+
+      {showDirectBooking && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
+          <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+              <h2 className="text-2xl font-bold">New Direct Booking</h2>
+              <button onClick={() => setShowDirectBooking(false)} className="text-gray-500 hover:text-gray-700">
+                <FaTimes className="text-xl" />
+              </button>
+            </div>
+            <div className="p-6">
+              <form onSubmit={(e) => { e.preventDefault(); submitDirectBooking(); }} className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Property</label>
+                  <select
+                    value={directForm.propertyId}
+                    onChange={(e) => onSelectProperty(e.target.value)}
+                    className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  >
+                    <option value="">Select property…</option>
+                    {properties.map(p => (
+                      <option key={p._id} value={p._id}>{p.title || p.name || 'Property'}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Room (optional)</label>
+                    <select
+                      value={directForm.roomId}
+                      onChange={(e) => onDirectChange('roomId', e.target.value)}
+                      className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="">Any room</option>
+                      {ownerRooms.map(r => (
+                        <option key={r._id} value={r._id}>{r.roomNumber || r.roomType || 'Room'}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Check-in</label>
+                    <input type="date" value={directForm.checkIn} onChange={e => onDirectChange('checkIn', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" required />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Check-out</label>
+                    <input type="date" value={directForm.checkOut} onChange={e => onDirectChange('checkOut', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" required />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Guests</label>
+                    <input type="number" min={1} value={directForm.guests} onChange={e => onDirectChange('guests', Number(e.target.value) || 1)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
+                    <select value={directForm.paymentMethod} onChange={e => onDirectChange('paymentMethod', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                      <option value="cash">Cash</option>
+                      <option value="mtn_mobile_money">Mobile Money</option>
+                      <option value="credit_card">Credit Card</option>
+                      <option value="bank_transfer">Bank Transfer</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Payment Status</label>
+                    <div className="flex items-center gap-4 h-full">
+                      <label className="inline-flex items-center gap-2 text-sm"><input type="radio" name="ownerpaystatus" checked={directForm.paymentStatusSelection === 'paid'} onChange={() => onDirectChange('paymentStatusSelection', 'paid')} />Paid</label>
+                      <label className="inline-flex items-center gap-2 text-sm"><input type="radio" name="ownerpaystatus" checked={directForm.paymentStatusSelection === 'pending'} onChange={() => onDirectChange('paymentStatusSelection', 'pending')} />Pending</label>
+                      <label className="inline-flex items-center gap-2 text-sm"><input type="radio" name="ownerpaystatus" checked={directForm.paymentStatusSelection === 'deposit'} onChange={() => onDirectChange('paymentStatusSelection', 'deposit')} />Deposit</label>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Guest Info</label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <input placeholder="First name" value={directForm.guestInfo.firstName} onChange={e => onDirectChange('guestInfo.firstName', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" required />
+                    <input placeholder="Last name" value={directForm.guestInfo.lastName} onChange={e => onDirectChange('guestInfo.lastName', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" required />
+                    <input type="email" placeholder="Email" value={directForm.guestInfo.email} onChange={e => onDirectChange('guestInfo.email', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                    <input type="tel" placeholder="Phone" value={directForm.guestInfo.phone} onChange={e => onDirectChange('guestInfo.phone', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                    <input placeholder="Nationality" value={directForm.guestInfo.nationality} onChange={e => onDirectChange('guestInfo.nationality', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                    <input placeholder="Passport" value={directForm.guestInfo.passport} onChange={e => onDirectChange('guestInfo.passport', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                    <input placeholder="Address" value={directForm.guestInfo.address} onChange={e => onDirectChange('guestInfo.address', e.target.value)} className="md:col-span-2 w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">A guest account will be linked or created automatically if necessary.</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Contact Info (for booking records)</label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <input type="email" placeholder="Contact email" value={directForm.contactInfo.email} onChange={e => onDirectChange('contactInfo.email', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                    <input type="tel" placeholder="Contact phone" value={directForm.contactInfo.phone} onChange={e => onDirectChange('contactInfo.phone', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Special Requests</label>
+                  <textarea value={directForm.specialRequests} onChange={e => onDirectChange('specialRequests', e.target.value)} rows={3} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Any special notes..."></textarea>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Payment Information</label>
+                  <div className="border rounded-lg p-4 bg-gray-50">
+                    <div className="text-sm text-gray-900 font-semibold mb-2">Payment Information</div>
+                    <div className="text-sm text-gray-700 space-y-1">
+                      <div>Room Rate: based on selected property, room and nights</div>
+                      <div className="mt-2">Additional Services:</div>
+                      {(ownerAddOns.length === 0) && (
+                        <div className="text-xs text-gray-500">No add-on services configured for this property.</div>
+                      )}
+                      {ownerAddOns.map(addOn => {
+                        const key = addOn.key;
+                        const checked = !!(directForm.services && directForm.services[key]);
+                        const price = Number(addOn.price || 0);
+                        const scope = addOn.scope || 'per-booking';
+                        const guestCount = Math.max(1, directForm.guests || 1);
+                        const nightsCount = Math.max(1, ownerNights || 0);
+                        let lineTotal = price;
+                        let scopeLabel = 'per booking';
+                        if (scope === 'per-night') {
+                          lineTotal = price * nightsCount;
+                          scopeLabel = `${price.toLocaleString()} × ${nightsCount} nights`;
+                        } else if (scope === 'per-guest') {
+                          lineTotal = price * guestCount;
+                          scopeLabel = `${price.toLocaleString()} × ${guestCount} guests`;
+                        } else {
+                          scopeLabel = `${price.toLocaleString()} per booking`;
+                        }
+
+                        // Build included items summary from property-level configuration, if present
+                        const included = addOn.includedItems && typeof addOn.includedItems === 'object'
+                          ? Object.keys(addOn.includedItems)
+                            .filter(k => addOn.includedItems[k])
+                            .map(k => {
+                              // Use the key but format it nicely if we don't have labels
+                              return k
+                                .replace(/_/g, ' ')
+                                .replace(/\s+/g, ' ')
+                                .trim()
+                                .replace(/^(.)/, (m) => m.toUpperCase());
+                            })
+                          : [];
+
+                        return (
+                          <div key={key} className="space-y-0.5">
+                            <label className="flex items-center gap-2 text-sm">
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={e => {
+                                  onDirectChange('services', { ...(directForm.services || {}), [key]: e.target.checked });
+                                }}
+                              />
+                              <span>{addOn.name}</span>
+                            </label>
+                            {included.length > 0 && (
+                              <div className="pl-6 text-xs text-gray-500">
+                                Includes: {included.join(', ')}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                      <div className="pt-2">Subtotal: calculated automatically</div>
+                      <div>Hospitality levy (3%): calculated automatically</div>
+                      <div className="font-semibold">TOTAL: calculated automatically</div>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center justify-end gap-3 border-t pt-4">
+                  <button type="button" onClick={saveDirectDraft} className="px-5 py-3 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100">Save as Draft</button>
+                  <button type="button" onClick={clearDirectForm} className="px-5 py-3 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100">Clear Form</button>
+                  <button type="submit" className="px-6 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium">Save & Print Receipt</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )};
+
     </div>
   )
 }
-{
-  showDirectBooking && (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
-      <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-          <h2 className="text-2xl font-bold">New Direct Booking</h2>
-          <button onClick={() => setShowDirectBooking(false)} className="text-gray-500 hover:text-gray-700">
-            <FaTimes className="text-xl" />
-          </button>
-        </div>
-        <div className="p-6">
-          <form onSubmit={(e) => { e.preventDefault(); submitDirectBooking(); }} className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Property</label>
-              <select
-                value={directForm.propertyId}
-                onChange={(e) => onSelectProperty(e.target.value)}
-                className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                required
-              >
-                <option value="">Select property…</option>
-                {properties.map(p => (
-                  <option key={p._id} value={p._id}>{p.title || p.name || 'Property'}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Room (optional)</label>
-                <select
-                  value={directForm.roomId}
-                  onChange={(e) => onDirectChange('roomId', e.target.value)}
-                  className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="">Any room</option>
-                  {ownerRooms.map(r => (
-                    <option key={r._id} value={r._id}>{r.roomNumber || r.roomType || 'Room'}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Check-in</label>
-                <input type="date" value={directForm.checkIn} onChange={e => onDirectChange('checkIn', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" required />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Check-out</label>
-                <input type="date" value={directForm.checkOut} onChange={e => onDirectChange('checkOut', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" required />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Guests</label>
-                <input type="number" min={1} value={directForm.guests} onChange={e => onDirectChange('guests', Number(e.target.value) || 1)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
-                <select value={directForm.paymentMethod} onChange={e => onDirectChange('paymentMethod', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                  <option value="cash">Cash</option>
-                  <option value="mtn_mobile_money">Mobile Money</option>
-                  <option value="credit_card">Credit Card</option>
-                  <option value="bank_transfer">Bank Transfer</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Payment Status</label>
-                <div className="flex items-center gap-4 h-full">
-                  <label className="inline-flex items-center gap-2 text-sm"><input type="radio" name="ownerpaystatus" checked={directForm.paymentStatusSelection === 'paid'} onChange={() => onDirectChange('paymentStatusSelection', 'paid')} />Paid</label>
-                  <label className="inline-flex items-center gap-2 text-sm"><input type="radio" name="ownerpaystatus" checked={directForm.paymentStatusSelection === 'pending'} onChange={() => onDirectChange('paymentStatusSelection', 'pending')} />Pending</label>
-                  <label className="inline-flex items-center gap-2 text-sm"><input type="radio" name="ownerpaystatus" checked={directForm.paymentStatusSelection === 'deposit'} onChange={() => onDirectChange('paymentStatusSelection', 'deposit')} />Deposit</label>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Guest Info</label>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <input placeholder="First name" value={directForm.guestInfo.firstName} onChange={e => onDirectChange('guestInfo.firstName', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" required />
-                <input placeholder="Last name" value={directForm.guestInfo.lastName} onChange={e => onDirectChange('guestInfo.lastName', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" required />
-                <input type="email" placeholder="Email" value={directForm.guestInfo.email} onChange={e => onDirectChange('guestInfo.email', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-                <input type="tel" placeholder="Phone" value={directForm.guestInfo.phone} onChange={e => onDirectChange('guestInfo.phone', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-                <input placeholder="Nationality" value={directForm.guestInfo.nationality} onChange={e => onDirectChange('guestInfo.nationality', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-                <input placeholder="Passport" value={directForm.guestInfo.passport} onChange={e => onDirectChange('guestInfo.passport', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-                <input placeholder="Address" value={directForm.guestInfo.address} onChange={e => onDirectChange('guestInfo.address', e.target.value)} className="md:col-span-2 w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-              </div>
-              <p className="text-xs text-gray-500 mt-1">A guest account will be linked or created automatically if necessary.</p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Contact Info (for booking records)</label>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <input type="email" placeholder="Contact email" value={directForm.contactInfo.email} onChange={e => onDirectChange('contactInfo.email', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-                <input type="tel" placeholder="Contact phone" value={directForm.contactInfo.phone} onChange={e => onDirectChange('contactInfo.phone', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Special Requests</label>
-              <textarea value={directForm.specialRequests} onChange={e => onDirectChange('specialRequests', e.target.value)} rows={3} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Any special notes..."></textarea>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Payment Information</label>
-              <div className="border rounded-lg p-4 bg-gray-50">
-                <div className="text-sm text-gray-900 font-semibold mb-2">Payment Information</div>
-                <div className="text-sm text-gray-700 space-y-1">
-                  <div>Room Rate: based on selected property, room and nights</div>
-                  <div className="mt-2">Additional Services:</div>
-                  {(ownerAddOns.length === 0) && (
-                    <div className="text-xs text-gray-500">No add-on services configured for this property.</div>
-                  )}
-                  {ownerAddOns.map(addOn => {
-                    const key = addOn.key;
-                    const checked = !!(directForm.services && directForm.services[key]);
-                    const price = Number(addOn.price || 0);
-                    const scope = addOn.scope || 'per-booking';
-                    const guestCount = Math.max(1, directForm.guests || 1);
-                    const nightsCount = Math.max(1, ownerNights || 0);
-                    let lineTotal = price;
-                    let scopeLabel = 'per booking';
-                    if (scope === 'per-night') {
-                      lineTotal = price * nightsCount;
-                      scopeLabel = `${price.toLocaleString()} × ${nightsCount} nights`;
-                    } else if (scope === 'per-guest') {
-                      lineTotal = price * guestCount;
-                      scopeLabel = `${price.toLocaleString()} × ${guestCount} guests`;
-                    } else {
-                      scopeLabel = `${price.toLocaleString()} per booking`;
-                    }
-
-                    // Build included items summary from property-level configuration, if present
-                    const included = addOn.includedItems && typeof addOn.includedItems === 'object'
-                      ? Object.keys(addOn.includedItems)
-                        .filter(k => addOn.includedItems[k])
-                        .map(k => {
-                          // Use the key but format it nicely if we don't have labels
-                          return k
-                            .replace(/_/g, ' ')
-                            .replace(/\s+/g, ' ')
-                            .trim()
-                            .replace(/^(.)/, (m) => m.toUpperCase());
-                        })
-                      : [];
-
-                    return (
-                      <div key={key} className="space-y-0.5">
-                        <label className="flex items-center gap-2 text-sm">
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            onChange={e => {
-                              onDirectChange('services', { ...(directForm.services || {}), [key]: e.target.checked });
-                            }}
-                          />
-                          <span>{addOn.name}</span>
-                        </label>
-                        {included.length > 0 && (
-                          <div className="pl-6 text-xs text-gray-500">
-                            Includes: {included.join(', ')}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                  <div className="pt-2">Subtotal: calculated automatically</div>
-                  <div>Hospitality levy (3%): calculated automatically</div>
-                  <div className="font-semibold">TOTAL: calculated automatically</div>
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center justify-end gap-3 border-t pt-4">
-              <button type="button" onClick={saveDirectDraft} className="px-5 py-3 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100">Save as Draft</button>
-              <button type="button" onClick={clearDirectForm} className="px-5 py-3 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100">Clear Form</button>
-              <button type="submit" className="px-6 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium">Save & Print Receipt</button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-  );
-};
-};
 export default PropertyOwnerBookings;
