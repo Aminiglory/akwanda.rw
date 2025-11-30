@@ -751,7 +751,7 @@ const Navbar = () => {
 
   // Check if user is in property owner dashboard context
   const isInPropertyOwnerDashboard = () => {
-    const ownerRoutes = ['/dashboard', '/user-dashboard', '/my-bookings', '/upload', '/owner', '/messages', '/notifications'];
+    const ownerRoutes = ['/group-home', '/dashboard', '/user-dashboard', '/my-bookings', '/upload', '/owner', '/messages', '/notifications'];
     if (ownerRoutes.some(route => location.pathname.startsWith(route))) {
       return true;
     }
@@ -840,11 +840,11 @@ const Navbar = () => {
 
   const goToPropertyDashboard = () => {
     if (!isAuthenticated) {
-      navigate('/login?redirect=/dashboard');
+      navigate('/login?redirect=/group-home');
       return;
     }
     if (user?.userType === 'host') {
-      navigate('/dashboard');
+      navigate('/group-home');
       return;
     }
     // Non-host trying to access dashboard: open pre-confirm modal
@@ -880,8 +880,8 @@ const Navbar = () => {
       toast.success(t ? t('msg.switchToOwnerSuccess') : 'Switched to Property Owner');
       setShowOwnerSwitch(false);
       setOwnerPassword('');
-      // Redirect to owner dashboard
-      navigate('/dashboard');
+      // Redirect to group homepage
+      navigate('/group-home');
     } catch (err) {
       toast.error(err.message || (t ? t('msg.couldNotSwitchAccount') : 'Could not switch account'));
     } finally {
@@ -1476,7 +1476,7 @@ const Navbar = () => {
                             toggleDropdown(item.label);
                           }
                         }}
-                        className={`owner-nav-dropdown-button inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-medium transition-colors border ${isOpen || isParentActive ? 'bg-[#e8dcc8] border-gray-200 text-[#4b2a00]' : 'bg-white border-gray-200 text-[#6b5744] hover:bg-[#f2e5d3]'}`}
+                        className={`owner-nav-dropdown-button inline-flex items-center gap-1 px-2 py-1 rounded-full text-sm font-medium transition-colors border ${isOpen || isParentActive ? 'bg-[#e8dcc8] border-gray-200 text-[#4b2a00]' : 'bg-white border-gray-200 text-[#6b5744] hover:bg-[#f2e5d3]'}`}
                       >
                         <Icon className="text-xs" />
                         <span>{item.label}</span>
@@ -1498,7 +1498,7 @@ const Navbar = () => {
                                 key={cidx}
                                 type="button"
                                 onClick={() => { navigate(href); setActiveDropdown(null); }}
-                                className={`w-full flex items-center gap-2 px-3 py-1.5 text-[10px] text-left hover:bg-gray-50 ${isChildActive ? 'bg-gray-50 text-[#4b2a00]' : 'text-[#4b2a00]'}`}
+                                className={`w-full flex items-center gap-2 px-3 py-1.5 text-sm text-left hover:bg-gray-50 ${isChildActive ? 'bg-gray-50 text-[#4b2a00]' : 'text-[#4b2a00]'}`}
                               >
                                 {ChildIcon && <ChildIcon className="text-xs" />}
                                 <span className="flex-1">{child.label}</span>
@@ -1530,7 +1530,7 @@ const Navbar = () => {
                   <Link
                     key={p._id}
                     to={`/my-bookings?tab=calendar&property=${p._id}`}
-                    className="block px-2 py-1.5 rounded-md bg-white border border-[#e0d5c7] text-[10px] text-[#4b2a00] hover:bg-[#fffaf5]"
+                    className="block px-2 py-1.5 rounded-md bg-white border border-[#e0d5c7] text-sm text-[#4b2a00] hover:bg-[#fffaf5]"
                     onClick={() => setIsMenuOpen(false)}
                   >
                     {p.title || p.name || p.propertyNumber}
@@ -1542,14 +1542,14 @@ const Navbar = () => {
               <div className="flex items-center gap-1.5">
                 <button
                   type="button"
-                  className="flex-1 px-2 py-1.5 rounded-md border border-[#d4c4b0] bg-white text-[10px] font-medium text-[#4b2a00] hover:bg-[#f4e5d4]"
+                  className="flex-1 px-2 py-1.5 rounded-md border border-[#d4c4b0] bg-white text-sm font-medium text-[#4b2a00] hover:bg-[#f4e5d4]"
                   onClick={() => window.open('/owner/cars', '_blank', 'noopener,noreferrer')}
                 >
                   Vehicles
                 </button>
                 <button
                   type="button"
-                  className="flex-1 px-2 py-1.5 rounded-md border border-[#d4c4b0] bg-white text-[10px] font-medium text-[#4b2a00] hover:bg-[#f4e5d4]"
+                  className="flex-1 px-2 py-1.5 rounded-md border border-[#d4c4b0] bg-white text-sm font-medium text-[#4b2a00] hover:bg-[#f4e5d4]"
                   onClick={() => window.open('/owner/attractions', '_blank', 'noopener,noreferrer')}
                 >
                   Attractions
@@ -1582,7 +1582,7 @@ const Navbar = () => {
                             <Link
                               key={cidx}
                               to={child.href}
-                              className="flex items-center gap-2 px-2 py-1.5 text-[10px] text-[#4b2a00] hover:bg-white border-t border-[#f0e6d9] first:border-t-0"
+                              className="flex items-center gap-2 px-2 py-1.5 text-sm text-[#4b2a00] hover:bg-white border-t border-[#f0e6d9] first:border-t-0"
                               onClick={() => setIsMenuOpen(false)}
                             >
                               <ChildIcon className="text-xs" />
@@ -1628,7 +1628,7 @@ const Navbar = () => {
                 <Link
                                 key={cidx}
                                 to={child.href || m.href}
-                                className="flex items-center gap-2 px-2 py-1.5 text-[10px] text-[#4b2a00] hover:bg-white border-t border-[#f0e6d9] first:border-t-0"
+                                className="flex items-center gap-2 px-2 py-1.5 text-sm text-[#4b2a00] hover:bg-white border-t border-[#f0e6d9] first:border-t-0"
                   onClick={() => setIsMenuOpen(false)}
                 >
                                 {child.icon && <child.icon className="text-xs" />}

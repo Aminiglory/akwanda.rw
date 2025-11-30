@@ -160,9 +160,14 @@ const PropertyOwnerBookings = () => {
   // Removed mock data. We will fetch live data from the backend.
 
   useEffect(() => {
+    // If accessing /dashboard directly, redirect to group-home to show summary cards first
+    if (location.pathname === '/dashboard' && !location.search) {
+      navigate('/group-home', { replace: true });
+      return;
+    }
     console.log('[PropertyOwnerBookings] useEffect mount -> loadData');
     loadData();
-  }, []);
+  }, [location.pathname, location.search]);
 
   useEffect(() => {
     if (activeTab === 'reviews') {
