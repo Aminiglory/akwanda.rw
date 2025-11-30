@@ -135,6 +135,12 @@ const PropertyOwnerBookings = () => {
   const calendarRef = useRef(null);
   const receiptIframeRef = useRef(null);
 
+  console.log('[PropertyOwnerBookings] mount/render', {
+    path: location.pathname,
+    search: location.search,
+    initialTab: activeTab,
+  });
+
   const openReceiptPdf = (bookingId) => {
     if (!bookingId) return;
     // Use the React Receipt page, which will call window.print() once loaded
@@ -152,6 +158,7 @@ const PropertyOwnerBookings = () => {
   // Removed mock data. We will fetch live data from the backend.
 
   useEffect(() => {
+    console.log('[PropertyOwnerBookings] useEffect mount -> loadData');
     loadData();
   }, []);
 
@@ -159,9 +166,11 @@ const PropertyOwnerBookings = () => {
     if (activeTab === 'reviews') {
       loadOwnerReviews();
     }
+    console.log('[PropertyOwnerBookings] activeTab changed', activeTab);
   }, [activeTab]);
 
   const loadData = async () => {
+    console.log('[PropertyOwnerBookings] loadData start');
     setLoading(true);
     try {
       const [bookRes, propRes, occRes] = await Promise.all([
@@ -174,6 +183,7 @@ const PropertyOwnerBookings = () => {
       if (propRes.ok) {
         const props = propJson.properties || [];
         setProperties(props);
+        console.log('[PropertyOwnerBookings] properties loaded', props.length);
         // Ensure a concrete propertyId is selected so the calendar fetch runs
         if (props.length && filters.property === 'all') {
           setFilters(prev => ({ ...prev, property: props[0]._id }));
@@ -193,10 +203,13 @@ const PropertyOwnerBookings = () => {
         occupancyRate: 0,
         averageRating: 0
       });
+      console.log('[PropertyOwnerBookings] bookings loaded', list.length);
     } catch (error) {
+      console.error('[PropertyOwnerBookings] loadData error', error);
       toast.error('Failed to load data');
     } finally {
       setLoading(false);
+      console.log('[PropertyOwnerBookings] loadData finished, loading = false');
     }
   };
 
@@ -1079,6 +1092,12 @@ const PropertyOwnerBookings = () => {
   );
 
   return (
+    console.log('[PropertyOwnerBookings] render return', {
+      activeTab,
+      loading,
+      bookings: Array.isArray(bookings) ? bookings.length : 'not-array',
+      properties: Array.isArray(properties) ? properties.length : 'not-array',
+    }),
     <div className="min-h-screen bg-[#f5f0e8]">
        {activeTab === 'calendar' && (
         <div>
