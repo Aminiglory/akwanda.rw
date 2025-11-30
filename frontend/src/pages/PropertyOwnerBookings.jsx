@@ -2679,9 +2679,9 @@ const PropertyOwnerBookings = () => {
             </div>
           </div>
         </div>
-      )};
+      )}
 
     </div>
-  )
-}
+  );
+};
 export default PropertyOwnerBookings;
