@@ -1124,8 +1124,8 @@ const PropertyOwnerBookings = () => {
                     <p className="text-sm text-gray-600 mb-1">Reservations</p>
                     <p className="text-3xl font-bold text-gray-900">{ownerOpsStats.reservations}</p>
                   </div>
-                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <FaCalendarAlt className="text-2xl text-blue-600" />
+                  <div className="w-12 h-12 bg-[#f5ede1] rounded-lg flex items-center justify-center">
+                    <FaCalendarAlt className="text-2xl text-[#a06b42]" />
                   </div>
                 </div>
               </div>
@@ -1136,8 +1136,8 @@ const PropertyOwnerBookings = () => {
                     <p className="text-sm text-gray-600 mb-1">Arrival</p>
                     <p className="text-3xl font-bold text-gray-900">{ownerOpsStats.arrivals48h}</p>
                   </div>
-                  <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                    <FaCheckCircle className="text-2xl text-green-600" />
+                  <div className="w-12 h-12 bg-[#f5ede1] rounded-lg flex items-center justify-center">
+                    <FaCheckCircle className="text-2xl text-[#a06b42]" />
                   </div>
                 </div>
               </div>
@@ -1148,8 +1148,8 @@ const PropertyOwnerBookings = () => {
                     <p className="text-sm text-gray-600 mb-1">Departures</p>
                     <p className="text-3xl font-bold text-gray-900">{ownerOpsStats.departures48h}</p>
                   </div>
-                  <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
-                    <FaUsers className="text-2xl text-yellow-600" />
+                  <div className="w-12 h-12 bg-[#f5ede1] rounded-lg flex items-center justify-center">
+                    <FaUsers className="text-2xl text-[#a06b42]" />
                   </div>
                 </div>
               </div>
@@ -1160,8 +1160,8 @@ const PropertyOwnerBookings = () => {
                     <p className="text-sm text-gray-600 mb-1">Reviews</p>
                     <p className="text-3xl font-bold text-gray-900">{ownerOpsStats.reviews}</p>
                   </div>
-                  <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                    <FaStar className="text-2xl text-purple-600" />
+                  <div className="w-12 h-12 bg-[#f5ede1] rounded-lg flex items-center justify-center">
+                    <FaStar className="text-2xl text-[#a06b42]" />
                   </div>
                 </div>
               </div>
@@ -1172,8 +1172,8 @@ const PropertyOwnerBookings = () => {
                     <p className="text-sm text-gray-600 mb-1">Cancellations</p>
                     <p className="text-3xl font-bold text-gray-900">{ownerOpsStats.cancellations48h}</p>
                   </div>
-                  <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
-                    <FaTimes className="text-2xl text-red-600" />
+                  <div className="w-12 h-12 bg-[#f5ede1] rounded-lg flex items-center justify-center">
+                    <FaTimes className="text-2xl text-[#a06b42]" />
                   </div>
                 </div>
               </div>
@@ -1827,21 +1827,21 @@ const PropertyOwnerBookings = () => {
 
             {analyticsView === 'dashboard' && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="bg-indigo-50 rounded-xl p-6 shadow-md">
-                  <h3 className="text-lg font-semibold text-indigo-900 mb-2">Occupancy Rate</h3>
-                  <div className="text-2xl font-bold text-indigo-600">{stats.occupancyRate}%</div>
+                <div className="bg-[#fdf7f0] rounded-xl p-6 shadow-md border border-[#e0d5c7]">
+                  <h3 className="text-lg font-semibold text-[#4b2a00] mb-2">Occupancy Rate</h3>
+                  <div className="text-2xl font-bold text-[#a06b42]">{stats.occupancyRate}%</div>
                 </div>
-                <div className="bg-orange-50 rounded-xl p-6 shadow-md">
-                  <h3 className="text-lg font-semibold text-orange-900 mb-2">Avg Rating</h3>
-                  <div className="text-2xl font-bold text-orange-600">{stats.averageRating}</div>
+                <div className="bg-[#fdf7f0] rounded-xl p-6 shadow-md border border-[#e0d5c7]">
+                  <h3 className="text-lg font-semibold text-[#4b2a00] mb-2">Avg Rating</h3>
+                  <div className="text-2xl font-bold text-[#a06b42]">{stats.averageRating}</div>
                 </div>
-                <div className="bg-teal-50 rounded-xl p-6 shadow-md">
-                  <h3 className="text-lg font-semibold text-teal-900 mb-2">Total Bookings</h3>
-                  <div className="text-2xl font-bold text-teal-600">{stats.total}</div>
+                <div className="bg-[#fdf7f0] rounded-xl p-6 shadow-md border border-[#e0d5c7]">
+                  <h3 className="text-lg font-semibold text-[#4b2a00] mb-2">Total Bookings</h3>
+                  <div className="text-2xl font-bold text-[#a06b42]">{stats.total}</div>
                 </div>
-                <div className="bg-pink-50 rounded-xl p-6 shadow-md">
-                  <h3 className="text-lg font-semibold text-pink-900 mb-2">Properties</h3>
-                  <div className="text-2xl font-bold text-pink-600">{stats.totalProperties}</div>
+                <div className="bg-[#fdf7f0] rounded-xl p-6 shadow-md border border-[#e0d5c7]">
+                  <h3 className="text-lg font-semibold text-[#4b2a00] mb-2">Properties</h3>
+                  <div className="text-2xl font-bold text-[#a06b42]">{stats.totalProperties}</div>
                 </div>
               </div>
             )}
@@ -1849,10 +1849,10 @@ const PropertyOwnerBookings = () => {
             {analyticsView === 'demand' && (
               <div className="space-y-4">
                 <p className="text-gray-600">Analyze demand trends for your location and property type.</p>
-                <div className="bg-blue-50 p-6 rounded-lg">
-                  <h4 className="font-semibold mb-3">Location Demand Index</h4>
-                  <div className="text-3xl font-bold text-blue-600 mb-2">High</div>
-                  <p className="text-sm text-gray-600">Your location is experiencing high demand this season</p>
+                <div className="bg-[#fdf7f0] p-6 rounded-lg border border-[#e0d5c7]">
+                  <h4 className="font-semibold mb-3 text-[#4b2a00]">Location Demand Index</h4>
+                  <div className="text-3xl font-bold text-[#a06b42] mb-2">High</div>
+                  <p className="text-sm text-[#6b5744]">Your location is experiencing high demand this season</p>
                 </div>
               </div>
             )}
@@ -1895,17 +1895,17 @@ const PropertyOwnerBookings = () => {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="bg-indigo-50 p-4 rounded-lg">
-                    <p className="text-sm text-indigo-700">RevPAR (avg)</p>
-                    <p className="text-2xl font-bold text-indigo-800">RWF {Number(analyticsData?.totals?.revparAvg || 0).toLocaleString()}</p>
+                  <div className="bg-[#fdf7f0] p-4 rounded-lg border border-[#e0d5c7]">
+                    <p className="text-sm text-[#6b5744]">RevPAR (avg)</p>
+                    <p className="text-2xl font-bold text-[#a06b42]">RWF {Number(analyticsData?.totals?.revparAvg || 0).toLocaleString()}</p>
                   </div>
-                  <div className="bg-teal-50 p-4 rounded-lg">
-                    <p className="text-sm text-teal-700">ADR (avg)</p>
-                    <p className="text-2xl font-bold text-teal-800">RWF {Number(analyticsData?.totals?.adrAvg || 0).toLocaleString()}</p>
+                  <div className="bg-[#fdf7f0] p-4 rounded-lg border border-[#e0d5c7]">
+                    <p className="text-sm text-[#6b5744]">ADR (avg)</p>
+                    <p className="text-2xl font-bold text-[#a06b42]">RWF {Number(analyticsData?.totals?.adrAvg || 0).toLocaleString()}</p>
                   </div>
-                  <div className="bg-yellow-50 p-4 rounded-lg">
-                    <p className="text-sm text-yellow-700">Occupancy (avg)</p>
-                    <p className="text-2xl font-bold text-yellow-800">{Number(analyticsData?.totals?.occupancyAvg || 0)}%</p>
+                  <div className="bg-[#fdf7f0] p-4 rounded-lg border border-[#e0d5c7]">
+                    <p className="text-sm text-[#6b5744]">Occupancy (avg)</p>
+                    <p className="text-2xl font-bold text-[#a06b42]">{Number(analyticsData?.totals?.occupancyAvg || 0)}%</p>
                   </div>
                 </div>
 
@@ -1969,13 +1969,13 @@ const PropertyOwnerBookings = () => {
                     const oRev = online.reduce((s, b) => s + Number(b.totalAmount || 0), 0);
                     return (
                       <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-green-50 p-4 rounded-lg">
-                          <p className="text-sm text-green-700">Direct Revenue</p>
-                          <p className="text-xl font-bold text-green-800">RWF {dRev.toLocaleString()}</p>
+                        <div className="bg-[#fdf7f0] p-4 rounded-lg border border-[#e0d5c7]">
+                          <p className="text-sm text-[#6b5744]">Direct Revenue</p>
+                          <p className="text-xl font-bold text-[#a06b42]">RWF {dRev.toLocaleString()}</p>
                         </div>
-                        <div className="bg-blue-50 p-4 rounded-lg">
-                          <p className="text-sm text-blue-700">Online Revenue</p>
-                          <p className="text-xl font-bold text-blue-800">RWF {oRev.toLocaleString()}</p>
+                        <div className="bg-[#fdf7f0] p-4 rounded-lg border border-[#e0d5c7]">
+                          <p className="text-sm text-[#6b5744]">Online Revenue</p>
+                          <p className="text-xl font-bold text-[#a06b42]">RWF {oRev.toLocaleString()}</p>
                         </div>
                       </div>
                     );

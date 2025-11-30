@@ -24,7 +24,7 @@ const OwnerLogin = () => {
     if (result.success) {
       if (result.user?.userType === 'host') {
         toast.success('Welcome to your Property Dashboard');
-        navigate('/dashboard');
+        navigate('/group-home');
       } else if (result.user?.userType === 'admin') {
         // Admins can also manage properties
         toast.success('Admin access granted');

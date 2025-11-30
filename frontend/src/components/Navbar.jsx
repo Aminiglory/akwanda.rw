@@ -1112,12 +1112,13 @@ const Navbar = () => {
                             return;
                           }
                           if (!id) return;
-                          // Persist selected property for all owner links by updating state and URL ?property=
-                          setSelectedPropertyId(id);
+                          // Open the selected property in a NEW TAB on the same route with ?property=<id>
                           try {
                             const params = new URLSearchParams(location.search || '');
                             params.set('property', String(id));
-                            navigate({ pathname: location.pathname, search: params.toString() }, { replace: true });
+                            const qs = params.toString();
+                            const url = qs ? `${location.pathname}?${qs}` : location.pathname;
+                            window.open(url, '_blank');
                           } catch (_) {}
                         }}
                       >
@@ -1385,12 +1386,6 @@ const Navbar = () => {
                       </div>
                       <Link to="/profile" className="block px-3 py-1.5 text-xs text-[#4b2a00] hover:bg-gray-50">{t ? t('nav.profile') : 'Profile'}</Link>
                       <Link to="/settings" className="block px-3 py-1.5 text-xs text-[#4b2a00] hover:bg-gray-50">{t ? t('nav.accountSettings') : 'Account settings'}</Link>
-                      {user?.userType === 'host' && (
-                        <>
-                          <Link to="/my-bookings" className="block px-3 py-1.5 text-xs text-[#4b2a00] hover:bg-gray-50">{t ? t('nav.reservations') : 'My bookings'}</Link>
-                          <Link to="/dashboard" className="block px-3 py-1.5 text-xs text-[#4b2a00] hover:bg-gray-50">{t ? t('nav.dashboard') : 'Owner dashboard'}</Link>
-                        </>
-                      )}
                       <button onClick={handleLogout} className="w-full text-left px-3 py-1.5 text-xs text-red-700 hover:bg-gray-50 flex items-center gap-2">
                         <FaSignOutAlt /> <span>{t ? t('nav.logout') : 'Log out'}</span>
                       </button>
@@ -1529,14 +1524,24 @@ const Navbar = () => {
               <div className="text-[10px] font-semibold text-[#6b5744] mb-1.5">{t ? t('banner.manageProperty') : 'Manage property'}</div>
               <div className="grid grid-cols-1 gap-1.5 mb-2">
                 {myProperties.map((p) => (
-                  <Link
+                  <button
                     key={p._id}
-                    to={`/my-bookings?tab=calendar&property=${p._id}`}
-                    className="block px-2 py-1.5 rounded-md bg-white border border-[#e0d5c7] text-sm text-[#4b2a00] hover:bg-[#fffaf5]"
-                    onClick={() => setIsMenuOpen(false)}
+                    type="button"
+                    className="block w-full px-2 py-1.5 rounded-md bg-white border border-[#e0d5c7] text-sm text-left text-[#4b2a00] hover:bg-[#fffaf5]"
+                    onClick={() => {
+                      try {
+                        const params = new URLSearchParams();
+                        params.set('tab', 'calendar');
+                        params.set('property', String(p._id));
+                        const qs = params.toString();
+                        const url = qs ? `/my-bookings?${qs}` : '/my-bookings';
+                        window.open(url, '_blank');
+                      } catch (_) {}
+                      setIsMenuOpen(false);
+                    }}
                   >
                     {p.title || p.name || p.propertyNumber}
-                  </Link>
+                  </button>
                 ))}
               </div>
 
