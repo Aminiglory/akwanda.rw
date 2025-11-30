@@ -637,6 +637,88 @@ const PropertyOwnerBookings = () => {
     openReceiptPdf(booking._id);
   };
 
+  const renderBookingDetails = () => {
+    if (!showBookingDetails || !selectedBooking) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="p-6 border-b border-gray-200">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold">Booking Details</h2>
+              <button
+                onClick={() => setShowBookingDetails(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <FaTimes className="text-xl" />
+              </button>
+            </div>
+          </div>
+          <div className="p-6 space-y-4 text-sm">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <p className="text-xs text-gray-500">Guest</p>
+                <p className="font-semibold text-gray-900">
+                  {`${selectedBooking.guest?.firstName || ''} ${selectedBooking.guest?.lastName || ''}`.trim() || selectedBooking.guest?.email || 'Guest'}
+                </p>
+                <p className="text-xs text-gray-500">{selectedBooking.guest?.email}</p>
+                <p className="text-xs text-gray-500">{selectedBooking.guest?.phone}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-gray-500">Total amount</p>
+                <p className="text-xl font-bold text-[#4b2a00]">
+                  {formatCurrencyRWF
+                    ? formatCurrencyRWF(selectedBooking.totalAmount || 0)
+                    : `RWF ${(selectedBooking.totalAmount || 0).toLocaleString()}`}
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <p className="text-xs text-gray-500">Property</p>
+                <p className="font-medium text-gray-900">{selectedBooking.property?.title || selectedBooking.property?.name || 'Property'}</p>
+                <p className="text-xs text-gray-500">{selectedBooking.property?.city || selectedBooking.property?.address}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">Dates & guests</p>
+                <p className="font-medium text-gray-900">{selectedBooking.checkIn} → {selectedBooking.checkOut}</p>
+                <p className="text-xs text-gray-500">{selectedBooking.numberOfGuests || selectedBooking.guests || 1} guests</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderReceipt = () => {
+    if (!showReceipt || !receiptPdfUrl) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+          <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+            <h2 className="text-lg font-semibold">Receipt preview</h2>
+            <button
+              onClick={() => setShowReceipt(false)}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              <FaTimes />
+            </button>
+          </div>
+          <div className="flex-1">
+            <iframe
+              ref={receiptIframeRef}
+              src={receiptPdfUrl}
+              title="Receipt PDF"
+              className="w-full h-full border-0"
+            />
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const handleStatusChange = async (bookingId, newStatus) => {
     try {
       if (!bookingId || !newStatus) return;
@@ -670,6 +752,100 @@ const PropertyOwnerBookings = () => {
       toast.error(error.message || 'Failed to update status');
     }
   };
+
+  const now = new Date();
+  const in48h = new Date(now.getTime() + 48 * 60 * 60 * 1000);
+  const since48h = new Date(now.getTime() - 48 * 60 * 60 * 1000);
+
+  const scopedBookings = Array.isArray(bookings)
+    ? bookings.filter((b) =>
+        filters.property === 'all'
+          ? true
+          : String(b.property?._id) === String(filters.property)
+      )
+    : [];
+
+  const ownerOpsStats = {
+    reservations: scopedBookings.length,
+    arrivals48h: scopedBookings.filter((b) => {
+      if (!b.checkIn) return false;
+      const checkIn = new Date(b.checkIn);
+      return (
+        checkIn >= now &&
+        checkIn <= in48h &&
+        (b.status === 'confirmed' || (b.paymentStatus || '').toLowerCase() === 'paid')
+      );
+    }).length,
+    departures48h: scopedBookings.filter((b) => {
+      if (!b.checkOut) return false;
+      const checkOut = new Date(b.checkOut);
+      return (
+        checkOut >= now &&
+        checkOut <= in48h &&
+        (b.status === 'confirmed' || b.status === 'ended')
+      );
+    }).length,
+    reviews: ownerReviewCount || (Array.isArray(ownerReviews) ? ownerReviews.length : 0),
+    cancellations48h: scopedBookings.filter((b) => {
+      if (b.status !== 'cancelled') return false;
+      const ts = b.updatedAt || b.cancelledAt || b.createdAt;
+      if (!ts) return false;
+      const d = new Date(ts);
+      return d >= since48h && d <= now;
+    }).length,
+  };
+
+  const propertiesWithStats = Array.isArray(properties) ? properties.map((p) => {
+    const id = String(p._id || '');
+    const code = p.propertyNumber || id.slice(-6) || 'N/A';
+    const name = p.title || p.name || 'Property';
+    const locationLabel = p.city || p.address || p.location || '';
+
+    const pBookings = Array.isArray(bookings)
+      ? bookings.filter((b) => String(b.property?._id) === id)
+      : [];
+
+    const bookingCount = pBookings.length;
+    const revenue = pBookings.reduce((sum, b) => sum + (b.totalAmount || 0), 0);
+    const upcomingCount = pBookings.filter((b) => {
+      if (!b.checkIn) return false;
+      const checkIn = new Date(b.checkIn);
+      return (b.status === 'confirmed' || (b.paymentStatus || '').toLowerCase() === 'paid') && checkIn >= now;
+    }).length;
+
+    const arrivals48h = pBookings.filter((b) => {
+      if (!b.checkIn) return false;
+      const checkIn = new Date(b.checkIn);
+      return (
+        checkIn >= now &&
+        checkIn <= in48h &&
+        (b.status === 'confirmed' || (b.paymentStatus || '').toLowerCase() === 'paid')
+      );
+    }).length;
+
+    const departures48h = pBookings.filter((b) => {
+      if (!b.checkOut) return false;
+      const checkOut = new Date(b.checkOut);
+      return (
+        checkOut >= now &&
+        checkOut <= in48h &&
+        (b.status === 'confirmed' || b.status === 'ended')
+      );
+    }).length;
+
+    return {
+      id,
+      code,
+      name,
+      locationLabel,
+      bookingCount,
+      revenue,
+      upcomingCount,
+      arrivals48h,
+      departures48h,
+      raw: p,
+    };
+  }) : [];
 
   const filteredBookings = bookings.filter(booking => {
     // Status filter
@@ -898,678 +1074,12 @@ const PropertyOwnerBookings = () => {
           onClick={() => navigate(`/messages?booking=${booking._id}`)}
           className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
         >
-          <FaComments />
+          Message Guest
         </button>
       </div>
-    </div>
-  );
-  const renderBookingDetails = () => (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6 border-b border-gray-200">
-          <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-bold">Booking Details</h2>
-            <button
-              onClick={() => setShowBookingDetails(false)}
-              className="text-gray-500 hover:text-gray-700"
-            >
-              <FaTimes className="text-xl" />
-            </button>
-          </div>
-        </div>
+    <div className="min-h-screen bg-[#f5f0e8]">
 
-        {selectedBooking && (
-          <div className="p-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Guest Information */}
-              <div className="modern-card p-6">
-                <h3 className="text-lg font-semibold mb-4 flex items-center">
-                  <FaUser className="mr-2" />
-                  Guest Information
-                </h3>
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-sm text-gray-600">Name</p>
-                    <p className="font-medium">{selectedBooking.guest.name}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Email</p>
-                    <p className="font-medium">{selectedBooking.guest.email}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Phone</p>
-                    <p className="font-medium">{selectedBooking.guest.phone}</p>
-                  </div>
-                  <div className="flex space-x-2 mt-4">
-                    <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center">
-                      <FaEnvelope className="mr-2" />
-                      Email
-                    </button>
-                    <button className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center">
-                      <FaPhone className="mr-2" />
-                      Call
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Booking Information */}
-              <div className="modern-card p-6">
-                <h3 className="text-lg font-semibold mb-4 flex items-center">
-                  <FaCalendarAlt className="mr-2" />
-                  Booking Information
-                </h3>
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-sm text-gray-600">Property</p>
-                    <p className="font-medium">{selectedBooking.property.name}</p>
-                    <p className="text-sm text-gray-500">{selectedBooking.property.location}</p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm text-gray-600">Check-in</p>
-                      <p className="font-medium">{selectedBooking.checkIn}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Check-out</p>
-                      <p className="font-medium">{selectedBooking.checkOut}</p>
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Guests</p>
-                    <p className="font-medium">{selectedBooking.guests} guests</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">{t ? t('dashboard.totalAmount') : 'Total Amount'}</p>
-                    <p className="text-xl font-bold text-blue-600">{formatCurrencyRWF ? formatCurrencyRWF(selectedBooking.totalAmount || 0) : `RWF ${selectedBooking.totalAmount.toLocaleString()}`}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Special Requests */}
-              {selectedBooking.specialRequests && (
-                <div className="modern-card p-6">
-                  <h3 className="text-lg font-semibold mb-4 flex items-center">
-                    <FaComments className="mr-2" />
-                    Special Requests
-                  </h3>
-                  <p className="text-gray-700">{selectedBooking.specialRequests}</p>
-                </div>
-              )}
-
-
-              {/* Review */}
-              {selectedBooking.review && (
-                <div className="modern-card p-6">
-                  <h3 className="text-lg font-semibold mb-4 flex items-center">
-                    <FaStar className="mr-2" />
-                    Guest Review
-                  </h3>
-                  <div className="flex items-center mb-2">
-                    <FaStar className="text-yellow-400 mr-1" />
-                    <span className="font-medium">{selectedBooking.rating}</span>
-                  </div>
-                  <p className="text-gray-700">{selectedBooking.review}</p>
-                </div>
-              )}
-
-              {/* Actions */}
-              <div className="modern-card p-6">
-                <h3 className="text-lg font-semibold mb-4">{t ? t('dashboard.actions') : 'Actions'}</h3>
-                <div className="space-y-2">
-                  <button
-                    onClick={() => handleStatusChange(selectedBooking._id, 'paid')}
-                    className="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center"
-                  >
-                    <FaCheck className="mr-2" />
-                    {t ? t('dashboard.markAsPaid') : 'Mark as Paid'}
-                  </button>
-                  <button
-                    onClick={() => handleStatusChange(selectedBooking._id, 'pending')}
-                    className="w-full bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700 transition-colors flex items-center justify-center"
-                  >
-                    <FaClock className="mr-2" />
-                    {t ? t('dashboard.markAsPending') : 'Mark as Pending'}
-                  </button>
-                  <button
-                    onClick={() => navigate(`/messages?booking=${selectedBooking._id}`)}
-                    className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center"
-                  >
-                    <FaComments className="mr-2" />
-                    {t ? t('dashboard.sendMessage') : 'Send Message'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-
-  const renderReceipt = () => (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
-      <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[95vh] flex flex-col overflow-hidden">
-        <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900">
-              {t ? t('dashboard.bookingReceipt') : 'Booking receipt'}
-            </h2>
-            <p className="text-xs text-gray-500 mt-1">
-              Review the receipt preview below, then use the Print button if you need a paper copy.
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => {
-                if (receiptIframeRef.current && receiptIframeRef.current.contentWindow) {
-                  receiptIframeRef.current.contentWindow.focus();
-                  receiptIframeRef.current.contentWindow.print();
-                }
-              }}
-              className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium"
-            >
-              Print
-            </button>
-            <button
-              onClick={() => { setShowReceipt(false); setReceiptPdfUrl(null); }}
-              className="text-gray-500 hover:text-gray-700"
-            >
-              <FaTimes className="text-xl" />
-            </button>
-          </div>
-        </div>
-        <div className="flex-1 bg-gray-100">
-          {receiptPdfUrl ? (
-            <iframe
-              ref={receiptIframeRef}
-              src={receiptPdfUrl}
-              title="Booking receipt PDF"
-              className="w-full h-full border-0"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-sm text-gray-500">
-              No receipt selected.
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <LoadingIndicator label="Loading your owner dashboard" />
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        {/* Back Button */}
-        <div className="mb-4">
-          <button
-            onClick={() => navigate(-1)}
-            className="flex items-center gap-2 text-gray-600 hover:text-[#a06b42] transition-colors"
-          >
-            <FaArrowLeft className="text-sm" />
-            <span className="text-sm font-medium">Back</span>
-          </button>
-        </div>
-
-        {/* Tab Content */}
-        {activeTab === 'dashboard' && (
-          <div className="space-y-8">
-            {/* Dashboard header */}
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
-              <div>
-                <h1 className="text-2xl font-bold text-[#4b2a00]">Dashboard overview</h1>
-                <p className="text-sm text-[#6b5744] mt-1">
-                  Track your bookings, revenue and property performance at a glance.
-                </p>
-              </div>
-              {/* Desktop: booking actions */}
-              <div className="hidden lg:flex items-center gap-3">
-                <button
-                  onClick={() => navigate('/owner/direct-booking')}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#a06b42] hover:bg-[#8f5a32] text-white text-sm shadow-md transition-colors"
-                >
-                  <FaPlus className="text-xs" />
-                  <span>New booking</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Mobile: New Booking Button Only */}
-            <div className="lg:hidden mb-4 flex justify-end">
-              <button
-                onClick={() => navigate('/owner/direct-booking')}
-                className="bg-[#a06b42] hover:bg-[#8f5a32] text-white px-4 py-2 rounded-full flex items-center gap-2 shadow-md transition-colors text-sm"
-              >
-                <FaPlus className="text-xs" />
-                <span>New booking</span>
-              </button>
-            </div>
-
-            {/* Stats Cards (dashboard only) */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-2">
-              <div className="rounded-2xl border border-[#e0d5c7] bg-[#fdf7f0] p-6 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-medium text-[#6b5744] uppercase tracking-wide">Total bookings</p>
-                    <p className="mt-2 text-3xl font-bold text-[#4b2a00]">{stats.total}</p>
-                    <p className="mt-1 text-xs text-[#8a745e]">All time reservations</p>
-                  </div>
-                  <div className="w-11 h-11 rounded-full bg-[#f1ddc7] flex items-center justify-center">
-                    <FaCalendarAlt className="text-lg text-[#6b3f1f]" />
-                  </div>
-                </div>
-              </div>
-              <div className="rounded-2xl border border-[#e0d5c7] bg-[#fdf7f0] p-6 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-medium text-[#6b5744] uppercase tracking-wide">Total revenue</p>
-                    <p className="mt-2 text-3xl font-bold text-[#1f6b3f]">{formatCurrencyRWF ? formatCurrencyRWF(stats.totalRevenue) : `RWF ${stats.totalRevenue.toLocaleString()}`}</p>
-                    <p className="mt-1 text-xs text-[#8a745e]">Confirmed and completed stays</p>
-                  </div>
-                  <div className="w-11 h-11 rounded-full bg-[#e1f5e9] flex items-center justify-center">
-                    <FaMoneyBillWave className="text-lg text-[#1f6b3f]" />
-                  </div>
-                </div>
-              </div>
-              <div className="rounded-2xl border border-[#e0d5c7] bg-[#fdf7f0] p-6 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-medium text-[#6b5744] uppercase tracking-wide">Properties</p>
-                    <p className="mt-2 text-3xl font-bold text-[#4b2a00]">{stats.totalProperties}</p>
-                    <p className="mt-1 text-xs text-[#8a745e]">
-                      {filters.property && filters.property !== 'all'
-                        ? (properties.find(p => String(p._id) === String(filters.property))?.title
-                            || properties.find(p => String(p._id) === String(filters.property))?.name
-                            || 'Selected property')
-                        : 'Listed on AKWANDA.rw'}
-                    </p>
-                  </div>
-                  <div className="w-11 h-11 rounded-full bg-[#f3e3cf] flex items-center justify-center">
-                    <FaHome className="text-lg text-[#6b3f1f]" />
-                  </div>
-                </div>
-              </div>
-              <div className="rounded-2xl border border-[#e0d5c7] bg-[#fdf7f0] p-6 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-medium text-[#6b5744] uppercase tracking-wide">Occupancy rate</p>
-                    <p className="mt-2 text-3xl font-bold text-[#6b3f1f]">{stats.occupancyRate}%</p>
-                    <p className="mt-1 text-xs text-[#8a745e]">Across all active properties</p>
-                  </div>
-                  <div className="w-11 h-11 rounded-full bg-[#f6e0d0] flex items-center justify-center">
-                    <FaChartLine className="text-lg text-[#c05621]" />
-                  </div>
-                </div>
-              </div>
-            </div>
-            {/* Revenue Management */}
-            <div className="neu-card p-0 rounded-2xl border border-[#e0d5c7] bg-white shadow-sm">
-              <div 
-                className="flex items-center justify-between p-6 border-b border-[#eee0cf] cursor-pointer hover:bg-[#fff7ef] rounded-t-2xl"
-                onClick={() => toggleSection('revenue')}
-              >
-                <div className="flex items-center space-x-3">
-                  <div className="w-9 h-9 rounded-full bg-[#f1ddc7] flex items-center justify-center">
-                    <FaDollarSign className="text-sm text-[#6b3f1f]" />
-                  </div>
-                  <h2 className="text-lg md:text-xl font-semibold text-[#4b2a00]">Revenue management</h2>
-                </div>
-                {expandedSections.revenue ? <FaChevronUp className="text-[#6b5744]" /> : <FaChevronDown className="text-[#6b5744]" />}
-              </div>
-              
-              {expandedSections.revenue && (
-                <div className="p-6 space-y-6 bg-[#fdf7f0] rounded-b-2xl">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="rounded-2xl border border-[#e0d5c7] bg-white p-5">
-                      <h3 className="text-sm font-semibold text-[#6b5744] mb-1 uppercase tracking-wide">Monthly revenue</h3>
-                      <div className="text-2xl md:text-3xl font-bold text-[#4b2a00]">{formatCurrencyRWF ? formatCurrencyRWF(stats.totalRevenue) : `RWF ${stats.totalRevenue.toLocaleString()}`}</div>
-                      <p className="text-xs text-[#8a745e] mt-2">Compared to last month based on confirmed stays.</p>
-                    </div>
-                    <div className="rounded-2xl border border-[#e0d5c7] bg-white p-5">
-                      <h3 className="text-sm font-semibold text-[#6b5744] mb-1 uppercase tracking-wide">Average daily rate</h3>
-                      <div className="text-2xl md:text-3xl font-bold text-[#4b2a00]">{formatCurrencyRWF ? formatCurrencyRWF(Math.round(stats.totalRevenue / Math.max(stats.total, 1))) : `RWF ${Math.round(stats.totalRevenue / Math.max(stats.total, 1)).toLocaleString()}`}</div>
-                      <p className="text-xs text-[#8a745e] mt-2">Per booking average for the selected period.</p>
-                    </div>
-                    <div className="rounded-2xl border border-[#e0d5c7] bg-white p-5">
-                      <h3 className="text-sm font-semibold text-[#6b5744] mb-1 uppercase tracking-wide">Occupancy</h3>
-                      <div className="text-2xl md:text-3xl font-bold text-[#4b2a00]">{stats.occupancyRate}%</div>
-                      <p className="text-xs text-[#8a745e] mt-2">Current occupancy across your active properties.</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Advanced Analytics */}
-            <div className="neu-card p-0 rounded-2xl border border-[#e0d5c7] bg-white shadow-sm">
-              <div 
-                className="flex items-center justify-between p-6 border-b border-[#eee0cf] cursor-pointer hover:bg-[#fff7ef] rounded-t-2xl"
-                onClick={() => toggleSection('advancedAnalytics')}
-              >
-                <div className="flex items-center space-x-3">
-                  <div className="w-9 h-9 rounded-full bg-[#f3e3cf] flex items-center justify-center">
-                    <FaChartLine className="text-sm text-[#6b3f1f]" />
-                  </div>
-                  <h2 className="text-lg md:text-xl font-semibold text-[#4b2a00]">Advanced analytics</h2>
-                </div>
-                {expandedSections.advancedAnalytics ? <FaChevronUp className="text-[#6b5744]" /> : <FaChevronDown className="text-[#6b5744]" />}
-              </div>
-              
-              {expandedSections.advancedAnalytics && (
-                <div className="p-6 space-y-6 bg-[#fdf7f0] rounded-b-2xl">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="rounded-2xl border border-[#e0d5c7] bg-white p-5">
-                      <h3 className="text-sm font-semibold text-[#4b2a00] mb-3 uppercase tracking-wide">Performance metrics</h3>
-                      <div className="space-y-3 text-xs md:text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-[#6b5744]">Conversion rate</span>
-                          <span className="font-semibold text-[#4b2a00]">24.5%</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-[#6b5744]">Avg booking value</span>
-                          <span className="font-semibold text-[#4b2a00]">{formatCurrencyRWF ? formatCurrencyRWF(Math.round(stats.totalRevenue / Math.max(stats.total, 1))) : `RWF ${Math.round(stats.totalRevenue / Math.max(stats.total, 1)).toLocaleString()}`}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-[#6b5744]">Repeat guests</span>
-                          <span className="font-semibold text-[#4b2a00]">18%</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'reservations' && (
-          <div>
-            {/* Filters */}
-        <div className="neu-card p-6 mb-8 border border-[#e0d5c7] bg-[#fdf7f0] rounded-2xl shadow-sm">
-          <div className="flex flex-wrap gap-4 items-center justify-between mb-4">
-            <div className="flex flex-wrap gap-4 flex-1">
-            <select
-              value={filters.status}
-              onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
-              className="modern-input"
-            >
-              <option value="all">All Status</option>
-              <option value="paid">Paid</option>
-              <option value="pending">Pending</option>
-              <option value="unpaid">Unpaid</option>
-            </select>
-            <select
-              value={filters.property}
-              onChange={(e) => setFilters(prev => ({ ...prev, property: e.target.value }))}
-              className="modern-input"
-            >
-              <option value="all">All Properties</option>
-              {properties.map(prop => (
-                <option key={prop._id} value={prop._id}>{prop.title || prop.name || `Property ${prop._id?.slice(-4)}`}</option>
-              ))}
-            </select>
-            <select
-              value={filters.year}
-              onChange={(e) => setFilters(prev => ({ ...prev, year: Number(e.target.value) }))}
-              className="modern-input"
-            >
-              {Array.from({ length: 11 }, (_, k) => new Date().getFullYear() - 5 + k).map(y => (
-                <option key={y} value={y}>{y}</option>
-              ))}
-            </select>
-            <div className="flex-1 min-w-64">
-              <div className="relative">
-                <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search by guest name..."
-                  value={filters.search}
-                  onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-                  className="modern-input pl-10 w-full"
-                />
-              </div>
-            </div>
-            </div>
-            {/* Active Filter Indicator */}
-            {filters.dateRange && filters.dateRange !== 'all' && (
-              <div className="flex items-center gap-2 px-3 py-1 bg-[#f1ddc7] text-[#4b2a00] rounded-full text-sm">
-                <FaFilter className="text-xs" />
-                <span>
-                  {filters.dateRange === 'upcoming' && 'Upcoming Bookings'}
-                  {filters.dateRange === 'checked-in' && 'Currently check in'}
-                  {filters.dateRange === 'checked-out' && 'Checked out'}
-                </span>
-                <button
-                  onClick={() => setFilters(prev => ({ ...prev, dateRange: 'all' }))}
-                  className="ml-1 hover:text-[#6b3f1f]"
-                >
-                  ×
-                </button>
-              </div>
-            )}
-            {/* Export Buttons */}
-            <div className="flex gap-2">
-              <button
-                onClick={() => downloadReport('pdf')}
-                className="px-4 py-2 bg-[#6b3f1f] text-white rounded-full hover:bg-[#8f5a32] transition-colors flex items-center gap-2 text-sm"
-              >
-                <FaFileAlt />
-                Export PDF
-              </button>
-              <button
-                onClick={() => downloadReport('csv')}
-                className="px-4 py-2 bg-white border border-[#e0d5c7] text-[#4b2a00] rounded-full hover:bg-[#fff7ef] transition-colors flex items-center gap-2 text-sm"
-              >
-                <FaDownload />
-                Export CSV
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Bookings / Calendar Card */}
-        <div className="neu-card p-0 overflow-x-auto rounded-2xl border border-[#e0d5c7] bg-white">
-          <div className="flex items-center justify-between p-4 border-b border-[#eee0cf] bg-[#fdf7f0] rounded-t-2xl">
-            <div className="font-semibold text-[#4b2a00] text-sm md:text-base">Clients &amp; calendar</div>
-            <div className="flex gap-2">
-              <button
-                className={`px-3 py-1.5 rounded-full text-xs md:text-sm border transition-colors ${
-                  ownerView === 'table'
-                    ? 'bg-[#a06b42] text-white border-[#8f5a32]'
-                    : 'bg-white text-[#6b5744] border-[#e0d5c7] hover:bg-[#f9efe1]'
-                }`}
-                onClick={() => setOwnerView('table')}
-              >
-                Table
-              </button>
-              <button
-                className={`px-3 py-1.5 rounded-full text-xs md:text-sm border transition-colors ${
-                  ownerView === 'calendar'
-                    ? 'bg-[#a06b42] text-white border-[#8f5a32]'
-                    : 'bg-white text-[#6b5744] border-[#e0d5c7] hover:bg-[#f9efe1]'
-                }`}
-                onClick={() => setOwnerView('calendar')}
-              >
-                Calendar
-              </button>
-            </div>
-          </div>
-
-          {ownerView === 'table' && (
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Property</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dates</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Guests</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Direct</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {currentBookings.map(b => {
-                const guestName = `${b.guest?.firstName || ''} ${b.guest?.lastName || ''}`.trim() || b.guest?.email || 'Guest';
-                const propertyTitle = b.property?.title || b.property?.name || 'Property';
-                const propertyLocation = b.property?.city || b.property?.address || '';
-                const checkIn = new Date(b.checkIn).toLocaleDateString();
-                const checkOut = new Date(b.checkOut).toLocaleDateString();
-                return (
-                  <tr key={b._id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3">
-                      <div className="font-medium text-gray-900">{guestName}</div>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">
-                      <div>{b.guest?.email || '-'}</div>
-                      <div>{b.guest?.phone || '-'}</div>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">
-                      <div className="font-medium text-gray-900">{propertyTitle}</div>
-                      <div className="text-gray-500">{propertyLocation}</div>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">
-                      <div>{checkIn} → {checkOut}</div>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">{b.numberOfGuests || b.guests || 1}</td>
-                    <td className="px-4 py-3 text-right font-semibold">{formatCurrencyRWF ? formatCurrencyRWF(b.totalAmount || 0) : `RWF ${(b.totalAmount || 0).toLocaleString()}`}</td>
-                    <td className="px-4 py-3 text-sm">
-                      <span className={`px-2 py-1 rounded-full text-xs ${
-                        (b.paymentStatus === 'paid' || b.status === 'confirmed') ? 'bg-green-100 text-green-800' :
-                        (b.paymentStatus === 'pending' || b.status === 'pending') ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
-                        {b.paymentStatus || b.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-sm">{b.isDirect ? 'Yes' : 'No'}</td>
-                    <td className="px-4 py-3 text-sm space-x-1">
-                      <button
-                        onClick={() => openReceiptPdf(b._id)}
-                        className="p-2 rounded bg-green-50 text-green-700 hover:bg-green-100"
-                        aria-label="Receipt"
-                        title="Download Receipt"
-                      >
-                        <FaFileInvoice />
-                      </button>
-                      <button
-                        onClick={() => openInvoicePdf(b._id)}
-                        className="p-2 rounded bg-purple-50 text-purple-700 hover:bg-purple-100"
-                        aria-label="Invoice"
-                        title="Download Invoice"
-                      >
-                        <FaDownload />
-                      </button>
-                      <button
-                        onClick={() => {
-                          const guestId = b.guest?._id || b.guest;
-                          navigate(`/messages?recipient=${guestId}&booking=${b._id}`);
-                        }}
-                        className="p-2 rounded bg-[#003580] text-white hover:bg-[#002a66]"
-                        aria-label="Chat"
-                        title="Message Guest"
-                      >
-                        <FaComments />
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-              {filteredBookings.length === 0 && (
-                <tr>
-                  <td colSpan={9} className="px-4 py-12 text-center text-gray-500">
-                    No bookings found.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-          )}
-
-          {/* Pagination Controls */}
-          {ownerView === 'table' && totalPages > 1 && (
-            <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200">
-              <div className="text-sm text-gray-700">
-                Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filteredBookings.length)} of {filteredBookings.length} reservations
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => paginate(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className="px-3 py-1 rounded bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Previous
-                </button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map(number => (
-                  <button
-                    key={number}
-                    onClick={() => paginate(number)}
-                    className={`px-3 py-1 rounded ${
-                      currentPage === number
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-100 hover:bg-gray-200'
-                    }`}
-                  >
-                    {number}
-                  </button>
-                ))}
-                <button
-                  onClick={() => paginate(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                  className="px-3 py-1 rounded bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Next
-                </button>
-              </div>
-            </div>
-          )}
-
-          {ownerView === 'calendar' && (
-            <div className="p-4">
-              {(() => {
-                const propertyForCalendar = filters.property !== 'all' ? filters.property : (properties[0]?._id || '');
-                if (!propertyForCalendar) {
-                  return (
-                    <div className="text-gray-500 py-8 text-center">Select a property to view its calendar.</div>
-                  );
-                }
-                const params = new URLSearchParams(location.search);
-                const mo = parseInt(params.get('monthOffset') || '0', 10);
-                const base = new Date(filters.year, new Date().getMonth(), 1);
-                if (!isNaN(mo)) {
-                  base.setMonth(base.getMonth() + mo);
-                }
-                return (
-                  <BookingCalendar
-                    propertyId={propertyForCalendar}
-                    initialDate={base}
-                    onBookingSelect={(booking) => {
-                      setSelectedBooking(booking);
-                      setShowBookingDetails(true);
-                    }}
-                  />
-                );
-              })()}
-            </div>
-          )}
-        </div>
-          </div>
-        )}
-
-        {activeTab === 'calendar' && (
+  /* {activeTab === 'calendar' && (
           <div>
             <div className="neu-card p-6 mb-8">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
@@ -1841,7 +1351,7 @@ const PropertyOwnerBookings = () => {
               })()}
             </div>
           </div>
-        )}
+        )} */
 
         {activeTab === 'finance' && (
           <div className="space-y-8">
@@ -2923,256 +2433,256 @@ const PropertyOwnerBookings = () => {
         )}
 
       </div>
+    </div>
+  );
 
-      {/* Modals */}
-      {showBookingDetails && renderBookingDetails()}
-      {showReceipt && renderReceipt()}
-      {showSalesConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full overflow-hidden shadow-xl">
-            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">Review booking before printing</h3>
-                <p className="text-xs text-gray-500 mt-1">Check the key details below. When you confirm, the receipt preview will open and you can print from there.</p>
+  {/* Modals */}
+  {showBookingDetails && renderBookingDetails()}
+  {showReceipt && renderReceipt()}
+  {showSalesConfirm && (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl max-w-lg w-full overflow-hidden shadow-xl">
+        <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">Review booking before printing</h3>
+            <p className="text-xs text-gray-500 mt-1">Check the key details below. When you confirm, the receipt preview will open and you can print from there.</p>
+          </div>
+          <button onClick={onCancelSalesConfirm} className="text-gray-500 hover:text-gray-700">
+            <FaTimes />
+          </button>
+        </div>
+        <div className="p-6 space-y-4">
+          {salesNewBooking && (
+            <div className="text-sm text-gray-700 bg-gray-50 p-4 rounded-xl space-y-2">
+              <div className="flex justify-between gap-4">
+                <div>
+                  <div className="text-[11px] uppercase tracking-wide text-gray-500">Property</div>
+                  <div className="font-medium text-gray-900">{salesNewBooking.property?.title || salesNewBooking.property?.name || 'Property'}</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-[11px] uppercase tracking-wide text-gray-500">Booking ID</div>
+                  <div className="font-mono text-xs">{salesNewBooking.confirmationCode || salesNewBooking._id}</div>
+                </div>
               </div>
-              <button onClick={onCancelSalesConfirm} className="text-gray-500 hover:text-gray-700">
-                <FaTimes />
-              </button>
-            </div>
-            <div className="p-6 space-y-4">
-              {salesNewBooking && (
-                <div className="text-sm text-gray-700 bg-gray-50 p-4 rounded-xl space-y-2">
-                  <div className="flex justify-between gap-4">
-                    <div>
-                      <div className="text-[11px] uppercase tracking-wide text-gray-500">Property</div>
-                      <div className="font-medium text-gray-900">{salesNewBooking.property?.title || salesNewBooking.property?.name || 'Property'}</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-[11px] uppercase tracking-wide text-gray-500">Booking ID</div>
-                      <div className="font-mono text-xs">{salesNewBooking.confirmationCode || salesNewBooking._id}</div>
-                    </div>
+              <div className="grid grid-cols-2 gap-3 text-xs mt-2">
+                <div>
+                  <div className="text-[11px] uppercase tracking-wide text-gray-500">Guest</div>
+                  <div className="font-medium text-gray-900">{salesNewBooking.guest?.firstName || salesNewBooking.guest?.name || 'Guest'} {salesNewBooking.guest?.lastName || ''}</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-[11px] uppercase tracking-wide text-gray-500">Dates</div>
+                  <div className="font-medium text-gray-900">
+                    {salesNewBooking.checkIn ? new Date(salesNewBooking.checkIn).toLocaleDateString() : ''}
+                    {' '}–{' '}
+                    {salesNewBooking.checkOut ? new Date(salesNewBooking.checkOut).toLocaleDateString() : ''}
                   </div>
-                  <div className="grid grid-cols-2 gap-3 text-xs mt-2">
-                    <div>
-                      <div className="text-[11px] uppercase tracking-wide text-gray-500">Guest</div>
-                      <div className="font-medium text-gray-900">{salesNewBooking.guest?.firstName || salesNewBooking.guest?.name || 'Guest'} {salesNewBooking.guest?.lastName || ''}</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-[11px] uppercase tracking-wide text-gray-500">Dates</div>
-                      <div className="font-medium text-gray-900">
-                        {salesNewBooking.checkIn ? new Date(salesNewBooking.checkIn).toLocaleDateString() : ''}
-                        {' '}–{' '}
-                        {salesNewBooking.checkOut ? new Date(salesNewBooking.checkOut).toLocaleDateString() : ''}
-                      </div>
-                      <div className="text-[11px] text-gray-500">{salesNewBooking.numberOfGuests || salesNewBooking.guests || 1} guests</div>
-                    </div>
-                  </div>
-                  <div className="border-t border-dashed border-gray-200 pt-3 mt-2 flex items-center justify-between text-sm">
-                    <div>
-                      <div className="text-[11px] uppercase tracking-wide text-gray-500">Payment</div>
-                      <div className="text-xs text-gray-700">
-                        {salesNewBooking.paymentMethod || 'Cash'} · {salesNewBooking.paymentStatus || 'paid'}
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-[11px] uppercase tracking-wide text-gray-500">Total</div>
-                      <div className="text-base font-semibold text-gray-900">
-                        {formatCurrencyRWF
-                          ? formatCurrencyRWF(salesNewBooking.totalAmount || 0)
-                          : `RWF ${(salesNewBooking.totalAmount || 0).toLocaleString()}`}
-                      </div>
-                    </div>
+                  <div className="text-[11px] text-gray-500">{salesNewBooking.numberOfGuests || salesNewBooking.guests || 1} guests</div>
+                </div>
+              </div>
+              <div className="border-t border-dashed border-gray-200 pt-3 mt-2 flex items-center justify-between text-sm">
+                <div>
+                  <div className="text-[11px] uppercase tracking-wide text-gray-500">Payment</div>
+                  <div className="text-xs text-gray-700">
+                    {salesNewBooking.paymentMethod || 'Cash'} · {salesNewBooking.paymentStatus || 'paid'}
                   </div>
                 </div>
-              )}
-              <div className="flex items-center justify-end gap-3">
-                <button onClick={onCancelSalesConfirm} className="px-5 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 text-sm">Cancel</button>
-                <button onClick={onConfirmSalesAndPrint} className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium">Confirm &amp; open receipt</button>
+                <div className="text-right">
+                  <div className="text-[11px] uppercase tracking-wide text-gray-500">Total</div>
+                  <div className="text-base font-semibold text-gray-900">
+                    {formatCurrencyRWF
+                      ? formatCurrencyRWF(salesNewBooking.totalAmount || 0)
+                      : `RWF ${(salesNewBooking.totalAmount || 0).toLocaleString()}`}
+                  </div>
+                </div>
               </div>
             </div>
+          )}
+          <div className="flex items-center justify-end gap-3">
+            <button onClick={onCancelSalesConfirm} className="px-5 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 text-sm">Cancel</button>
+            <button onClick={onConfirmSalesAndPrint} className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium">Confirm &amp; open receipt</button>
           </div>
         </div>
-      )}
-      {showDirectBooking && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
-          <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-              <h2 className="text-2xl font-bold">New Direct Booking</h2>
-              <button onClick={() => setShowDirectBooking(false)} className="text-gray-500 hover:text-gray-700">
-                <FaTimes className="text-xl" />
-              </button>
-            </div>
-            <div className="p-6">
-              <form onSubmit={(e) => { e.preventDefault(); submitDirectBooking(); }} className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Property</label>
-                  <select
-                    value={directForm.propertyId}
-                    onChange={(e) => onSelectProperty(e.target.value)}
-                    className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    required
-                  >
-                    <option value="">Select property…</option>
-                    {properties.map(p => (
-                      <option key={p._id} value={p._id}>{p.title || p.name || 'Property'}</option>
-                    ))}
-                  </select>
-                </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      </div>
+    </div>
+  )}
+  {showDirectBooking && (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
+      <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+          <h2 className="text-2xl font-bold">New Direct Booking</h2>
+          <button onClick={() => setShowDirectBooking(false)} className="text-gray-500 hover:text-gray-700">
+            <FaTimes className="text-xl" />
+          </button>
+        </div>
+        <div className="p-6">
+          <form onSubmit={(e) => { e.preventDefault(); submitDirectBooking(); }} className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Room (optional)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Property</label>
               <select
-                value={directForm.roomId}
-                onChange={(e) => onDirectChange('roomId', e.target.value)}
+                value={directForm.propertyId}
+                onChange={(e) => onSelectProperty(e.target.value)}
                 className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
               >
-                <option value="">Any room</option>
-                {ownerRooms.map(r => (
-                  <option key={r._id} value={r._id}>{r.roomNumber || r.roomType || 'Room'}</option>
+                <option value="">Select property…</option>
+                {properties.map(p => (
+                  <option key={p._id} value={p._id}>{p.title || p.name || 'Property'}</option>
                 ))}
               </select>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Check-in</label>
-              <input type="date" value={directForm.checkIn} onChange={e => onDirectChange('checkIn', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" required />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Check-out</label>
-              <input type="date" value={directForm.checkOut} onChange={e => onDirectChange('checkOut', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" required />
-            </div>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Guests</label>
-              <input type="number" min={1} value={directForm.guests} onChange={e => onDirectChange('guests', Number(e.target.value) || 1)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
-              <select value={directForm.paymentMethod} onChange={e => onDirectChange('paymentMethod', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                <option value="cash">Cash</option>
-                <option value="mtn_mobile_money">Mobile Money</option>
-                <option value="credit_card">Credit Card</option>
-                <option value="bank_transfer">Bank Transfer</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Payment Status</label>
-              <div className="flex items-center gap-4 h-full">
-                <label className="inline-flex items-center gap-2 text-sm"><input type="radio" name="ownerpaystatus" checked={directForm.paymentStatusSelection==='paid'} onChange={() => onDirectChange('paymentStatusSelection','paid')} />Paid</label>
-                <label className="inline-flex items-center gap-2 text-sm"><input type="radio" name="ownerpaystatus" checked={directForm.paymentStatusSelection==='pending'} onChange={() => onDirectChange('paymentStatusSelection','pending')} />Pending</label>
-                <label className="inline-flex items-center gap-2 text-sm"><input type="radio" name="ownerpaystatus" checked={directForm.paymentStatusSelection==='deposit'} onChange={() => onDirectChange('paymentStatusSelection','deposit')} />Deposit</label>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Room (optional)</label>
+                <select
+                  value={directForm.roomId}
+                  onChange={(e) => onDirectChange('roomId', e.target.value)}
+                  className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="">Any room</option>
+                  {ownerRooms.map(r => (
+                    <option key={r._id} value={r._id}>{r.roomNumber || r.roomType || 'Room'}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Check-in</label>
+                <input type="date" value={directForm.checkIn} onChange={e => onDirectChange('checkIn', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Check-out</label>
+                <input type="date" value={directForm.checkOut} onChange={e => onDirectChange('checkOut', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" required />
               </div>
             </div>
-          </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Guest Info</label>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <input placeholder="First name" value={directForm.guestInfo.firstName} onChange={e => onDirectChange('guestInfo.firstName', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" required />
-              <input placeholder="Last name" value={directForm.guestInfo.lastName} onChange={e => onDirectChange('guestInfo.lastName', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" required />
-              <input type="email" placeholder="Email" value={directForm.guestInfo.email} onChange={e => onDirectChange('guestInfo.email', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-              <input type="tel" placeholder="Phone" value={directForm.guestInfo.phone} onChange={e => onDirectChange('guestInfo.phone', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-              <input placeholder="Nationality" value={directForm.guestInfo.nationality} onChange={e => onDirectChange('guestInfo.nationality', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-              <input placeholder="Passport" value={directForm.guestInfo.passport} onChange={e => onDirectChange('guestInfo.passport', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-              <input placeholder="Address" value={directForm.guestInfo.address} onChange={e => onDirectChange('guestInfo.address', e.target.value)} className="md:col-span-2 w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Guests</label>
+                <input type="number" min={1} value={directForm.guests} onChange={e => onDirectChange('guests', Number(e.target.value) || 1)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
+                <select value={directForm.paymentMethod} onChange={e => onDirectChange('paymentMethod', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                  <option value="cash">Cash</option>
+                  <option value="mtn_mobile_money">Mobile Money</option>
+                  <option value="credit_card">Credit Card</option>
+                  <option value="bank_transfer">Bank Transfer</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Payment Status</label>
+                <div className="flex items-center gap-4 h-full">
+                  <label className="inline-flex items-center gap-2 text-sm"><input type="radio" name="ownerpaystatus" checked={directForm.paymentStatusSelection==='paid'} onChange={() => onDirectChange('paymentStatusSelection','paid')} />Paid</label>
+                  <label className="inline-flex items-center gap-2 text-sm"><input type="radio" name="ownerpaystatus" checked={directForm.paymentStatusSelection==='pending'} onChange={() => onDirectChange('paymentStatusSelection','pending')} />Pending</label>
+                  <label className="inline-flex items-center gap-2 text-sm"><input type="radio" name="ownerpaystatus" checked={directForm.paymentStatusSelection==='deposit'} onChange={() => onDirectChange('paymentStatusSelection','deposit')} />Deposit</label>
+                </div>
+              </div>
             </div>
-            <p className="text-xs text-gray-500 mt-1">A guest account will be linked or created automatically if necessary.</p>
-          </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Contact Info (for booking records)</label>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <input type="email" placeholder="Contact email" value={directForm.contactInfo.email} onChange={e => onDirectChange('contactInfo.email', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-              <input type="tel" placeholder="Contact phone" value={directForm.contactInfo.phone} onChange={e => onDirectChange('contactInfo.phone', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Guest Info</label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <input placeholder="First name" value={directForm.guestInfo.firstName} onChange={e => onDirectChange('guestInfo.firstName', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" required />
+                <input placeholder="Last name" value={directForm.guestInfo.lastName} onChange={e => onDirectChange('guestInfo.lastName', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" required />
+                <input type="email" placeholder="Email" value={directForm.guestInfo.email} onChange={e => onDirectChange('guestInfo.email', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                <input type="tel" placeholder="Phone" value={directForm.guestInfo.phone} onChange={e => onDirectChange('guestInfo.phone', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                <input placeholder="Nationality" value={directForm.guestInfo.nationality} onChange={e => onDirectChange('guestInfo.nationality', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                <input placeholder="Passport" value={directForm.guestInfo.passport} onChange={e => onDirectChange('guestInfo.passport', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                <input placeholder="Address" value={directForm.guestInfo.address} onChange={e => onDirectChange('guestInfo.address', e.target.value)} className="md:col-span-2 w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+              </div>
+              <p className="text-xs text-gray-500 mt-1">A guest account will be linked or created automatically if necessary.</p>
             </div>
-          </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Special Requests</label>
-            <textarea value={directForm.specialRequests} onChange={e => onDirectChange('specialRequests', e.target.value)} rows={3} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Any special notes..."></textarea>
-          </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Contact Info (for booking records)</label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <input type="email" placeholder="Contact email" value={directForm.contactInfo.email} onChange={e => onDirectChange('contactInfo.email', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                <input type="tel" placeholder="Contact phone" value={directForm.contactInfo.phone} onChange={e => onDirectChange('contactInfo.phone', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+              </div>
+            </div>
 
-          <div className="border rounded-lg p-4 bg-gray-50">
-            <div className="text-sm text-gray-900 font-semibold mb-2">Payment Information</div>
-            <div className="text-sm text-gray-700 space-y-1">
-              <div>Room Rate: based on selected property, room and nights</div>
-              <div className="mt-2">Additional Services:</div>
-              {(ownerAddOns.length === 0) && (
-                <div className="text-xs text-gray-500">No add-on services configured for this property.</div>
-              )}
-              {ownerAddOns.map(addOn => {
-                const key = addOn.key;
-                const checked = !!(directForm.services && directForm.services[key]);
-                const price = Number(addOn.price || 0);
-                const scope = addOn.scope || 'per-booking';
-                const guestCount = Math.max(1, directForm.guests || 1);
-                const nightsCount = Math.max(1, ownerNights || 0);
-                let lineTotal = price;
-                let scopeLabel = 'per booking';
-                if (scope === 'per-night') {
-                  lineTotal = price * nightsCount;
-                  scopeLabel = `${price.toLocaleString()} × ${nightsCount} nights`;
-                } else if (scope === 'per-guest') {
-                  lineTotal = price * guestCount;
-                  scopeLabel = `${price.toLocaleString()} × ${guestCount} guests`;
-                } else {
-                  scopeLabel = `${price.toLocaleString()} per booking`;
-                }
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Special Requests</label>
+              <textarea value={directForm.specialRequests} onChange={e => onDirectChange('specialRequests', e.target.value)} rows={3} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Any special notes..."></textarea>
+            </div>
 
-                // Build included items summary from property-level configuration, if present
-                const included = addOn.includedItems && typeof addOn.includedItems === 'object'
-                  ? Object.keys(addOn.includedItems)
-                      .filter(k => addOn.includedItems[k])
-                      .map(k => {
-                        // Use the key but format it nicely if we don't have labels
-                        return k
-                          .replace(/_/g, ' ')
-                          .replace(/\s+/g, ' ')
-                          .trim()
-                          .replace(/^(.)/, (m) => m.toUpperCase());
-                      })
-                  : [];
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Payment Information</label>
+              <div className="border rounded-lg p-4 bg-gray-50">
+                <div className="text-sm text-gray-900 font-semibold mb-2">Payment Information</div>
+                <div className="text-sm text-gray-700 space-y-1">
+                  <div>Room Rate: based on selected property, room and nights</div>
+                  <div className="mt-2">Additional Services:</div>
+                  {(ownerAddOns.length === 0) && (
+                    <div className="text-xs text-gray-500">No add-on services configured for this property.</div>
+                  )}
+                  {ownerAddOns.map(addOn => {
+                    const key = addOn.key;
+                    const checked = !!(directForm.services && directForm.services[key]);
+                    const price = Number(addOn.price || 0);
+                    const scope = addOn.scope || 'per-booking';
+                    const guestCount = Math.max(1, directForm.guests || 1);
+                    const nightsCount = Math.max(1, ownerNights || 0);
+                    let lineTotal = price;
+                    let scopeLabel = 'per booking';
+                    if (scope === 'per-night') {
+                      lineTotal = price * nightsCount;
+                      scopeLabel = `${price.toLocaleString()} × ${nightsCount} nights`;
+                    } else if (scope === 'per-guest') {
+                      lineTotal = price * guestCount;
+                      scopeLabel = `${price.toLocaleString()} × ${guestCount} guests`;
+                    } else {
+                      scopeLabel = `${price.toLocaleString()} per booking`;
+                    }
 
-                return (
-                  <div key={key} className="space-y-0.5">
-                    <label className="flex items-center gap-2 text-sm">
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={e => {
-                          onDirectChange('services', { ...(directForm.services || {}), [key]: e.target.checked });
-                        }}
-                      />
-                      <span>{addOn.name}</span>
-                    </label>
-                    {included.length > 0 && (
-                      <div className="pl-6 text-xs text-gray-500">
-                        Includes: {included.join(', ')}
+                    // Build included items summary from property-level configuration, if present
+                    const included = addOn.includedItems && typeof addOn.includedItems === 'object'
+                      ? Object.keys(addOn.includedItems)
+                          .filter(k => addOn.includedItems[k])
+                          .map(k => {
+                            // Use the key but format it nicely if we don't have labels
+                            return k
+                              .replace(/_/g, ' ')
+                              .replace(/\s+/g, ' ')
+                              .trim()
+                              .replace(/^(.)/, (m) => m.toUpperCase());
+                          })
+                      : [];
+
+                    return (
+                      <div key={key} className="space-y-0.5">
+                        <label className="flex items-center gap-2 text-sm">
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={e => {
+                              onDirectChange('services', { ...(directForm.services || {}), [key]: e.target.checked });
+                            }}
+                          />
+                          <span>{addOn.name}</span>
+                        </label>
+                        {included.length > 0 && (
+                          <div className="pl-6 text-xs text-gray-500">
+                            Includes: {included.join(', ')}
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                );
-              })}
-              <div className="pt-2">Subtotal: calculated automatically</div>
-              <div>Hospitality levy (3%): calculated automatically</div>
-              <div className="font-semibold">TOTAL: calculated automatically</div>
+                    );
+                  })}
+                  <div className="pt-2">Subtotal: calculated automatically</div>
+                  <div>Hospitality levy (3%): calculated automatically</div>
+                  <div className="font-semibold">TOTAL: calculated automatically</div>
+                </div>
+              </div>
             </div>
-          </div>
-
-          <div className="flex items-center justify-end gap-3 border-t pt-4">
-            <button type="button" onClick={saveDirectDraft} className="px-5 py-3 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100">Save as Draft</button>
-            <button type="button" onClick={clearDirectForm} className="px-5 py-3 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100">Clear Form</button>
-            <button type="submit" className="px-6 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium">Save & Print Receipt</button>
-          </div>
-        </form>
+            <div className="flex items-center justify-end gap-3 border-t pt-4">
+              <button type="button" onClick={saveDirectDraft} className="px-5 py-3 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100">Save as Draft</button>
+              <button type="button" onClick={clearDirectForm} className="px-5 py-3 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100">Clear Form</button>
+              <button type="submit" className="px-6 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium">Save & Print Receipt</button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
-  </div>
-)}
-{/* End Modals */}
-</div>
-);
-};
+  )}};
 export default PropertyOwnerBookings;
