@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-import { 
-  FaCalendarAlt, FaUsers, FaMoneyBillWave, FaCheckCircle, FaClock, 
-  FaEye, FaFileInvoice, FaFilter, FaDownload, FaComments, FaHome, 
-  FaChartLine, FaPlus, FaSearch, FaChevronDown, FaChevronUp, 
+import {
+  FaCalendarAlt, FaUsers, FaMoneyBillWave, FaCheckCircle, FaClock,
+  FaEye, FaFileInvoice, FaFilter, FaDownload, FaComments, FaHome,
+  FaChartLine, FaPlus, FaSearch, FaChevronDown, FaChevronUp,
   FaEdit, FaTrash, FaStar, FaPhone, FaEnvelope, FaDollarSign, FaUser,
   FaMapMarkerAlt, FaBed, FaBath, FaWifi, FaCar, FaSwimmingPool,
   FaUtensils, FaTv, FaSnowflake, FaPaw, FaSmokingBan,
@@ -288,18 +288,18 @@ const PropertyOwnerBookings = () => {
 
   // Helpers for sales grouping, export, and pagination
   const getPeriodKey = (d, period) => {
-    const dt = new Date(d); dt.setHours(0,0,0,0);
-    if (period === 'monthly') return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;
+    const dt = new Date(d); dt.setHours(0, 0, 0, 0);
+    if (period === 'monthly') return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`;
     if (period === 'weekly') {
       const t = new Date(dt.getTime());
-      const day = (t.getDay()+6)%7; // ISO week, Monday=0
-      t.setDate(t.getDate()-day);
+      const day = (t.getDay() + 6) % 7; // ISO week, Monday=0
+      t.setDate(t.getDate() - day);
       const y = t.getFullYear();
-      const first = new Date(y,0,1); const diff = Math.floor((t-first)/(24*3600*1000));
-      const week = Math.floor((diff+first.getDay()+6)/7)+1;
-      return `${y}-W${String(week).padStart(2,'0')}`;
+      const first = new Date(y, 0, 1); const diff = Math.floor((t - first) / (24 * 3600 * 1000));
+      const week = Math.floor((diff + first.getDay() + 6) / 7) + 1;
+      return `${y}-W${String(week).padStart(2, '0')}`;
     }
-    return dt.toISOString().slice(0,10);
+    return dt.toISOString().slice(0, 10);
   };
 
   const computeSalesBuckets = (list, period) => {
@@ -312,11 +312,11 @@ const PropertyOwnerBookings = () => {
       cur.count += 1;
       map.set(key, cur);
     });
-    return Array.from(map.values()).sort((a,b) => a.period.localeCompare(b.period));
+    return Array.from(map.values()).sort((a, b) => a.period.localeCompare(b.period));
   };
 
   const exportSalesCSV = (rows) => {
-    const header = ['Period','Revenue','Tax','Count'];
+    const header = ['Period', 'Revenue', 'Tax', 'Count'];
     const lines = [header.join(',')].concat(rows.map(r => [r.period, r.revenue, r.tax, r.count].join(',')));
     const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -371,7 +371,7 @@ const PropertyOwnerBookings = () => {
       const res = await fetchWithUiTimeout(`${API_URL}/api/properties/my-properties`, { credentials: 'include' });
       const data = await res.json();
       if (res.ok) setProperties(data.properties || []);
-    } catch (_) {}
+    } catch (_) { }
   };
 
   const loadOwnerReviews = async () => {
@@ -445,7 +445,7 @@ const PropertyOwnerBookings = () => {
       };
       const next = map[scope] || 'all';
       setFilters(prev => ({ ...prev, status: next }));
-      
+
       // For upcoming, checked-in, checked-out, we'll need date-based filtering
       // This will be handled in the filtering logic
       if (scope === 'upcoming' || scope === 'checked-in' || scope === 'checked-out') {
@@ -458,22 +458,22 @@ const PropertyOwnerBookings = () => {
       setFinanceFilter(fstatus);
       setExpandedSections(prev => ({ ...prev, finance: true }));
     }
-    
+
     if (view && tab === 'finance') {
       setFinanceView(view);
       setExpandedSections(prev => ({ ...prev, finance: true }));
     }
-    
+
     if (view && tab === 'analytics') {
       setAnalyticsView(view);
       setExpandedSections(prev => ({ ...prev, analytics: true }));
     }
-    
+
     if (view && tab === 'boost') {
       setBoostView(view);
       setExpandedSections(prev => ({ ...prev, promotions: true }));
     }
-    
+
     if (view && tab === 'rates') {
       setRatesView(view);
     }
@@ -524,7 +524,7 @@ const PropertyOwnerBookings = () => {
     onDirectChange('propertyId', pid);
     onDirectChange('roomId', '');
     setOwnerRooms([]);
-     setOwnerAddOns([]);
+    setOwnerAddOns([]);
     // Keep dashboard filters aligned with the currently selected direct-booking property
     setFilters(prev => ({ ...prev, property: pid || 'all' }));
     if (!pid) return;
@@ -535,7 +535,7 @@ const PropertyOwnerBookings = () => {
         setOwnerRooms(data.property?.rooms || []);
         setOwnerAddOns(Array.isArray(data.property?.addOnServices) ? data.property.addOnServices : []);
       }
-    } catch (_) {}
+    } catch (_) { }
   };
 
   const submitDirectBooking = async () => {
@@ -589,7 +589,7 @@ const PropertyOwnerBookings = () => {
     try {
       localStorage.setItem('directBookingDraft', JSON.stringify(directForm));
       toast.success('Saved as draft');
-    } catch (_) {}
+    } catch (_) { }
   };
 
   const clearDirectForm = () => {
@@ -759,10 +759,10 @@ const PropertyOwnerBookings = () => {
 
   const scopedBookings = Array.isArray(bookings)
     ? bookings.filter((b) =>
-        filters.property === 'all'
-          ? true
-          : String(b.property?._id) === String(filters.property)
-      )
+      filters.property === 'all'
+        ? true
+        : String(b.property?._id) === String(filters.property)
+    )
     : [];
 
   const ownerOpsStats = {
@@ -850,21 +850,21 @@ const PropertyOwnerBookings = () => {
   const filteredBookings = bookings.filter(booking => {
     // Status filter
     if (filters.status !== 'all' && booking.status !== filters.status && booking.paymentStatus !== filters.status) return false;
-    
+
     // Property filter
 
     if (filters.property !== 'all' && String(booking.property?._id) !== String(filters.property)) return false;
-    
+
     // Search filter
     const guestName = `${booking.guest?.firstName || ''} ${booking.guest?.lastName || ''}`.trim().toLowerCase();
     if (filters.search && !guestName.includes(filters.search.toLowerCase())) return false;
-    
+
     // Date-based scope filtering for upcoming, checked-in, checked-out
     if (filters.dateRange && filters.dateRange !== 'all') {
       const now = new Date();
       const checkIn = new Date(booking.checkIn);
       const checkOut = new Date(booking.checkOut);
-      
+
       if (filters.dateRange === 'upcoming') {
         // Upcoming: confirmed bookings with check-in date in the future
         if (booking.status !== 'confirmed' || checkIn <= now) return false;
@@ -876,7 +876,7 @@ const PropertyOwnerBookings = () => {
         if (booking.status !== 'ended' && (booking.status !== 'confirmed' || checkOut >= now)) return false;
       }
     }
-    
+
     return true;
   });
 
@@ -944,11 +944,10 @@ const PropertyOwnerBookings = () => {
             {booking.property.location}
           </p>
         </div>
-        <span className={`px-3 py-1 rounded-full text-[11px] md:text-xs font-medium ${
-          booking.status === 'paid' ? 'bg-green-100 text-green-800' :
-          booking.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-          'bg-red-100 text-red-800'
-        }`}>
+        <span className={`px-3 py-1 rounded-full text-[11px] md:text-xs font-medium ${booking.status === 'paid' ? 'bg-green-100 text-green-800' :
+            booking.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+              'bg-red-100 text-red-800'
+          }`}>
           {booking.status}
         </span>
       </div>
@@ -1018,13 +1017,12 @@ const PropertyOwnerBookings = () => {
                     <td className="px-4 py-3 text-right font-semibold text-[#4b2a00]">{formatCurrencyRWF ? formatCurrencyRWF(tr.totalAmount || 0) : `RWF ${(tr.totalAmount || 0).toLocaleString()}`}</td>
                     <td className="px-4 py-3 text-xs md:text-sm text-[#6b5744]">{tr.paymentMethod}</td>
                     <td className="px-4 py-3 text-xs md:text-sm">
-                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium ${
-                        (tr.paymentStatus || tr.status) === 'paid'
+                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium ${(tr.paymentStatus || tr.status) === 'paid'
                           ? 'bg-green-50 text-green-800 border border-green-200'
                           : (tr.paymentStatus || tr.status) === 'pending'
-                          ? 'bg-yellow-50 text-yellow-800 border border-yellow-200'
-                          : 'bg-gray-50 text-gray-700 border border-gray-200'
-                      }`}>
+                            ? 'bg-yellow-50 text-yellow-800 border border-yellow-200'
+                            : 'bg-gray-50 text-gray-700 border border-gray-200'
+                        }`}>
                         {tr.paymentStatus || tr.status}
                       </span>
                     </td>
@@ -1077,1369 +1075,1369 @@ const PropertyOwnerBookings = () => {
           Message Guest
         </button>
       </div>
-    <div className="min-h-screen bg-[#f5f0e8]">
+    </div>
+  );
 
-  /* {activeTab === 'calendar' && (
-          <div>
-            <div className="neu-card p-6 mb-8">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
-                <div>
-                  <h2 className="text-xl font-semibold text-[#4b2a00]">Property Calendar</h2>
-                  <p className="text-xs text-gray-500">Switch between monthly and yearly availability views.</p>
-                </div>
-                <div className="flex flex-wrap items-center gap-3">
+  return (
+    <div className="min-h-screen bg-[#f5f0e8]">
+      /* {activeTab === 'calendar' && (
+        <div>
+          <div className="neu-card p-6 mb-8">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
+              <div>
+                <h2 className="text-xl font-semibold text-[#4b2a00]">Property Calendar</h2>
+                <p className="text-xs text-gray-500">Switch between monthly and yearly availability views.</p>
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <select
+                  value={filters.property}
+                  onChange={(e) => setFilters(prev => ({ ...prev, property: e.target.value }))}
+                  className="modern-input"
+                >
+                  <option value="all">All Properties</option>
+                  {properties.map(p => (
+                    <option key={p._id} value={p._id}>{p.name}</option>
+                  ))}
+                </select>
+                <div className="relative">
                   <select
-                    value={filters.property}
-                    onChange={(e) => setFilters(prev => ({ ...prev, property: e.target.value }))}
-                    className="modern-input"
+                    value={calendarViewMode}
+                    onChange={(e) => setCalendarViewMode(e.target.value)}
+                    className="pl-3 pr-8 py-2 rounded-full border border-[#e0d5c7] bg-[#fdf7f0] text-xs text-[#4b2a00] focus:outline-none focus:ring-2 focus:ring-[#a06b42]"
                   >
-                    <option value="all">All Properties</option>
-                    {properties.map(p => (
-                      <option key={p._id} value={p._id}>{p.name}</option>
-                    ))}
+                    <option value="monthly">Monthly view</option>
+                    <option value="yearly">Yearly view</option>
+                    <option value="matrix">List view</option>
                   </select>
-                  <div className="relative">
-                    <select
-                      value={calendarViewMode}
-                      onChange={(e) => setCalendarViewMode(e.target.value)}
-                      className="pl-3 pr-8 py-2 rounded-full border border-[#e0d5c7] bg-[#fdf7f0] text-xs text-[#4b2a00] focus:outline-none focus:ring-2 focus:ring-[#a06b42]"
-                    >
-                      <option value="monthly">Monthly view</option>
-                      <option value="yearly">Yearly view</option>
-                      <option value="matrix">List view</option>
-                    </select>
-                  </div>
                 </div>
               </div>
+            </div>
 
-              {(() => {
-                const propertyForCalendar = filters.property !== 'all' ? filters.property : (properties[0]?._id || '');
-                if (!propertyForCalendar) {
-                  return (
-                    <div className="text-gray-500 py-8 text-center">Select a property to view its calendar.</div>
-                  );
+            {(() => {
+              const propertyForCalendar = filters.property !== 'all' ? filters.property : (properties[0]?._id || '');
+              if (!propertyForCalendar) {
+                return (
+                  <div className="text-gray-500 py-8 text-center">Select a property to view its calendar.</div>
+                );
+              }
+
+              if (calendarViewMode === 'monthly') {
+                const mo = parseInt(searchParams.get('monthOffset') || '0');
+                const base = new Date(filters.year, new Date().getMonth(), 1);
+                if (!isNaN(mo)) {
+                  base.setMonth(base.getMonth() + mo);
+                }
+                return (
+                  <BookingCalendar
+                    propertyId={propertyForCalendar}
+                    initialDate={base}
+                    onBookingSelect={(booking) => {
+                      setSelectedBooking(booking);
+                      setShowBookingDetails(true);
+                    }}
+                  />
+                );
+              }
+
+              if (calendarViewMode === 'matrix') {
+                const start = new Date(filters.year, new Date().getMonth(), 1);
+                const end = new Date(start.getFullYear(), start.getMonth() + 1, 0);
+
+                const days = [];
+                for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                  days.push(new Date(d));
                 }
 
-                if (calendarViewMode === 'monthly') {
-                  const mo = parseInt(searchParams.get('monthOffset') || '0');
-                  const base = new Date(filters.year, new Date().getMonth(), 1);
-                  if (!isNaN(mo)) {
-                    base.setMonth(base.getMonth() + mo);
-                  }
-                  return (
-                    <BookingCalendar
-                      propertyId={propertyForCalendar}
-                      initialDate={base}
-                      onBookingSelect={(booking) => {
-                        setSelectedBooking(booking);
-                        setShowBookingDetails(true);
-                      }}
-                    />
-                  );
-                }
+                const roomsForProperty = ownerRooms.filter(
+                  r => String(r.property) === String(propertyForCalendar)
+                );
 
-                if (calendarViewMode === 'matrix') {
-                  const start = new Date(filters.year, new Date().getMonth(), 1);
-                  const end = new Date(start.getFullYear(), start.getMonth() + 1, 0);
+                const getRoomUnits = (room) => Number(room.totalUnits || room.units || 1);
 
-                  const days = [];
-                  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-                    days.push(new Date(d));
-                  }
+                const getRoomStatsForDay = (room, day) => {
+                  const roomId = room._id || room.id;
 
-                  const roomsForProperty = ownerRooms.filter(
-                    r => String(r.property) === String(propertyForCalendar)
-                  );
-
-                  const getRoomUnits = (room) => Number(room.totalUnits || room.units || 1);
-
-                  const getRoomStatsForDay = (room, day) => {
-                    const roomId = room._id || room.id;
-
-                    const list = bookings.filter(b => {
-                      if (String(b.property?._id) !== String(propertyForCalendar)) return false;
-                      if (String(b.room) !== String(roomId)) return false;
-                      const ci = new Date(b.checkIn);
-                      const co = new Date(b.checkOut);
-                      const d0 = new Date(day.getFullYear(), day.getMonth(), day.getDate());
-                      return d0 >= new Date(ci.getFullYear(), ci.getMonth(), ci.getDate()) &&
-                             d0 <  new Date(co.getFullYear(), co.getMonth(), co.getDate());
-                    });
-
-                    const units = getRoomUnits(room);
-                    const booked = list.length;
-                    const remaining = Math.max(0, units - booked);
-
-                    let status = 'bookable';
-                    if (booked >= units && units > 0) status = 'soldout';
-                    else if (booked > 0) status = 'partial';
-
-                    return { units, booked, remaining, status };
-                  };
-
-                  const statusClasses = {
-                    bookable: 'bg-[#e9f7ec] border-[#b7dfc5] text-[#245430]',
-                    partial:  'bg-[#fff4e6] border-[#f1c48a] text-[#7b4a12]',
-                    soldout:  'bg-[#fdeeee] border-[#f5b5b5] text-[#7a1f1f]',
-                  };
-
-                  return (
-                    <div className="space-y-4">
-                      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-2">
-                        <div className="flex items-center gap-2">
-                          <div className="text-sm font-semibold text-[#4b2a00]">
-                            {start.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-3 text-[11px] text-gray-600">
-                          <span className="inline-flex items-center gap-1">
-                            <span className="w-3 h-3 rounded-sm bg-[#e9f7ec] border border-[#b7dfc5]" /> Open
-                          </span>
-                          <span className="inline-flex items-center gap-1">
-                            <span className="w-3 h-3 rounded-sm bg-[#fff4e6] border border-[#f1c48a]" /> Partially booked
-                          </span>
-                          <span className="inline-flex items-center gap-1">
-                            <span className="w-3 h-3 rounded-sm bg-[#fdeeee] border border-[#f5b5b5]" /> Sold-out
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="border border-[#e0d5c7] rounded-xl overflow-x-auto bg-white">
-                        <table className="min-w-full text-xs">
-                          <thead className="bg-[#fdf7f0] text-[#4b2a00]">
-                            <tr>
-                              <th className="px-3 py-2 text-left w-40">Room</th>
-                              {days.map(d => (
-                                <th
-                                  key={d.toISOString()}
-                                  className="px-2 py-2 text-center whitespace-nowrap border-l border-[#e0d5c7]"
-                                >
-                                  <div>{d.getDate()}</div>
-                                  <div className="text-[10px] text-gray-500">
-                                    {d.toLocaleDateString(undefined, { weekday: 'short' })}
-                                  </div>
-                                </th>
-                              ))}
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {roomsForProperty.map(room => (
-                              <tr key={room._id || room.id} className="border-t border-[#f0e6d9]">
-                                <td className="px-3 py-2 text-[11px] text-[#4b2a00] bg-[#fdf7f0] sticky left-0 z-10">
-                                  <div className="font-semibold">{room.roomNumber || room.name || 'Room'}</div>
-                                  <div className="text-[10px] text-gray-500">
-                                    Rooms to sell: {getRoomUnits(room)}
-                                  </div>
-                                </td>
-                                {days.map(d => {
-                                  const { units, booked, remaining, status } = getRoomStatsForDay(room, d);
-                                  const cls = statusClasses[status] || 'bg-white border-[#e0d5c7] text-[#4b2a00]';
-                                  return (
-                                    <td
-                                      key={d.toISOString()}
-                                      className={`px-1 py-1 text-center border-l border-[#f0e6d9] ${cls}`}
-                                      title={`${booked} booked / ${units} total`}
-                                    >
-                                      <div className="text-[10px] font-semibold">
-                                        {booked}/{units}
-                                      </div>
-                                      <div className="text-[9px] text-[rgba(0,0,0,0.55)]">
-                                        {remaining} open
-                                      </div>
-                                    </td>
-                                  );
-                                })}
-                              </tr>
-                            ))}
-                            {roomsForProperty.length === 0 && (
-                              <tr>
-                                <td colSpan={days.length + 1} className="px-4 py-8 text-center text-gray-500">
-                                  Add rooms to this property to use the list view.
-                                </td>
-                              </tr>
-                            )}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  );
-                }
-
-                const year = Number(filters.year) || new Date().getFullYear();
-                const propertyBookings = bookings.filter(b => String(b.property?._id) === String(propertyForCalendar));
-                const hasBookingOn = (d) => {
-                  return propertyBookings.some(b => {
+                  const list = bookings.filter(b => {
+                    if (String(b.property?._id) !== String(propertyForCalendar)) return false;
+                    if (String(b.room) !== String(roomId)) return false;
                     const ci = new Date(b.checkIn);
                     const co = new Date(b.checkOut);
-                    const day = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-                    return day >= new Date(ci.getFullYear(), ci.getMonth(), ci.getDate()) && day < new Date(co.getFullYear(), co.getMonth(), co.getDate());
+                    const d0 = new Date(day.getFullYear(), day.getMonth(), day.getDate());
+                    return d0 >= new Date(ci.getFullYear(), ci.getMonth(), ci.getDate()) &&
+                      d0 < new Date(co.getFullYear(), co.getMonth(), co.getDate());
                   });
-                };
-                const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
-                const buildMonthMatrix = (y, m) => {
-                  const first = new Date(y, m, 1);
-                  const last = new Date(y, m + 1, 0);
-                  const offset = first.getDay();
-                  const days = [];
-                  for (let i = 0; i < offset; i++) days.push(null);
-                  for (let d = 1; d <= last.getDate(); d++) days.push(new Date(y, m, d));
-                  return days;
+                  const units = getRoomUnits(room);
+                  const booked = list.length;
+                  const remaining = Math.max(0, units - booked);
+
+                  let status = 'bookable';
+                  if (booked >= units && units > 0) status = 'soldout';
+                  else if (booked > 0) status = 'partial';
+
+                  return { units, booked, remaining, status };
+                };
+
+                const statusClasses = {
+                  bookable: 'bg-[#e9f7ec] border-[#b7dfc5] text-[#245430]',
+                  partial: 'bg-[#fff4e6] border-[#f1c48a] text-[#7b4a12]',
+                  soldout: 'bg-[#fdeeee] border-[#f5b5b5] text-[#7a1f1f]',
                 };
 
                 return (
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between mb-2">
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-2">
                       <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setFilters(prev => ({ ...prev, year: prev.year - 1 }))}
-                          className="px-2 py-1 text-xs rounded border border-[#e0d5c7] bg-white hover:bg-[#f5ede1]"
-                        >
-                          ◀ {year - 1}
-                        </button>
-                        <div className="px-3 py-1.5 rounded-full bg-[#f5ede1] text-[#4b2a00] text-sm font-semibold">
-                          {year}
+                        <div className="text-sm font-semibold text-[#4b2a00]">
+                          {start.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => setFilters(prev => ({ ...prev, year: prev.year + 1 }))}
-                          className="px-2 py-1 text-xs rounded border border-[#e0d5c7] bg-white hover:bg-[#f5ede1]"
-                        >
-                          {year + 1} ▶
-                        </button>
                       </div>
-                      <div className="hidden sm:flex items-center gap-3 text-[11px] text-gray-600">
-                        <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-[#e9f7ec] border border-[#b7dfc5]"></span> Bookable</span>
-                        <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-[#fdeeee] border border-[#f5b5b5]"></span> Has bookings</span>
+                      <div className="flex items-center gap-3 text-[11px] text-gray-600">
+                        <span className="inline-flex items-center gap-1">
+                          <span className="w-3 h-3 rounded-sm bg-[#e9f7ec] border border-[#b7dfc5]" /> Open
+                        </span>
+                        <span className="inline-flex items-center gap-1">
+                          <span className="w-3 h-3 rounded-sm bg-[#fff4e6] border border-[#f1c48a]" /> Partially booked
+                        </span>
+                        <span className="inline-flex items-center gap-1">
+                          <span className="w-3 h-3 rounded-sm bg-[#fdeeee] border border-[#f5b5b5]" /> Sold-out
+                        </span>
                       </div>
                     </div>
-                    <div className="grid gap-4 md:grid-cols-3">
-                      {monthNames.map((name, idx) => {
-                        const cells = buildMonthMatrix(year, idx);
-                        return (
-                          <div key={name} className="border border-[#e0d5c7] rounded-xl bg-white overflow-hidden">
-                            <div className="px-3 py-2 bg-[#fdf7f0] text-[#4b2a00] text-sm font-semibold border-b border-[#e0d5c7] flex items-center justify-between">
-                              <span>{name}</span>
-                            </div>
-                            <div className="grid grid-cols-7 text-[10px] text-gray-500 px-2 pt-2">
-                              {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d => (
-                                <div key={d} className="text-center pb-1">{d}</div>
-                              ))}
-                            </div>
-                            <div className="grid grid-cols-7 text-[10px] px-2 pb-2 gap-y-1">
-                              {cells.map((d, i) => {
-                                if (!d) return <div key={i} />;
-                                const booked = hasBookingOn(d);
-                                const baseClasses = 'h-6 flex items-center justify-center rounded-sm border text-[10px]';
-                                const cls = booked
-                                  ? 'bg-[#fdeeee] border-[#f5b5b5] text-[#7a1f1f]'
-                                  : 'bg-[#e9f7ec] border-[#b7dfc5] text-[#245430]';
+
+                    <div className="border border-[#e0d5c7] rounded-xl overflow-x-auto bg-white">
+                      <table className="min-w-full text-xs">
+                        <thead className="bg-[#fdf7f0] text-[#4b2a00]">
+                          <tr>
+                            <th className="px-3 py-2 text-left w-40">Room</th>
+                            {days.map(d => (
+                              <th
+                                key={d.toISOString()}
+                                className="px-2 py-2 text-center whitespace-nowrap border-l border-[#e0d5c7]"
+                              >
+                                <div>{d.getDate()}</div>
+                                <div className="text-[10px] text-gray-500">
+                                  {d.toLocaleDateString(undefined, { weekday: 'short' })}
+                                </div>
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {roomsForProperty.map(room => (
+                            <tr key={room._id || room.id} className="border-t border-[#f0e6d9]">
+                              <td className="px-3 py-2 text-[11px] text-[#4b2a00] bg-[#fdf7f0] sticky left-0 z-10">
+                                <div className="font-semibold">{room.roomNumber || room.name || 'Room'}</div>
+                                <div className="text-[10px] text-gray-500">
+                                  Rooms to sell: {getRoomUnits(room)}
+                                </div>
+                              </td>
+                              {days.map(d => {
+                                const { units, booked, remaining, status } = getRoomStatsForDay(room, d);
+                                const cls = statusClasses[status] || 'bg-white border-[#e0d5c7] text-[#4b2a00]';
                                 return (
-                                  <div key={i} className={`${baseClasses} ${cls}`}>
-                                    {d.getDate()}
-                                  </div>
+                                  <td
+                                    key={d.toISOString()}
+                                    className={`px-1 py-1 text-center border-l border-[#f0e6d9] ${cls}`}
+                                    title={`${booked} booked / ${units} total`}
+                                  >
+                                    <div className="text-[10px] font-semibold">
+                                      {booked}/{units}
+                                    </div>
+                                    <div className="text-[9px] text-[rgba(0,0,0,0.55)]">
+                                      {remaining} open
+                                    </div>
+                                  </td>
                                 );
                               })}
-                            </div>
-                          </div>
-                        );
-                      })}
+                            </tr>
+                          ))}
+                          {roomsForProperty.length === 0 && (
+                            <tr>
+                              <td colSpan={days.length + 1} className="px-4 py-8 text-center text-gray-500">
+                                Add rooms to this property to use the list view.
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
                 );
-              })()}
-            </div>
-          </div>
-        )} */
+              }
 
-        {activeTab === 'finance' && (
-          <div className="space-y-8">
-            {financeView === 'expenses' ? (
-              <FinancePanel propertyOptions={properties} activeSection="expenses" />
-            ) : (
-              <>
-                {/* Finance View Tabs */}
-                <div className="flex space-x-2 border-b border-gray-200 mb-6">
-                  {['overview', 'invoices', 'statement'].map((view) => (
-                    <button
-                      key={view}
-                      onClick={() => setFinanceView(view)}
-                      className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
-                        financeView === view
-                          ? 'border-blue-500 text-blue-600'
-                          : 'border-transparent text-gray-500 hover:text-gray-700'
-                      }`}
-                    >
-                      {view === 'overview' ? 'Financial Overview' : view === 'invoices' ? 'Invoices' : 'Reservations Statement'}
-                    </button>
-                  ))}
+              const year = Number(filters.year) || new Date().getFullYear();
+              const propertyBookings = bookings.filter(b => String(b.property?._id) === String(propertyForCalendar));
+              const hasBookingOn = (d) => {
+                return propertyBookings.some(b => {
+                  const ci = new Date(b.checkIn);
+                  const co = new Date(b.checkOut);
+                  const day = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+                  return day >= new Date(ci.getFullYear(), ci.getMonth(), ci.getDate()) && day < new Date(co.getFullYear(), co.getMonth(), co.getDate());
+                });
+              };
+              const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+              const buildMonthMatrix = (y, m) => {
+                const first = new Date(y, m, 1);
+                const last = new Date(y, m + 1, 0);
+                const offset = first.getDay();
+                const days = [];
+                for (let i = 0; i < offset; i++) days.push(null);
+                for (let d = 1; d <= last.getDate(); d++) days.push(new Date(y, m, d));
+                return days;
+              };
+
+              return (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setFilters(prev => ({ ...prev, year: prev.year - 1 }))}
+                        className="px-2 py-1 text-xs rounded border border-[#e0d5c7] bg-white hover:bg-[#f5ede1]"
+                      >
+                        ◀ {year - 1}
+                      </button>
+                      <div className="px-3 py-1.5 rounded-full bg-[#f5ede1] text-[#4b2a00] text-sm font-semibold">
+                        {year}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setFilters(prev => ({ ...prev, year: prev.year + 1 }))}
+                        className="px-2 py-1 text-xs rounded border border-[#e0d5c7] bg-white hover:bg-[#f5ede1]"
+                      >
+                        {year + 1} ▶
+                      </button>
+                    </div>
+                    <div className="hidden sm:flex items-center gap-3 text-[11px] text-gray-600">
+                      <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-[#e9f7ec] border border-[#b7dfc5]"></span> Bookable</span>
+                      <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-[#fdeeee] border border-[#f5b5b5]"></span> Has bookings</span>
+                    </div>
+                  </div>
+                  <div className="grid gap-4 md:grid-cols-3">
+                    {monthNames.map((name, idx) => {
+                      const cells = buildMonthMatrix(year, idx);
+                      return (
+                        <div key={name} className="border border-[#e0d5c7] rounded-xl bg-white overflow-hidden">
+                          <div className="px-3 py-2 bg-[#fdf7f0] text-[#4b2a00] text-sm font-semibold border-b border-[#e0d5c7] flex items-center justify-between">
+                            <span>{name}</span>
+                          </div>
+                          <div className="grid grid-cols-7 text-[10px] text-gray-500 px-2 pt-2">
+                            {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(d => (
+                              <div key={d} className="text-center pb-1">{d}</div>
+                            ))}
+                          </div>
+                          <div className="grid grid-cols-7 text-[10px] px-2 pb-2 gap-y-1">
+                            {cells.map((d, i) => {
+                              if (!d) return <div key={i} />;
+                              const booked = hasBookingOn(d);
+                              const baseClasses = 'h-6 flex items-center justify-center rounded-sm border text-[10px]';
+                              const cls = booked
+                                ? 'bg-[#fdeeee] border-[#f5b5b5] text-[#7a1f1f]'
+                                : 'bg-[#e9f7ec] border-[#b7dfc5] text-[#245430]';
+                              return (
+                                <div key={i} className={`${baseClasses} ${cls}`}>
+                                  {d.getDate()}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
+              );
+            })()}
+          </div>
+        </div>
+      )} */
 
-                {financeView === 'overview' && (
-              <div className="neu-card p-6 rounded-2xl border border-[#e0d5c7] bg-white">
-                <h2 className="text-xl font-semibold mb-6 text-[#4b2a00]">Financial overview</h2>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="rounded-2xl border border-[#e0d5c7] bg-[#fdf7f0] p-5 flex flex-col justify-between">
-                    <div>
-                      <h3 className="text-sm font-semibold text-[#6b5744] mb-1 uppercase tracking-wide">Total revenue</h3>
-                      <div className="text-2xl md:text-3xl font-bold text-[#4b2a00]">{formatCurrencyRWF ? formatCurrencyRWF(stats.totalRevenue) : `RWF ${stats.totalRevenue.toLocaleString()}`}</div>
+      {activeTab === 'finance' && (
+        <div className="space-y-8">
+          {financeView === 'expenses' ? (
+            <FinancePanel propertyOptions={properties} activeSection="expenses" />
+          ) : (
+            <>
+              {/* Finance View Tabs */}
+              <div className="flex space-x-2 border-b border-gray-200 mb-6">
+                {['overview', 'invoices', 'statement'].map((view) => (
+                  <button
+                    key={view}
+                    onClick={() => setFinanceView(view)}
+                    className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${financeView === view
+                        ? 'border-blue-500 text-blue-600'
+                        : 'border-transparent text-gray-500 hover:text-gray-700'
+                      }`}
+                  >
+                    {view === 'overview' ? 'Financial Overview' : view === 'invoices' ? 'Invoices' : 'Reservations Statement'}
+                  </button>
+                ))}
+              </div>
+
+              {financeView === 'overview' && (
+                <div className="neu-card p-6 rounded-2xl border border-[#e0d5c7] bg-white">
+                  <h2 className="text-xl font-semibold mb-6 text-[#4b2a00]">Financial overview</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="rounded-2xl border border-[#e0d5c7] bg-[#fdf7f0] p-5 flex flex-col justify-between">
+                      <div>
+                        <h3 className="text-sm font-semibold text-[#6b5744] mb-1 uppercase tracking-wide">Total revenue</h3>
+                        <div className="text-2xl md:text-3xl font-bold text-[#4b2a00]">{formatCurrencyRWF ? formatCurrencyRWF(stats.totalRevenue) : `RWF ${stats.totalRevenue.toLocaleString()}`}</div>
+                      </div>
+                      <p className="text-xs text-[#8a745e] mt-2">All-time earnings across all properties.</p>
                     </div>
-                    <p className="text-xs text-[#8a745e] mt-2">All-time earnings across all properties.</p>
+                    <div className="rounded-2xl border border-[#e0d5c7] bg-[#fdf7f0] p-5 flex flex-col justify-between">
+                      <div>
+                        <h3 className="text-sm font-semibold text-[#6b5744] mb-1 uppercase tracking-wide">Pending revenue</h3>
+                        <div className="text-2xl md:text-3xl font-bold text-[#4b2a00]">{formatCurrencyRWF ? formatCurrencyRWF(stats.pendingRevenue) : `RWF ${stats.pendingRevenue.toLocaleString()}`}</div>
+                      </div>
+                      <p className="text-xs text-[#8a745e] mt-2">Awaiting payout from upcoming and in-house stays.</p>
+                    </div>
+                    <div className="rounded-2xl border border-[#e0d5c7] bg-[#fdf7f0] p-5 flex flex-col justify-between">
+                      <div>
+                        <h3 className="text-sm font-semibold text-[#6b5744] mb-1 uppercase tracking-wide">Commission paid</h3>
+                        <div className="text-2xl md:text-3xl font-bold text-[#4b2a00]">{formatCurrencyRWF ? formatCurrencyRWF(Math.round(stats.totalRevenue * 0.1)) : `RWF ${Math.round(stats.totalRevenue * 0.1).toLocaleString()}`}</div>
+                      </div>
+                      <p className="text-xs text-[#8a745e] mt-2">Estimated platform fees based on your total revenue.</p>
+                    </div>
                   </div>
-                  <div className="rounded-2xl border border-[#e0d5c7] bg-[#fdf7f0] p-5 flex flex-col justify-between">
-                    <div>
-                      <h3 className="text-sm font-semibold text-[#6b5744] mb-1 uppercase tracking-wide">Pending revenue</h3>
-                      <div className="text-2xl md:text-3xl font-bold text-[#4b2a00]">{formatCurrencyRWF ? formatCurrencyRWF(stats.pendingRevenue) : `RWF ${stats.pendingRevenue.toLocaleString()}`}</div>
-                    </div>
-                    <p className="text-xs text-[#8a745e] mt-2">Awaiting payout from upcoming and in-house stays.</p>
+                </div>
+              )}
+
+              {financeView === 'invoices' && (
+                <div className="neu-card p-6">
+                  <h2 className="text-xl font-semibold mb-6">Invoices</h2>
+                  <div className="space-y-4">
+                    {(() => {
+                      const rows = financeFiltered || [];
+                      const totalPages = Math.max(1, Math.ceil(rows.length / financePerPage));
+                      const page = Math.min(financePage, totalPages);
+                      const start = (page - 1) * financePerPage;
+                      const pageRows = rows.slice(start, start + financePerPage);
+                      return (
+                        <>
+                          {pageRows.map((booking) => (
+                            <div key={booking._id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <div className="font-semibold text-gray-900">Invoice #{booking.confirmationCode || booking._id.slice(-8)}</div>
+                                  <div className="text-sm text-gray-600">{booking.property?.title || 'Property'}</div>
+                                  <div className="text-sm text-gray-500">{new Date(booking.createdAt).toLocaleDateString()}</div>
+                                </div>
+                                <div className="text-right">
+                                  <div className="text-lg font-bold text-gray-900">{formatCurrencyRWF ? formatCurrencyRWF(booking.totalAmount || 0) : `RWF ${(booking.totalAmount || 0).toLocaleString()}`}</div>
+                                  <span className={`inline-block px-2 py-1 text-xs rounded-full ${booking.paymentStatus === 'paid' ? 'bg-green-100 text-green-800' :
+                                      booking.paymentStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                        'bg-red-100 text-red-800'
+                                    }`}>
+                                    {booking.paymentStatus || booking.status}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="mt-3 flex space-x-2">
+                                <button
+                                  onClick={() => openInvoicePdf(booking._id)}
+                                  className="text-sm text-blue-600 hover:text-blue-800"
+                                >
+                                  View Invoice
+                                </button>
+                                <button
+                                  onClick={() => openReceiptPdf(booking._id)}
+                                  className="text-sm text-green-600 hover:text-green-800"
+                                >
+                                  View Receipt
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                          {pageRows.length === 0 && (
+                            <div className="text-center py-12 text-gray-500">No invoices found</div>
+                          )}
+                          <div className="flex items-center justify-between pt-2">
+                            <div className="text-sm text-gray-500">Page {page} of {totalPages}</div>
+                            <div className="flex gap-2">
+                              <button disabled={page <= 1} onClick={() => setFinancePage(p => Math.max(1, p - 1))} className="px-3 py-1 rounded border disabled:opacity-50">Prev</button>
+                              <button disabled={page >= totalPages} onClick={() => setFinancePage(p => Math.min(totalPages, p + 1))} className="px-3 py-1 rounded border disabled:opacity-50">Next</button>
+                            </div>
+                          </div>
+                        </>
+                      );
+                    })()}
                   </div>
-                  <div className="rounded-2xl border border-[#e0d5c7] bg-[#fdf7f0] p-5 flex flex-col justify-between">
-                    <div>
-                      <h3 className="text-sm font-semibold text-[#6b5744] mb-1 uppercase tracking-wide">Commission paid</h3>
-                      <div className="text-2xl md:text-3xl font-bold text-[#4b2a00]">{formatCurrencyRWF ? formatCurrencyRWF(Math.round(stats.totalRevenue * 0.1)) : `RWF ${Math.round(stats.totalRevenue * 0.1).toLocaleString()}`}</div>
-                    </div>
-                    <p className="text-xs text-[#8a745e] mt-2">Estimated platform fees based on your total revenue.</p>
+                </div>
+              )}
+
+              {financeView === 'statement' && (
+                <div className="neu-card p-6">
+                  <h2 className="text-xl font-semibold mb-6">Reservations Statement</h2>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Booking ID</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Property</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Guest</th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Amount</th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Commission</th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Net</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {(() => {
+                          const rows = financeFiltered || [];
+                          const totalPages = Math.max(1, Math.ceil(rows.length / financePerPage));
+                          const page = Math.min(financePage, totalPages);
+                          const start = (page - 1) * financePerPage;
+                          const pageRows = rows.slice(start, start + financePerPage);
+                          return pageRows.map((booking) => {
+                            const commission = Math.round((booking.totalAmount || 0) * 0.1);
+                            const net = (booking.totalAmount || 0) - commission;
+                            return (
+                              <tr key={booking._id} className="hover:bg-gray-50">
+                                <td className="px-4 py-3 text-sm">{new Date(booking.createdAt).toLocaleDateString()}</td>
+                                <td className="px-4 py-3 text-sm font-medium">{booking.confirmationCode || booking._id.slice(-8)}</td>
+                                <td className="px-4 py-3 text-sm">{booking.property?.title || 'Property'}</td>
+                                <td className="px-4 py-3 text-sm">{`${booking.guest?.firstName || ''} ${booking.guest?.lastName || ''}`.trim() || 'Guest'}</td>
+                                <td className="px-4 py-3 text-sm text-right font-semibold">RWF {(booking.totalAmount || 0).toLocaleString()}</td>
+                                <td className="px-4 py-3 text-sm text-right text-red-600">-RWF {commission.toLocaleString()}</td>
+                                <td className="px-4 py-3 text-sm text-right font-bold text-green-600">RWF {net.toLocaleString()}</td>
+                                <td className="px-4 py-3 text-sm">
+                                  <span className={`inline-block px-2 py-1 text-xs rounded-full ${booking.paymentStatus === 'paid' ? 'bg-green-100 text-green-800' :
+                                      booking.paymentStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                        'bg-red-100 text-red-800'
+                                    }`}>
+                                    {booking.paymentStatus || booking.status}
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          });
+                        })()}
+                      </tbody>
+                    </table>
+                    {(!financeFiltered || financeFiltered.length === 0) && (
+                      <div className="text-center py-12 text-gray-500">No transactions found</div>
+                    )}
+                    {financeFiltered && financeFiltered.length > 0 && (
+                      <div className="flex items-center justify-between pt-2">
+                        <div className="text-sm text-gray-500">Page {financePage} of {Math.max(1, Math.ceil(financeFiltered.length / financePerPage))}</div>
+                        <div className="flex gap-2">
+                          <button disabled={financePage <= 1} onClick={() => setFinancePage(p => Math.max(1, p - 1))} className="px-3 py-1 rounded border disabled:opacity-50">Prev</button>
+                          <button disabled={financePage >= Math.ceil(financeFiltered.length / financePerPage)} onClick={() => setFinancePage(p => Math.min(Math.ceil(financeFiltered.length / financePerPage), p + 1))} className="px-3 py-1 rounded border disabled:opacity-50">Next</button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'analytics' && (
+        <div className="space-y-8">
+          <div className="neu-card p-6">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+              <h2 className="text-xl font-semibold">
+                {analyticsView === 'dashboard' && 'Performance Analytics'}
+                {analyticsView === 'demand' && 'Demand for Location'}
+                {analyticsView === 'pace' && 'Your Pace of Bookings'}
+                {analyticsView === 'sales' && 'Sales Reporting & Analytics'}
+                {analyticsView === 'reports' && 'Reports'}
+                {analyticsView === 'comparison' && 'Direct vs Online Booking Comparison'}
+                {analyticsView === 'occupancy' && 'Occupancy & Revenue per Room'}
+                {analyticsView === 'tax' && 'Tax Liability Tracking'}
+                {analyticsView === 'booker' && 'Booker Insights'}
+                {analyticsView === 'bookwindow' && 'Booking Window Information'}
+                {analyticsView === 'cancellation' && 'Cancellation Characteristics'}
+                {analyticsView === 'competitive' && 'Competitive Set'}
+                {analyticsView === 'genius' && 'Genius Report'}
+                {analyticsView === 'ranking' && 'Ranking Dashboard'}
+                {analyticsView === 'performance' && 'Performance Dashboard'}
+              </h2>
+              {analyticsView === 'sales' && (
+                <div className="flex items-center gap-3">
+                  <select value={salesPeriod} onChange={(e) => { setSalesPeriod(e.target.value); setSalesPage(1); }} className="border rounded-lg px-3 py-2">
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                  </select>
+                  <button onClick={() => {
+                    const rows = computeSalesBuckets(bookings, salesPeriod);
+                    exportSalesCSV(rows);
+                  }} className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm">Export CSV</button>
+                  <button onClick={() => window.print()} className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm">Export PDF</button>
+                </div>
+              )}
+            </div>
+
+            {analyticsView === 'dashboard' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="bg-indigo-50 rounded-xl p-6 shadow-md">
+                  <h3 className="text-lg font-semibold text-indigo-900 mb-2">Occupancy Rate</h3>
+                  <div className="text-2xl font-bold text-indigo-600">{stats.occupancyRate}%</div>
+                </div>
+                <div className="bg-orange-50 rounded-xl p-6 shadow-md">
+                  <h3 className="text-lg font-semibold text-orange-900 mb-2">Avg Rating</h3>
+                  <div className="text-2xl font-bold text-orange-600">{stats.averageRating}</div>
+                </div>
+                <div className="bg-teal-50 rounded-xl p-6 shadow-md">
+                  <h3 className="text-lg font-semibold text-teal-900 mb-2">Total Bookings</h3>
+                  <div className="text-2xl font-bold text-teal-600">{stats.total}</div>
+                </div>
+                <div className="bg-pink-50 rounded-xl p-6 shadow-md">
+                  <h3 className="text-lg font-semibold text-pink-900 mb-2">Properties</h3>
+                  <div className="text-2xl font-bold text-pink-600">{stats.totalProperties}</div>
+                </div>
+              </div>
+            )}
+
+            {analyticsView === 'demand' && (
+              <div className="space-y-4">
+                <p className="text-gray-600">Analyze demand trends for your location and property type.</p>
+                <div className="bg-blue-50 p-6 rounded-lg">
+                  <h4 className="font-semibold mb-3">Location Demand Index</h4>
+                  <div className="text-3xl font-bold text-blue-600 mb-2">High</div>
+                  <p className="text-sm text-gray-600">Your location is experiencing high demand this season</p>
+                </div>
+              </div>
+            )}
+
+            {analyticsView === 'pace' && (
+              <div className="space-y-4">
+                <p className="text-gray-600">Track how quickly your properties are getting booked.</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-green-50 p-4 rounded-lg">
+                    <p className="text-sm text-gray-600">Avg Days to Book</p>
+                    <p className="text-2xl font-bold text-green-600">12 days</p>
+                  </div>
+                  <div className="bg-purple-50 p-4 rounded-lg">
+                    <p className="text-sm text-gray-600">Booking Velocity</p>
+                    <p className="text-2xl font-bold text-purple-600">Fast</p>
                   </div>
                 </div>
               </div>
             )}
 
-            {financeView === 'invoices' && (
-              <div className="neu-card p-6">
-                <h2 className="text-xl font-semibold mb-6">Invoices</h2>
-                <div className="space-y-4">
+            {analyticsView === 'sales' && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <p className="text-sm text-gray-600">Total Revenue</p>
+                    <p className="text-xl font-bold">RWF {stats.totalRevenue?.toLocaleString()}</p>
+                  </div>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <p className="text-sm text-gray-600">Avg Booking Value</p>
+                    <p className="text-xl font-bold">RWF {Math.round(stats.totalRevenue / Math.max(1, stats.total)).toLocaleString()}</p>
+                  </div>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <p className="text-sm text-gray-600">Bookings (Direct)</p>
+                    <p className="text-xl font-bold">{bookings.filter(b => b.isDirect).length}</p>
+                  </div>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <p className="text-sm text-gray-600">Bookings (Online)</p>
+                    <p className="text-xl font-bold">{bookings.filter(b => !b.isDirect).length}</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="bg-indigo-50 p-4 rounded-lg">
+                    <p className="text-sm text-indigo-700">RevPAR (avg)</p>
+                    <p className="text-2xl font-bold text-indigo-800">RWF {Number(analyticsData?.totals?.revparAvg || 0).toLocaleString()}</p>
+                  </div>
+                  <div className="bg-teal-50 p-4 rounded-lg">
+                    <p className="text-sm text-teal-700">ADR (avg)</p>
+                    <p className="text-2xl font-bold text-teal-800">RWF {Number(analyticsData?.totals?.adrAvg || 0).toLocaleString()}</p>
+                  </div>
+                  <div className="bg-yellow-50 p-4 rounded-lg">
+                    <p className="text-sm text-yellow-700">Occupancy (avg)</p>
+                    <p className="text-2xl font-bold text-yellow-800">{Number(analyticsData?.totals?.occupancyAvg || 0)}%</p>
+                  </div>
+                </div>
+
+                <div className="neu-card p-4">
+                  <h3 className="font-semibold mb-3">Revenue by {salesPeriod}</h3>
                   {(() => {
-                    const rows = financeFiltered || [];
-                    const totalPages = Math.max(1, Math.ceil(rows.length / financePerPage));
-                    const page = Math.min(financePage, totalPages);
-                    const start = (page - 1) * financePerPage;
-                    const pageRows = rows.slice(start, start + financePerPage);
+                    const initial = (filters.property && filters.property !== 'all')
+                      ? bookings.filter(b => String(b.property?._id || b.property) === String(filters.property))
+                      : bookings;
+                    const source = (initial.length === 0 && filters.property && filters.property !== 'all') ? bookings : initial;
+                    const rows = computeSalesBuckets(source, salesPeriod);
+                    const totalPages = Math.max(1, Math.ceil(rows.length / salesPerPage));
+                    const page = Math.min(salesPage, totalPages);
+                    const start = (page - 1) * salesPerPage;
+                    const pageRows = rows.slice(start, start + salesPerPage);
                     return (
-                      <>
-                        {pageRows.map((booking) => (
-                          <div key={booking._id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
-                            <div className="flex justify-between items-start">
-                              <div>
-                                <div className="font-semibold text-gray-900">Invoice #{booking.confirmationCode || booking._id.slice(-8)}</div>
-                                <div className="text-sm text-gray-600">{booking.property?.title || 'Property'}</div>
-                                <div className="text-sm text-gray-500">{new Date(booking.createdAt).toLocaleDateString()}</div>
-                              </div>
-                              <div className="text-right">
-                                <div className="text-lg font-bold text-gray-900">{formatCurrencyRWF ? formatCurrencyRWF(booking.totalAmount || 0) : `RWF ${(booking.totalAmount || 0).toLocaleString()}`}</div>
-                                <span className={`inline-block px-2 py-1 text-xs rounded-full ${
-                                  booking.paymentStatus === 'paid' ? 'bg-green-100 text-green-800' :
-                                  booking.paymentStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                                  'bg-red-100 text-red-800'
-                                }`}>
-                                  {booking.paymentStatus || booking.status}
-                                </span>
-                              </div>
-                            </div>
-                            <div className="mt-3 flex space-x-2">
-                              <button
-                                onClick={() => openInvoicePdf(booking._id)}
-                                className="text-sm text-blue-600 hover:text-blue-800"
-                              >
-                                View Invoice
-                              </button>
-                              <button
-                                onClick={() => openReceiptPdf(booking._id)}
-                                className="text-sm text-green-600 hover:text-green-800"
-                              >
-                                View Receipt
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                        {pageRows.length === 0 && (
-                          <div className="text-center py-12 text-gray-500">No invoices found</div>
-                        )}
-                        <div className="flex items-center justify-between pt-2">
+                      <div className="space-y-3">
+                        <div className="overflow-x-auto">
+                          <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                              <tr>
+                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Period</th>
+                                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Revenue</th>
+                                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Tax</th>
+                                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Count</th>
+                              </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-100">
+                              {pageRows.map(r => (
+                                <tr key={r.period} className="hover:bg-gray-50">
+                                  <td className="px-4 py-2 text-sm">{r.period}</td>
+                                  <td className="px-4 py-2 text-sm text-right">RWF {Number(r.revenue).toLocaleString()}</td>
+                                  <td className="px-4 py-2 text-sm text-right">RWF {Number(r.tax).toLocaleString()}</td>
+                                  <td className="px-4 py-2 text-sm text-right">{r.count}</td>
+                                </tr>
+                              ))}
+                              {pageRows.length === 0 && (
+                                <tr><td colSpan={4} className="px-4 py-6 text-center text-gray-500">No data</td></tr>
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                        <div className="flex items-center justify-between">
                           <div className="text-sm text-gray-500">Page {page} of {totalPages}</div>
                           <div className="flex gap-2">
-                            <button disabled={page<=1} onClick={()=>setFinancePage(p=>Math.max(1,p-1))} className="px-3 py-1 rounded border disabled:opacity-50">Prev</button>
-                            <button disabled={page>=totalPages} onClick={()=>setFinancePage(p=>Math.min(totalPages,p+1))} className="px-3 py-1 rounded border disabled:opacity-50">Next</button>
+                            <button disabled={page <= 1} onClick={() => setSalesPage(p => Math.max(1, p - 1))} className="px-3 py-1 rounded border disabled:opacity-50">Prev</button>
+                            <button disabled={page >= totalPages} onClick={() => setSalesPage(p => Math.min(totalPages, p + 1))} className="px-3 py-1 rounded border disabled:opacity-50">Next</button>
                           </div>
                         </div>
-                      </>
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                <div className="neu-card p-4">
+                  <h3 className="font-semibold mb-2">Direct vs Online Comparison</h3>
+                  {(() => {
+                    const direct = bookings.filter(b => b.isDirect);
+                    const online = bookings.filter(b => !b.isDirect);
+                    const dRev = direct.reduce((s, b) => s + Number(b.totalAmount || 0), 0);
+                    const oRev = online.reduce((s, b) => s + Number(b.totalAmount || 0), 0);
+                    return (
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="bg-green-50 p-4 rounded-lg">
+                          <p className="text-sm text-green-700">Direct Revenue</p>
+                          <p className="text-xl font-bold text-green-800">RWF {dRev.toLocaleString()}</p>
+                        </div>
+                        <div className="bg-blue-50 p-4 rounded-lg">
+                          <p className="text-sm text-blue-700">Online Revenue</p>
+                          <p className="text-xl font-bold text-blue-800">RWF {oRev.toLocaleString()}</p>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                <div className="neu-card p-4">
+                  <h3 className="font-semibold mb-2">Tax Liability Tracking</h3>
+                  {(() => {
+                    const list = bookings;
+                    const tax = list.reduce((s, b) => s + Number(b.taxAmount || 0), 0);
+                    return <div className="text-gray-800">Estimated Taxes: <span className="font-semibold">RWF {tax.toLocaleString()}</span></div>;
+                  })()}
+                </div>
+              </div>
+            )}
+
+            {analyticsView === 'reports' && (
+              <div className="space-y-6">
+                <div className="neu-card p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-semibold">Sales Reports</h3>
+                    <div className="flex items-center gap-2">
+                      <select value={reportsPeriod} onChange={(e) => { setReportsPeriod(e.target.value); setReportsPage(1); }} className="border rounded-lg px-3 py-2 text-sm">
+                        <option value="daily">Daily</option>
+                        <option value="weekly">Weekly</option>
+                        <option value="monthly">Monthly</option>
+                      </select>
+                      <button onClick={() => {
+                        const initial = (filters.property && filters.property !== 'all')
+                          ? bookings.filter(b => String(b.property?._id || b.property) === String(filters.property))
+                          : bookings;
+                        const source = (initial.length === 0 && filters.property && filters.property !== 'all') ? bookings : initial;
+                        const rows = computeSalesBuckets(source, reportsPeriod);
+                        exportSalesCSV(rows);
+                      }} className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm">Export CSV</button>
+                      <button onClick={() => window.print()} className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm">Export PDF</button>
+                    </div>
+                  </div>
+                  {(() => {
+                    const initial = (filters.property && filters.property !== 'all')
+                      ? bookings.filter(b => String(b.property?._id || b.property) === String(filters.property))
+                      : bookings;
+                    const source = (initial.length === 0 && filters.property && filters.property !== 'all') ? bookings : initial;
+                    const rows = computeSalesBuckets(source, reportsPeriod);
+                    const totalPages = Math.max(1, Math.ceil(rows.length / reportsPerPage));
+                    const page = Math.min(reportsPage, totalPages);
+                    const start = (page - 1) * reportsPerPage;
+                    const pageRows = rows.slice(start, start + reportsPerPage);
+                    return (
+                      <div className="space-y-3">
+                        <div className="overflow-x-auto">
+                          <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                              <tr>
+                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Period</th>
+                                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Revenue</th>
+                                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Tax</th>
+                                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Count</th>
+                              </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-100">
+                              {pageRows.map(r => (
+                                <tr key={r.period} className="hover:bg-gray-50">
+                                  <td className="px-4 py-2 text-sm">{r.period}</td>
+                                  <td className="px-4 py-2 text-sm text-right">RWF {Number(r.revenue).toLocaleString()}</td>
+                                  <td className="px-4 py-2 text-sm text-right">RWF {Number(r.tax).toLocaleString()}</td>
+                                  <td className="px-4 py-2 text-sm text-right">{r.count}</td>
+                                </tr>
+                              ))}
+                              {pageRows.length === 0 && (<tr><td colSpan={4} className="px-4 py-6 text-center text-gray-500">No data</td></tr>)}
+                            </tbody>
+                          </table>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="text-sm text-gray-500">Page {page} of {totalPages}</div>
+                          <div className="flex gap-2">
+                            <button disabled={page <= 1} onClick={() => setReportsPage(p => Math.max(1, p - 1))} className="px-3 py-1 rounded border disabled:opacity-50">Prev</button>
+                            <button disabled={page >= totalPages} onClick={() => setReportsPage(p => Math.min(totalPages, p + 1))} className="px-3 py-1 rounded border disabled:opacity-50">Next</button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+                <div className="neu-card p-4">
+                  <h3 className="font-semibold mb-3">Quick Links</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <button onClick={() => navigate('/dashboard?tab=finance&view=invoices')} className="px-4 py-3 rounded-lg bg-gray-100 hover:bg-gray-200 text-left">Invoices</button>
+                    <button onClick={() => navigate('/dashboard?tab=finance&view=statement')} className="px-4 py-3 rounded-lg bg-gray-100 hover:bg-gray-200 text-left">Reservations Statement</button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {analyticsView === 'comparison' && (
+              <div className="space-y-6">
+                <div className="neu-card p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-semibold">Direct vs Online Comparison</h3>
+                    <div className="flex gap-2">
+                      <button onClick={() => {
+                        const rows = [
+                          { channel: 'Direct', revenue: bookings.filter(b => b.isDirect).reduce((s, b) => s + Number(b.totalAmount || 0), 0), count: bookings.filter(b => b.isDirect).length },
+                          { channel: 'Online', revenue: bookings.filter(b => !b.isDirect).reduce((s, b) => s + Number(b.totalAmount || 0), 0), count: bookings.filter(b => !b.isDirect).length },
+                        ];
+                        const header = ['Channel', 'Revenue', 'Count'];
+                        const lines = [header.join(',')].concat(rows.map(r => [r.channel, r.revenue, r.count].join(',')));
+                        const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a'); a.href = url; a.download = 'comparison.csv'; a.click(); URL.revokeObjectURL(url);
+                      }} className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm">Export CSV</button>
+                      <button onClick={() => window.print()} className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm">Export PDF</button>
+                    </div>
+                  </div>
+                  {(() => {
+                    const direct = bookings.filter(b => b.isDirect);
+                    const online = bookings.filter(b => !b.isDirect);
+                    const dRev = direct.reduce((s, b) => s + Number(b.totalAmount || 0), 0);
+                    const oRev = online.reduce((s, b) => s + Number(b.totalAmount || 0), 0);
+                    return (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="bg-green-50 p-4 rounded-lg">
+                          <p className="text-sm text-green-700">Direct Revenue</p>
+                          <p className="text-xl font-bold text-green-800">RWF {dRev.toLocaleString()}</p>
+                          <p className="text-sm text-green-700 mt-1">Bookings: {direct.length}</p>
+                        </div>
+                        <div className="bg-blue-50 p-4 rounded-lg">
+                          <p className="text-sm text-blue-700">Online Revenue</p>
+                          <p className="text-xl font-bold text-blue-800">RWF {oRev.toLocaleString()}</p>
+                          <p className="text-sm text-blue-700 mt-1">Bookings: {online.length}</p>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+                <div className="neu-card p-4">
+                  {(() => {
+                    const rows = bookings.map(b => ({
+                      date: new Date(b.createdAt).toLocaleDateString(undefined, { day: '2-digit', month: '2-digit', year: 'numeric' }),
+                      channel: b.isDirect ? 'Direct' : 'Online',
+                      amount: Number(b.totalAmount || 0)
+                    }));
+                    const totalPages = Math.max(1, Math.ceil(rows.length / compPerPage));
+                    const page = Math.min(compPage, totalPages);
+                    const start = (page - 1) * compPerPage;
+                    const pageRows = rows.slice(start, start + compPerPage);
+                    return (
+                      <div className="space-y-3">
+                        <div className="overflow-x-auto">
+                          <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                              <tr>
+                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Channel</th>
+                                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Amount</th>
+                              </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-100">
+                              {pageRows.map((r, i) => (
+                                <tr key={i} className="hover:bg-gray-50">
+                                  <td className="px-4 py-2 text-sm">{r.date}</td>
+                                  <td className="px-4 py-2 text-sm">{r.channel}</td>
+                                  <td className="px-4 py-2 text-sm text-right">RWF {r.amount.toLocaleString()}</td>
+                                </tr>
+                              ))}
+                              {pageRows.length === 0 && (<tr><td colSpan={3} className="px-4 py-6 text-center text-gray-500">No data</td></tr>)}
+                            </tbody>
+                          </table>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="text-sm text-gray-500">Page {page} of {totalPages}</div>
+                          <div className="flex gap-2">
+                            <button disabled={page <= 1} onClick={() => setCompPage(p => Math.max(1, p - 1))} className="px-3 py-1 rounded border disabled:opacity-50">Prev</button>
+                            <button disabled={page >= totalPages} onClick={() => setCompPage(p => Math.min(totalPages, p + 1))} className="px-3 py-1 rounded border disabled:opacity-50">Next</button>
+                          </div>
+                        </div>
+                      </div>
                     );
                   })()}
                 </div>
               </div>
             )}
 
-            {financeView === 'statement' && (
-              <div className="neu-card p-6">
-                <h2 className="text-xl font-semibold mb-6">Reservations Statement</h2>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Booking ID</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Property</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Guest</th>
-                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Amount</th>
-                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Commission</th>
-                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Net</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {(() => {
-                        const rows = financeFiltered || [];
-                        const totalPages = Math.max(1, Math.ceil(rows.length / financePerPage));
-                        const page = Math.min(financePage, totalPages);
-                        const start = (page - 1) * financePerPage;
-                        const pageRows = rows.slice(start, start + financePerPage);
-                        return pageRows.map((booking) => {
-                          const commission = Math.round((booking.totalAmount || 0) * 0.1);
-                          const net = (booking.totalAmount || 0) - commission;
-                          return (
-                            <tr key={booking._id} className="hover:bg-gray-50">
-                              <td className="px-4 py-3 text-sm">{new Date(booking.createdAt).toLocaleDateString()}</td>
-                              <td className="px-4 py-3 text-sm font-medium">{booking.confirmationCode || booking._id.slice(-8)}</td>
-                              <td className="px-4 py-3 text-sm">{booking.property?.title || 'Property'}</td>
-                              <td className="px-4 py-3 text-sm">{`${booking.guest?.firstName || ''} ${booking.guest?.lastName || ''}`.trim() || 'Guest'}</td>
-                              <td className="px-4 py-3 text-sm text-right font-semibold">RWF {(booking.totalAmount || 0).toLocaleString()}</td>
-                              <td className="px-4 py-3 text-sm text-right text-red-600">-RWF {commission.toLocaleString()}</td>
-                              <td className="px-4 py-3 text-sm text-right font-bold text-green-600">RWF {net.toLocaleString()}</td>
-                              <td className="px-4 py-3 text-sm">
-                                <span className={`inline-block px-2 py-1 text-xs rounded-full ${
-                                  booking.paymentStatus === 'paid' ? 'bg-green-100 text-green-800' :
-                                  booking.paymentStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                                  'bg-red-100 text-red-800'
-                                }`}>
-                                  {booking.paymentStatus || booking.status}
-                                </span>
-                              </td>
-                            </tr>
-                          );
+            {analyticsView === 'occupancy' && (
+              <div className="space-y-6">
+                <div className="neu-card p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-semibold">Occupancy & Revenue per Room</h3>
+                    <div className="flex gap-2">
+                      <button onClick={() => {
+                        const map = new Map();
+                        bookings.forEach(b => {
+                          const roomKey = (b.room?._id || b.room || 'unknown');
+                          const roomName = b.room?.roomNumber || b.room?.roomType || b.roomNumber || 'Room';
+                          const cur = map.get(roomKey) || { roomName, nights: 0, revenue: 0, count: 0 };
+                          const s = new Date(b.checkIn); const e = new Date(b.checkOut); const n = Math.ceil((e - s) / (1000 * 60 * 60 * 24)) || 0;
+                          cur.nights += Math.max(0, n); cur.revenue += Number(b.totalAmount || 0); cur.count += 1; map.set(roomKey, cur);
                         });
-                      })()}
-                    </tbody>
-                  </table>
-                  {(!financeFiltered || financeFiltered.length === 0) && (
-                    <div className="text-center py-12 text-gray-500">No transactions found</div>
-                  )}
-                  {financeFiltered && financeFiltered.length > 0 && (
-                    <div className="flex items-center justify-between pt-2">
-                      <div className="text-sm text-gray-500">Page {financePage} of {Math.max(1, Math.ceil(financeFiltered.length / financePerPage))}</div>
-                      <div className="flex gap-2">
-                        <button disabled={financePage<=1} onClick={()=>setFinancePage(p=>Math.max(1,p-1))} className="px-3 py-1 rounded border disabled:opacity-50">Prev</button>
-                        <button disabled={financePage>=Math.ceil(financeFiltered.length/financePerPage)} onClick={()=>setFinancePage(p=>Math.min(Math.ceil(financeFiltered.length/financePerPage),p+1))} className="px-3 py-1 rounded border disabled:opacity-50">Next</button>
-                      </div>
+                        const rows = Array.from(map.values());
+                        const header = ['Room', 'Nights', 'Bookings', 'Revenue'];
+                        const lines = [header.join(',')].concat(rows.map(r => [r.roomName, r.nights, r.count, r.revenue].join(',')));
+                        const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a'); a.href = url; a.download = 'occupancy_per_room.csv'; a.click(); URL.revokeObjectURL(url);
+                      }} className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm">Export CSV</button>
+                      <button onClick={() => window.print()} className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm">Export PDF</button>
                     </div>
-                  )}
+                  </div>
+                  {(() => {
+                    const map = new Map();
+                    bookings.forEach(b => {
+                      const roomKey = (b.room?._id || b.room || 'unknown');
+                      const roomName = b.room?.roomNumber || b.room?.roomType || b.roomNumber || 'Room';
+                      const cur = map.get(roomKey) || { roomName, nights: 0, revenue: 0, count: 0 };
+                      const nights = (() => { const s = new Date(b.checkIn); const e = new Date(b.checkOut); const n = Math.ceil((e - s) / (1000 * 60 * 60 * 24)); return isNaN(n) ? 0 : Math.max(0, n); })();
+                      cur.nights += nights;
+                      cur.revenue += Number(b.totalAmount || 0);
+                      cur.count += 1;
+                      map.set(roomKey, cur);
+                    });
+                    const rows = Array.from(map.values());
+                    const totalPages = Math.max(1, Math.ceil(rows.length / occPerPage));
+                    const page = Math.min(occPage, totalPages);
+                    const start = (page - 1) * occPerPage;
+                    const pageRows = rows.slice(start, start + occPerPage);
+                    return (
+                      <div className="space-y-3">
+                        <div className="overflow-x-auto">
+                          <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                              <tr>
+                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Room</th>
+                                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Nights</th>
+                                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Bookings</th>
+                                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Revenue</th>
+                              </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-100">
+                              {pageRows.map((r, i) => (
+                                <tr key={i} className="hover:bg-gray-50">
+                                  <td className="px-4 py-2 text-sm">{r.roomName}</td>
+                                  <td className="px-4 py-2 text-sm text-right">{r.nights}</td>
+                                  <td className="px-4 py-2 text-sm text-right">{r.count}</td>
+                                  <td className="px-4 py-2 text-sm text-right">RWF {Number(r.revenue).toLocaleString()}</td>
+                                </tr>
+                              ))}
+                              {pageRows.length === 0 && (<tr><td colSpan={4} className="px-4 py-6 text-center text-gray-500">No data</td></tr>)}
+                            </tbody>
+                          </table>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="text-sm text-gray-500">Page {page} of {totalPages}</div>
+                          <div className="flex gap-2">
+                            <button disabled={page <= 1} onClick={() => setOccPage(p => Math.max(1, p - 1))} className="px-3 py-1 rounded border disabled:opacity-50">Prev</button>
+                            <button disabled={page >= totalPages} onClick={() => setOccPage(p => Math.min(totalPages, p + 1))} className="px-3 py-1 rounded border disabled:opacity-50">Next</button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
             )}
-              </>
+
+            {analyticsView === 'tax' && (
+              <div className="space-y-6">
+                <div className="neu-card p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-semibold">Tax Liability Tracking</h3>
+                    <div className="flex gap-2">
+                      <button onClick={() => {
+                        const rows = bookings.map(b => ({ date: new Date(b.createdAt).toISOString().slice(0, 10), booking: b.confirmationCode || b._id, amount: Number(b.totalAmount || 0), tax: Number(b.taxAmount || 0) }));
+                        const header = ['Date', 'Booking', 'Amount', 'Tax'];
+                        const lines = [header.join(',')].concat(rows.map(r => [r.date, r.booking, r.amount, r.tax].join(',')));
+                        const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a'); a.href = url; a.download = 'tax_liability.csv'; a.click(); URL.revokeObjectURL(url);
+                      }} className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm">Export CSV</button>
+                      <button onClick={() => window.print()} className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm">Export PDF</button>
+                    </div>
+                  </div>
+                  {(() => {
+                    const rows = bookings.map(b => ({ date: new Date(b.createdAt).toLocaleDateString(undefined, { day: '2-digit', month: '2-digit', year: 'numeric' }), booking: b.confirmationCode || b._id, amount: Number(b.totalAmount || 0), tax: Number(b.taxAmount || 0) }));
+                    const totalTax = rows.reduce((s, r) => s + r.tax, 0);
+                    const totalPages = Math.max(1, Math.ceil(rows.length / taxPerPage));
+                    const page = Math.min(taxPage, totalPages);
+                    const start = (page - 1) * taxPerPage;
+                    const pageRows = rows.slice(start, start + taxPerPage);
+                    return (
+                      <div className="space-y-3">
+                        <div className="overflow-x-auto">
+                          <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                              <tr>
+                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Booking</th>
+                                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Amount</th>
+                                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Tax</th>
+                              </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-100">
+                              {pageRows.map((r, i) => (
+                                <tr key={i} className="hover:bg-gray-50">
+                                  <td className="px-4 py-2 text-sm">{r.date}</td>
+                                  <td className="px-4 py-2 text-sm">{r.booking}</td>
+                                  <td className="px-4 py-2 text-sm text-right">RWF {r.amount.toLocaleString()}</td>
+                                  <td className="px-4 py-2 text-sm text-right">RWF {r.tax.toLocaleString()}</td>
+                                </tr>
+                              ))}
+                              {pageRows.length === 0 && (<tr><td colSpan={4} className="px-4 py-6 text-center text-gray-500">No data</td></tr>)}
+                            </tbody>
+                          </table>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="text-sm text-gray-700 font-medium">Total Tax: RWF {totalTax.toLocaleString()}</div>
+                          <div className="flex gap-2">
+                            <button disabled={page <= 1} onClick={() => setTaxPage(p => Math.max(1, p - 1))} className="px-3 py-1 rounded border disabled:opacity-50">Prev</button>
+                            <button disabled={page >= totalPages} onClick={() => setTaxPage(p => Math.min(totalPages, p + 1))} className="px-3 py-1 rounded border disabled:opacity-50">Next</button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
+            )}
+
+            {analyticsView === 'booker' && (
+              <div className="space-y-4">
+                <p className="text-gray-600">Understand who is booking your properties.</p>
+                <div className="bg-indigo-50 p-6 rounded-lg">
+                  <h4 className="font-semibold mb-3">Guest Demographics</h4>
+                  <p className="text-sm text-gray-600">Most bookings from business travelers and families</p>
+                </div>
+              </div>
+            )}
+
+            {analyticsView === 'bookwindow' && (
+              <div className="space-y-4">
+                <p className="text-gray-600">Analyze how far in advance guests book.</p>
+                <div className="bg-yellow-50 p-6 rounded-lg">
+                  <h4 className="font-semibold mb-3">Average Booking Window</h4>
+                  <p className="text-3xl font-bold text-yellow-600">21 days</p>
+                  <p className="text-sm text-gray-600 mt-2">Guests typically book 3 weeks in advance</p>
+                </div>
+              </div>
+            )}
+
+            {analyticsView === 'cancellation' && (
+              <div className="space-y-4">
+                <p className="text-gray-600">Track cancellation patterns and reasons.</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-red-50 p-4 rounded-lg">
+                    <p className="text-sm text-gray-600">Cancellation Rate</p>
+                    <p className="text-2xl font-bold text-red-600">8%</p>
+                  </div>
+                  <div className="bg-green-50 p-4 rounded-lg">
+                    <p className="text-sm text-gray-600">Completion Rate</p>
+                    <p className="text-2xl font-bold text-green-600">92%</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {analyticsView === 'competitive' && (
+              <div className="space-y-4">
+                <p className="text-gray-600">Compare your performance with similar properties.</p>
+                <div className="bg-blue-50 p-6 rounded-lg">
+                  <h4 className="font-semibold mb-3">Market Position</h4>
+                  <p className="text-sm text-gray-600">Your properties rank in the top 25% for your area</p>
+                </div>
+              </div>
+            )}
+
+            {analyticsView === 'genius' && (
+              <div className="space-y-4">
+                <p className="text-gray-600">Performance metrics for Genius program participants.</p>
+                <div className="bg-purple-50 p-6 rounded-lg">
+                  <h4 className="font-semibold mb-3">Genius Status</h4>
+                  <p className="text-sm text-gray-600">Not enrolled in Genius program</p>
+                </div>
+              </div>
+            )}
+
+            {analyticsView === 'ranking' && (
+              <div className="space-y-4">
+                <p className="text-gray-600">See how your property ranks in search results.</p>
+                <div className="bg-green-50 p-6 rounded-lg">
+                  <h4 className="font-semibold mb-3">Search Ranking</h4>
+                  <p className="text-3xl font-bold text-green-600">#8</p>
+                  <p className="text-sm text-gray-600 mt-2">Average position in search results</p>
+                </div>
+              </div>
+            )}
+
+            {analyticsView === 'performance' && (
+              <div className="space-y-4">
+                <p className="text-gray-600">Comprehensive performance overview.</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-blue-50 p-4 rounded-lg">
+                    <p className="text-sm text-gray-600">Performance Score</p>
+                    <p className="text-2xl font-bold text-blue-600">8.5/10</p>
+                  </div>
+                  <div className="bg-green-50 p-4 rounded-lg">
+                    <p className="text-sm text-gray-600">Guest Satisfaction</p>
+                    <p className="text-2xl font-bold text-green-600">{stats.averageRating}/5</p>
+                  </div>
+                </div>
+              </div>
             )}
           </div>
-        )}
+        </div>
+      )}
 
-        {activeTab === 'analytics' && (
-          <div className="space-y-8">
-            <div className="neu-card p-6">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
-                <h2 className="text-xl font-semibold">
-                  {analyticsView === 'dashboard' && 'Performance Analytics'}
-                  {analyticsView === 'demand' && 'Demand for Location'}
-                  {analyticsView === 'pace' && 'Your Pace of Bookings'}
-                  {analyticsView === 'sales' && 'Sales Reporting & Analytics'}
-                  {analyticsView === 'reports' && 'Reports'}
-                  {analyticsView === 'comparison' && 'Direct vs Online Booking Comparison'}
-                  {analyticsView === 'occupancy' && 'Occupancy & Revenue per Room'}
-                  {analyticsView === 'tax' && 'Tax Liability Tracking'}
-                  {analyticsView === 'booker' && 'Booker Insights'}
-                  {analyticsView === 'bookwindow' && 'Booking Window Information'}
-                  {analyticsView === 'cancellation' && 'Cancellation Characteristics'}
-                  {analyticsView === 'competitive' && 'Competitive Set'}
-                  {analyticsView === 'genius' && 'Genius Report'}
-                  {analyticsView === 'ranking' && 'Ranking Dashboard'}
-                  {analyticsView === 'performance' && 'Performance Dashboard'}
-                </h2>
-                {analyticsView === 'sales' && (
-                  <div className="flex items-center gap-3">
-                    <select value={salesPeriod} onChange={(e)=>{ setSalesPeriod(e.target.value); setSalesPage(1); }} className="border rounded-lg px-3 py-2">
-                      <option value="daily">Daily</option>
-                      <option value="weekly">Weekly</option>
-                      <option value="monthly">Monthly</option>
-                    </select>
-                    <button onClick={()=>{
-                      const rows = computeSalesBuckets(bookings, salesPeriod);
-                      exportSalesCSV(rows);
-                    }} className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm">Export CSV</button>
-                    <button onClick={()=>window.print()} className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm">Export PDF</button>
+      {activeTab === 'boost' && (
+        <div className="space-y-8">
+          <div className="neu-card p-6">
+            <h2 className="text-xl font-semibold mb-6">
+              {boostView === 'opportunity' && 'Opportunity Centre'}
+              {boostView === 'commission-free' && 'Commission-free Bookings'}
+              {boostView === 'genius' && 'Genius Partner Programme'}
+              {boostView === 'preferred' && 'Preferred Partner Programme'}
+              {boostView === 'long-stays' && 'Long Stays Toolkit'}
+              {boostView === 'visibility' && 'Visibility Booster'}
+              {boostView === 'work-friendly' && 'Work-Friendly Programme'}
+              {boostView === 'unit-diff' && 'Unit Differentiation Tool'}
+              {!boostView && 'Boost Performance'}
+            </h2>
+
+            {(!boostView || boostView === 'opportunity') && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-blue-50 rounded-xl p-6 shadow-md hover:shadow-lg transition-shadow">
+                  <div className="flex items-center mb-4">
+                    <FaChartLine className="text-3xl text-blue-600 mr-3" />
+                    <h3 className="text-lg font-semibold text-gray-900">Opportunity Centre</h3>
                   </div>
-                )}
+                  <p className="text-gray-600 mb-4">Discover ways to improve your property performance and increase bookings</p>
+                  <div className="space-y-2">
+                    <div className="p-3 bg-white rounded">
+                      <p className="font-semibold text-sm">✓ Update your photos</p>
+                      <p className="text-xs text-gray-600">Properties with recent photos get 30% more bookings</p>
+                    </div>
+                    <div className="p-3 bg-white rounded">
+                      <p className="font-semibold text-sm">✓ Enable instant booking</p>
+                      <p className="text-xs text-gray-600">Increase bookings by up to 40%</p>
+                    </div>
+                    <div className="p-3 bg-white rounded">
+                      <p className="font-semibold text-sm">✓ Respond faster to inquiries</p>
+                      <p className="text-xs text-gray-600">Aim for under 1 hour response time</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-green-50 rounded-xl p-6 shadow-md hover:shadow-lg transition-shadow">
+                  <div className="flex items-center mb-4">
+                    <FaDollarSign className="text-3xl text-green-600 mr-3" />
+                    <h3 className="text-lg font-semibold text-gray-900">Commission-free Bookings</h3>
+                  </div>
+                  <p className="text-gray-600 mb-4">Learn how to get direct bookings without platform commission</p>
+                  <button onClick={() => navigate('/dashboard?tab=boost&view=commission-free')} className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
+                    Learn More
+                  </button>
+                </div>
+                <div className="bg-purple-50 rounded-xl p-6 shadow-md hover:shadow-lg transition-shadow">
+                  <div className="flex items-center mb-4">
+                    <FaStar className="text-3xl text-purple-600 mr-3" />
+                    <h3 className="text-lg font-semibold text-gray-900">Visibility Booster</h3>
+                  </div>
+                  <p className="text-gray-600 mb-4">Increase your property's visibility in search results</p>
+                  <button onClick={() => navigate('/dashboard?tab=boost&view=visibility')} className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors">
+                    Boost Visibility
+                  </button>
+                </div>
+                <div className="bg-orange-50 rounded-xl p-6 shadow-md hover:shadow-lg transition-shadow">
+                  <div className="flex items-center mb-4">
+                    <FaCalendarAlt className="text-3xl text-orange-600 mr-3" />
+                    <h3 className="text-lg font-semibold text-gray-900">Long Stays Toolkit</h3>
+                  </div>
+                  <p className="text-gray-600 mb-4">Attract guests looking for extended stays</p>
+                  <button onClick={() => navigate('/dashboard?tab=boost&view=long-stays')} className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors">
+                    Enable Long Stays
+                  </button>
+                </div>
               </div>
-              
-              {analyticsView === 'dashboard' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                  <div className="bg-indigo-50 rounded-xl p-6 shadow-md">
-                    <h3 className="text-lg font-semibold text-indigo-900 mb-2">Occupancy Rate</h3>
-                    <div className="text-2xl font-bold text-indigo-600">{stats.occupancyRate}%</div>
-                  </div>
-                  <div className="bg-orange-50 rounded-xl p-6 shadow-md">
-                    <h3 className="text-lg font-semibold text-orange-900 mb-2">Avg Rating</h3>
-                    <div className="text-2xl font-bold text-orange-600">{stats.averageRating}</div>
-                  </div>
-                  <div className="bg-teal-50 rounded-xl p-6 shadow-md">
-                    <h3 className="text-lg font-semibold text-teal-900 mb-2">Total Bookings</h3>
-                    <div className="text-2xl font-bold text-teal-600">{stats.total}</div>
-                  </div>
-                  <div className="bg-pink-50 rounded-xl p-6 shadow-md">
-                    <h3 className="text-lg font-semibold text-pink-900 mb-2">Properties</h3>
-                    <div className="text-2xl font-bold text-pink-600">{stats.totalProperties}</div>
-                  </div>
+            )}
+
+            {boostView === 'commission-free' && (
+              <div className="space-y-4">
+                <p className="text-gray-600">Enable direct bookings to save on commission fees.</p>
+                <div className="bg-green-50 p-6 rounded-lg">
+                  <h4 className="font-semibold mb-3">Direct Booking Benefits</h4>
+                  <ul className="space-y-2 text-sm text-gray-700">
+                    <li>✓ Save up to 15% on commission fees</li>
+                    <li>✓ Build direct relationships with guests</li>
+                    <li>✓ Full control over pricing and policies</li>
+                    <li>✓ Access to guest contact information</li>
+                  </ul>
+                  <button onClick={() => navigate('/owner/direct-booking')} className="mt-4 bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700">
+                    Set Up Direct Booking
+                  </button>
                 </div>
-              )}
+              </div>
+            )}
 
-              {analyticsView === 'demand' && (
-                <div className="space-y-4">
-                  <p className="text-gray-600">Analyze demand trends for your location and property type.</p>
-                  <div className="bg-blue-50 p-6 rounded-lg">
-                    <h4 className="font-semibold mb-3">Location Demand Index</h4>
-                    <div className="text-3xl font-bold text-blue-600 mb-2">High</div>
-                    <p className="text-sm text-gray-600">Your location is experiencing high demand this season</p>
-                  </div>
+            {boostView === 'genius' && (
+              <div className="space-y-4">
+                <p className="text-gray-600">Join the Genius programme to attract more bookings from loyal travelers.</p>
+                <div className="bg-purple-50 p-6 rounded-lg">
+                  <h4 className="font-semibold mb-3">Genius Programme Benefits</h4>
+                  <p className="text-sm text-gray-600">Offer exclusive discounts to Genius members and increase your visibility</p>
                 </div>
-              )}
+              </div>
+            )}
 
-              {analyticsView === 'pace' && (
-                <div className="space-y-4">
-                  <p className="text-gray-600">Track how quickly your properties are getting booked.</p>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-green-50 p-4 rounded-lg">
-                      <p className="text-sm text-gray-600">Avg Days to Book</p>
-                      <p className="text-2xl font-bold text-green-600">12 days</p>
-                    </div>
-                    <div className="bg-purple-50 p-4 rounded-lg">
-                      <p className="text-sm text-gray-600">Booking Velocity</p>
-                      <p className="text-2xl font-bold text-purple-600">Fast</p>
-                    </div>
-                  </div>
+            {boostView === 'preferred' && (
+              <div className="space-y-4">
+                <p className="text-gray-600">Become a Preferred Partner to unlock premium features and higher visibility.</p>
+                <div className="bg-blue-50 p-6 rounded-lg">
+                  <h4 className="font-semibold mb-3">Preferred Partner Status</h4>
+                  <p className="text-sm text-gray-600">Get priority placement in search results and access to exclusive tools</p>
                 </div>
-              )}
+              </div>
+            )}
 
-              {analyticsView === 'sales' && (
-                <div className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <p className="text-sm text-gray-600">Total Revenue</p>
-                      <p className="text-xl font-bold">RWF {stats.totalRevenue?.toLocaleString()}</p>
-                    </div>
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <p className="text-sm text-gray-600">Avg Booking Value</p>
-                      <p className="text-xl font-bold">RWF {Math.round(stats.totalRevenue / Math.max(1, stats.total)).toLocaleString()}</p>
-                    </div>
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <p className="text-sm text-gray-600">Bookings (Direct)</p>
-                      <p className="text-xl font-bold">{bookings.filter(b=>b.isDirect).length}</p>
-                    </div>
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <p className="text-sm text-gray-600">Bookings (Online)</p>
-                      <p className="text-xl font-bold">{bookings.filter(b=>!b.isDirect).length}</p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="bg-indigo-50 p-4 rounded-lg">
-                      <p className="text-sm text-indigo-700">RevPAR (avg)</p>
-                      <p className="text-2xl font-bold text-indigo-800">RWF {Number(analyticsData?.totals?.revparAvg||0).toLocaleString()}</p>
-                    </div>
-                    <div className="bg-teal-50 p-4 rounded-lg">
-                      <p className="text-sm text-teal-700">ADR (avg)</p>
-                      <p className="text-2xl font-bold text-teal-800">RWF {Number(analyticsData?.totals?.adrAvg||0).toLocaleString()}</p>
-                    </div>
-                    <div className="bg-yellow-50 p-4 rounded-lg">
-                      <p className="text-sm text-yellow-700">Occupancy (avg)</p>
-                      <p className="text-2xl font-bold text-yellow-800">{Number(analyticsData?.totals?.occupancyAvg||0)}%</p>
-                    </div>
-                  </div>
-
-                  <div className="neu-card p-4">
-                    <h3 className="font-semibold mb-3">Revenue by {salesPeriod}</h3>
-                    {(() => {
-                      const initial = (filters.property && filters.property !== 'all')
-                        ? bookings.filter(b => String(b.property?._id || b.property) === String(filters.property))
-                        : bookings;
-                      const source = (initial.length === 0 && filters.property && filters.property !== 'all') ? bookings : initial;
-                      const rows = computeSalesBuckets(source, salesPeriod);
-                      const totalPages = Math.max(1, Math.ceil(rows.length / salesPerPage));
-                      const page = Math.min(salesPage, totalPages);
-                      const start = (page-1) * salesPerPage;
-                      const pageRows = rows.slice(start, start + salesPerPage);
-                      return (
-                        <div className="space-y-3">
-                          <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-200">
-                              <thead className="bg-gray-50">
-                                <tr>
-                                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Period</th>
-                                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Revenue</th>
-                                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Tax</th>
-                                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Count</th>
-                                </tr>
-                              </thead>
-                              <tbody className="bg-white divide-y divide-gray-100">
-                                {pageRows.map(r => (
-                                  <tr key={r.period} className="hover:bg-gray-50">
-                                    <td className="px-4 py-2 text-sm">{r.period}</td>
-                                    <td className="px-4 py-2 text-sm text-right">RWF {Number(r.revenue).toLocaleString()}</td>
-                                    <td className="px-4 py-2 text-sm text-right">RWF {Number(r.tax).toLocaleString()}</td>
-                                    <td className="px-4 py-2 text-sm text-right">{r.count}</td>
-                                  </tr>
-                                ))}
-                                {pageRows.length === 0 && (
-                                  <tr><td colSpan={4} className="px-4 py-6 text-center text-gray-500">No data</td></tr>
-                                )}
-                              </tbody>
-                            </table>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <div className="text-sm text-gray-500">Page {page} of {totalPages}</div>
-                            <div className="flex gap-2">
-                              <button disabled={page<=1} onClick={()=>setSalesPage(p=>Math.max(1,p-1))} className="px-3 py-1 rounded border disabled:opacity-50">Prev</button>
-                              <button disabled={page>=totalPages} onClick={()=>setSalesPage(p=>Math.min(totalPages,p+1))} className="px-3 py-1 rounded border disabled:opacity-50">Next</button>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })()}
-                  </div>
-
-                  <div className="neu-card p-4">
-                    <h3 className="font-semibold mb-2">Direct vs Online Comparison</h3>
-                    {(() => {
-                      const direct = bookings.filter(b=>b.isDirect);
-                      const online = bookings.filter(b=>!b.isDirect);
-                      const dRev = direct.reduce((s,b)=>s+Number(b.totalAmount||0),0);
-                      const oRev = online.reduce((s,b)=>s+Number(b.totalAmount||0),0);
-                      return (
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="bg-green-50 p-4 rounded-lg">
-                            <p className="text-sm text-green-700">Direct Revenue</p>
-                            <p className="text-xl font-bold text-green-800">RWF {dRev.toLocaleString()}</p>
-                          </div>
-                          <div className="bg-blue-50 p-4 rounded-lg">
-                            <p className="text-sm text-blue-700">Online Revenue</p>
-                            <p className="text-xl font-bold text-blue-800">RWF {oRev.toLocaleString()}</p>
-                          </div>
-                        </div>
-                      );
-                    })()}
-                  </div>
-
-                  <div className="neu-card p-4">
-                    <h3 className="font-semibold mb-2">Tax Liability Tracking</h3>
-                    {(() => {
-                      const list = bookings;
-                      const tax = list.reduce((s,b)=> s + Number(b.taxAmount||0), 0);
-                      return <div className="text-gray-800">Estimated Taxes: <span className="font-semibold">RWF {tax.toLocaleString()}</span></div>;
-                    })()}
-                  </div>
+            {boostView === 'long-stays' && (
+              <div className="space-y-4">
+                <p className="text-gray-600">Optimize your property for guests looking for extended stays (28+ nights).</p>
+                <div className="bg-orange-50 p-6 rounded-lg">
+                  <h4 className="font-semibold mb-3">Long Stay Features</h4>
+                  <ul className="space-y-2 text-sm text-gray-700">
+                    <li>✓ Offer weekly and monthly discounts</li>
+                    <li>✓ Highlight amenities for long-term guests</li>
+                    <li>✓ Flexible check-in/out dates</li>
+                    <li>✓ Workspace and kitchen facilities</li>
+                  </ul>
                 </div>
-              )}
+              </div>
+            )}
 
-              {analyticsView === 'reports' && (
-                <div className="space-y-6">
-                  <div className="neu-card p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="font-semibold">Sales Reports</h3>
-                      <div className="flex items-center gap-2">
-                        <select value={reportsPeriod} onChange={(e)=>{ setReportsPeriod(e.target.value); setReportsPage(1); }} className="border rounded-lg px-3 py-2 text-sm">
-                          <option value="daily">Daily</option>
-                          <option value="weekly">Weekly</option>
-                          <option value="monthly">Monthly</option>
-                        </select>
-                        <button onClick={() => { 
-                          const initial = (filters.property && filters.property !== 'all')
-                            ? bookings.filter(b => String(b.property?._id || b.property) === String(filters.property))
-                            : bookings;
-                          const source = (initial.length === 0 && filters.property && filters.property !== 'all') ? bookings : initial;
-                          const rows = computeSalesBuckets(source, reportsPeriod); 
-                          exportSalesCSV(rows); 
-                        }} className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm">Export CSV</button>
-                        <button onClick={() => window.print()} className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm">Export PDF</button>
-                      </div>
-                    </div>
-                    {(() => {
-                      const initial = (filters.property && filters.property !== 'all')
-                        ? bookings.filter(b => String(b.property?._id || b.property) === String(filters.property))
-                        : bookings;
-                      const source = (initial.length === 0 && filters.property && filters.property !== 'all') ? bookings : initial;
-                      const rows = computeSalesBuckets(source, reportsPeriod);
-                      const totalPages = Math.max(1, Math.ceil(rows.length / reportsPerPage));
-                      const page = Math.min(reportsPage, totalPages);
-                      const start = (page-1) * reportsPerPage;
-                      const pageRows = rows.slice(start, start + reportsPerPage);
-                      return (
-                        <div className="space-y-3">
-                          <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-200">
-                              <thead className="bg-gray-50">
-                                <tr>
-                                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Period</th>
-                                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Revenue</th>
-                                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Tax</th>
-                                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Count</th>
-                                </tr>
-                              </thead>
-                              <tbody className="bg-white divide-y divide-gray-100">
-                                {pageRows.map(r => (
-                                  <tr key={r.period} className="hover:bg-gray-50">
-                                    <td className="px-4 py-2 text-sm">{r.period}</td>
-                                    <td className="px-4 py-2 text-sm text-right">RWF {Number(r.revenue).toLocaleString()}</td>
-                                    <td className="px-4 py-2 text-sm text-right">RWF {Number(r.tax).toLocaleString()}</td>
-                                    <td className="px-4 py-2 text-sm text-right">{r.count}</td>
-                                  </tr>
-                                ))}
-                                {pageRows.length===0 && (<tr><td colSpan={4} className="px-4 py-6 text-center text-gray-500">No data</td></tr>)}
-                              </tbody>
-                            </table>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <div className="text-sm text-gray-500">Page {page} of {totalPages}</div>
-                            <div className="flex gap-2">
-                              <button disabled={page<=1} onClick={()=>setReportsPage(p=>Math.max(1,p-1))} className="px-3 py-1 rounded border disabled:opacity-50">Prev</button>
-                              <button disabled={page>=totalPages} onClick={()=>setReportsPage(p=>Math.min(totalPages,p+1))} className="px-3 py-1 rounded border disabled:opacity-50">Next</button>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })()}
-                  </div>
-                  <div className="neu-card p-4">
-                    <h3 className="font-semibold mb-3">Quick Links</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <button onClick={() => navigate('/dashboard?tab=finance&view=invoices')} className="px-4 py-3 rounded-lg bg-gray-100 hover:bg-gray-200 text-left">Invoices</button>
-                      <button onClick={() => navigate('/dashboard?tab=finance&view=statement')} className="px-4 py-3 rounded-lg bg-gray-100 hover:bg-gray-200 text-left">Reservations Statement</button>
-                    </div>
-                  </div>
+            {boostView === 'visibility' && (
+              <div className="space-y-4">
+                <p className="text-gray-600">Increase your property's visibility in search results with these strategies.</p>
+                <div className="bg-purple-50 p-6 rounded-lg">
+                  <h4 className="font-semibold mb-3">Visibility Tips</h4>
+                  <ul className="space-y-2 text-sm text-gray-700">
+                    <li>✓ Maintain high response rates (90%+)</li>
+                    <li>✓ Keep your calendar updated</li>
+                    <li>✓ Earn positive reviews (4.5+ rating)</li>
+                    <li>✓ Offer competitive pricing</li>
+                    <li>✓ Enable instant booking</li>
+                  </ul>
                 </div>
-              )}
+              </div>
+            )}
 
-              {analyticsView === 'comparison' && (
-                <div className="space-y-6">
-                  <div className="neu-card p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="font-semibold">Direct vs Online Comparison</h3>
-                      <div className="flex gap-2">
-                        <button onClick={() => {
-                          const rows = [
-                            { channel: 'Direct', revenue: bookings.filter(b=>b.isDirect).reduce((s,b)=>s+Number(b.totalAmount||0),0), count: bookings.filter(b=>b.isDirect).length },
-                            { channel: 'Online', revenue: bookings.filter(b=>!b.isDirect).reduce((s,b)=>s+Number(b.totalAmount||0),0), count: bookings.filter(b=>!b.isDirect).length },
-                          ];
-                          const header = ['Channel','Revenue','Count'];
-                          const lines = [header.join(',')].concat(rows.map(r=>[r.channel,r.revenue,r.count].join(',')));
-                          const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
-                          const url = URL.createObjectURL(blob);
-                          const a = document.createElement('a'); a.href = url; a.download = 'comparison.csv'; a.click(); URL.revokeObjectURL(url);
-                        }} className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm">Export CSV</button>
-                        <button onClick={()=>window.print()} className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm">Export PDF</button>
-                      </div>
-                    </div>
-                    {(() => {
-                      const direct = bookings.filter(b=>b.isDirect);
-                      const online = bookings.filter(b=>!b.isDirect);
-                      const dRev = direct.reduce((s,b)=>s+Number(b.totalAmount||0),0);
-                      const oRev = online.reduce((s,b)=>s+Number(b.totalAmount||0),0);
-                      return (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="bg-green-50 p-4 rounded-lg">
-                            <p className="text-sm text-green-700">Direct Revenue</p>
-                            <p className="text-xl font-bold text-green-800">RWF {dRev.toLocaleString()}</p>
-                            <p className="text-sm text-green-700 mt-1">Bookings: {direct.length}</p>
-                          </div>
-                          <div className="bg-blue-50 p-4 rounded-lg">
-                            <p className="text-sm text-blue-700">Online Revenue</p>
-                            <p className="text-xl font-bold text-blue-800">RWF {oRev.toLocaleString()}</p>
-                            <p className="text-sm text-blue-700 mt-1">Bookings: {online.length}</p>
-                          </div>
-                        </div>
-                      );
-                    })()}
-                  </div>
-                  <div className="neu-card p-4">
-                    {(() => {
-                      const rows = bookings.map(b=>({
-                        date: new Date(b.createdAt).toLocaleDateString(undefined, { day:'2-digit', month:'2-digit', year:'numeric' }),
-                        channel: b.isDirect ? 'Direct' : 'Online',
-                        amount: Number(b.totalAmount||0)
-                      }));
-                      const totalPages = Math.max(1, Math.ceil(rows.length / compPerPage));
-                      const page = Math.min(compPage, totalPages);
-                      const start = (page-1) * compPerPage;
-                      const pageRows = rows.slice(start, start + compPerPage);
-                      return (
-                        <div className="space-y-3">
-                          <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-200">
-                              <thead className="bg-gray-50">
-                                <tr>
-                                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Channel</th>
-                                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Amount</th>
-                                </tr>
-                              </thead>
-                              <tbody className="bg-white divide-y divide-gray-100">
-                                {pageRows.map((r,i)=> (
-                                  <tr key={i} className="hover:bg-gray-50">
-                                    <td className="px-4 py-2 text-sm">{r.date}</td>
-                                    <td className="px-4 py-2 text-sm">{r.channel}</td>
-                                    <td className="px-4 py-2 text-sm text-right">RWF {r.amount.toLocaleString()}</td>
-                                  </tr>
-                                ))}
-                                {pageRows.length===0 && (<tr><td colSpan={3} className="px-4 py-6 text-center text-gray-500">No data</td></tr>)}
-                              </tbody>
-                            </table>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <div className="text-sm text-gray-500">Page {page} of {totalPages}</div>
-                            <div className="flex gap-2">
-                              <button disabled={page<=1} onClick={()=>setCompPage(p=>Math.max(1,p-1))} className="px-3 py-1 rounded border disabled:opacity-50">Prev</button>
-                              <button disabled={page>=totalPages} onClick={()=>setCompPage(p=>Math.min(totalPages,p+1))} className="px-3 py-1 rounded border disabled:opacity-50">Next</button>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })()}
-                  </div>
+            {boostView === 'work-friendly' && (
+              <div className="space-y-4">
+                <p className="text-gray-600">Attract remote workers and business travelers with work-friendly amenities.</p>
+                <div className="bg-indigo-50 p-6 rounded-lg">
+                  <h4 className="font-semibold mb-3">Work-Friendly Checklist</h4>
+                  <ul className="space-y-2 text-sm text-gray-700">
+                    <li>✓ High-speed WiFi (50+ Mbps)</li>
+                    <li>✓ Dedicated workspace with desk</li>
+                    <li>✓ Comfortable office chair</li>
+                    <li>✓ Good lighting</li>
+                    <li>✓ Quiet environment</li>
+                  </ul>
                 </div>
-              )}
+              </div>
+            )}
 
-              {analyticsView === 'occupancy' && (
-                <div className="space-y-6">
-                  <div className="neu-card p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="font-semibold">Occupancy & Revenue per Room</h3>
-                      <div className="flex gap-2">
-                        <button onClick={() => {
-                          const map = new Map();
-                          bookings.forEach(b => {
-                            const roomKey = (b.room?._id || b.room || 'unknown');
-                            const roomName = b.room?.roomNumber || b.room?.roomType || b.roomNumber || 'Room';
-                            const cur = map.get(roomKey) || { roomName, nights: 0, revenue: 0, count: 0 };
-                            const s = new Date(b.checkIn); const e = new Date(b.checkOut); const n = Math.ceil((e-s)/(1000*60*60*24)) || 0;
-                            cur.nights += Math.max(0,n); cur.revenue += Number(b.totalAmount||0); cur.count += 1; map.set(roomKey, cur);
-                          });
-                          const rows = Array.from(map.values());
-                          const header = ['Room','Nights','Bookings','Revenue'];
-                          const lines = [header.join(',')].concat(rows.map(r=>[r.roomName,r.nights,r.count,r.revenue].join(',')));
-                          const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
-                          const url = URL.createObjectURL(blob);
-                          const a = document.createElement('a'); a.href = url; a.download = 'occupancy_per_room.csv'; a.click(); URL.revokeObjectURL(url);
-                        }} className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm">Export CSV</button>
-                        <button onClick={()=>window.print()} className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm">Export PDF</button>
-                      </div>
-                    </div>
-                    {(() => {
-                      const map = new Map();
-                      bookings.forEach(b => {
-                        const roomKey = (b.room?._id || b.room || 'unknown');
-                        const roomName = b.room?.roomNumber || b.room?.roomType || b.roomNumber || 'Room';
-                        const cur = map.get(roomKey) || { roomName, nights: 0, revenue: 0, count: 0 };
-                        const nights = (()=>{ const s = new Date(b.checkIn); const e = new Date(b.checkOut); const n = Math.ceil((e-s)/(1000*60*60*24)); return isNaN(n)?0:Math.max(0,n); })();
-                        cur.nights += nights;
-                        cur.revenue += Number(b.totalAmount||0);
-                        cur.count += 1;
-                        map.set(roomKey, cur);
-                      });
-                      const rows = Array.from(map.values());
-                      const totalPages = Math.max(1, Math.ceil(rows.length / occPerPage));
-                      const page = Math.min(occPage, totalPages);
-                      const start = (page-1) * occPerPage;
-                      const pageRows = rows.slice(start, start + occPerPage);
-                      return (
-                        <div className="space-y-3">
-                          <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-200">
-                              <thead className="bg-gray-50">
-                                <tr>
-                                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Room</th>
-                                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Nights</th>
-                                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Bookings</th>
-                                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Revenue</th>
-                                </tr>
-                              </thead>
-                              <tbody className="bg-white divide-y divide-gray-100">
-                                {pageRows.map((r, i) => (
-                                  <tr key={i} className="hover:bg-gray-50">
-                                    <td className="px-4 py-2 text-sm">{r.roomName}</td>
-                                    <td className="px-4 py-2 text-sm text-right">{r.nights}</td>
-                                    <td className="px-4 py-2 text-sm text-right">{r.count}</td>
-                                    <td className="px-4 py-2 text-sm text-right">RWF {Number(r.revenue).toLocaleString()}</td>
-                                  </tr>
-                                ))}
-                                {pageRows.length===0 && (<tr><td colSpan={4} className="px-4 py-6 text-center text-gray-500">No data</td></tr>)}
-                              </tbody>
-                            </table>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <div className="text-sm text-gray-500">Page {page} of {totalPages}</div>
-                            <div className="flex gap-2">
-                              <button disabled={page<=1} onClick={()=>setOccPage(p=>Math.max(1,p-1))} className="px-3 py-1 rounded border disabled:opacity-50">Prev</button>
-                              <button disabled={page>=totalPages} onClick={()=>setOccPage(p=>Math.min(totalPages,p+1))} className="px-3 py-1 rounded border disabled:opacity-50">Next</button>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })()}
-                  </div>
+            {boostView === 'unit-diff' && (
+              <div className="space-y-4">
+                <p className="text-gray-600">Differentiate your units to appeal to different guest segments.</p>
+                <div className="bg-teal-50 p-6 rounded-lg">
+                  <h4 className="font-semibold mb-3">Unit Differentiation Strategy</h4>
+                  <p className="text-sm text-gray-600">Create unique listings for different room types, amenities, and guest preferences</p>
                 </div>
-              )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
-              {analyticsView === 'tax' && (
-                <div className="space-y-6">
-                  <div className="neu-card p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="font-semibold">Tax Liability Tracking</h3>
-                      <div className="flex gap-2">
-                        <button onClick={() => {
-                          const rows = bookings.map(b=>({ date: new Date(b.createdAt).toISOString().slice(0,10), booking: b.confirmationCode || b._id, amount: Number(b.totalAmount||0), tax: Number(b.taxAmount||0) }));
-                          const header = ['Date','Booking','Amount','Tax'];
-                          const lines = [header.join(',')].concat(rows.map(r=>[r.date,r.booking,r.amount,r.tax].join(',')));
-                          const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
-                          const url = URL.createObjectURL(blob);
-                          const a = document.createElement('a'); a.href = url; a.download = 'tax_liability.csv'; a.click(); URL.revokeObjectURL(url);
-                        }} className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm">Export CSV</button>
-                        <button onClick={()=>window.print()} className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm">Export PDF</button>
-                      </div>
-                    </div>
-                    {(() => {
-                      const rows = bookings.map(b=>({ date: new Date(b.createdAt).toLocaleDateString(undefined, { day:'2-digit', month:'2-digit', year:'numeric' }), booking: b.confirmationCode || b._id, amount: Number(b.totalAmount||0), tax: Number(b.taxAmount||0) }));
-                      const totalTax = rows.reduce((s,r)=>s + r.tax, 0);
-                      const totalPages = Math.max(1, Math.ceil(rows.length / taxPerPage));
-                      const page = Math.min(taxPage, totalPages);
-                      const start = (page-1) * taxPerPage;
-                      const pageRows = rows.slice(start, start + taxPerPage);
-                      return (
-                        <div className="space-y-3">
-                          <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-200">
-                              <thead className="bg-gray-50">
-                                <tr>
-                                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Booking</th>
-                                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Amount</th>
-                                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Tax</th>
-                                </tr>
-                              </thead>
-                              <tbody className="bg-white divide-y divide-gray-100">
-                                {pageRows.map((r,i)=> (
-                                  <tr key={i} className="hover:bg-gray-50">
-                                    <td className="px-4 py-2 text-sm">{r.date}</td>
-                                    <td className="px-4 py-2 text-sm">{r.booking}</td>
-                                    <td className="px-4 py-2 text-sm text-right">RWF {r.amount.toLocaleString()}</td>
-                                    <td className="px-4 py-2 text-sm text-right">RWF {r.tax.toLocaleString()}</td>
-                                  </tr>
-                                ))}
-                                {pageRows.length===0 && (<tr><td colSpan={4} className="px-4 py-6 text-center text-gray-500">No data</td></tr>)}
-                              </tbody>
-                            </table>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <div className="text-sm text-gray-700 font-medium">Total Tax: RWF {totalTax.toLocaleString()}</div>
-                            <div className="flex gap-2">
-                              <button disabled={page<=1} onClick={()=>setTaxPage(p=>Math.max(1,p-1))} className="px-3 py-1 rounded border disabled:opacity-50">Prev</button>
-                              <button disabled={page>=totalPages} onClick={()=>setTaxPage(p=>Math.min(totalPages,p+1))} className="px-3 py-1 rounded border disabled:opacity-50">Next</button>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })()}
-                  </div>
-                </div>
-              )}
-
-              {analyticsView === 'booker' && (
-                <div className="space-y-4">
-                  <p className="text-gray-600">Understand who is booking your properties.</p>
-                  <div className="bg-indigo-50 p-6 rounded-lg">
-                    <h4 className="font-semibold mb-3">Guest Demographics</h4>
-                    <p className="text-sm text-gray-600">Most bookings from business travelers and families</p>
-                  </div>
-                </div>
-              )}
-
-              {analyticsView === 'bookwindow' && (
-                <div className="space-y-4">
-                  <p className="text-gray-600">Analyze how far in advance guests book.</p>
-                  <div className="bg-yellow-50 p-6 rounded-lg">
-                    <h4 className="font-semibold mb-3">Average Booking Window</h4>
-                    <p className="text-3xl font-bold text-yellow-600">21 days</p>
-                    <p className="text-sm text-gray-600 mt-2">Guests typically book 3 weeks in advance</p>
-                  </div>
-                </div>
-              )}
-
-              {analyticsView === 'cancellation' && (
-                <div className="space-y-4">
-                  <p className="text-gray-600">Track cancellation patterns and reasons.</p>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-red-50 p-4 rounded-lg">
-                      <p className="text-sm text-gray-600">Cancellation Rate</p>
-                      <p className="text-2xl font-bold text-red-600">8%</p>
-                    </div>
-                    <div className="bg-green-50 p-4 rounded-lg">
-                      <p className="text-sm text-gray-600">Completion Rate</p>
-                      <p className="text-2xl font-bold text-green-600">92%</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {analyticsView === 'competitive' && (
-                <div className="space-y-4">
-                  <p className="text-gray-600">Compare your performance with similar properties.</p>
-                  <div className="bg-blue-50 p-6 rounded-lg">
-                    <h4 className="font-semibold mb-3">Market Position</h4>
-                    <p className="text-sm text-gray-600">Your properties rank in the top 25% for your area</p>
-                  </div>
-                </div>
-              )}
-
-              {analyticsView === 'genius' && (
-                <div className="space-y-4">
-                  <p className="text-gray-600">Performance metrics for Genius program participants.</p>
-                  <div className="bg-purple-50 p-6 rounded-lg">
-                    <h4 className="font-semibold mb-3">Genius Status</h4>
-                    <p className="text-sm text-gray-600">Not enrolled in Genius program</p>
-                  </div>
-                </div>
-              )}
-
-              {analyticsView === 'ranking' && (
-                <div className="space-y-4">
-                  <p className="text-gray-600">See how your property ranks in search results.</p>
-                  <div className="bg-green-50 p-6 rounded-lg">
-                    <h4 className="font-semibold mb-3">Search Ranking</h4>
-                    <p className="text-3xl font-bold text-green-600">#8</p>
-                    <p className="text-sm text-gray-600 mt-2">Average position in search results</p>
-                  </div>
-                </div>
-              )}
-
-              {analyticsView === 'performance' && (
-                <div className="space-y-4">
-                  <p className="text-gray-600">Comprehensive performance overview.</p>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-blue-50 p-4 rounded-lg">
-                      <p className="text-sm text-gray-600">Performance Score</p>
-                      <p className="text-2xl font-bold text-blue-600">8.5/10</p>
-                    </div>
-                    <div className="bg-green-50 p-4 rounded-lg">
-                      <p className="text-sm text-gray-600">Guest Satisfaction</p>
-                      <p className="text-2xl font-bold text-green-600">{stats.averageRating}/5</p>
-                    </div>
-                  </div>
-                </div>
-              )}
+      {activeTab === 'promotions' && (
+        <div className="space-y-8">
+          <div className="neu-card p-6">
+            <h2 className="text-xl font-semibold mb-6">Promotions & Deals</h2>
+            <div className="text-center py-12">
+              <FaShoppingBag className="text-6xl text-gray-300 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No Active Promotions</h3>
+              <p className="text-gray-600 mb-6">Create your first promotion to boost bookings</p>
+              <button className="bg-pink-600 text-white px-6 py-3 rounded-lg hover:bg-pink-700 transition-colors">
+                Create Promotion
+              </button>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {activeTab === 'boost' && (
-          <div className="space-y-8">
-            <div className="neu-card p-6">
-              <h2 className="text-xl font-semibold mb-6">
-                {boostView === 'opportunity' && 'Opportunity Centre'}
-                {boostView === 'commission-free' && 'Commission-free Bookings'}
-                {boostView === 'genius' && 'Genius Partner Programme'}
-                {boostView === 'preferred' && 'Preferred Partner Programme'}
-                {boostView === 'long-stays' && 'Long Stays Toolkit'}
-                {boostView === 'visibility' && 'Visibility Booster'}
-                {boostView === 'work-friendly' && 'Work-Friendly Programme'}
-                {boostView === 'unit-diff' && 'Unit Differentiation Tool'}
-                {!boostView && 'Boost Performance'}
-              </h2>
-
-              {(!boostView || boostView === 'opportunity') && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="bg-blue-50 rounded-xl p-6 shadow-md hover:shadow-lg transition-shadow">
-                    <div className="flex items-center mb-4">
-                      <FaChartLine className="text-3xl text-blue-600 mr-3" />
-                      <h3 className="text-lg font-semibold text-gray-900">Opportunity Centre</h3>
-                    </div>
-                    <p className="text-gray-600 mb-4">Discover ways to improve your property performance and increase bookings</p>
-                    <div className="space-y-2">
-                      <div className="p-3 bg-white rounded">
-                        <p className="font-semibold text-sm">✓ Update your photos</p>
-                        <p className="text-xs text-gray-600">Properties with recent photos get 30% more bookings</p>
-                      </div>
-                      <div className="p-3 bg-white rounded">
-                        <p className="font-semibold text-sm">✓ Enable instant booking</p>
-                        <p className="text-xs text-gray-600">Increase bookings by up to 40%</p>
-                      </div>
-                      <div className="p-3 bg-white rounded">
-                        <p className="font-semibold text-sm">✓ Respond faster to inquiries</p>
-                        <p className="text-xs text-gray-600">Aim for under 1 hour response time</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="bg-green-50 rounded-xl p-6 shadow-md hover:shadow-lg transition-shadow">
-                    <div className="flex items-center mb-4">
-                      <FaDollarSign className="text-3xl text-green-600 mr-3" />
-                      <h3 className="text-lg font-semibold text-gray-900">Commission-free Bookings</h3>
-                    </div>
-                    <p className="text-gray-600 mb-4">Learn how to get direct bookings without platform commission</p>
-                    <button onClick={() => navigate('/dashboard?tab=boost&view=commission-free')} className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
-                      Learn More
-                    </button>
-                  </div>
-                  <div className="bg-purple-50 rounded-xl p-6 shadow-md hover:shadow-lg transition-shadow">
-                    <div className="flex items-center mb-4">
-                      <FaStar className="text-3xl text-purple-600 mr-3" />
-                      <h3 className="text-lg font-semibold text-gray-900">Visibility Booster</h3>
-                    </div>
-                    <p className="text-gray-600 mb-4">Increase your property's visibility in search results</p>
-                    <button onClick={() => navigate('/dashboard?tab=boost&view=visibility')} className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors">
-                      Boost Visibility
-                    </button>
-                  </div>
-                  <div className="bg-orange-50 rounded-xl p-6 shadow-md hover:shadow-lg transition-shadow">
-                    <div className="flex items-center mb-4">
-                      <FaCalendarAlt className="text-3xl text-orange-600 mr-3" />
-                      <h3 className="text-lg font-semibold text-gray-900">Long Stays Toolkit</h3>
-                    </div>
-                    <p className="text-gray-600 mb-4">Attract guests looking for extended stays</p>
-                    <button onClick={() => navigate('/dashboard?tab=boost&view=long-stays')} className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors">
-                      Enable Long Stays
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {boostView === 'commission-free' && (
-                <div className="space-y-4">
-                  <p className="text-gray-600">Enable direct bookings to save on commission fees.</p>
-                  <div className="bg-green-50 p-6 rounded-lg">
-                    <h4 className="font-semibold mb-3">Direct Booking Benefits</h4>
-                    <ul className="space-y-2 text-sm text-gray-700">
-                      <li>✓ Save up to 15% on commission fees</li>
-                      <li>✓ Build direct relationships with guests</li>
-                      <li>✓ Full control over pricing and policies</li>
-                      <li>✓ Access to guest contact information</li>
-                    </ul>
-                    <button onClick={() => navigate('/owner/direct-booking')} className="mt-4 bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700">
-                      Set Up Direct Booking
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {boostView === 'genius' && (
-                <div className="space-y-4">
-                  <p className="text-gray-600">Join the Genius programme to attract more bookings from loyal travelers.</p>
-                  <div className="bg-purple-50 p-6 rounded-lg">
-                    <h4 className="font-semibold mb-3">Genius Programme Benefits</h4>
-                    <p className="text-sm text-gray-600">Offer exclusive discounts to Genius members and increase your visibility</p>
-                  </div>
-                </div>
-              )}
-
-              {boostView === 'preferred' && (
-                <div className="space-y-4">
-                  <p className="text-gray-600">Become a Preferred Partner to unlock premium features and higher visibility.</p>
-                  <div className="bg-blue-50 p-6 rounded-lg">
-                    <h4 className="font-semibold mb-3">Preferred Partner Status</h4>
-                    <p className="text-sm text-gray-600">Get priority placement in search results and access to exclusive tools</p>
-                  </div>
-                </div>
-              )}
-
-              {boostView === 'long-stays' && (
-                <div className="space-y-4">
-                  <p className="text-gray-600">Optimize your property for guests looking for extended stays (28+ nights).</p>
-                  <div className="bg-orange-50 p-6 rounded-lg">
-                    <h4 className="font-semibold mb-3">Long Stay Features</h4>
-                    <ul className="space-y-2 text-sm text-gray-700">
-                      <li>✓ Offer weekly and monthly discounts</li>
-                      <li>✓ Highlight amenities for long-term guests</li>
-                      <li>✓ Flexible check-in/out dates</li>
-                      <li>✓ Workspace and kitchen facilities</li>
-                    </ul>
-                  </div>
-                </div>
-              )}
-
-              {boostView === 'visibility' && (
-                <div className="space-y-4">
-                  <p className="text-gray-600">Increase your property's visibility in search results with these strategies.</p>
-                  <div className="bg-purple-50 p-6 rounded-lg">
-                    <h4 className="font-semibold mb-3">Visibility Tips</h4>
-                    <ul className="space-y-2 text-sm text-gray-700">
-                      <li>✓ Maintain high response rates (90%+)</li>
-                      <li>✓ Keep your calendar updated</li>
-                      <li>✓ Earn positive reviews (4.5+ rating)</li>
-                      <li>✓ Offer competitive pricing</li>
-                      <li>✓ Enable instant booking</li>
-                    </ul>
-                  </div>
-                </div>
-              )}
-
-              {boostView === 'work-friendly' && (
-                <div className="space-y-4">
-                  <p className="text-gray-600">Attract remote workers and business travelers with work-friendly amenities.</p>
-                  <div className="bg-indigo-50 p-6 rounded-lg">
-                    <h4 className="font-semibold mb-3">Work-Friendly Checklist</h4>
-                    <ul className="space-y-2 text-sm text-gray-700">
-                      <li>✓ High-speed WiFi (50+ Mbps)</li>
-                      <li>✓ Dedicated workspace with desk</li>
-                      <li>✓ Comfortable office chair</li>
-                      <li>✓ Good lighting</li>
-                      <li>✓ Quiet environment</li>
-                    </ul>
-                  </div>
-                </div>
-              )}
-
-              {boostView === 'unit-diff' && (
-                <div className="space-y-4">
-                  <p className="text-gray-600">Differentiate your units to appeal to different guest segments.</p>
-                  <div className="bg-teal-50 p-6 rounded-lg">
-                    <h4 className="font-semibold mb-3">Unit Differentiation Strategy</h4>
-                    <p className="text-sm text-gray-600">Create unique listings for different room types, amenities, and guest preferences</p>
-                  </div>
-                </div>
-              )}
+      {activeTab === 'reviews' && (
+        <div className="space-y-8">
+          <div className="neu-card p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-semibold">Guest Reviews</h2>
+              <div className="flex items-center gap-2">
+                <FaStar className="text-yellow-400" />
+                <span className="text-2xl font-bold text-gray-900">{ownerAvgRating.toFixed(1)}</span>
+                <span className="text-gray-500">({ownerReviewCount} reviews)</span>
+              </div>
             </div>
-          </div>
-        )}
-
-        {activeTab === 'promotions' && (
-          <div className="space-y-8">
-            <div className="neu-card p-6">
-              <h2 className="text-xl font-semibold mb-6">Promotions & Deals</h2>
+            {ownerReviews.length > 0 ? (
+              <div className="space-y-4">
+                {ownerReviews.map((review) => (
+                  <div key={review._id} className="bg-white rounded-lg shadow-md p-5 hover:shadow-lg transition-shadow">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        {review.guest?.profilePicture ? (
+                          <img
+                            src={review.guest.profilePicture.startsWith('http') ? review.guest.profilePicture : `${API_URL}${review.guest.profilePicture}`}
+                            alt={review.guest.fullName}
+                            className="w-12 h-12 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-lg font-semibold">
+                            {(review.guest?.fullName || 'G').charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                        <div>
+                          <h4 className="font-semibold text-gray-900">{review.guest?.fullName || 'Guest'}</h4>
+                          <p className="text-sm text-gray-500">{new Date(review.createdAt).toLocaleDateString()}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {Array.from({ length: 5 }, (_, i) => (
+                          <FaStar
+                            key={i}
+                            className={i < review.rating ? 'text-yellow-400' : 'text-gray-300'}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                    <p className="text-gray-700 leading-relaxed">{review.comment}</p>
+                    <div className="mt-3 pt-3 border-t border-gray-100">
+                      <p className="text-sm text-gray-500">
+                        <span className="font-medium">Property:</span> {review.property?.title || 'N/A'}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
               <div className="text-center py-12">
-                <FaShoppingBag className="text-6xl text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No Active Promotions</h3>
-                <p className="text-gray-600 mb-6">Create your first promotion to boost bookings</p>
-                <button className="bg-pink-600 text-white px-6 py-3 rounded-lg hover:bg-pink-700 transition-colors">
-                  Create Promotion
-                </button>
+                <FaStar className="text-6xl text-gray-300 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No Reviews Yet</h3>
+                <p className="text-gray-600">Reviews from guests will appear here</p>
               </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'messages' && (
+        <div className="space-y-8">
+          <div className="neu-card p-6">
+            <h2 className="text-xl font-semibold mb-6">Messages</h2>
+            <div className="text-center py-12">
+              <FaComments className="text-6xl text-gray-300 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No Messages</h3>
+              <p className="text-gray-600">Guest messages will appear here</p>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {activeTab === 'reviews' && (
-          <div className="space-y-8">
-            <div className="neu-card p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold">Guest Reviews</h2>
-                <div className="flex items-center gap-2">
-                  <FaStar className="text-yellow-400" />
-                  <span className="text-2xl font-bold text-gray-900">{ownerAvgRating.toFixed(1)}</span>
-                  <span className="text-gray-500">({ownerReviewCount} reviews)</span>
-                </div>
-              </div>
-              {ownerReviews.length > 0 ? (
-                <div className="space-y-4">
-                  {ownerReviews.map((review) => (
-                    <div key={review._id} className="bg-white rounded-lg shadow-md p-5 hover:shadow-lg transition-shadow">
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex items-center gap-3">
-                          {review.guest?.profilePicture ? (
-                            <img 
-                              src={review.guest.profilePicture.startsWith('http') ? review.guest.profilePicture : `${API_URL}${review.guest.profilePicture}`} 
-                              alt={review.guest.fullName} 
-                              className="w-12 h-12 rounded-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-lg font-semibold">
-                              {(review.guest?.fullName || 'G').charAt(0).toUpperCase()}
-                            </div>
-                          )}
-                          <div>
-                            <h4 className="font-semibold text-gray-900">{review.guest?.fullName || 'Guest'}</h4>
-                            <p className="text-sm text-gray-500">{new Date(review.createdAt).toLocaleDateString()}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          {Array.from({ length: 5 }, (_, i) => (
-                            <FaStar
-                              key={i}
-                              className={i < review.rating ? 'text-yellow-400' : 'text-gray-300'}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                      <p className="text-gray-700 leading-relaxed">{review.comment}</p>
-                      <div className="mt-3 pt-3 border-t border-gray-100">
-                        <p className="text-sm text-gray-500">
-                          <span className="font-medium">Property:</span> {review.property?.title || 'N/A'}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-12">
-                  <FaStar className="text-6xl text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No Reviews Yet</h3>
-                  <p className="text-gray-600">Reviews from guests will appear here</p>
-                </div>
-              )}
+      {activeTab === 'photos' && (
+        <div className="space-y-8">
+          <div className="neu-card p-6">
+            <h2 className="text-xl font-semibold mb-6">Property Photos</h2>
+            <div className="text-center py-12">
+              <FaImages className="text-6xl text-gray-300 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Manage Photos</h3>
+              <p className="text-gray-600">Upload and manage your property photos</p>
+              <button className="bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition-colors mt-4">
+                Upload Photos
+              </button>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {activeTab === 'messages' && (
-          <div className="space-y-8">
-            <div className="neu-card p-6">
-              <h2 className="text-xl font-semibold mb-6">Messages</h2>
-              <div className="text-center py-12">
-                <FaComments className="text-6xl text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No Messages</h3>
-                <p className="text-gray-600">Guest messages will appear here</p>
-              </div>
+      {activeTab === 'settings' && (
+        <div className="space-y-8">
+          <div className="neu-card p-6">
+            <h2 className="text-xl font-semibold mb-6">Property Settings</h2>
+            <div className="text-center py-12">
+              <FaCog className="text-6xl text-gray-300 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Property Configuration</h3>
+              <p className="text-gray-600">Manage your property settings and preferences</p>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {activeTab === 'photos' && (
-          <div className="space-y-8">
-            <div className="neu-card p-6">
-              <h2 className="text-xl font-semibold mb-6">Property Photos</h2>
-              <div className="text-center py-12">
-                <FaImages className="text-6xl text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Manage Photos</h3>
-                <p className="text-gray-600">Upload and manage your property photos</p>
-                <button className="bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition-colors mt-4">
-                  Upload Photos
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'settings' && (
-          <div className="space-y-8">
-            <div className="neu-card p-6">
-              <h2 className="text-xl font-semibold mb-6">Property Settings</h2>
-              <div className="text-center py-12">
-                <FaCog className="text-6xl text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Property Configuration</h3>
-                <p className="text-gray-600">Manage your property settings and preferences</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-      </div>
     </div>
   );
 
-  {/* Modals */}
-  {showBookingDetails && renderBookingDetails()}
-  {showReceipt && renderReceipt()}
-  {showSalesConfirm && (
+{/* Modals */ }
+{ showBookingDetails && renderBookingDetails() }
+{ showReceipt && renderReceipt() }
+{
+  showSalesConfirm && (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl max-w-lg w-full overflow-hidden shadow-xl">
         <div className="p-6 border-b border-gray-200 flex items-center justify-between">
@@ -2504,8 +2502,10 @@ const PropertyOwnerBookings = () => {
         </div>
       </div>
     </div>
-  )}
-  {showDirectBooking && (
+  )
+}
+{
+  showDirectBooking && (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
       <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6 border-b border-gray-200 flex items-center justify-between">
@@ -2572,9 +2572,9 @@ const PropertyOwnerBookings = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Payment Status</label>
                 <div className="flex items-center gap-4 h-full">
-                  <label className="inline-flex items-center gap-2 text-sm"><input type="radio" name="ownerpaystatus" checked={directForm.paymentStatusSelection==='paid'} onChange={() => onDirectChange('paymentStatusSelection','paid')} />Paid</label>
-                  <label className="inline-flex items-center gap-2 text-sm"><input type="radio" name="ownerpaystatus" checked={directForm.paymentStatusSelection==='pending'} onChange={() => onDirectChange('paymentStatusSelection','pending')} />Pending</label>
-                  <label className="inline-flex items-center gap-2 text-sm"><input type="radio" name="ownerpaystatus" checked={directForm.paymentStatusSelection==='deposit'} onChange={() => onDirectChange('paymentStatusSelection','deposit')} />Deposit</label>
+                  <label className="inline-flex items-center gap-2 text-sm"><input type="radio" name="ownerpaystatus" checked={directForm.paymentStatusSelection === 'paid'} onChange={() => onDirectChange('paymentStatusSelection', 'paid')} />Paid</label>
+                  <label className="inline-flex items-center gap-2 text-sm"><input type="radio" name="ownerpaystatus" checked={directForm.paymentStatusSelection === 'pending'} onChange={() => onDirectChange('paymentStatusSelection', 'pending')} />Pending</label>
+                  <label className="inline-flex items-center gap-2 text-sm"><input type="radio" name="ownerpaystatus" checked={directForm.paymentStatusSelection === 'deposit'} onChange={() => onDirectChange('paymentStatusSelection', 'deposit')} />Deposit</label>
                 </div>
               </div>
             </div>
@@ -2638,15 +2638,15 @@ const PropertyOwnerBookings = () => {
                     // Build included items summary from property-level configuration, if present
                     const included = addOn.includedItems && typeof addOn.includedItems === 'object'
                       ? Object.keys(addOn.includedItems)
-                          .filter(k => addOn.includedItems[k])
-                          .map(k => {
-                            // Use the key but format it nicely if we don't have labels
-                            return k
-                              .replace(/_/g, ' ')
-                              .replace(/\s+/g, ' ')
-                              .trim()
-                              .replace(/^(.)/, (m) => m.toUpperCase());
-                          })
+                        .filter(k => addOn.includedItems[k])
+                        .map(k => {
+                          // Use the key but format it nicely if we don't have labels
+                          return k
+                            .replace(/_/g, ' ')
+                            .replace(/\s+/g, ' ')
+                            .trim()
+                            .replace(/^(.)/, (m) => m.toUpperCase());
+                        })
                       : [];
 
                     return (
@@ -2684,5 +2684,7 @@ const PropertyOwnerBookings = () => {
         </div>
       </div>
     </div>
-  )}};
+  );
+};
+};
 export default PropertyOwnerBookings;
