@@ -83,7 +83,9 @@ const PropertyOwnerBookings = () => {
   });
   const [ownerView, setOwnerView] = useState('table'); // 'table' | 'calendar'
   const [calendarViewMode, setCalendarViewMode] = useState('monthly'); // 'monthly' | 'yearly' | 'matrix'
-  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'dashboard');
+  // Default to 'calendar' so /my-bookings always shows content; treat 'dashboard' as alias of 'calendar'.
+  const initialTab = searchParams.get('tab') || 'calendar';
+  const [activeTab, setActiveTab] = useState(initialTab === 'dashboard' ? 'calendar' : initialTab);
   const [activeNavDropdown, setActiveNavDropdown] = useState(null);
   const [financeFilter, setFinanceFilter] = useState(searchParams.get('finance_status') || 'all'); // all|paid|pending|unpaid
   const [financeView, setFinanceView] = useState(searchParams.get('view') || 'all'); // all|last30|mtd|ytd|invoices|statement|overview
@@ -1099,7 +1101,7 @@ const PropertyOwnerBookings = () => {
       properties: Array.isArray(properties) ? properties.length : 'not-array',
     }),
     <div className="min-h-screen bg-[#f5f0e8]">
-       {activeTab === 'calendar' && (
+       {(activeTab === 'calendar' || activeTab === 'dashboard') && (
         <div>
           <div className="neu-card p-6 mb-8">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
