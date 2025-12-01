@@ -9,6 +9,8 @@ const Worker = require('../tables/worker');
 const CarRental = require('../tables/carRental');
 const CarRentalBooking = require('../tables/carRentalBooking');
 const TaxiBooking = require('../tables/taxiBooking');
+const Attraction = require('../tables/attraction');
+const AttractionBooking = require('../tables/attractionBooking');
 
 const router = Router();
 
@@ -48,6 +50,9 @@ router.delete('/users/:userId', requireAdmin, async (req, res) => {
             const cars = await CarRental.find({ owner: userId }).select('_id').session(session);
             const carIds = cars.map(c => c._id);
 
+            const attractions = await Attraction.find({ owner: userId }).select('_id').session(session);
+            const attractionIds = attractions.map(a => a._id);
+
             // Delete worker records owned by this user (as employer)
             await Worker.deleteMany({ employerId: userId }).session(session);
 
@@ -60,18 +65,30 @@ router.delete('/users/:userId', requireAdmin, async (req, res) => {
             // Taxi bookings created by this user
             await TaxiBooking.deleteMany({ guest: userId }).session(session);
 
+            // Attraction bookings related to this user (as guest or via their attractions)
+            await AttractionBooking.deleteMany({ $or: [ { guest: userId }, { attraction: { $in: attractionIds } } ] }).session(session);
+
             // Messages sent or received by this user
             await Message.deleteMany({ $or: [ { sender: userId }, { recipient: userId } ] }).session(session);
 
             // Notifications for this user or tied to their properties
             await Notification.deleteMany({ $or: [ { recipientUser: userId }, { property: { $in: propIds } } ] }).session(session);
 
-            // Properties and Cars owned by the user
+            // Remove ratings this user has left on attractions
+            await Attraction.updateMany(
+                {},
+                { $pull: { ratings: { guest: userId } } }
+            ).session(session);
+
+            // Properties, Cars, and Attractions owned by the user
             if (propIds.length) {
                 await Property.deleteMany({ _id: { $in: propIds } }).session(session);
             }
             if (carIds.length) {
                 await CarRental.deleteMany({ _id: { $in: carIds } }).session(session);
+            }
+            if (attractionIds.length) {
+                await Attraction.deleteMany({ _id: { $in: attractionIds } }).session(session);
             }
 
             // Finally, delete the user

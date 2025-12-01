@@ -36,53 +36,61 @@ const GroupHomePage = () => {
 
   const fetchGroupData = async () => {
     setLoading(true);
-    let propsList = [];
-    let bookingsList = [];
-    let reviewsList = [];
-    
     try {
-      // Fetch properties
-      try {
-        const propsRes = await fetch(`${API_URL}/api/properties/my-properties`, {
-          credentials: 'include'
-        });
-        const propsData = await propsRes.json().catch(() => ({ properties: [] }));
-        propsList = Array.isArray(propsData.properties) ? propsData.properties : [];
-        setProperties(propsList);
-      } catch (e) {
-        console.error('Failed to fetch properties:', e);
+      const [propsRes, bookingsRes, reviewsRes] = await Promise.allSettled([
+        fetch(`${API_URL}/api/properties/my-properties`, { credentials: 'include' }),
+        fetch(`${API_URL}/api/bookings/property-owner`, { credentials: 'include' }),
+        fetch(`${API_URL}/api/bookings/owner/reviews`, { credentials: 'include' }),
+      ]);
+
+      let propsList = [];
+      let bookingsList = [];
+      let reviewsList = [];
+
+      if (propsRes.status === 'fulfilled') {
+        try {
+          const propsData = await propsRes.value.json().catch(() => ({ properties: [] }));
+          propsList = Array.isArray(propsData.properties) ? propsData.properties : [];
+          setProperties(propsList);
+        } catch (e) {
+          console.error('Failed to parse properties response:', e);
+          setProperties([]);
+        }
+      } else {
+        console.error('Failed to fetch properties:', propsRes.reason);
         setProperties([]);
       }
 
-      // Fetch bookings
-      try {
-        const bookingsRes = await fetch(`${API_URL}/api/bookings/property-owner`, {
-          credentials: 'include'
-        });
-        const bookingsData = await bookingsRes.json().catch(() => ({ bookings: [] }));
-        bookingsList = Array.isArray(bookingsData.bookings) ? bookingsData.bookings : [];
-        setBookings(bookingsList);
-      } catch (e) {
-        console.error('Failed to fetch bookings:', e);
+      if (bookingsRes.status === 'fulfilled') {
+        try {
+          const bookingsData = await bookingsRes.value.json().catch(() => ({ bookings: [] }));
+          bookingsList = Array.isArray(bookingsData.bookings) ? bookingsData.bookings : [];
+          setBookings(bookingsList);
+        } catch (e) {
+          console.error('Failed to parse bookings response:', e);
+          setBookings([]);
+        }
+      } else {
+        console.error('Failed to fetch bookings:', bookingsRes.reason);
         setBookings([]);
       }
 
-      // Fetch reviews
-      try {
-        const reviewsRes = await fetch(`${API_URL}/api/bookings/owner/reviews`, {
-          credentials: 'include'
-        });
-        const reviewsData = await reviewsRes.json().catch(() => ({ reviews: [] }));
-        if (reviewsRes.ok) {
-          reviewsList = Array.isArray(reviewsData.reviews) ? reviewsData.reviews : [];
-          setReviews(reviewsList);
+      if (reviewsRes.status === 'fulfilled') {
+        try {
+          const reviewsData = await reviewsRes.value.json().catch(() => ({ reviews: [] }));
+          if (reviewsRes.value.ok) {
+            reviewsList = Array.isArray(reviewsData.reviews) ? reviewsData.reviews : [];
+            setReviews(reviewsList);
+          }
+        } catch (e) {
+          console.error('Failed to parse reviews response:', e);
+          setReviews([]);
         }
-      } catch (e) {
-        console.error('Failed to fetch reviews:', e);
+      } else {
+        console.error('Failed to fetch reviews:', reviewsRes.reason);
         setReviews([]);
       }
 
-      // Calculate summary stats
       const now = new Date();
       const in48h = new Date(now.getTime() + 48 * 60 * 60 * 1000);
       const since48h = new Date(now.getTime() - 48 * 60 * 60 * 1000);
@@ -120,7 +128,7 @@ const GroupHomePage = () => {
         arrivals,
         departures,
         reviews: reviewsCount,
-        cancellations
+        cancellations,
       });
     } catch (error) {
       console.error('Failed to fetch group data:', error);

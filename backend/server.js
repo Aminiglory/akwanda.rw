@@ -3,6 +3,7 @@ require('dotenv').config();
 const cors = require('cors');
 const mongoose = require('mongoose');
 const cookieParser = require('cookie-parser');
+const compression = require('compression');
 const bcrypt = require('bcryptjs');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -101,6 +102,8 @@ app.use(cors({
   },
   credentials: true,
 }));
+// Compress JSON and text responses to reduce payload size
+app.use(compression());
 app.use(express.json());
 app.use(cookieParser());
 // Serve uploads with strong caching and permissive CORS for cross-origin image loads

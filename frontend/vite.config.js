@@ -3,12 +3,13 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
-     tailwindcss(),
+    tailwindcss(),
   ],
   build: {
-    sourcemap: true,
+    // Keep sourcemaps in development only to reduce production bundle size
+    sourcemap: mode === 'development',
   },
-})
+}))
