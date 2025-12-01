@@ -163,9 +163,9 @@ function App() {
             <Route path="/owner-register" element={<OwnerRegister />} />
             <Route path="/choose-listing-type" element={<ProtectedRoute><ChooseListingType /></ProtectedRoute>} />
             <Route path="/become-host" element={<ProtectedRoute><BecomeHost /></ProtectedRoute>} />
-            <Route path="/group-home" element={<ProtectedRoute><div className="dashboard"><GroupHomePage /></div></ProtectedRoute>} />
-            <Route path="/dashboard" element={<ProtectedRoute><div className="dashboard"><PropertyOwnerBookings /></div></ProtectedRoute>} />
-            <Route path="/user-dashboard" element={<ProtectedRoute><div className="dashboard"><PropertyOwnerBookings /></div></ProtectedRoute>} />
+            <Route path="/group-home" element={<HostRoute><div className="dashboard"><GroupHomePage /></div></HostRoute>} />
+            <Route path="/dashboard" element={<HostRoute><div className="dashboard"><PropertyOwnerBookings /></div></HostRoute>} />
+            <Route path="/user-dashboard" element={<HostRoute><div className="dashboard"><PropertyOwnerBookings /></div></HostRoute>} />
             <Route path="/profile" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
             <Route path="/account/:section" element={<ProtectedRoute><SettingsSection /></ProtectedRoute>} />
@@ -186,21 +186,21 @@ function App() {
             <Route path="/billing/rra-ebm" element={<RRAEBMIntegration />} />
             <Route path="/support" element={<CustomerSupport />} />
             <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
-            <Route path="/my-bookings" element={<ProtectedRoute><div className="dashboard"><PropertyOwnerBookings /></div></ProtectedRoute>} />
+            <Route path="/my-bookings" element={<HostRoute><div className="dashboard"><PropertyOwnerBookings /></div></HostRoute>} />
             {/* All property owner dashboard routes now point to PropertyOwnerBookings */}
-            <Route path="/owner/cars" element={<ProtectedRoute><div className="dashboard"><CarOwnerDashboard /></div></ProtectedRoute>} />
-            <Route path="/owner/attractions" element={<ProtectedRoute><div className="dashboard"><OwnerAttractionsDashboard /></div></ProtectedRoute>} />
+            <Route path="/owner/cars" element={<HostRoute><div className="dashboard"><CarOwnerDashboard /></div></HostRoute>} />
+            <Route path="/owner/attractions" element={<HostRoute><div className="dashboard"><OwnerAttractionsDashboard /></div></HostRoute>} />
             <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
-            <Route path="/owner/promotions" element={<ProtectedRoute><div className="dashboard"><OwnerPromotions /></div></ProtectedRoute>} />
-            <Route path="/owner/reviews" element={<ProtectedRoute><div className="dashboard"><OwnerReviews /></div></ProtectedRoute>} />
-            <Route path="/owner/direct-booking" element={<ProtectedRoute><DirectBooking /></ProtectedRoute>} />
-            <Route path="/owner/workers" element={<ProtectedRoute><div className="dashboard"><WorkersManagement /></div></ProtectedRoute>} />
-            <Route path="/owner/rates" element={<ProtectedRoute><div className="dashboard"><RatesAvailability /></div></ProtectedRoute>} />
-            <Route path="/owner/property" element={<ProtectedRoute><div className="dashboard"><PropertyManagement /></div></ProtectedRoute>} />
-            <Route path="/finance" element={<ProtectedRoute><div className="dashboard"><FinanceDashboard /></div></ProtectedRoute>} />
-            <Route path="/transactions" element={<ProtectedRoute><div className="dashboard"><Transactions /></div></ProtectedRoute>} />
-            <Route path="/analytics" element={<ProtectedRoute><div className="dashboard"><AnalyticsDashboard /></div></ProtectedRoute>} />
-            <Route path="/boost" element={<ProtectedRoute><div className="dashboard"><BoostPerformance /></div></ProtectedRoute>} />
+            <Route path="/owner/promotions" element={<HostRoute><div className="dashboard"><OwnerPromotions /></div></HostRoute>} />
+            <Route path="/owner/reviews" element={<HostRoute><div className="dashboard"><OwnerReviews /></div></HostRoute>} />
+            <Route path="/owner/direct-booking" element={<HostRoute><DirectBooking /></HostRoute>} />
+            <Route path="/owner/workers" element={<HostRoute><div className="dashboard"><WorkersManagement /></div></HostRoute>} />
+            <Route path="/owner/rates" element={<HostRoute><div className="dashboard"><RatesAvailability /></div></HostRoute>} />
+            <Route path="/owner/property" element={<HostRoute><div className="dashboard"><PropertyManagement /></div></HostRoute>} />
+            <Route path="/finance" element={<HostRoute><div className="dashboard"><FinanceDashboard /></div></HostRoute>} />
+            <Route path="/transactions" element={<HostRoute><div className="dashboard"><Transactions /></div></HostRoute>} />
+            <Route path="/analytics" element={<HostRoute><div className="dashboard"><AnalyticsDashboard /></div></HostRoute>} />
+            <Route path="/boost" element={<HostRoute><div className="dashboard"><BoostPerformance /></div></HostRoute>} />
             <Route path="/invoice/:id" element={<ProtectedRoute><Invoice /></ProtectedRoute>} />
             <Route path="/receipt/:id" element={<ProtectedRoute><Receipt /></ProtectedRoute>} />
             <Route path="/test-upload" element={<TestUpload />} />

@@ -188,11 +188,26 @@ const GroupHomePage = () => {
       return sum + (isNaN(bm) ? 0 : bm);
     }, 0) || propertyBookings.length;
 
-    // Real activation state: property is open/bookable when it's marked active and not explicitly deactivated/blocked
+    // Real activation state: property is open/bookable when it's marked active,
+    // not explicitly deactivated/blocked, and does not have unpaid commission.
     const isActiveFromProperty = property.status === 'active' || property.isActive === true;
     const isDeactivated = property.isDeactivated === true || property.isBlocked === true;
-    const isActive = isActiveFromProperty && !isDeactivated;
-    const status = isActive ? 'Open/Bookable' : 'Closed/Not bookable';
+
+    // unpaidCommission is already computed per-property by /api/properties/my-properties
+    const unpaid = property.unpaidCommission || {};
+    const unpaidAmount = Number(unpaid.unpaidAmount ?? unpaid.amount ?? 0) || 0;
+    const hasUnpaidCommission = unpaidAmount > 0 || Number(unpaid.count || unpaid.bookingsCount || 0) > 0;
+
+    const isActive = isActiveFromProperty && !isDeactivated && !hasUnpaidCommission;
+
+    let status;
+    if (hasUnpaidCommission) {
+      status = 'Closed – unpaid commission';
+    } else if (isActive) {
+      status = 'Open/Bookable';
+    } else {
+      status = 'Closed/Not bookable';
+    }
 
     return {
       arrivals48h,

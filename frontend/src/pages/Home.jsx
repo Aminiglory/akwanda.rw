@@ -122,11 +122,11 @@ const Home = () => {
                   href="/apartments"
                   className="group relative rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 bg-gray-900/80"
                 >
-                  <div className="relative aspect-[4/5] sm:aspect-[4/5] overflow-hidden">
+                  <div className="relative aspect-[4/5] sm:aspect-[4/5] overflow-hidden bg-black/40">
                     <img
                       src={d.img}
                       alt={d.name}
-                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      className="absolute inset-0 w-full h-full object-contain transition-transform duration-500"
                       loading="lazy"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent" />

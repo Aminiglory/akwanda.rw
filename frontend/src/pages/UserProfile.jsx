@@ -18,6 +18,8 @@ const UserProfile = () => {
   const [loading, setLoading] = useState(false);
   const [propertiesLoading, setPropertiesLoading] = useState(false);
   const [propView, setPropView] = useState('cards'); // 'cards' | 'table'
+  const [passwords, setPasswords] = useState({ current: '', new: '' });
+  const [prefs, setPrefs] = useState({ email: true, sms: false, booking: true, marketing: false });
   const makeAbsolute = (u) => {
     if (!u) return u;
     let s = String(u).replace(/\\+/g, '/');
@@ -693,19 +695,23 @@ const UserProfile = () => {
                           <FaEye />
                           <span>View</span>
                         </button>
-                        <button 
-                          onClick={()=>navigate(`/edit-property/${property._id}`)} 
-                          className="px-4 py-2.5 border-2 border-[#a06b42] text-[#a06b42] rounded-xl hover:bg-[#a06b42] hover:text-white text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-300"
-                        >
-                          <FaEdit />
-                          <span className="hidden sm:inline">Edit</span>
-                        </button>
-                        <button
-                          onClick={() => deleteProperty(property._id)}
-                          className="px-4 py-2.5 border-2 border-red-300 text-red-600 rounded-xl hover:bg-red-50 text-sm transition-all duration-300"
-                        >
-                          <FaTrash />
-                        </button>
+                        {(user?.userType === 'host' || user?.userType === 'admin') && (
+                          <>
+                            <button 
+                              onClick={()=>navigate(`/edit-property/${property._id}`)} 
+                              className="px-4 py-2.5 border-2 border-[#a06b42] text-[#a06b42] rounded-xl hover:bg-[#a06b42] hover:text-white text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-300"
+                            >
+                              <FaEdit />
+                              <span className="hidden sm:inline">Edit</span>
+                            </button>
+                            <button
+                              onClick={() => deleteProperty(property._id)}
+                              className="px-4 py-2.5 border-2 border-red-300 text-red-600 rounded-xl hover:bg-red-50 text-sm transition-all duration-300"
+                            >
+                              <FaTrash />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -742,10 +748,12 @@ const UserProfile = () => {
                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${p.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{p.isActive ? 'Active' : 'Inactive'}</span>
                           </td>
                           <td className="px-4 py-3 text-right text-sm">
-                            <div className="flex justify-end gap-2">
+                            <div className="flex items-center gap-2">
                               <button onClick={()=>navigate(`/apartment/${p._id}`)} className="px-3 py-1 bg-blue-600 text-white rounded">View</button>
                               <button onClick={()=>navigate(`/edit-property/${p._id}`)} className="px-3 py-1 border rounded">Edit</button>
-                              <button onClick={()=>deleteProperty(p._id)} className="px-3 py-1 border border-red-300 text-red-600 rounded">Delete</button>
+                              {user?.userType === 'host' || user?.userType === 'admin' ? (
+                                <button onClick={()=>deleteProperty(p._id)} className="px-3 py-1 border border-red-300 text-red-600 rounded">Delete</button>
+                              ) : null}
                             </div>
                           </td>
                         </tr>
