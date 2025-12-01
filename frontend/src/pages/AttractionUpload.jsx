@@ -117,6 +117,12 @@ const AttractionUpload = () => {
     }
   };
 
+  const handleNextStep = () => {
+    if (validateStep(currentStep)) {
+      goToNextStep();
+    }
+  };
+
   const goToPrevStep = () => {
     if (currentStep > 1) {
       setCurrentStep(step => step - 1);
@@ -709,7 +715,7 @@ const AttractionUpload = () => {
                 {currentStep < totalSteps && (
                   <button
                     type="button"
-                    onClick={goToNextStep}
+                    onClick={handleNextStep}
                     className="flex items-center gap-2 px-5 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                   >
                     Next
