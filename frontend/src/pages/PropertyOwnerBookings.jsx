@@ -192,6 +192,12 @@ const PropertyOwnerBookings = () => {
         const props = propJson.properties || [];
         setProperties(props);
         console.log('[PropertyOwnerBookings] properties loaded', props.length);
+        if (!props.length) {
+          toast.dismiss();
+          toast.error('Add your first property to access your owner dashboard.');
+          navigate('/upload');
+          return;
+        }
         // Ensure a concrete propertyId is selected so the calendar fetch runs
         if (props.length && filters.property === 'all') {
           setFilters(prev => ({ ...prev, property: props[0]._id }));

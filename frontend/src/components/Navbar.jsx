@@ -751,7 +751,9 @@ const Navbar = () => {
 
   // Check if user is in property owner dashboard context
   const isInPropertyOwnerDashboard = () => {
-    const ownerRoutes = ['/group-home', '/dashboard', '/user-dashboard', '/my-bookings', '/upload', '/owner', '/messages', '/notifications'];
+    // Treat the main step-based listing wizard (/upload) as OUTSIDE the dashboard.
+    // The dashboard is only for management after at least one listing exists.
+    const ownerRoutes = ['/group-home', '/dashboard', '/user-dashboard', '/my-bookings', '/owner', '/messages', '/notifications'];
     if (ownerRoutes.some(route => location.pathname.startsWith(route))) {
       return true;
     }
@@ -1097,14 +1099,6 @@ const Navbar = () => {
                         value={selectedPropertyId || 'all'}
                         onChange={(e) => {
                           const id = e.target.value;
-                          if (id === 'vehicles') {
-                            navigate('/owner/cars');
-                            return;
-                          }
-                          if (id === 'attractions') {
-                            navigate('/owner/attractions');
-                            return;
-                          }
                           if (id === 'all') {
                             setSelectedPropertyId('');
                             try {
@@ -1134,10 +1128,6 @@ const Navbar = () => {
                             <option key={id} value={id}>{`#${code} - ${name}`}</option>
                           );
                         })}
-                        <optgroup label="Other Categories">
-                          <option value="vehicles">🚗 Vehicles</option>
-                          <option value="attractions">🏔️ Attractions</option>
-                        </optgroup>
                       </select>
                     </div>
                   </div>

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { FaFacebook, FaTwitter, FaInstagram, FaLinkedin, FaPhone, FaEnvelope, FaMapMarkerAlt, FaBed, FaBuffer } from 'react-icons/fa';
+import { FaFacebook, FaTwitter, FaInstagram, FaLinkedin, FaPhone, FaEnvelope, FaMapMarkerAlt, FaBed, FaBuffer, FaCar, FaMountain } from 'react-icons/fa';
 import { useLocale } from '../contexts/LocaleContext';
+import { useAuth } from '../contexts/AuthContext';
 
 const Footer = () => {
   const [site, setSite] = useState(() => {
@@ -12,6 +13,7 @@ const Footer = () => {
     }
   });
   const { t } = useLocale() || {};
+  const { user } = useAuth() || {};
 
   useEffect(() => {
     console.log('[Footer] mount');
@@ -70,8 +72,13 @@ const Footer = () => {
   ];
 
   const quickLinks = [
-    // { icon: FaBed, name: t ? t('footer.apartments') : "Properties", href: "/apartments" },
-    { icon: FaBuffer, name: t ? t('footer.listProperty') : "List Property", href: "/upload-property" }
+    { icon: FaBuffer, name: t ? t('footer.listProperty') : "List Property", href: "/upload-property" },
+    ...(user?.userType === 'host'
+      ? [
+          { icon: FaCar, name: 'Vehicles', href: '/owner/cars' },
+          { icon: FaMountain, name: 'Attractions', href: '/owner/attractions' }
+        ]
+      : [])
   ];
 
   return (
