@@ -36,7 +36,7 @@ router.get('/landing', async (req, res) => {
     const allReviews = [];
     for (const property of properties) {
       for (const rating of property.ratings || []) {
-        if (rating.guest && rating.comment) {
+        if (rating.guest && rating.comment && (rating.status === 'approved' || !rating.status)) {
           allReviews.push({
             _id: rating._id,
             rating: rating.rating,
@@ -82,7 +82,9 @@ router.get('/property/:propertyId', async (req, res) => {
       return res.status(404).json({ message: 'Property not found' });
     }
     
-    const reviews = (property.ratings || []).map(rating => ({
+    const reviews = (property.ratings || [])
+      .filter(rating => rating.status === 'approved' || !rating.status)
+      .map(rating => ({
       _id: rating._id,
       rating: rating.rating,
       comment: rating.comment,
@@ -146,6 +148,9 @@ router.get('/my-reviews', requireAuth, async (req, res) => {
         if (filter === 'unreplied' && review.replied) continue;
         if (filter === '5-star' && review.rating !== 5) continue;
         if (filter === 'low' && review.rating >= 4) continue;
+        if (filter === 'pending' && rating.status !== 'pending') continue;
+        if (filter === 'approved' && rating.status !== 'approved') continue;
+        if (filter === 'rejected' && rating.status !== 'rejected') continue;
         
         allReviews.push(review);
       }
@@ -215,14 +220,22 @@ router.get('/stats', requireAuth, async (req, res) => {
     let unrepliedCount = 0;
     let fiveStarCount = 0;
     let lowRatingCount = 0;
+    let pendingCount = 0;
+    let approvedCount = 0;
+    let rejectedCount = 0;
     
     for (const property of properties) {
       for (const rating of property.ratings || []) {
-        totalReviews++;
-        totalRating += rating.rating;
-        if (!rating.reply) unrepliedCount++;
-        if (rating.rating === 5) fiveStarCount++;
-        if (rating.rating < 4) lowRatingCount++;
+        if (rating.status === 'pending') pendingCount++;
+        if (rating.status === 'approved' || !rating.status) {
+          approvedCount++;
+          totalReviews++;
+          totalRating += rating.rating;
+          if (!rating.reply) unrepliedCount++;
+          if (rating.rating === 5) fiveStarCount++;
+          if (rating.rating < 4) lowRatingCount++;
+        }
+        if (rating.status === 'rejected') rejectedCount++;
       }
     }
     
@@ -234,11 +247,70 @@ router.get('/stats', requireAuth, async (req, res) => {
         averageRating: parseFloat(averageRating),
         unrepliedCount,
         fiveStarCount,
-        lowRatingCount
+        lowRatingCount,
+        pendingCount,
+        approvedCount,
+        rejectedCount
       }
     });
   } catch (e) {
     res.status(500).json({ message: 'Failed to fetch review stats', error: e.message });
+  }
+});
+
+// Owner approve a review
+router.post('/approve', requireAuth, async (req, res) => {
+  try {
+    const { propertyId, ratingId } = req.body || {};
+    if (!propertyId || !ratingId) {
+      return res.status(400).json({ message: 'propertyId and ratingId are required' });
+    }
+
+    const property = await Property.findOne({ _id: propertyId, host: req.user.id });
+    if (!property) {
+      return res.status(404).json({ message: 'Property not found or unauthorized' });
+    }
+
+    const rating = property.ratings.id(ratingId);
+    if (!rating) {
+      return res.status(404).json({ message: 'Review not found' });
+    }
+
+    rating.status = 'approved';
+    await property.save();
+
+    res.json({ message: 'Review approved', review: { _id: rating._id, status: rating.status } });
+  } catch (e) {
+    console.error('Failed to approve review:', e);
+    res.status(500).json({ message: 'Failed to approve review', error: e.message });
+  }
+});
+
+// Owner reject (cancel) a review
+router.post('/reject', requireAuth, async (req, res) => {
+  try {
+    const { propertyId, ratingId } = req.body || {};
+    if (!propertyId || !ratingId) {
+      return res.status(400).json({ message: 'propertyId and ratingId are required' });
+    }
+
+    const property = await Property.findOne({ _id: propertyId, host: req.user.id });
+    if (!property) {
+      return res.status(404).json({ message: 'Property not found or unauthorized' });
+    }
+
+    const rating = property.ratings.id(ratingId);
+    if (!rating) {
+      return res.status(404).json({ message: 'Review not found' });
+    }
+
+    rating.status = 'rejected';
+    await property.save();
+
+    res.json({ message: 'Review rejected', review: { _id: rating._id, status: rating.status } });
+  } catch (e) {
+    console.error('Failed to reject review:', e);
+    res.status(500).json({ message: 'Failed to reject review', error: e.message });
   }
 });
 

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { FaStar, FaReply, FaCheckCircle, FaExclamationCircle, FaFilter } from 'react-icons/fa';
+import { FaStar, FaReply, FaCheckCircle, FaExclamationCircle, FaFilter, FaThumbsUp, FaThumbsDown } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -9,7 +9,7 @@ export default function OwnerReviews() {
   const [searchParams] = useSearchParams();
   const filter = searchParams.get('filter') || 'all';
   const [loading, setLoading] = useState(false);
-  const [stats, setStats] = useState({ totalReviews: 0, averageRating: 0, unrepliedCount: 0, fiveStarCount: 0, lowRatingCount: 0 });
+  const [stats, setStats] = useState({ totalReviews: 0, averageRating: 0, unrepliedCount: 0, fiveStarCount: 0, lowRatingCount: 0, pendingCount: 0, approvedCount: 0, rejectedCount: 0 });
   const [reviews, setReviews] = useState([]);
   const [replyingTo, setReplyingTo] = useState(null);
   const [replyText, setReplyText] = useState('');
@@ -31,6 +31,42 @@ export default function OwnerReviews() {
       setStats(data.stats || {});
     } catch (e) {
       console.error('Failed to fetch stats:', e);
+    }
+  };
+
+  const handleApprove = async (review) => {
+    try {
+      const res = await fetch(`${API_URL}/api/reviews/approve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ propertyId: review.property._id, ratingId: review._id })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.message || 'Failed to approve review');
+      toast.success('Review approved');
+      fetchReviews();
+      fetchStats();
+    } catch (e) {
+      toast.error(e.message || 'Failed to approve review');
+    }
+  };
+
+  const handleReject = async (review) => {
+    try {
+      const res = await fetch(`${API_URL}/api/reviews/reject`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ propertyId: review.property._id, ratingId: review._id })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.message || 'Failed to reject review');
+      toast.success('Review rejected');
+      fetchReviews();
+      fetchStats();
+    } catch (e) {
+      toast.error(e.message || 'Failed to reject review');
     }
   };
 
@@ -182,6 +218,30 @@ export default function OwnerReviews() {
             >
               Low Ratings ({stats.lowRatingCount || 0})
             </a>
+            <a 
+              href="/owner/reviews?filter=pending"
+              className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap ${
+                filter === 'pending' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              Pending ({stats.pendingCount || 0})
+            </a>
+            <a 
+              href="/owner/reviews?filter=approved"
+              className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap ${
+                filter === 'approved' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              Approved ({stats.approvedCount || 0})
+            </a>
+            <a 
+              href="/owner/reviews?filter=rejected"
+              className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap ${
+                filter === 'rejected' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              Rejected ({stats.rejectedCount || 0})
+            </a>
           </div>
         </div>
 
@@ -216,8 +276,19 @@ export default function OwnerReviews() {
                       </div>
                     </div>
                   </div>
-                  <div className="text-sm text-gray-500">
-                    {new Date(review.createdAt).toLocaleDateString()}
+                  <div className="text-right text-sm text-gray-500 space-y-1">
+                    <div>{new Date(review.createdAt).toLocaleDateString()}</div>
+                    <div>
+                      {review.status === 'approved' && (
+                        <span className="inline-block px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-700">Approved</span>
+                      )}
+                      {review.status === 'pending' && (
+                        <span className="inline-block px-2 py-0.5 rounded-full text-xs bg-yellow-100 text-yellow-800">Pending approval</span>
+                      )}
+                      {review.status === 'rejected' && (
+                        <span className="inline-block px-2 py-0.5 rounded-full text-xs bg-red-100 text-red-700">Rejected</span>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -225,6 +296,24 @@ export default function OwnerReviews() {
                 <div className="ml-16 mb-4">
                   <p className="text-gray-700">{review.comment}</p>
                 </div>
+
+                {/* Approval controls for pending reviews */}
+                {review.status === 'pending' && (
+                  <div className="ml-16 mb-3 flex items-center gap-2">
+                    <button
+                      onClick={() => handleApprove(review)}
+                      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-green-600 text-white text-xs hover:bg-green-700"
+                    >
+                      <FaThumbsUp className="text-xs" /> Approve
+                    </button>
+                    <button
+                      onClick={() => handleReject(review)}
+                      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-red-600 text-white text-xs hover:bg-red-700"
+                    >
+                      <FaThumbsDown className="text-xs" /> Reject
+                    </button>
+                  </div>
+                )}
 
                 {/* Reply Section */}
                 {review.replied ? (

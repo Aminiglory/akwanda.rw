@@ -64,6 +64,7 @@ export default function Receipt() {
   const dates = data.dates || {};
   const guest = data.guest || {};
   const property = data.property || {};
+  const room = data.room || null;
   const services = data.services || {};
   const propertyAddOns = Array.isArray(property.addOnServices) ? property.addOnServices : [];
   const selectedAddOns = propertyAddOns.filter(a => a && a.key && services[a.key]);
@@ -71,6 +72,10 @@ export default function Receipt() {
   // For direct bookings, hide commission and show simplified pricing
   const showCommission = !isDirect && pricing.commissionAmount != null;
   const showTax = !isDirect && pricing.taxAmount != null;
+
+  const agreedAmount = pricing.finalAgreedAmount != null && pricing.finalAgreedAmount > 0
+    ? pricing.finalAgreedAmount
+    : pricing.totalAmount;
 
   return (
     <div id="receipt-root" className="min-h-screen bg-gray-100 py-6 flex flex-col items-center">
@@ -127,6 +132,9 @@ export default function Receipt() {
             <div className="text-sm font-semibold">{property.title}</div>
             <div className="text-sm">{property.address}</div>
             <div className="text-sm text-gray-700">{property.city}</div>
+            {room && room.name && (
+              <div className="text-sm text-gray-700 mt-1">Room: <span className="font-medium">{room.name}</span></div>
+            )}
           </div>
         </div>
 
@@ -191,9 +199,15 @@ export default function Receipt() {
                 <div className="font-medium">- {formatCurrencyRWF ? formatCurrencyRWF(pricing.discountApplied || 0) : `RWF ${(pricing.discountApplied || 0).toLocaleString()}`}</div>
               </div>
             ) : null}
+            {isDirect && pricing.finalAgreedAmount != null && pricing.finalAgreedAmount > 0 && (
+              <div className="flex items-center justify-between p-3 bg-amber-50">
+                <div className="font-medium">Final agreed price</div>
+                <div className="font-semibold">{formatCurrencyRWF ? formatCurrencyRWF(pricing.finalAgreedAmount) : `RWF ${pricing.finalAgreedAmount.toLocaleString()}`}</div>
+              </div>
+            )}
             <div className="flex items-center justify-between p-3 border-t border-gray-300">
               <div className="font-semibold">Total</div>
-              <div className="text-blue-600 font-bold">{formatCurrencyRWF ? formatCurrencyRWF(pricing.totalAmount || 0) : `RWF ${(pricing.totalAmount || 0).toLocaleString()}`}</div>
+              <div className="text-blue-600 font-bold">{formatCurrencyRWF ? formatCurrencyRWF(agreedAmount || 0) : `RWF ${(agreedAmount || 0).toLocaleString()}`}</div>
             </div>
           </div>
         </div>

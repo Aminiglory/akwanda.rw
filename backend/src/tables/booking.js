@@ -9,6 +9,7 @@ const bookingSchema = new mongoose.Schema(
     checkOut: { type: Date, required: true },
     numberOfGuests: { type: Number, required: true, min: 1 },
     totalAmount: { type: Number, required: true },
+    finalAgreedAmount: { type: Number },
     taxAmount: { type: Number, default: 0 }, // 3% RRA tax
     taxRate: { type: Number, default: 3 }, // Tax rate percentage
     amountBeforeTax: { type: Number, default: 0 },

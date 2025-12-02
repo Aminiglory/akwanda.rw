@@ -70,7 +70,8 @@ const PropertyOwnerBookings = () => {
     paymentStatusSelection: 'paid',
     // services will be keyed dynamically by add-on key per property
     services: {},
-    specialRequests: ''
+    specialRequests: '',
+    finalAgreedAmount: '',
   });
   const [ownerRooms, setOwnerRooms] = useState([]);
   const [ownerAddOns, setOwnerAddOns] = useState([]);
@@ -591,7 +592,8 @@ const PropertyOwnerBookings = () => {
         paymentMethod: payloadPaymentMethod,
         guestInfo: directForm.guestInfo,
         markPaid: payloadPaymentMethod === 'cash' ? !!markPaid : false,
-        directBooking: true
+        directBooking: true,
+        finalAgreedAmount: directForm.finalAgreedAmount ? Number(directForm.finalAgreedAmount) : undefined,
       };
       const res = await fetch(`${API_URL}/api/bookings`, {
         method: 'POST',
@@ -632,7 +634,8 @@ const PropertyOwnerBookings = () => {
       markPaid: true,
       paymentStatusSelection: 'paid',
       services: {},
-      specialRequests: ''
+      specialRequests: '',
+      finalAgreedAmount: '',
     });
   };
 

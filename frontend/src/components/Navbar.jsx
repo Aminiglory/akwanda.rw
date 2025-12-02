@@ -1364,7 +1364,7 @@ const Navbar = () => {
                         ? 'bg-[#a06b42] text-white'
                         : 'text-[#6b5744] hover:text-[#4b2a00] hover:bg-[#e8dcc8]'
                       }`}
-                    title={user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : 'Account'}
+                    title={user?.firstName || user?.lastName ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : 'Account'}
                   >
                     {avatarUrl ? (
                       <img
@@ -1385,7 +1385,7 @@ const Navbar = () => {
                   {isProfileOpen && (
                     <div className="profile-dropdown absolute top-full right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-[99999]">
                       <div className="px-3 py-1.5 border-b border-gray-100 text-xs">
-                        <div className="font-semibold text-[#4b2a00] truncate">{user?.firstName || user?.email}</div>
+                        <div className="font-semibold text-[#4b2a00] truncate">{user?.firstName || user?.lastName ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : (user?.email || '')}</div>
                         <div className="text-[10px] text-gray-600 truncate">{user?.email}</div>
                       </div>
                       <Link to="/profile" className="block px-3 py-1.5 text-xs text-[#4b2a00] hover:bg-gray-50">{t ? t('nav.profile') : 'Profile'}</Link>

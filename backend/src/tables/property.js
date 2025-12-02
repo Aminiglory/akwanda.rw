@@ -124,6 +124,7 @@ const propertySchema = new mongoose.Schema(
       comment: { type: String },
       reply: { type: String },
       replyDate: { type: Date },
+      status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
       createdAt: { type: Date, default: Date.now }
     }]
   }, { timestamps: true }

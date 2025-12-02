@@ -23,6 +23,7 @@ const DirectBooking = () => {
     contactInfo: { email: '', phone: '' },
     paymentStatusSelection: 'paid',
     services: { breakfast: false, airportTransfer: false, laundry: false },
+    finalAgreedAmount: '',
   });
 
   // Fetch properties owned by current host for selection (includes per-property add-on services)
@@ -111,6 +112,7 @@ const DirectBooking = () => {
         directBooking: true,
         // Info-only add-on services selected by host for this direct booking
         services: form.services || {},
+        finalAgreedAmount: form.finalAgreedAmount ? Number(form.finalAgreedAmount) : undefined,
       };
       const res = await fetch(`${API_URL}/api/bookings`, {
         method: 'POST',
@@ -164,6 +166,7 @@ const DirectBooking = () => {
       contactInfo: { email: '', phone: '' },
       paymentStatusSelection: 'paid',
       services: {},
+      finalAgreedAmount: '',
     });
   };
 
@@ -235,6 +238,20 @@ const DirectBooking = () => {
                   <label className="inline-flex items-center gap-2 text-sm"><input type="radio" name="paystatus" checked={form.paymentStatusSelection==='pending'} onChange={() => update('paymentStatusSelection','pending')} />Pending</label>
                   <label className="inline-flex items-center gap-2 text-sm"><input type="radio" name="paystatus" checked={form.paymentStatusSelection==='deposit'} onChange={() => update('paymentStatusSelection','deposit')} />Deposit</label>
                 </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Final agreed price (RWF)</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={form.finalAgreedAmount}
+                  onChange={e => update('finalAgreedAmount', e.target.value)}
+                  className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Leave blank to use calculated total"
+                />
               </div>
             </div>
 

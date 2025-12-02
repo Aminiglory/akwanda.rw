@@ -172,7 +172,8 @@ router.post('/', requireAuth, async (req, res) => {
       guestInfo,
       markPaid,
       directBooking,
-      services
+      services,
+      finalAgreedAmount
     } = req.body;
 
     if (!propertyId || !checkIn || !checkOut || !numberOfGuests) {
@@ -314,17 +315,17 @@ router.post('/', requireAuth, async (req, res) => {
 
     // Add-on services are stored on the booking for information only and do
     // NOT change the calculated room/tax/commission amounts.
-    const amountBeforeTax = Math.round(basePrice - discountAmount);
+    let amountBeforeTax = Math.round(basePrice - discountAmount);
     const taxRate = 3;
-    const taxAmount = Math.round((amountBeforeTax * taxRate) / (100 + taxRate));
-    const totalAmount = amountBeforeTax;
+    let taxAmount = Math.round((amountBeforeTax * taxRate) / (100 + taxRate));
+    let totalAmount = amountBeforeTax;
 
     let rate = property.commissionRate;
     if (!rate || rate < 8 || rate > 12) {
       const commissionDoc = await Commission.findOne({ active: true }).sort({ createdAt: -1 });
       rate = commissionDoc ? Math.min(12, Math.max(8, commissionDoc.ratePercent)) : 10;
     }
-    const commissionAmount = Math.round((amountBeforeTax * rate) / 100);
+    let commissionAmount = Math.round((amountBeforeTax * rate) / 100);
 
     let guestId = req.user.id;
     const isAdmin = req.user.userType === 'admin';
@@ -345,6 +346,17 @@ router.post('/', requireAuth, async (req, res) => {
         });
       }
       guestId = guestUser._id;
+    }
+
+    // If this is a direct booking and a finalAgreedAmount is provided, use that
+    // as the final total and recompute amountBeforeTax/tax accordingly.
+    if (directBooking && typeof finalAgreedAmount === 'number' && !isNaN(finalAgreedAmount) && finalAgreedAmount > 0) {
+      const negotiatedTotal = Math.round(finalAgreedAmount);
+      totalAmount = negotiatedTotal;
+      amountBeforeTax = Math.round((negotiatedTotal * 100) / (100 + taxRate));
+      taxAmount = negotiatedTotal - amountBeforeTax;
+      discountAmount = 0;
+      commissionAmount = Math.round((amountBeforeTax * rate) / 100);
     }
 
     const shouldMarkPaid = paymentMethod === 'cash' && !!markPaid;
@@ -377,6 +389,9 @@ router.post('/', requireAuth, async (req, res) => {
         emergencyContact: contactInfo?.emergencyContact
       },
       isDirect: !!directBooking,
+      finalAgreedAmount: directBooking && typeof finalAgreedAmount === 'number' && !isNaN(finalAgreedAmount) && finalAgreedAmount > 0
+        ? Math.round(finalAgreedAmount)
+        : undefined,
       // Optional info-only add-on services (e.g., breakfast, airport transfer).
       // This should mirror the front-end `services` object (key -> boolean)
       // and is not used in total/commission calculations.
@@ -661,6 +676,11 @@ router.get('/:id/receipt', requireAuth, async (req, res) => {
       },
       room: b.room ? {
         id: String(b.room),
+        name: Array.isArray(b.property?.rooms)
+          ? (b.property.rooms.find(r => String(r._id) === String(b.room))?.roomNumber
+              || b.property.rooms.find(r => String(r._id) === String(b.room))?.roomType
+              || '')
+          : ''
       } : null,
       pricing: {
         amountBeforeTax,
@@ -669,6 +689,7 @@ router.get('/:id/receipt', requireAuth, async (req, res) => {
         taxAmount,
         totalAmount,
         commissionAmount,
+        finalAgreedAmount: b.finalAgreedAmount != null ? Number(b.finalAgreedAmount) : null,
       },
       payment: {
         method: b.paymentMethod || 'cash',
@@ -929,6 +950,34 @@ router.post('/:id/review', requireAuth, async (req, res) => {
     booking.rating = r;
     booking.comment = String(comment || '').slice(0, 2000);
     await booking.save();
+
+    // Also mirror this review into the property's ratings array, with pending status
+    try {
+      const prop = await Property.findById(booking.property._id).populate('ratings.guest');
+      if (prop) {
+        const guestId = booking.guest;
+        let ratingDoc = null;
+        if (Array.isArray(prop.ratings)) {
+          ratingDoc = prop.ratings.find(rt => String(rt.guest) === String(guestId));
+        }
+        if (!ratingDoc) {
+          prop.ratings.push({
+            guest: guestId,
+            rating: r,
+            comment: booking.comment,
+            status: 'pending'
+          });
+        } else {
+          ratingDoc.rating = r;
+          ratingDoc.comment = booking.comment;
+          ratingDoc.status = 'pending';
+          ratingDoc.createdAt = new Date();
+        }
+        await prop.save();
+      }
+    } catch (e) {
+      console.error('Failed to mirror review to property ratings:', e);
+    }
 
     try {
       if (booking.property?.host) {
