@@ -14,7 +14,7 @@ function requireAuth(req, res, next) {
         return res.status(401).json({ message: 'Invalid token' });
     }
 }
-
+// helper
 // Create support ticket
 router.post('/tickets', async (req, res) => {
     try {
