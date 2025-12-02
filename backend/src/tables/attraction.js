@@ -10,22 +10,61 @@ const attractionSchema = new mongoose.Schema(
     location: { type: String, required: true },
     city: { type: String, required: true },
     country: { type: String, default: 'Rwanda' },
+    // Extended location and mapping details from attraction listing form
+    latitude: { type: Number },
+    longitude: { type: Number },
+    gps: { type: String },
+    landmarks: { type: String },
+    directions: { type: String },
+    cityDistrict: { type: String },
     category: { type: String, enum: ['cultural', 'nature', 'adventure', 'historical', 'religious', 'entertainment'], required: true },
     images: [{ type: String }],
+    // Pricing and ticketing
     price: { type: Number, required: true },
+    ticketChild: { type: Number },
+    ticketStudent: { type: Number },
+    ticketGroup: { type: Number },
+    discounts: { type: String },
     currency: { type: String, default: 'RWF' },
     duration: { type: String }, // e.g., "2 hours", "Half day"
     capacity: { type: Number, default: 50 },
+    minGuests: { type: Number },
+    minAge: { type: String },
+    bookingRequired: { type: String, enum: ['yes', 'no'], default: 'yes' },
     isActive: { type: Boolean, default: true },
     visibilityLevel: { type: String, enum: ['standard', 'premium', 'featured'], default: 'standard' },
     featuredUntil: { type: Date },
     commissionRate: { type: Number, default: 15, min: 0, max: 50 },
     amenities: [{ type: String }],
+    // Operating details and schedule
     operatingHours: {
       open: { type: String },
       close: { type: String },
       days: [{ type: String, enum: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] }]
     },
+    openingDays: { type: String },
+    seasonality: { type: String },
+    timeSlots: { type: String },
+    // Media & extras
+    video: { type: String },
+    // Additional amenities and safety details
+    guideAvailable: { type: String, enum: ['yes', 'no'], default: 'no' },
+    audioGuideLanguages: { type: String },
+    safetyEquipment: { type: String },
+    // Rules, restrictions and policies
+    rules: { type: String },
+    dressCode: { type: String },
+    safetyInstructions: { type: String },
+    liability: { type: String },
+    paymentMethods: { type: String },
+    cancellationPolicy: { type: String },
+    refundPolicy: { type: String },
+    // Contact information
+    contactName: { type: String },
+    contactPhone: { type: String },
+    contactEmail: { type: String },
+    contactWebsite: { type: String },
+    contactEmergency: { type: String },
     ratings: [{
       guest: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
       rating: { type: Number, min: 1, max: 5 },

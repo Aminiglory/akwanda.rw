@@ -7,6 +7,8 @@ import toast from 'react-hot-toast';
 import EnhancedUploadProperty from './EnhancedUploadProperty';
 import VehicleListingForm from '../components/VehicleListingForm';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 const DEFAULT_MAP_CENTER = { lat: -1.9536, lng: 30.0606 };
 
 const redPinSvg = encodeURIComponent(
@@ -290,13 +292,56 @@ const ListProperty = () => {
     </div>
   );
 
-  const handleAttractionSubmit = (e) => {
+  const handleAttractionSubmit = async (e) => {
     e.preventDefault();
     if (!attractionForm.name || !attractionForm.category || !attractionForm.city || !attractionForm.country) {
       toast.error('Name, category, country, and city are required.');
       return;
     }
-    toast.success('Attraction draft saved. Continue on the attraction workspace to finish multimedia.');
+
+    try {
+      const payload = {
+        ...attractionForm,
+        // Map to Attraction model core fields
+        name: attractionForm.name,
+        description: attractionForm.fullDescription || attractionForm.shortDescription || attractionForm.description || '',
+        location: attractionForm.address || attractionForm.gps || attractionForm.city || '',
+        city: attractionForm.city || '',
+        country: attractionForm.country || 'Rwanda',
+        // Map UI category label to a simple string; backend enum can be aligned separately
+        category: String(attractionForm.category || '').toLowerCase(),
+        price: Number(attractionForm.ticketAdult || attractionForm.ticketGroup || 0),
+        currency: attractionForm.currency || 'RWF',
+        duration: attractionForm.duration || '',
+        capacity: Number(attractionForm.capacity || 0) || undefined,
+        // Normalize amenities textarea into array
+        amenities: String(attractionForm.amenities || '')
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean),
+        // Operating hours structure expected by model
+        operatingHours: {
+          open: attractionForm.openingHoursStart || undefined,
+          close: attractionForm.openingHoursEnd || undefined,
+        },
+      };
+
+      const res = await fetch(`${API_URL}/api/attractions`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.message || 'Failed to save attraction');
+      }
+
+      toast.success('Attraction draft saved. Continue on the attraction workspace to finish multimedia.');
+    } catch (error) {
+      toast.error(error.message || 'Could not save attraction');
+    }
   };
 
   const validateFlightStep = (step) => {
