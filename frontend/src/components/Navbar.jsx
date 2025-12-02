@@ -765,6 +765,13 @@ const Navbar = () => {
     return false;
   };
 
+  // True when a host is on the listing wizard routes (outside dashboard but owner context)
+  const isOnHostListingWizard = isAuthenticated && user?.userType === 'host' && (
+    location.pathname.startsWith('/upload') ||
+    location.pathname.startsWith('/upload-property') ||
+    location.pathname.startsWith('/list-property')
+  );
+
   // Vehicles owner dashboard context
   const isInCarOwnerDashboard = () => {
     return location.pathname.startsWith('/owner/cars');
@@ -1133,8 +1140,9 @@ const Navbar = () => {
                   </div>
                 )}
 
-                {/* Main Navigation Items - client side (desktop only, mobile goes to dropdown) */}
-                {user?.userType !== 'admin' && !isInAnyOwnerDashboard() && (
+                {/* Main Navigation Items - client side (desktop only, mobile goes to dropdown).
+                    Hide for hosts while they are on the listing wizard so it doesn't look like guest mode. */}
+                {user?.userType !== 'admin' && !isInAnyOwnerDashboard() && !isOnHostListingWizard && (
                   <div className="hidden lg:flex items-center space-x-1 ml-4">
                     {mainNavItems.map((item, index) => {
                       const Icon = item.icon;

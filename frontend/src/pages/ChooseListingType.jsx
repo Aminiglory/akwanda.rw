@@ -64,10 +64,10 @@ const ChooseListingType = () => {
             <span className="text-white text-2xl font-bold">A</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-            What would you like to list?
+            Start listing, or keep using your account as a guest
           </h1>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Choose what you want to offer on AKWANDA.rw. You can always add more listings later.
+            You can list a property now to access your owner tools, or skip for now and continue browsing and booking as a guest. You can always come back here to list later.
           </p>
         </div>
 
@@ -127,7 +127,7 @@ const ChooseListingType = () => {
             onClick={() => navigate('/apartments')}
             className="text-gray-500 hover:text-gray-700 text-sm font-medium transition-colors"
           >
-            Do it later, browse properties
+            Skip for now and use my account as a guest
           </button>
         </div>
       </div>

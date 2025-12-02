@@ -42,7 +42,7 @@ const Register = () => {
 
     if (result.success) {
       toast.success('Account created');
-      navigate('/upload');
+      navigate('/choose-listing-type');
     } else {
       const message = result.error || 'Registration failed. Please try again.';
       setError(message);

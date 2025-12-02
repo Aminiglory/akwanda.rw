@@ -34,10 +34,8 @@ const PropertyCard = ({
     location,
     price,
     status,
-    bookings,
     bedrooms,
     bathrooms,
-    area,
     isPremium,
     isAd
   } = listing || {};
@@ -100,18 +98,12 @@ const PropertyCard = ({
       <div className={`${isCompact ? 'p-4' : 'p-5'} flex-1 flex flex-col`}>
         <div className="flex items-start justify-between mb-1">
           <h4 className="font-semibold text-gray-900 line-clamp-1">{highlightText(title)}</h4>
-          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(status)}`}>{status}</span>
         </div>
         <div className="flex items-center text-gray-600 text-sm mb-1">
           <FaMapMarkerAlt className="mr-1" />
           <span className="line-clamp-1">{highlightText(location)}</span>
         </div>
-        <div className="text-xs text-gray-500 mb-3 line-clamp-1">
-          {t ? t('property.hostedBy') : 'Hosted by'}{' '}
-          <span className="font-medium text-gray-700">{listing?.host || '-'}</span>
-        </div>
-        <div className="text-sm text-gray-600 mb-4">{bookings || 0} {t ? t('property.bookings') : 'bookings'}</div>
-        <div className="grid grid-cols-3 gap-3 text-sm flex-none">
+        <div className="grid grid-cols-2 gap-3 text-sm flex-none mb-4">
           <div className="flex items-center gap-2">
             <FaBed className="text-gray-400" />
             <div>
@@ -124,13 +116,6 @@ const PropertyCard = ({
             <div>
               <div className="text-gray-900 font-semibold">{bathrooms ?? '-'}</div>
               <div className="text-gray-500 text-xs">{t ? t('property.bathrooms') : 'Bathrooms'}</div>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <FaRulerCombined className="text-gray-400" />
-            <div>
-              <div className="text-gray-900 font-semibold">{area ?? '-'}</div>
-              <div className="text-gray-500 text-xs">{t ? t('property.area') : 'Area'}</div>
             </div>
           </div>
         </div>

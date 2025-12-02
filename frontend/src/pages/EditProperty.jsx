@@ -13,6 +13,13 @@ const EditProperty = () => {
   const [property, setProperty] = useState(null);
   const [propertyAmenityOptions, setPropertyAmenityOptions] = useState([]);
   const [roomAmenityOptions, setRoomAmenityOptions] = useState([]);
+  const [roomTypeOptions, setRoomTypeOptions] = useState([
+    { value: 'double', label: 'Double room' },
+    { value: 'double_private_bathroom', label: 'Double room with private bathroom' },
+    { value: 'double_shared_bathroom', label: 'Double room with shared bathroom' },
+    { value: 'single', label: 'Single room' },
+    { value: 'single_shared_bathroom', label: 'Single room with shared bathroom' }
+  ]);
 
   // Editable fields state
   const [form, setForm] = useState({
@@ -76,15 +83,25 @@ const EditProperty = () => {
   useEffect(() => {
     (async () => {
       try {
-        const [propRes, roomRes] = await Promise.all([
+        const [propRes, roomRes, roomTypesRes] = await Promise.all([
           fetch(`${API_URL}/api/amenities?scope=property&active=true`, { credentials: 'include' }),
-          fetch(`${API_URL}/api/amenities?scope=room&active=true`, { credentials: 'include' })
+          fetch(`${API_URL}/api/amenities?scope=room&active=true`, { credentials: 'include' }),
+          fetch(`${API_URL}/api/room-types?active=true`, { credentials: 'include' }).catch(() => null)
         ]);
         const propData = await propRes.json().catch(()=>({ amenities: [] }));
         const roomData = await roomRes.json().catch(()=>({ amenities: [] }));
         if (propRes.ok) setPropertyAmenityOptions(Array.isArray(propData.amenities) ? propData.amenities : []);
         if (roomRes.ok) setRoomAmenityOptions(Array.isArray(roomData.amenities) ? roomData.amenities : []);
-      } catch (_) {}
+        if (roomTypesRes && roomTypesRes.ok) {
+          const rtData = await roomTypesRes.json().catch(() => ({}));
+          const list = Array.isArray(rtData.roomTypes) ? rtData.roomTypes : [];
+          if (list.length) {
+            setRoomTypeOptions(list.map(rt => ({ value: rt.key, label: rt.name })));
+          }
+        }
+      } catch (e) {
+        toast.error(e.message || 'Failed to load amenities');
+      }
     })();
   }, []);
 
@@ -237,6 +254,7 @@ const EditProperty = () => {
       fd.append('roomType', newRoom.roomType);
       fd.append('pricePerNight', String(newRoom.pricePerNight));
       fd.append('capacity', String(newRoom.capacity));
+      fd.append('bathroomType', newRoom.bathroomType || 'inside');
       if (newRoom.amenities) fd.append('amenities', newRoom.amenities);
       mergedUrls.forEach(u => fd.append('images', u));
       // Note: files already uploaded via uploadFiles; backend also accepts files in this endpoint if desired
@@ -249,7 +267,7 @@ const EditProperty = () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data?.message || 'Failed to create room');
       toast.success('Room created');
-      setNewRoom({ roomNumber:'', roomType:'', pricePerNight:'', capacity:'', amenities:'', files:[], imageUrls:'' });
+      setNewRoom({ roomNumber:'', roomType:'', pricePerNight:'', capacity:'', bathroomType:'inside', amenities:'', files:[], imageUrls:'' });
       await fetchProperty();
     } catch (e) {
       toast.error(e.message);
@@ -435,10 +453,16 @@ const EditProperty = () => {
             <input className="border rounded px-3 py-2" placeholder="Room Number" value={newRoom.roomNumber} onChange={e=>setNewRoom(s=>({...s, roomNumber: e.target.value}))} />
             <select className="border rounded px-3 py-2" value={newRoom.roomType} onChange={e=>setNewRoom(s=>({...s, roomType: e.target.value}))}>
               <option value="">Select type</option>
-              {['single','double','suite','family','deluxe'].map(t=> (<option key={t} value={t}>{t}</option>))}
+              {roomTypeOptions.map(rt => (
+                <option key={rt.value} value={rt.value}>{rt.label}</option>
+              ))}
             </select>
             <input className="border rounded px-3 py-2" type="number" placeholder="Price per night" value={newRoom.pricePerNight} onChange={e=>setNewRoom(s=>({...s, pricePerNight: e.target.value}))} />
             <input className="border rounded px-3 py-2" type="number" placeholder="Capacity" value={newRoom.capacity} onChange={e=>setNewRoom(s=>({...s, capacity: e.target.value}))} />
+            <select className="border rounded px-3 py-2" value={newRoom.bathroomType || 'inside'} onChange={e=>setNewRoom(s=>({...s, bathroomType: e.target.value}))}>
+              <option value="inside">Bathroom inside (private)</option>
+              <option value="shared">Shared bathroom</option>
+            </select>
             <input className="border rounded px-3 py-2 md:col-span-2" placeholder="Amenities (comma separated)" value={newRoom.amenities} onChange={e=>setNewRoom(s=>({...s, amenities: e.target.value}))} />
             <div className="md:col-span-3">
               <div className="text-sm font-medium text-gray-800 mb-2">Select Room Amenities</div>

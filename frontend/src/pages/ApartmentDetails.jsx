@@ -774,183 +774,74 @@ const ApartmentDetails = () => {
                     )}
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {roomsToDisplay.map((room, index) => (
-                      <div 
-                        key={index}
-                        className={`group rounded-2xl p-4 cursor-pointer bg-white shadow-sm transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 relative ${
-                          selectedRoom === index 
-                            ? 'ring-2 ring-primary surface-secondary' 
-                            : ''
-                        }`}
-                        onClick={(e) => {
-                          if (e.target.closest('[data-interactive="true"]')) return;
-                          setSelectedRoom(selectedRoom === index ? null : index);
-                        }}
-                      >
-                        {/* Room Header with Animation */}
-                        <button
-                          type="button"
-                          className="w-full text-left flex items-start justify-between mb-3 focus:outline-none"
-                          aria-expanded={selectedRoom === index}
-                          aria-controls={`room-panel-${index}`}
-                          onClick={(e) => { e.stopPropagation(); setSelectedRoom(selectedRoom === index ? null : index); }}
-                        >
-                          <div className="flex-1">
-                            <h4 className="font-semibold text-gray-800 text-lg group-hover:text-primary-700 transition-colors duration-300">
-                              {room.roomNumber}
-                            </h4>
-                            <p className="text-sm text-gray-600 capitalize font-medium">
-                              {room.roomType} Room
-                            </p>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-xl font-bold text-primary group-hover:text-primary-700 transition-colors duration-300">
-                              {formatCurrencyRWF ? formatCurrencyRWF(room.pricePerNight || room.price || 0) : `RWF ${(room.pricePerNight || room.price || 0).toLocaleString()}`}
-                            </div>
-                            <div className="text-sm text-gray-500">per night</div>
-                          </div>
-                        </button>
-                        {/* Quick actions: open modals (calendar/details) */}
-                        <div
-                          className="flex items-center gap-2 mb-3"
-                          data-interactive="true"
-                          onClick={(e) => e.stopPropagation()}
-                        >
+                  <div className="border border-gray-200 rounded-xl overflow-hidden">
+                    <div className="hidden md:grid grid-cols-12 bg-blue-700 text-white text-sm font-semibold">
+                      <div className="col-span-6 px-4 py-3">Accommodation type</div>
+                      <div className="col-span-2 px-4 py-3 text-center">Guests</div>
+                      <div className="col-span-2 px-4 py-3 text-right">Price / night</div>
+                      <div className="col-span-2 px-4 py-3 text-center">Action</div>
+                    </div>
+                    <div className="divide-y divide-gray-200 bg-white">
+                      {roomsToDisplay.map((room, index) => {
+                        const price = room.pricePerNight || room.price || 0;
+                        const isSelected = selectedRoom === index;
+                        return (
                           <button
+                            key={index}
                             type="button"
-                            aria-label="View availability"
-                            className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg btn-primary text-white transition-colors text-xs md:text-sm"
-                            onClick={() => { setCalendarRoom(room); setIsCalendarOpen(true); }}
-                            title="View availability"
-                          >
-                            <FaCalendarAlt />
-                            <span className="hidden md:inline">Availability</span>
-                          </button>
-                          <button
-                            type="button"
-                            aria-label="View details"
-                            className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors text-xs md:text-sm"
-                            onClick={() => { setDetailsRoom(room); setIsDetailsOpen(true); }}
-                            title="View details"
-                          >
-                            <FaHome />
-                            <span className="hidden md:inline">Details</span>
-                          </button>
-                        </div>
-                        
-                        {/* Room Info with Icons */}
-                        <div className="flex items-center space-x-3 text-xs text-gray-600 mb-3" data-interactive="true" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex items-center bg-gray-100 px-3 py-1 rounded-full">
-                            <FaUser className="mr-1 text-blue-600" />
-                            <span className="font-medium">{room.capacity} guest{room.capacity > 1 ? 's' : ''}</span>
-                          </div>
-                          <div
-                            className={`px-3 py-1 rounded-full text-xs font-medium transition-all duration-300 ${
-                              availabilityRooms !== null && searchCheckIn && searchCheckOut
-                                ? 'bg-green-100 text-green-800 hover:bg-green-200'
-                                : 'bg-gray-100 text-gray-700'
+                            className={`w-full grid grid-cols-1 md:grid-cols-12 text-left transition-colors ${
+                              isSelected ? 'bg-blue-50' : 'hover:bg-gray-50'
                             }`}
+                            onClick={() => {
+                              setSelectedRoom(index);
+                              setDetailsRoom(room);
+                              setIsDetailsOpen(true);
+                            }}
                           >
-                            {availabilityRooms !== null && searchCheckIn && searchCheckOut
-                              ? '✓ Available for your dates'
-                              : 'Select dates to check availability'}
-                          </div>
-                        </div>
-
-                        {/* Room Images with Enhanced Gallery */}
-                        {Array.isArray(room.images) && room.images.length > 0 ? (
-                          <div className="grid grid-cols-2 gap-2 mb-4" data-interactive="true" onClick={(e) => e.stopPropagation()}>
-                            {room.images.slice(0, 4).map((image, imgIndex) => {
-                              const src = makeAbsolute(image);
-                              return (
-                                <button key={imgIndex} type="button" className="overflow-hidden rounded-lg focus:outline-none"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <img
-                                    loading="lazy"
-                                    src={src}
-                                    alt={`${room.roomNumber} - Image ${imgIndex + 1}`}
-                                    className="w-full aspect-square object-cover"
-                                    onError={(e) => {
-                                      e.currentTarget.src = 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=200&h=150&fit=crop';
-                                    }}
-                                  />
-                                </button>
-                              );
-                            })}
-                          </div>
-                        ) : (
-                          <div className="mb-4 p-4 bg-gray-100 rounded-lg text-center text-gray-500">
-                            <FaBed className="mx-auto mb-2 text-2xl" />
-                            <p className="text-sm">No images available for this room</p>
-                          </div>
-                        )}
-
-                        {/* Room Amenities with Enhanced Design */}
-                        {room.amenities && room.amenities.length > 0 && (
-                          <div className="flex flex-wrap gap-2 mb-3">
-                            {(expandedAmenitiesRooms[index] ? room.amenities : room.amenities.slice(0, 3)).map((amenity, amenityIndex) => (
-                              <span 
-                                key={amenityIndex}
-                                className="px-3 py-1 chip-primary border border-subtle text-xs rounded-full font-medium transition-colors"
-                              >
-                                {amenity}
+                            {/* Accommodation type / room name */}
+                            <div className="col-span-6 px-4 py-3 flex flex-col gap-1">
+                              <span className="text-sm font-semibold text-blue-800 underline-offset-2">
+                                {room.roomNumber || room.roomType || 'Room'}
                               </span>
-                            ))}
-                            {room.amenities.length > 3 && (
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setExpandedAmenitiesRooms((prev) => ({
-                                    ...prev,
-                                    [index]: !prev[index]
-                                  }));
-                                }}
-                                className="px-3 py-1 bg-purple-50 text-purple-700 border border-purple-100 text-xs rounded-full font-medium hover:bg-purple-100 transition-colors focus:outline-none"
+                              <span className="text-xs text-gray-600 capitalize">
+                                {room.roomType ? `${room.roomType} room` : ''}
+                              </span>
+                              {Array.isArray(room.amenities) && room.amenities.length > 0 && (
+                                <span className="text-[11px] text-gray-500 line-clamp-1">
+                                  {room.amenities.slice(0, 4).join(' • ')}
+                                  {room.amenities.length > 4 ? `  +${room.amenities.length - 4} more` : ''}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Guests */}
+                            <div className="col-span-2 px-4 py-3 flex items-center justify-start md:justify-center text-sm text-gray-700">
+                              <FaUser className="mr-1 text-blue-600" />
+                              <span>{room.capacity || 1}</span>
+                            </div>
+
+                            {/* Price */}
+                            <div className="col-span-2 px-4 py-3 flex items-center justify-between md:justify-end text-sm">
+                              <span className="font-semibold text-gray-900">
+                                {formatCurrencyRWF
+                                  ? formatCurrencyRWF(price)
+                                  : `RWF ${Number(price || 0).toLocaleString()}`}
+                              </span>
+                              <span className="ml-1 text-xs text-gray-500 hidden md:inline">per night</span>
+                            </div>
+
+                            {/* Action */}
+                            <div className="col-span-2 px-4 py-3 flex items-center justify-start md:justify-center">
+                              <span
+                                className="inline-flex items-center justify-center px-4 py-1.5 rounded-md bg-blue-600 text-white text-xs font-semibold shadow-sm hover:bg-blue-700"
                               >
-                                {expandedAmenitiesRooms[index]
-                                  ? 'Show fewer'
-                                  : `+${room.amenities.length - 3} more`}
-                              </button>
-                            )}
-                          </div>
-                        )}
-
-                        {/* Reserve Button */}
-                        <div
-                          className="mt-4 flex items-center justify-between"
-                          data-interactive="true"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <div className="text-xs text-gray-600">
-                            {searchCheckIn && searchCheckOut ? (
-                              <>
-                                {new Date(searchCheckIn).toLocaleDateString()} -{' '}
-                                {new Date(searchCheckOut).toLocaleDateString()}
-                              </>
-                            ) : (
-                              'Choose your dates first'
-                            )}
-                          </div>
-                          <button
-                            type="button"
-                            className="inline-flex items-center px-3 py-2 rounded-lg bg-blue-600 text-white text-xs md:text-sm font-semibold hover:bg-blue-700 transition-colors"
-                            onClick={() => handleReserveRoom(room)}
-                          >
-                            Reserve this room
+                                Show prices
+                              </span>
+                            </div>
                           </button>
-                        </div>
-
-                        {/* Selection Indicator */}
-                        {selectedRoom === index && (
-                          <div className="absolute top-2 right-2 w-6 h-6 bg-primary rounded-full flex items-center justify-center animate-pulse">
-                            <FaCheck className="text-white text-xs" />
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
               </div>
