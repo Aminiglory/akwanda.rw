@@ -765,12 +765,15 @@ const Navbar = () => {
     return false;
   };
 
-  // True when a host is on the listing wizard routes (outside dashboard but owner context)
-  const isOnHostListingWizard = isAuthenticated && user?.userType === 'host' && (
+  // True when user is on the listing wizard routes (outside dashboard but still listing context)
+  const isOnListingWizard = (
     location.pathname.startsWith('/upload') ||
     location.pathname.startsWith('/upload-property') ||
     location.pathname.startsWith('/list-property')
   );
+
+  // True when a host is on the listing wizard routes (kept for any host-specific checks)
+  const isOnHostListingWizard = isAuthenticated && user?.userType === 'host' && isOnListingWizard;
 
   // Vehicles owner dashboard context
   const isInCarOwnerDashboard = () => {
@@ -900,8 +903,8 @@ const Navbar = () => {
 
   return (
     <> 
-      {/* Top Bar - First Level (hidden on landing page and in any owner dashboard) */}
-      {location.pathname !== '/' && !(isAuthenticated && user?.userType === 'host' && isInAnyOwnerDashboard()) && (
+      {/* Top Bar - First Level (hidden on landing page, listing wizard, and in any owner dashboard) */}
+      {location.pathname !== '/' && !isOnListingWizard && !(isAuthenticated && user?.userType === 'host' && isInAnyOwnerDashboard()) && (
       <div className="w-full bg-[#8b5a35] text-white py-2 px-4 border-b border-[#7a4d2c] relative z-[1000] shadow-sm">
         <div className="max-w-7xl mx-auto flex justify-between items-center text-xs">
           <div className="flex items-center space-x-4 lg:space-x-6">
@@ -1141,8 +1144,8 @@ const Navbar = () => {
                 )}
 
                 {/* Main Navigation Items - client side (desktop only, mobile goes to dropdown).
-                    Hide for hosts while they are on the listing wizard so it doesn't look like guest mode. */}
-                {user?.userType !== 'admin' && !isInAnyOwnerDashboard() && !isOnHostListingWizard && (
+                    Hide for any user while they are on the listing wizard so it doesn't look like guest mode. */}
+                {user?.userType !== 'admin' && !isInAnyOwnerDashboard() && !isOnListingWizard && (
                   <div className="hidden lg:flex items-center space-x-1 ml-4">
                     {mainNavItems.map((item, index) => {
                       const Icon = item.icon;
