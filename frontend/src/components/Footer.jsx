@@ -80,7 +80,7 @@ const Footer = () => {
         ]
       : [])
   ];
-
+// helper
   return (
     <footer className="bg-gray-900 text-white">
       {/* Main Footer Content */}
