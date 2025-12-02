@@ -389,6 +389,13 @@ const AdminDashboard = () => {
               >
                 <FaPlus /> Manage Add-ons
               </Link>
+              <Link
+                to="/admin/room-types"
+                className="px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-medium hover:bg-green-700 transition-colors inline-flex items-center gap-2"
+                title="Manage room types"
+              >
+                <FaPlus /> Manage Room Types
+              </Link>
             </div>
           </div>
         </div>
