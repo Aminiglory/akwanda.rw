@@ -130,7 +130,7 @@ const Login = () => {
                 <input type="checkbox" className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
                 <span className="text-gray-700">{t ? t('auth.rememberMe') : 'Remember me'}</span>
               </label>
-              <Link to="/support" className="text-blue-700 hover:text-blue-900">{t ? t('auth.forgotPassword') : 'Forgot password?'}</Link>
+              <Link to="/reset-password" className="text-blue-700 hover:text-blue-900">{t ? t('auth.forgotPassword') : 'Forgot password?'}</Link>
             </div>
 
             {/* Error Message */}

@@ -75,6 +75,26 @@ router.post('/register', async (req, res) => {
 	}
 });
 
+// Simple no-email password reset using email + phone verification
+router.post('/reset-with-phone', async (req, res) => {
+	try {
+		const { email, phone, newPassword } = req.body || {};
+		if (!email || !phone || !newPassword) {
+			return res.status(400).json({ message: 'Email, phone and new password are required' });
+		}
+		const user = await User.findOne({ email: String(email).toLowerCase(), phone: String(phone) });
+		if (!user) {
+			return res.status(404).json({ message: 'No account found with that email and phone number' });
+		}
+		const passwordHash = await bcrypt.hash(String(newPassword), 10);
+		user.passwordHash = passwordHash;
+		await user.save();
+		return res.json({ message: 'Password has been reset. You can now log in with your new password.' });
+	} catch (err) {
+		return res.status(500).json({ message: 'Server error' });
+	}
+});
+
 router.post('/login', async (req, res) => {
 	try {
 		const { email, password } = req.body;
