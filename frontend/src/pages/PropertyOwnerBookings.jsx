@@ -2795,7 +2795,9 @@ const PropertyOwnerBookings = () => {
                     >
                       <option value="">Any room</option>
                       {ownerRooms.map(r => (
-                        <option key={r._id} value={r._id}>{r.roomNumber || r.roomType || 'Room'}</option>
+                        <option key={r._id} value={r._id}>
+                          {[r.roomNumber || r.name || 'Room', r.roomType].filter(Boolean).join('  ')}
+                        </option>
                       ))}
                     </select>
                   </div>
