@@ -58,10 +58,12 @@ const ResetPassword = () => {
             <span className="text-white text-xl font-bold">A</span>
           </div>
           <h2 className="mt-6 text-3xl font-bold text-gray-900">
-            {t ? t('auth.resetPasswordTitle') : 'Reset your password'}
+            {t ? t('auth.resetPasswordTitle') : 'Change your account password'}
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            {t ? t('auth.resetPasswordSubtitle') : 'Enter your email, phone and new password.'}
+            {t
+              ? t('auth.resetPasswordSubtitle')
+              : 'Type the email and phone on your account, then choose a new password.'}
           </p>
         </div>
 
