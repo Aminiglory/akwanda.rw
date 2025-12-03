@@ -82,6 +82,7 @@ const BookingSuccess = lazyWithRetry(() => import('./pages/BookingSuccess'));
 const PaymentSuccess = lazyWithRetry(() => import('./pages/PaymentSuccess'));
 const Transactions = lazyWithRetry(() => import('./pages/Transactions'));
 const GroupHomePage = lazyWithRetry(() => import('./pages/GroupHomePage'));
+const ResetPassword = lazyWithRetry(() => import('./pages/ResetPassword'));
 
 function App() {
   console.debug('[AK] App render start')
@@ -162,6 +163,7 @@ function App() {
             <Route path="/owner-login" element={<OwnerLogin />} />
             <Route path="/register" element={<Register />} />
             <Route path="/owner-register" element={<OwnerRegister />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/choose-listing-type" element={<ProtectedRoute><ChooseListingType /></ProtectedRoute>} />
             <Route path="/become-host" element={<ProtectedRoute><BecomeHost /></ProtectedRoute>} />
             <Route path="/group-home" element={<HostRoute><div className="dashboard"><GroupHomePage /></div></HostRoute>} />
