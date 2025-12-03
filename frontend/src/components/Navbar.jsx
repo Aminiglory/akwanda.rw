@@ -903,8 +903,8 @@ const Navbar = () => {
 
   return (
     <> 
-      {/* Top Bar - First Level (hidden on landing page, listing wizard, and in any owner dashboard) */}
-      {location.pathname !== '/' && !isOnListingWizard && !(isAuthenticated && user?.userType === 'host' && isInAnyOwnerDashboard()) && (
+      {/* Top Bar - First Level (hidden on landing page, listing wizard, in any owner dashboard, and for logged-in hosts in guest mode) */}
+      {location.pathname !== '/' && !isOnListingWizard && !(isAuthenticated && user?.userType === 'host') && (
       <div className="w-full bg-[#8b5a35] text-white py-2 px-4 border-b border-[#7a4d2c] relative z-[1000] shadow-sm">
         <div className="max-w-7xl mx-auto flex justify-between items-center text-xs">
           <div className="flex items-center space-x-4 lg:space-x-6">
