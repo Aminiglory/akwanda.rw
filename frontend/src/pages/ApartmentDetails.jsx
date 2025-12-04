@@ -1018,40 +1018,10 @@ const ApartmentDetails = () => {
                   </div>
                   
                   {/* Host Contact Info */}
-                  <div className="space-y-1 text-sm text-gray-600">
-                    {apartment.host.email && (
-                      <div className="flex items-center space-x-2">
-                        <FaEnvelope className="text-blue-600" />
-                        <span>{apartment.host.email}</span>
-                      </div>
-                    )}
-                    {apartment.host.phone && (
-                      <div className="flex items-center space-x-2">
-                        <FaPhone className="text-blue-600" />
-                        <span>{apartment.host.phone}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div className="flex flex-col space-y-2">
-                  {apartment.host.phone && (
-                    <a 
-                      href={`tel:${apartment.host.phone}`}
-                      className="p-2 bg-blue-100 text-blue-600 rounded-full hover:bg-blue-200 transition-colors"
-                      title="Call host"
-                    >
-                      <FaPhone />
-                    </a>
-                  )}
-                  {apartment.host.email && (
-                    <a 
-                      href={`mailto:${apartment.host.email}`}
-                      className="p-2 bg-blue-100 text-blue-600 rounded-full hover:bg-blue-200 transition-colors"
-                      title="Email host"
-                    >
-                      <FaEnvelope />
-                    </a>
-                  )}
+                  <p className="text-sm text-gray-600 mt-1">
+                    Contact details for this host are shared with you automatically after you complete your booking,
+                    together with more property information and the assistance number you can call if you need help.
+                  </p>
                 </div>
               </div>
             </div>

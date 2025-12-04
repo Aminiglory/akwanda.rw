@@ -1446,15 +1446,13 @@ const Navbar = () => {
                 </div>
               </div>
 
-            {/* Mobile Menu Button - only for authenticated users */}
-            {isAuthenticated && (
-              <button
-                onClick={toggleMenu}
-                className="lg:hidden p-1.5 text-[#6b5744] hover:text-[#4b2a00]"
-                >
-                  {isMenuOpen ? <FaTimes className="text-base" /> : <FaBars className="text-base" />}
-                </button>
-              )}
+            {/* Mobile Menu Button */}
+            <button
+              onClick={toggleMenu}
+              className="lg:hidden p-1.5 text-[#6b5744] hover:text-[#4b2a00]"
+            >
+              {isMenuOpen ? <FaTimes className="text-base" /> : <FaBars className="text-base" />}
+            </button>
               </div>
             </div>
 
@@ -1520,7 +1518,7 @@ const Navbar = () => {
         </div>
       </nav>
       {/* Mobile Menu - mirrors desktop owner navigation */}
-      {isAuthenticated && isMenuOpen && (
+      {isMenuOpen && (
         <div className="lg:hidden border-t border-[#e0d5c7] bg-[#f9f4ee]">
           {/* Mobile property selector */}
           {user?.userType === 'host' && isInPropertyOwnerDashboard() && myProperties.length > 0 && (
