@@ -124,6 +124,7 @@ const ListProperty = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [listingType, setListingType] = useState('stay');
+  const [attractionStep, setAttractionStep] = useState(1);
   const [attractionForm, setAttractionForm] = useState(initialAttraction);
   const [flightStep, setFlightStep] = useState(1);
   const [flightData, setFlightData] = useState(initialFlightData);
@@ -144,7 +145,12 @@ const ListProperty = () => {
           <button
             key={type.id}
             type="button"
-            onClick={() => setListingType(type.id)}
+            onClick={() => {
+              setListingType(type.id);
+              if (type.id === 'attraction') {
+                setAttractionStep(1);
+              }
+            }}
             className={`relative rounded-xl p-3 text-left text-sm border transition-all duration-200 ${listingType === type.id ?
               'border-blue-600 bg-blue-50 shadow-sm' : 'border-gray-200 hover:border-blue-400 hover:bg-gray-50'}`}
           >
@@ -292,6 +298,8 @@ const ListProperty = () => {
     </div>
   );
 
+  const totalAttractionSteps = 9;
+
   const handleAttractionSubmit = async (e) => {
     e.preventDefault();
     if (!attractionForm.name || !attractionForm.category || !attractionForm.city || !attractionForm.country) {
@@ -372,7 +380,19 @@ const ListProperty = () => {
 
   const renderAttractionForm = () => (
     <form className="space-y-6" onSubmit={handleAttractionSubmit}>
-      {section('1. Basic information', 'Required to identify the attraction.',
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-gray-500">Step {attractionStep} of {totalAttractionSteps}</div>
+        </div>
+        <div className="w-full h-1 bg-gray-200 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-purple-600"
+            style={{ width: `${(attractionStep / totalAttractionSteps) * 100}%` }}
+          />
+        </div>
+      </div>
+
+      {attractionStep === 1 && section('1. Basic information', 'Required to identify the attraction.',
         <>
           {renderField({ label: 'Attraction Name', name: 'name', placeholder: 'Kigali Cultural Walk' })}
           {renderField({ label: 'Category / Type', name: 'category', type: 'select', options: categoryOptions })}
@@ -381,7 +401,8 @@ const ListProperty = () => {
           {renderField({ label: 'Highlights / Key Features', name: 'highlights', type: 'textarea', placeholder: 'Bullet points separated by commas' })}
         </>
       )}
-      {section('2. Location details', 'Precision helps guests arrive smoothly.',
+
+      {attractionStep === 2 && section('2. Location details', 'Precision helps guests arrive smoothly.',
         <>
           {renderField({ label: 'Country', name: 'country', placeholder: 'Rwanda' })}
           {renderField({ label: 'City / Town / District', name: 'city', placeholder: 'Kigali' })}
@@ -391,48 +412,54 @@ const ListProperty = () => {
           {renderField({ label: 'Directions / How to get there', name: 'directions', type: 'textarea', placeholder: 'Describe transport options (optional)' })}
         </>
       )}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-3">
-        <p className="text-sm font-semibold text-gray-700">Location Map</p>
-        <MapContainer
-          center={[attractionForm.latitude, attractionForm.longitude]}
-          zoom={13}
-          scrollWheelZoom={true}
-          className="h-64 rounded-2xl"
-        >
-          <TileLayer
-            attribution='&copy; OpenStreetMap contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-          <LocationMapPicker
-            position={[attractionForm.latitude, attractionForm.longitude]}
-            onPositionChange={handleLocationSelected}
-          />
-        </MapContainer>
-        <div className="flex flex-col gap-1">
-          <p className="text-xs text-gray-500">Click or drag the marker to auto-fill GPS.</p>
-          <div className="text-sm text-gray-500">Lat: {attractionForm.latitude.toFixed(5)}, Lng: {attractionForm.longitude.toFixed(5)}</div>
-        </div>
-      </div>
-      {section('3. Photos & Media', 'Visuals bring the experience to life.',
+
+      {attractionStep === 3 && (
         <>
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-gray-700">Cover photo *</label>
-            <input type="file" accept="image/*" onChange={(e) => handleCoverUpload(e.target.files)} className="w-full" />
-            <p className="text-xs text-gray-500">
-              {attractionForm.coverPhotoFiles.length ? `${attractionForm.coverPhotoFiles.length} file(s) ready` : 'Upload a hero photo.'}
-            </p>
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-3">
+            <p className="text-sm font-semibold text-gray-700">Location Map</p>
+            <MapContainer
+              center={[attractionForm.latitude, attractionForm.longitude]}
+              zoom={13}
+              scrollWheelZoom={true}
+              className="h-64 rounded-2xl"
+            >
+              <TileLayer
+                attribution='&copy; OpenStreetMap contributors'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+              <LocationMapPicker
+                position={[attractionForm.latitude, attractionForm.longitude]}
+                onPositionChange={handleLocationSelected}
+              />
+            </MapContainer>
+            <div className="flex flex-col gap-1">
+              <p className="text-xs text-gray-500">Click or drag the marker to auto-fill GPS.</p>
+              <div className="text-sm text-gray-500">Lat: {attractionForm.latitude.toFixed(5)}, Lng: {attractionForm.longitude.toFixed(5)}</div>
+            </div>
           </div>
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-gray-700">Gallery images *</label>
-            <input type="file" accept="image/*" multiple onChange={(e) => handleGalleryUpload(e.target.files)} className="w-full" />
-            <p className="text-xs text-gray-500">
-              {attractionForm.galleryFiles.length ? `${attractionForm.galleryFiles.length} file(s) ready` : 'Upload 3-20 images.'}
-            </p>
-          </div>
-          {renderField({ label: 'Video URL (optional)', name: 'video', placeholder: 'YouTube / Vimeo link' })}
+          {section('3. Photos & Media', 'Visuals bring the experience to life.',
+            <>
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-gray-700">Cover photo *</label>
+                <input type="file" accept="image/*" onChange={(e) => handleCoverUpload(e.target.files)} className="w-full" />
+                <p className="text-xs text-gray-500">
+                  {attractionForm.coverPhotoFiles.length ? `${attractionForm.coverPhotoFiles.length} file(s) ready` : 'Upload a hero photo.'}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-gray-700">Gallery images *</label>
+                <input type="file" accept="image/*" multiple onChange={(e) => handleGalleryUpload(e.target.files)} className="w-full" />
+                <p className="text-xs text-gray-500">
+                  {attractionForm.galleryFiles.length ? `${attractionForm.galleryFiles.length} file(s) ready` : 'Upload 3-20 images.'}
+                </p>
+              </div>
+              {renderField({ label: 'Video URL (optional)', name: 'video', placeholder: 'YouTube / Vimeo link' })}
+            </>
+          )}
         </>
       )}
-      {section('4. Operating details', 'Schedule, seasonality, and accessibility.',
+
+      {attractionStep === 4 && section('4. Operating details', 'Schedule, seasonality, and accessibility.',
         <>
           {renderField({ label: 'Opening Days (Mon–Sun)', name: 'openingDays', placeholder: 'Mon–Sun' })}
           {renderField({ label: 'Opening Hour Start', name: 'openingHoursStart', type: 'time' })}
@@ -444,7 +471,8 @@ const ListProperty = () => {
           {renderField({ label: 'Available time slots', name: 'timeSlots', placeholder: '09:00, 12:00, 15:00' })}
         </>
       )}
-      {section('5. Pricing & ticketing', 'Cover every financial expectation.',
+
+      {attractionStep === 5 && section('5. Pricing & ticketing', 'Cover every financial expectation.',
         <>
           {renderField({ label: 'Ticket price (adult)', name: 'ticketAdult', type: 'number', placeholder: 'RWF' })}
           {renderField({ label: 'Ticket price (child)', name: 'ticketChild', type: 'number', placeholder: 'RWF' })}
@@ -457,7 +485,8 @@ const ListProperty = () => {
           {renderField({ label: 'Refund policy', name: 'refundPolicy', type: 'textarea', placeholder: 'Full refund within 24h...' })}
         </>
       )}
-      {section('6. Capacity & requirements', 'Understand group limits.',
+
+      {attractionStep === 6 && section('6. Capacity & requirements', 'Understand group limits.',
         <>
           {renderField({ label: 'Maximum capacity', name: 'capacity', type: 'number', placeholder: 'Guests per session' })}
           {renderField({ label: 'Minimum number of guests', name: 'minGuests', type: 'number', placeholder: 'Minimum booking size' })}
@@ -465,7 +494,8 @@ const ListProperty = () => {
           {renderField({ label: 'Meeting point / check-in instructions', name: 'checkinInstructions', type: 'textarea', placeholder: 'Meet by the red gate...' })}
         </>
       )}
-      {section('7. Amenities & facilities', 'Showcase comforts.',
+
+      {attractionStep === 7 && section('7. Amenities & facilities', 'Showcase comforts.',
         <>
           {renderField({ label: 'Amenities', name: 'amenities', type: 'textarea', placeholder: 'Parking, restrooms, WiFi...' })}
           {renderRadioGroup('Guide available?', 'guideAvailable')}
@@ -473,7 +503,8 @@ const ListProperty = () => {
           {renderField({ label: 'Safety equipment', name: 'safetyEquipment', placeholder: 'Life vests, helmets...' })}
         </>
       )}
-      {section('8. Rules & restrictions', 'Clarify expectations.',
+
+      {attractionStep === 8 && section('8. Rules & restrictions', 'Clarify expectations.',
         <>
           {renderField({ label: 'Allowed / not allowed', name: 'rules', type: 'textarea', placeholder: 'Pets, smoking, photography...' })}
           {renderField({ label: 'Dress code', name: 'dressCode', placeholder: 'Modest clothing, swimwear...' })}
@@ -481,7 +512,8 @@ const ListProperty = () => {
           {renderField({ label: 'Liability / waiver requirements', name: 'liability', type: 'textarea', placeholder: 'Guests must sign release...' })}
         </>
       )}
-      {section('9. Contact information', 'How guests reach you.',
+
+      {attractionStep === 9 && section('9. Contact information', 'How guests reach you.',
         <>
           {renderField({ label: 'Owner / manager name', name: 'contactName', placeholder: 'John Doe' })}
           {renderField({ label: 'Phone number', name: 'contactPhone', placeholder: '+250 78...' })}
@@ -490,8 +522,35 @@ const ListProperty = () => {
           {renderField({ label: 'Emergency contact (optional)', name: 'contactEmergency', placeholder: '+250 7...' })}
         </>
       )}
-      <div className="text-right">
-        <button type="submit" className="px-5 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700">Save attraction info</button>
+
+      <div className="flex items-center justify-between mt-4">
+        <button
+          type="button"
+          onClick={() => setAttractionStep(prev => Math.max(1, prev - 1))}
+          disabled={attractionStep === 1}
+          className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Back
+        </button>
+        <div className="ml-auto flex items-center gap-3">
+          {attractionStep < totalAttractionSteps && (
+            <button
+              type="button"
+              onClick={() => setAttractionStep(prev => Math.min(totalAttractionSteps, prev + 1))}
+              className="px-5 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+            >
+              Next
+            </button>
+          )}
+          {attractionStep === totalAttractionSteps && (
+            <button
+              type="submit"
+              className="px-5 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+            >
+              Save attraction info
+            </button>
+          )}
+        </div>
       </div>
     </form>
   );
