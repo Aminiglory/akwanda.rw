@@ -139,7 +139,7 @@ const ListProperty = () => {
         {[
           { id: 'stay', label: 'Stay', desc: 'Apartments, hotels, homes', color: 'from-blue-500 to-blue-600' },
           { id: 'rental', label: 'Rental', desc: 'Cars & vehicles', color: 'from-green-500 to-green-600' },
-          { id: 'attraction', label: 'Attraction', desc: 'Tours & activities', color: 'from-purple-500 to-purple-600' },
+          { id: 'attraction', label: 'Attraction', desc: 'Tours & activities', color: 'from-[#a06b42] to-[#8f5a32]' },
           { id: 'flight', label: 'Flight', desc: 'Flight services', color: 'from-indigo-500 to-indigo-600' }
         ].map((type) => (
           <button
@@ -386,7 +386,7 @@ const ListProperty = () => {
         </div>
         <div className="w-full h-1 bg-gray-200 rounded-full overflow-hidden">
           <div
-            className="h-full bg-purple-600"
+            className="h-full bg-[#a06b42]"
             style={{ width: `${(attractionStep / totalAttractionSteps) * 100}%` }}
           />
         </div>
@@ -402,19 +402,18 @@ const ListProperty = () => {
         </>
       )}
 
-      {attractionStep === 2 && section('2. Location details', 'Precision helps guests arrive smoothly.',
+      {attractionStep === 2 && (
         <>
-          {renderField({ label: 'Country', name: 'country', placeholder: 'Rwanda' })}
-          {renderField({ label: 'City / Town / District', name: 'city', placeholder: 'Kigali' })}
-          {renderField({ label: 'Exact Address', name: 'address', placeholder: 'Street, building name...' })}
-          {renderField({ label: 'GPS Coordinates', name: 'gps', placeholder: 'Latitude, Longitude' })}
-          {renderField({ label: 'Landmarks Nearby', name: 'landmarks', placeholder: 'University, hotel, park (optional)' })}
-          {renderField({ label: 'Directions / How to get there', name: 'directions', type: 'textarea', placeholder: 'Describe transport options (optional)' })}
-        </>
-      )}
-
-      {attractionStep === 3 && (
-        <>
+          {section('2. Location details', 'Precision helps guests arrive smoothly.',
+            <>
+              {renderField({ label: 'Country', name: 'country', placeholder: 'Rwanda' })}
+              {renderField({ label: 'City / Town / District', name: 'city', placeholder: 'Kigali' })}
+              {renderField({ label: 'Exact Address', name: 'address', placeholder: 'Street, building name...' })}
+              {renderField({ label: 'GPS Coordinates', name: 'gps', placeholder: 'Latitude, Longitude' })}
+              {renderField({ label: 'Landmarks Nearby', name: 'landmarks', placeholder: 'University, hotel, park (optional)' })}
+              {renderField({ label: 'Directions / How to get there', name: 'directions', type: 'textarea', placeholder: 'Describe transport options (optional)' })}
+            </>
+          )}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-3">
             <p className="text-sm font-semibold text-gray-700">Location Map</p>
             <MapContainer
@@ -437,25 +436,26 @@ const ListProperty = () => {
               <div className="text-sm text-gray-500">Lat: {attractionForm.latitude.toFixed(5)}, Lng: {attractionForm.longitude.toFixed(5)}</div>
             </div>
           </div>
-          {section('3. Photos & Media', 'Visuals bring the experience to life.',
-            <>
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-gray-700">Cover photo *</label>
-                <input type="file" accept="image/*" onChange={(e) => handleCoverUpload(e.target.files)} className="w-full" />
-                <p className="text-xs text-gray-500">
-                  {attractionForm.coverPhotoFiles.length ? `${attractionForm.coverPhotoFiles.length} file(s) ready` : 'Upload a hero photo.'}
-                </p>
-              </div>
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-gray-700">Gallery images *</label>
-                <input type="file" accept="image/*" multiple onChange={(e) => handleGalleryUpload(e.target.files)} className="w-full" />
-                <p className="text-xs text-gray-500">
-                  {attractionForm.galleryFiles.length ? `${attractionForm.galleryFiles.length} file(s) ready` : 'Upload 3-20 images.'}
-                </p>
-              </div>
-              {renderField({ label: 'Video URL (optional)', name: 'video', placeholder: 'YouTube / Vimeo link' })}
-            </>
-          )}
+        </>
+      )}
+
+      {attractionStep === 3 && section('3. Photos & Media', 'Visuals bring the experience to life.',
+        <>
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-gray-700">Cover photo *</label>
+            <input type="file" accept="image/*" onChange={(e) => handleCoverUpload(e.target.files)} className="w-full" />
+            <p className="text-xs text-gray-500">
+              {attractionForm.coverPhotoFiles.length ? `${attractionForm.coverPhotoFiles.length} file(s) ready` : 'Upload a hero photo.'}
+            </p>
+          </div>
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-gray-700">Gallery images *</label>
+            <input type="file" accept="image/*" multiple onChange={(e) => handleGalleryUpload(e.target.files)} className="w-full" />
+            <p className="text-xs text-gray-500">
+              {attractionForm.galleryFiles.length ? `${attractionForm.galleryFiles.length} file(s) ready` : 'Upload 3-20 images.'}
+            </p>
+          </div>
+          {renderField({ label: 'Video URL (optional)', name: 'video', placeholder: 'YouTube / Vimeo link' })}
         </>
       )}
 
@@ -537,7 +537,7 @@ const ListProperty = () => {
             <button
               type="button"
               onClick={() => setAttractionStep(prev => Math.min(totalAttractionSteps, prev + 1))}
-              className="px-5 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+              className="px-5 py-2.5 bg-[#a06b42] text-white rounded-lg hover:bg-[#8f5a32]"
             >
               Next
             </button>
@@ -545,7 +545,7 @@ const ListProperty = () => {
           {attractionStep === totalAttractionSteps && (
             <button
               type="submit"
-              className="px-5 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+              className="px-5 py-2.5 bg-[#a06b42] text-white rounded-lg hover:bg-[#8f5a32]"
             >
               Save attraction info
             </button>
