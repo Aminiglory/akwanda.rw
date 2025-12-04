@@ -108,16 +108,136 @@ const initialAttraction = {
 };
 
 const initialFlightData = {
-  title: '',
-  origin: '',
-  destination: '',
-  aircraft: '',
-  departure: '',
-  arrival: '',
-  price: '',
-  seats: '',
-  stops: '',
-  description: ''
+  // 1. Flight Basic Information
+  airlineName: '',
+  airlineIata: '',
+  flightNumber: '',
+  flightType: 'one-way',
+
+  // 2. Departure Details
+  departureAirport: '',
+  departureAirportCode: '',
+  departureTerminal: '',
+  departureGate: '',
+  departureCity: '',
+  departureCountry: '',
+  departureDate: '',
+  departureTime: '',
+
+  // 3. Arrival Details
+  arrivalAirport: '',
+  arrivalAirportCode: '',
+  arrivalTerminal: '',
+  arrivalGate: '',
+  arrivalCity: '',
+  arrivalCountry: '',
+  arrivalDate: '',
+  arrivalTime: '',
+
+  // 4. Flight Duration
+  durationTotal: '',
+  layoverAirports: '',
+  layoverDuration: '',
+  totalTravelTime: '',
+
+  // 5. Aircraft Details
+  aircraftModel: '',
+  aircraftCode: '',
+  seatCapacity: '',
+  seatLayout: '',
+
+  // 6. Class Types Available
+  economySeats: '',
+  economySeatType: '',
+  economyComfort: '',
+  premiumSeats: '',
+  premiumSeatType: '',
+  premiumComfort: '',
+  businessSeats: '',
+  businessSeatType: '',
+  businessComfort: '',
+  firstSeats: '',
+  firstSeatType: '',
+  firstComfort: '',
+
+  // 7. Fare & Price Information
+  economyBaseFare: '',
+  economyTaxes: '',
+  economyServiceFees: '',
+  economyFuelSurcharge: '',
+  economyTotalPrice: '',
+  economyRefundable: 'non-refundable',
+  economyFareRules: '',
+  premiumBaseFare: '',
+  premiumTaxes: '',
+  premiumServiceFees: '',
+  premiumFuelSurcharge: '',
+  premiumTotalPrice: '',
+  premiumRefundable: 'non-refundable',
+  premiumFareRules: '',
+  businessBaseFare: '',
+  businessTaxes: '',
+  businessServiceFees: '',
+  businessFuelSurcharge: '',
+  businessTotalPrice: '',
+  businessRefundable: 'non-refundable',
+  businessFareRules: '',
+  firstBaseFare: '',
+  firstTaxes: '',
+  firstServiceFees: '',
+  firstFuelSurcharge: '',
+  firstTotalPrice: '',
+  firstRefundable: 'non-refundable',
+  firstFareRules: '',
+
+  // 8. Baggage Allowance
+  carryOnBags: '',
+  carryOnWeight: '',
+  carryOnSize: '',
+  checkedBags: '',
+  checkedWeight: '',
+  checkedSize: '',
+  extraBaggageFees: '',
+
+  // 9. Passenger Requirements
+  idRequired: '',
+  visaRequired: '',
+  healthDocuments: '',
+  ageRestrictions: '',
+
+  // 10. Services Included / Add-ons
+  mealIncluded: '',
+  inFlightEntertainment: '',
+  wifiAvailability: '',
+  powerOutlets: '',
+  specialAssistance: '',
+  priorityBoarding: '',
+  loungeAccess: '',
+  extraLegroomOptions: '',
+  upgradeAvailability: '',
+
+  // 11. Policies
+  cancellationPolicy: '',
+  changePolicy: '',
+  refundPolicy: '',
+  deniedBoardingPolicy: '',
+  overbookingHandling: '',
+
+  // 12. Operational Information
+  flightStatus: 'scheduled',
+  trackingLink: '',
+  gateChangeAlerts: '',
+  weatherImpactInfo: '',
+
+  // 13. Admin / Platform Internal Fields
+  commissionPercentage: '',
+  inventorySource: '',
+  airlineSystem: '',
+  gds: '',
+  apiSupplier: '',
+  markupSettings: '',
+  flightVisibility: 'active',
+  seatsRemaining: ''
 };
 
 const ListProperty = () => {
@@ -139,7 +259,7 @@ const ListProperty = () => {
         {[
           { id: 'stay', label: 'Stay', desc: 'Apartments, hotels, homes', color: 'from-blue-500 to-blue-600' },
           { id: 'rental', label: 'Rental', desc: 'Cars & vehicles', color: 'from-green-500 to-green-600' },
-          { id: 'attraction', label: 'Attraction', desc: 'Tours & activities', color: 'from-[#a06b42] to-[#8f5a32]' },
+          { id: 'attraction', label: 'Attraction', desc: 'Tours & activities', color: 'from-purple-500 to-purple-600' },
           { id: 'flight', label: 'Flight', desc: 'Flight services', color: 'from-indigo-500 to-indigo-600' }
         ].map((type) => (
           <button
@@ -299,6 +419,7 @@ const ListProperty = () => {
   );
 
   const totalAttractionSteps = 9;
+  const totalFlightSteps = 13;
 
   const handleAttractionSubmit = async (e) => {
     e.preventDefault();
@@ -353,16 +474,24 @@ const ListProperty = () => {
   };
 
   const validateFlightStep = (step) => {
-    if (step === 1 && (!flightData.title || !flightData.origin || !flightData.destination)) {
-      toast.error('Provide flight title, origin, and destination.');
+    if (step === 1 && (!flightData.airlineName || !flightData.airlineIata || !flightData.flightNumber || !flightData.flightType)) {
+      toast.error('Add airline name, IATA code, flight number and type.');
       return false;
     }
-    if (step === 2 && (!flightData.aircraft || !flightData.departure || !flightData.arrival || !flightData.price)) {
-      toast.error('Add aircraft/operator, departure, arrival, and price.');
+    if (step === 2 && (!flightData.departureAirport || !flightData.departureCity || !flightData.departureCountry || !flightData.departureDate || !flightData.departureTime)) {
+      toast.error('Complete departure airport, city, country, date and time.');
       return false;
     }
-    if (step === 3 && (!flightData.seats || !flightData.stops || !flightData.description)) {
-      toast.error('Share seat count, stops, and description.');
+    if (step === 3 && (!flightData.arrivalAirport || !flightData.arrivalCity || !flightData.arrivalCountry || !flightData.arrivalDate || !flightData.arrivalTime)) {
+      toast.error('Complete arrival airport, city, country, date and time.');
+      return false;
+    }
+    if (step === 4 && !flightData.durationTotal) {
+      toast.error('Provide total flight duration.');
+      return false;
+    }
+    if (step === 5 && (!flightData.aircraftModel || !flightData.seatCapacity)) {
+      toast.error('Add aircraft model and seat capacity.');
       return false;
     }
     return true;
@@ -371,11 +500,11 @@ const ListProperty = () => {
   const handleFlightSubmit = (e) => {
     e.preventDefault();
     if (!validateFlightStep(flightStep)) return;
-    if (flightStep < 3) {
+    if (flightStep < totalFlightSteps) {
       setFlightStep(prev => prev + 1);
       return;
     }
-    toast.success('Flight itinerary saved. Continue in the flights workspace to finalise pricing.');
+    toast.success('Flight details saved. You can now connect pricing and inventory in the flights workspace.');
   };
 
   const renderAttractionForm = () => (
@@ -557,118 +686,798 @@ const ListProperty = () => {
 
   const renderFlightForm = () => (
     <form className="space-y-6" onSubmit={handleFlightSubmit}>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-gray-500">Step {flightStep} of {totalFlightSteps}</div>
+        </div>
+        <div className="w-full h-1 bg-gray-200 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-indigo-600"
+            style={{ width: `${(flightStep / totalFlightSteps) * 100}%` }}
+          />
+        </div>
+      </div>
+
       {flightStep === 1 && (
-        <div className="space-y-4">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700">Flight title</label>
-            <input
-              value={flightData.title}
-              onChange={(e) => setFlightData(prev => ({ ...prev, title: e.target.value }))}
-              className="w-full px-4 py-2 border rounded-lg"
-              placeholder="Kigali ↔ Nairobi"
-            />
+            <p className="text-xl font-semibold text-gray-900">✈️ 1. Flight Basic Information</p>
+            <p className="text-sm text-gray-500">Core identifiers for this flight.</p>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid gap-4 md:grid-cols-2">
             <div>
-              <label className="block text-sm font-medium text-gray-700">Origin</label>
+              <label className="block text-sm font-medium text-gray-700">Airline Name</label>
               <input
-                value={flightData.origin}
-                onChange={(e) => setFlightData(prev => ({ ...prev, origin: e.target.value }))}
-                className="w-full px-4 py-2 border rounded-lg"
+                value={flightData.airlineName}
+                onChange={(e) => setFlightData(prev => ({ ...prev, airlineName: e.target.value }))}
+                className="w-full px-4 py-2 border border-gray-200 rounded-xl"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">Destination</label>
+              <label className="block text-sm font-medium text-gray-700">Airline IATA Code</label>
               <input
-                value={flightData.destination}
-                onChange={(e) => setFlightData(prev => ({ ...prev, destination: e.target.value }))}
-                className="w-full px-4 py-2 border rounded-lg"
+                value={flightData.airlineIata}
+                onChange={(e) => setFlightData(prev => ({ ...prev, airlineIata: e.target.value.toUpperCase() }))}
+                className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+                placeholder="WB"
               />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Flight Number</label>
+              <input
+                value={flightData.flightNumber}
+                onChange={(e) => setFlightData(prev => ({ ...prev, flightNumber: e.target.value }))}
+                className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+                placeholder="WB302"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Flight Type</label>
+              <select
+                value={flightData.flightType}
+                onChange={(e) => setFlightData(prev => ({ ...prev, flightType: e.target.value }))}
+                className="w-full px-4 py-2 border border-gray-200 rounded-xl bg-white"
+              >
+                <option value="one-way">One-way</option>
+                <option value="round-trip">Round-trip</option>
+                <option value="multi-city">Multi-city</option>
+              </select>
             </div>
           </div>
         </div>
       )}
+
       {flightStep === 2 && (
-        <div className="space-y-4">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700">Aircraft / Operator</label>
-            <input
-              value={flightData.aircraft}
-              onChange={(e) => setFlightData(prev => ({ ...prev, aircraft: e.target.value }))}
-              className="w-full px-4 py-2 border rounded-lg"
-            />
+            <p className="text-xl font-semibold text-gray-900">✈️ 2. Departure Details</p>
+            <p className="text-sm text-gray-500">Where and when the journey starts.</p>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid gap-4 md:grid-cols-2">
             <div>
-              <label className="block text-sm font-medium text-gray-700">Departure</label>
+              <label className="block text-sm font-medium text-gray-700">Departure Airport</label>
               <input
-                type="datetime-local"
-                value={flightData.departure}
-                onChange={(e) => setFlightData(prev => ({ ...prev, departure: e.target.value }))}
-                className="w-full px-4 py-2 border rounded-lg"
+                value={flightData.departureAirport}
+                onChange={(e) => setFlightData(prev => ({ ...prev, departureAirport: e.target.value }))}
+                className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+                placeholder="Kigali International Airport"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">Arrival</label>
+              <label className="block text-sm font-medium text-gray-700">Departure Airport Code</label>
               <input
-                type="datetime-local"
-                value={flightData.arrival}
-                onChange={(e) => setFlightData(prev => ({ ...prev, arrival: e.target.value }))}
-                className="w-full px-4 py-2 border rounded-lg"
+                value={flightData.departureAirportCode}
+                onChange={(e) => setFlightData(prev => ({ ...prev, departureAirportCode: e.target.value.toUpperCase() }))}
+                className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+                placeholder="KGL"
               />
             </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Price (RWF)</label>
-            <input
-              type="number"
-              value={flightData.price}
-              onChange={(e) => setFlightData(prev => ({ ...prev, price: e.target.value }))}
-              className="w-full px-4 py-2 border rounded-lg"
-            />
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Departure Terminal</label>
+              <input
+                value={flightData.departureTerminal}
+                onChange={(e) => setFlightData(prev => ({ ...prev, departureTerminal: e.target.value }))}
+                className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Departure Gate (optional)</label>
+              <input
+                value={flightData.departureGate}
+                onChange={(e) => setFlightData(prev => ({ ...prev, departureGate: e.target.value }))}
+                className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Departure City & Country</label>
+              <input
+                value={`${flightData.departureCity}${flightData.departureCity && flightData.departureCountry ? ', ' : ''}${flightData.departureCountry}`}
+                onChange={(e) => {
+                  const [city, country] = e.target.value.split(',').map((s) => s.trim());
+                  setFlightData(prev => ({ ...prev, departureCity: city || '', departureCountry: country || '' }));
+                }}
+                className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+                placeholder="Kigali, Rwanda"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Departure Date</label>
+                <input
+                  type="date"
+                  value={flightData.departureDate}
+                  onChange={(e) => setFlightData(prev => ({ ...prev, departureDate: e.target.value }))}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Departure Time</label>
+                <input
+                  type="time"
+                  value={flightData.departureTime}
+                  onChange={(e) => setFlightData(prev => ({ ...prev, departureTime: e.target.value }))}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+                />
+              </div>
+            </div>
           </div>
         </div>
       )}
+
       {flightStep === 3 && (
-        <div className="space-y-4">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700">Stops</label>
-            <input
-              value={flightData.stops}
-              onChange={(e) => setFlightData(prev => ({ ...prev, stops: e.target.value }))}
-              className="w-full px-4 py-2 border rounded-lg"
-              placeholder="Direct / 1 stop"
-            />
+            <p className="text-xl font-semibold text-gray-900">✈️ 3. Arrival Details</p>
+            <p className="text-sm text-gray-500">Where and when the journey ends.</p>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Arrival Airport</label>
+              <input
+                value={flightData.arrivalAirport}
+                onChange={(e) => setFlightData(prev => ({ ...prev, arrivalAirport: e.target.value }))}
+                className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Arrival Airport Code</label>
+              <input
+                value={flightData.arrivalAirportCode}
+                onChange={(e) => setFlightData(prev => ({ ...prev, arrivalAirportCode: e.target.value.toUpperCase() }))}
+                className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Arrival Terminal</label>
+              <input
+                value={flightData.arrivalTerminal}
+                onChange={(e) => setFlightData(prev => ({ ...prev, arrivalTerminal: e.target.value }))}
+                className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Arrival Gate (optional)</label>
+              <input
+                value={flightData.arrivalGate}
+                onChange={(e) => setFlightData(prev => ({ ...prev, arrivalGate: e.target.value }))}
+                className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Arrival City & Country</label>
+              <input
+                value={`${flightData.arrivalCity}${flightData.arrivalCity && flightData.arrivalCountry ? ', ' : ''}${flightData.arrivalCountry}`}
+                onChange={(e) => {
+                  const [city, country] = e.target.value.split(',').map((s) => s.trim());
+                  setFlightData(prev => ({ ...prev, arrivalCity: city || '', arrivalCountry: country || '' }));
+                }}
+                className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+                placeholder="Nairobi, Kenya"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Arrival Date</label>
+                <input
+                  type="date"
+                  value={flightData.arrivalDate}
+                  onChange={(e) => setFlightData(prev => ({ ...prev, arrivalDate: e.target.value }))}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Arrival Time</label>
+                <input
+                  type="time"
+                  value={flightData.arrivalTime}
+                  onChange={(e) => setFlightData(prev => ({ ...prev, arrivalTime: e.target.value }))}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {flightStep === 4 && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
+          <div>
+            <p className="text-xl font-semibold text-gray-900">✈️ 4. Flight Duration</p>
+            <p className="text-sm text-gray-500">Overall timing including layovers.</p>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Total Duration (HH:MM)</label>
+              <input
+                value={flightData.durationTotal}
+                onChange={(e) => setFlightData(prev => ({ ...prev, durationTotal: e.target.value }))}
+                className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+                placeholder="02:30"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Layover Airports (if any)</label>
+              <input
+                value={flightData.layoverAirports}
+                onChange={(e) => setFlightData(prev => ({ ...prev, layoverAirports: e.target.value }))}
+                className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+                placeholder="KGL, EBB"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Layover Duration</label>
+              <input
+                value={flightData.layoverDuration}
+                onChange={(e) => setFlightData(prev => ({ ...prev, layoverDuration: e.target.value }))}
+                className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+                placeholder="01:00"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Total Travel Time</label>
+              <input
+                value={flightData.totalTravelTime}
+                onChange={(e) => setFlightData(prev => ({ ...prev, totalTravelTime: e.target.value }))}
+                className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+                placeholder="03:30"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {flightStep === 5 && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
+          <div>
+            <p className="text-xl font-semibold text-gray-900">✈️ 5. Aircraft Details</p>
+            <p className="text-sm text-gray-500">The aircraft operating this route.</p>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Aircraft Model</label>
+              <input
+                value={flightData.aircraftModel}
+                onChange={(e) => setFlightData(prev => ({ ...prev, aircraftModel: e.target.value }))}
+                className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+                placeholder="Boeing 737-800"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Aircraft Code</label>
+              <input
+                value={flightData.aircraftCode}
+                onChange={(e) => setFlightData(prev => ({ ...prev, aircraftCode: e.target.value }))}
+                className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Seat Capacity</label>
+              <input
+                type="number"
+                value={flightData.seatCapacity}
+                onChange={(e) => setFlightData(prev => ({ ...prev, seatCapacity: e.target.value }))}
+                className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Seat Layout</label>
+              <input
+                value={flightData.seatLayout}
+                onChange={(e) => setFlightData(prev => ({ ...prev, seatLayout: e.target.value }))}
+                className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+                placeholder="3-3, 2-4-2, etc."
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {flightStep === 6 && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
+          <div>
+            <p className="text-xl font-semibold text-gray-900">✈️ 6. Class Types Available</p>
+            <p className="text-sm text-gray-500">Seat availability and comfort for each cabin.</p>
+          </div>
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className="space-y-3">
+              <p className="text-sm font-semibold text-gray-800">Economy</p>
+              <input
+                className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+                placeholder="Seats available"
+                value={flightData.economySeats}
+                onChange={(e) => setFlightData(prev => ({ ...prev, economySeats: e.target.value }))}
+              />
+              <input
+                className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+                placeholder="Seat type (recliner, standard, etc.)"
+                value={flightData.economySeatType}
+                onChange={(e) => setFlightData(prev => ({ ...prev, economySeatType: e.target.value }))}
+              />
+              <textarea
+                className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+                rows={2}
+                placeholder="Comfort features (legroom, USB, WiFi...)"
+                value={flightData.economyComfort}
+                onChange={(e) => setFlightData(prev => ({ ...prev, economyComfort: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-3">
+              <p className="text-sm font-semibold text-gray-800">Premium Economy</p>
+              <input
+                className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+                placeholder="Seats available"
+                value={flightData.premiumSeats}
+                onChange={(e) => setFlightData(prev => ({ ...prev, premiumSeats: e.target.value }))}
+              />
+              <input
+                className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+                placeholder="Seat type"
+                value={flightData.premiumSeatType}
+                onChange={(e) => setFlightData(prev => ({ ...prev, premiumSeatType: e.target.value }))}
+              />
+              <textarea
+                className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+                rows={2}
+                placeholder="Comfort features"
+                value={flightData.premiumComfort}
+                onChange={(e) => setFlightData(prev => ({ ...prev, premiumComfort: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-3">
+              <p className="text-sm font-semibold text-gray-800">Business Class</p>
+              <input
+                className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+                placeholder="Seats available"
+                value={flightData.businessSeats}
+                onChange={(e) => setFlightData(prev => ({ ...prev, businessSeats: e.target.value }))}
+              />
+              <input
+                className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+                placeholder="Seat type"
+                value={flightData.businessSeatType}
+                onChange={(e) => setFlightData(prev => ({ ...prev, businessSeatType: e.target.value }))}
+              />
+              <textarea
+                className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+                rows={2}
+                placeholder="Comfort features"
+                value={flightData.businessComfort}
+                onChange={(e) => setFlightData(prev => ({ ...prev, businessComfort: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-3">
+              <p className="text-sm font-semibold text-gray-800">First Class</p>
+              <input
+                className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+                placeholder="Seats available"
+                value={flightData.firstSeats}
+                onChange={(e) => setFlightData(prev => ({ ...prev, firstSeats: e.target.value }))}
+              />
+              <input
+                className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+                placeholder="Seat type"
+                value={flightData.firstSeatType}
+                onChange={(e) => setFlightData(prev => ({ ...prev, firstSeatType: e.target.value }))}
+              />
+              <textarea
+                className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+                rows={2}
+                placeholder="Comfort features"
+                value={flightData.firstComfort}
+                onChange={(e) => setFlightData(prev => ({ ...prev, firstComfort: e.target.value }))}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {flightStep === 7 && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
+          <div>
+            <p className="text-xl font-semibold text-gray-900">✈️ 7. Fare & Price Information</p>
+            <p className="text-sm text-gray-500">Pricing breakdown by class.</p>
+          </div>
+          <div className="space-y-6">
+            {['economy', 'premium', 'business', 'first'].map((cls) => (
+              <div key={cls} className="space-y-3">
+                <p className="text-sm font-semibold text-gray-800 capitalize">{cls} class</p>
+                <div className="grid gap-4 md:grid-cols-3">
+                  <input
+                    className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+                    placeholder="Base fare"
+                    value={flightData[`${cls}BaseFare`]}
+                    onChange={(e) => setFlightData(prev => ({ ...prev, [`${cls}BaseFare`]: e.target.value }))}
+                  />
+                  <input
+                    className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+                    placeholder="Taxes"
+                    value={flightData[`${cls}Taxes`]}
+                    onChange={(e) => setFlightData(prev => ({ ...prev, [`${cls}Taxes`]: e.target.value }))}
+                  />
+                  <input
+                    className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+                    placeholder="Service fees"
+                    value={flightData[`${cls}ServiceFees`]}
+                    onChange={(e) => setFlightData(prev => ({ ...prev, [`${cls}ServiceFees`]: e.target.value }))}
+                  />
+                  <input
+                    className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+                    placeholder="Fuel surcharge"
+                    value={flightData[`${cls}FuelSurcharge`]}
+                    onChange={(e) => setFlightData(prev => ({ ...prev, [`${cls}FuelSurcharge`]: e.target.value }))}
+                  />
+                  <input
+                    className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+                    placeholder="Total price"
+                    value={flightData[`${cls}TotalPrice`]}
+                    onChange={(e) => setFlightData(prev => ({ ...prev, [`${cls}TotalPrice`]: e.target.value }))}
+                  />
+                  <select
+                    className="w-full px-4 py-2 border border-gray-200 rounded-xl bg-white"
+                    value={flightData[`${cls}Refundable`]}
+                    onChange={(e) => setFlightData(prev => ({ ...prev, [`${cls}Refundable`]: e.target.value }))}
+                  >
+                    <option value="refundable">Refundable</option>
+                    <option value="non-refundable">Non-refundable</option>
+                  </select>
+                </div>
+                <textarea
+                  className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+                  rows={2}
+                  placeholder="Fare rules, change and cancellation fees, no-show penalties..."
+                  value={flightData[`${cls}FareRules`]}
+                  onChange={(e) => setFlightData(prev => ({ ...prev, [`${cls}FareRules`]: e.target.value }))}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {flightStep === 8 && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
+          <div>
+            <p className="text-xl font-semibold text-gray-900">✈️ 8. Baggage Allowance</p>
+            <p className="text-sm text-gray-500">Separate rules for carry-on and checked baggage.</p>
+          </div>
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className="space-y-3">
+              <p className="text-sm font-semibold text-gray-800">Carry-on</p>
+              <input
+                className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+                placeholder="Number of bags"
+                value={flightData.carryOnBags}
+                onChange={(e) => setFlightData(prev => ({ ...prev, carryOnBags: e.target.value }))}
+              />
+              <input
+                className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+                placeholder="Allowed weight (kg)"
+                value={flightData.carryOnWeight}
+                onChange={(e) => setFlightData(prev => ({ ...prev, carryOnWeight: e.target.value }))}
+              />
+              <input
+                className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+                placeholder="Allowed size (cm)"
+                value={flightData.carryOnSize}
+                onChange={(e) => setFlightData(prev => ({ ...prev, carryOnSize: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-3">
+              <p className="text-sm font-semibold text-gray-800">Checked baggage</p>
+              <input
+                className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+                placeholder="Number of bags included"
+                value={flightData.checkedBags}
+                onChange={(e) => setFlightData(prev => ({ ...prev, checkedBags: e.target.value }))}
+              />
+              <input
+                className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+                placeholder="Weight limit (kg)"
+                value={flightData.checkedWeight}
+                onChange={(e) => setFlightData(prev => ({ ...prev, checkedWeight: e.target.value }))}
+              />
+              <input
+                className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+                placeholder="Size restrictions (cm)"
+                value={flightData.checkedSize}
+                onChange={(e) => setFlightData(prev => ({ ...prev, checkedSize: e.target.value }))}
+              />
+            </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">Seats available</label>
-            <input
-              type="number"
-              value={flightData.seats}
-              onChange={(e) => setFlightData(prev => ({ ...prev, seats: e.target.value }))}
-              className="w-full px-4 py-2 border rounded-lg"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Description</label>
+            <label className="block text-sm font-medium text-gray-700">Additional baggage fees</label>
             <textarea
-              value={flightData.description}
-              onChange={(e) => setFlightData(prev => ({ ...prev, description: e.target.value }))}
-              className="w-full px-4 py-2 border rounded-lg"
-              rows={3}
-              placeholder="Add service notes, baggage rules, etc."
+              className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+              rows={2}
+              value={flightData.extraBaggageFees}
+              onChange={(e) => setFlightData(prev => ({ ...prev, extraBaggageFees: e.target.value }))}
             />
           </div>
         </div>
       )}
-      <div className="flex items-center justify-between">
-        {flightStep > 1 && (
-          <button type="button" onClick={() => setFlightStep(prev => Math.max(prev - 1, 1))} className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">
-            Back
-          </button>
-        )}
-        <button type="submit" className="ml-auto px-5 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
-          {flightStep < 3 ? 'Continue' : 'Save flight info'}
+
+      {flightStep === 9 && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
+          <div>
+            <p className="text-xl font-semibold text-gray-900">✈️ 9. Passenger Requirements</p>
+            <p className="text-sm text-gray-500">Documentation or age rules for this route.</p>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <textarea
+              className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+              rows={2}
+              placeholder="ID required? (national ID, passport)"
+              value={flightData.idRequired}
+              onChange={(e) => setFlightData(prev => ({ ...prev, idRequired: e.target.value }))}
+            />
+            <textarea
+              className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+              rows={2}
+              placeholder="Visa required? (for international flights)"
+              value={flightData.visaRequired}
+              onChange={(e) => setFlightData(prev => ({ ...prev, visaRequired: e.target.value }))}
+            />
+            <textarea
+              className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+              rows={2}
+              placeholder="Health / COVID documents (if any)"
+              value={flightData.healthDocuments}
+              onChange={(e) => setFlightData(prev => ({ ...prev, healthDocuments: e.target.value }))}
+            />
+            <textarea
+              className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+              rows={2}
+              placeholder="Age restrictions (e.g., minors travelling alone)"
+              value={flightData.ageRestrictions}
+              onChange={(e) => setFlightData(prev => ({ ...prev, ageRestrictions: e.target.value }))}
+            />
+          </div>
+        </div>
+      )}
+
+      {flightStep === 10 && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
+          <div>
+            <p className="text-xl font-semibold text-gray-900">✈️ 10. Services Included / Add-ons</p>
+            <p className="text-sm text-gray-500">Extras that improve the passenger experience.</p>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <textarea
+              className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+              rows={2}
+              placeholder="Meal included?"
+              value={flightData.mealIncluded}
+              onChange={(e) => setFlightData(prev => ({ ...prev, mealIncluded: e.target.value }))}
+            />
+            <textarea
+              className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+              rows={2}
+              placeholder="In-flight entertainment"
+              value={flightData.inFlightEntertainment}
+              onChange={(e) => setFlightData(prev => ({ ...prev, inFlightEntertainment: e.target.value }))}
+            />
+            <textarea
+              className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+              rows={2}
+              placeholder="WiFi availability"
+              value={flightData.wifiAvailability}
+              onChange={(e) => setFlightData(prev => ({ ...prev, wifiAvailability: e.target.value }))}
+            />
+            <textarea
+              className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+              rows={2}
+              placeholder="Power outlets"
+              value={flightData.powerOutlets}
+              onChange={(e) => setFlightData(prev => ({ ...prev, powerOutlets: e.target.value }))}
+            />
+            <textarea
+              className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+              rows={2}
+              placeholder="Special assistance (wheelchair, medical)"
+              value={flightData.specialAssistance}
+              onChange={(e) => setFlightData(prev => ({ ...prev, specialAssistance: e.target.value }))}
+            />
+            <textarea
+              className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+              rows={2}
+              placeholder="Priority boarding / lounge access / extra legroom / upgrades"
+              value={flightData.priorityBoarding}
+              onChange={(e) => setFlightData(prev => ({ ...prev, priorityBoarding: e.target.value }))}
+            />
+          </div>
+        </div>
+      )}
+
+      {flightStep === 11 && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
+          <div>
+            <p className="text-xl font-semibold text-gray-900">✈️ 11. Policies</p>
+            <p className="text-sm text-gray-500">Clear rules reduce disputes.</p>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <textarea
+              className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+              rows={3}
+              placeholder="Cancellation policy"
+              value={flightData.cancellationPolicy}
+              onChange={(e) => setFlightData(prev => ({ ...prev, cancellationPolicy: e.target.value }))}
+            />
+            <textarea
+              className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+              rows={3}
+              placeholder="Change policy"
+              value={flightData.changePolicy}
+              onChange={(e) => setFlightData(prev => ({ ...prev, changePolicy: e.target.value }))}
+            />
+            <textarea
+              className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+              rows={3}
+              placeholder="Refund policy"
+              value={flightData.refundPolicy}
+              onChange={(e) => setFlightData(prev => ({ ...prev, refundPolicy: e.target.value }))}
+            />
+            <textarea
+              className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+              rows={3}
+              placeholder="Denied boarding / overbooking handling"
+              value={flightData.deniedBoardingPolicy}
+              onChange={(e) => setFlightData(prev => ({ ...prev, deniedBoardingPolicy: e.target.value }))}
+            />
+            <textarea
+              className="w-full px-4 py-2 border border-gray-200 rounded-xl md:col-span-2"
+              rows={2}
+              placeholder="Other notes (including regulations like EU261)"
+              value={flightData.overbookingHandling}
+              onChange={(e) => setFlightData(prev => ({ ...prev, overbookingHandling: e.target.value }))}
+            />
+          </div>
+        </div>
+      )}
+
+      {flightStep === 12 && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
+          <div>
+            <p className="text-xl font-semibold text-gray-900">✈️ 12. Operational Information</p>
+            <p className="text-sm text-gray-500">Realtime status and alerts.</p>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Flight status</label>
+              <select
+                value={flightData.flightStatus}
+                onChange={(e) => setFlightData(prev => ({ ...prev, flightStatus: e.target.value }))}
+                className="w-full px-4 py-2 border border-gray-200 rounded-xl bg-white"
+              >
+                <option value="scheduled">Scheduled</option>
+                <option value="delayed">Delayed</option>
+                <option value="cancelled">Cancelled</option>
+                <option value="boarding">Boarding</option>
+                <option value="in-air">In the air</option>
+                <option value="landed">Landed</option>
+              </select>
+            </div>
+            <input
+              className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+              placeholder="Flight tracking link (optional)"
+              value={flightData.trackingLink}
+              onChange={(e) => setFlightData(prev => ({ ...prev, trackingLink: e.target.value }))}
+            />
+            <textarea
+              className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+              rows={2}
+              placeholder="Gate change alerts"
+              value={flightData.gateChangeAlerts}
+              onChange={(e) => setFlightData(prev => ({ ...prev, gateChangeAlerts: e.target.value }))}
+            />
+            <textarea
+              className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+              rows={2}
+              placeholder="Weather impact info"
+              value={flightData.weatherImpactInfo}
+              onChange={(e) => setFlightData(prev => ({ ...prev, weatherImpactInfo: e.target.value }))}
+            />
+          </div>
+        </div>
+      )}
+
+      {flightStep === 13 && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
+          <div>
+            <p className="text-xl font-semibold text-gray-900">✈️ 13. Admin / Platform Internal Fields</p>
+            <p className="text-sm text-gray-500">Internal controls for AKWANDA.rw only.</p>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <input
+              className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+              placeholder="Commission percentage"
+              value={flightData.commissionPercentage}
+              onChange={(e) => setFlightData(prev => ({ ...prev, commissionPercentage: e.target.value }))}
+            />
+            <input
+              className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+              placeholder="Inventory source"
+              value={flightData.inventorySource}
+              onChange={(e) => setFlightData(prev => ({ ...prev, inventorySource: e.target.value }))}
+            />
+            <input
+              className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+              placeholder="Airline / system ID"
+              value={flightData.airlineSystem}
+              onChange={(e) => setFlightData(prev => ({ ...prev, airlineSystem: e.target.value }))}
+            />
+            <input
+              className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+              placeholder="GDS (Amadeus, Sabre, Travelport)"
+              value={flightData.gds}
+              onChange={(e) => setFlightData(prev => ({ ...prev, gds: e.target.value }))}
+            />
+            <input
+              className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+              placeholder="API supplier"
+              value={flightData.apiSupplier}
+              onChange={(e) => setFlightData(prev => ({ ...prev, apiSupplier: e.target.value }))}
+            />
+            <input
+              className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+              placeholder="Markup settings"
+              value={flightData.markupSettings}
+              onChange={(e) => setFlightData(prev => ({ ...prev, markupSettings: e.target.value }))}
+            />
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Flight visibility</label>
+              <select
+                value={flightData.flightVisibility}
+                onChange={(e) => setFlightData(prev => ({ ...prev, flightVisibility: e.target.value }))}
+                className="w-full px-4 py-2 border border-gray-200 rounded-xl bg-white"
+              >
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </div>
+            <input
+              className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+              placeholder="Seats remaining (override)"
+              value={flightData.seatsRemaining}
+              onChange={(e) => setFlightData(prev => ({ ...prev, seatsRemaining: e.target.value }))}
+            />
+          </div>
+        </div>
+      )}
+
+      <div className="flex items-center justify-between mt-4">
+        <button
+          type="button"
+          onClick={() => setFlightStep(prev => Math.max(prev - 1, 1))}
+          disabled={flightStep === 1}
+          className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Back
+        </button>
+        <button
+          type="submit"
+          className="ml-auto px-5 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+        >
+          {flightStep < totalFlightSteps ? 'Next' : 'Save flight info'}
         </button>
       </div>
     </form>
