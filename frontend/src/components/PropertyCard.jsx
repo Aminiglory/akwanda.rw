@@ -37,7 +37,9 @@ const PropertyCard = ({
     bedrooms,
     bathrooms,
     isPremium,
-    isAd
+    isAd,
+    rooms,
+    hasBreakfastIncluded,
   } = listing || {};
 
   const highlightText = (text) => {
@@ -103,22 +105,27 @@ const PropertyCard = ({
           <FaMapMarkerAlt className="mr-1" />
           <span className="line-clamp-1">{highlightText(location)}</span>
         </div>
-        <div className="grid grid-cols-2 gap-3 text-sm flex-none mb-4">
-          <div className="flex items-center gap-2">
-            <FaBed className="text-gray-400" />
-            <div>
-              <div className="text-gray-900 font-semibold">{bedrooms ?? '-'}</div>
-              <div className="text-gray-500 text-xs">{t ? t('property.bedrooms') : 'Bedrooms'}</div>
+        {Array.isArray(rooms) && rooms.length > 0 && (
+          <div className="mt-1 mb-3 overflow-x-auto scrollbar-hide">
+            <div className="flex gap-2">
+              {rooms.slice(0, 6).map((room, idx) => (
+                <span
+                  key={room._id || room.roomNumber || room.roomType || idx}
+                  className="px-2 py-1 rounded-full bg-gray-100 text-[11px] font-medium text-gray-700 whitespace-nowrap"
+                >
+                  {room.roomNumber || room.name || room.roomType || 'Room'}
+                </span>
+              ))}
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <FaBath className="text-gray-400" />
-            <div>
-              <div className="text-gray-900 font-semibold">{bathrooms ?? '-'}</div>
-              <div className="text-gray-500 text-xs">{t ? t('property.bathrooms') : 'Bathrooms'}</div>
-            </div>
+        )}
+        {hasBreakfastIncluded && (
+          <div className="mb-3">
+            <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-green-50 text-[11px] font-semibold text-green-700 border border-green-200">
+              {t ? t('property.breakfastIncluded') : 'Breakfast included'}
+            </span>
           </div>
-        </div>
+        )}
         <div className="mt-4 flex items-center justify-between flex-none">
           <div className={`text-teal-600 font-extrabold ${isCompact ? 'text-lg' : 'text-xl'}`}>{formatCurrencyRWF ? formatCurrencyRWF(price ?? 0) : `RWF ${(price ?? 0).toLocaleString()}`}</div>
           <div className="flex items-center gap-2">

@@ -37,6 +37,13 @@ const FeaturedApartments = () => {
           const primaryImage = p.images && p.images.length ? processImageUrl(p.images[0]) : null;
           const allImages = Array.isArray(p.images) ? p.images.map(processImageUrl).filter(Boolean) : [];
           
+          const hasBreakfastIncluded = (
+            Array.isArray(p.amenities) && p.amenities.includes('breakfast')
+          ) || (
+            Array.isArray(p.addOnServices) &&
+            p.addOnServices.some(s => s && s.key === 'breakfast' && s.enabled && Number(s.price || 0) === 0)
+          );
+
           return {
             id: p._id,
             title: p.title,
@@ -49,6 +56,8 @@ const FeaturedApartments = () => {
             bedrooms: p.bedrooms ?? 2,
             bathrooms: p.bathrooms ?? 1,
             amenities: p.amenities || ["WiFi", "Parking", "Kitchen"],
+            rooms: Array.isArray(p.rooms) ? p.rooms : [],
+            hasBreakfastIncluded,
             isAvailable: p.isActive,
             discountPercent: p.discountPercent || 0,
             host: p.host ? `${p.host.firstName || ''} ${p.host.lastName || ''}`.trim() : '—',
@@ -115,7 +124,9 @@ const FeaturedApartments = () => {
                   area: apartment.size,
                   status: apartment.isAvailable ? 'active' : 'inactive',
                   bookings: apartment.reviews,
-                  host: apartment.host
+                  host: apartment.host,
+                  rooms: apartment.rooms,
+                  hasBreakfastIncluded: apartment.hasBreakfastIncluded
                 }}
                 onView={() => (window.location.href = `/apartment/${apartment.id}`)}
               />

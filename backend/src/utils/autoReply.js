@@ -128,32 +128,14 @@ function getAutoReply(messageText, property, owner) {
  * @returns {string} - Formatted contact information
  */
 function generateContactFooter(owner) {
-  if (!owner) return '';
-  
+  // To protect owner privacy before a booking is made, we do not expose
+  // direct contact details (email/phone) in generic auto-replies. Owners
+  // can still share these details manually or via post-booking flows.
+  if (!owner) return '\n\n📞 I\'ll reply to you shortly via AKWANDA.rw messages with more details.';
+
   const name = owner.name || owner.firstName || 'Property Owner';
-  const email = owner.email || '';
-  const phone = owner.phone || owner.phoneNumber || '';
-  
-  let footer = '\n\n📞 For more details, you can contact me directly:\n';
-  
-  if (name) {
-    footer += `👤 ${name}\n`;
-  }
-  
-  if (email) {
-    footer += `📧 Email: ${email}\n`;
-  }
-  
-  if (phone) {
-    footer += `📱 Phone: ${phone}`;
-  }
-  
-  // If no contact info available, return generic message
-  if (!email && !phone) {
-    return '\n\n📞 I\'ll respond with my contact details shortly so we can discuss further!';
-  }
-  
-  return footer;
+
+  return `\n\n📞 ${name} will reply to you shortly via AKWANDA.rw messages with more details.`;
 }
 
 /**

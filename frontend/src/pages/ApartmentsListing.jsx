@@ -121,6 +121,13 @@ const ApartmentsListing = () => {
           img = firstImg ? makeAbsolute(firstImg) : undefined;
         }
         const pricePerNight = p.pricePerNight || p.price || 0;
+        const hasBreakfastIncluded = (
+          Array.isArray(p.amenities) && p.amenities.includes('breakfast')
+        ) || (
+          Array.isArray(p.addOnServices) &&
+          p.addOnServices.some(s => s && s.key === 'breakfast' && s.enabled && Number(s.price || 0) === 0)
+        );
+
         return ({
         id: p._id,
         title: p.title,
@@ -139,6 +146,8 @@ const ApartmentsListing = () => {
           Array.isArray(p.amenities) && p.amenities.length
             ? p.amenities
             : ["WiFi", "Parking", "Kitchen"],
+        rooms: Array.isArray(p.rooms) ? p.rooms : [],
+        hasBreakfastIncluded,
         isAvailable: p.isActive && (!p.rooms || p.rooms.length === 0 || p.rooms.some(room => room.isAvailable !== false)),
         host: p.host ? `${p.host.firstName || ''} ${p.host.lastName || ''}`.trim() : "—",
         hostId: p.host?._id || p.host?.id || null,
