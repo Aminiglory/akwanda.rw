@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 import EnhancedUploadProperty from './EnhancedUploadProperty';
 import VehicleListingForm from '../components/VehicleListingForm';
+import { FaUpload } from 'react-icons/fa';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -439,6 +440,45 @@ const ListProperty = () => {
   const totalAttractionSteps = 9;
   const totalFlightSteps = 13;
 
+  const validateAttractionStep = (step) => {
+    if (step === 1) {
+      if (!attractionForm.name || !attractionForm.category || !attractionForm.shortDescription) {
+        toast.error('Add attraction name, category and a short description.');
+        return false;
+      }
+    }
+    if (step === 2) {
+      if (!attractionForm.country || !attractionForm.city || !attractionForm.address) {
+        toast.error('Add country, city and exact address.');
+        return false;
+      }
+    }
+    if (step === 3) {
+      if (!attractionForm.coverPhotoFiles?.length || !attractionForm.galleryFiles?.length) {
+        toast.error('Upload a cover photo and at least one gallery image.');
+        return false;
+      }
+    }
+    if (step === 5) {
+      if (!attractionForm.ticketAdult || !attractionForm.currency) {
+        toast.error('Add adult ticket price and currency.');
+        return false;
+      }
+    }
+    if (step === 9) {
+      if (!attractionForm.contactPhone || !attractionForm.contactEmail) {
+        toast.error('Add contact phone and email.');
+        return false;
+      }
+    }
+    return true;
+  };
+
+  const handleAttractionNext = () => {
+    if (!validateAttractionStep(attractionStep)) return;
+    setAttractionStep(prev => Math.min(totalAttractionSteps, prev + 1));
+  };
+
   const handleAttractionSubmit = async (e) => {
     e.preventDefault();
     if (!attractionForm.name || !attractionForm.category || !attractionForm.city || !attractionForm.country) {
@@ -556,9 +596,9 @@ const ListProperty = () => {
 
       {attractionStep === 1 && section('1. Basic information', 'Required to identify the attraction.',
         <>
-          {renderField({ label: 'Attraction Name', name: 'name', placeholder: 'Kigali Cultural Walk' })}
-          {renderField({ label: 'Category / Type', name: 'category', type: 'select', options: categoryOptions })}
-          {renderField({ label: 'Short Description', name: 'shortDescription', type: 'textarea', placeholder: '1–2 sentence summary' })}
+          {renderField({ label: 'Attraction Name *', name: 'name', placeholder: 'Kigali Cultural Walk' })}
+          {renderField({ label: 'Category / Type *', name: 'category', type: 'select', options: categoryOptions })}
+          {renderField({ label: 'Short Description *', name: 'shortDescription', type: 'textarea', placeholder: '1–2 sentence summary' })}
           {renderField({ label: 'Full Description', name: 'fullDescription', type: 'textarea', placeholder: 'Detailed highlight narrative' })}
           {renderField({ label: 'Highlights / Key Features', name: 'highlights', type: 'textarea', placeholder: 'Bullet points separated by commas' })}
         </>
@@ -568,9 +608,9 @@ const ListProperty = () => {
         <>
           {section('2. Location details', 'Precision helps guests arrive smoothly.',
             <>
-              {renderField({ label: 'Country', name: 'country', placeholder: 'Rwanda' })}
-              {renderField({ label: 'City / Town / District', name: 'city', placeholder: 'Kigali' })}
-              {renderField({ label: 'Exact Address', name: 'address', placeholder: 'Street, building name...' })}
+              {renderField({ label: 'Country *', name: 'country', placeholder: 'Rwanda' })}
+              {renderField({ label: 'City / Town / District *', name: 'city', placeholder: 'Kigali' })}
+              {renderField({ label: 'Exact Address *', name: 'address', placeholder: 'Street, building name...' })}
               {renderField({ label: 'GPS Coordinates', name: 'gps', placeholder: 'Latitude, Longitude' })}
               {renderField({ label: 'Landmarks Nearby', name: 'landmarks', placeholder: 'University, hotel, park (optional)' })}
               {renderField({ label: 'Directions / How to get there', name: 'directions', type: 'textarea', placeholder: 'Describe transport options (optional)' })}
@@ -605,17 +645,52 @@ const ListProperty = () => {
         <>
           <div className="space-y-1">
             <label className="text-sm font-medium text-gray-700">Cover photo *</label>
-            <input type="file" accept="image/*" onChange={(e) => handleCoverUpload(e.target.files)} className="w-full" />
-            <p className="text-xs text-gray-500">
-              {attractionForm.coverPhotoFiles.length ? `${attractionForm.coverPhotoFiles.length} file(s) ready` : 'Upload a hero photo.'}
-            </p>
+            <div className="border-2 border-dashed border-gray-300 rounded-2xl p-6 flex items-center justify-center text-center bg-gray-50/50">
+              <input
+                id="attraction-cover-upload"
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => handleCoverUpload(e.target.files)}
+              />
+              <label
+                htmlFor="attraction-cover-upload"
+                className="cursor-pointer inline-flex flex-col items-center gap-2 text-sm text-gray-700"
+              >
+                <FaUpload className="text-xl text-gray-400" />
+                <span>
+                  {attractionForm.coverPhotoFiles.length
+                    ? `${attractionForm.coverPhotoFiles.length} file(s) selected`
+                    : 'Upload cover photo'}
+                </span>
+                <span className="text-xs text-gray-500">Upload a hero photo.</span>
+              </label>
+            </div>
           </div>
           <div className="space-y-1">
             <label className="text-sm font-medium text-gray-700">Gallery images *</label>
-            <input type="file" accept="image/*" multiple onChange={(e) => handleGalleryUpload(e.target.files)} className="w-full" />
-            <p className="text-xs text-gray-500">
-              {attractionForm.galleryFiles.length ? `${attractionForm.galleryFiles.length} file(s) ready` : 'Upload 3-20 images.'}
-            </p>
+            <div className="border-2 border-dashed border-gray-300 rounded-2xl p-6 flex items-center justify-center text-center bg-gray-50/50">
+              <input
+                id="attraction-gallery-upload"
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={(e) => handleGalleryUpload(e.target.files)}
+              />
+              <label
+                htmlFor="attraction-gallery-upload"
+                className="cursor-pointer inline-flex flex-col items-center gap-2 text-sm text-gray-700"
+              >
+                <FaUpload className="text-xl text-gray-400" />
+                <span>
+                  {attractionForm.galleryFiles.length
+                    ? `${attractionForm.galleryFiles.length} file(s) selected`
+                    : 'Upload gallery images'}
+                </span>
+                <span className="text-xs text-gray-500">Upload 3–20 images.</span>
+              </label>
+            </div>
           </div>
           {renderField({ label: 'Video URL (optional)', name: 'video', placeholder: 'YouTube / Vimeo link' })}
         </>
@@ -636,12 +711,12 @@ const ListProperty = () => {
 
       {attractionStep === 5 && section('5. Pricing & ticketing', 'Cover every financial expectation.',
         <>
-          {renderField({ label: 'Ticket price (adult)', name: 'ticketAdult', type: 'number', placeholder: 'RWF' })}
+          {renderField({ label: 'Ticket price (adult) *', name: 'ticketAdult', type: 'number', placeholder: 'RWF' })}
           {renderField({ label: 'Ticket price (child)', name: 'ticketChild', type: 'number', placeholder: 'RWF' })}
           {renderField({ label: 'Ticket price (student)', name: 'ticketStudent', type: 'number', placeholder: 'RWF' })}
           {renderField({ label: 'Ticket price (group)', name: 'ticketGroup', type: 'number', placeholder: 'RWF' })}
           {renderField({ label: 'Discounts', name: 'discounts', placeholder: 'Promos, seasons...' })}
-          {renderField({ label: 'Currency', name: 'currency', placeholder: 'RWF' })}
+          {renderField({ label: 'Currency *', name: 'currency', placeholder: 'RWF' })}
           {renderField({ label: 'Payment methods', name: 'paymentMethods', placeholder: 'Card, mobile money...' })}
           {renderField({ label: 'Cancellation policy', name: 'cancellationPolicy', type: 'textarea', placeholder: 'Free cancellation?' })}
           {renderField({ label: 'Refund policy', name: 'refundPolicy', type: 'textarea', placeholder: 'Full refund within 24h...' })}
@@ -678,8 +753,8 @@ const ListProperty = () => {
       {attractionStep === 9 && section('9. Contact information', 'How guests reach you.',
         <>
           {renderField({ label: 'Owner / manager name', name: 'contactName', placeholder: 'John Doe' })}
-          {renderField({ label: 'Phone number', name: 'contactPhone', placeholder: '+250 78...' })}
-          {renderField({ label: 'Email address', name: 'contactEmail', type: 'email', placeholder: 'owner@example.com' })}
+          {renderField({ label: 'Phone number *', name: 'contactPhone', placeholder: '+250 78...' })}
+          {renderField({ label: 'Email address *', name: 'contactEmail', type: 'email', placeholder: 'owner@example.com' })}
           {renderField({ label: 'Website (optional)', name: 'contactWebsite', placeholder: 'https://...' })}
           {renderField({ label: 'Emergency contact (optional)', name: 'contactEmergency', placeholder: '+250 7...' })}
         </>
@@ -698,7 +773,7 @@ const ListProperty = () => {
           {attractionStep < totalAttractionSteps && (
             <button
               type="button"
-              onClick={() => setAttractionStep(prev => Math.min(totalAttractionSteps, prev + 1))}
+              onClick={handleAttractionNext}
               className="px-5 py-2.5 bg-[#a06b42] text-white rounded-lg hover:bg-[#8f5a32]"
             >
               Next
