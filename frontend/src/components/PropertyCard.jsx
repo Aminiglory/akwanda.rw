@@ -40,6 +40,9 @@ const PropertyCard = ({
     isAd,
     rooms,
     hasBreakfastIncluded,
+    amenities,
+    rating,
+    reviews,
   } = listing || {};
 
   const highlightText = (text) => {
@@ -108,12 +111,44 @@ const PropertyCard = ({
         {Array.isArray(rooms) && rooms.length > 0 && (
           <div className="mt-1 mb-3 overflow-x-auto scrollbar-hide">
             <div className="flex gap-2">
-              {rooms.slice(0, 6).map((room, idx) => (
+              {rooms.slice(0, 6).map((room, idx) => {
+                const roomName = room.roomNumber || room.name || room.roomType || 'Room';
+                const nightly = Number(room.pricePerNight || room.price || 0);
+                const totalUnits = Number(room.totalUnits || room.units || 0);
+                let availabilityLabel = '';
+                if (totalUnits > 0) {
+                  availabilityLabel = totalUnits <= 2
+                    ? `• Only ${totalUnits} left`
+                    : `• ${totalUnits} rooms`;
+                }
+                const priceLabel = nightly > 0
+                  ? (formatCurrencyRWF
+                      ? formatCurrencyRWF(nightly)
+                      : `RWF ${nightly.toLocaleString()}`)
+                  : '';
+                return (
+                  <span
+                    key={room._id || room.roomNumber || room.roomType || idx}
+                    className="px-2 py-1 rounded-full bg-gray-100 text-[11px] font-medium text-gray-700 whitespace-nowrap"
+                  >
+                    {roomName}
+                    {priceLabel && ` • ${priceLabel}`}
+                    {availabilityLabel && ` ${availabilityLabel}`}
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        )}
+        {Array.isArray(amenities) && amenities.length > 0 && (
+          <div className="mb-3 -mt-1 overflow-x-auto scrollbar-hide">
+            <div className="flex gap-2">
+              {amenities.slice(0, 8).map((amenity, idx) => (
                 <span
-                  key={room._id || room.roomNumber || room.roomType || idx}
-                  className="px-2 py-1 rounded-full bg-gray-100 text-[11px] font-medium text-gray-700 whitespace-nowrap"
+                  key={idx}
+                  className="px-2 py-1 rounded-full bg-blue-50 text-[11px] font-medium text-blue-700 whitespace-nowrap"
                 >
-                  {room.roomNumber || room.name || room.roomType || 'Room'}
+                  {amenity}
                 </span>
               ))}
             </div>
@@ -127,8 +162,26 @@ const PropertyCard = ({
           </div>
         )}
         <div className="mt-4 flex items-center justify-between flex-none">
-          <div className={`text-teal-600 font-extrabold ${isCompact ? 'text-lg' : 'text-xl'}`}>{formatCurrencyRWF ? formatCurrencyRWF(price ?? 0) : `RWF ${(price ?? 0).toLocaleString()}`}</div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col">
+            <div className={`text-teal-600 font-extrabold ${isCompact ? 'text-lg' : 'text-xl'}`}>
+              {formatCurrencyRWF ? formatCurrencyRWF(price ?? 0) : `RWF ${(price ?? 0).toLocaleString()}`}
+            </div>
+            <span className="text-xs text-gray-500">/ night</span>
+          </div>
+          <div className="flex items-center gap-3">
+            {typeof rating !== 'undefined' && rating !== null && (
+              <div className="flex flex-col items-end text-xs">
+                <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-blue-600 text-white font-semibold">
+                  {Number(rating || 0).toFixed(1)}
+                </span>
+                {typeof reviews !== 'undefined' && reviews !== null && (
+                  <span className="mt-0.5 text-gray-500">
+                    {reviews} review{reviews === 1 ? '' : 's'}
+                  </span>
+                )}
+              </div>
+            )}
+            <div className="flex items-center gap-2">
             <button type="button" onClick={onView} className="px-3 py-2 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors text-sm">
               {t ? t('property.viewDetails') : 'View Details'}
             </button>
@@ -142,6 +195,7 @@ const PropertyCard = ({
                 <FaTrash />
               </button>
             )}
+            </div>
           </div>
         </div>
       </div>
