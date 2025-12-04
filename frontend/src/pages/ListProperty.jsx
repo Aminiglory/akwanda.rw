@@ -335,6 +335,24 @@ const ListProperty = () => {
   const handleCoverUpload = (files) => setAttractionForm(prev => ({ ...prev, coverPhotoFiles: Array.from(files || []) }));
   const handleGalleryUpload = (files) => setAttractionForm(prev => ({ ...prev, galleryFiles: Array.from(files || []) }));
 
+  const uploadAttractionImages = async (id, files) => {
+    if (!files?.length) return;
+    try {
+      const fd = new FormData();
+      Array.from(files).forEach((file) => fd.append('images', file));
+      const res = await fetch(`${API_URL}/api/attractions/${id}/images`, {
+        method: 'POST',
+        credentials: 'include',
+        body: fd,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || 'Failed to upload images');
+    } catch (error) {
+      console.error('[AttractionWizard][uploadImages] error', error);
+      toast.error(error.message || 'Could not upload images');
+    }
+  };
+
   const section = (title, helper, children) => (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
       <div>
@@ -431,19 +449,23 @@ const ListProperty = () => {
     try {
       const payload = {
         ...attractionForm,
-        // Map to Attraction model core fields
+        // Map to Attraction model core fields so it behaves like OwnerAttractionsDashboard.createItem
         name: attractionForm.name,
         description: attractionForm.fullDescription || attractionForm.shortDescription || attractionForm.description || '',
         location: attractionForm.address || attractionForm.gps || attractionForm.city || '',
         city: attractionForm.city || '',
         country: attractionForm.country || 'Rwanda',
-        // Map UI category label to a simple string; backend enum can be aligned separately
+        // Align category and pricing with main attractions endpoints
         category: String(attractionForm.category || '').toLowerCase(),
         price: Number(attractionForm.ticketAdult || attractionForm.ticketGroup || 0),
         currency: attractionForm.currency || 'RWF',
         duration: attractionForm.duration || '',
         capacity: Number(attractionForm.capacity || 0) || undefined,
-        // Normalize amenities textarea into array
+        // Normalize highlights and amenities into arrays
+        highlights: String(attractionForm.highlights || '')
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean),
         amenities: String(attractionForm.amenities || '')
           .split(',')
           .map((s) => s.trim())
@@ -453,6 +475,8 @@ const ListProperty = () => {
           open: attractionForm.openingHoursStart || undefined,
           close: attractionForm.openingHoursEnd || undefined,
         },
+        // New attractions from this wizard should be visible by default
+        isActive: true,
       };
 
       const res = await fetch(`${API_URL}/api/attractions`, {
@@ -467,7 +491,16 @@ const ListProperty = () => {
         throw new Error(data.message || 'Failed to save attraction');
       }
 
-      toast.success('Attraction draft saved. Continue on the attraction workspace to finish multimedia.');
+      const created = data.attraction || data;
+      const imageFiles = [
+        ...(attractionForm.coverPhotoFiles || []),
+        ...(attractionForm.galleryFiles || []),
+      ];
+      if (created && created._id && imageFiles.length) {
+        await uploadAttractionImages(created._id, imageFiles);
+      }
+
+      toast.success('Attraction saved and will appear on the attractions page once active.');
     } catch (error) {
       toast.error(error.message || 'Could not save attraction');
     }
@@ -692,7 +725,7 @@ const ListProperty = () => {
         </div>
         <div className="w-full h-1 bg-gray-200 rounded-full overflow-hidden">
           <div
-            className="h-full bg-indigo-600"
+            className="h-full bg-[#a06b42]"
             style={{ width: `${(flightStep / totalFlightSteps) * 100}%` }}
           />
         </div>
@@ -1475,7 +1508,7 @@ const ListProperty = () => {
         </button>
         <button
           type="submit"
-          className="ml-auto px-5 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+          className="ml-auto px-5 py-2.5 bg-[#a06b42] text-white rounded-lg hover:bg-[#8f5a32]"
         >
           {flightStep < totalFlightSteps ? 'Next' : 'Save flight info'}
         </button>
