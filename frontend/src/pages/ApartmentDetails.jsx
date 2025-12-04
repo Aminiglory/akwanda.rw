@@ -987,43 +987,14 @@ const ApartmentDetails = () => {
 
             {/* Host */}
             <div className="bg-white rounded-2xl shadow-lg p-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                Meet Your Host
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                Host Information
               </h3>
-              <div className="flex items-start space-x-4">
-                {apartment.host.avatar ? (
-                  <img
-                    src={apartment.host.avatar}
-                    alt={apartment.host.name}
-                    className="w-16 h-16 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="w-16 h-16 rounded-full bg-blue-600 text-white flex items-center justify-center text-2xl font-bold">
-                    {(apartment.host.name?.trim?.()?.[0] || 'H').toUpperCase()}
-                  </div>
-                )}
-                <div className="flex-1">
-                  <h4 className="font-semibold text-gray-800 text-lg">
-                    {apartment.host.name}
-                  </h4>
-                  <div className="flex items-center space-x-4 text-sm text-gray-600 mb-2 flex-wrap">
-                    <div className="flex items-center">
-                      {renderStars(apartment.rating)}
-                      <span className="ml-1">{Number(apartment.rating || 0).toFixed(1)}</span>
-                      <span className="ml-2 text-gray-500">({apartment.reviews} review{apartment.reviews === 1 ? '' : 's'})</span>
-                    </div>
-                    {apartment.host.joinYear && (
-                      <span>Host since {apartment.host.joinYear}</span>
-                    )}
-                  </div>
-                  
-                  {/* Host Contact Info */}
-                  <p className="text-sm text-gray-600 mt-1">
-                    Contact details for this host are shared with you automatically after you complete your booking,
-                    together with more property information and the assistance number you can call if you need help.
-                  </p>
-                </div>
-              </div>
+              <p className="text-sm text-gray-600">
+                For privacy and security, the property owner's personal details are not shown here.
+                After you complete your booking, we will automatically share the full host contact
+                information and assistance number in your booking confirmation.
+              </p>
             </div>
 
             {apartment.lat != null && apartment.lng != null && (
