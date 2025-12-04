@@ -785,6 +785,13 @@ const ApartmentDetails = () => {
                       {roomsToDisplay.map((room, index) => {
                         const price = room.pricePerNight || room.price || 0;
                         const isSelected = selectedRoom === index;
+                        const totalUnits = Number(room.totalUnits || room.units || 0);
+                        let availabilityLabel = '';
+                        if (totalUnits > 0) {
+                          availabilityLabel = totalUnits <= 2
+                            ? `Only ${totalUnits} left`
+                            : `${totalUnits} rooms`;
+                        }
                         return (
                           <button
                             key={index}
@@ -810,6 +817,11 @@ const ApartmentDetails = () => {
                                 <span className="text-[11px] text-gray-500 line-clamp-1">
                                   {room.amenities.slice(0, 4).join(' • ')}
                                   {room.amenities.length > 4 ? `  +${room.amenities.length - 4} more` : ''}
+                                </span>
+                              )}
+                              {availabilityLabel && (
+                                <span className="text-[11px] text-red-600 font-medium">
+                                  {availabilityLabel}
                                 </span>
                               )}
                             </div>
