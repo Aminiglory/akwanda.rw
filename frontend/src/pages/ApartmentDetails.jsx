@@ -987,73 +987,14 @@ const ApartmentDetails = () => {
 
             {/* Host */}
             <div className="bg-white rounded-2xl shadow-lg p-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                Meet Your Host
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                Host Information
               </h3>
-              <div className="flex items-start space-x-4">
-                {apartment.host.avatar ? (
-                  <img
-                    src={apartment.host.avatar}
-                    alt={apartment.host.name}
-                    className="w-16 h-16 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="w-16 h-16 rounded-full bg-blue-600 text-white flex items-center justify-center text-2xl font-bold">
-                    {(apartment.host.name?.trim?.()?.[0] || 'H').toUpperCase()}
-                  </div>
-                )}
-                <div className="flex-1">
-                  <h4 className="font-semibold text-gray-800 text-lg">
-                    {apartment.host.name}
-                  </h4>
-                  <div className="flex items-center space-x-4 text-sm text-gray-600 mb-2 flex-wrap">
-                    <div className="flex items-center">
-                      {renderStars(apartment.rating)}
-                      <span className="ml-1">{Number(apartment.rating || 0).toFixed(1)}</span>
-                      <span className="ml-2 text-gray-500">({apartment.reviews} review{apartment.reviews === 1 ? '' : 's'})</span>
-                    </div>
-                    {apartment.host.joinYear && (
-                      <span>Host since {apartment.host.joinYear}</span>
-                    )}
-                  </div>
-                  
-                  {/* Host Contact Info */}
-                  <div className="space-y-1 text-sm text-gray-600">
-                    {apartment.host.email && (
-                      <div className="flex items-center space-x-2">
-                        <FaEnvelope className="text-blue-600" />
-                        <span>{apartment.host.email}</span>
-                      </div>
-                    )}
-                    {apartment.host.phone && (
-                      <div className="flex items-center space-x-2">
-                        <FaPhone className="text-blue-600" />
-                        <span>{apartment.host.phone}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div className="flex flex-col space-y-2">
-                  {apartment.host.phone && (
-                    <a 
-                      href={`tel:${apartment.host.phone}`}
-                      className="p-2 bg-blue-100 text-blue-600 rounded-full hover:bg-blue-200 transition-colors"
-                      title="Call host"
-                    >
-                      <FaPhone />
-                    </a>
-                  )}
-                  {apartment.host.email && (
-                    <a 
-                      href={`mailto:${apartment.host.email}`}
-                      className="p-2 bg-blue-100 text-blue-600 rounded-full hover:bg-blue-200 transition-colors"
-                      title="Email host"
-                    >
-                      <FaEnvelope />
-                    </a>
-                  )}
-                </div>
-              </div>
+              <p className="text-sm text-gray-600">
+                For privacy and security, the property owner's personal details are not shown here.
+                After you complete your booking, we will automatically share the full host contact
+                information and assistance number in your booking confirmation.
+              </p>
             </div>
 
             {apartment.lat != null && apartment.lng != null && (
