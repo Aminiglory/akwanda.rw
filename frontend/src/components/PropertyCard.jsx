@@ -97,7 +97,7 @@ const PropertyCard = ({
     if (!container || !Array.isArray(rooms) || rooms.length === 0) return;
 
     let frameId;
-    const speed = 0.4; // pixels per frame for smooth, slow scroll
+    const speed = 1.2; // pixels per frame for clearly visible auto-scroll
 
     const step = () => {
       const el = roomsScrollRef.current;
@@ -126,7 +126,7 @@ const PropertyCard = ({
     if (!container || !Array.isArray(amenities) || amenities.length === 0) return;
 
     let frameId;
-    const speed = 0.4; // pixels per frame
+    const speed = 1.2; // pixels per frame for clearly visible auto-scroll
 
     const step = () => {
       const el = amenitiesScrollRef.current;
