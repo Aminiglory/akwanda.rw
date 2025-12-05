@@ -44,7 +44,16 @@ const bookingSchema = new mongoose.Schema(
     services: {
       type: Object,
       default: {}
-    }
+    },
+    // Manual direct-booking add-ons (label + amount). These are intended
+    // mainly for receipts; they may be summed into the total on the
+    // frontend or backend depending on business rules.
+    directAddOns: [
+      {
+        label: { type: String },
+        amount: { type: Number, default: 0 }
+      }
+    ]
   },
   { timestamps: true }
 );

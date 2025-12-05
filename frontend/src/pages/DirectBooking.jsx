@@ -22,7 +22,8 @@ const DirectBooking = () => {
     guestInfo: { firstName: '', lastName: '', email: '', phone: '', nationality: '', passport: '', address: '' },
     contactInfo: { email: '', phone: '' },
     paymentStatusSelection: 'paid',
-    services: { breakfast: false, airportTransfer: false, laundry: false },
+    // Manual direct booking add-ons: [{ label, amount }]
+    directAddOns: [],
     finalAgreedAmount: '',
   });
 
@@ -66,12 +67,16 @@ const DirectBooking = () => {
 
   const selectedRoom = rooms.find(r => String(r._id) === String(form.roomId));
   const selectedProperty = properties.find(p => String(p.id) === String(form.propertyId));
-  const propertyAddOns = selectedProperty?.addOnServices || [];
   const nightly = selectedRoom?.pricePerNight || selectedProperty?.pricePerNight || 0;
   const roomCharge = useMemo(() => (nights > 0 ? nightly * nights : 0), [nightly, nights]);
-  // Add-on services are optional and negotiable; they do NOT change the calculated totals.
-  // We keep servicesTotal at 0 so the UI totals only reflect room/levy.
-  const servicesTotal = 0;
+  // Manual direct-booking add-ons: sum all positive amounts
+  const servicesTotal = useMemo(() => {
+    if (!Array.isArray(form.directAddOns)) return 0;
+    return form.directAddOns.reduce((sum, a) => {
+      const amt = Number(a?.amount || 0);
+      return sum + (isNaN(amt) || amt <= 0 ? 0 : amt);
+    }, 0);
+  }, [form.directAddOns]);
 
   const subtotal = useMemo(() => roomCharge + servicesTotal, [roomCharge, servicesTotal]);
   const levy3 = useMemo(() => Math.round(subtotal * 0.03), [subtotal]);
@@ -85,6 +90,30 @@ const DirectBooking = () => {
     } else {
       setForm(prev => ({ ...prev, [path]: value }));
     }
+  };
+
+  const addDirectAddOnRow = () => {
+    setForm(prev => ({
+      ...prev,
+      directAddOns: [...(prev.directAddOns || []), { label: '', amount: '' }]
+    }));
+  };
+
+  const updateDirectAddOn = (index, field, value) => {
+    setForm(prev => {
+      const list = Array.isArray(prev.directAddOns) ? [...prev.directAddOns] : [];
+      if (!list[index]) list[index] = { label: '', amount: '' };
+      list[index] = { ...list[index], [field]: value };
+      return { ...prev, directAddOns: list };
+    });
+  };
+
+  const removeDirectAddOn = (index) => {
+    setForm(prev => {
+      const list = Array.isArray(prev.directAddOns) ? [...prev.directAddOns] : [];
+      list.splice(index, 1);
+      return { ...prev, directAddOns: list };
+    });
   };
 
   const submit = async (e) => {
@@ -110,8 +139,13 @@ const DirectBooking = () => {
         markPaid: payloadPaymentMethod === 'cash' ? !!markPaid : false,
         guestInfo: form.guestInfo,
         directBooking: true,
-        // Info-only add-on services selected by host for this direct booking
-        services: form.services || {},
+        // Manual direct-booking add-ons (label + amount)
+        directAddOns: (form.directAddOns || [])
+          .filter(a => (a.label && String(a.label).trim()) || Number(a.amount || 0) > 0)
+          .map(a => ({
+            label: String(a.label || '').trim(),
+            amount: Number(a.amount || 0) || 0,
+          })),
         finalAgreedAmount: form.finalAgreedAmount ? Number(form.finalAgreedAmount) : undefined,
       };
       const res = await fetch(`${API_URL}/api/bookings`, {
@@ -165,7 +199,7 @@ const DirectBooking = () => {
       guestInfo: { firstName: '', lastName: '', email: '', phone: '', nationality: '', passport: '', address: '' },
       contactInfo: { email: '', phone: '' },
       paymentStatusSelection: 'paid',
-      services: {},
+      directAddOns: [],
       finalAgreedAmount: '',
     });
   };
@@ -286,47 +320,59 @@ const DirectBooking = () => {
 
             <div className="border rounded-lg p-4 bg-gray-50">
               <div className="text-sm text-gray-900 font-semibold mb-2">Payment Information</div>
-              <div className="text-sm text-gray-700 space-y-1">
+              <div className="text-sm text-gray-700 space-y-2">
                 <div>Room Rate: based on selected property, room and nights</div>
-                <div className="mt-2">Additional Services (select for record only, amounts are negotiable and not added to total):</div>
-                {(!Array.isArray(propertyAddOns) || propertyAddOns.length === 0) && (
-                  <div className="text-xs text-gray-500">No add-on services configured for this property.</div>
+                <div className="mt-2 flex items-center justify-between">
+                  <span>Direct add-ons (will be added on top of room total):</span>
+                  <button
+                    type="button"
+                    onClick={addDirectAddOnRow}
+                    className="px-2 py-1 text-xs rounded bg-blue-600 text-white hover:bg-blue-700"
+                  >
+                    + Add add-on
+                  </button>
+                </div>
+                {(!Array.isArray(form.directAddOns) || form.directAddOns.length === 0) && (
+                  <div className="text-xs text-gray-500">No direct add-ons yet. Use "+ Add add-on" to record extras like breakfast, transfer, etc.</div>
                 )}
-                {Array.isArray(propertyAddOns) && propertyAddOns.map(addOn => {
-                  const key = addOn.key;
-                  const checked = !!(form.services && form.services[key]);
-                  const included = addOn.includedItems && typeof addOn.includedItems === 'object'
-                    ? Object.keys(addOn.includedItems)
-                        .filter(k => addOn.includedItems[k])
-                        .map(k => k.replace(/_/g, ' ').replace(/\s+/g, ' ').trim().replace(/^(.)/, m => m.toUpperCase()))
-                    : [];
-                  const priceNum = Number(addOn.price || 0);
-                  const isFree = priceNum <= 0;
-                  const scope = addOn.scope || 'per-booking';
-                  return (
-                    <div key={key} className="space-y-0.5">
-                      <label className="flex items-center gap-2 text-sm">
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={e => update('services', { ...(form.services || {}), [key]: e.target.checked })}
-                        />
-                        <span>{addOn.name}</span>
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${isFree ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'}`}>
-                          {isFree
-                            ? 'Free'
-                            : `Approx. RWF ${priceNum.toLocaleString()} (${scope.replace(/-/g, ' ')}, negotiable)`}
-                        </span>
-                      </label>
-                      {included.length > 0 && (
-                        <div className="pl-6 text-xs text-gray-500">Includes: {included.join(', ')}</div>
-                      )}
+                {Array.isArray(form.directAddOns) && form.directAddOns.map((addOn, idx) => (
+                  <div key={idx} className="grid grid-cols-12 gap-2 items-center text-xs">
+                    <input
+                      type="text"
+                      placeholder="Add-on description (e.g. Airport transfer)"
+                      value={addOn.label || ''}
+                      onChange={e => updateDirectAddOn(idx, 'label', e.target.value)}
+                      className="col-span-7 border rounded px-2 py-1"
+                    />
+                    <input
+                      type="number"
+                      min={0}
+                      placeholder="Amount"
+                      value={addOn.amount}
+                      onChange={e => updateDirectAddOn(idx, 'amount', e.target.value)}
+                      className="col-span-4 border rounded px-2 py-1"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeDirectAddOn(idx)}
+                      className="col-span-1 text-red-500 hover:text-red-700"
+                      aria-label="Remove add-on row"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+                <div className="pt-2 text-xs text-gray-700">
+                  <div>Room subtotal: RWF {roomCharge.toLocaleString()}</div>
+                  <div>Direct add-ons total: RWF {servicesTotal.toLocaleString()}</div>
+                  <div>Hospitality levy (3%): RWF {levy3.toLocaleString()}</div>
+                  <div className="font-semibold mt-1">TOTAL (room + add-ons + levy): RWF {grandTotal.toLocaleString()}</div>
+                  {form.finalAgreedAmount && (
+                    <div className="mt-1 text-[11px] text-gray-500">
+                      Note: Final agreed amount overrides calculated totals for booking records, but direct add-ons are still shown on the receipt.
                     </div>
-                  );
-                })}
-                <div className="pt-2">Subtotal: calculated automatically</div>
-                <div>Hospitality levy (3%): calculated automatically</div>
-                <div className="font-semibold">TOTAL: calculated automatically</div>
+                  )}
+                </div>
               </div>
             </div>
 

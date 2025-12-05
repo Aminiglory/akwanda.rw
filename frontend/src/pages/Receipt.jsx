@@ -68,6 +68,7 @@ export default function Receipt() {
   const services = data.services || {};
   const propertyAddOns = Array.isArray(property.addOnServices) ? property.addOnServices : [];
   const selectedAddOns = propertyAddOns.filter(a => a && a.key && services[a.key]);
+  const directAddOns = Array.isArray(data.directAddOns) ? data.directAddOns : [];
 
   // For direct bookings, hide commission and show simplified pricing
   const showCommission = !isDirect && pricing.commissionAmount != null;
@@ -157,19 +158,41 @@ export default function Receipt() {
         </div>
 
         {/* Add-on services */}
-        {selectedAddOns.length > 0 && (
+        {(selectedAddOns.length > 0 || (isDirect && directAddOns.length > 0)) && (
           <div className="mt-6 border-t border-gray-200 pt-4">
             <h2 className="text-lg font-semibold text-gray-900 mb-2">Add-on services</h2>
-            <ul className="text-sm text-gray-700 list-disc pl-5 space-y-1">
-              {selectedAddOns.map(addOn => (
-                <li key={addOn.key}>
-                  <span className="font-medium">{addOn.name}</span>
-                  {addOn.scope && (
-                    <span className="ml-1 text-gray-500 text-xs">({addOn.scope.replace(/_/g, ' ')})</span>
-                  )}
-                </li>
-              ))}
-            </ul>
+            {selectedAddOns.length > 0 && (
+              <ul className="text-sm text-gray-700 list-disc pl-5 space-y-1 mb-2">
+                {selectedAddOns.map(addOn => (
+                  <li key={addOn.key}>
+                    <span className="font-medium">{addOn.name}</span>
+                    {addOn.scope && (
+                      <span className="ml-1 text-gray-500 text-xs">({addOn.scope.replace(/_/g, ' ')})</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {isDirect && directAddOns.length > 0 && (
+              <div className="mt-2">
+                <h3 className="text-sm font-semibold text-gray-800 mb-1">Direct add-ons</h3>
+                <ul className="text-sm text-gray-700 list-disc pl-5 space-y-1">
+                  {directAddOns.map((a, idx) => (
+                    <li key={a._id || idx}>
+                      <span className="font-medium">{a.label || 'Add-on'}</span>
+                      {typeof a.amount === 'number' && a.amount > 0 && (
+                        <span className="ml-2 text-gray-600">
+                          {formatCurrencyRWF
+                            ? formatCurrencyRWF(a.amount)
+                            : `RWF ${a.amount.toLocaleString()}`}
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         )}
 

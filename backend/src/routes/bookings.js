@@ -174,6 +174,7 @@ router.post('/', requireAuth, async (req, res) => {
       markPaid,
       directBooking,
       services,
+      directAddOns,
       finalAgreedAmount
     } = req.body;
 
@@ -321,6 +322,24 @@ router.post('/', requireAuth, async (req, res) => {
     let taxAmount = Math.round((amountBeforeTax * taxRate) / (100 + taxRate));
     let totalAmount = amountBeforeTax;
 
+    // For direct bookings, allow manual direct add-ons to be added ON TOP of
+    // the calculated room/levy price. These do not change commission logic
+    // (commission is still based on amountBeforeTax), but they do raise the
+    // final total the guest pays.
+    let directAddOnsClean = [];
+    let directAddOnsTotal = 0;
+    if (directBooking && Array.isArray(directAddOns) && directAddOns.length > 0) {
+      directAddOnsClean = directAddOns.map(a => {
+        const label = String(a && a.label ? a.label : '').trim();
+        const amount = Number(a && a.amount != null ? a.amount : 0) || 0;
+        if (amount > 0) directAddOnsTotal += amount;
+        return { label, amount };
+      }).filter(a => a.label || a.amount > 0);
+      if (directAddOnsTotal > 0) {
+        totalAmount += directAddOnsTotal;
+      }
+    }
+
     let rate = property.commissionRate;
     if (!rate || rate < 1 || rate > 100) {
       try {
@@ -359,7 +378,7 @@ router.post('/', requireAuth, async (req, res) => {
     // as the final total and recompute amountBeforeTax/tax accordingly.
     if (directBooking && typeof finalAgreedAmount === 'number' && !isNaN(finalAgreedAmount) && finalAgreedAmount > 0) {
       const negotiatedTotal = Math.round(finalAgreedAmount);
-      totalAmount = negotiatedTotal;
+      totalAmount = negotiatedTotal + directAddOnsTotal;
       amountBeforeTax = Math.round((negotiatedTotal * 100) / (100 + taxRate));
       taxAmount = negotiatedTotal - amountBeforeTax;
       discountAmount = 0;
@@ -402,7 +421,8 @@ router.post('/', requireAuth, async (req, res) => {
       // Optional info-only add-on services (e.g., breakfast, airport transfer).
       // This should mirror the front-end `services` object (key -> boolean)
       // and is not used in total/commission calculations.
-      services: services && typeof services === 'object' ? services : {}
+      services: services && typeof services === 'object' ? services : {},
+      directAddOns: directAddOnsClean
     });
 
     // If this is a direct booking that is already confirmed/paid (e.g. cash at desk),
