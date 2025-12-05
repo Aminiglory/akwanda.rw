@@ -18,9 +18,12 @@ const AdminCommissionManager = () => {
   const [successOpen, setSuccessOpen] = useState(false);
   const [successTitle, setSuccessTitle] = useState('Success');
   const [successMsg, setSuccessMsg] = useState('Action completed successfully.');
+  const [rateSettings, setRateSettings] = useState({ baseRate: 8, premiumRate: 10, featuredRate: 12 });
+  const [savingRates, setSavingRates] = useState(false);
 
   useEffect(() => {
     fetchUsersWithUnpaidCommissions();
+    fetchCommissionSettings();
   }, []);
 
   const safeParseJson = async (res) => {
@@ -33,6 +36,47 @@ const AdminCommissionManager = () => {
       const text = await res.text();
       return { __raw: text };
     } catch (_) { return {}; }
+  };
+
+  const fetchCommissionSettings = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/admin/commission-settings`, {
+        credentials: 'include'
+      });
+      const data = await safeParseJson(res);
+      if (!res.ok) throw new Error(data?.message || 'Failed to load commission settings');
+      setRateSettings({
+        baseRate: Number(data.baseRate ?? 8),
+        premiumRate: Number(data.premiumRate ?? 10),
+        featuredRate: Number(data.featuredRate ?? 12),
+      });
+    } catch (e) {
+      toast.error(e.message || 'Could not load commission settings');
+    }
+  };
+
+  const saveCommissionSettings = async () => {
+    try {
+      setSavingRates(true);
+      const res = await fetch(`${API_URL}/api/admin/commission-settings`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(rateSettings),
+      });
+      const data = await safeParseJson(res);
+      if (!res.ok) throw new Error(data?.message || 'Failed to update commission settings');
+      setRateSettings({
+        baseRate: Number(data.baseRate ?? rateSettings.baseRate),
+        premiumRate: Number(data.premiumRate ?? rateSettings.premiumRate),
+        featuredRate: Number(data.featuredRate ?? rateSettings.featuredRate),
+      });
+      toast.success('Commission rates updated');
+    } catch (e) {
+      toast.error(e.message || 'Could not update commission settings');
+    } finally {
+      setSavingRates(false);
+    }
   };
 
   const fetchUsersWithUnpaidCommissions = async () => {
@@ -177,7 +221,7 @@ const AdminCommissionManager = () => {
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Commission Management</h2>
-          <p className="text-gray-600 text-xs sm:text-sm">Manage users with unpaid commissions</p>
+          <p className="text-gray-600 text-xs sm:text-sm">Manage users with unpaid commissions and set global commission rates</p>
         </div>
         <div className="flex items-center gap-2">
           <div className="inline-flex rounded-lg overflow-hidden border">
@@ -188,6 +232,62 @@ const AdminCommissionManager = () => {
             <FaExclamationTriangle className="inline mr-2" />
             <span className="font-semibold">{users.length} users with unpaid commissions</span>
           </div>
+        </div>
+      </div>
+
+      {/* Global commission rate settings */}
+      <div className="mb-5 rounded-lg border border-gray-200 bg-gray-50 p-3 sm:p-4">
+        <div className="flex items-center justify-between mb-2">
+          <div>
+            <div className="font-semibold text-gray-900 text-sm sm:text-base">Global commission rates</div>
+            <div className="text-xs sm:text-sm text-gray-600">These rates are applied per property based on its commission type (standard, premium, featured).</div>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3">
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Standard rate (%)</label>
+            <input
+              type="number"
+              min={0}
+              max={100}
+              className="w-full border rounded-lg px-3 py-2 text-sm"
+              value={rateSettings.baseRate}
+              onChange={e => setRateSettings(prev => ({ ...prev, baseRate: e.target.value }))}
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Premium rate (%)</label>
+            <input
+              type="number"
+              min={0}
+              max={100}
+              className="w-full border rounded-lg px-3 py-2 text-sm"
+              value={rateSettings.premiumRate}
+              onChange={e => setRateSettings(prev => ({ ...prev, premiumRate: e.target.value }))}
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Featured rate (%)</label>
+            <input
+              type="number"
+              min={0}
+              max={100}
+              className="w-full border rounded-lg px-3 py-2 text-sm"
+              value={rateSettings.featuredRate}
+              onChange={e => setRateSettings(prev => ({ ...prev, featuredRate: e.target.value }))}
+            />
+          </div>
+        </div>
+        <div className="mt-3 flex items-center justify-between text-[11px] sm:text-xs text-gray-600">
+          <div>Changing these values will affect new and updated properties going forward. Existing bookings keep their stored commission amount.</div>
+          <button
+            type="button"
+            onClick={saveCommissionSettings}
+            disabled={savingRates}
+            className="ml-2 px-3 py-1.5 rounded bg-[#a06b42] text-white text-xs sm:text-sm disabled:opacity-60"
+          >
+            {savingRates ? 'Saving…' : 'Save rates'}
+          </button>
         </div>
       </div>
 

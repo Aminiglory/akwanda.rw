@@ -5,6 +5,7 @@ const Booking = require('../tables/booking');
 const Property = require('../tables/property');
 const Worker = require('../tables/worker');
 const Commission = require('../tables/commission');
+const CommissionSettings = require('../tables/commissionSettings');
 const Notification = require('../tables/notification');
 const User = require('../tables/user');
 const bcrypt = require('bcryptjs');
@@ -321,9 +322,15 @@ router.post('/', requireAuth, async (req, res) => {
     let totalAmount = amountBeforeTax;
 
     let rate = property.commissionRate;
-    if (!rate || rate < 8 || rate > 12) {
-      const commissionDoc = await Commission.findOne({ active: true }).sort({ createdAt: -1 });
-      rate = commissionDoc ? Math.min(12, Math.max(8, commissionDoc.ratePercent)) : 10;
+    if (!rate || rate < 1 || rate > 100) {
+      try {
+        const settings = await CommissionSettings.getSingleton();
+        // Use premiumRate as generic default when property value is invalid
+        rate = settings.premiumRate || settings.baseRate || 10;
+      } catch {
+        const commissionDoc = await Commission.findOne({ active: true }).sort({ createdAt: -1 });
+        rate = commissionDoc ? Math.min(12, Math.max(8, commissionDoc.ratePercent)) : 10;
+      }
     }
     let commissionAmount = Math.round((amountBeforeTax * rate) / 100);
 

@@ -149,14 +149,6 @@ const EnhancedUploadProperty = () => {
     { value: 'guesthouse', label: 'Guesthouse' }
   ];
 
-  const roomTypes = [
-    { value: 'double', label: 'Double room' },
-    { value: 'double_private_bathroom', label: 'Double room with private bathroom' },
-    { value: 'double_shared_bathroom', label: 'Double room with shared bathroom' },
-    { value: 'single', label: 'Single room' },
-    { value: 'single_shared_bathroom', label: 'Single room with shared bathroom' }
-  ];
-
   const visibilityLevels = [
     { value: 'standard', label: 'Standard', description: 'Basic visibility' },
     { value: 'premium', label: 'Premium', description: 'Higher visibility (+20% commission)' },
@@ -165,7 +157,7 @@ const EnhancedUploadProperty = () => {
 
   const [propertyAmenityOptions, setPropertyAmenityOptions] = useState([]);
   const [roomAmenityOptions, setRoomAmenityOptions] = useState([]);
-  const [roomTypeOptions, setRoomTypeOptions] = useState(roomTypes);
+  const [roomTypeOptions, setRoomTypeOptions] = useState([]);
 
   useEffect(() => {
     // Load amenity options and room types from API
@@ -431,7 +423,7 @@ const EnhancedUploadProperty = () => {
   const addRoom = () => {
     setRooms(prev => [...prev, {
       roomNumber: `Room ${prev.length + 1}`,
-      roomType: 'single',
+      roomType: (roomTypeOptions[0] && roomTypeOptions[0].value) || '',
       pricePerNight: formData.pricePerNight || 0,
       capacity: 1,
       amenities: [],

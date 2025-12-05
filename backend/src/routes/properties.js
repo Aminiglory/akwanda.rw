@@ -18,13 +18,21 @@ const mongoose = require('mongoose');
 const router = Router();
 const Notification = require('../tables/notification');
 const User = require('../tables/user');
+const CommissionSettings = require('../tables/commissionSettings');
 const { authenticate: requireAuth } = require('../middleware/auth');
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
 
-// Ensure commissionRate stays within [8,12] before any save (handles legacy docs)
-function clampCommission(doc) {
+// Ensure commissionRate stays within a safe band using current settings (handles legacy docs)
+async function clampCommission(doc) {
     if (!doc) return;
-    if (doc.commissionRate != null) {
+    if (doc.commissionRate == null) return;
+    try {
+        const settings = await CommissionSettings.getSingleton();
+        const min = Math.min(settings.baseRate, settings.premiumRate, settings.featuredRate) ?? 8;
+        const max = Math.max(settings.baseRate, settings.premiumRate, settings.featuredRate) ?? 12;
+        const cr = Number(doc.commissionRate);
+        doc.commissionRate = Math.min(max, Math.max(min, isNaN(cr) ? settings.premiumRate || 10 : cr));
+    } catch {
         const cr = Number(doc.commissionRate);
         doc.commissionRate = Math.min(12, Math.max(8, isNaN(cr) ? 10 : cr));
     }
@@ -40,6 +48,39 @@ function requireWorkerPrivilege(privKey) {
             if (req.user.userType === 'host' || req.user.userType === 'admin') {
                 return next();
             }
+
+        // Apply update
+        const property = await Property.findOneAndUpdate(
+            { _id: req.params.id, host: req.user.id },
+            { $set: updates },
+            { new: true }
+        );
+        if (!property) {
+            return res.status(404).json({ message: 'Property not found or unauthorized' });
+        }
+
+        // If commission changed (rate or visibility), notify admin users
+        try {
+            if (before && property) {
+                const oldRate = before.commissionRate;
+                const newRate = property.commissionRate;
+                const oldVis = before.visibilityLevel;
+                const newVis = property.visibilityLevel;
+                const changed = (oldRate !== newRate) || (oldVis !== newVis);
+                if (changed) {
+                    await Notification.create({
+                        type: 'commission_change',
+                        title: 'Property commission updated',
+                        message: `Commission for property "${property.title}" was changed from ${oldRate || 'N/A'}% (${oldVis || 'n/a'}) to ${newRate || 'N/A'}% (${newVis || 'n/a'}).`,
+                        property: property._id,
+                        actorUser: req.user.id,
+                        recipientRole: 'admin'
+                    });
+                }
+            }
+        } catch (_) {}
+
+        return res.json({ property });
             
             // For workers, check if they have the required privilege
             if (req.user.userType === 'worker') {
@@ -332,8 +373,11 @@ router.post('/seed-demo', requireAuth, async (req, res) => {
 // Expose post-connect sanitization to be invoked after Mongo is ready
 router.sanitizeCommissionRates = async () => {
     try {
-        await Property.updateMany({ commissionRate: { $gt: 12 } }, { $set: { commissionRate: 12 } });
-        await Property.updateMany({ commissionRate: { $lt: 8 } }, { $set: { commissionRate: 10 } });
+        const settings = await CommissionSettings.getSingleton();
+        const min = Math.min(settings.baseRate, settings.premiumRate, settings.featuredRate) ?? 8;
+        const max = Math.max(settings.baseRate, settings.premiumRate, settings.featuredRate) ?? 12;
+        await Property.updateMany({ commissionRate: { $gt: max } }, { $set: { commissionRate: max } });
+        await Property.updateMany({ commissionRate: { $lt: min } }, { $set: { commissionRate: settings.premiumRate || min } });
     } catch (e) {
         console.warn('Commission sanitize skipped:', e?.message || e);
     }
@@ -1074,18 +1118,37 @@ router.post('/', requireAuth, upload.array('images', 10), async (req, res) => {
             }
         });
         
-        // Ensure commissionRate stays within [8,12] regardless of visibility level
+        // Ensure commissionRate uses current CommissionSettings
         if (payload.commissionRate != null) {
-            const cr = Number(payload.commissionRate);
-            payload.commissionRate = Math.min(12, Math.max(8, isNaN(cr) ? 10 : cr));
+            try {
+                const settings = await CommissionSettings.getSingleton();
+                const min = Math.min(settings.baseRate, settings.premiumRate, settings.featuredRate) ?? 8;
+                const max = Math.max(settings.baseRate, settings.premiumRate, settings.featuredRate) ?? 12;
+                const cr = Number(payload.commissionRate);
+                payload.commissionRate = Math.min(max, Math.max(min, isNaN(cr) ? settings.premiumRate || 10 : cr));
+            } catch {
+                const cr = Number(payload.commissionRate);
+                payload.commissionRate = Math.min(12, Math.max(8, isNaN(cr) ? 10 : cr));
+            }
         } else {
-            // Set default commission rate based on visibility level within allowed range
-            if (payload.visibilityLevel === 'featured') {
-                payload.commissionRate = 12; // Maximum allowed rate for featured properties
-            } else if (payload.visibilityLevel === 'premium') {
-                payload.commissionRate = 10; // Medium rate for premium properties
-            } else {
-                payload.commissionRate = 8; // Minimum rate for standard properties
+            // Set default commission rate based on visibility level using current settings
+            try {
+                const settings = await CommissionSettings.getSingleton();
+                if (payload.visibilityLevel === 'featured') {
+                    payload.commissionRate = settings.featuredRate;
+                } else if (payload.visibilityLevel === 'premium') {
+                    payload.commissionRate = settings.premiumRate;
+                } else {
+                    payload.commissionRate = settings.baseRate;
+                }
+            } catch {
+                if (payload.visibilityLevel === 'featured') {
+                    payload.commissionRate = 12;
+                } else if (payload.visibilityLevel === 'premium') {
+                    payload.commissionRate = 10;
+                } else {
+                    payload.commissionRate = 8;
+                }
             }
         }
         
@@ -1207,6 +1270,8 @@ router.put('/:id', requireAuth, requireWorkerPrivilege('canEditProperties'), upl
             delete updates.localTaxPercent;
         }
 
+        const before = await Property.findById(req.params.id).select('commissionRate visibilityLevel title host');
+
         // Coerce booleans
         ['ratePlanNonRefundable','ratePlanFreeCancellation','prepaymentRequired','smokingAllowed','groupBookingEnabled'].forEach(b => {
             if (updates[b] != null) {
@@ -1215,17 +1280,36 @@ router.put('/:id', requireAuth, requireWorkerPrivilege('canEditProperties'), upl
                 else updates[b] = !!v;
             }
         });
-        // Ensure commissionRate stays within [8,12] regardless of visibility level
+        // Ensure commissionRate uses current CommissionSettings
         if (updates.commissionRate != null) {
-            updates.commissionRate = Math.min(12, Math.max(8, Number(updates.commissionRate)));
+            try {
+                const settings = await CommissionSettings.getSingleton();
+                const min = Math.min(settings.baseRate, settings.premiumRate, settings.featuredRate) ?? 8;
+                const max = Math.max(settings.baseRate, settings.premiumRate, settings.featuredRate) ?? 12;
+                const cr = Number(updates.commissionRate);
+                updates.commissionRate = Math.min(max, Math.max(min, isNaN(cr) ? settings.premiumRate || 10 : cr));
+            } catch {
+                updates.commissionRate = Math.min(12, Math.max(8, Number(updates.commissionRate)));
+            }
         } else if (updates.visibilityLevel) {
-            // Set commission rate based on visibility level within allowed range
-            if (updates.visibilityLevel === 'featured') {
-                updates.commissionRate = 12; // Maximum allowed rate for featured properties
-            } else if (updates.visibilityLevel === 'premium') {
-                updates.commissionRate = 10; // Medium rate for premium properties
-            } else {
-                updates.commissionRate = 8; // Minimum rate for standard properties
+            // Set commission rate based on visibility level using current settings
+            try {
+                const settings = await CommissionSettings.getSingleton();
+                if (updates.visibilityLevel === 'featured') {
+                    updates.commissionRate = settings.featuredRate;
+                } else if (updates.visibilityLevel === 'premium') {
+                    updates.commissionRate = settings.premiumRate;
+                } else {
+                    updates.commissionRate = settings.baseRate;
+                }
+            } catch {
+                if (updates.visibilityLevel === 'featured') {
+                    updates.commissionRate = 12;
+                } else if (updates.visibilityLevel === 'premium') {
+                    updates.commissionRate = 10;
+                } else {
+                    updates.commissionRate = 8;
+                }
             }
         }
         // Amenities (multer form arrays come as string or array)

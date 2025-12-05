@@ -44,6 +44,10 @@ const FeaturedApartments = () => {
             p.addOnServices.some(s => s && s.key === 'breakfast' && s.enabled && Number(s.price || 0) === 0)
           );
 
+          const rooms = Array.isArray(p.rooms) ? p.rooms : [];
+          const totalRooms = rooms.length;
+          const availableRooms = rooms.filter(r => r.isAvailable !== false).length;
+
           return {
             id: p._id,
             title: p.title,
@@ -56,7 +60,9 @@ const FeaturedApartments = () => {
             bedrooms: p.bedrooms ?? 2,
             bathrooms: p.bathrooms ?? 1,
             amenities: p.amenities || ["WiFi", "Parking", "Kitchen"],
-            rooms: Array.isArray(p.rooms) ? p.rooms : [],
+            rooms,
+            totalRooms,
+            availableRooms,
             hasBreakfastIncluded,
             isAvailable: p.isActive,
             discountPercent: p.discountPercent || 0,

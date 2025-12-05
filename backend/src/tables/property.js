@@ -2,7 +2,8 @@ const mongoose = require('mongoose');
 
 const roomSchema = new mongoose.Schema({
   roomNumber: { type: String, required: true },
-  roomType: { type: String, required: true, enum: ['single', 'double', 'suite', 'family', 'deluxe'] },
+  // roomType keys are defined by admins via the RoomType collection (no enum here)
+  roomType: { type: String, required: true },
   pricePerNight: { type: Number, required: true },
   capacity: { type: Number, required: true, min: 1 },
   amenities: [{ type: String }],

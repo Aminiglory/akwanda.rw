@@ -49,12 +49,25 @@ export default function AkwandaCard({
   const [wishlisted, setWishlisted] = useState(false);
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(storageKey);
-      const ids = raw ? JSON.parse(raw) : [];
-      setWishlisted(Array.isArray(ids) && ids.some(x => String(x) === String(id)));
-    } catch {}
-  }, [storageKey, id]);
+    (async () => {
+      try {
+        if (isAuthenticated) {
+          // Use server-side wishlist for logged-in users
+          const res = await fetch(`${API_URL}/api/user/wishlist`, { credentials: 'include' });
+          const data = await res.json().catch(() => ({}));
+          const list = Array.isArray(data.wishlist) ? data.wishlist.map(String) : [];
+          setWishlisted(list.includes(String(id)));
+        } else {
+          // Guests use localStorage
+          const raw = localStorage.getItem(storageKey);
+          const ids = raw ? JSON.parse(raw) : [];
+          setWishlisted(Array.isArray(ids) && ids.some(x => String(x) === String(id)));
+        }
+      } catch {
+        // Fallback: do not crash card if wishlist fetch fails
+      }
+    })();
+  }, [storageKey, id, isAuthenticated]);
 
   const toggleWishlist = async (e) => {
     e?.preventDefault?.();

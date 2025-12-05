@@ -13,13 +13,7 @@ const EditProperty = () => {
   const [property, setProperty] = useState(null);
   const [propertyAmenityOptions, setPropertyAmenityOptions] = useState([]);
   const [roomAmenityOptions, setRoomAmenityOptions] = useState([]);
-  const [roomTypeOptions, setRoomTypeOptions] = useState([
-    { value: 'double', label: 'Double room' },
-    { value: 'double_private_bathroom', label: 'Double room with private bathroom' },
-    { value: 'double_shared_bathroom', label: 'Double room with shared bathroom' },
-    { value: 'single', label: 'Single room' },
-    { value: 'single_shared_bathroom', label: 'Single room with shared bathroom' }
-  ]);
+  const [roomTypeOptions, setRoomTypeOptions] = useState([]);
 
   // Editable fields state
   const [form, setForm] = useState({

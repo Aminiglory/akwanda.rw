@@ -226,6 +226,15 @@ img[loading="lazy"].loaded {
   }
 }
 
+@keyframes roomCardsScroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
 /* Animation Classes */
 .animate-fade-in-down {
   animation: fadeInDown 0.8s ease-out;
@@ -271,6 +280,11 @@ img[loading="lazy"].loaded {
   animation: shimmer 2s linear infinite;
   background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
   background-size: 200px 100%;
+}
+
+.room-cards-marquee {
+  position: relative;
+  animation: roomCardsScroll 5s linear infinite;
 }
 
 /* Smooth scrolling */
