@@ -120,19 +120,10 @@ const FeaturedApartments = () => {
             >
               <PropertyCard
                 listing={{
-                  id: apartment.id,
-                  title: apartment.title,
-                  location: apartment.location,
+                  ...apartment,
                   image: (apartment.images && apartment.images.length ? apartment.images[0] : apartment.image),
                   price: Number(apartment.price || 0),
-                  bedrooms: apartment.bedrooms,
-                  bathrooms: apartment.bathrooms,
-                  area: apartment.size,
                   status: apartment.isAvailable ? 'active' : 'inactive',
-                  bookings: apartment.reviews,
-                  host: apartment.host,
-                  rooms: apartment.rooms,
-                  hasBreakfastIncluded: apartment.hasBreakfastIncluded
                 }}
                 onView={() => (window.location.href = `/apartment/${apartment.id}`)}
               />
