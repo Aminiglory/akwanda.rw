@@ -55,6 +55,7 @@ const FeaturedApartments = () => {
             price: p.pricePerNight,
             rating: avgRating ? Number(avgRating.toFixed(1)) : null,
             reviews: ratingsArr.length,
+            viewCount: p.viewCount || 0,
             image: primaryImage,
             images: allImages,
             bedrooms: p.bedrooms ?? 2,

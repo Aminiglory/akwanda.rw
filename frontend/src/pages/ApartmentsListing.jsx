@@ -140,6 +140,7 @@ const ApartmentsListing = () => {
         category: p.category || 'apartment',
         rating: p.ratings?.length ? (p.ratings.reduce((s, r) => s + r.rating, 0) / p.ratings.length).toFixed(1) : 0,
         reviews: p.ratings?.length || 0,
+        viewCount: p.viewCount || 0,
         bedrooms: p.bedrooms ?? 0,
         bathrooms: p.bathrooms ?? 0,
         size: p.size || "—",

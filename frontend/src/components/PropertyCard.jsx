@@ -47,6 +47,7 @@ const PropertyCard = ({
     amenities,
     rating,
     reviews,
+    viewCount,
   } = listing || {};
 
   const formatRoomLabel = (room) => {
@@ -292,6 +293,11 @@ const PropertyCard = ({
               {typeof reviews !== 'undefined' && reviews !== null && (
                 <span className="mt-0.5 text-gray-500 underline">
                   {reviews} review{reviews === 1 ? '' : 's'}
+                </span>
+              )}
+              {typeof viewCount !== 'undefined' && viewCount !== null && (
+                <span className="mt-0.5 text-[11px] text-gray-400">
+                  {viewCount} view{viewCount === 1 ? '' : 's'}
                 </span>
               )}
             </button>
