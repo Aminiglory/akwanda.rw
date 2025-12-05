@@ -1,7 +1,9 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FaHeart, FaMapMarkerAlt, FaBed, FaBath, FaRulerCombined, FaEdit, FaTrash } from 'react-icons/fa';
 import { useLocale } from '../contexts/LocaleContext';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const getStatusColor = (status) => {
   switch (status) {
@@ -82,6 +84,38 @@ const PropertyCard = ({
 
   const isWishlisted = !!(listing && listing.wishlisted);
   const isCompact = variant === 'compact';
+
+  const [isReviewsOpen, setIsReviewsOpen] = useState(false);
+  const [isLoadingReviews, setIsLoadingReviews] = useState(false);
+  const [reviewsList, setReviewsList] = useState(() => (Array.isArray(listing?.ratings) ? listing.ratings : []));
+
+  const handleOpenReviews = async (e) => {
+    e?.stopPropagation?.();
+    if (!listing?.id && !listing?._id) return;
+    const pid = listing.id || listing._id;
+    if (!Array.isArray(reviewsList) || reviewsList.length === 0) {
+      try {
+        setIsLoadingReviews(true);
+        const res = await fetch(`${API_URL}/api/properties/${pid}`, { credentials: 'include' });
+        const data = await res.json().catch(() => ({}));
+        if (Array.isArray(data?.ratings)) {
+          setReviewsList(data.ratings);
+        } else if (Array.isArray(data?.reviews)) {
+          setReviewsList(data.reviews);
+        }
+      } catch (_) {
+        // ignore errors; modal will just show no reviews
+      } finally {
+        setIsLoadingReviews(false);
+      }
+    }
+    setIsReviewsOpen(true);
+  };
+
+  const handleCloseReviews = (e) => {
+    e?.stopPropagation?.();
+    setIsReviewsOpen(false);
+  };
 
   const showsBreakfast = !!(
     hasBreakfastIncluded ||
@@ -247,16 +281,20 @@ const PropertyCard = ({
         )}
         <div className="mt-4 flex items-center justify-between flex-none">
           {typeof rating !== 'undefined' && rating !== null ? (
-            <div className="flex flex-col items-start text-xs">
+            <button
+              type="button"
+              onClick={handleOpenReviews}
+              className="flex flex-col items-start text-xs focus:outline-none"
+            >
               <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-blue-600 text-white font-semibold">
                 {Number(rating || 0).toFixed(1)}
               </span>
               {typeof reviews !== 'undefined' && reviews !== null && (
-                <span className="mt-0.5 text-gray-500">
+                <span className="mt-0.5 text-gray-500 underline">
                   {reviews} review{reviews === 1 ? '' : 's'}
                 </span>
               )}
-            </div>
+            </button>
           ) : (
             <div />
           )}
@@ -290,6 +328,68 @@ const PropertyCard = ({
           </div>
         </div>
       </div>
+      {isReviewsOpen && (
+        <div
+          className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/40 px-4"
+          onClick={handleCloseReviews}
+        >
+          <div
+            className="bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[80vh] overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
+              <h3 className="text-sm font-semibold text-gray-900">
+                {t ? t('property.reviewsFor') : 'Reviews for'} {title}
+              </h3>
+              <button
+                type="button"
+                onClick={handleCloseReviews}
+                className="text-gray-500 hover:text-gray-700 text-sm"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="px-4 py-3 max-h-[65vh] overflow-y-auto text-sm">
+              {isLoadingReviews ? (
+                <div className="py-4 text-center text-gray-500 text-xs">
+                  {t ? t('property.loadingReviews') : 'Loading reviews...'}
+                </div>
+              ) : !Array.isArray(reviewsList) || reviewsList.length === 0 ? (
+                <div className="py-4 text-center text-gray-500 text-xs">
+                  {t ? t('property.noReviewsYet') : 'No reviews recorded for this property yet.'}
+                </div>
+              ) : (
+                <ul className="space-y-3">
+                  {reviewsList.map((r, idx) => (
+                    <li key={r._id || idx} className="border-b border-gray-100 pb-2 last:border-b-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-blue-600 text-white text-[11px] font-semibold">
+                          {Number(r.rating || 0).toFixed(1)}
+                        </span>
+                        {r.createdAt && (
+                          <span className="text-[11px] text-gray-400">
+                            {new Date(r.createdAt).toLocaleDateString()}
+                          </span>
+                        )}
+                      </div>
+                      {r.comment && (
+                        <p className="text-xs text-gray-700 whitespace-pre-line">
+                          {r.comment}
+                        </p>
+                      )}
+                      {r.guestName && (
+                        <p className="mt-0.5 text-[11px] text-gray-500">
+                          {t ? t('property.reviewBy') : 'By'} {r.guestName}
+                        </p>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
