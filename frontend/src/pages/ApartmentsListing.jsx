@@ -127,6 +127,9 @@ const ApartmentsListing = () => {
           Array.isArray(p.addOnServices) &&
           p.addOnServices.some(s => s && s.key === 'breakfast' && s.enabled && Number(s.price || 0) === 0)
         );
+        const rooms = Array.isArray(p.rooms) ? p.rooms : [];
+        const totalRooms = rooms.length;
+        const availableRooms = rooms.filter(r => r.isAvailable !== false).length;
 
         return ({
         id: p._id,
@@ -146,9 +149,11 @@ const ApartmentsListing = () => {
           Array.isArray(p.amenities) && p.amenities.length
             ? p.amenities
             : ["WiFi", "Parking", "Kitchen"],
-        rooms: Array.isArray(p.rooms) ? p.rooms : [],
+        rooms,
+        totalRooms,
+        availableRooms,
         hasBreakfastIncluded,
-        isAvailable: p.isActive && (!p.rooms || p.rooms.length === 0 || p.rooms.some(room => room.isAvailable !== false)),
+        isAvailable: p.isActive && (totalRooms === 0 || availableRooms > 0),
         host: p.host ? `${p.host.firstName || ''} ${p.host.lastName || ''}`.trim() : "—",
         hostId: p.host?._id || p.host?.id || null,
       });

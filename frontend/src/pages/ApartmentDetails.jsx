@@ -143,21 +143,52 @@ const ApartmentDetails = () => {
 
   // Favorite persistence helpers
   useEffect(() => {
-    try {
-      const uid = (user && (user._id || user.id)) ? String(user._id || user.id) : 'guest';
-      const raw = localStorage.getItem(`favorites:${uid}`);
-      const list = raw ? JSON.parse(raw) : [];
-      setIsFavorited(Array.isArray(list) ? list.includes(String(id)) : false);
-    } catch { /* ignore */ }
-  }, [id, user]);
+    (async () => {
+      try {
+        const sId = String(id);
+        if (isAuthenticated) {
+          const res = await fetch(`${API_URL}/api/user/wishlist`, { credentials: 'include' });
+          const data = await res.json().catch(() => ({}));
+          const list = Array.isArray(data.wishlist) ? data.wishlist.map(String) : [];
+          setIsFavorited(list.includes(sId));
+        } else {
+          const uid = (user && (user._id || user.id)) ? String(user._id || user.id) : 'guest';
+          const raw = localStorage.getItem(`favorites:${uid}`);
+          const list = raw ? JSON.parse(raw) : [];
+          setIsFavorited(Array.isArray(list) ? list.includes(sId) : false);
+        }
+      } catch {
+        // ignore init errors
+      }
+    })();
+  }, [id, user, isAuthenticated, API_URL]);
 
-  const toggleFavorite = () => {
+  const toggleFavorite = async () => {
+    const sId = String(id);
+    if (isAuthenticated) {
+      try {
+        const url = `${API_URL}/api/user/wishlist/${sId}`;
+        const method = isFavorited ? 'DELETE' : 'POST';
+        const res = await fetch(url, { method, credentials: 'include', headers: { 'Content-Type': 'application/json' } });
+        const ok = res.ok;
+        if (!ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.message || 'Wishlist update failed');
+        }
+        setIsFavorited(!isFavorited);
+        toast.success(!isFavorited ? 'Saved to Favorites' : 'Removed from Favorites');
+      } catch (e) {
+        toast.error(e.message || 'Could not update favorites');
+      }
+      return;
+    }
+
+    // Guest mode: localStorage only
     try {
       const uid = (user && (user._id || user.id)) ? String(user._id || user.id) : 'guest';
       const key = `favorites:${uid}`;
       const raw = localStorage.getItem(key);
       const list = raw ? JSON.parse(raw) : [];
-      const sId = String(id);
       let next;
       if (Array.isArray(list) && list.includes(sId)) {
         next = list.filter(x => String(x) !== sId);

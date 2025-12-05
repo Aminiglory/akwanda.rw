@@ -71,16 +71,25 @@ const Favorites = () => {
           const data = await res.json();
           if (!res.ok) throw new Error(data.message || 'Failed to load wishlist');
           const props = Array.isArray(data.properties) ? data.properties : [];
-          const mapped = props.map(p => ({
-            id: String(p._id || p.id),
-            title: p.title || 'Property',
-            location: `${p.address || ''}${p.city ? (p.address ? ', ' : '') + p.city : ''}` || '—',
-            type: p.category || 'Apartment',
-            price: p.pricePerNight || 0,
-            bedrooms: p.bedrooms ?? 0,
-            bathrooms: p.bathrooms ?? 0,
-            image: Array.isArray(p.images) && p.images.length ? makeAbsolute(p.images[0]) : 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&h=600&fit=crop'
-          }));
+          const mapped = props.map(p => {
+            const ratingsArr = Array.isArray(p.ratings) ? p.ratings : [];
+            const avgRating = ratingsArr.length
+              ? ratingsArr.reduce((sum, r) => sum + Number(r.rating || 0), 0) / ratingsArr.length
+              : 0;
+            return {
+              id: String(p._id || p.id),
+              title: p.title || 'Property',
+              location: `${p.address || ''}${p.city ? (p.address ? ', ' : '') + p.city : ''}` || '—',
+              type: p.category || 'Apartment',
+              price: p.pricePerNight || 0,
+              bedrooms: p.bedrooms ?? 0,
+              bathrooms: p.bathrooms ?? 0,
+              rating: avgRating,
+              reviews: ratingsArr.length,
+              isAvailable: p.isActive !== false,
+              image: Array.isArray(p.images) && p.images.length ? makeAbsolute(p.images[0]) : 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&h=600&fit=crop'
+            };
+          });
           // Load car favorites from local storage (server wishlist doesn't include cars yet)
           const carResults = await Promise.all(
             (carIds||[]).map(async (cid) => {
@@ -111,14 +120,21 @@ const Favorites = () => {
               const data = await safeApiGet(`/api/properties/${id}`, null);
               if (!data) return null;
               const p = data.property || data; // support either shape
+              const ratingsArr = Array.isArray(p.ratings) ? p.ratings : [];
+              const avgRating = ratingsArr.length
+                ? ratingsArr.reduce((sum, r) => sum + Number(r.rating || 0), 0) / ratingsArr.length
+                : 0;
               return {
                 id: String(p._id || p.id || id),
                 title: p.title || p.name || 'Property',
-                location: p.location || p.city || p.address || '—',
-                type: p.type || 'Apartment',
-                price: p.basePrice || p.price || p.startingPrice || 0,
+                location: `${p.address || ''}${p.city ? (p.address ? ', ' : '') + p.city : ''}` || p.location || '—',
+                type: p.category || p.type || 'Apartment',
+                price: p.pricePerNight || p.basePrice || p.price || p.startingPrice || 0,
                 bedrooms: p.bedrooms ?? p.beds ?? 0,
                 bathrooms: p.bathrooms ?? p.baths ?? 0,
+                rating: avgRating,
+                reviews: ratingsArr.length,
+                isAvailable: p.isActive !== false,
                 image: Array.isArray(p.images) && p.images.length
                   ? makeAbsolute(p.images[0])
                   : 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&h=600&fit=crop',
@@ -233,11 +249,11 @@ const Favorites = () => {
                 images={[p.image]}
                 pricePerNight={Number(p.price || 0)}
                 category={p.type || 'Apartment'}
-                rating={0}
-                reviews={0}
+                rating={Number(p.rating || 0)}
+                reviews={p.reviews || 0}
                 amenities={[]}
                 host={null}
-                isAvailable={true}
+                isAvailable={p.isAvailable !== false}
                 href={p.href || `/apartment/${p.id}`}
               />
               <div className="mt-2 flex items-center justify-between">

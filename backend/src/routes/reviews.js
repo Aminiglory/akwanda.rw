@@ -17,6 +17,19 @@ function requireAuth(req, res, next) {
   }
 }
 
+function requireAdmin(req, res, next) {
+  const token = req.cookies?.akw_token || (req.headers.authorization || '').replace('Bearer ', '');
+  if (!token) return res.status(401).json({ message: 'Unauthorized' });
+  try {
+    const user = jwt.verify(token, JWT_SECRET);
+    if (user.userType !== 'admin') return res.status(403).json({ message: 'Admin only' });
+    req.user = user;
+    return next();
+  } catch (e) {
+    return res.status(401).json({ message: 'Invalid token' });
+  }
+}
+
 // GET all reviews for landing page (with user details)
 router.get('/landing', async (req, res) => {
   try {
@@ -68,6 +81,75 @@ router.get('/landing', async (req, res) => {
   } catch (e) {
     console.error('Failed to fetch landing reviews:', e);
     res.status(500).json({ message: 'Failed to fetch reviews', error: e.message });
+  }
+});
+
+// ADMIN: list reviews across all properties with basic filters
+// GET /api/reviews/admin/all?status=pending|approved|rejected&minRating=&maxRating=
+router.get('/admin/all', requireAdmin, async (req, res) => {
+  try {
+    const { status, minRating, maxRating, limit = 200 } = req.query;
+    const properties = await Property.find({}).select('ratings title address city').populate('ratings.guest', 'firstName lastName email');
+
+    const reviews = [];
+    for (const property of properties) {
+      for (const rating of property.ratings || []) {
+        if (status && rating.status !== status) continue;
+        if (minRating && rating.rating < Number(minRating)) continue;
+        if (maxRating && rating.rating > Number(maxRating)) continue;
+        reviews.push({
+          _id: rating._id,
+          rating: rating.rating,
+          comment: rating.comment,
+          status: rating.status,
+          createdAt: rating.createdAt,
+          guest: rating.guest ? {
+            _id: rating.guest._id,
+            firstName: rating.guest.firstName,
+            lastName: rating.guest.lastName,
+            email: rating.guest.email
+          } : null,
+          property: {
+            _id: property._id,
+            title: property.title,
+            location: `${property.address}, ${property.city}`
+          }
+        });
+      }
+    }
+
+    reviews.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    const limited = reviews.slice(0, Number(limit) || 200);
+    return res.json({ reviews: limited, total: reviews.length });
+  } catch (e) {
+    console.error('Admin reviews list error:', e);
+    return res.status(500).json({ message: 'Failed to load reviews', error: e.message });
+  }
+});
+
+// ADMIN: reject or remove a review regardless of owner approval
+// POST /api/reviews/admin/:propertyId/:ratingId/reject  { hardDelete?: boolean }
+router.post('/admin/:propertyId/:ratingId/reject', requireAdmin, async (req, res) => {
+  try {
+    const { propertyId, ratingId } = req.params;
+    const { hardDelete } = req.body || {};
+    const property = await Property.findById(propertyId);
+    if (!property) return res.status(404).json({ message: 'Property not found' });
+
+    const rating = property.ratings.id(ratingId);
+    if (!rating) return res.status(404).json({ message: 'Review not found' });
+
+    if (hardDelete) {
+      rating.remove();
+    } else {
+      rating.status = 'rejected';
+    }
+    await property.save();
+
+    return res.json({ message: 'Review removed by admin', reviewId: ratingId });
+  } catch (e) {
+    console.error('Admin reject review error:', e);
+    return res.status(500).json({ message: 'Failed to update review', error: e.message });
   }
 });
 

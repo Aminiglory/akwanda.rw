@@ -731,7 +731,6 @@ const resolveDictValue = (dictionary, path, args = []) => {
     if (cur && typeof cur === 'object' && part in cur) {
       cur = cur[part];
     } else {
-      console.log('[Locale] Missing key segment in dictionary', { path: String(path), missingPart: part });
       return null;
     }
   }
@@ -750,19 +749,16 @@ const t = useMemo(() => {
     if (!path) return '';
     const primary = resolveDictValue(dict, path, args);
     if (primary !== null && primary !== undefined) {
-      console.log('[Locale.t] primary hit', { language, path: String(path) });
       return primary;
     }
 
     const fallbackDict = dictionaries[DEFAULT_LANG];
     const fallback = resolveDictValue(fallbackDict, path, args);
     if (fallback !== null && fallback !== undefined) {
-      console.log('[Locale.t] fallback hit', { path: String(path) });
       return fallback;
     }
 
     if (typeof path === 'string') {
-      console.log('[Locale.t] missing key in all dictionaries', { path });
       const parts = path.split('.');
       return parts[parts.length - 1] || '';
     }
@@ -805,11 +801,9 @@ const translateSync = useMemo(() => {
 
     const resolved = resolveDictValue(dict, pathOrText) ?? resolveDictValue(dictionaries[DEFAULT_LANG], pathOrText);
     if (resolved !== null && resolved !== undefined) {
-      console.log('[Locale.translateSync] resolved key', { language, key: pathOrText });
       return resolved;
     }
 
-    console.log('[Locale.translateSync] missing key, returning fallback/text', { language, key: pathOrText });
     return fallback ?? pathOrText;
   };
 }, [dict, language]);

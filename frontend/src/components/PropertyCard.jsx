@@ -39,11 +39,25 @@ const PropertyCard = ({
     isPremium,
     isAd,
     rooms,
+    totalRooms,
+    availableRooms,
     hasBreakfastIncluded,
     amenities,
     rating,
     reviews,
   } = listing || {};
+
+  const formatRoomLabel = (room) => {
+    if (!room) return 'Room';
+    const name = room.roomNumber || room.name || '';
+    const type = (room.roomType || '').replace(/_/g, ' ');
+    const cap = Number(room.capacity || 0);
+    const parts = [];
+    if (type) parts.push(type.charAt(0).toUpperCase() + type.slice(1));
+    if (cap > 0) parts.push(`${cap} guest${cap === 1 ? '' : 's'}`);
+    const meta = parts.join(' • ');
+    return { name: name || type || 'Room', meta };
+  };
 
   const highlightText = (text) => {
     const term = String(highlight || '').trim();
@@ -109,35 +123,41 @@ const PropertyCard = ({
           <span className="line-clamp-1">{highlightText(location)}</span>
         </div>
         {Array.isArray(rooms) && rooms.length > 0 && (
-          <div className="mt-1 mb-3 overflow-x-auto scrollbar-hide">
+          <div className="mt-2 mb-3 overflow-x-auto scrollbar-hide">
             <div className="flex gap-2">
               {rooms.slice(0, 6).map((room, idx) => {
-                const roomName = room.roomNumber || room.name || room.roomType || 'Room';
+                const { name, meta } = formatRoomLabel(room);
                 const nightly = Number(room.pricePerNight || room.price || 0);
-                const totalUnits = Number(room.totalUnits || room.units || 0);
-                let availabilityLabel = '';
-                if (totalUnits > 0) {
-                  availabilityLabel = totalUnits <= 2
-                    ? `• Only ${totalUnits} left`
-                    : `• ${totalUnits} rooms`;
-                }
                 const priceLabel = nightly > 0
                   ? (formatCurrencyRWF
                       ? formatCurrencyRWF(nightly)
                       : `RWF ${nightly.toLocaleString()}`)
                   : '';
                 return (
-                  <span
+                  <div
                     key={room._id || room.roomNumber || room.roomType || idx}
-                    className="px-2 py-1 rounded-full bg-gray-100 text-[11px] font-medium text-gray-700 whitespace-nowrap"
+                    className="px-3 py-2 rounded-xl bg-gray-50 border border-gray-100 text-[11px] text-gray-800 whitespace-nowrap flex flex-col leading-tight min-w-[120px]"
                   >
-                    {roomName}
-                    {priceLabel && ` • ${priceLabel}`}
-                    {availabilityLabel && ` ${availabilityLabel}`}
-                  </span>
+                    <span className="font-semibold text-gray-900 text-[11px] truncate">{name}</span>
+                    {meta && (
+                      <span className="text-[10px] text-gray-500 truncate">{meta}</span>
+                    )}
+                    {priceLabel && (
+                      <span className="text-[10px] text-gray-600 mt-0.5">{priceLabel}</span>
+                    )}
+                  </div>
                 );
               })}
             </div>
+          </div>
+        )}
+        {typeof totalRooms === 'number' && totalRooms > 0 && (
+          <div className="mb-2 text-xs text-gray-600">
+            <span className="font-medium text-gray-800">
+              {typeof availableRooms === 'number'
+                ? `${availableRooms} of ${totalRooms} room${totalRooms === 1 ? '' : 's'} available`
+                : `${totalRooms} room${totalRooms === 1 ? '' : 's'}`}
+            </span>
           </div>
         )}
         {Array.isArray(amenities) && amenities.length > 0 && (
