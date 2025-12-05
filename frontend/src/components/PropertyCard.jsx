@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { FaHeart, FaMapMarkerAlt, FaBed, FaBath, FaRulerCombined, FaEdit, FaTrash } from 'react-icons/fa';
 import { useLocale } from '../contexts/LocaleContext';
@@ -83,6 +83,36 @@ const PropertyCard = ({
   const isWishlisted = !!(listing && listing.wishlisted);
   const isCompact = variant === 'compact';
 
+  const roomsScrollRef = useRef(null);
+
+  useEffect(() => {
+    const container = roomsScrollRef.current;
+    if (!container || !Array.isArray(rooms) || rooms.length === 0) return;
+
+    let frameId;
+    const speed = 0.4; // pixels per frame for smooth, slow scroll
+
+    const step = () => {
+      if (!container) return;
+      const maxScroll = container.scrollWidth - container.clientWidth;
+      if (maxScroll <= 0) {
+        frameId = requestAnimationFrame(step);
+        return;
+      }
+      if (container.scrollLeft >= maxScroll) {
+        container.scrollLeft = 0;
+      } else {
+        container.scrollLeft += speed;
+      }
+      frameId = requestAnimationFrame(step);
+    };
+
+    frameId = requestAnimationFrame(step);
+    return () => {
+      if (frameId) cancelAnimationFrame(frameId);
+    };
+  }, [rooms]);
+
   return (
     <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all border border-gray-100 overflow-hidden h-full w-full max-w-sm mx-auto flex flex-col">
       <div className="relative bg-gray-100">
@@ -123,12 +153,12 @@ const PropertyCard = ({
           <span className="line-clamp-1">{highlightText(location)}</span>
         </div>
         {Array.isArray(rooms) && rooms.length > 0 && (
-          <div className="mt-2 mb-3 overflow-x-auto scrollbar-hide">
-            <div
-              className="flex gap-3 room-cards-marquee"
-              style={{ animationDuration: `${Math.max((rooms?.length || 1) * 2, 8)}s` }}
-            >
-              {[...rooms, ...rooms].map((room, idx) => {
+          <div
+            className="mt-2 mb-3 overflow-x-auto scrollbar-hide"
+            ref={roomsScrollRef}
+          >
+            <div className="flex gap-3">
+              {rooms.map((room, idx) => {
                 const { name, meta } = formatRoomLabel(room);
                 const nightly = Number(room.pricePerNight || room.price || 0);
                 const priceLabel = nightly > 0
