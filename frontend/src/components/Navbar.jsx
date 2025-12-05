@@ -765,14 +765,10 @@ const Navbar = () => {
   const isInPropertyOwnerDashboard = () => {
     // Treat the main step-based listing wizard (/upload) as OUTSIDE the dashboard.
     // The dashboard is only for management after at least one listing exists.
-    const ownerRoutes = ['/group-home', '/dashboard', '/user-dashboard', '/my-bookings', '/owner', '/messages', '/notifications'];
+    // Note: /my-bookings is now a guest bookings page and should NOT be considered part of the owner dashboard.
+    const ownerRoutes = ['/group-home', '/dashboard', '/user-dashboard', '/owner', '/messages', '/notifications'];
     if (ownerRoutes.some(route => location.pathname.startsWith(route))) {
       return true;
-    }
-    // Treat global search as owner-mode when explicitly tagged
-    if (location.pathname.startsWith('/search')) {
-      const params = new URLSearchParams(location.search || '');
-      if (params.get('mode') === 'owner') return true;
     }
     return false;
   };

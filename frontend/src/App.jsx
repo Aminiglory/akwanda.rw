@@ -52,6 +52,7 @@ const BookingProcess = lazyWithRetry(() => import('./pages/BookingProcess'));
 const BookingConfirmation = lazyWithRetry(() => import('./pages/BookingConfirmation'));
 const CustomerSupport = lazyWithRetry(() => import('./pages/CustomerSupport'));
 const PropertyOwnerBookings = lazyWithRetry(() => import('./pages/PropertyOwnerBookings'));
+const MyBookings = lazyWithRetry(() => import('./pages/MyBookings'));
 const Messages = lazyWithRetry(() => import('./pages/Messages'));
 const OwnerPromotions = lazyWithRetry(() => import('./pages/OwnerPromotions'));
 const WorkersManagement = lazyWithRetry(() => import('./pages/WorkersManagement'));
@@ -190,7 +191,7 @@ function App() {
             <Route path="/billing/rra-ebm" element={<RRAEBMIntegration />} />
             <Route path="/support" element={<CustomerSupport />} />
             <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
-            <Route path="/my-bookings" element={<HostRoute><div className="dashboard"><PropertyOwnerBookings /></div></HostRoute>} />
+            <Route path="/my-bookings" element={<ProtectedRoute><MyBookings /></ProtectedRoute>} />
             {/* All property owner dashboard routes now point to PropertyOwnerBookings */}
             <Route path="/owner/cars" element={<HostRoute><div className="dashboard"><CarOwnerDashboard /></div></HostRoute>} />
             <Route path="/owner/attractions" element={<HostRoute><div className="dashboard"><OwnerAttractionsDashboard /></div></HostRoute>} />

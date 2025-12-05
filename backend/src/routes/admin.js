@@ -139,6 +139,40 @@ router.post('/commission', requireAdmin, async (req, res) => {
     }
 });
 
+// Unlock a user account even if they still have pending commissions/fines
+// PATCH /api/admin/users/:id/unlock
+router.patch('/users/:id/unlock', requireAdmin, async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    user.isBlocked = false;
+    user.blockedUntil = null;
+    user.blockedAt = null;
+    user.blockReason = null;
+    // Optional: clear limitedAccess if used elsewhere
+    if (typeof user.limitedAccess !== 'undefined') {
+      user.limitedAccess = false;
+    }
+
+    await user.save();
+
+    try {
+      await Notification.create({
+        type: 'account_unlocked',
+        title: 'Account unlocked by admin',
+        message: 'Your account has been unlocked. Please ensure your commissions and fines are paid on time.',
+        recipientUser: user._id
+      });
+    } catch (_) { /* non-blocking */ }
+
+    return res.json({ success: true, user: { id: user._id, isBlocked: user.isBlocked } });
+  } catch (e) {
+    console.error('Admin unlock user error:', e);
+    return res.status(500).json({ message: 'Failed to unlock user', error: e?.message || String(e) });
+  }
+});
+
 // Seed demo properties for the current admin user (admin-only)
 router.post('/seed-demo-properties', requireAdmin, async (req, res) => {
   try {

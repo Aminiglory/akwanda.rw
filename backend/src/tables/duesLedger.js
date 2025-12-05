@@ -15,6 +15,14 @@ const duesLedgerSchema = new mongoose.Schema({
   paidAmount: { type: Number, default: 0, min: 0 },
   createdAt: { type: Date, default: Date.now },
   paidAt: { type: Date },
+
+  // Monthly commission cycle support
+  periodYear: { type: Number }, // e.g. 2025
+  periodMonth: { type: Number }, // 1-12
+  dueDate: { type: Date },
+  graceEndDate: { type: Date },
+  reminderStage: { type: Number, default: 0 },
+  lastReminderAt: { type: Date },
 }, { timestamps: true });
 
 module.exports = mongoose.model('DuesLedger', duesLedgerSchema);

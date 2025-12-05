@@ -5,19 +5,33 @@ const Booking = require('../tables/booking');
 const Property = require('../tables/property');
 const Notification = require('../tables/notification');
 const User = require('../tables/user');
+const DuesLedger = require('../tables/duesLedger');
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
 
 function requireAuth(req, res, next) {
-    const token = req.cookies.akw_token || (req.headers.authorization || '').replace('Bearer ', '');
-    if (!token) return res.status(401).json({ message: 'Unauthorized' });
-    try {
-        req.user = jwt.verify(token, JWT_SECRET);
-        return next();
-    } catch (e) {
-        return res.status(401).json({ message: 'Invalid token' });
-    }
+  const token = req.cookies.akw_token || (req.headers.authorization || '').replace('Bearer ', '');
+  if (!token) return res.status(401).json({ message: 'Unauthorized' });
+  try {
+    req.user = jwt.verify(token, JWT_SECRET);
+    return next();
+  } catch (e) {
+    return res.status(401).json({ message: 'Invalid token' });
+  }
+}
+
+function requireAdmin(req, res, next) {
+  const token = req.cookies.akw_token || (req.headers.authorization || '').replace('Bearer ', '');
+  if (!token) return res.status(401).json({ message: 'Unauthorized' });
+  try {
+    const user = jwt.verify(token, JWT_SECRET);
+    if (user.userType !== 'admin') return res.status(403).json({ message: 'Admin only' });
+    req.user = user;
+    return next();
+  } catch (e) {
+    return res.status(401).json({ message: 'Invalid token' });
+  }
 }
 
 // Commission + fines summary for current owner
@@ -43,6 +57,160 @@ router.get('/summary', requireAuth, async (req, res) => {
   } catch (e) {
     console.error('Billing summary error:', e);
     return res.status(500).json({ message: 'Failed to load billing summary' });
+  }
+});
+
+// Admin: generate monthly commission dues per owner
+// POST /api/billing/monthly/generate?year=YYYY&month=MM (1-12). Defaults to previous month.
+router.post('/monthly/generate', requireAdmin, async (req, res) => {
+  try {
+    let { year, month } = req.query;
+    const now = new Date();
+    if (!year || !month) {
+      // Default: previous month
+      const d = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      year = d.getFullYear();
+      month = d.getMonth() + 1; // 1-12
+    } else {
+      year = Number(year);
+      month = Number(month);
+    }
+    if (!year || !month || month < 1 || month > 12) {
+      return res.status(400).json({ message: 'Invalid year or month' });
+    }
+
+    const periodStart = new Date(year, month - 1, 1);
+    const periodEnd = new Date(year, month, 0, 23, 59, 59, 999); // last day of month
+
+    // Find commissions per owner for that month
+    const agg = await Booking.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: periodStart, $lte: periodEnd },
+          status: { $in: ['confirmed', 'ended'] },
+          paymentStatus: 'paid',
+          commissionAmount: { $gt: 0 }
+        }
+      },
+      { $lookup: { from: 'properties', localField: 'property', foreignField: '_id', as: 'prop' } },
+      { $unwind: '$prop' },
+      {
+        $group: {
+          _id: '$prop.host',
+          totalCommission: { $sum: '$commissionAmount' }
+        }
+      }
+    ]);
+
+    const dueDate = periodEnd;
+    const graceEndDate = new Date(dueDate.getTime() + 15 * 24 * 60 * 60 * 1000);
+
+    let created = 0;
+    let updated = 0;
+
+    for (const row of agg) {
+      const ownerId = row._id;
+      const amount = Number(row.totalCommission || 0);
+      if (!ownerId || !amount || amount <= 0) continue;
+
+      const existing = await DuesLedger.findOne({
+        user: ownerId,
+        type: 'commission',
+        periodYear: year,
+        periodMonth: month
+      });
+
+      if (existing) {
+        existing.amount = amount;
+        existing.dueDate = dueDate;
+        existing.graceEndDate = graceEndDate;
+        await existing.save();
+        updated++;
+      } else {
+        await DuesLedger.create({
+          user: ownerId,
+          type: 'commission',
+          source: 'property',
+          amount,
+          currency: 'RWF',
+          status: 'unpaid',
+          periodYear: year,
+          periodMonth: month,
+          dueDate,
+          graceEndDate,
+          description: `Monthly commission for ${year}-${String(month).padStart(2, '0')}`
+        });
+        created++;
+      }
+    }
+
+    return res.json({
+      success: true,
+      year,
+      month,
+      owners: agg.length,
+      created,
+      updated
+    });
+  } catch (e) {
+    console.error('Generate monthly dues error:', e);
+    return res.status(500).json({ message: 'Failed to generate monthly dues' });
+  }
+});
+
+// Admin: run monthly commission reminders within grace period
+// POST /api/billing/monthly/run-reminders
+router.post('/monthly/run-reminders', requireAdmin, async (req, res) => {
+  try {
+    const today = new Date();
+    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
+
+    const dues = await DuesLedger.find({
+      type: 'commission',
+      status: { $in: ['unpaid', 'partial'] },
+      dueDate: { $lte: endOfDay },
+      graceEndDate: { $gte: startOfDay }
+    }).populate('user');
+
+    let notified = 0;
+
+    for (const d of dues) {
+      // Avoid sending multiple reminders the same day
+      if (d.lastReminderAt) {
+        const last = new Date(d.lastReminderAt);
+        if (
+          last.getFullYear() === today.getFullYear() &&
+          last.getMonth() === today.getMonth() &&
+          last.getDate() === today.getDate()
+        ) {
+          continue;
+        }
+      }
+
+      const ownerId = d.user?._id || d.user;
+      if (!ownerId) continue;
+
+      try {
+        await Notification.create({
+          type: 'commission_reminder',
+          title: 'Commission payment reminder',
+          message: `Your monthly commission for ${d.periodYear}-${String(d.periodMonth || 0).padStart(2, '0')} is due. Please pay by ${d.graceEndDate?.toLocaleDateString() || ''}.`,
+          recipientUser: ownerId
+        });
+        d.reminderStage = (d.reminderStage || 0) + 1;
+        d.lastReminderAt = today;
+        await d.save();
+        notified++;
+      } catch (err) {
+        console.error('Failed to send commission reminder for dues', d._id, err);
+      }
+    }
+
+    return res.json({ success: true, checked: dues.length, notified });
+  } catch (e) {
+    console.error('Run monthly reminders error:', e);
+    return res.status(500).json({ message: 'Failed to run monthly reminders' });
   }
 });
 

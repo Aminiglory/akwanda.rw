@@ -13,7 +13,19 @@ const MyBookings = () => {
   const [ratingBusy, setRatingBusy] = useState({});
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [activeBooking, setActiveBooking] = useState(null);
-  const [reviewDraft, setReviewDraft] = useState({ rating: 0, comment: '' });
+  const [reviewDraft, setReviewDraft] = useState({
+    rating: 0,          // legacy 1-5 stars
+    overallScore10: 0,  // 0-10 scale for new review API
+    title: '',
+    comment: '',
+    staff: 0,
+    cleanliness: 0,
+    locationScore: 0,
+    facilities: 0,
+    comfort: 0,
+    valueForMoney: 0,
+    highlightsText: '', // comma-separated highlights
+  });
 
   const loadBookings = async () => {
     setLoading(true);
@@ -46,7 +58,14 @@ const MyBookings = () => {
   const submitQuickReview = async (b, rating) => {
     try {
       setRatingBusy(prev => ({ ...prev, [b._id]: true }));
-      await apiPost(`/api/bookings/${b._id}/review`, { rating });
+      // Map 1-5 stars to 0-10 overall score
+      const overallScore10 = Math.max(0, Math.min(10, Number(rating) * 2));
+      await apiPost('/api/reviews', {
+        bookingId: b._id,
+        propertyId: b.property?._id || b.property,
+        overallScore10,
+        // keep categories empty for quick rating; owner will still see legacy 1-5
+      });
       toast.success('Thanks for your rating!');
       setBookings(prev => prev.map(x => x._id === b._id ? { ...x, rating } : x));
     } catch (e) {
@@ -59,7 +78,20 @@ const MyBookings = () => {
 
   const openReviewModal = (b) => {
     setActiveBooking(b);
-    setReviewDraft({ rating: b.rating || 0, comment: '' });
+    const existing = Number(b.rating || 0);
+    setReviewDraft({
+      rating: existing || 0,
+      overallScore10: existing ? existing * 2 : 0,
+      title: '',
+      comment: '',
+      staff: 0,
+      cleanliness: 0,
+      locationScore: 0,
+      facilities: 0,
+      comfort: 0,
+      valueForMoney: 0,
+      highlightsText: '',
+    });
     setShowReviewModal(true);
   };
 
@@ -71,7 +103,30 @@ const MyBookings = () => {
     }
     try {
       setRatingBusy(prev => ({ ...prev, [activeBooking._id]: true }));
-      await apiPost(`/api/bookings/${activeBooking._id}/review`, { rating: reviewDraft.rating, comment: reviewDraft.comment });
+      const overallScore10 = Math.max(0, Math.min(10, Number(reviewDraft.overallScore10 || (reviewDraft.rating * 2))));
+      const clamp10 = (v) => {
+        const n = Number(v);
+        if (Number.isNaN(n)) return 0;
+        return Math.max(0, Math.min(10, n));
+      };
+      const highlights = String(reviewDraft.highlightsText || '')
+        .split(',')
+        .map(h => h.trim())
+        .filter(Boolean);
+      await apiPost('/api/reviews', {
+        bookingId: activeBooking._id,
+        propertyId: activeBooking.property?._id || activeBooking.property,
+        overallScore10,
+        staff: clamp10(reviewDraft.staff),
+        cleanliness: clamp10(reviewDraft.cleanliness),
+        locationScore: clamp10(reviewDraft.locationScore),
+        facilities: clamp10(reviewDraft.facilities),
+        comfort: clamp10(reviewDraft.comfort),
+        valueForMoney: clamp10(reviewDraft.valueForMoney),
+        title: reviewDraft.title,
+        comment: reviewDraft.comment,
+        highlights,
+      });
       toast.success('Review submitted');
       setBookings(prev => prev.map(x => x._id === activeBooking._id ? { ...x, rating: reviewDraft.rating } : x));
       setShowReviewModal(false);
@@ -194,16 +249,59 @@ const MyBookings = () => {
               <button className="p-2 rounded hover:bg-gray-100" onClick={() => setShowReviewModal(false)} aria-label="Close">✕</button>
             </div>
             <div className="p-4 space-y-4">
-              <div className="flex items-center gap-2">
-                {[1,2,3,4,5].map(n => (
-                  <button
-                    key={n}
-                    onClick={() => setReviewDraft(rd => ({ ...rd, rating: n }))}
-                    className={`text-2xl ${reviewDraft.rating >= n ? 'text-yellow-500' : 'text-gray-300'}`}
-                    aria-label={`Rate ${n}`}
-                  >
-                    ★
-                  </button>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  {[1,2,3,4,5].map(n => (
+                    <button
+                      key={n}
+                      onClick={() => setReviewDraft(rd => ({ ...rd, rating: n, overallScore10: n * 2 }))}
+                      className={`text-2xl ${reviewDraft.rating >= n ? 'text-yellow-500' : 'text-gray-300'}`}
+                      aria-label={`Rate ${n}`}
+                    >
+                      ★
+                    </button>
+                  ))}
+                </div>
+                <div className="text-xs text-gray-600">
+                  Overall score: <span className="font-semibold">{reviewDraft.overallScore10 || 0}</span> / 10
+                </div>
+              </div>
+              <input
+                type="text"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                placeholder="Headline for your stay (optional)"
+                value={reviewDraft.title}
+                onChange={(e) => setReviewDraft(rd => ({ ...rd, title: e.target.value }))}
+              />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-gray-700">
+                {[{
+                  key: 'staff', label: 'Staff'
+                }, {
+                  key: 'cleanliness', label: 'Cleanliness'
+                }, {
+                  key: 'locationScore', label: 'Location'
+                }, {
+                  key: 'facilities', label: 'Facilities'
+                }, {
+                  key: 'comfort', label: 'Comfort'
+                }, {
+                  key: 'valueForMoney', label: 'Value for money'
+                }].map((row) => (
+                  <div key={row.key} className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span>{row.label}</span>
+                      <span className="font-semibold">{reviewDraft[row.key] || 0} / 10</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="10"
+                      step="1"
+                      value={reviewDraft[row.key] || 0}
+                      onChange={(e) => setReviewDraft(rd => ({ ...rd, [row.key]: Number(e.target.value) }))}
+                      className="w-full accent-blue-600"
+                    />
+                  </div>
                 ))}
               </div>
               <textarea
@@ -212,6 +310,13 @@ const MyBookings = () => {
                 placeholder="Share more about your stay (optional)"
                 value={reviewDraft.comment}
                 onChange={(e) => setReviewDraft(rd => ({ ...rd, comment: e.target.value }))}
+              />
+              <input
+                type="text"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs text-gray-700"
+                placeholder="Highlights (comma separated, e.g. Very friendly staff, Clean rooms, Good breakfast)"
+                value={reviewDraft.highlightsText}
+                onChange={(e) => setReviewDraft(rd => ({ ...rd, highlightsText: e.target.value }))}
               />
             </div>
             <div className="p-4 border-t flex flex-col sm:flex-row gap-2">

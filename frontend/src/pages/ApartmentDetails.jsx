@@ -57,6 +57,7 @@ const ApartmentDetails = () => {
   const [detailsRoom, setDetailsRoom] = useState(null);
   const [expandedAmenitiesRooms, setExpandedAmenitiesRooms] = useState({});
   const [reviews, setReviews] = useState([]);
+  const [reviewsSummary, setReviewsSummary] = useState(null);
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [reviewsError, setReviewsError] = useState('');
   const [searchCheckIn, setSearchCheckIn] = useState('');
@@ -328,6 +329,7 @@ const ApartmentDetails = () => {
         if (!res.ok) throw new Error(data.message || 'Failed to load reviews');
         if (!cancelled) {
           setReviews(Array.isArray(data.reviews) ? data.reviews : []);
+          setReviewsSummary(data.summary || null);
         }
       } catch (e) {
         if (!cancelled) {
@@ -541,13 +543,26 @@ const ApartmentDetails = () => {
                   <span className="truncate max-w-[60vw] md:max-w-none">{apartment.location}</span>
                 </span>
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-100 text-gray-700 text-sm">
-                  <span className="flex items-center gap-0.5">
-                    {renderStars(apartment.rating)}
-                  </span>
-                  <span className="font-medium">
-                    {apartment.rating.toFixed(1)}
-                  </span>
-                  <span className="opacity-70">· {apartment.reviews} Reviews</span>
+                  {(() => {
+                    const overall10 = reviewsSummary?.overallScore10 ?? (apartment.rating ? apartment.rating * 2 : 0);
+                    const count = reviewsSummary?.count ?? apartment.reviews ?? 0;
+                    if (!overall10 && !count) return null;
+                    return (
+                      <span className="inline-flex items-center gap-2 px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-xs font-medium">
+                        <div className="flex items-center justify-center w-7 h-7 rounded-md bg-blue-600 text-white text-sm font-bold">
+                          {overall10.toFixed(1)}
+                        </div>
+                        <div className="flex flex-col leading-tight">
+                          <span className="text-[11px] font-semibold text-gray-900">
+                            {overall10 >= 9 ? 'Superb' : overall10 >= 8 ? 'Very good' : 'Guest rating'}
+                          </span>
+                          <span className="text-[10px] text-gray-600">
+                            {count} review{count === 1 ? '' : 's'}
+                          </span>
+                        </div>
+                      </span>
+                    );
+                  })()}
                 </span>
                 <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-xs font-medium">
                   Verified Listing
@@ -558,12 +573,21 @@ const ApartmentDetails = () => {
               <button onClick={handleShare} className="p-3 rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors" title="Share" aria-label="Share">
                 <FaShare className="text-lg" />
               </button>
-              <button onClick={()=> setShowEmailShare(true)} className="p-3 rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors" title="Share via Email" aria-label="Share via Email">
+              <button
+                onClick={() => setShowEmailShare(true)}
+                className="p-3 rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+                title="Share via Email"
+                aria-label="Share via Email"
+              >
                 <FaEnvelope className="text-lg" />
               </button>
               <button
                 onClick={toggleFavorite}
-                className={`p-3 rounded-full transition-colors ${isFavorited ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                className={`p-3 rounded-full transition-colors ${
+                  isFavorited
+                    ? 'bg-red-500 text-white shadow-lg'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
                 title={isFavorited ? 'Remove from favorites' : 'Save to favorites'}
                 aria-label={isFavorited ? 'Unfavorite' : 'Favorite'}
               >
@@ -598,7 +622,6 @@ const ApartmentDetails = () => {
                     e.target.src = 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&h=600&fit=crop';
                   }}
                 />
-                
                 {/* Navigation Arrows */}
                 {apartment.images.length > 1 && (
                   <>
@@ -616,12 +639,10 @@ const ApartmentDetails = () => {
                     </button>
                   </>
                 )}
-                
                 {/* Image Counter */}
                 <div className="absolute bottom-4 left-4 bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm font-medium">
                   {selectedImage + 1} / {apartment.images.length}
                 </div>
-                
                 {/* Favorite Button Overlay */}
                 <button
                   onClick={toggleFavorite}
@@ -634,7 +655,6 @@ const ApartmentDetails = () => {
                   <FaHeart className={`text-xl ${isFavorited ? 'animate-pulse' : ''}`} />
                 </button>
               </div>
-              
               {/* Thumbnail Gallery */}
               <div className="p-4">
                 <div className="grid grid-cols-4 gap-2">
@@ -643,8 +663,8 @@ const ApartmentDetails = () => {
                       key={index}
                       onClick={() => setSelectedImage(index)}
                       className={`relative h-20 rounded-lg overflow-hidden transition-all duration-300 group/thumb ${
-                        selectedImage === index 
-                          ? 'ring-2 ring-primary scale-105' 
+                        selectedImage === index
+                          ? 'ring-2 ring-primary scale-105'
                           : 'hover:scale-105 hover:ring-2 ring-primary'
                       }`}
                     >
@@ -930,6 +950,7 @@ const ApartmentDetails = () => {
               </div>
             )}
 
+            {/* Guest Reviews */}
             <div className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-shadow p-5 md:p-6">
               <div className="flex items-center gap-2 text-gray-900 font-semibold mb-3">
                 <FaStar className="text-blue-600" />
@@ -938,23 +959,62 @@ const ApartmentDetails = () => {
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <p className="text-sm font-semibold text-gray-800">
-                    {apartment.reviews > 0
-                      ? `${apartment.reviews} stay${apartment.reviews === 1 ? '' : 's'} at this property`
+                    {reviewsSummary?.count
+                      ? `${reviewsSummary.count} stay${reviewsSummary.count === 1 ? '' : 's'} at this property`
                       : 'No reviews yet for this property'}
                   </p>
-                  {apartment.reviews > 0 && (
+                  {reviewsSummary?.overallScore10 ? (
                     <p className="text-xs text-gray-500">
-                      Average rating {apartment.rating.toFixed(1)} / 5
+                      Average guest score {reviewsSummary.overallScore10.toFixed(1)} / 10
                     </p>
-                  )}
+                  ) : null}
                 </div>
-                {apartment.reviews > 0 && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-2xl font-bold text-blue-600">{apartment.rating.toFixed(1)}</span>
-                    <div className="hidden sm:flex">{renderStars(apartment.rating)}</div>
+                {reviewsSummary?.overallScore10 ? (
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center w-11 h-11 rounded-lg bg-blue-600 text-white text-xl font-bold">
+                      {reviewsSummary.overallScore10.toFixed(1)}
+                    </div>
+                    <div className="hidden sm:flex flex-col text-xs">
+                      <span className="font-semibold text-gray-900">
+                        {reviewsSummary.overallScore10 >= 9 ? 'Superb' : reviewsSummary.overallScore10 >= 8 ? 'Very good' : 'Guest rating'}
+                      </span>
+                      <span className="text-gray-500">Based on {reviewsSummary.count} review{reviewsSummary.count === 1 ? '' : 's'}</span>
+                    </div>
                   </div>
-                )}
+                ) : null}
               </div>
+
+              {reviewsSummary?.count ? (
+                <div className="mb-5 border border-gray-100 rounded-xl p-4 bg-gray-50">
+                  <p className="text-xs font-semibold text-gray-800 mb-3">Basic categories</p>
+                  {[
+                    { key: 'staff', label: 'Staff' },
+                    { key: 'cleanliness', label: 'Cleanliness' },
+                    { key: 'locationScore', label: 'Location' },
+                    { key: 'facilities', label: 'Facilities' },
+                    { key: 'comfort', label: 'Comfort' },
+                    { key: 'valueForMoney', label: 'Value for money' },
+                  ].map(row => {
+                    const val = reviewsSummary[row.key] ?? 0;
+                    const pct = Math.max(0, Math.min(100, (val / 10) * 100));
+                    return (
+                      <div key={row.key} className="flex items-center gap-3 mb-1.5">
+                        <div className="w-28 text-xs text-gray-700">{row.label}</div>
+                        <div className="flex-1 h-2 rounded-full bg-gray-200 overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-blue-700"
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                        <div className="w-8 text-right text-xs text-gray-800 font-semibold">
+                          {val ? val.toFixed(1) : '–'}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : null}
+
               {reviewsLoading ? (
                 <div className="space-y-3">
                   {Array.from({ length: 3 }).map((_, i) => (
@@ -992,9 +1052,7 @@ const ApartmentDetails = () => {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between">
                             <div>
-                              <p className="text-sm font-semibold text-gray-800 truncate">
-                                {guest.fullName || 'Guest'}
-                              </p>
+                              <p className="text-sm font-semibold text-gray-800">{guest.fullName || 'Guest'}</p>
                               <p className="text-xs text-gray-500">
                                 {review.createdAt ? new Date(review.createdAt).toLocaleDateString() : ''}
                               </p>

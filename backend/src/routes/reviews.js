@@ -3,6 +3,7 @@ const router = express.Router();
 const jwt = require('jsonwebtoken');
 const Property = require('../tables/property');
 const User = require('../tables/user');
+const Booking = require('../tables/booking');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
 
@@ -30,6 +31,97 @@ function requireAdmin(req, res, next) {
   }
 }
 
+// Guest creates a detailed review (0-10 categories + comments)
+// POST /api/reviews
+router.post('/', requireAuth, async (req, res) => {
+  try {
+    const {
+      bookingId,
+      propertyId,
+      overallScore10,
+      staff,
+      cleanliness,
+      locationScore,
+      facilities,
+      comfort,
+      valueForMoney,
+      title,
+      comment,
+      highlights
+    } = req.body || {};
+
+    if (!bookingId || !propertyId) {
+      return res.status(400).json({ message: 'bookingId and propertyId are required' });
+    }
+
+    const booking = await Booking.findById(bookingId).populate('property');
+    if (!booking) return res.status(404).json({ message: 'Booking not found' });
+    if (String(booking.guest) !== String(req.user.id)) {
+      return res.status(403).json({ message: 'You can only review your own stays' });
+    }
+
+    // Optional: require that stay has ended before review
+    if (booking.checkOut && new Date(booking.checkOut) > new Date()) {
+      return res.status(400).json({ message: 'You can review after your stay has ended' });
+    }
+
+    const property = await Property.findById(propertyId);
+    if (!property) return res.status(404).json({ message: 'Property not found' });
+
+    const clamp10 = (v) => {
+      const n = Number(v);
+      if (isNaN(n)) return undefined;
+      return Math.min(10, Math.max(0, n));
+    };
+
+    const overall10 = clamp10(overallScore10);
+    const staffScore = clamp10(staff);
+    const cleanScore = clamp10(cleanliness);
+    const locScore = clamp10(locationScore);
+    const facScore = clamp10(facilities);
+    const comfortScore = clamp10(comfort);
+    const valueScore = clamp10(valueForMoney);
+
+    // Map 0-10 overall to legacy 1-5 stars for existing UI
+    let legacyRating = 0;
+    if (typeof overall10 === 'number') {
+      legacyRating = Math.max(1, Math.min(5, Math.round(overall10 / 2)));
+    }
+
+    const review = {
+      guest: req.user.id,
+      rating: legacyRating || 5,
+      comment: comment || '',
+      status: 'pending',
+      createdAt: new Date(),
+      booking: booking._id,
+      reservationNumber: booking.confirmationCode || String(booking._id).slice(-8),
+      overallScore10: overall10,
+      staff: staffScore,
+      cleanliness: cleanScore,
+      locationScore: locScore,
+      facilities: facScore,
+      comfort: comfortScore,
+      valueForMoney: valueScore,
+      title: title || '',
+      highlights: Array.isArray(highlights)
+        ? highlights.map(h => String(h || '').trim()).filter(Boolean)
+        : []
+    };
+
+    property.ratings.push(review);
+    await property.save();
+
+    return res.status(201).json({
+      message: 'Review submitted and pending approval',
+      review: review
+    });
+  } catch (e) {
+    console.error('Create review error:', e);
+    res.status(500).json({ message: 'Failed to submit review', error: e.message });
+  }
+});
+
 // GET all reviews for landing page (with user details)
 router.get('/landing', async (req, res) => {
   try {
@@ -54,6 +146,15 @@ router.get('/landing', async (req, res) => {
             _id: rating._id,
             rating: rating.rating,
             comment: rating.comment,
+            overallScore10: rating.overallScore10,
+            staff: rating.staff,
+            cleanliness: rating.cleanliness,
+            locationScore: rating.locationScore,
+            facilities: rating.facilities,
+            comfort: rating.comfort,
+            valueForMoney: rating.valueForMoney,
+            title: rating.title,
+            highlights: Array.isArray(rating.highlights) ? rating.highlights : [],
             createdAt: rating.createdAt,
             guest: {
               _id: rating.guest._id,
@@ -159,18 +260,28 @@ router.get('/property/:propertyId', async (req, res) => {
     const property = await Property.findById(req.params.propertyId)
       .select('ratings title')
       .populate('ratings.guest', 'firstName lastName profilePicture');
-    
+
     if (!property) {
       return res.status(404).json({ message: 'Property not found' });
     }
-    
-    const reviews = (property.ratings || [])
-      .filter(rating => rating.status === 'approved' || !rating.status)
-      .map(rating => ({
+
+    const approved = (property.ratings || [])
+      .filter(rating => rating.status === 'approved' || !rating.status);
+
+    const reviews = approved.map(rating => ({
       _id: rating._id,
       rating: rating.rating,
       comment: rating.comment,
       createdAt: rating.createdAt,
+      overallScore10: rating.overallScore10,
+      staff: rating.staff,
+      cleanliness: rating.cleanliness,
+      locationScore: rating.locationScore,
+      facilities: rating.facilities,
+      comfort: rating.comfort,
+      valueForMoney: rating.valueForMoney,
+      title: rating.title,
+      highlights: Array.isArray(rating.highlights) ? rating.highlights : [],
       guest: rating.guest ? {
         _id: rating.guest._id,
         firstName: rating.guest.firstName,
@@ -179,8 +290,23 @@ router.get('/property/:propertyId', async (req, res) => {
         fullName: `${rating.guest.firstName} ${rating.guest.lastName}`
       } : null
     }));
-    
-    res.json({ reviews, propertyTitle: property.title });
+
+    const count = approved.length || 0;
+    const sum = (field) => approved.reduce((s, r) => s + (typeof r[field] === 'number' ? r[field] : 0), 0);
+    const avg = (field) => (count > 0 ? Number((sum(field) / count).toFixed(1)) : 0);
+
+    const summary = {
+      overallScore10: avg('overallScore10'),
+      staff: avg('staff'),
+      cleanliness: avg('cleanliness'),
+      locationScore: avg('locationScore'),
+      facilities: avg('facilities'),
+      comfort: avg('comfort'),
+      valueForMoney: avg('valueForMoney'),
+      count
+    };
+
+    res.json({ reviews, propertyTitle: property.title, summary });
   } catch (e) {
     res.status(500).json({ message: 'Failed to fetch property reviews', error: e.message });
   }
@@ -190,16 +316,16 @@ router.get('/property/:propertyId', async (req, res) => {
 router.get('/my-reviews', requireAuth, async (req, res) => {
   try {
     const { filter, propertyId } = req.query;
-    
+
     let query = { host: req.user.id, isActive: true };
     if (propertyId) {
       query._id = propertyId;
     }
-    
+
     const properties = await Property.find(query)
       .select('ratings title images address city')
       .populate('ratings.guest', 'firstName lastName profilePicture email');
-    
+
     const allReviews = [];
     for (const property of properties) {
       for (const rating of property.ratings || []) {
@@ -225,7 +351,7 @@ router.get('/my-reviews', requireAuth, async (req, res) => {
             location: `${property.address}, ${property.city}`
           }
         };
-        
+
         // Apply filters
         if (filter === 'unreplied' && review.replied) continue;
         if (filter === '5-star' && review.rating !== 5) continue;
@@ -233,14 +359,14 @@ router.get('/my-reviews', requireAuth, async (req, res) => {
         if (filter === 'pending' && rating.status !== 'pending') continue;
         if (filter === 'approved' && rating.status !== 'approved') continue;
         if (filter === 'rejected' && rating.status !== 'rejected') continue;
-        
+
         allReviews.push(review);
       }
     }
-    
+
     // Sort by date
     allReviews.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    
+
     res.json({ reviews: allReviews, total: allReviews.length });
   } catch (e) {
     console.error('Failed to fetch my reviews:', e);

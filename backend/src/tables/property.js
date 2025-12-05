@@ -121,12 +121,26 @@ const propertySchema = new mongoose.Schema(
     }],
     ratings: [{
       guest: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      // Legacy compact rating used by existing 1-5 star views
       rating: { type: Number, min: 1, max: 5 },
       comment: { type: String },
       reply: { type: String },
       replyDate: { type: Date },
       status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
-      createdAt: { type: Date, default: Date.now }
+      createdAt: { type: Date, default: Date.now },
+
+      // Extended review details for Booking.com-style categories (0-10 scale)
+      booking: { type: mongoose.Schema.Types.ObjectId, ref: 'Booking' },
+      reservationNumber: { type: String },
+      overallScore10: { type: Number, min: 0, max: 10 },
+      staff: { type: Number, min: 0, max: 10 },
+      cleanliness: { type: Number, min: 0, max: 10 },
+      locationScore: { type: Number, min: 0, max: 10 },
+      facilities: { type: Number, min: 0, max: 10 },
+      comfort: { type: Number, min: 0, max: 10 },
+      valueForMoney: { type: Number, min: 0, max: 10 },
+      title: { type: String },
+      highlights: [{ type: String }]
     }]
   }, { timestamps: true }
 );
