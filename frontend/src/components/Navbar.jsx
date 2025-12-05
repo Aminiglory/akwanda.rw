@@ -546,13 +546,25 @@ const Navbar = () => {
 
   // Keep selected property in sync with URL and loaded properties
   useEffect(() => {
-    if (!isAuthenticated || user?.userType !== 'host' || myProperties.length === 0) return;
+    if (!isAuthenticated || user?.userType !== 'host') return;
+    if (!Array.isArray(myProperties) || myProperties.length === 0) {
+      setSelectedPropertyId('');
+      return;
+    }
+
+    // On the group home page, do not auto-select a property.
+    // The management navigation should stay hidden until the owner picks a property row.
+    if (location.pathname.startsWith('/group-home')) {
+      setSelectedPropertyId('');
+      return;
+    }
+
     const params = new URLSearchParams(location.search || '');
     const urlProp = params.get('property');
     const existsInList = urlProp && myProperties.some(p => String(p._id) === String(urlProp));
     const firstId = String(myProperties[0]._id || '');
     setSelectedPropertyId(existsInList ? String(urlProp) : firstId);
-  }, [isAuthenticated, user?.userType, myProperties, location.search]);
+  }, [isAuthenticated, user?.userType, myProperties, location.search, location.pathname]);
 
 
   // Fetch dynamic badge counts for navigation
@@ -1457,7 +1469,7 @@ const Navbar = () => {
             </div>
 
             {/* Owner navigation (Booking.com style) in second navbar */}
-            {isAuthenticated && user?.userType === 'host' && isInAnyOwnerDashboard() && (
+            {isAuthenticated && user?.userType === 'host' && isInAnyOwnerDashboard() && !!selectedPropertyId && (
               <div className="w-full flex flex-wrap items-center gap-1 pt-1 mt-1">
                 {(isInCarOwnerDashboard() ? carOwnerNavItems : bookingComNavItems).map((item, idx) => {
                   const Icon = item.icon;
@@ -1568,7 +1580,7 @@ const Navbar = () => {
           )}
 
           {/* Owner navigation (Booking.com style) - only in owner dashboard context */}
-          {user?.userType === 'host' && isInAnyOwnerDashboard() && (
+          {user?.userType === 'host' && isInAnyOwnerDashboard() && !!selectedPropertyId && (
             <div className="px-2 pb-2">
               {(isInCarOwnerDashboard() ? carOwnerNavItems : bookingComNavItems).map((item, idx) => {
                 const Icon = item.icon;
