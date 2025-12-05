@@ -55,6 +55,12 @@ const PropertyOwnerBookings = () => {
     averageRating: 0
   });
   const [showDirectBooking, setShowDirectBooking] = useState(false);
+  const [showEditDirect, setShowEditDirect] = useState(false);
+  const [editingDirectBooking, setEditingDirectBooking] = useState(null);
+  const [editDirectForm, setEditDirectForm] = useState({
+    directAddOns: [],
+    finalAgreedAmount: '',
+  });
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
   const [directForm, setDirectForm] = useState({
@@ -548,6 +554,40 @@ const PropertyOwnerBookings = () => {
     });
   };
 
+  const onEditDirectChange = (path, value) => {
+    setEditDirectForm(prev => {
+      if (path.includes('.')) {
+        const [p, c] = path.split('.');
+        return { ...prev, [p]: { ...prev[p], [c]: value } };
+      }
+      return { ...prev, [path]: value };
+    });
+  };
+
+  const addEditDirectAddOnRow = () => {
+    setEditDirectForm(prev => ({
+      ...prev,
+      directAddOns: [...(prev.directAddOns || []), { label: '', amount: '' }]
+    }));
+  };
+
+  const updateEditDirectAddOn = (index, field, value) => {
+    setEditDirectForm(prev => {
+      const list = Array.isArray(prev.directAddOns) ? [...prev.directAddOns] : [];
+      if (!list[index]) list[index] = { label: '', amount: '' };
+      list[index] = { ...list[index], [field]: value };
+      return { ...prev, directAddOns: list };
+    });
+  };
+
+  const removeEditDirectAddOn = (index) => {
+    setEditDirectForm(prev => {
+      const list = Array.isArray(prev.directAddOns) ? [...prev.directAddOns] : [];
+      list.splice(index, 1);
+      return { ...prev, directAddOns: list };
+    });
+  };
+
   const onSelectProperty = async (pid) => {
     onDirectChange('propertyId', pid);
     onDirectChange('roomId', '');
@@ -665,6 +705,59 @@ const PropertyOwnerBookings = () => {
   const handleViewReceipt = (booking) => {
     if (!booking?._id) return;
     openReceiptPdf(booking._id);
+  };
+
+  const openEditDirectModal = async (booking) => {
+    try {
+      if (!booking?._id) return;
+      const res = await fetch(`${API_URL}/api/bookings/${booking._id}`, { credentials: 'include' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to load booking');
+      const full = data.booking || data;
+      setEditingDirectBooking(full);
+      setEditDirectForm({
+        directAddOns: Array.isArray(full.directAddOns) ? full.directAddOns.map(a => ({
+          label: a.label || '',
+          amount: a.amount != null ? a.amount : ''
+        })) : [],
+        finalAgreedAmount: full.finalAgreedAmount != null ? String(full.finalAgreedAmount) : '',
+      });
+      setShowEditDirect(true);
+    } catch (e) {
+      toast.error(e.message || 'Failed to open edit form');
+    }
+  };
+
+  const submitEditDirectBooking = async () => {
+    try {
+      if (!editingDirectBooking?._id) return;
+      const payload = {
+        directAddOns: (editDirectForm.directAddOns || [])
+          .filter(a => (a.label && String(a.label).trim()) || Number(a.amount || 0) > 0)
+          .map(a => ({
+            label: String(a.label || '').trim(),
+            amount: Number(a.amount || 0) || 0,
+          })),
+        finalAgreedAmount: editDirectForm.finalAgreedAmount
+          ? Number(editDirectForm.finalAgreedAmount)
+          : undefined,
+      };
+      const res = await fetch(`${API_URL}/api/bookings/${editingDirectBooking._id}/direct`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to update direct booking');
+      const updated = data.booking || editingDirectBooking;
+      setBookings(prev => prev.map(b => (b._id === updated._id ? { ...b, ...updated } : b)));
+      toast.success('Direct booking updated');
+      setShowEditDirect(false);
+      setEditingDirectBooking(null);
+    } catch (e) {
+      toast.error(e.message || 'Failed to save changes');
+    }
   };
 
   const renderBookingDetails = () => {
@@ -993,6 +1086,119 @@ const PropertyOwnerBookings = () => {
                 {((booking.guest?.firstName || booking.guest?.name || '').charAt(0) || (booking.guest?.email || 'U').charAt(0))}
               </div>
             )}
+
+      {/* Edit Direct Booking modal */}
+      {showEditDirect && editingDirectBooking && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
+          <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+              <h2 className="text-2xl font-bold">Edit Direct Booking</h2>
+              <button onClick={() => { setShowEditDirect(false); setEditingDirectBooking(null); }} className="text-gray-500 hover:text-gray-700">
+                <FaTimes className="text-xl" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4 text-sm">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs text-gray-500">Property</p>
+                  <p className="font-semibold text-gray-900">{editingDirectBooking.property?.title || 'Property'}</p>
+                  <p className="text-xs text-gray-500">{editingDirectBooking.property?.city || editingDirectBooking.property?.address}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">Stay</p>
+                  <p className="font-medium text-gray-900">{editingDirectBooking.checkIn} → {editingDirectBooking.checkOut}</p>
+                  <p className="text-xs text-gray-500">Guests: {editingDirectBooking.numberOfGuests || 1}</p>
+                </div>
+              </div>
+
+              <div className="border rounded-lg p-4 bg-gray-50 space-y-3">
+                <div className="flex items-center justify-between mb-1">
+                  <div className="text-sm font-semibold text-gray-900">Direct add-ons</div>
+                  <button
+                    type="button"
+                    onClick={addEditDirectAddOnRow}
+                    className="px-2 py-1 text-xs rounded bg-blue-600 text-white hover:bg-blue-700"
+                  >
+                    + Add add-on
+                  </button>
+                </div>
+                {(!Array.isArray(editDirectForm.directAddOns) || editDirectForm.directAddOns.length === 0) && (
+                  <div className="text-xs text-gray-500">No direct add-ons yet. Use "+ Add add-on" to record extras like breakfast, transfer, etc.</div>
+                )}
+                {Array.isArray(editDirectForm.directAddOns) && editDirectForm.directAddOns.map((addOn, idx) => (
+                  <div key={idx} className="grid grid-cols-12 gap-2 items-center text-xs">
+                    <input
+                      type="text"
+                      placeholder="Add-on description"
+                      value={addOn.label || ''}
+                      onChange={e => updateEditDirectAddOn(idx, 'label', e.target.value)}
+                      className="col-span-7 border rounded px-2 py-1"
+                    />
+                    <input
+                      type="number"
+                      min={0}
+                      placeholder="Amount"
+                      value={addOn.amount}
+                      onChange={e => updateEditDirectAddOn(idx, 'amount', e.target.value)}
+                      className="col-span-4 border rounded px-2 py-1"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeEditDirectAddOn(idx)}
+                      className="col-span-1 text-red-500 hover:text-red-700"
+                      aria-label="Remove add-on row"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+                <div className="pt-2 text-xs text-gray-700 space-y-1">
+                  {(() => {
+                    const addOnsTotal = (editDirectForm.directAddOns || []).reduce((sum, a) => {
+                      const amt = Number(a?.amount || 0);
+                      return sum + (isNaN(amt) || amt <= 0 ? 0 : amt);
+                    }, 0);
+                    return (
+                      <>
+                        <div>Direct add-ons total: RWF {addOnsTotal.toLocaleString()}</div>
+                        <div className="text-[11px] text-gray-500">Room base and levy stay as per original booking; this only adjusts add-ons and final agreed amount.</div>
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Final agreed base amount (room + levy, before add-ons)</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={editDirectForm.finalAgreedAmount}
+                  onChange={e => onEditDirectChange('finalAgreedAmount', e.target.value)}
+                  className="w-full border rounded-lg px-3 py-2 text-sm"
+                  placeholder="Leave blank to keep current agreed amount"
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-3 border-t pt-4 pb-4 px-6">
+              <button
+                type="button"
+                onClick={() => { setShowEditDirect(false); setEditingDirectBooking(null); }}
+                className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={submitEditDirectBooking}
+                className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium"
+              >
+                Save changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
             <div>
               <p className="font-medium text-sm md:text-base">{booking.guest.name}</p>
               <p className="text-xs md:text-sm text-gray-500">{booking.guest.email}</p>
@@ -1573,6 +1779,15 @@ const PropertyOwnerBookings = () => {
                         <FaFileInvoice className="mr-1" />
                         Receipt
                       </button>
+                      {b.isDirect && (
+                        <button
+                          onClick={() => openEditDirectModal(b)}
+                          className="inline-flex items-center px-2 py-1 rounded border border-blue-200 text-blue-700 hover:bg-blue-50"
+                        >
+                          <FaEdit className="mr-1" />
+                          Edit
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}

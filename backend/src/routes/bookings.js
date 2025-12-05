@@ -155,6 +155,97 @@ router.post('/:id/confirm', requireAuth, requireWorkerPrivilege('canConfirmBooki
   }
 });
 
+// Update direct booking details (owner/admin): directAddOns + finalAgreedAmount
+router.patch('/:id/direct', requireAuth, async (req, res) => {
+  try {
+    const { directAddOns, finalAgreedAmount } = req.body;
+
+    const booking = await Booking.findById(req.params.id).populate('property');
+    if (!booking) return res.status(404).json({ message: 'Booking not found' });
+
+    if (!booking.isDirect) {
+      return res.status(400).json({ message: 'Only direct bookings can be edited via this endpoint' });
+    }
+
+    const isOwner = booking.property && String(booking.property.host) === String(req.user.id);
+    const isAdmin = req.user.userType === 'admin';
+    if (!isOwner && !isAdmin) return res.status(403).json({ message: 'Unauthorized' });
+
+    const property = booking.property;
+
+    // Recompute base components from existing booking (do not change dates/room/guest counts)
+    let amountBeforeTax = Number(booking.amountBeforeTax || 0);
+    let taxAmount = Number(booking.taxAmount || 0);
+    const taxRate = typeof booking.taxRate === 'number' ? booking.taxRate : 3;
+    let totalAmount = Number(booking.totalAmount || 0);
+
+    // Rebuild directAddOnsClean and total from payload
+    let directAddOnsClean = Array.isArray(booking.directAddOns) ? [...booking.directAddOns] : [];
+    let directAddOnsTotal = 0;
+    if (Array.isArray(directAddOns)) {
+      directAddOnsClean = directAddOns
+        .map(a => {
+          const label = String(a && a.label ? a.label : '').trim();
+          const amount = Number(a && a.amount != null ? a.amount : 0) || 0;
+          if (amount > 0) directAddOnsTotal += amount;
+          return { label, amount };
+        })
+        .filter(a => a.label || a.amount > 0);
+    } else {
+      // Fallback: compute from existing stored add-ons
+      directAddOnsTotal = directAddOnsClean.reduce((sum, a) => sum + (Number(a.amount || 0) || 0), 0);
+    }
+
+    // Remove previous add-ons portion from total if possible, then apply new one.
+    // We assume commission/amountBeforeTax/tax were based on room+levy only, so
+    // we only adjust the final total here.
+    const baseWithoutAddOns = totalAmount - directAddOnsTotal;
+    totalAmount = baseWithoutAddOns + directAddOnsTotal;
+
+    // If a new finalAgreedAmount is supplied, override base and recompute
+    if (typeof finalAgreedAmount === 'number' && !isNaN(finalAgreedAmount) && finalAgreedAmount > 0) {
+      const negotiatedTotal = Math.round(finalAgreedAmount);
+      const rate = typeof property.commissionRate === 'number' && property.commissionRate >= 1 && property.commissionRate <= 100
+        ? property.commissionRate
+        : 10;
+      totalAmount = negotiatedTotal + directAddOnsTotal;
+      amountBeforeTax = Math.round((negotiatedTotal * 100) / (100 + taxRate));
+      taxAmount = negotiatedTotal - amountBeforeTax;
+      booking.commissionAmount = Math.round((amountBeforeTax * rate) / 100);
+      booking.finalAgreedAmount = Math.round(finalAgreedAmount);
+    }
+
+    booking.amountBeforeTax = amountBeforeTax;
+    booking.taxAmount = taxAmount;
+    booking.taxRate = taxRate;
+    booking.totalAmount = totalAmount;
+    booking.directAddOns = directAddOnsClean;
+
+    await booking.save();
+
+    // Keep invoice in sync
+    try {
+      await Invoice.findOneAndUpdate(
+        { booking: booking._id },
+        {
+          totalAmount: booking.totalAmount,
+          taxAmount: booking.taxAmount,
+          amountBeforeTax: booking.amountBeforeTax,
+          commissionAmount: booking.commissionAmount,
+          commissionPaid: booking.commissionPaid || false,
+          paymentStatus: booking.paymentStatus
+        },
+        { upsert: true, new: true }
+      );
+    } catch (_) { /* non-blocking */ }
+
+    res.json({ success: true, booking });
+  } catch (error) {
+    console.error('Update direct booking error:', error);
+    res.status(500).json({ message: 'Failed to update direct booking', error: error.message });
+  }
+});
+
 // Create booking
 router.post('/', requireAuth, async (req, res) => {
   try {
