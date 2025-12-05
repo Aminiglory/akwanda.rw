@@ -83,7 +83,14 @@ const PropertyCard = ({
   const isWishlisted = !!(listing && listing.wishlisted);
   const isCompact = variant === 'compact';
 
+  const showsBreakfast = !!(
+    hasBreakfastIncluded ||
+    String(title || '').toLowerCase().includes('breakfast') ||
+    (Array.isArray(amenities) && amenities.some(a => String(a || '').toLowerCase().includes('breakfast')))
+  );
+
   const roomsScrollRef = useRef(null);
+  const amenitiesScrollRef = useRef(null);
 
   useEffect(() => {
     const container = roomsScrollRef.current;
@@ -93,16 +100,17 @@ const PropertyCard = ({
     const speed = 0.4; // pixels per frame for smooth, slow scroll
 
     const step = () => {
-      if (!container) return;
-      const maxScroll = container.scrollWidth - container.clientWidth;
+      const el = roomsScrollRef.current;
+      if (!el) return;
+      const maxScroll = el.scrollWidth - el.clientWidth;
       if (maxScroll <= 0) {
         frameId = requestAnimationFrame(step);
         return;
       }
-      if (container.scrollLeft >= maxScroll) {
-        container.scrollLeft = 0;
+      if (el.scrollLeft >= maxScroll) {
+        el.scrollLeft = 0;
       } else {
-        container.scrollLeft += speed;
+        el.scrollLeft += speed;
       }
       frameId = requestAnimationFrame(step);
     };
@@ -112,6 +120,35 @@ const PropertyCard = ({
       if (frameId) cancelAnimationFrame(frameId);
     };
   }, [rooms]);
+
+  useEffect(() => {
+    const container = amenitiesScrollRef.current;
+    if (!container || !Array.isArray(amenities) || amenities.length === 0) return;
+
+    let frameId;
+    const speed = 0.4; // pixels per frame
+
+    const step = () => {
+      const el = amenitiesScrollRef.current;
+      if (!el) return;
+      const maxScroll = el.scrollWidth - el.clientWidth;
+      if (maxScroll <= 0) {
+        frameId = requestAnimationFrame(step);
+        return;
+      }
+      if (el.scrollLeft >= maxScroll) {
+        el.scrollLeft = 0;
+      } else {
+        el.scrollLeft += speed;
+      }
+      frameId = requestAnimationFrame(step);
+    };
+
+    frameId = requestAnimationFrame(step);
+    return () => {
+      if (frameId) cancelAnimationFrame(frameId);
+    };
+  }, [amenities]);
 
   return (
     <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all border border-gray-100 overflow-hidden h-full w-full max-w-sm mx-auto flex flex-col">
@@ -184,7 +221,7 @@ const PropertyCard = ({
             </div>
           </div>
         )}
-        {hasBreakfastIncluded && (
+        {showsBreakfast && (
           <div className="mb-3 -mt-1">
             <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-green-50 text-[11px] font-semibold text-emerald-700 border border-green-200">
               {t ? t('property.breakfastIncluded') : 'Breakfast included'}
@@ -201,7 +238,10 @@ const PropertyCard = ({
           </div>
         )}
         {Array.isArray(amenities) && amenities.length > 0 && (
-          <div className="mb-3 -mt-1 overflow-x-auto scrollbar-hide">
+          <div
+            className="mb-3 -mt-1 overflow-x-auto scrollbar-hide"
+            ref={amenitiesScrollRef}
+          >
             <div className="flex gap-2">
               {amenities.slice(0, 8).map((amenity, idx) => (
                 <span
