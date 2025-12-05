@@ -48,6 +48,7 @@ const EnhancedPropertyOwnerDashboard = () => {
   const [addRoomData, setAddRoomData] = useState({}); // { [propertyId]: { roomNumber, roomType, pricePerNight, capacity, amenities, images } }
   const [editingRoom, setEditingRoom] = useState(null); // { propertyId, room }
   const [editRoomData, setEditRoomData] = useState({}); // fields for edit
+  const [roomTypeOptions, setRoomTypeOptions] = useState([]); // dynamic room types from API
   const [openMenu, setOpenMenu] = useState(null); // 'rates' | 'promotions' | 'reservations' | 'property' | 'more'
   const [showMasterCalendar, setShowMasterCalendar] = useState(false);
 
@@ -72,6 +73,35 @@ const EnhancedPropertyOwnerDashboard = () => {
 
     fetchDashboardData();
   }, [location.search]);
+
+  // Load dynamic room types from API so admin-defined types are always valid
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/room-types?active=true`, { credentials: 'include' });
+        if (!res.ok) return;
+        const data = await res.json().catch(() => ({}));
+        const list = Array.isArray(data.roomTypes) ? data.roomTypes : [];
+        if (list.length) {
+          setRoomTypeOptions(list.map(rt => ({ value: rt.key, label: rt.name })));
+        } else {
+          // Fallback basic types if none configured yet
+          setRoomTypeOptions([
+            { value: 'single', label: 'Single room' },
+            { value: 'double', label: 'Double room' },
+            { value: 'suite', label: 'Suite' },
+            { value: 'family', label: 'Family room' },
+          ]);
+        }
+      } catch (_) {
+        // On error, keep any existing options or fall back to a small default set
+        setRoomTypeOptions(prev => (prev && prev.length ? prev : [
+          { value: 'single', label: 'Single room' },
+          { value: 'double', label: 'Double room' },
+        ]));
+      }
+    })();
+  }, []);
 
   const fetchDashboardData = async () => {
     try {
@@ -653,7 +683,9 @@ const EnhancedPropertyOwnerDashboard = () => {
                               <input placeholder="Room Number" className="px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" value={(addRoomData[property._id]?.roomNumber)||''} onChange={e=>setAddRoomData(p=>({ ...p, [property._id]: { ...(p[property._id]||{}), roomNumber:e.target.value } }))} />
                               <select className="px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" value={(addRoomData[property._id]?.roomType)||''} onChange={e=>setAddRoomData(p=>({ ...p, [property._id]: { ...(p[property._id]||{}), roomType:e.target.value } }))}>
                                 <option value="">Room Type</option>
-                                {['single','double','suite','family','deluxe'].map(t=> (<option key={t} value={t}>{t}</option>))}
+                                {roomTypeOptions.map(rt => (
+                                  <option key={rt.value} value={rt.value}>{rt.label}</option>
+                                ))}
                               </select>
                               <input type="number" placeholder="Price/night" className="px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" value={(addRoomData[property._id]?.pricePerNight)||''} onChange={e=>setAddRoomData(p=>({ ...p, [property._id]: { ...(p[property._id]||{}), pricePerNight:e.target.value } }))} />
                               <input type="number" placeholder="Capacity" className="px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" value={(addRoomData[property._id]?.capacity)||''} onChange={e=>setAddRoomData(p=>({ ...p, [property._id]: { ...(p[property._id]||{}), capacity:e.target.value } }))} />
@@ -683,7 +715,9 @@ const EnhancedPropertyOwnerDashboard = () => {
                                     <div className="grid grid-cols-1 md:grid-cols-6 gap-2">
                                       <input disabled={user?.isBlocked} className="px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50" value={editRoomData.roomNumber||''} onChange={e=>setEditRoomData(d=>({...d, roomNumber:e.target.value}))} />
                                       <select className="px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" value={editRoomData.roomType||''} onChange={e=>setEditRoomData(d=>({...d, roomType:e.target.value}))}>
-                                        {['single','double','suite','family','deluxe'].map(t=> (<option key={t} value={t}>{t}</option>))}
+                                        {roomTypeOptions.map(rt => (
+                                          <option key={rt.value} value={rt.value}>{rt.label}</option>
+                                        ))}
                                       </select>
                                       <input disabled={user?.isBlocked} type="number" className="px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50" value={editRoomData.pricePerNight||''} onChange={e=>setEditRoomData(d=>({...d, pricePerNight:e.target.value}))} />
                                       <input disabled={user?.isBlocked} type="number" className="px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50" value={editRoomData.capacity||''} onChange={e=>setEditRoomData(d=>({...d, capacity:e.target.value}))} />
