@@ -80,6 +80,61 @@ const yesNoOptions = [
   { label: 'No', value: 'no' }
 ];
 
+const openingDayOptions = ['Weekend', 'Monday–Friday', 'Whole week'];
+
+const attractionCurrencyOptions = ['RWF', 'USD', 'EUR', 'KES', 'UGX', 'TZS'];
+
+const paymentMethodOptions = [
+  'Mobile money (MoMoPay)',
+  'Cash on arrival',
+  'Card payment (POS / online)',
+  'Bank transfer'
+];
+
+const refundPolicyOptions = [
+  'No refund for early cancellation (unless stated otherwise).',
+  'Full refund for cancellations within a defined window before the visit (for example 48 hours or 7 days).',
+  'Late cancellations may result in partial or no refund.',
+  'No refund for no-shows.',
+  'Refunds offered only if the attraction is closed or unavailable due to unforeseen circumstances.',
+  'Refunds are not provided for unused tickets.',
+  'Group bookings may have different cancellation terms and conditions.'
+];
+
+const meetingPointOptions = [
+  'Meet at the attraction address provided in the listing',
+  'Meet at Kigali City Centre (Car Free Zone)',
+  'Meet at Kigali Convention Centre main entrance',
+  'Meet at Kigali International Airport arrivals hall',
+  'Pickup from guest hotel in Kigali (by arrangement)'
+];
+
+const amenityOptions = [
+  'Parking available',
+  'Restrooms / toilets',
+  'On-site restaurant or cafe',
+  'Snack bar or kiosk',
+  'Gift shop / souvenir shop',
+  'Free WiFi',
+  'Lockers or storage',
+  'Changing rooms / showers',
+  'Shaded seating areas',
+  'Shuttle or transfer service'
+];
+
+const safetyEquipmentOptions = [
+  'Life jackets',
+  'Helmets',
+  'Harnesses',
+  'Safety ropes',
+  'Reflective vests',
+  'First-aid kit on-site',
+  'Fire extinguishers',
+  'Rescue boat or vehicle available'
+];
+
+const languageOptions = ['Kinyarwanda', 'English', 'French', 'Kiswahili', 'Other'];
+
 const highlightGroups = [
   {
     label: 'Adventure & Activity Highlights',
@@ -202,7 +257,7 @@ const initialAttraction = {
   coverPhotoFiles: [],
   galleryFiles: [],
   video: '',
-  openingDays: '',
+  openingDays: 'Whole week',
   openingHoursStart: '',
   openingHoursEnd: '',
   seasonality: '',
@@ -210,12 +265,15 @@ const initialAttraction = {
   minAge: '',
   accessibility: '',
   timeSlots: '',
+  timeSlot1: '',
+  timeSlot2: '',
+  timeSlot3: '',
   ticketAdult: '',
   ticketChild: '',
   ticketStudent: '',
   ticketGroup: '',
   discounts: '',
-  currency: '',
+  currency: 'RWF',
   paymentMethods: '',
   cancellationPolicy: '',
   refundPolicy: '',
@@ -223,10 +281,10 @@ const initialAttraction = {
   minGuests: '',
   bookingRequired: '',
   checkinInstructions: '',
-  amenities: '',
+  amenities: [],
   guideAvailable: '',
   audioGuideLanguages: '',
-  safetyEquipment: '',
+  safetyEquipment: [],
   rules: '',
   dressCode: '',
   safetyInstructions: '',
@@ -380,6 +438,38 @@ const ListProperty = () => {
   const [flightStep, setFlightStep] = useState(1);
   const [flightData, setFlightData] = useState(initialFlightData);
 
+  useEffect(() => {
+    const { openingHoursStart, openingHoursEnd, duration } = attractionForm;
+    if (!openingHoursStart || !openingHoursEnd) return;
+    const [sh, sm] = openingHoursStart.split(':').map(Number);
+    const [eh, em] = openingHoursEnd.split(':').map(Number);
+    if ([sh, sm, eh, em].some(v => Number.isNaN(v))) return;
+    let startMinutes = sh * 60 + sm;
+    let endMinutes = eh * 60 + em;
+    if (endMinutes <= startMinutes) {
+      endMinutes += 24 * 60;
+    }
+    const diff = endMinutes - startMinutes;
+    if (diff <= 0) return;
+    const hours = Math.floor(diff / 60);
+    const minutes = diff % 60;
+    const label = minutes
+      ? `${hours} hour${hours !== 1 ? 's' : ''} ${minutes} min`
+      : `${hours} hour${hours !== 1 ? 's' : ''}`;
+    if (label !== duration) {
+      setAttractionForm(prev => ({ ...prev, duration: label }));
+    }
+  }, [attractionForm.openingHoursStart, attractionForm.openingHoursEnd]);
+
+  useEffect(() => {
+    const slots = [attractionForm.timeSlot1, attractionForm.timeSlot2, attractionForm.timeSlot3]
+      .map(s => String(s || '').trim())
+      .filter(Boolean);
+    const combined = slots.join(', ');
+    if (combined === (attractionForm.timeSlots || '')) return;
+    setAttractionForm(prev => ({ ...prev, timeSlots: combined }));
+  }, [attractionForm.timeSlot1, attractionForm.timeSlot2, attractionForm.timeSlot3]);
+
   const renderListingTypeSelector = () => (
     <div className="mb-6">
       <h2 className="text-xl font-semibold text-gray-900 mb-2">What would you like to list?</h2>
@@ -411,6 +501,151 @@ const ListProperty = () => {
             <div className="font-semibold text-gray-900 text-sm">{type.label}</div>
             <div className="text-xs text-gray-500 mt-1">{type.desc}</div>
           </button>
+        ))}
+      </div>
+    </div>
+  );
+
+  const renderAmenitySelector = () => {
+    const current = Array.isArray(attractionForm.amenities)
+      ? attractionForm.amenities
+      : String(attractionForm.amenities || '')
+          .split(',')
+          .map(s => s.trim())
+          .filter(Boolean);
+
+    const toggle = (value) => {
+      setAttractionForm(prev => {
+        const existing = Array.isArray(prev.amenities)
+          ? prev.amenities
+          : String(prev.amenities || '')
+              .split(',')
+              .map(s => s.trim())
+              .filter(Boolean);
+        return existing.includes(value)
+          ? { ...prev, amenities: existing.filter(v => v !== value) }
+          : { ...prev, amenities: [...existing, value] };
+      });
+    };
+
+    return (
+      <div className="space-y-2 md:col-span-2">
+        <p className="text-sm font-medium text-gray-700">Amenities & facilities</p>
+        <p className="text-xs text-gray-500">Select all amenities that apply to this attraction.</p>
+        <div className="flex flex-wrap gap-2">
+          {amenityOptions.map(option => {
+            const active = current.includes(option);
+            return (
+              <button
+                key={option}
+                type="button"
+                onClick={() => toggle(option)}
+                className={`px-2.5 py-1 rounded-full border text-xs transition-colors ${
+                  active
+                    ? 'bg-[#a06b42] border-[#a06b42] text-white'
+                    : 'border-gray-300 text-gray-700 hover:border-[#a06b42] hover:text-[#a06b42]'
+                }`}
+              >
+                {option}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  const renderSafetyEquipmentSelector = () => {
+    const current = Array.isArray(attractionForm.safetyEquipment)
+      ? attractionForm.safetyEquipment
+      : String(attractionForm.safetyEquipment || '')
+          .split(',')
+          .map(s => s.trim())
+          .filter(Boolean);
+
+    const toggle = (value) => {
+      setAttractionForm(prev => {
+        const existing = Array.isArray(prev.safetyEquipment)
+          ? prev.safetyEquipment
+          : String(prev.safetyEquipment || '')
+              .split(',')
+              .map(s => s.trim())
+              .filter(Boolean);
+        return existing.includes(value)
+          ? { ...prev, safetyEquipment: existing.filter(v => v !== value) }
+          : { ...prev, safetyEquipment: [...existing, value] };
+      });
+    };
+
+    return (
+      <div className="space-y-2 md:col-span-2">
+        <p className="text-sm font-medium text-gray-700">Safety equipment provided</p>
+        <p className="text-xs text-gray-500">Select all safety items you provide to guests.</p>
+        <div className="flex flex-wrap gap-2">
+          {safetyEquipmentOptions.map(option => {
+            const active = current.includes(option);
+            return (
+              <button
+                key={option}
+                type="button"
+                onClick={() => toggle(option)}
+                className={`px-2.5 py-1 rounded-full border text-xs transition-colors ${
+                  active
+                    ? 'bg-[#a06b42] border-[#a06b42] text-white'
+                    : 'border-gray-300 text-gray-700 hover:border-[#a06b42] hover:text-[#a06b42]'
+                }`}
+              >
+                {option}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  const renderPaymentMethodsField = () => (
+    <div className="space-y-1 md:col-span-2">
+      <p className="text-sm font-medium text-gray-700">Preferred payment method</p>
+      <div className="flex flex-col gap-2">
+        {paymentMethodOptions.map(option => (
+          <label key={option} className="inline-flex items-center gap-2 text-sm text-gray-700">
+            <input
+              type="radio"
+              name="paymentMethods"
+              value={option}
+              checked={attractionForm.paymentMethods === option}
+              onChange={() => setAttractionForm(prev => ({ ...prev, paymentMethods: option }))}
+              className="form-radio text-[#a06b42] h-4 w-4"
+            />
+            {option}
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+
+  const renderRefundPolicyField = () => (
+    <div className="space-y-1 md:col-span-2">
+      <p className="text-sm font-medium text-gray-700">Refund & cancellation policy</p>
+      <p className="text-xs text-gray-500">Choose the statement that best describes how refunds and cancellations are handled.</p>
+      <div className="flex flex-col gap-2">
+        {refundPolicyOptions.map(option => (
+          <label key={option} className="inline-flex items-start gap-2 text-sm text-gray-700">
+            <input
+              type="radio"
+              name="refundPolicy"
+              value={option}
+              checked={attractionForm.refundPolicy === option}
+              onChange={() => setAttractionForm(prev => ({
+                ...prev,
+                refundPolicy: option,
+                cancellationPolicy: option
+              }))}
+              className="mt-1 form-radio text-[#a06b42] h-4 w-4"
+            />
+            <span>{option}</span>
+          </label>
         ))}
       </div>
     </div>
@@ -663,6 +898,18 @@ const ListProperty = () => {
     }
 
     try {
+      const amenitiesArray = Array.isArray(attractionForm.amenities)
+        ? attractionForm.amenities
+        : String(attractionForm.amenities || '')
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean);
+      const safetyEquipmentArray = Array.isArray(attractionForm.safetyEquipment)
+        ? attractionForm.safetyEquipment
+        : String(attractionForm.safetyEquipment || '')
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean);
       const payload = {
         ...attractionForm,
         // Map to Attraction model core fields so it behaves like OwnerAttractionsDashboard.createItem
@@ -684,10 +931,8 @@ const ListProperty = () => {
               .split(',')
               .map((s) => s.trim())
               .filter(Boolean),
-        amenities: String(attractionForm.amenities || '')
-          .split(',')
-          .map((s) => s.trim())
-          .filter(Boolean),
+        amenities: amenitiesArray,
+        safetyEquipment: safetyEquipmentArray,
         // Operating hours structure expected by model
         operatingHours: {
           open: attractionForm.openingHoursStart || undefined,
@@ -874,16 +1119,16 @@ const ListProperty = () => {
         </>
       )}
 
-      {attractionStep === 4 && section('4. Operating details', 'Schedule, seasonality, and accessibility.',
+      {attractionStep === 4 && section('4. Operating details', 'Opening days, hours and typical visit length.',
         <>
-          {renderField({ label: 'Opening Days (Mon–Sun)', name: 'openingDays', placeholder: 'Mon–Sun' })}
+          {renderField({ label: 'Opening Days', name: 'openingDays', type: 'select', options: openingDayOptions })}
           {renderField({ label: 'Opening Hour Start', name: 'openingHoursStart', type: 'time' })}
           {renderField({ label: 'Opening Hour End', name: 'openingHoursEnd', type: 'time' })}
-          {renderField({ label: 'Seasonality notes', name: 'seasonality', placeholder: 'High season, low season...' })}
-          {renderField({ label: 'Duration', name: 'duration', placeholder: '2 hours, half-day...' })}
+          {renderField({ label: 'Duration (auto-calculated)', name: 'duration', placeholder: 'Will update based on opening and closing hours' })}
           {renderField({ label: 'Minimum age requirement', name: 'minAge', placeholder: 'e.g., 12+' })}
-          {renderField({ label: 'Accessibility info', name: 'accessibility', type: 'textarea', placeholder: 'Wheelchair access...' })}
-          {renderField({ label: 'Available time slots', name: 'timeSlots', placeholder: '09:00, 12:00, 15:00' })}
+          {renderField({ label: 'Available time slot 1', name: 'timeSlot1', type: 'time' })}
+          {renderField({ label: 'Available time slot 2', name: 'timeSlot2', type: 'time' })}
+          {renderField({ label: 'Available time slot 3', name: 'timeSlot3', type: 'time' })}
         </>
       )}
 
@@ -893,11 +1138,9 @@ const ListProperty = () => {
           {renderField({ label: 'Ticket price (child)', name: 'ticketChild', type: 'number', placeholder: 'RWF' })}
           {renderField({ label: 'Ticket price (student)', name: 'ticketStudent', type: 'number', placeholder: 'RWF' })}
           {renderField({ label: 'Ticket price (group)', name: 'ticketGroup', type: 'number', placeholder: 'RWF' })}
-          {renderField({ label: 'Discounts', name: 'discounts', placeholder: 'Promos, seasons...' })}
-          {renderField({ label: 'Currency *', name: 'currency', placeholder: 'RWF' })}
-          {renderField({ label: 'Payment methods', name: 'paymentMethods', placeholder: 'Card, mobile money...' })}
-          {renderField({ label: 'Cancellation policy', name: 'cancellationPolicy', type: 'textarea', placeholder: 'Free cancellation?' })}
-          {renderField({ label: 'Refund policy', name: 'refundPolicy', type: 'textarea', placeholder: 'Full refund within 24h...' })}
+          {renderField({ label: 'Currency *', name: 'currency', type: 'select', options: attractionCurrencyOptions })}
+          {renderPaymentMethodsField()}
+          {renderRefundPolicyField()}
         </>
       )}
 
@@ -906,16 +1149,16 @@ const ListProperty = () => {
           {renderField({ label: 'Maximum capacity', name: 'capacity', type: 'number', placeholder: 'Guests per session' })}
           {renderField({ label: 'Minimum number of guests', name: 'minGuests', type: 'number', placeholder: 'Minimum booking size' })}
           {renderRadioGroup('Booking required?', 'bookingRequired')}
-          {renderField({ label: 'Meeting point / check-in instructions', name: 'checkinInstructions', type: 'textarea', placeholder: 'Meet by the red gate...' })}
+          {renderField({ label: 'Meeting point / check-in location', name: 'checkinInstructions', type: 'select', options: meetingPointOptions })}
         </>
       )}
 
-      {attractionStep === 7 && section('7. Amenities & facilities', 'Showcase comforts.',
+      {attractionStep === 7 && section('7. Amenities & facilities', 'Showcase comforts and safety.',
         <>
-          {renderField({ label: 'Amenities', name: 'amenities', type: 'textarea', placeholder: 'Parking, restrooms, WiFi...' })}
+          {renderAmenitySelector()}
           {renderRadioGroup('Guide available?', 'guideAvailable')}
-          {renderField({ label: 'Audio guide languages', name: 'audioGuideLanguages', placeholder: 'English, French...' })}
-          {renderField({ label: 'Safety equipment', name: 'safetyEquipment', placeholder: 'Life vests, helmets...' })}
+          {renderField({ label: 'Main language of the experience', name: 'audioGuideLanguages', type: 'select', options: languageOptions })}
+          {renderSafetyEquipmentSelector()}
         </>
       )}
 
