@@ -1,9 +1,10 @@
-import React, { forwardRef, useMemo, useState } from 'react';
+import React, { forwardRef, useEffect, useMemo, useState } from 'react';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import { useLocale } from '../contexts/LocaleContext';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
+import { FaUpload } from 'react-icons/fa';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -243,6 +244,51 @@ const VehicleListingForm = forwardRef(({ onCreated, onSuccess }, ref) => {
         : { ...prev, features: [...existing, label] };
     });
   };
+
+  const updateLocationFromMap = async (latlng) => {
+    const lat = latlng?.lat;
+    const lng = latlng?.lng;
+    if (typeof lat !== 'number' || typeof lng !== 'number') return;
+    setForm(prev => ({ ...prev, pickupLat: lat, pickupLng: lng }));
+
+    try {
+      const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`;
+      const res = await fetch(url, {
+        headers: { 'Accept-Language': 'en' }
+      });
+      const data = await res.json().catch(() => null);
+      const addr = data?.display_name;
+      if (addr) {
+        setForm(prev => ({ ...prev, pickupLat: lat, pickupLng: lng, location: addr }));
+      }
+    } catch (_) {
+      // If reverse geocoding fails we still keep the coordinates
+    }
+  };
+
+  useEffect(() => {
+    if (!user) return;
+    if (
+      form.ownerName ||
+      form.ownerPhone ||
+      form.ownerWhatsapp ||
+      form.ownerEmail ||
+      form.ownerAddress
+    ) {
+      return;
+    }
+
+    const fullName = (user.companyName || user.fullName || `${user.firstName || ''} ${user.lastName || ''}`.trim()) || '';
+
+    setForm(prev => ({
+      ...prev,
+      ownerName: prev.ownerName || fullName,
+      ownerPhone: prev.ownerPhone || user.phone || '',
+      ownerWhatsapp: prev.ownerWhatsapp || user.whatsapp || user.phone || '',
+      ownerEmail: prev.ownerEmail || user.email || '',
+      ownerAddress: prev.ownerAddress || user.address || ''
+    }));
+  }, [user, form.ownerName, form.ownerPhone, form.ownerWhatsapp, form.ownerEmail, form.ownerAddress]);
 
   const handleImageUpload = (e) => {
     const files = Array.from(e.target.files || []);
@@ -683,7 +729,7 @@ const VehicleListingForm = forwardRef(({ onCreated, onSuccess }, ref) => {
                 />
                 <VehicleLocationMarker
                   position={pickupPosition}
-                  onChange={(latlng) => setForm(prev => ({ ...prev, pickupLat: latlng.lat, pickupLng: latlng.lng }))}
+                  onChange={updateLocationFromMap}
                 />
               </MapContainer>
             </div>
@@ -837,21 +883,73 @@ const VehicleListingForm = forwardRef(({ onCreated, onSuccess }, ref) => {
           <h3 className="text-lg font-semibold text-gray-900 mb-2">6. Required Documents</h3>
           <p className="text-sm text-gray-600">Upload clear photos of the required documents. They will be stored securely with this vehicle listing.</p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
+            <div className="space-y-3">
               {featureCards('Vehicle registration paper available', 'hasRegistrationPaper', form, setForm)}
-              <input type="file" accept="image/*" onChange={handleImageUpload} className="w-full text-sm" />
+              <div className="border-2 border-dashed border-[#a06b42]/40 rounded-xl p-4 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-[#a06b42]/5">
+                <input
+                  id="vehicle-doc-registration"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                />
+                <label htmlFor="vehicle-doc-registration" className="flex flex-col items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                  <FaUpload className="text-[#a06b42] text-xl" />
+                  <span className="font-medium">Upload registration paper image</span>
+                  <span className="text-xs text-gray-500">JPEG or PNG, clear and readable</span>
+                </label>
+              </div>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-3">
               {featureCards('Vehicle insurance document available', 'hasInsuranceDocument', form, setForm)}
-              <input type="file" accept="image/*" onChange={handleImageUpload} className="w-full text-sm" />
+              <div className="border-2 border-dashed border-[#a06b42]/40 rounded-xl p-4 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-[#a06b42]/5">
+                <input
+                  id="vehicle-doc-insurance"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                />
+                <label htmlFor="vehicle-doc-insurance" className="flex flex-col items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                  <FaUpload className="text-[#a06b42] text-xl" />
+                  <span className="font-medium">Upload insurance document image</span>
+                  <span className="text-xs text-gray-500">Show full policy details if possible</span>
+                </label>
+              </div>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-3">
               {featureCards('Photo of number plate available', 'hasNumberPlatePhoto', form, setForm)}
-              <input type="file" accept="image/*" onChange={handleImageUpload} className="w-full text-sm" />
+              <div className="border-2 border-dashed border-[#a06b42]/40 rounded-xl p-4 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-[#a06b42]/5">
+                <input
+                  id="vehicle-doc-plate"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                />
+                <label htmlFor="vehicle-doc-plate" className="flex flex-col items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                  <FaUpload className="text-[#a06b42] text-xl" />
+                  <span className="font-medium">Upload number plate photo</span>
+                  <span className="text-xs text-gray-500">Ensure both letters and numbers are readable</span>
+                </label>
+              </div>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-3">
               {featureCards('Inspection certificate (if available)', 'hasInspectionCertificate', form, setForm)}
-              <input type="file" accept="image/*" onChange={handleImageUpload} className="w-full text-sm" />
+              <div className="border-2 border-dashed border-[#a06b42]/40 rounded-xl p-4 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-[#a06b42]/5">
+                <input
+                  id="vehicle-doc-inspection"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                />
+                <label htmlFor="vehicle-doc-inspection" className="flex flex-col items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                  <FaUpload className="text-[#a06b42] text-xl" />
+                  <span className="font-medium">Upload inspection certificate</span>
+                  <span className="text-xs text-gray-500">If you have a recent inspection document</span>
+                </label>
+              </div>
             </div>
           </div>
         </div>
@@ -861,10 +959,23 @@ const VehicleListingForm = forwardRef(({ onCreated, onSuccess }, ref) => {
         <div className="space-y-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-2">7. Vehicle Image Uploads</h3>
           <p className="text-sm text-gray-600">Add clear photos. Front, side, back, interior and dashboard views help guests trust your listing.</p>
-          <div className="space-y-2">
+          <div className="space-y-3">
             <label className="block text-sm font-semibold text-gray-700 mb-1">Vehicle photos *</label>
-            <input type="file" multiple accept="image/*" onChange={handleImageUpload} className="w-full text-sm" />
-            <p className="text-xs text-gray-500">Suggested: Front view, side view, back view, interior front & back, dashboard, trunk, any extra images.</p>
+            <div className="border-2 border-dashed border-[#a06b42]/40 rounded-xl p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-[#a06b42]/5">
+              <input
+                id="vehicle-main-photos"
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="hidden"
+              />
+              <label htmlFor="vehicle-main-photos" className="flex flex-col items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                <FaUpload className="text-[#a06b42] text-2xl" />
+                <span className="font-medium">Click to upload vehicle images</span>
+                <span className="text-xs text-gray-500">Front, side, back, interior front & back, dashboard, trunk, any extra images.</span>
+              </label>
+            </div>
           </div>
           {createPreviews.length > 0 && (
             <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
