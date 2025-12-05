@@ -124,7 +124,10 @@ const PropertyCard = ({
         </div>
         {Array.isArray(rooms) && rooms.length > 0 && (
           <div className="mt-2 mb-3 overflow-x-auto scrollbar-hide">
-            <div className="flex gap-3 room-cards-marquee">
+            <div
+              className="flex gap-3 room-cards-marquee"
+              style={{ animationDuration: `${Math.max((rooms?.length || 1) * 2, 8)}s` }}
+            >
               {[...rooms, ...rooms].map((room, idx) => {
                 const { name, meta } = formatRoomLabel(room);
                 const nightly = Number(room.pricePerNight || room.price || 0);
