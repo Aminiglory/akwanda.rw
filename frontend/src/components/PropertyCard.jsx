@@ -125,7 +125,7 @@ const PropertyCard = ({
         {Array.isArray(rooms) && rooms.length > 0 && (
           <div className="mt-2 mb-3 overflow-x-auto scrollbar-hide">
             <div className="flex gap-3 room-cards-marquee">
-              {rooms.slice(0, 6).map((room, idx) => {
+              {[...rooms, ...rooms].map((room, idx) => {
                 const { name, meta } = formatRoomLabel(room);
                 const nightly = Number(room.pricePerNight || room.price || 0);
                 const priceLabel = nightly > 0
@@ -151,6 +151,13 @@ const PropertyCard = ({
             </div>
           </div>
         )}
+        {hasBreakfastIncluded && (
+          <div className="mb-3 -mt-1">
+            <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-green-50 text-[11px] font-semibold text-emerald-700 border border-green-200">
+              {t ? t('property.breakfastIncluded') : 'Breakfast included'}
+            </span>
+          </div>
+        )}
         {typeof totalRooms === 'number' && totalRooms > 0 && (
           <div className="mb-2 text-xs text-gray-600">
             <span className="font-medium text-gray-800">
@@ -172,13 +179,6 @@ const PropertyCard = ({
                 </span>
               ))}
             </div>
-          </div>
-        )}
-        {hasBreakfastIncluded && (
-          <div className="mb-3">
-            <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-green-50 text-[11px] font-semibold text-emerald-700 border border-green-200">
-              {t ? t('property.breakfastIncluded') : 'Breakfast included'}
-            </span>
           </div>
         )}
         <div className="mt-4 flex items-center justify-between flex-none">
