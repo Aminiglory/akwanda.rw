@@ -98,6 +98,8 @@ const VehicleListingForm = forwardRef(({ onCreated, onSuccess }, ref) => {
   const [saving, setSaving] = useState(false);
   const [uploadingId, setUploadingId] = useState(null);
   const { formatCurrencyRWF } = useLocale() || {};
+  const [vehicleStep, setVehicleStep] = useState(1);
+  const totalVehicleSteps = 8;
 
   const categoryOptions = useMemo(() => ['car', 'motorcycle', 'bicycle'], []);
 
@@ -132,8 +134,7 @@ const VehicleListingForm = forwardRef(({ onCreated, onSuccess }, ref) => {
     }
   };
 
-  const createCar = async (e) => {
-    e.preventDefault();
+  const createCar = async () => {
     if (user?.isBlocked) {
       toast.error('Your account is deactivated. Vehicle creation is disabled.');
       return;
@@ -202,6 +203,45 @@ const VehicleListingForm = forwardRef(({ onCreated, onSuccess }, ref) => {
     } finally {
       setSaving(false);
     }
+  };
+
+  const validateVehicleStep = (step) => {
+    if (step === 1) {
+      if (!form.vehicleName || !form.brand || !form.model) {
+        toast.error('Add vehicle name, brand and model.');
+        return false;
+      }
+    }
+    if (step === 2) {
+      if (!form.pricePerDay) {
+        toast.error('Add price per day.');
+        return false;
+      }
+    }
+    if (step === 3) {
+      if (!form.location) {
+        toast.error('Add main pickup location.');
+        return false;
+      }
+    }
+    if (step === totalVehicleSteps) {
+      if (!createImages.length) {
+        toast.error('Please add at least one image.');
+        return false;
+      }
+    }
+    return true;
+  };
+
+  const handleVehicleSubmit = async (e) => {
+    e.preventDefault();
+    if (!validateVehicleStep(vehicleStep)) return;
+    if (vehicleStep < totalVehicleSteps) {
+      setVehicleStep(prev => Math.min(totalVehicleSteps, prev + 1));
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    await createCar();
   };
 
   return (
