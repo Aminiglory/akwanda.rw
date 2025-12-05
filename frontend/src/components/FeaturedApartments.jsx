@@ -27,7 +27,9 @@ const FeaturedApartments = () => {
         const processedApartments = sorted.map(p => {
           // Calculate average rating and review count from ratings array
           const ratingsArr = p.ratings || [];
-          const avgRating = ratingsArr.length > 0 ? (ratingsArr.reduce((sum, r) => sum + r.rating, 0) / ratingsArr.length) : null;
+          const avgRating = ratingsArr.length > 0
+            ? (ratingsArr.reduce((sum, r) => sum + r.rating, 0) / ratingsArr.length)
+            : 0;
           
           // Commission-based premium logic: 10%+ is considered premium (mid & higher tiers)
           const commissionRate = Number(p.commissionRate || 0);
@@ -53,7 +55,7 @@ const FeaturedApartments = () => {
             title: p.title,
             location: `${p.address}, ${p.city}`,
             price: p.pricePerNight,
-            rating: avgRating ? Number(avgRating.toFixed(1)) : null,
+            rating: Number((avgRating || 0).toFixed(1)),
             reviews: ratingsArr.length,
             viewCount: p.viewCount || 0,
             image: primaryImage,
