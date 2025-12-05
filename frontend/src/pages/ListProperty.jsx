@@ -48,10 +48,140 @@ const LocationMapPicker = ({ position, onPositionChange }) => {
   );
 };
 
-const categoryOptions = ['Nature', 'History', 'Family', 'Adventure', 'Culture', 'Food & Drink', 'Wellness'];
+const categoryOptions = [
+  'National Park',
+  'Hiking Trail',
+  'Mountain / Volcano',
+  'Lake Experience',
+  'Waterfall',
+  'Cultural Village',
+  'Historical Site',
+  'Genocide Memorial',
+  'Museum',
+  'Adventure Activity',
+  'Wildlife Experience',
+  'Eco-tour / Nature Walk',
+  'City Tour',
+  'Food & Drink Experience',
+  'Art & Craft Experience',
+  'Religious / Pilgrimage Site',
+  'Farm / Plantation Tour',
+  'Guided Tour',
+  'Boat Activity',
+  'Community Tourism',
+  'Festival / Event Experience',
+  'Camping Site',
+  'Beach / Lakeside',
+  'Educational Tour'
+];
+
 const yesNoOptions = [
   { label: 'Yes', value: 'yes' },
   { label: 'No', value: 'no' }
+];
+
+const highlightGroups = [
+  {
+    label: 'Adventure & Activity Highlights',
+    options: [
+      'Hiking',
+      'Trekking',
+      'Gorilla Trekking',
+      'Golden Monkey Trekking',
+      'Canopy Walk',
+      'Ziplining',
+      'Mountain Biking',
+      'Cycling Tour',
+      'Kayaking',
+      'Canoeing',
+      'Boat Ride',
+      'Fishing Experience',
+      'Camping',
+      'Horse Riding',
+      'Nature Walk',
+      'Bird Watching',
+      'Safari Game Drive',
+      'Night Walk',
+      'Forest Walk',
+    ],
+  },
+  {
+    label: 'Nature Highlights',
+    options: [
+      'Scenic Viewpoint',
+      'Lake View',
+      'Mountain View',
+      'Forest Environment',
+      'Waterfall Access',
+      'Wildlife Spotting',
+      'Unique Flora & Fauna',
+      'Photography Spots',
+      'Sunrise Spot',
+      'Sunset Spot',
+    ],
+  },
+  {
+    label: 'Cultural & Historical Highlights',
+    options: [
+      'Cultural Dance',
+      'Traditional Crafts',
+      'Storytelling Session',
+      'Local Food Tasting',
+      'Coffee Experience',
+      'Tea Plantation Tour',
+      'Community Interaction',
+      'Heritage Site',
+      'Art Exhibition',
+      'Museum Guided Tour',
+      'Historical Interpretation',
+      'Cultural Workshop',
+      'Traditional Music',
+      'Traditional Cooking Class',
+      'Basket Weaving',
+    ],
+  },
+  {
+    label: 'Safety & Professional Highlights',
+    options: [
+      'Certified Guides',
+      'Safety Gear Provided',
+      'Life Jackets Provided',
+      'Trained Staff',
+      'First Aid Available',
+      'Family Friendly',
+      'Suitable for Kids',
+      'Suitable for Seniors',
+      'Accessible Pathways',
+    ],
+  },
+  {
+    label: 'Convenience Highlights',
+    options: [
+      'Quick Experience (<1 hour)',
+      'Half-day Activity',
+      'Full-day Activity',
+      'Multi-day Tour',
+      'Private Tour Available',
+      'Group Tour Available',
+      'Transport Included',
+      'Tickets Included',
+      'Meals Included',
+      'Photos Included',
+      'Free Cancelation',
+      'Instant Booking',
+    ],
+  },
+  {
+    label: 'Other Useful Highlights',
+    options: [
+      'Quiet Environment',
+      'Educational Experience',
+      'Eco-friendly',
+      'Local Community Supported',
+      'Wildlife Conservation Focus',
+      'Unique/Rare Experience',
+    ],
+  },
 ];
 
 const initialAttraction = {
@@ -59,7 +189,7 @@ const initialAttraction = {
   category: '',
   shortDescription: '',
   fullDescription: '',
-  highlights: '',
+  highlights: [],
   country: '',
   city: '',
   address: '',
@@ -309,6 +439,52 @@ const ListProperty = () => {
     }
   };
 
+  const renderHighlightsSelector = () => {
+    const current = Array.isArray(attractionForm.highlights) ? attractionForm.highlights : [];
+
+    const toggle = (tag) => {
+      setAttractionForm(prev => {
+        const existing = Array.isArray(prev.highlights) ? prev.highlights : [];
+        return existing.includes(tag)
+          ? { ...prev, highlights: existing.filter(t => t !== tag) }
+          : { ...prev, highlights: [...existing, tag] };
+      });
+    };
+
+    return (
+      <div className="space-y-2 md:col-span-2">
+        <p className="text-sm font-medium text-gray-700">Highlights / Key Features</p>
+        <p className="text-xs text-gray-500 mb-1">Select all that apply. These help guests understand what makes this attraction special.</p>
+        <div className="space-y-4 max-h-72 overflow-y-auto pr-1">
+          {highlightGroups.map(group => (
+            <div key={group.label} className="space-y-2">
+              <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">{group.label}</p>
+              <div className="flex flex-wrap gap-2">
+                {group.options.map(option => {
+                  const checked = current.includes(option);
+                  return (
+                    <button
+                      key={option}
+                      type="button"
+                      onClick={() => toggle(option)}
+                      className={`px-2.5 py-1 rounded-full border text-xs transition-colors ${
+                        checked
+                          ? 'bg-[#a06b42] border-[#a06b42] text-white'
+                          : 'border-gray-300 text-gray-700 hover:border-[#a06b42] hover:text-[#a06b42]'
+                      }`}
+                    >
+                      {option}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   const handleLocationSelected = async ({ lat, lng }) => {
     const address = await reverseGeocode(lat, lng);
     const cityOrDistrict = address?.city || address?.town || address?.village || address?.county || '';
@@ -502,10 +678,12 @@ const ListProperty = () => {
         duration: attractionForm.duration || '',
         capacity: Number(attractionForm.capacity || 0) || undefined,
         // Normalize highlights and amenities into arrays
-        highlights: String(attractionForm.highlights || '')
-          .split(',')
-          .map((s) => s.trim())
-          .filter(Boolean),
+        highlights: Array.isArray(attractionForm.highlights)
+          ? attractionForm.highlights
+          : String(attractionForm.highlights || '')
+              .split(',')
+              .map((s) => s.trim())
+              .filter(Boolean),
         amenities: String(attractionForm.amenities || '')
           .split(',')
           .map((s) => s.trim())
@@ -600,7 +778,7 @@ const ListProperty = () => {
           {renderField({ label: 'Category / Type *', name: 'category', type: 'select', options: categoryOptions })}
           {renderField({ label: 'Short Description *', name: 'shortDescription', type: 'textarea', placeholder: '1–2 sentence summary' })}
           {renderField({ label: 'Full Description', name: 'fullDescription', type: 'textarea', placeholder: 'Detailed highlight narrative' })}
-          {renderField({ label: 'Highlights / Key Features', name: 'highlights', type: 'textarea', placeholder: 'Bullet points separated by commas' })}
+          {renderHighlightsSelector()}
         </>
       )}
 
