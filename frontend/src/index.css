@@ -226,7 +226,7 @@ img[loading="lazy"].loaded {
   }
 }
 
-@keyframes roomNameScroll {
+@keyframes roomCardsScroll {
   0% {
     transform: translateX(0);
   }
@@ -282,16 +282,9 @@ img[loading="lazy"].loaded {
   background-size: 200px 100%;
 }
 
-.room-name-marquee {
+.room-cards-marquee {
   position: relative;
-  overflow: hidden;
-  white-space: nowrap;
-}
-
-.room-name-marquee-inner {
-  display: inline-block;
-  padding-right: 2rem;
-  animation: roomNameScroll 20s linear infinite;
+  animation: roomCardsScroll 5s linear infinite;
 }
 
 /* Smooth scrolling */

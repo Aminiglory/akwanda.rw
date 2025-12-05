@@ -124,7 +124,7 @@ const PropertyCard = ({
         </div>
         {Array.isArray(rooms) && rooms.length > 0 && (
           <div className="mt-2 mb-3 overflow-x-auto scrollbar-hide">
-            <div className="flex gap-3">
+            <div className="flex gap-3 room-cards-marquee">
               {rooms.slice(0, 6).map((room, idx) => {
                 const { name, meta } = formatRoomLabel(room);
                 const nightly = Number(room.pricePerNight || room.price || 0);
@@ -138,9 +138,7 @@ const PropertyCard = ({
                     key={room._id || room.roomNumber || room.roomType || idx}
                     className="px-4 py-3 rounded-2xl bg-gray-50 border border-gray-100 text-xs text-gray-800 flex flex-col leading-tight min-w-[160px] max-w-[220px]"
                   >
-                    <span className="font-semibold text-gray-900 text-sm room-name-marquee">
-                      <span className="room-name-marquee-inner">{name}</span>
-                    </span>
+                    <span className="font-semibold text-gray-900 text-sm truncate">{name}</span>
                     {meta && (
                       <span className="text-[11px] text-gray-500 truncate">{meta}</span>
                     )}
