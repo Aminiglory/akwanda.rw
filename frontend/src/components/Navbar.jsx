@@ -301,17 +301,17 @@ const Navbar = () => {
     },
   ];
 
-  // Owner management links organized exactly like Booking.com
+  // Owner management links organised by topic, with reservations and sublinks
   const ownerManagementLinks = [
     {
       category: t ? t('nav.reservations') : "Reservations",
       icon: FaCalendarAlt,
       links: [
-        { label: t ? t('nav.allReservations') : "All reservations", href: "/my-bookings?tab=bookings&scope=all" },
-        { label: t ? t('nav.paidReservations') : "Paid reservations", href: "/my-bookings?tab=bookings&scope=paid" },
-        { label: t ? t('nav.pendingReservations') : "Pending reservations", href: "/my-bookings?tab=bookings&scope=pending" },
-        { label: t ? t('nav.unpaidReservations') : "Unpaid reservations", href: "/my-bookings?tab=bookings&scope=unpaid" },
-        { label: t ? t('nav.cancelledReservations') : "Cancelled reservations", href: "/my-bookings?tab=bookings&scope=cancelled" },
+        { label: t ? t('nav.allReservations') : "All reservations", href: "/dashboard?tab=reservations&scope=all" },
+        { label: t ? t('nav.paidReservations') : "Paid reservations", href: "/dashboard?tab=reservations&scope=paid" },
+        { label: t ? t('nav.pendingReservations') : "Pending reservations", href: "/dashboard?tab=reservations&scope=pending" },
+        { label: t ? t('nav.unpaidReservations') : "Unpaid reservations", href: "/dashboard?tab=reservations&scope=unpaid" },
+        { label: t ? t('nav.cancelledReservations') : "Cancelled reservations", href: "/dashboard?tab=reservations&scope=cancelled" },
         { label: t ? t('nav.directBooking') : "Direct booking", href: "/owner/direct-booking" },
       ]
     },
@@ -319,22 +319,22 @@ const Navbar = () => {
       category: t ? t('nav.calendar') : "Calendar",
       icon: FaCalendarAlt,
       links: [
-        { label: t ? t('nav.thisMonth') : "This month", href: "/my-bookings?tab=calendar&monthOffset=0" },
-        { label: t ? t('nav.nextMonth') : "Next month", href: "/my-bookings?tab=calendar&monthOffset=1" },
-        { label: t ? t('nav.thisYear') : "This year", href: "/my-bookings?tab=calendar" },
+        { label: t ? t('nav.thisMonth') : "This month", href: "/dashboard?tab=reservations&view=calendar&monthOffset=0" },
+        { label: t ? t('nav.nextMonth') : "Next month", href: "/dashboard?tab=reservations&view=calendar&monthOffset=1" },
+        { label: t ? t('nav.thisYear') : "This year", href: "/dashboard?tab=reservations&view=calendar" },
       ]
     },
     {
       category: t ? t('nav.finance') : "Finance",
       icon: FaDollarSign,
       links: [
-        { label: t ? t('nav.allPayments') : "All payments", href: "/my-bookings?tab=finance&finance_status=all" },
-        { label: t ? t('nav.paid') : "Paid", href: "/my-bookings?tab=finance&finance_status=paid" },
-        { label: t ? t('nav.pending') : "Pending", href: "/my-bookings?tab=finance&finance_status=pending" },
-        { label: t ? t('nav.unpaid') : "Unpaid", href: "/my-bookings?tab=finance&finance_status=unpaid" },
-        { label: t ? t('nav.last30Days') : "Last 30 days", href: "/my-bookings?tab=finance&view=last30" },
-        { label: t ? t('nav.monthToDate') : "Month to date", href: "/my-bookings?tab=finance&view=mtd" },
-        { label: t ? t('nav.yearToDate') : "Year to date", href: "/my-bookings?tab=finance&view=ytd" },
+        { label: t ? t('nav.allPayments') : "All payments", href: "/dashboard?tab=finance&finance_status=all" },
+        { label: t ? t('nav.paid') : "Paid", href: "/dashboard?tab=finance&finance_status=paid" },
+        { label: t ? t('nav.pending') : "Pending", href: "/dashboard?tab=finance&finance_status=pending" },
+        { label: t ? t('nav.unpaid') : "Unpaid", href: "/dashboard?tab=finance&finance_status=unpaid" },
+        { label: t ? t('nav.last30Days') : "Last 30 days", href: "/dashboard?tab=finance&view=last30" },
+        { label: t ? t('nav.monthToDate') : "Month to date", href: "/dashboard?tab=finance&view=mtd" },
+        { label: t ? t('nav.yearToDate') : "Year to date", href: "/dashboard?tab=finance&view=ytd" },
         { label: t ? t('nav.expenses') : "Expenses & profit", href: "/dashboard?tab=finance&view=expenses" },
       ]
     },
@@ -342,10 +342,10 @@ const Navbar = () => {
       category: t ? t('nav.analytics') : "Analytics",
       icon: FaChartLine,
       links: [
-        { label: t ? t('nav.last30Days') : "Last 30 days", href: "/my-bookings?tab=analytics&range=30" },
-        { label: t ? t('nav.last90Days') : "Last 90 days", href: "/my-bookings?tab=analytics&range=90" },
-        { label: t ? t('nav.yearToDate') : "Year to date", href: "/my-bookings?tab=analytics&range=ytd" },
-        { label: t ? t('nav.customRange') : "Custom range", href: "/my-bookings?tab=analytics&range=custom" },
+        { label: t ? t('nav.last30Days') : "Last 30 days", href: "/dashboard?tab=analytics&range=30" },
+        { label: t ? t('nav.last90Days') : "Last 90 days", href: "/dashboard?tab=analytics&range=90" },
+        { label: t ? t('nav.yearToDate') : "Year to date", href: "/dashboard?tab=analytics&range=ytd" },
+        { label: t ? t('nav.customRange') : "Custom range", href: "/dashboard?tab=analytics&range=custom" },
       ]
     },
     {
