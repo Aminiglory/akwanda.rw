@@ -63,24 +63,25 @@ const AdminCommissionManager = () => {
     }
   };
 
-  const saveCommissionSettings = async () => {
+  const saveCommissionSettings = async (overrides = {}) => {
+    const payload = { ...rateSettings, ...overrides };
     try {
       setSavingRates(true);
       const res = await fetch(`${API_URL}/api/admin/commission-settings`, {
         method: 'PUT',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(rateSettings),
+        body: JSON.stringify(payload),
       });
       const data = await safeParseJson(res);
       if (!res.ok) throw new Error(data?.message || 'Failed to update commission settings');
       setRateSettings({
-        baseRate: Number(data.baseRate ?? rateSettings.baseRate),
-        premiumRate: Number(data.premiumRate ?? rateSettings.premiumRate),
-        featuredRate: Number(data.featuredRate ?? rateSettings.featuredRate),
+        baseRate: Number(data.baseRate ?? payload.baseRate),
+        premiumRate: Number(data.premiumRate ?? payload.premiumRate),
+        featuredRate: Number(data.featuredRate ?? payload.featuredRate),
         enforcementPaused: !!data.enforcementPaused,
       });
-      toast.success('Commission rates updated');
+      toast.success('Commission settings updated');
     } catch (e) {
       toast.error(e.message || 'Could not update commission settings');
     } finally {
@@ -263,7 +264,13 @@ const AdminCommissionManager = () => {
             </div>
             <button
               type="button"
-              onClick={() => setRateSettings(prev => ({ ...prev, enforcementPaused: !prev.enforcementPaused }))}
+              onClick={() => {
+                const next = !rateSettings.enforcementPaused;
+                // Optimistically update local UI
+                setRateSettings(prev => ({ ...prev, enforcementPaused: next }));
+                // Persist to backend so it survives refresh
+                saveCommissionSettings({ enforcementPaused: next });
+              }}
               className={`inline-flex items-center px-3 py-1.5 rounded-full border text-xs sm:text-sm ${rateSettings.enforcementPaused ? 'bg-green-600 border-green-600 text-white' : 'bg-white border-gray-300 text-gray-700'}`}
             >
               <span className="mr-2 text-[11px] sm:text-xs">{rateSettings.enforcementPaused ? 'Enforcement paused' : 'Enforcement active'}</span>
