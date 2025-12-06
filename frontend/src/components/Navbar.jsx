@@ -254,37 +254,6 @@ const Navbar = () => {
       ]
     },
     {
-      label: labelOr('nav.reservations', 'Reservations'),
-      icon: FaCalendarCheck,
-      href: attachPropertyParam('/my-bookings'),
-      children: [
-        { label: labelOr('nav.allReservations', 'All reservations'), href: attachPropertyParam('/my-bookings?tab=reservations&scope=all'), icon: FaCalendarCheck },
-        { label: labelOr('nav.upcoming', 'Upcoming'), href: attachPropertyParam('/my-bookings?tab=reservations&scope=upcoming'), icon: FaCalendarCheck },
-        { label: labelOr('nav.checkIn', 'Check in'), href: attachPropertyParam('/my-bookings?tab=reservations&scope=checked-in'), icon: FaCalendarCheck },
-        { label: labelOr('nav.checkOut', 'Check out'), href: attachPropertyParam('/my-bookings?tab=reservations&scope=checked-out'), icon: FaCalendarCheck },
-        { label: labelOr('nav.cancelled', 'Cancelled'), href: attachPropertyParam('/my-bookings?tab=reservations&scope=cancelled'), icon: FaCalendarTimes },
-        { label: labelOr('nav.directBooking', 'Direct booking'), href: attachPropertyParam('/owner/direct-booking'), icon: FaCalendarCheck },
-      ]
-    },
-    {
-      label: labelOr('nav.property', 'Property'),
-      icon: FaBed,
-      href: attachPropertyParam('/owner/property'),
-      badge: propertyAlerts,
-      children: [
-        { label: labelOr('nav.propertyPolicies', 'Property policies'), href: attachPropertyParam('/owner/property?view=policies'), icon: FaFileAlt },
-        { label: labelOr('nav.reservationPolicies', 'Reservation policies'), href: attachPropertyParam('/owner/property?view=reservation-policies'), icon: FaFileAlt },
-        { label: labelOr('nav.facilitiesServices', 'Facilities and services'), href: attachPropertyParam('/owner/property?view=facilities'), icon: FaCog },
-        { label: labelOr('nav.roomDetails', 'Room details'), href: attachPropertyParam('/owner/property?view=room-details'), icon: FaBed },
-        { label: labelOr('nav.roomAmenities', 'Room Amenities'), href: attachPropertyParam('/owner/property?view=room-amenities'), icon: FaBed },
-        { label: labelOr('nav.yourProfile', 'your profile'), href: attachPropertyParam('/owner/property?view=profile'), icon: FaUser },
-        { label: labelOr('nav.viewDescriptions', 'View your descriptions'), href: attachPropertyParam('/owner/property?view=descriptions'), icon: FaFileAlt },
-        { label: labelOr('nav.photos', 'Photos'), href: attachPropertyParam('/owner/property?view=photos'), icon: FaImages },
-        { label: labelOr('nav.messagingPreferences', 'Messaging preferences'), href: '/settings?tab=messaging', icon: FaEnvelope },
-        { label: labelOr('nav.propertyManagement', 'Property management'), href: attachPropertyParam('/owner/property?view=general-info'), icon: FaImages },
-      ]
-    },
-    {
       label: labelOr('nav.inbox', 'Inbox'),
       icon: FaEnvelope,
       href: '/messages',
