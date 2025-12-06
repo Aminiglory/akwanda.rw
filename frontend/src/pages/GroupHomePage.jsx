@@ -51,8 +51,24 @@ const GroupHomePage = () => {
 
       if (propsRes.status === 'fulfilled') {
         try {
-          const propsData = await propsRes.value.json().catch(() => ({ properties: [] }));
-          propsList = Array.isArray(propsData.properties) ? propsData.properties : [];
+          const res = propsRes.value;
+          const propsData = await res.json().catch(() => ({ properties: [] }));
+
+          // Support multiple possible response shapes from the API
+          if (Array.isArray(propsData.properties)) {
+            propsList = propsData.properties;
+          } else if (Array.isArray(propsData.data)) {
+            propsList = propsData.data;
+          } else if (Array.isArray(propsData)) {
+            propsList = propsData;
+          } else {
+            propsList = [];
+          }
+
+          if (!res.ok) {
+            console.error('Failed to fetch properties:', res.status, res.statusText, propsData?.message);
+          }
+
           setProperties(propsList);
         } catch (e) {
           console.error('Failed to parse properties response:', e);
@@ -285,72 +301,6 @@ const GroupHomePage = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-6">
-        {/* Happening today - Summary Cards */}
-        <div className="mb-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Happening today</h2>
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">Reservations</p>
-                  <p className="text-3xl font-bold text-gray-900">{summaryStats.reservations}</p>
-                </div>
-                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <FaCalendarAlt className="text-2xl text-blue-600" />
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">Arrival</p>
-                  <p className="text-3xl font-bold text-gray-900">{summaryStats.arrivals}</p>
-                </div>
-                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                  <FaCheckCircle className="text-2xl text-green-600" />
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">Departures</p>
-                  <p className="text-3xl font-bold text-gray-900">{summaryStats.departures}</p>
-                </div>
-                <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
-                  <FaUsers className="text-2xl text-yellow-600" />
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">Reviews</p>
-                  <p className="text-3xl font-bold text-gray-900">{summaryStats.reviews}</p>
-                </div>
-                <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                  <FaStar className="text-2xl text-purple-600" />
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">Cancellations</p>
-                  <p className="text-3xl font-bold text-gray-900">{summaryStats.cancellations}</p>
-                </div>
-                <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
-                  <FaTimes className="text-2xl text-red-600" />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* Properties Table */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200">
           <div className="px-6 py-4 border-b border-gray-200">
