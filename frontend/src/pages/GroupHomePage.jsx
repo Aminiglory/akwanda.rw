@@ -20,6 +20,7 @@ const GroupHomePage = () => {
   const [reviews, setReviews] = useState([]);
   const [filterStatus, setFilterStatus] = useState('all'); // all, open, closed
   const [searchTerm, setSearchTerm] = useState('');
+  const [enforcementPaused, setEnforcementPaused] = useState(false);
 
   // Summary stats
   const [summaryStats, setSummaryStats] = useState({
@@ -37,10 +38,11 @@ const GroupHomePage = () => {
   const fetchGroupData = async () => {
     setLoading(true);
     try {
-      const [propsRes, bookingsRes, reviewsRes] = await Promise.allSettled([
+      const [propsRes, bookingsRes, reviewsRes, settingsRes] = await Promise.allSettled([
         fetch(`${API_URL}/api/properties/my-properties`, { credentials: 'include' }),
         fetch(`${API_URL}/api/bookings/property-owner`, { credentials: 'include' }),
         fetch(`${API_URL}/api/bookings/owner/reviews`, { credentials: 'include' }),
+        fetch(`${API_URL}/api/commission-settings/public`, { credentials: 'include' }),
       ]);
 
       let propsList = [];
@@ -89,6 +91,19 @@ const GroupHomePage = () => {
       } else {
         console.error('Failed to fetch reviews:', reviewsRes.reason);
         setReviews([]);
+      }
+
+      if (settingsRes.status === 'fulfilled') {
+        try {
+          const settingsData = await settingsRes.value.json().catch(() => ({}));
+          setEnforcementPaused(!!settingsData.enforcementPaused);
+        } catch (e) {
+          console.error('Failed to parse commission settings response:', e);
+          setEnforcementPaused(false);
+        }
+      } else {
+        console.error('Failed to fetch commission settings:', settingsRes.reason);
+        setEnforcementPaused(false);
       }
 
       const now = new Date();
@@ -189,7 +204,7 @@ const GroupHomePage = () => {
     }, 0) || propertyBookings.length;
 
     // Real activation state: property is open/bookable when it's marked active,
-    // not explicitly deactivated/blocked, and does not have unpaid commission.
+    // not explicitly deactivated/blocked, and (when enforcement is active) does not have unpaid commission.
     const isActiveFromProperty = property.status === 'active' || property.isActive === true;
     const isDeactivated = property.isDeactivated === true || property.isBlocked === true;
 
@@ -198,10 +213,13 @@ const GroupHomePage = () => {
     const unpaidAmount = Number(unpaid.unpaidAmount ?? unpaid.amount ?? 0) || 0;
     const hasUnpaidCommission = unpaidAmount > 0 || Number(unpaid.count || unpaid.bookingsCount || 0) > 0;
 
-    const isActive = isActiveFromProperty && !isDeactivated && !hasUnpaidCommission;
+    // When enforcement is paused, we ignore unpaid commission for bookability on the group home page
+    const shouldTreatAsUnpaid = !enforcementPaused && hasUnpaidCommission;
+
+    const isActive = isActiveFromProperty && !isDeactivated && !shouldTreatAsUnpaid;
 
     let status;
-    if (hasUnpaidCommission) {
+    if (shouldTreatAsUnpaid) {
       status = 'Closed – unpaid commission';
     } else if (isActive) {
       status = 'Open/Bookable';
@@ -249,9 +267,20 @@ const GroupHomePage = () => {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <h1 className="text-2xl font-bold text-gray-900">Group homepage</h1>
-          <p className="text-sm text-gray-600 mt-1">Manage your properties and bookings</p>
+        <div className="max-w-7xl mx-auto px-4 py-6 space-y-2">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Group homepage</h1>
+            <p className="text-sm text-gray-600 mt-1">Manage your properties and bookings</p>
+          </div>
+
+          {enforcementPaused && (
+            <div className="mt-2 rounded-md border border-yellow-300 bg-yellow-50 px-3 py-2 text-xs sm:text-sm text-yellow-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+              <span className="font-semibold">Commission enforcement is temporarily paused.</span>
+              <span className="sm:ml-2 text-[11px] sm:text-xs">
+                Your properties stay open and bookable even if commissions are unpaid. Amounts are still tracked and will be enforced again when this pause ends.
+              </span>
+            </div>
+          )}
         </div>
       </div>
 

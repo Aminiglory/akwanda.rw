@@ -280,7 +280,18 @@ router.post('/', requireAuth, async (req, res) => {
 
     const currentUser = await User.findById(req.user.id);
     if (!currentUser) return res.status(401).json({ message: 'Unauthorized' });
-    if (currentUser.isBlocked) {
+
+    // Check global commission enforcement settings once so we know whether
+    // to respect isBlocked for this booking creation.
+    let enforcementPaused = false;
+    try {
+      const settings = await CommissionSettings.getSingleton();
+      enforcementPaused = !!settings.enforcementPaused;
+    } catch (_) {
+      enforcementPaused = false;
+    }
+
+    if (!enforcementPaused && currentUser.isBlocked) {
       const now = new Date();
       if (currentUser.blockedUntil && new Date(currentUser.blockedUntil) < now) {
         currentUser.isBlocked = false;
@@ -328,7 +339,7 @@ router.post('/', requireAuth, async (req, res) => {
     if (conflict) return res.status(409).json({ message: 'Selected dates are no longer available' });
 
     const hostUser = await User.findById(property.host);
-    if (hostUser && hostUser.isBlocked) {
+    if (!enforcementPaused && hostUser && hostUser.isBlocked) {
       const now = new Date();
       if (hostUser.blockedUntil && new Date(hostUser.blockedUntil) < now) {
         hostUser.isBlocked = false;

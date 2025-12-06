@@ -22,6 +22,17 @@ router.get('/', requireAuth, async (req, res) => {
   }
 });
 
+// Lightweight public endpoint so hosts/frontends can know if enforcement is paused
+// without needing admin privileges or rate details.
+router.get('/public', async (req, res) => {
+  try {
+    const settings = await CommissionSettings.getSingleton();
+    return res.json({ enforcementPaused: !!settings.enforcementPaused });
+  } catch (e) {
+    return res.status(500).json({ message: 'Failed to load commission settings' });
+  }
+});
+
 // PUT update commission settings
 router.put('/', requireAuth, async (req, res) => {
   try {
