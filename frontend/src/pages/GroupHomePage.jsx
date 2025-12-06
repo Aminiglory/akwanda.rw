@@ -42,7 +42,8 @@ const GroupHomePage = () => {
         fetch(`${API_URL}/api/properties/my-properties`, { credentials: 'include' }),
         fetch(`${API_URL}/api/bookings/property-owner`, { credentials: 'include' }),
         fetch(`${API_URL}/api/bookings/owner/reviews`, { credentials: 'include' }),
-        fetch(`${API_URL}/api/commission-settings/public`, { credentials: 'include' }),
+        // Mounted at /api/admin/commission-settings on the backend
+        fetch(`${API_URL}/api/admin/commission-settings/public`, { credentials: 'include' }),
       ]);
 
       let propsList = [];
