@@ -254,6 +254,19 @@ const Navbar = () => {
       ]
     },
     {
+      label: labelOr('nav.reservations', 'Reservations'),
+      icon: FaCalendarAlt,
+      href: attachPropertyParam('/dashboard?tab=reservations&scope=all'),
+      children: [
+        { label: labelOr('nav.allReservations', 'All reservations'), href: attachPropertyParam('/dashboard?tab=reservations&scope=all'), icon: FaCalendarAlt },
+        { label: labelOr('nav.paidReservations', 'Paid reservations'), href: attachPropertyParam('/dashboard?tab=reservations&scope=paid'), icon: FaCalendarAlt },
+        { label: labelOr('nav.pendingReservations', 'Pending reservations'), href: attachPropertyParam('/dashboard?tab=reservations&scope=pending'), icon: FaCalendarAlt },
+        { label: labelOr('nav.unpaidReservations', 'Unpaid reservations'), href: attachPropertyParam('/dashboard?tab=reservations&scope=unpaid'), icon: FaCalendarAlt },
+        { label: labelOr('nav.cancelledReservations', 'Cancelled reservations'), href: attachPropertyParam('/dashboard?tab=reservations&scope=cancelled'), icon: FaCalendarAlt },
+        { label: labelOr('nav.directBooking', 'Direct booking'), href: attachPropertyParam('/owner/direct-booking'), icon: FaCalendarCheck },
+      ]
+    },
+    {
       label: labelOr('nav.inbox', 'Inbox'),
       icon: FaEnvelope,
       href: '/messages',

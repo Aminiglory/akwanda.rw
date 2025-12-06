@@ -2,10 +2,12 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { ListItemSkeleton } from '../components/Skeletons';
 import { FaUsers, FaExclamationTriangle, FaCheckCircle, FaUserShield, FaUserTimes, FaSearch, FaFilter, FaSync, FaEllipsisV, FaUser, FaEdit, FaTrash, FaHome } from 'react-icons/fa';
 import toast from 'react-hot-toast';
+import { useAuth } from '../contexts/AuthContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const AdminUserManagement = () => {
+  const { user, isAuthenticated } = useAuth() || {};
   const [users, setUsers] = useState([]);
   const [roleIssues, setRoleIssues] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -140,7 +142,10 @@ const AdminUserManagement = () => {
     }
   };
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => {
+    if (!isAuthenticated || user?.userType !== 'admin') return;
+    loadData();
+  }, [isAuthenticated, user?.userType]);
 
   const filteredUsers = useMemo(() => {
     const q = (searchTerm || '').toLowerCase();
@@ -231,6 +236,20 @@ const AdminUserManagement = () => {
       toast.error('Failed to fix roles');
     }
   };
+
+  if (!isAuthenticated || user?.userType !== 'admin') {
+    return (
+      <div className="space-y-6">
+        <div className="bg-white rounded-lg shadow p-6 flex items-center gap-3">
+          <FaExclamationTriangle className="text-yellow-600 text-xl" />
+          <div>
+            <h2 className="text-sm sm:text-base font-semibold text-gray-900">Admin access required</h2>
+            <p className="text-xs sm:text-sm text-gray-600">Sign in with an admin account to manage users, roles and reports.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

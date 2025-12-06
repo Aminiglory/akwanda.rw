@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { FaExclamationTriangle, FaCheckCircle, FaToggleOn, FaToggleOff, FaMoneyBillWave } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import SuccessModal from './SuccessModal';
+import { useAuth } from '../contexts/AuthContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const AdminCommissionManager = () => {
+  const { user, isAuthenticated } = useAuth() || {};
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState(null);
@@ -22,9 +24,14 @@ const AdminCommissionManager = () => {
   const [savingRates, setSavingRates] = useState(false);
 
   useEffect(() => {
+    if (!isAuthenticated || user?.userType !== 'admin') {
+      setUsers([]);
+      setLoading(false);
+      return;
+    }
     fetchUsersWithUnpaidCommissions();
     fetchCommissionSettings();
-  }, []);
+  }, [isAuthenticated, user?.userType]);
 
   const safeParseJson = async (res) => {
     const ct = (res.headers && res.headers.get ? res.headers.get('content-type') : '') || '';
@@ -210,6 +217,20 @@ const AdminCommissionManager = () => {
   const formatCurrency = (amount) => {
     return `RWF ${amount.toLocaleString()}`;
   };
+
+  if (!isAuthenticated || user?.userType !== 'admin') {
+    return (
+      <div className="bg-white rounded-xl shadow-lg p-4 sm:p-5">
+        <div className="flex items-center gap-3">
+          <FaExclamationTriangle className="text-yellow-600 text-xl" />
+          <div>
+            <h2 className="text-sm sm:text-base font-semibold text-gray-900">Admin access required</h2>
+            <p className="text-xs sm:text-sm text-gray-600">Sign in with an admin account to view and manage commission settings and unpaid users.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (

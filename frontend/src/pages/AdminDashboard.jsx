@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocale } from '../contexts/LocaleContext';
+import { useAuth } from '../contexts/AuthContext';
 import { FaChartLine, FaUsers, FaBed, FaCalendarAlt, FaDollarSign, FaStar, FaMapMarkerAlt, FaCar, FaPlane, FaCamera, FaFilter, FaSearch, FaEdit, FaTrash, FaPlus, FaEye, FaCheckCircle, FaTimesCircle, FaComments, FaEllipsisV, FaUser, FaHome, FaUserTimes } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -28,6 +29,7 @@ const makeAbsolute = (u) => {
 };
 
 const AdminDashboard = () => {
+  const { user, isAuthenticated } = useAuth() || {};
   const { formatCurrencyRWF } = useLocale() || {};
   const [activeTab, setActiveTab] = useState('overview');
   const [metrics, setMetrics] = useState({
@@ -95,8 +97,9 @@ const AdminDashboard = () => {
   const overviewListSize = 5;
 
   useEffect(() => {
+    if (!isAuthenticated || user?.userType !== 'admin') return;
     fetchDashboardData();
-  }, []);
+  }, [isAuthenticated, user?.userType]);
 
   const fetchDashboardData = async () => {
     try {
@@ -349,6 +352,24 @@ const AdminDashboard = () => {
       />
     ));
   };
+
+  if (!isAuthenticated || user?.userType !== 'admin') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+        <div className="bg-white rounded-xl shadow-lg p-6 max-w-md w-full">
+          <div className="flex items-center gap-3">
+            <span className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-yellow-100 text-yellow-700">
+              <FaUsers />
+            </span>
+            <div>
+              <h2 className="text-base md:text-lg font-semibold text-gray-900">Admin access required</h2>
+              <p className="text-xs md:text-sm text-gray-600 mt-1">Sign in with an admin account to view the platform overview, users, bookings and commission tools.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 overflow-x-hidden">
