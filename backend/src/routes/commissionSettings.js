@@ -59,6 +59,7 @@ router.put('/', requireAuth, async (req, res) => {
       baseRate: settings.baseRate,
       premiumRate: settings.premiumRate,
       featuredRate: settings.featuredRate,
+      enforcementPaused: !!settings.enforcementPaused,
     });
   } catch (e) {
     return res.status(500).json({ message: 'Failed to update commission settings' });
