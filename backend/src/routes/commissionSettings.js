@@ -15,6 +15,7 @@ router.get('/', requireAuth, async (req, res) => {
       baseRate: settings.baseRate,
       premiumRate: settings.premiumRate,
       featuredRate: settings.featuredRate,
+      enforcementPaused: !!settings.enforcementPaused,
     });
   } catch (e) {
     return res.status(500).json({ message: 'Failed to load commission settings' });
@@ -27,7 +28,7 @@ router.put('/', requireAuth, async (req, res) => {
     if (!req.user || req.user.userType !== 'admin') {
       return res.status(403).json({ message: 'Admin only' });
     }
-    const { baseRate, premiumRate, featuredRate } = req.body || {};
+    const { baseRate, premiumRate, featuredRate, enforcementPaused } = req.body || {};
     const settings = await CommissionSettings.getSingleton();
 
     const clamp = (v, def) => {
@@ -39,6 +40,7 @@ router.put('/', requireAuth, async (req, res) => {
     if (baseRate != null) settings.baseRate = clamp(baseRate, settings.baseRate);
     if (premiumRate != null) settings.premiumRate = clamp(premiumRate, settings.premiumRate);
     if (featuredRate != null) settings.featuredRate = clamp(featuredRate, settings.featuredRate);
+    if (typeof enforcementPaused === 'boolean') settings.enforcementPaused = enforcementPaused;
 
     await settings.save();
 

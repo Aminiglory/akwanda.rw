@@ -18,7 +18,7 @@ const AdminCommissionManager = () => {
   const [successOpen, setSuccessOpen] = useState(false);
   const [successTitle, setSuccessTitle] = useState('Success');
   const [successMsg, setSuccessMsg] = useState('Action completed successfully.');
-  const [rateSettings, setRateSettings] = useState({ baseRate: 8, premiumRate: 10, featuredRate: 12 });
+  const [rateSettings, setRateSettings] = useState({ baseRate: 8, premiumRate: 10, featuredRate: 12, enforcementPaused: false });
   const [savingRates, setSavingRates] = useState(false);
 
   useEffect(() => {
@@ -49,6 +49,7 @@ const AdminCommissionManager = () => {
         baseRate: Number(data.baseRate ?? 8),
         premiumRate: Number(data.premiumRate ?? 10),
         featuredRate: Number(data.featuredRate ?? 12),
+        enforcementPaused: !!data.enforcementPaused,
       });
     } catch (e) {
       toast.error(e.message || 'Could not load commission settings');
@@ -70,6 +71,7 @@ const AdminCommissionManager = () => {
         baseRate: Number(data.baseRate ?? rateSettings.baseRate),
         premiumRate: Number(data.premiumRate ?? rateSettings.premiumRate),
         featuredRate: Number(data.featuredRate ?? rateSettings.featuredRate),
+        enforcementPaused: !!data.enforcementPaused,
       });
       toast.success('Commission rates updated');
     } catch (e) {
@@ -178,23 +180,24 @@ const AdminCommissionManager = () => {
   };
 
   const handleReactivateUser = async (userId) => {
-    if (!window.confirm('Are you sure you want to reactivate this user account?')) {
+    if (!window.confirm('Temporarily unlock this owner so their properties stay bookable, even if commissions/fines remain unpaid?')) {
       return;
     }
 
     try {
       setProcessingId(userId);
-      const res = await fetch(`${API_URL}/api/admin/users/${userId}/reactivate`, {
-        method: 'POST',
+      // Use the special unlock route: clears isBlocked/limitedAccess but keeps unpaid commissions/fines
+      const res = await fetch(`${API_URL}/api/admin/users/${userId}/unlock`, {
+        method: 'PATCH',
         credentials: 'include'
       });
       const data = await safeParseJson(res);
 
       if (!res.ok) throw new Error(data.message || (data && data.__raw ? data.__raw.slice(0,200) : 'Failed to reactivate user'));
 
-      toast.success('User account reactivated successfully');
-      setSuccessTitle('User Reactivated');
-      setSuccessMsg('The user account has been reactivated.');
+      toast.success('Owner temporarily unlocked while dues remain');
+      setSuccessTitle('Owner Unlocked');
+      setSuccessMsg('The owner account has been unlocked. Their properties are bookable, but unpaid commissions/fines are still tracked.');
       setSuccessOpen(true);
       fetchUsersWithUnpaidCommissions();
     } catch (error) {
@@ -231,6 +234,22 @@ const AdminCommissionManager = () => {
           <div className="bg-red-100 text-red-800 px-3 py-1.5 rounded-lg text-xs sm:text-sm">
             <FaExclamationTriangle className="inline mr-2" />
             <span className="font-semibold">{users.length} users with unpaid commissions</span>
+          </div>
+          <div className="sm:col-span-3 flex items-center justify-between mt-1">
+            <div className="text-xs sm:text-sm text-gray-700">
+              <div className="font-semibold">Pause commission enforcement</div>
+              <div className="text-[11px] sm:text-xs text-gray-600">When enabled, owners wont be locked or penalized for unpaid commissions, but amounts are still tracked.</div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setRateSettings(prev => ({ ...prev, enforcementPaused: !prev.enforcementPaused }))}
+              className={`inline-flex items-center px-3 py-1.5 rounded-full border text-xs sm:text-sm ${rateSettings.enforcementPaused ? 'bg-green-600 border-green-600 text-white' : 'bg-white border-gray-300 text-gray-700'}`}
+            >
+              <span className="mr-2 text-[11px] sm:text-xs">{rateSettings.enforcementPaused ? 'Enforcement paused' : 'Enforcement active'}</span>
+              <span className={`w-8 h-4 rounded-full flex items-center ${rateSettings.enforcementPaused ? 'bg-green-500 justify-end' : 'bg-gray-300 justify-start'}`}>
+                <span className="w-3 h-3 bg-white rounded-full shadow" />
+              </span>
+            </button>
           </div>
         </div>
       </div>
