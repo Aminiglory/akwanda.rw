@@ -16,12 +16,14 @@ function requireAuth(req, res, next) {
   }
 }
 
-// Unread count for current user
+// Unread count for current user (guest/general side)
+// Only count guest-facing booking confirmation notifications
 router.get('/unread-count', requireAuth, async (req, res) => {
   try {
     const count = await Notification.countDocuments({
       recipientUser: req.user.id,
       isRead: false,
+      type: 'booking_confirmed',
       $or: [
         { audience: { $exists: false } },
         { audience: { $in: ['guest','both'] } }
@@ -48,12 +50,14 @@ router.patch('/:id/read', requireAuth, async (req, res) => {
   }
 });
 
-// List notifications for current user
+// List notifications for current user (guest/general side)
+// Only show guest-facing booking confirmation notifications
 router.get('/list', requireAuth, async (req, res) => {
   try {
     const limit = Math.min(parseInt(req.query.limit || '50', 10), 200);
     const list = await Notification.find({
       recipientUser: req.user.id,
+      type: 'booking_confirmed',
       $or: [
         { audience: { $exists: false } },
         { audience: { $in: ['guest','both'] } }
