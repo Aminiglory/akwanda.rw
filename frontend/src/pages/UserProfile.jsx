@@ -342,7 +342,12 @@ const UserProfile = () => {
             <div className="bg-white rounded-xl shadow-sm p-4">
               <div className="text-sm text-gray-600 mb-3">Travel activity</div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <button className="p-3 border rounded-lg text-left hover:bg-gray-50" onClick={()=>navigate('/bookings')}>Trips and bookings</button>
+                <button
+                  className="p-3 border rounded-lg text-left hover:bg-gray-50"
+                  onClick={()=>navigate('/my-bookings')}
+                >
+                  Trips and bookings
+                </button>
                 <button className="p-3 border rounded-lg text-left hover:bg-gray-50" onClick={()=>navigate('/account/saved-lists')}>Saved lists</button>
                 <button className="p-3 border rounded-lg text-left hover:bg-gray-50" onClick={()=>navigate('/account/reviews')}>My reviews</button>
               </div>

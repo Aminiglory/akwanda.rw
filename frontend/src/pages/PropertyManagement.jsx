@@ -1690,7 +1690,7 @@ export default function PropertyManagement() {
                         <div className="flex-1">
                           <h3 className="font-semibold text-gray-900">{room.roomType || room.type} - {room.roomNumber}</h3>
                           <p className="text-xs text-gray-500">Room ID: {room._id || 'N/A'}</p>
-                          <p className="text-xs text-gray-500 mt-1">Capacity: {room.capacity || 1} guests · Max people: {totalPeople}</p>
+                          <p className="text-xs text-gray-500 mt-1">Capacity: {room.capacity || 1} guests</p>
                           <p className="text-xs text-gray-500">Rate: RWF {Number(room.pricePerNight || 0).toLocaleString()}</p>
                         </div>
                       </div>
@@ -1828,12 +1828,30 @@ export default function PropertyManagement() {
                           {/* Room core fields */}
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
                             <div>
+                              <label className="block text-xs text-gray-600 mb-1">Room name / type</label>
+                              <input
+                                id={`roomType-${room._id}`}
+                                type="text"
+                                defaultValue={room.roomType || room.type || ''}
+                                className="w-full border rounded px-3 py-2"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs text-gray-600 mb-1">Room number / name</label>
+                              <input
+                                id={`roomNumber-${room._id}`}
+                                type="text"
+                                defaultValue={room.roomNumber || ''}
+                                className="w-full border rounded px-3 py-2"
+                              />
+                            </div>
+                            <div>
                               <label className="block text-xs text-gray-600 mb-1">Capacity (guests)</label>
                               <input
                                 id={`capacity-${room._id}`}
                                 type="number"
-                                defaultValue={room.capacity || 1}
-                                min={1}
+                                defaultValue={room.capacity ?? 0}
+                                min={0}
                                 className="w-full border rounded px-3 py-2"
                               />
                             </div>
@@ -1926,7 +1944,9 @@ export default function PropertyManagement() {
                               type="button"
                               onClick={async () => {
                                 const updates = {
-                                  capacity: Number(document.getElementById(`capacity-${room._id}`)?.value || 1),
+                                  roomType: document.getElementById(`roomType-${room._id}`)?.value || room.roomType || room.type || 'Room',
+                                  roomNumber: document.getElementById(`roomNumber-${room._id}`)?.value || '',
+                                  capacity: Number(document.getElementById(`capacity-${room._id}`)?.value || 0),
                                   pricePerNight: Number(document.getElementById(`rate-${room._id}`)?.value || 0),
                                   maxAdults: Number(document.getElementById(`maxAdults-${room._id}`)?.value || 0),
                                   maxChildren: Number(document.getElementById(`maxChildren-${room._id}`)?.value || 0),
