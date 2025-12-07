@@ -38,10 +38,12 @@ const GroupHomePage = () => {
   const fetchGroupData = async () => {
     setLoading(true);
     try {
+      const token = localStorage.getItem('token');
+      const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
       const [propsRes, bookingsRes, reviewsRes, settingsRes] = await Promise.allSettled([
-        fetch(`${API_URL}/api/properties/my-properties`, { credentials: 'include' }),
-        fetch(`${API_URL}/api/bookings/property-owner`, { credentials: 'include' }),
-        fetch(`${API_URL}/api/bookings/owner/reviews`, { credentials: 'include' }),
+        fetch(`${API_URL}/api/properties/my-properties`, { credentials: 'include', headers: authHeaders }),
+        fetch(`${API_URL}/api/bookings/property-owner`, { credentials: 'include', headers: authHeaders }),
+        fetch(`${API_URL}/api/bookings/owner/reviews`, { credentials: 'include', headers: authHeaders }),
         // Mounted at /api/admin/commission-settings on the backend
         fetch(`${API_URL}/api/admin/commission-settings/public`, { credentials: 'include' }),
       ]);
