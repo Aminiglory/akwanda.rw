@@ -10,6 +10,8 @@ function AdminRoomTypes() {
   const [form, setForm] = useState({ name: '', key: '', description: '', defaultBathroomType: 'inside', active: true, order: 0 });
   const [editingId, setEditingId] = useState(null);
   const [seeding, setSeeding] = useState(false);
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
 
   const load = async () => {
     try {
@@ -26,6 +28,11 @@ function AdminRoomTypes() {
   };
 
   useEffect(() => { load(); }, []);
+
+  const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const startIndex = (currentPage - 1) * pageSize;
+  const paginatedItems = items.slice(startIndex, startIndex + pageSize);
 
   const submit = async (e) => {
     e.preventDefault();
@@ -134,11 +141,11 @@ function AdminRoomTypes() {
         </div>
       </form>
 
-      <div className="bg-white rounded-xl shadow">
-        <div className="p-3 border-b font-medium">{loading ? 'Loading…' : `Room types (${items.length})`}</div>
-        <div className="divide-y">
-          {items.map(it => (
-            <div key={it._id} className="p-3 flex items-center justify-between">
+      <div className="bg-white rounded-xl shadow border border-gray-200">
+        <div className="p-3 border-b border-gray-200 font-medium">{loading ? 'Loading…' : `Room types (${items.length})`}</div>
+        <div>
+          {paginatedItems.map(it => (
+            <div key={it._id} className="p-3 flex items-center justify-between border-b border-gray-200 last:border-b-0">
               <div className="flex items-center gap-3">
                 <div className="font-medium">{it.name}</div>
                 <div className="text-xs text-gray-500">{it.key}</div>
@@ -151,8 +158,8 @@ function AdminRoomTypes() {
                 )}
               </div>
               <div className="flex items-center gap-2">
-                <button onClick={() => startEdit(it)} className="px-3 py-1 border rounded flex items-center gap-2"><FaEdit /> Edit</button>
-                <button onClick={() => remove(it._id)} className="px-3 py-1 border rounded text-red-600 flex items-center gap-2"><FaTrash /> Delete</button>
+                <button onClick={() => startEdit(it)} className="px-3 py-1 border border-gray-200 rounded flex items-center gap-2"><FaEdit /> Edit</button>
+                <button onClick={() => remove(it._id)} className="px-3 py-1 border border-gray-200 rounded text-red-600 flex items-center gap-2"><FaTrash /> Delete</button>
               </div>
             </div>
           ))}
@@ -160,6 +167,31 @@ function AdminRoomTypes() {
             <div className="p-4 text-sm text-gray-500">No room types yet.</div>
           )}
         </div>
+        {items.length > pageSize && (
+          <div className="flex items-center justify-between px-4 py-2 text-sm text-gray-700">
+            <span>
+              Page {currentPage} of {totalPages}
+            </span>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1 border border-gray-200 rounded disabled:opacity-50"
+              >
+                Previous
+              </button>
+              <button
+                type="button"
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1 border border-gray-200 rounded disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

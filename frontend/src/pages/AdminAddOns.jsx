@@ -18,7 +18,7 @@ const defaultForm = {
 const AdminAddOns = () => {
   const [items, setItems] = useState([]);
   const [page, setPage] = useState(1);
-  const [limit] = useState(20);
+  const [limit] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -288,10 +288,10 @@ const AdminAddOns = () => {
             </div>
           </div>
 
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto border border-gray-200 rounded-lg">
             <table className="min-w-full text-sm">
               <thead>
-                <tr className="bg-gray-50 text-left">
+                <tr className="bg-gray-50 text-left border-b border-gray-200">
                   <th className="p-3">Name</th>
                   <th className="p-3">Key</th>
                   <th className="p-3">Default price</th>
@@ -310,7 +310,7 @@ const AdminAddOns = () => {
                   </tr>
                 ) : (
                   filteredItems.map((item) => (
-                    <tr key={item._id || item.key} className="border-t">
+                    <tr key={item._id || item.key} className="border-t border-gray-200">
                       <td className="p-3 align-top">
                         <div className="font-medium text-gray-900">{item.name}</div>
                         {item.description && (
@@ -351,7 +351,7 @@ const AdminAddOns = () => {
                 type="button"
                 disabled={page <= 1 || loading}
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
-                className="px-3 py-1 border rounded-lg disabled:opacity-50"
+                className="px-3 py-1 border border-gray-200 rounded-lg disabled:opacity-50"
               >
                 Prev
               </button>
@@ -359,7 +359,7 @@ const AdminAddOns = () => {
                 type="button"
                 disabled={page >= totalPages || loading}
                 onClick={() => setPage((p) => (p < totalPages ? p + 1 : p))}
-                className="px-3 py-1 border rounded-lg disabled:opacity-50"
+                className="px-3 py-1 border border-gray-200 rounded-lg disabled:opacity-50"
               >
                 Next
               </button>
