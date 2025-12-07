@@ -351,6 +351,24 @@ const UserProfile = () => {
                 <button className="p-3 border rounded-lg text-left hover:bg-gray-50" onClick={()=>navigate('/account/disputes')}>Dispute resolution</button>
               </div>
             </div>
+
+            <div className="bg-white rounded-xl shadow-sm p-4">
+              <div className="text-sm text-gray-600 mb-3">Property hosting</div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <button
+                  className="p-3 border rounded-lg text-left hover:bg-gray-50"
+                  onClick={()=>navigate('/become-host')}
+                >
+                  List your property
+                </button>
+                <button
+                  className="p-3 border rounded-lg text-left hover:bg-gray-50"
+                  onClick={()=>navigate('/owner-login')}
+                >
+                  Already a property owner? Sign in
+                </button>
+              </div>
+            </div>
           </div>
 
           <div className="bg-white rounded-xl shadow-sm p-6">
