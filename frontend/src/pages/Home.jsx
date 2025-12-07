@@ -93,31 +93,33 @@ const Home = () => {
     return list;
   }, [partnersSection]);
 
-  // Auto-slide featured destinations horizontally
+  // Auto-slide featured destinations horizontally (continuous marquee)
   useEffect(() => {
     const container = featuredStripRef.current;
     if (!container || !featuredCards.length) return;
 
-    const intervalMs = 3000; // time between slides
-    const step = () => {
-      const firstCard = container.querySelector('[data-featured-card="true"]');
-      if (!firstCard) return;
-      const cardWidth = firstCard.getBoundingClientRect().width;
-      const gap = 24; // approximate gap (px) between cards (matches Tailwind gap)
-      const delta = cardWidth + gap;
+    let frameId;
+    const speed = 0.5; // pixels per frame (adjust for faster/slower)
 
-      const maxScroll = container.scrollWidth - container.clientWidth;
-      const nextLeft = container.scrollLeft + delta;
+    const tick = () => {
+      if (!container) return;
+      const totalWidth = container.scrollWidth;
+      const halfWidth = totalWidth / 2; // because we render the list twice
 
-      if (nextLeft >= maxScroll - 1) {
-        container.scrollTo({ left: 0, behavior: 'smooth' });
-      } else {
-        container.scrollTo({ left: nextLeft, behavior: 'smooth' });
+      container.scrollLeft += speed;
+
+      if (container.scrollLeft >= halfWidth) {
+        // Wrap back by half the width to create an endless loop
+        container.scrollLeft -= halfWidth;
       }
+
+      frameId = window.requestAnimationFrame(tick);
     };
 
-    const id = setInterval(step, intervalMs);
-    return () => clearInterval(id);
+    frameId = window.requestAnimationFrame(tick);
+    return () => {
+      if (frameId) window.cancelAnimationFrame(frameId);
+    };
   }, [featuredCards]);
   return (
     <div>
@@ -145,7 +147,7 @@ const Home = () => {
             </div>
             <div className="overflow-x-hidden" ref={featuredStripRef}>
               <div className="flex gap-5 md:gap-6 items-stretch min-w-max">
-                {featuredCards.map((d, i) => (
+                {[...featuredCards, ...featuredCards].map((d, i) => (
                   <a
                     key={i}
                     href="/apartments"
