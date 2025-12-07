@@ -5,7 +5,7 @@ const roomSchema = new mongoose.Schema({
   // roomType keys are defined by admins via the RoomType collection (no enum here)
   roomType: { type: String, required: true },
   pricePerNight: { type: Number, required: true },
-  capacity: { type: Number, required: true, min: 1 },
+  capacity: { type: Number, required: true, min: 0 },
   amenities: [{ type: String }],
   images: [{ type: String }],
   isAvailable: { type: Boolean, default: true },
@@ -14,7 +14,7 @@ const roomSchema = new mongoose.Schema({
     endDate: { type: Date },
     reason: { type: String }
   }],
-  maxAdults: { type: Number, default: 2, min: 1 },
+  maxAdults: { type: Number, default: 2, min: 0 },
   maxChildren: { type: Number, default: 2, min: 0 },
   maxInfants: { type: Number, default: 1, min: 0 },
   childrenPolicy: {
@@ -49,7 +49,7 @@ const propertySchema = new mongoose.Schema(
     pricePerNight: { type: Number, required: true },
     bedrooms: { type: Number, default: 1, min: 0 },
     bathrooms: { type: Number, default: 1, min: 0 },
-    maxGuests: { type: Number, default: 2, min: 1 },
+    maxGuests: { type: Number, default: 2, min: 0 },
     amenities: [{ type: String }],
     // Per-property add-on services configuration (selected from global catalog)
     addOnServices: [{
