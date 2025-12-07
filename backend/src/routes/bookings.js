@@ -210,12 +210,25 @@ router.patch('/:id/direct', requireAuth, async (req, res) => {
       const negotiatedTotal = Math.round(finalAgreedAmount);
 
       let rate = null;
+      let levelSnapshot = null;
+      let levelKey = null;
+      let isPremiumCategory = false;
       try {
         if (property && property.commissionLevel) {
           const level = await CommissionLevel.findById(property.commissionLevel).lean();
           if (level) {
             // Direct booking endpoint, so use directRate
             rate = Number(level.directRate || 0);
+            levelSnapshot = {
+              name: level.name,
+              key: level.key,
+              description: level.description,
+              directRate: level.directRate,
+              onlineRate: level.onlineRate,
+              isPremium: !!level.isPremium,
+            };
+            levelKey = level.key;
+            isPremiumCategory = !!level.isPremium;
           }
         }
       } catch (_) {}
@@ -230,7 +243,13 @@ router.patch('/:id/direct', requireAuth, async (req, res) => {
       totalAmount = negotiatedTotal + directAddOnsTotal;
       amountBeforeTax = Math.round((negotiatedTotal * 100) / (100 + taxRate));
       taxAmount = negotiatedTotal - amountBeforeTax;
-      booking.commissionAmount = Math.round((amountBeforeTax * rate) / 100);
+      const commissionAmount = Math.round((amountBeforeTax * rate) / 100);
+      booking.commissionAmount = commissionAmount;
+      booking.commissionRate = rate;
+      booking.commissionType = 'direct';
+      booking.commissionCategory = isPremiumCategory ? 'premium' : 'basic';
+      if (levelKey) booking.commissionLevelKey = levelKey;
+      if (levelSnapshot) booking.commissionLevelSnapshot = levelSnapshot;
       booking.finalAgreedAmount = Math.round(finalAgreedAmount);
     }
 
@@ -526,6 +545,28 @@ router.post('/', requireAuth, async (req, res) => {
 
     const shouldMarkPaid = paymentMethod === 'cash' && !!markPaid;
 
+    const commissionType = directBooking ? 'direct' : 'online';
+    const commissionCategory = (property && property.commissionLevel) ? 'premium' : 'basic';
+
+    let commissionLevelSnapshot = null;
+    let commissionLevelKey = null;
+    try {
+      if (property && property.commissionLevel) {
+        const level = await CommissionLevel.findById(property.commissionLevel).lean();
+        if (level) {
+          commissionLevelSnapshot = {
+            name: level.name,
+            key: level.key,
+            description: level.description,
+            directRate: level.directRate,
+            onlineRate: level.onlineRate,
+            isPremium: !!level.isPremium,
+          };
+          commissionLevelKey = level.key;
+        }
+      }
+    } catch (_) {}
+
     const booking = await Booking.create({
       property: property._id,
       room: room || null,
@@ -540,6 +581,11 @@ router.post('/', requireAuth, async (req, res) => {
       status: shouldMarkPaid ? 'confirmed' : 'pending',
       commissionAmount,
       commissionPaid: false,
+      commissionRate: rate,
+      commissionType,
+      commissionCategory,
+      commissionLevelKey: commissionLevelKey || undefined,
+      commissionLevelSnapshot: commissionLevelSnapshot || undefined,
       paymentMethod: paymentMethod || 'cash',
       paymentStatus: paymentMethod === 'mtn_mobile_money' ? 'pending' : (shouldMarkPaid ? 'paid' : 'unpaid'),
       contactPhone: contactInfo?.phone,

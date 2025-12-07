@@ -179,7 +179,19 @@ const EnhancedUploadProperty = () => {
           const ptData = await propTypesRes.json().catch(() => ({}));
           const list = Array.isArray(ptData.propertyTypes) ? ptData.propertyTypes : [];
           if (list.length) {
-            setPropertyTypes(list);
+            // Ensure new types appear after the older ones: sort by createdAt/_id ascending
+            const sorted = [...list].sort((a, b) => {
+              const aCreated = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+              const bCreated = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+              if (aCreated !== 0 || bCreated !== 0) return aCreated - bCreated;
+              // Fallback: sort by key/name to keep order stable if createdAt is missing
+              const ak = String(a.sortOrder ?? a.name ?? a.key ?? '').toLowerCase();
+              const bk = String(b.sortOrder ?? b.name ?? b.key ?? '').toLowerCase();
+              if (ak < bk) return -1;
+              if (ak > bk) return 1;
+              return 0;
+            });
+            setPropertyTypes(sorted);
           } else {
             setPropertyTypes([]);
           }

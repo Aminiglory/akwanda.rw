@@ -19,6 +19,7 @@ const router = Router();
 const Notification = require('../tables/notification');
 const User = require('../tables/user');
 const CommissionSettings = require('../tables/commissionSettings');
+const CommissionLevel = require('../tables/commissionLevel');
 const { authenticate: requireAuth } = require('../middleware/auth');
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
 
@@ -718,6 +719,95 @@ router.get('/commission-summary', requireAuth, async (req, res) => {
     } catch (error) {
         console.error('Commission summary error:', error);
         res.status(500).json({ message: 'Failed to fetch commission summary', error: error.message });
+    }
+});
+
+// Get commission configuration for a specific property (owner/admin)
+// Returns current property, its commissionLevel (if any) and all active levels
+router.get('/:id/commission', requireAuth, async (req, res) => {
+    try {
+        const property = await Property.findById(req.params.id).populate('commissionLevel');
+        if (!property) return res.status(404).json({ message: 'Property not found' });
+
+        const isOwner = String(property.host) === String(req.user.id);
+        const isAdmin = req.user.userType === 'admin';
+        if (!isOwner && !isAdmin) return res.status(403).json({ message: 'Not allowed' });
+
+        const levels = await CommissionLevel.find({ active: true }).sort({ sortOrder: 1, createdAt: 1 });
+
+        return res.json({
+            property: {
+                _id: property._id,
+                title: property.title,
+                commissionRate: property.commissionRate,
+                commissionLevel: property.commissionLevel || null,
+            },
+            levels,
+        });
+    } catch (error) {
+        console.error('Get property commission error:', error);
+        return res.status(500).json({ message: 'Failed to fetch property commission', error: error.message });
+    }
+});
+
+// Update a property commission level (owner/admin)
+// Body: { levelId } - ObjectId of CommissionLevel
+router.put('/:id/commission', requireAuth, async (req, res) => {
+    try {
+        const { levelId } = req.body || {};
+        if (!levelId) {
+            return res.status(400).json({ message: 'levelId is required' });
+        }
+
+        const property = await Property.findById(req.params.id);
+        if (!property) return res.status(404).json({ message: 'Property not found' });
+
+        const isOwner = String(property.host) === String(req.user.id);
+        const isAdmin = req.user.userType === 'admin';
+        if (!isOwner && !isAdmin) return res.status(403).json({ message: 'Not allowed' });
+
+        const level = await CommissionLevel.findById(levelId);
+        if (!level || !level.active) {
+            return res.status(400).json({ message: 'Invalid commission level' });
+        }
+
+        // Apply new level to property
+        const beforeRate = property.commissionRate;
+        const beforeVis = property.visibilityLevel;
+
+        property.commissionLevel = level._id;
+        // Keep legacy commissionRate roughly aligned with onlineRate for compatibility
+        if (typeof level.onlineRate === 'number') {
+            property.commissionRate = level.onlineRate;
+        }
+
+        await property.save();
+
+        // Notify host about commission change
+        try {
+            if (beforeRate !== property.commissionRate || beforeVis !== property.visibilityLevel) {
+                await Notification.create({
+                    type: 'commission_change',
+                    title: 'Property commission level updated',
+                    message: `Commission level for property "${property.title}" is now ${level.name} (online ${level.onlineRate}% / direct ${level.directRate}%).`,
+                    property: property._id,
+                    recipientUser: property.host,
+                    audience: 'host',
+                });
+            }
+        } catch (_) {}
+
+        return res.json({
+            property: {
+                _id: property._id,
+                title: property.title,
+                commissionRate: property.commissionRate,
+                commissionLevel: level,
+            },
+        });
+    } catch (error) {
+        console.error('Update property commission error:', error);
+        return res.status(500).json({ message: 'Failed to update property commission', error: error.message });
     }
 });
 

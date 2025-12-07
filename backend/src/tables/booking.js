@@ -14,8 +14,26 @@ const bookingSchema = new mongoose.Schema(
     taxRate: { type: Number, default: 3 }, // Tax rate percentage
     amountBeforeTax: { type: Number, default: 0 },
     status: { type: String, enum: ['pending', 'awaiting', 'commission_due', 'confirmed', 'cancelled', 'ended'], default: 'pending' },
+    // Commission tracking
     commissionAmount: { type: Number, default: 0 },
     commissionPaid: { type: Boolean, default: false },
+    // Percentage rate actually used for this booking (after all fallbacks)
+    commissionRate: { type: Number, default: 0 },
+    // "online" or "direct" depending on booking source
+    commissionType: { type: String, enum: ['online', 'direct'], default: 'online' },
+    // Category for analytics (e.g. 'premium' vs 'basic')
+    commissionCategory: { type: String, default: 'basic' },
+    // Key of the commission level used (e.g. 'premium')
+    commissionLevelKey: { type: String },
+    // Snapshot of the commission level at time of booking
+    commissionLevelSnapshot: {
+      name: { type: String },
+      key: { type: String },
+      description: { type: String },
+      directRate: { type: Number },
+      onlineRate: { type: Number },
+      isPremium: { type: Boolean }
+    },
     paymentMethod: { type: String, enum: ['mtn_mobile_money', 'cash'], default: 'cash' },
     paymentStatus: { type: String, enum: ['pending', 'paid', 'failed', 'refunded', 'unpaid'], default: 'unpaid' },
     transactionId: { type: String }, // MTN transaction ID
