@@ -351,16 +351,6 @@ const UserProfile = () => {
                 <button className="p-3 border rounded-lg text-left hover:bg-gray-50" onClick={()=>navigate('/account/disputes')}>Dispute resolution</button>
               </div>
             </div>
-
-            <div className="bg-white rounded-xl shadow-sm p-4">
-              <div className="text-sm text-gray-600 mb-3">Manage your property</div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <button className="p-3 border rounded-lg text-left hover:bg-gray-50" onClick={()=>navigate('/upload')}>List your property</button>
-                <button className="p-3 border rounded-lg text-left hover:bg-gray-50" onClick={()=>navigate('/messages')}>
-                  Messages {threadsUnread > 0 ? <span className="ml-2 inline-flex items-center justify-center w-6 h-6 text-xs font-semibold rounded-full bg-[#a06b42] text-white">{threadsUnread}</span> : null}
-                </button>
-              </div>
-            </div>
           </div>
 
           <div className="bg-white rounded-xl shadow-sm p-6">

@@ -752,6 +752,12 @@ const Navbar = () => {
     if (ownerRoutes.some(route => location.pathname.startsWith(route))) {
       return true;
     }
+    // For authenticated hosts, also treat /profile as part of the owner context so the
+    // owner navbar styling remains when they view their profile. Guests still see the
+    // public navbar on /profile.
+    if (location.pathname.startsWith('/profile') && isAuthenticated && user?.userType === 'host') {
+      return true;
+    }
     return false;
   };
 
