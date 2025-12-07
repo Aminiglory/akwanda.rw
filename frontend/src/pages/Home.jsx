@@ -115,37 +115,39 @@ const Home = () => {
                 {t ? t('home.explore') : 'Explore'}
               </a>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 md:gap-6">
-              {featuredCards.map((d, i) => (
-                <a
-                  key={i}
-                  href="/apartments"
-                  className="group relative rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 bg-gray-900/80"
-                >
-                  <div className="relative aspect-[4/5] sm:aspect-[4/5] overflow-hidden bg-black/40">
-                    <img
-                      src={d.img}
-                      alt={d.name}
-                      className="absolute inset-0 w-full h-full object-contain transition-transform duration-500"
-                      loading="lazy"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent" />
-                    <div className="absolute top-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold bg-white/90 text-[#4b2a00] shadow-sm">
-                      #{i + 1} Rwanda getaways
+            <div className="overflow-x-hidden">
+              <div className="flex gap-5 md:gap-6 items-stretch min-w-max animate-[scroll-horizontal_40s_linear_infinite]">
+                {[...featuredCards, ...featuredCards].map((d, i) => (
+                  <a
+                    key={i}
+                    href="/apartments"
+                    className="group relative rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 bg-gray-900/80 w-64 sm:w-72 lg:w-80 flex-shrink-0"
+                  >
+                    <div className="relative aspect-[4/5] sm:aspect-[4/5] overflow-hidden bg-black/40">
+                      <img
+                        src={d.img}
+                        alt={d.name}
+                        className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                        loading="lazy"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent" />
+                      <div className="absolute top-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold bg-white/90 text-[#4b2a00] shadow-sm">
+                        #{(i % featuredCards.length) + 1} Rwanda getaways
+                      </div>
+                      <div className="absolute bottom-3 left-3 right-3 flex flex-col gap-1">
+                        <h3 className="text-lg sm:text-xl font-bold text-white drop-shadow-md">{d.name}</h3>
+                        {d.tagline && (
+                          <p className="text-xs sm:text-sm text-white/80 line-clamp-2">{d.tagline}</p>
+                        )}
+                        <span className="mt-2 inline-flex items-center text-xs sm:text-sm font-semibold text-white/90">
+                          {t ? t('home.explore') : 'Explore'}
+                          <span className="ml-1 group-hover:translate-x-0.5 transition-transform">→</span>
+                        </span>
+                      </div>
                     </div>
-                    <div className="absolute bottom-3 left-3 right-3 flex flex-col gap-1">
-                      <h3 className="text-lg sm:text-xl font-bold text-white drop-shadow-md">{d.name}</h3>
-                      {d.tagline && (
-                        <p className="text-xs sm:text-sm text-white/80 line-clamp-2">{d.tagline}</p>
-                      )}
-                      <span className="mt-2 inline-flex items-center text-xs sm:text-sm font-semibold text-white/90">
-                        {t ? t('home.explore') : 'Explore'}
-                        <span className="ml-1 group-hover:translate-x-0.5 transition-transform">→</span>
-                      </span>
-                    </div>
-                  </div>
-                </a>
-              ))}
+                  </a>
+                ))}
+              </div>
             </div>
           </section>
         )}
