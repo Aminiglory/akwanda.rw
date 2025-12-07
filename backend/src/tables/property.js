@@ -66,7 +66,10 @@ const propertySchema = new mongoose.Schema(
     isActive: { type: Boolean, default: true },
     discountPercent: { type: Number, default: 0, min: 0, max: 100 },
     availability: { type: String, enum: ['available', 'in_use'], default: 'available' },
-    category: { type: String, enum: ['hotel', 'apartment', 'villa', 'hostel', 'resort', 'guesthouse'], default: 'apartment' },
+    // Property type key, managed via PropertyType collection (e.g. 'apartment', 'villa')
+    category: { type: String, default: 'apartment' },
+    // Optional reference to PropertyType document for richer metadata
+    propertyType: { type: mongoose.Schema.Types.ObjectId, ref: 'PropertyType' },
     rooms: [roomSchema],
     // Check-in/Check-out times (set by property owner)
     checkInTime: { type: String, default: '2:00 PM' },
@@ -84,6 +87,8 @@ const propertySchema = new mongoose.Schema(
     groupBookingEnabled: { type: Boolean, default: false },
     groupBookingDiscount: { type: Number, default: 0 },
     commissionRate: { type: Number, default: 10, min: 8, max: 12 },
+    // Optional link to admin-defined commission tier (direct/online percentages, premium flag)
+    commissionLevel: { type: mongoose.Schema.Types.ObjectId, ref: 'CommissionLevel' },
     visibilityLevel: { type: String, enum: ['standard', 'premium', 'featured'], default: 'standard' },
     featuredUntil: { type: Date },
     // Additional listing details to match frontend

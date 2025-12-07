@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
   FaEnvelope, FaLock, FaEye, FaEyeSlash, FaUser, FaPhone, FaBuilding, FaHome, 
@@ -7,6 +7,8 @@ import {
 } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const OwnerRegister = () => {
   const [currentStep, setCurrentStep] = useState(1);
@@ -63,6 +65,8 @@ const OwnerRegister = () => {
   const [error, setError] = useState('');
   const { register } = useAuth();
   const navigate = useNavigate();
+
+  const [propertyTypes, setPropertyTypes] = useState([]);
 
   const totalSteps = 4;
 
@@ -143,51 +147,64 @@ const OwnerRegister = () => {
       toast.error(message);
     }
   };
+  useEffect(() => {
+    const loadPropertyTypes = async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/property-types`, { credentials: 'include' });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.message || 'Failed to load property types');
+        const items = Array.isArray(data.propertyTypes) ? data.propertyTypes : [];
+        if (!items.length) return;
 
-  const propertyTypes = [
-    {
-      id: 'apartment',
-      name: 'Apartment',
-      icon: FaBuilding,
-      description: 'Furnished apartment, typically in a residential building',
-      subtypes: ['Studio', '1 Bedroom', '2 Bedroom', '3+ Bedroom', 'Penthouse']
-    },
-    {
-      id: 'hotel',
-      name: 'Hotel',
-      icon: FaHotel,
-      description: 'Professional hotel with daily housekeeping',
-      subtypes: ['Boutique Hotel', 'Business Hotel', 'Resort Hotel', 'Budget Hotel']
-    },
-    {
-      id: 'villa',
-      name: 'Villa',
-      icon: FaHome,
-      description: 'Private villa or house, often with garden or pool',
-      subtypes: ['Luxury Villa', 'Family Villa', 'Beach Villa', 'Mountain Villa']
-    },
-    {
-      id: 'hostel',
-      name: 'Hostel',
-      icon: FaBed,
-      description: 'Budget accommodation with shared facilities',
-      subtypes: ['Mixed Dormitory', 'Female Only', 'Private Room', 'Capsule Hostel']
-    },
-    {
-      id: 'resort',
-      name: 'Resort',
-      icon: FaTree,
-      description: 'All-inclusive resort with amenities and activities',
-      subtypes: ['Beach Resort', 'Mountain Resort', 'Spa Resort', 'Family Resort']
-    },
-    {
-      id: 'guesthouse',
-      name: 'Guesthouse',
-      icon: FaUsers,
-      description: 'Small accommodation, often family-run',
-      subtypes: ['Bed & Breakfast', 'Farm Stay', 'City Guesthouse', 'Rural Guesthouse']
-    }
-  ];
+        const withUiMeta = items.map((t) => {
+          const key = t.key || t.id || t._id;
+          let icon = FaBuilding;
+          let subtypes = [];
+          switch (key) {
+            case 'hotel':
+              icon = FaHotel;
+              subtypes = ['Boutique Hotel', 'Business Hotel', 'Resort Hotel', 'Budget Hotel'];
+              break;
+            case 'villa':
+              icon = FaHome;
+              subtypes = ['Luxury Villa', 'Family Villa', 'Beach Villa', 'Mountain Villa'];
+              break;
+            case 'hostel':
+              icon = FaBed;
+              subtypes = ['Mixed Dormitory', 'Female Only', 'Private Room', 'Capsule Hostel'];
+              break;
+            case 'resort':
+              icon = FaTree;
+              subtypes = ['Beach Resort', 'Mountain Resort', 'Spa Resort', 'Family Resort'];
+              break;
+            case 'guesthouse':
+              icon = FaUsers;
+              subtypes = ['Bed & Breakfast', 'Farm Stay', 'City Guesthouse', 'Rural Guesthouse'];
+              break;
+            case 'apartment':
+            default:
+              icon = FaBuilding;
+              subtypes = ['Studio', '1 Bedroom', '2 Bedroom', '3+ Bedroom', 'Penthouse'];
+              break;
+          }
+          return {
+            id: key,
+            name: t.name || key,
+            description: t.description || '',
+            icon,
+            subtypes,
+          };
+        });
+
+        setPropertyTypes(withUiMeta);
+      } catch (e) {
+        // Fallback to no types if API fails; owner can still retry later
+        console.warn('Failed to load property types', e);
+      }
+    };
+
+    loadPropertyTypes();
+  }, []);
 
   const getStepTitle = () => {
     switch (currentStep) {

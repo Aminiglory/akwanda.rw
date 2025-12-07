@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const PDFDocument = require('pdfkit');
 const Booking = require('../tables/booking');
 const Property = require('../tables/property');
+const CommissionLevel = require('../tables/commissionLevel');
 const Worker = require('../tables/worker');
 const Commission = require('../tables/commission');
 const CommissionSettings = require('../tables/commissionSettings');
@@ -207,9 +208,25 @@ router.patch('/:id/direct', requireAuth, async (req, res) => {
     // If a new finalAgreedAmount is supplied, override base and recompute
     if (typeof finalAgreedAmount === 'number' && !isNaN(finalAgreedAmount) && finalAgreedAmount > 0) {
       const negotiatedTotal = Math.round(finalAgreedAmount);
-      const rate = typeof property.commissionRate === 'number' && property.commissionRate >= 1 && property.commissionRate <= 100
-        ? property.commissionRate
-        : 10;
+
+      let rate = null;
+      try {
+        if (property && property.commissionLevel) {
+          const level = await CommissionLevel.findById(property.commissionLevel).lean();
+          if (level) {
+            // Direct booking endpoint, so use directRate
+            rate = Number(level.directRate || 0);
+          }
+        }
+      } catch (_) {}
+
+      if (!rate || rate <= 0 || rate > 100) {
+        // Fallback: legacy per-property rate or global settings
+        rate = typeof property.commissionRate === 'number' && property.commissionRate >= 1 && property.commissionRate <= 100
+          ? property.commissionRate
+          : 2; // default direct booking commission percent
+      }
+
       totalAmount = negotiatedTotal + directAddOnsTotal;
       amountBeforeTax = Math.round((negotiatedTotal * 100) / (100 + taxRate));
       taxAmount = negotiatedTotal - amountBeforeTax;
@@ -444,17 +461,35 @@ router.post('/', requireAuth, async (req, res) => {
       }
     }
 
-    let rate = property.commissionRate;
-    if (!rate || rate < 1 || rate > 100) {
-      try {
-        const settings = await CommissionSettings.getSingleton();
-        // Use premiumRate as generic default when property value is invalid
-        rate = settings.premiumRate || settings.baseRate || 10;
-      } catch {
-        const commissionDoc = await Commission.findOne({ active: true }).sort({ createdAt: -1 });
-        rate = commissionDoc ? Math.min(12, Math.max(8, commissionDoc.ratePercent)) : 10;
+    // Determine commission rate based on commission level (direct vs online), falling back to legacy settings
+    let rate = null;
+    try {
+      if (property && property.commissionLevel) {
+        const level = await CommissionLevel.findById(property.commissionLevel).lean();
+        if (level) {
+          const isDirectBooking = !!directBooking;
+          rate = isDirectBooking ? Number(level.directRate || 0) : Number(level.onlineRate || 0);
+        }
+      }
+    } catch (_) {}
+
+    if (!rate || rate <= 0 || rate > 100) {
+      // Fallbacks for legacy properties when no level is configured
+      if (directBooking) {
+        // Direct booking default
+        rate = 2;
+      } else {
+        // Online booking: reuse existing global settings/commission
+        try {
+          const settings = await CommissionSettings.getSingleton();
+          rate = settings.premiumRate || settings.baseRate || 10;
+        } catch {
+          const commissionDoc = await Commission.findOne({ active: true }).sort({ createdAt: -1 });
+          rate = commissionDoc ? Math.min(12, Math.max(8, commissionDoc.ratePercent)) : 10;
+        }
       }
     }
+
     let commissionAmount = Math.round((amountBeforeTax * rate) / 100);
 
     let guestId = req.user.id;

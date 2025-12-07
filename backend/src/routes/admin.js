@@ -5,6 +5,7 @@ const Property = require('../tables/property');
 const Booking = require('../tables/booking');
 const Notification = require('../tables/notification');
 const Commission = require('../tables/commission');
+const CommissionLevel = require('../tables/commissionLevel');
 const jwt = require('jsonwebtoken');
 const path = require('path');
 const fs = require('fs');
@@ -119,12 +120,13 @@ router.post('/seed', requireAdmin, async (req, res) => {
     }
 });
 
+// Legacy single global commission endpoints (kept for backward compatibility)
 router.get('/commission', requireAdmin, async (req, res) => {
 	const current = await Commission.findOne({ active: true }).sort({ createdAt: -1 });
 	res.json({ commission: current });
 });
 
-// Set commission rate
+// Set legacy single commission rate
 router.post('/commission', requireAdmin, async (req, res) => {
     try {
         const { ratePercent } = req.body || {};
@@ -137,6 +139,123 @@ router.post('/commission', requireAdmin, async (req, res) => {
     } catch (e) {
         return res.status(500).json({ message: 'Failed to set commission', error: e?.message || String(e) });
     }
+});
+
+// Commission levels management (admin-defined tiers for direct/online rates)
+router.get('/commission-levels', requireAdmin, async (req, res) => {
+  try {
+    const levels = await CommissionLevel.find({}).sort({ sortOrder: 1, createdAt: 1 });
+    return res.json({ levels });
+  } catch (e) {
+    console.error('List commission levels error:', e);
+    return res.status(500).json({ message: 'Failed to load commission levels', error: e?.message || String(e) });
+  }
+});
+
+router.post('/commission-levels', requireAdmin, async (req, res) => {
+  try {
+    const { name, key, description, directRate, onlineRate, isPremium, isDefault, sortOrder } = req.body || {};
+    if (!name || !key) {
+      return res.status(400).json({ message: 'name and key are required' });
+    }
+
+    const direct = Number(directRate);
+    const online = Number(onlineRate);
+    if (isNaN(direct) || direct < 0 || direct > 100 || isNaN(online) || online < 0 || online > 100) {
+      return res.status(400).json({ message: 'Invalid direct or online rate' });
+    }
+
+    const update = {
+      name: String(name).trim(),
+      key: String(key).trim(),
+      description: description || '',
+      directRate: direct,
+      onlineRate: online,
+      isPremium: !!isPremium,
+      isDefault: !!isDefault,
+      active: true,
+      sortOrder: typeof sortOrder === 'number' ? sortOrder : 0,
+    };
+
+    if (update.isDefault) {
+      await CommissionLevel.updateMany({ isDefault: true }, { $set: { isDefault: false } });
+    }
+    if (update.isPremium) {
+      await CommissionLevel.updateMany({ isPremium: true }, { $set: { isPremium: false } });
+    }
+
+    const created = await CommissionLevel.create(update);
+    return res.status(201).json({ level: created });
+  } catch (e) {
+    console.error('Create commission level error:', e);
+    if (e.code === 11000) {
+      return res.status(409).json({ message: 'Level key must be unique' });
+    }
+    return res.status(500).json({ message: 'Failed to create commission level', error: e?.message || String(e) });
+  }
+});
+
+router.put('/commission-levels/:id', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const level = await CommissionLevel.findById(id);
+    if (!level) return res.status(404).json({ message: 'Commission level not found' });
+
+    const { name, key, description, directRate, onlineRate, isPremium, isDefault, active, sortOrder } = req.body || {};
+
+    if (name != null) level.name = String(name).trim();
+    if (key != null) level.key = String(key).trim();
+    if (description != null) level.description = description;
+    if (directRate != null) {
+      const d = Number(directRate);
+      if (isNaN(d) || d < 0 || d > 100) return res.status(400).json({ message: 'Invalid directRate' });
+      level.directRate = d;
+    }
+    if (onlineRate != null) {
+      const o = Number(onlineRate);
+      if (isNaN(o) || o < 0 || o > 100) return res.status(400).json({ message: 'Invalid onlineRate' });
+      level.onlineRate = o;
+    }
+    if (typeof isPremium === 'boolean') level.isPremium = isPremium;
+    if (typeof isDefault === 'boolean') level.isDefault = isDefault;
+    if (typeof active === 'boolean') level.active = active;
+    if (sortOrder != null) level.sortOrder = Number(sortOrder) || 0;
+
+    if (level.isDefault) {
+      await CommissionLevel.updateMany({ _id: { $ne: level._id }, isDefault: true }, { $set: { isDefault: false } });
+    }
+    if (level.isPremium) {
+      await CommissionLevel.updateMany({ _id: { $ne: level._id }, isPremium: true }, { $set: { isPremium: false } });
+    }
+
+    await level.save();
+    return res.json({ level });
+  } catch (e) {
+    console.error('Update commission level error:', e);
+    if (e.code === 11000) {
+      return res.status(409).json({ message: 'Level key must be unique' });
+    }
+    return res.status(500).json({ message: 'Failed to update commission level', error: e?.message || String(e) });
+  }
+});
+
+router.delete('/commission-levels/:id', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const level = await CommissionLevel.findById(id);
+    if (!level) return res.status(404).json({ message: 'Commission level not found' });
+
+    const inUse = await Property.exists({ commissionLevel: id });
+    if (inUse) {
+      return res.status(400).json({ message: 'Cannot delete a commission level that is assigned to properties' });
+    }
+
+    await level.deleteOne();
+    return res.json({ success: true });
+  } catch (e) {
+    console.error('Delete commission level error:', e);
+    return res.status(500).json({ message: 'Failed to delete commission level', error: e?.message || String(e) });
+  }
 });
 
 // Unlock a user account even if they still have pending commissions/fines

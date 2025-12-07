@@ -86,7 +86,7 @@ const Register = () => {
                 >
                   <div className="text-center">
                     <div className="text-2xl mb-1">🏠</div>
-                    <div className="font-medium">{t ? t('auth.findApartments') : 'Find Apartments'}</div>
+                    <div className="font-medium">{t ? t('auth.findProperties') : 'Find Properties'}</div>
                   </div>
                 </button>
                 <button

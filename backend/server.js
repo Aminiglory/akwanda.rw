@@ -34,6 +34,7 @@ const attractionBookingsRouter = require('./src/routes/attractionBookings');
 const adminUserManagementRouter = require('./src/routes/admin-user-management');
 const amenitiesRouter = require('./src/routes/amenities');
 const roomTypesRouter = require('./src/routes/roomTypes');
+const propertyTypesRouter = require('./src/routes/propertyTypes');
 const howItWorksRouter = require('./src/routes/howItWorks');
 const testimonialsRouter = require('./src/routes/testimonials');
 const reportsRouter = require('./src/routes/reports');
@@ -224,6 +225,7 @@ app.use('/api/notifications', notificationsRouter);
 app.use('/api/admin/user-management', adminUserManagementRouter);
 app.use('/api/amenities', amenitiesRouter);
 app.use('/api/room-types', roomTypesRouter);
+app.use('/api/property-types', propertyTypesRouter);
 app.use('/api/reports', reportsRouter);
 app.use('/api/workers', workersRouter);
 if (dealsRouter) {

@@ -84,6 +84,7 @@ const AdminDashboard = () => {
   const [propertiesViewMode, setPropertiesViewMode] = useState('cards'); // 'cards' | 'table'
   const [propertiesPage, setPropertiesPage] = useState(1);
   const propertiesPageSize = 6;
+  const [propertyTypes, setPropertyTypes] = useState([]);
   const filteredProperties = properties.filter(p => {
     const matchesSearch = (p.title||'').toLowerCase().includes(searchTerm.toLowerCase()) || (p.city||'').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = filterStatus ? p.category === filterStatus : true;
@@ -231,6 +232,14 @@ const AdminDashboard = () => {
       setAttractions([]);
       setTaxis([]);
       setCarRentals([]);
+
+      // Load property types for category filter
+      try {
+        const typesRes = await fetchWithFallback(`${API_URL}/api/property-types`, { propertyTypes: [] });
+        setPropertyTypes(Array.isArray(typesRes.propertyTypes) ? typesRes.propertyTypes : []);
+      } catch (_) {
+        setPropertyTypes([]);
+      }
 
     } catch (error) {
       console.error('Dashboard data fetch error:', error);
@@ -614,12 +623,11 @@ const AdminDashboard = () => {
                         className="w-full p-2 border border-gray-300 rounded-lg bg-white text-gray-700"
                       >
                         <option value="">All Categories</option>
-                        <option value="hotel">Hotels</option>
-                        <option value="apartment">Apartments</option>
-                        <option value="villa">Villas</option>
-                        <option value="hostel">Hostels</option>
-                        <option value="resort">Resorts</option>
-                        <option value="guesthouse">Guesthouses</option>
+                        {propertyTypes.map((t) => (
+                          <option key={t._id || t.key} value={t.key}>
+                            {t.name || t.key}
+                          </option>
+                        ))}
                       </select>
                     </div>
                   </div>
