@@ -27,6 +27,16 @@ const AdminCommissionManager = () => {
   const [levelForm, setLevelForm] = useState({ name: '', key: '', description: '', directRate: 2, onlineRate: 10, isDefault: false, isPremium: false, sortOrder: 0 });
   const [editingLevelId, setEditingLevelId] = useState(null);
 
+  const getAuthHeaders = () => {
+    let token = null;
+    try {
+      if (typeof window !== 'undefined') {
+        token = window.localStorage.getItem('token');
+      }
+    } catch (_) {}
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
+
   useEffect(() => {
     if (!isAuthenticated || user?.userType !== 'admin') {
       setUsers([]);
@@ -53,7 +63,8 @@ const AdminCommissionManager = () => {
   const fetchCommissionSettings = async () => {
     try {
       const res = await fetch(`${API_URL}/api/admin/commission-settings`, {
-        credentials: 'include'
+        credentials: 'include',
+        headers: getAuthHeaders(),
       });
       const data = await safeParseJson(res);
       if (!res.ok) throw new Error(data?.message || 'Failed to load commission settings');
@@ -75,7 +86,7 @@ const AdminCommissionManager = () => {
       const res = await fetch(`${API_URL}/api/admin/commission-settings`, {
         method: 'PUT',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
         body: JSON.stringify(payload),
       });
       const data = await safeParseJson(res);
@@ -97,7 +108,10 @@ const AdminCommissionManager = () => {
   const fetchCommissionLevels = async () => {
     try {
       setLevelsLoading(true);
-      const res = await fetch(`${API_URL}/api/admin/commission-levels`, { credentials: 'include' });
+      const res = await fetch(`${API_URL}/api/admin/commission-levels`, {
+        credentials: 'include',
+        headers: getAuthHeaders(),
+      });
       const data = await safeParseJson(res);
       if (!res.ok) throw new Error(data?.message || 'Failed to load commission levels');
       setCommissionLevels(Array.isArray(data.levels) ? data.levels : []);
@@ -125,7 +139,7 @@ const AdminCommissionManager = () => {
       const res = await fetch(url, {
         method,
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
         body: JSON.stringify(payload),
       });
       const data = await safeParseJson(res);
@@ -159,6 +173,7 @@ const AdminCommissionManager = () => {
       const res = await fetch(`${API_URL}/api/admin/commission-levels/${id}`, {
         method: 'DELETE',
         credentials: 'include',
+        headers: getAuthHeaders(),
       });
       const data = await safeParseJson(res);
       if (!res.ok) throw new Error(data?.message || 'Failed to delete commission level');
@@ -173,7 +188,8 @@ const AdminCommissionManager = () => {
     try {
       setLoading(true);
       const res = await fetch(`${API_URL}/api/admin/users/unpaid-commissions`, {
-        credentials: 'include'
+        credentials: 'include',
+        headers: getAuthHeaders(),
       });
       const data = await safeParseJson(res);
 
@@ -213,7 +229,7 @@ const AdminCommissionManager = () => {
       setProcessingId(userId);
       const res = await fetch(`${API_URL}/api/admin/users/${userId}/fines`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
         credentials: 'include',
         body: JSON.stringify(payload)
       });
@@ -241,7 +257,7 @@ const AdminCommissionManager = () => {
       setProcessingId(userId);
       const res = await fetch(`${API_URL}/api/admin/users/${userId}/deactivate`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
         credentials: 'include',
         body: JSON.stringify({
           reason: `Account deactivated due to unpaid commission of RWF ${totalCommission.toLocaleString()}`,
@@ -251,9 +267,9 @@ const AdminCommissionManager = () => {
         })
       });
 
-  const data = await safeParseJson(res);
+      const data = await safeParseJson(res);
 
-  if (!res.ok) throw new Error(data.message || (data && data.__raw ? data.__raw.slice(0,200) : 'Failed to deactivate user'));
+      if (!res.ok) throw new Error(data.message || (data && data.__raw ? data.__raw.slice(0,200) : 'Failed to deactivate user'));
 
       toast.success('User account deactivated successfully');
       setSuccessTitle('User Deactivated');
@@ -277,7 +293,8 @@ const AdminCommissionManager = () => {
       // Use the special unlock route: clears isBlocked/limitedAccess but keeps unpaid commissions/fines
       const res = await fetch(`${API_URL}/api/admin/users/${userId}/unlock`, {
         method: 'PATCH',
-        credentials: 'include'
+        credentials: 'include',
+        headers: getAuthHeaders(),
       });
       const data = await safeParseJson(res);
 

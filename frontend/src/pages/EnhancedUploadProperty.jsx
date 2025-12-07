@@ -139,15 +139,8 @@ const EnhancedUploadProperty = () => {
   // Responsive button styles: smaller on small screens, larger on md+
   const primaryBtn = 'bg-[#a06b42] hover:bg-[#8f5a32] text-white';
   const secondaryBtn = 'border border-gray-300 text-gray-700 hover:bg-gray-50';
-
-  const categories = [
-    { value: 'hotel', label: 'Hotel' },
-    { value: 'apartment', label: 'Apartment' },
-    { value: 'villa', label: 'Villa' },
-    { value: 'hostel', label: 'Hostel' },
-    { value: 'resort', label: 'Resort' },
-    { value: 'guesthouse', label: 'Guesthouse' }
-  ];
+  // Dynamically loaded property types (admin-managed top-level categories)
+  const [propertyTypes, setPropertyTypes] = useState([]);
 
   const visibilityLevels = [
     { value: 'standard', label: 'Standard', description: 'Basic visibility' },
@@ -160,13 +153,14 @@ const EnhancedUploadProperty = () => {
   const [roomTypeOptions, setRoomTypeOptions] = useState([]);
 
   useEffect(() => {
-    // Load amenity options and room types from API
+    // Load amenity options, room types, and property types from API
     (async () => {
       try {
-        const [propRes, roomRes, roomTypesRes] = await Promise.all([
+        const [propRes, roomRes, roomTypesRes, propTypesRes] = await Promise.all([
           fetch(`${API_URL}/api/amenities?scope=property&active=true`, { credentials: 'include' }),
           fetch(`${API_URL}/api/amenities?scope=room&active=true`, { credentials: 'include' }),
           fetch(`${API_URL}/api/room-types?active=true`).catch(() => null),
+          fetch(`${API_URL}/api/property-types`).catch(() => null),
         ]);
         const propData = await propRes.json().catch(()=>({ amenities: [] }));
         const roomData = await roomRes.json().catch(()=>({ amenities: [] }));
@@ -177,6 +171,17 @@ const EnhancedUploadProperty = () => {
           const list = Array.isArray(rtData.roomTypes) ? rtData.roomTypes : [];
           if (list.length) {
             setRoomTypeOptions(list.map(rt => ({ value: rt.key, label: rt.name })));
+          }
+        }
+
+        // Load admin-managed property types used as categories (apartment, villa, etc.)
+        if (propTypesRes && propTypesRes.ok) {
+          const ptData = await propTypesRes.json().catch(() => ({}));
+          const list = Array.isArray(ptData.propertyTypes) ? ptData.propertyTypes : [];
+          if (list.length) {
+            setPropertyTypes(list);
+          } else {
+            setPropertyTypes([]);
           }
         }
       } catch (_) {}
@@ -209,6 +214,17 @@ const EnhancedUploadProperty = () => {
       localStorage.setItem('listing_draft_v1', JSON.stringify({ formData, rooms, images, currentStep }));
     } catch (_) {}
   }, [formData, rooms, images, currentStep]);
+
+  // Ensure formData.category aligns with available property types when they load
+  useEffect(() => {
+    if (!propertyTypes || !propertyTypes.length) return;
+    setFormData(prev => {
+      const keys = propertyTypes.map(pt => String(pt.key));
+      if (prev.category && keys.includes(String(prev.category))) return prev;
+      const first = keys[0] || 'apartment';
+      return { ...prev, category: first };
+    });
+  }, [propertyTypes]);
 
   useEffect(() => {
     const loadDeals = async () => {
