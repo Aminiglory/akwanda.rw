@@ -267,6 +267,22 @@ const Navbar = () => {
       ]
     },
     {
+      category: t ? t('nav.property') : "Property",
+      icon: FaBed,
+      links: [
+        { label: labelOr('nav.propertyPolicies', 'Property policies'), href: attachPropertyParam('/owner/property?view=policies') },
+        { label: labelOr('nav.reservationPolicies', 'Reservation policies'), href: attachPropertyParam('/owner/property?view=reservation-policies') },
+        { label: labelOr('nav.facilitiesServices', 'Facilities and services'), href: attachPropertyParam('/owner/property?view=facilities') },
+        { label: labelOr('nav.roomDetails', 'Room details'), href: attachPropertyParam('/owner/property?view=room-details') },
+        { label: labelOr('nav.roomAmenities', 'Room Amenities'), href: attachPropertyParam('/owner/property?view=room-amenities') },
+        { label: labelOr('nav.yourProfile', 'your profile'), href: attachPropertyParam('/owner/property?view=profile') },
+        { label: labelOr('nav.viewDescriptions', 'View your descriptions'), href: attachPropertyParam('/owner/property?view=descriptions') },
+        { label: labelOr('nav.photos', 'Photos'), href: attachPropertyParam('/owner/property?view=photos') },
+        { label: labelOr('nav.messagingPreferences', 'Messaging preferences'), href: '/settings?tab=messaging' },
+        { label: labelOr('nav.propertyManagement', 'Property management'), href: attachPropertyParam('/owner/property?view=general-info') },
+      ]
+    },
+    {
       label: labelOr('nav.inbox', 'Inbox'),
       icon: FaEnvelope,
       href: '/messages',
