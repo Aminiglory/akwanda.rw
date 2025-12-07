@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import Hero from '../components/Hero';
 import SearchSection from '../components/SearchSection';
 import FeaturedApartments from '../components/FeaturedApartments';
@@ -15,6 +15,7 @@ const Home = () => {
 
   const [featuredSection, setFeaturedSection] = useState(null);
   const [partnersSection, setPartnersSection] = useState(null);
+  const featuredStripRef = useRef(null);
 
   useEffect(() => {
     console.log('[Home] mount', { API_URL });
@@ -77,7 +78,7 @@ const Home = () => {
       .map((s) => s.trim())
       .filter(Boolean);
 
-    return imgs.map((img, i) => {
+    const list = imgs.map((img, i) => {
       const raw = lines[i] || '';
       const parts = raw.split('|');
       const name = (parts[0] || '').trim() || `Partner ${i + 1}`;
@@ -91,6 +92,33 @@ const Home = () => {
     console.log('[Home] partners computed', { count: list.length });
     return list;
   }, [partnersSection]);
+
+  // Auto-slide featured destinations horizontally
+  useEffect(() => {
+    const container = featuredStripRef.current;
+    if (!container || !featuredCards.length) return;
+
+    const intervalMs = 3000; // time between slides
+    const step = () => {
+      const firstCard = container.querySelector('[data-featured-card="true"]');
+      if (!firstCard) return;
+      const cardWidth = firstCard.getBoundingClientRect().width;
+      const gap = 24; // approximate gap (px) between cards (matches Tailwind gap)
+      const delta = cardWidth + gap;
+
+      const maxScroll = container.scrollWidth - container.clientWidth;
+      const nextLeft = container.scrollLeft + delta;
+
+      if (nextLeft >= maxScroll - 1) {
+        container.scrollTo({ left: 0, behavior: 'smooth' });
+      } else {
+        container.scrollTo({ left: nextLeft, behavior: 'smooth' });
+      }
+    };
+
+    const id = setInterval(step, intervalMs);
+    return () => clearInterval(id);
+  }, [featuredCards]);
   return (
     <div>
       {/* Hero Section with chocolate theme background */}
@@ -115,13 +143,14 @@ const Home = () => {
                 {t ? t('home.explore') : 'Explore'}
               </a>
             </div>
-            <div className="overflow-x-hidden">
-              <div className="flex gap-5 md:gap-6 items-stretch min-w-max animate-[scroll-horizontal_40s_linear_infinite]">
-                {[...featuredCards, ...featuredCards].map((d, i) => (
+            <div className="overflow-x-hidden" ref={featuredStripRef}>
+              <div className="flex gap-5 md:gap-6 items-stretch min-w-max">
+                {featuredCards.map((d, i) => (
                   <a
                     key={i}
                     href="/apartments"
                     className="group relative rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 bg-gray-900/80 w-64 sm:w-72 lg:w-80 flex-shrink-0"
+                    data-featured-card="true"
                   >
                     <div className="relative aspect-[4/5] sm:aspect-[4/5] overflow-hidden bg-black/40">
                       <img
