@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocale } from '../contexts/LocaleContext';
 import { useAuth } from '../contexts/AuthContext';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { FaUser, FaChartLine, FaCalendarAlt, FaDollarSign, FaDownload, FaEdit, FaTrash, FaEye, FaCog, FaHome, FaStar, FaMapMarkerAlt, FaCamera, FaFileAlt, FaPrint, FaEnvelope, FaPhone, FaBed, FaUsers, FaWifi, FaCar, FaSwimmingPool, FaUtensils, FaShieldAlt, FaClock, FaComments } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { safeApiGet, apiGet, apiPost, apiPut, apiDelete, apiDownload } from '../utils/apiUtils';
@@ -12,6 +12,7 @@ const UserProfile = () => {
   const { formatCurrencyRWF } = useLocale() || {};
   const { user, refreshUser, updateProfile: ctxUpdateProfile, updateAvatar: ctxUpdateAvatar } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState('overview');
   const [properties, setProperties] = useState([]);
   const [reports, setReports] = useState({});
@@ -274,8 +275,12 @@ const UserProfile = () => {
   ];
 
   const isHost = user?.userType === 'host';
+  const isGuestProfileRoute = location.pathname.startsWith('/profile');
 
-  if (!isHost) {
+  // Treat /profile as the guest-style profile for all users (including hosts).
+  // Owner dashboard profile layout remains available if this component is ever
+  // mounted on a different, owner-specific route.
+  if (!isHost || isGuestProfileRoute) {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="bg-[#a06b42] text-white">

@@ -782,16 +782,7 @@ const Navbar = () => {
     // The dashboard is only for management after at least one listing exists.
     // Note: /my-bookings is now a guest bookings page and should NOT be considered part of the owner dashboard.
     const ownerRoutes = ['/group-home', '/dashboard', '/user-dashboard', '/owner', '/messages', '/notifications'];
-    if (ownerRoutes.some(route => location.pathname.startsWith(route))) {
-      return true;
-    }
-    // For authenticated hosts, also treat /profile as part of the owner context so the
-    // owner navbar styling remains when they view their profile. Guests still see the
-    // public navbar on /profile.
-    if (location.pathname.startsWith('/profile') && isAuthenticated && user?.userType === 'host') {
-      return true;
-    }
-    return false;
+    return ownerRoutes.some(route => location.pathname.startsWith(route));
   };
 
   // True when user is on the listing wizard routes (outside dashboard but still listing context)
