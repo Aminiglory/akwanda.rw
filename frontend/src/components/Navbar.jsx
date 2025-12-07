@@ -1408,7 +1408,12 @@ const Navbar = () => {
                         <div className="font-semibold text-[#4b2a00] truncate">{user?.firstName || user?.lastName ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : (user?.email || '')}</div>
                         <div className="text-[10px] text-gray-600 truncate">{user?.email}</div>
                       </div>
-                      <Link to="/profile" className="block px-3 py-1.5 text-xs text-[#4b2a00] hover:bg-gray-50">{t ? t('nav.profile') : 'Profile'}</Link>
+                      <Link
+                        to={isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard() ? '/owner/profile' : '/profile'}
+                        className="block px-3 py-1.5 text-xs text-[#4b2a00] hover:bg-gray-50"
+                      >
+                        {t ? t('nav.profile') : 'Profile'}
+                      </Link>
                       <Link to="/settings" className="block px-3 py-1.5 text-xs text-[#4b2a00] hover:bg-gray-50">{t ? t('nav.accountSettings') : 'Account settings'}</Link>
                       <button onClick={handleLogout} className="w-full text-left px-3 py-1.5 text-xs text-red-700 hover:bg-gray-50 flex items-center gap-2">
                         <FaSignOutAlt /> <span>{t ? t('nav.logout') : 'Log out'}</span>

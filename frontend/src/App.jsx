@@ -170,7 +170,10 @@ function App() {
             <Route path="/group-home" element={<HostRoute><div className="dashboard"><GroupHomePage /></div></HostRoute>} />
             <Route path="/dashboard" element={<HostRoute><div className="dashboard"><PropertyOwnerBookings /></div></HostRoute>} />
             <Route path="/user-dashboard" element={<HostRoute><div className="dashboard"><PropertyOwnerBookings /></div></HostRoute>} />
+            {/* Traveler/guest profile page */}
             <Route path="/profile" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
+            {/* Property owner profile inside the owner dashboard context */}
+            <Route path="/owner/profile" element={<HostRoute><div className="dashboard"><UserProfile /></div></HostRoute>} />
             <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
             <Route path="/account/:section" element={<ProtectedRoute><SettingsSection /></ProtectedRoute>} />
             <Route path="/list-property" element={<ProtectedRoute><ListProperty /></ProtectedRoute>} />
