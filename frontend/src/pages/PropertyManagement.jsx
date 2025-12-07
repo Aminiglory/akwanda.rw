@@ -17,6 +17,7 @@ export default function PropertyManagement() {
   const [stats, setStats] = useState(null);
   const [propertyAmenityOptions, setPropertyAmenityOptions] = useState([]);
   const [roomAmenityOptions, setRoomAmenityOptions] = useState([]);
+  const [roomTypeOptions, setRoomTypeOptions] = useState([]);
   const [saving, setSaving] = useState(false);
   const [descDraft, setDescDraft] = useState({ shortDescription: '', description: '' });
   const [reservationDraft, setReservationDraft] = useState({ cancellationPolicy: '', prepaymentRequired: false, minStayNights: 1 });
@@ -46,6 +47,20 @@ export default function PropertyManagement() {
         const roomData = await roomRes.json().catch(()=>({ amenities: [] }));
         if (propRes.ok) setPropertyAmenityOptions(Array.isArray(propData.amenities) ? propData.amenities : []);
         if (roomRes.ok) setRoomAmenityOptions(Array.isArray(roomData.amenities) ? roomData.amenities : []);
+      } catch (_) {}
+    })();
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/room-types?active=true`, { credentials: 'include' });
+        if (!res.ok) return;
+        const data = await res.json().catch(() => ({}));
+        const list = Array.isArray(data.roomTypes) ? data.roomTypes : [];
+        if (list.length) {
+          setRoomTypeOptions(list.map(rt => ({ value: rt.key, label: rt.name })));
+        }
       } catch (_) {}
     })();
   }, []);
@@ -1828,13 +1843,17 @@ export default function PropertyManagement() {
                           {/* Room core fields */}
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
                             <div>
-                              <label className="block text-xs text-gray-600 mb-1">Room name / type</label>
-                              <input
+                              <label className="block text-xs text-gray-600 mb-1">Room type</label>
+                              <select
                                 id={`roomType-${room._id}`}
-                                type="text"
                                 defaultValue={room.roomType || room.type || ''}
-                                className="w-full border rounded px-3 py-2"
-                              />
+                                className="w-full border rounded px-3 py-2 text-xs capitalize"
+                              >
+                                <option value="">Select type</option>
+                                {roomTypeOptions.map(rt => (
+                                  <option key={rt.value} value={rt.value}>{rt.label}</option>
+                                ))}
+                              </select>
                             </div>
                             <div>
                               <label className="block text-xs text-gray-600 mb-1">Room number / name</label>

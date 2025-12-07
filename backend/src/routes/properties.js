@@ -1671,12 +1671,6 @@ router.put('/:id/rooms/:roomId', requireAuth, async (req, res) => {
         if (updates.images && !Array.isArray(updates.images)) {
             updates.images = [updates.images].filter(Boolean);
         }
-        // Basic enum validation for roomType if provided
-        const validTypes = ['single','double','suite','family','deluxe'];
-        if (updates.roomType && !validTypes.includes(String(updates.roomType))) {
-            return res.status(400).json({ message: 'Invalid roomType' });
-        }
-
         Object.assign(room, updates);
         clampCommission(property);
         await property.save();
