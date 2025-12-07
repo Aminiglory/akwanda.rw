@@ -38,6 +38,7 @@ const AdminAttractions = lazyWithRetry(() => import('./pages/AdminAttractions'))
 const AdminAmenities = lazyWithRetry(() => import('./pages/AdminAmenities'));
 const AdminAddOns = lazyWithRetry(() => import('./pages/AdminAddOns'));
 const AdminRoomTypes = lazyWithRetry(() => import('./pages/AdminRoomTypes'));
+const AdminPropertyTypes = lazyWithRetry(() => import('./pages/AdminPropertyTypes'));
 const CarsList = lazyWithRetry(() => import('./pages/CarsList'));
 const CarDetail = lazyWithRetry(() => import('./pages/CarDetail'));
 const CarOwnerDashboard = lazyWithRetry(() => import('./pages/CarOwnerDashboard'));
@@ -187,6 +188,7 @@ function App() {
             <Route path="/admin/users" element={<AdminRoute><div className="dashboard"><AdminUserManagement /></div></AdminRoute>} />
             <Route path="/admin/amenities" element={<AdminRoute><div className="dashboard"><AdminAmenities /></div></AdminRoute>} />
             <Route path="/admin/room-types" element={<AdminRoute><div className="dashboard"><AdminRoomTypes /></div></AdminRoute>} />
+            <Route path="/admin/property-types" element={<AdminRoute><div className="dashboard"><AdminPropertyTypes /></div></AdminRoute>} />
             <Route path="/admin/add-ons" element={<AdminRoute><div className="dashboard"><AdminAddOns /></div></AdminRoute>} />
             <Route path="/admin/reports" element={<AdminRoute><div className="dashboard"><AdminReports /></div></AdminRoute>} />
             <Route path="/mtn-payment" element={<ProtectedRoute><MTNMobileMoneyPayment /></ProtectedRoute>} />
