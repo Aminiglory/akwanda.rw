@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaExclamationTriangle, FaCheckCircle, FaToggleOn, FaToggleOff, FaMoneyBillWave } from 'react-icons/fa';
+import { FaExclamationTriangle, FaCheckCircle, FaToggleOn, FaToggleOff, FaMoneyBillWave, FaSave, FaTimes, FaEdit, FaTrash } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import SuccessModal from './SuccessModal';
 import { useAuth } from '../contexts/AuthContext';
@@ -22,6 +22,10 @@ const AdminCommissionManager = () => {
   const [successMsg, setSuccessMsg] = useState('Action completed successfully.');
   const [rateSettings, setRateSettings] = useState({ baseRate: 8, premiumRate: 10, featuredRate: 12, enforcementPaused: false });
   const [savingRates, setSavingRates] = useState(false);
+  const [commissionLevels, setCommissionLevels] = useState([]);
+  const [levelsLoading, setLevelsLoading] = useState(false);
+  const [levelForm, setLevelForm] = useState({ name: '', key: '', description: '', directRate: 2, onlineRate: 10, isDefault: false, isPremium: false, sortOrder: 0 });
+  const [editingLevelId, setEditingLevelId] = useState(null);
 
   useEffect(() => {
     if (!isAuthenticated || user?.userType !== 'admin') {
@@ -31,6 +35,7 @@ const AdminCommissionManager = () => {
     }
     fetchUsersWithUnpaidCommissions();
     fetchCommissionSettings();
+    fetchCommissionLevels();
   }, [isAuthenticated, user?.userType]);
 
   const safeParseJson = async (res) => {
@@ -86,6 +91,81 @@ const AdminCommissionManager = () => {
       toast.error(e.message || 'Could not update commission settings');
     } finally {
       setSavingRates(false);
+    }
+  };
+
+  const fetchCommissionLevels = async () => {
+    try {
+      setLevelsLoading(true);
+      const res = await fetch(`${API_URL}/api/admin/commission-levels`, { credentials: 'include' });
+      const data = await safeParseJson(res);
+      if (!res.ok) throw new Error(data?.message || 'Failed to load commission levels');
+      setCommissionLevels(Array.isArray(data.levels) ? data.levels : []);
+    } catch (e) {
+      toast.error(e.message || 'Could not load commission levels');
+      setCommissionLevels([]);
+    } finally {
+      setLevelsLoading(false);
+    }
+  };
+
+  const saveCommissionLevel = async (e) => {
+    e.preventDefault();
+    try {
+      const payload = {
+        ...levelForm,
+        directRate: Number(levelForm.directRate),
+        onlineRate: Number(levelForm.onlineRate),
+        sortOrder: Number(levelForm.sortOrder) || 0,
+      };
+      const method = editingLevelId ? 'PUT' : 'POST';
+      const url = editingLevelId
+        ? `${API_URL}/api/admin/commission-levels/${editingLevelId}`
+        : `${API_URL}/api/admin/commission-levels`;
+      const res = await fetch(url, {
+        method,
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await safeParseJson(res);
+      if (!res.ok) throw new Error(data?.message || 'Failed to save commission level');
+      toast.success(editingLevelId ? 'Commission level updated' : 'Commission level created');
+      setLevelForm({ name: '', key: '', description: '', directRate: 2, onlineRate: 10, isDefault: false, isPremium: false, sortOrder: 0 });
+      setEditingLevelId(null);
+      fetchCommissionLevels();
+    } catch (e) {
+      toast.error(e.message || 'Failed to save commission level');
+    }
+  };
+
+  const startEditLevel = (level) => {
+    setEditingLevelId(level._id);
+    setLevelForm({
+      name: level.name || '',
+      key: level.key || '',
+      description: level.description || '',
+      directRate: level.directRate ?? 2,
+      onlineRate: level.onlineRate ?? 10,
+      isDefault: !!level.isDefault,
+      isPremium: !!level.isPremium,
+      sortOrder: level.sortOrder ?? 0,
+    });
+  };
+
+  const deleteLevel = async (id) => {
+    if (!window.confirm('Delete this commission level? It must not be assigned to any properties.')) return;
+    try {
+      const res = await fetch(`${API_URL}/api/admin/commission-levels/${id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      const data = await safeParseJson(res);
+      if (!res.ok) throw new Error(data?.message || 'Failed to delete commission level');
+      toast.success('Commission level deleted');
+      fetchCommissionLevels();
+    } catch (e) {
+      toast.error(e.message || 'Failed to delete commission level');
     }
   };
 

@@ -12,10 +12,13 @@ const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN || undefined; // e.g. '.onrender
 
 function buildCookieOptions() {
   const isProd = process.env.NODE_ENV === 'production';
+  // In production we want a secure, cross-site cookie (for use with a separate frontend origin).
+  // In local/dev over plain HTTP, a `secure` + `SameSite=None` cookie will be rejected by browsers,
+  // which causes sessions to be lost on refresh. So we relax these flags when not in production.
   const opts = {
     httpOnly: true,
-    sameSite: 'none',
-    secure: true,
+    sameSite: isProd ? 'none' : 'lax',
+    secure: isProd,
     maxAge: 7 * 24 * 60 * 60 * 1000,
   };
   // Only set domain when explicitly configured to avoid local dev issues
