@@ -266,7 +266,7 @@ const Navbar = () => {
         { label: labelOr('nav.directBooking', 'Direct booking'), href: attachPropertyParam('/owner/direct-booking'), icon: FaCalendarCheck },
       ]
     },
-    {
+        {
       category: t ? t('nav.property') : "Property",
       icon: FaBed,
       links: [
