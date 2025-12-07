@@ -40,7 +40,9 @@ export const AuthProvider = ({ children }) => {
     // Then verify with backend
     (async () => {
       try {
-        const res = await fetch(`${API_URL}/api/auth/me`, { credentials: 'include' });
+        const token = localStorage.getItem('token');
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        const res = await fetch(`${API_URL}/api/auth/me`, { credentials: 'include', headers });
         const data = await res.json();
         if (res.ok && data.user) {
           const normalized = { ...data.user, avatar: makeAbsolute(data.user.avatar) };
@@ -49,6 +51,7 @@ export const AuthProvider = ({ children }) => {
         } else if (!res.ok) {
           setUser(null);
           localStorage.removeItem('user');
+          localStorage.removeItem('token');
         }
       } catch (_) {
         // network issues: keep local state
@@ -72,6 +75,7 @@ export const AuthProvider = ({ children }) => {
       const normalized = { ...data.user, avatar: makeAbsolute(data.user.avatar) };
       setUser(normalized);
       localStorage.setItem('user', JSON.stringify(normalized));
+      if (data.token) localStorage.setItem('token', data.token);
       return { success: true, user: data.user };
     } catch (error) {
       return { success: false, error: error.message };
@@ -93,6 +97,7 @@ export const AuthProvider = ({ children }) => {
       if (!res.ok) throw new Error(data.message || 'Registration failed');
       setUser(data.user);
       localStorage.setItem('user', JSON.stringify(data.user));
+      if (data.token) localStorage.setItem('token', data.token);
       return { success: true };
     } catch (error) {
       return { success: false, error: error.message };
@@ -107,6 +112,7 @@ export const AuthProvider = ({ children }) => {
     } catch (e) { /* ignore */ }
     setUser(null);
     localStorage.removeItem('user');
+    localStorage.removeItem('token');
   };
 
   const updateAvatar = async (file, isAdmin = false) => {
@@ -139,7 +145,9 @@ export const AuthProvider = ({ children }) => {
 
   const refreshUser = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/auth/me`, { credentials: 'include' });
+      const token = localStorage.getItem('token');
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const res = await fetch(`${API_URL}/api/auth/me`, { credentials: 'include', headers });
       const data = await res.json();
       if (res.ok && data.user) {
         const normalized = { ...data.user, avatar: makeAbsolute(data.user.avatar) };
