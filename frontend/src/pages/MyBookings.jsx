@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { FaCalendarAlt, FaMoneyBill, FaMapMarkerAlt, FaStar, FaExternalLinkAlt } from 'react-icons/fa';
+import { FaCalendarAlt, FaMoneyBill, FaMapMarkerAlt, FaExternalLinkAlt } from 'react-icons/fa';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { safeApiGet, apiPost } from '../utils/apiUtils';
@@ -192,7 +192,17 @@ const MyBookings = () => {
                     <div className="flex items-center justify-between mt-4">
                       <div className="flex items-center gap-2">
                         {b.rating ? (
-                          <div className="flex items-center gap-1 text-yellow-600"><FaStar /> {b.rating} / 5</div>
+                          (() => {
+                            const score10 = Math.max(0, Math.min(10, Number(b.rating || 0) * 2));
+                            return (
+                              <div className="inline-flex items-center gap-2 px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-xs font-medium">
+                                <div className="flex items-center justify-center w-7 h-7 rounded-md bg-blue-600 text-white text-sm font-bold">
+                                  {score10.toFixed(1)}
+                                </div>
+                                <span className="text-[11px] font-semibold text-gray-900">Guest rating</span>
+                              </div>
+                            );
+                          })()
                         ) : canReview(b) ? (
                           <div className="flex items-center gap-2 flex-wrap">
                             <div className="flex items-center gap-1">
@@ -201,10 +211,10 @@ const MyBookings = () => {
                                   key={n}
                                   disabled={!!ratingBusy[b._id]}
                                   onClick={() => submitQuickReview(b, n)}
-                                  className={`text-xl ${n <= 3 ? 'text-yellow-500' : 'text-yellow-600'} ${ratingBusy[b._id] ? 'opacity-50' : ''}`}
-                                  aria-label={`Rate ${n}`}
+                                  className={`px-2 py-1 text-xs rounded border ${ratingBusy[b._id] ? 'opacity-50' : ''} ${n === b.rating ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
+                                  aria-label={`Rate ${n} out of 5`}
                                 >
-                                  ★
+                                  {n}
                                 </button>
                               ))}
                             </div>
@@ -250,15 +260,15 @@ const MyBookings = () => {
             </div>
             <div className="p-4 space-y-4">
               <div className="space-y-2">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   {[1,2,3,4,5].map(n => (
                     <button
                       key={n}
                       onClick={() => setReviewDraft(rd => ({ ...rd, rating: n, overallScore10: n * 2 }))}
-                      className={`text-2xl ${reviewDraft.rating >= n ? 'text-yellow-500' : 'text-gray-300'}`}
-                      aria-label={`Rate ${n}`}
+                      className={`px-3 py-1 rounded text-sm border ${reviewDraft.rating === n ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
+                      aria-label={`Rate ${n} out of 5`}
                     >
-                      ★
+                      {n}
                     </button>
                   ))}
                 </div>

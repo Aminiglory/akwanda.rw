@@ -1322,11 +1322,10 @@ const PropertyOwnerBookings = () => {
       properties: Array.isArray(properties) ? properties.length : 'not-array',
     }),
     <div className="min-h-screen bg-[#f5f0e8]">
-      {/* Summary Cards - Happening Today - Always shown on dashboard route or when dashboard/calendar tab is active */}
+      {/* Summary Cards - Dashboard overview - Always shown on dashboard route or when dashboard/calendar tab is active */}
       {(location.pathname === '/dashboard' || activeTab === 'calendar' || activeTab === 'dashboard' || !activeTab) && (
         <div className="max-w-7xl mx-auto px-4 py-6">
           <div className="mb-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Happening today</h2>
             {filters.property && filters.property !== 'all' && (
               <p className="text-sm text-gray-600 mb-4">
                 Showing data for selected property

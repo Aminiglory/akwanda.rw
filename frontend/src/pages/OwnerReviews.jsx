@@ -119,13 +119,20 @@ export default function OwnerReviews() {
     }
   };
 
-  const renderStars = (rating) => {
-    return Array.from({ length: 5 }, (_, i) => (
-      <FaStar
-        key={i}
-        className={`${i < rating ? 'text-yellow-400' : 'text-gray-300'}`}
-      />
-    ));
+  const renderRatingBadge = (rating) => {
+    const score10 = (Number(rating) || 0) * 2;
+    const label = score10 >= 9 ? 'Superb' : score10 >= 8 ? 'Very good' : 'Guest rating';
+
+    if (!score10) return null;
+
+    return (
+      <span className="inline-flex items-center gap-2 px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-xs font-medium">
+        <div className="flex items-center justify-center w-7 h-7 rounded-md bg-blue-600 text-white text-sm font-bold">
+          {score10.toFixed(1)}
+        </div>
+        <span className="text-[11px] font-semibold text-gray-900">{label}</span>
+      </span>
+    );
   };
 
   const getFilteredCount = () => {
@@ -159,7 +166,7 @@ export default function OwnerReviews() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <StatCard 
             title="Average Rating" 
-            value={`${stats.averageRating || 0} / 5`} 
+            value={`${((Number(stats.averageRating) || 0) * 2).toFixed(1)} / 10`} 
             color="text-blue-700" 
             icon={FaStar}
           />
@@ -272,7 +279,7 @@ export default function OwnerReviews() {
                         {review.property?.title}
                       </div>
                       <div className="flex items-center gap-1 mt-1">
-                        {renderStars(review.rating)}
+                        {renderRatingBadge(review.rating)}
                       </div>
                     </div>
                   </div>

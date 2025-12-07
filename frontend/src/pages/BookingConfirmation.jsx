@@ -356,17 +356,20 @@ const BookingConfirmation = () => {
           <div className="modern-card-elevated p-6 mt-6">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">Rate your stay</h2>
             <p className="text-gray-600 mb-4">Share your experience to help the host improve.</p>
-            <div className="flex items-center gap-2 mb-4">
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
               {[1,2,3,4,5].map(n => (
                 <button
                   key={n}
                   onClick={() => setReview(r => ({ ...r, rating: n }))}
-                  className={`text-2xl ${review.rating >= n ? 'text-yellow-500' : 'text-gray-300'}`}
-                  aria-label={`Rate ${n}`}
+                  className={`px-3 py-1 rounded text-sm border ${review.rating === n ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
+                  aria-label={`Rate ${n} out of 5`}
                 >
-                  ★
+                  {n}
                 </button>
               ))}
+            </div>
+            <div className="text-xs text-gray-600 mb-4">
+              Overall score: <span className="font-semibold">{(review.rating ? review.rating * 2 : 0)}</span> / 10
             </div>
             <textarea
               className="w-full border border-gray-300 rounded-lg p-3 mb-4"
