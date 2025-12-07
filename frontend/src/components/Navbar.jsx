@@ -500,7 +500,13 @@ const Navbar = () => {
     };
 
     const loadList = async () => {
-      const data = await safeApiGet('/api/notifications/list', { notifications: [] });
+      // Use owner-scoped notifications when host is in the owner dashboard,
+      // otherwise use the generic notifications feed (guest/global context).
+      const endpoint = (isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard())
+        ? '/api/user/notifications'
+        : '/api/notifications/list';
+
+      const data = await safeApiGet(endpoint, { notifications: [] });
       const list = (data.notifications || []).map(n => ({
         id: n._id,
         type: n.type,

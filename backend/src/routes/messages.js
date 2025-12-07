@@ -346,15 +346,18 @@ router.post('/booking/:bookingId', requireAuth, async (req, res) => {
         });
 
         await newMessage.populate('sender', 'firstName lastName');
-        await newMessage.populate('recipient', 'firstName lastName');
+        await newMessage.populate('recipient', 'firstName lastName userType');
 
         // Create notification for recipient
+        const audience = newMessage.recipient?.userType === 'host' ? 'host' : 'guest';
         await Notification.create({
             type: 'new_message',
             title: 'New Message',
             message: `You have a new message about booking ${booking.confirmationCode}`,
             booking: booking._id,
-            recipientUser: recipientId
+            property: booking.property,
+            recipientUser: recipientId,
+            audience
         });
 
         // Socket.IO: emit to booking room and recipient's room

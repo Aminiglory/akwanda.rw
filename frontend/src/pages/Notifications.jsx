@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 import { FaBell, FaCheckCircle, FaClock, FaExclamationTriangle } from 'react-icons/fa';
 
@@ -8,6 +9,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 const Notifications = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, isAuthenticated } = useAuth() || {};
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState([]);
   const [busy, setBusy] = useState({});
@@ -17,10 +19,20 @@ const Notifications = () => {
   // Parse query param ?open or ?id to focus a notification
   const openParam = useMemo(() => new URLSearchParams(location.search).get('open') || new URLSearchParams(location.search).get('id'), [location.search]);
 
+  const ownerRoutes = ['/group-home', '/dashboard', '/user-dashboard', '/owner', '/messages', '/notifications'];
+
+  const isOwnerContext = () => {
+    if (!isAuthenticated || user?.userType !== 'host') return false;
+    return ownerRoutes.some(route => location.pathname.startsWith(route));
+  };
+
   const load = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/notifications/list`, { credentials: 'include' });
+      const endpoint = isOwnerContext()
+        ? `${API_URL}/api/user/notifications`
+        : `${API_URL}/api/notifications/list`;
+      const res = await fetch(endpoint, { credentials: 'include' });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.message || 'Failed to load notifications');
       const list = (data.notifications || []).map(n => ({

@@ -73,8 +73,8 @@ function requireWorkerPrivilege(privKey) {
                         title: 'Property commission updated',
                         message: `Commission for property "${property.title}" was changed from ${oldRate || 'N/A'}% (${oldVis || 'n/a'}) to ${newRate || 'N/A'}% (${newVis || 'n/a'}).`,
                         property: property._id,
-                        actorUser: req.user.id,
-                        recipientRole: 'admin'
+                        recipientUser: property.host,
+                        audience: 'host'
                     });
                 }
             }
@@ -809,7 +809,8 @@ router.post('/send-commission-reminders', requireAuth, async (req, res) => {
                 type: 'commission_overdue',
                 title: 'Overdue Commission Payment Reminder',
                 message: `You have RWF ${overdue.totalOverdue.toLocaleString()} in overdue commission payments from ${overdue.bookingCount} bookings. Oldest payment is ${daysSinceOldest} days overdue. Please settle to maintain property visibility.`,
-                recipientUser: overdue._id
+                recipientUser: overdue._id,
+                audience: 'host'
             });
             
             remindersSent++;
@@ -1226,7 +1227,9 @@ router.post('/', requireAuth, upload.array('images', 10), async (req, res) => {
                 type: 'booking_created', // reuse type bucket with message context
                 title: 'New property uploaded',
                 message: `A new property "${created.title}" was uploaded`,
-                property: created._id
+                property: created._id,
+                recipientUser: null,
+                audience: 'both'
             });
         } catch (notifError) {
             console.error('Failed to create notification:', notifError);

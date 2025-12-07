@@ -73,7 +73,8 @@ router.post('/mtn-mobile-money', requireAuth, async (req, res) => {
                         message: `A booking has been paid and is awaiting your confirmation.`,
                         booking: booking._id,
                         property: booking.property._id,
-                        recipientUser: booking.property.host
+                        recipientUser: booking.property.host,
+                        audience: 'host'
                     });
                     // Also notify admin and owner that a commission is due
                     await Notification.create({
@@ -82,7 +83,8 @@ router.post('/mtn-mobile-money', requireAuth, async (req, res) => {
                         message: `A commission is due for a paid booking.`,
                         booking: booking._id,
                         property: booking.property._id,
-                        recipientUser: null
+                        recipientUser: null,
+                        audience: 'both'
                     });
                     await Notification.create({
                         type: 'commission_due',
@@ -90,7 +92,8 @@ router.post('/mtn-mobile-money', requireAuth, async (req, res) => {
                         message: `Commission will be deducted according to policy.`,
                         booking: booking._id,
                         property: booking.property._id,
-                        recipientUser: booking.property.host
+                        recipientUser: booking.property.host,
+                        audience: 'host'
                     });
                 }
             } catch (_) { /* ignore */ }
@@ -133,7 +136,8 @@ router.post('/mtn-mobile-money', requireAuth, async (req, res) => {
                                 type: 'account_reactivated',
                                 title: 'Account Reactivated',
                                 message: 'Your account has been reactivated after settling all dues.',
-                                recipientUser: user._id
+                                recipientUser: user._id,
+                                audience: 'host'
                             });
                         } catch (_) {}
                     }

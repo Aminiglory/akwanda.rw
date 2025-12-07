@@ -152,7 +152,8 @@ router.get('/me', authMiddleware, async (req, res) => {
                 type: 'fine_added',
                 title: 'Late penalty applied',
                 message: `A 2% late penalty has been added to your overdue fine. Please settle your dues to avoid further restrictions.`,
-                recipientUser: user._id
+                recipientUser: user._id,
+                audience: 'host'
               });
             } catch (_) {}
           }
@@ -170,7 +171,8 @@ router.get('/me', authMiddleware, async (req, res) => {
                   type: 'account_blocked',
                   title: 'Account Deactivated',
                   message: 'Your account has been deactivated due to overdue unpaid dues. Please pay to reactivate.',
-                  recipientUser: user._id
+                  recipientUser: user._id,
+                  audience: 'host'
                 });
               } catch (_) {}
             }
@@ -179,7 +181,8 @@ router.get('/me', authMiddleware, async (req, res) => {
                 type: 'commission_due',
                 title: 'Commission/Fine due',
                 message: 'Your dues are overdue. Please pay to restore full account access.',
-                recipientUser: user._id
+                recipientUser: user._id,
+                audience: 'host'
               });
             } catch (_) {}
           }

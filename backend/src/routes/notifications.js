@@ -19,7 +19,14 @@ function requireAuth(req, res, next) {
 // Unread count for current user
 router.get('/unread-count', requireAuth, async (req, res) => {
   try {
-    const count = await Notification.countDocuments({ recipientUser: req.user.id, isRead: false });
+    const count = await Notification.countDocuments({
+      recipientUser: req.user.id,
+      isRead: false,
+      $or: [
+        { audience: { $exists: false } },
+        { audience: { $in: ['guest','both'] } }
+      ]
+    });
     res.json({ count });
   } catch (e) {
     res.status(500).json({ message: 'Failed to get unread count' });
@@ -45,7 +52,13 @@ router.patch('/:id/read', requireAuth, async (req, res) => {
 router.get('/list', requireAuth, async (req, res) => {
   try {
     const limit = Math.min(parseInt(req.query.limit || '50', 10), 200);
-    const list = await Notification.find({ recipientUser: req.user.id })
+    const list = await Notification.find({
+      recipientUser: req.user.id,
+      $or: [
+        { audience: { $exists: false } },
+        { audience: { $in: ['guest','both'] } }
+      ]
+    })
       .sort({ createdAt: -1 })
       .limit(limit)
       .lean();

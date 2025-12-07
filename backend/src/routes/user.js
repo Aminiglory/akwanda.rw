@@ -414,7 +414,13 @@ router.get('/notifications', requireAuth, async (req, res) => {
     const Notification = require('../tables/notification');
     const Property = require('../tables/property');
     // Fetch recent notifications for this user
-    const raw = await Notification.find({ recipientUser: req.user.id })
+    const raw = await Notification.find({
+        recipientUser: req.user.id,
+        $or: [
+            { audience: { $exists: false } },
+            { audience: { $in: ['host','both'] } }
+        ]
+    })
         .sort({ createdAt: -1 })
         .limit(50)
         .populate({ path: 'booking', populate: { path: 'guest', select: 'firstName lastName email phone' } })

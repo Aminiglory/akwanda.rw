@@ -25,7 +25,8 @@ const notificationSchema = new mongoose.Schema(
     booking: { type: mongoose.Schema.Types.ObjectId, ref: 'Booking' },
     property: { type: mongoose.Schema.Types.ObjectId, ref: 'Property' },
     isRead: { type: Boolean, default: false },
-    recipientUser: { type: mongoose.Schema.Types.ObjectId, ref: 'User', index: true } // null for admin-wide
+    recipientUser: { type: mongoose.Schema.Types.ObjectId, ref: 'User', index: true }, // null for admin-wide
+    audience: { type: String, enum: ['host','guest','both'], default: 'guest', index: true }
   },
   { timestamps: true }
 );

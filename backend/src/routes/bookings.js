@@ -108,7 +108,8 @@ router.post('/:id/confirm', requireAuth, requireWorkerPrivilege('canConfirmBooki
       message: `Your booking for ${booking.property.title} has been confirmed by the ${confirmedBy}.`,
       booking: booking._id,
       property: booking.property._id,
-      recipientUser: booking.guest._id
+      recipientUser: booking.guest._id,
+      audience: 'guest'
     });
 
     // Create invoice record for reporting and analytics
@@ -145,7 +146,8 @@ router.post('/:id/confirm', requireAuth, requireWorkerPrivilege('canConfirmBooki
         message: `Commission of RWF ${booking.commissionAmount.toLocaleString()} is due for confirmed booking ${booking.confirmationCode}. Rate: ${booking.property.commissionRate || 10}%`,
         booking: booking._id,
         property: booking.property._id,
-        recipientUser: booking.property.host
+        recipientUser: booking.property.host,
+        audience: 'host'
       });
     }
 
@@ -566,7 +568,8 @@ router.post('/', requireAuth, async (req, res) => {
       message: `A booking was created for ${property.title}`,
       booking: booking._id,
       property: property._id,
-      recipientUser: null
+      recipientUser: null,
+      audience: 'both'
     });
     await Notification.create({
       type: 'booking_created',
@@ -574,7 +577,8 @@ router.post('/', requireAuth, async (req, res) => {
       message: `A guest booked ${property.title} for ${nights} nights`,
       booking: booking._id,
       property: property._id,
-      recipientUser: property.host
+      recipientUser: property.host,
+      audience: 'host'
     });
     await Notification.create({
       type: 'booking_created',
@@ -582,7 +586,8 @@ router.post('/', requireAuth, async (req, res) => {
       message: 'Your booking was created.',
       booking: booking._id,
       property: property._id,
-      recipientUser: guestId
+      recipientUser: guestId,
+      audience: 'guest'
     });
 
     // Auto-send booking confirmation message with property details
@@ -862,8 +867,9 @@ router.delete('/:id', requireAuth, async (req, res) => {
         title: 'Booking cancelled',
         message: `Booking ${b.confirmationCode || b._id} was cancelled.`,
         booking: b._id,
-        property: b.property?._id,
-        recipientUser: null
+        property: b.property?._id || b.property,
+        recipientUser: null,
+        audience: 'both'
       });
       if (b.property?.host) {
         await Notification.create({
@@ -871,8 +877,9 @@ router.delete('/:id', requireAuth, async (req, res) => {
           title: 'Your booking was cancelled',
           message: `A booking at your property was cancelled.`,
           booking: b._id,
-          property: b.property._id,
-          recipientUser: b.property.host
+          property: b.property?._id || b.property,
+          recipientUser: b.property.host,
+          audience: 'host'
         });
       }
       await Notification.create({
@@ -880,8 +887,9 @@ router.delete('/:id', requireAuth, async (req, res) => {
         title: 'Your booking was cancelled',
         message: `Your booking was cancelled.`,
         booking: b._id,
-        property: b.property?._id,
-        recipientUser: b.guest?._id || b.guest
+        property: b.property?._id || b.property,
+        recipientUser: b.guest,
+        audience: 'guest'
       });
     } catch (_) { }
 
@@ -1001,7 +1009,9 @@ router.patch('/:id/status', requireAuth, async (req, res) => {
       title: 'Booking Status Updated',
       message: `Your booking ${booking.confirmationCode} has been ${status}`,
       booking: booking._id,
-      recipientUser: booking.guest
+      property: booking.property,
+      recipientUser: booking.guest,
+      audience: 'guest'
     });
 
     res.json({ success: true, message: `Booking ${status} successfully`, booking });
@@ -1116,7 +1126,8 @@ router.post('/:id/review', requireAuth, async (req, res) => {
           message: `A guest left a rating of ${r}/5 on a recent stay.`,
           booking: booking._id,
           property: booking.property._id,
-          recipientUser: booking.property.host
+          recipientUser: booking.property.host,
+          audience: 'host'
         });
       }
     } catch (_) { }

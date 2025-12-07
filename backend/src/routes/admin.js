@@ -162,7 +162,8 @@ router.patch('/users/:id/unlock', requireAdmin, async (req, res) => {
         type: 'account_unlocked',
         title: 'Account unlocked by admin',
         message: 'Your account has been unlocked. Please ensure your commissions and fines are paid on time.',
-        recipientUser: user._id
+        recipientUser: user._id,
+        audience: 'host'
       });
     } catch (_) { /* non-blocking */ }
 
@@ -418,7 +419,8 @@ router.post('/users/:id/fines', requireAdmin, async (req, res) => {
         type: 'fine_added',
         title: 'Fine added',
         message: `A fine of RWF ${amt.toLocaleString()} was added to your account. Reason: ${reason}.`,
-        recipientUser: user._id
+        recipientUser: user._id,
+        audience: 'host'
       });
       if (blocked) {
         let msg = 'Your account has been deactivated due to unpaid fine. Please settle your dues.';
@@ -427,7 +429,8 @@ router.post('/users/:id/fines', requireAdmin, async (req, res) => {
           type: 'account_blocked',
           title: 'Account Deactivated',
           message: msg,
-          recipientUser: user._id
+          recipientUser: user._id,
+          audience: 'host'
         });
       }
     } catch (_) {}
@@ -464,7 +467,8 @@ router.post('/users/:id/fines/:fineId/pay', requireAdmin, async (req, res) => {
           type: 'account_reactivated',
           title: 'Account Reactivated',
           message: 'Your account has been reactivated after settling all dues.',
-          recipientUser: user._id
+          recipientUser: user._id,
+          audience: 'host'
         });
       } catch (_) {}
     }
@@ -570,7 +574,8 @@ router.post('/users/:id/deactivate', requireAdmin, async (req, res) => {
             type: 'account_blocked',
             title: 'Account Deactivated',
             message: msg,
-            recipientUser: user._id
+            recipientUser: user._id,
+            audience: 'host'
         });
 
         res.json({ 
@@ -601,7 +606,8 @@ router.post('/users/:id/reactivate', requireAdmin, async (req, res) => {
             type: 'account_reactivated',
             title: 'Account Reactivated',
             message: 'Your account has been reactivated. You can now access your account features.',
-            recipientUser: user._id
+            recipientUser: user._id,
+            audience: 'host'
         });
 
         // Reactivate any workers associated with this owner (best-effort)
