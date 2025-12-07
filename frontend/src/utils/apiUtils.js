@@ -2,12 +2,24 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 // Enhanced fetch with retry logic and error handling
 export const fetchWithRetry = async (url, options = {}, maxRetries = 3) => {
+  // Attach auth token from localStorage by default for all API calls,
+  // while still allowing callers to override Authorization explicitly.
+  let token = null;
+  try {
+    if (typeof window !== 'undefined') {
+      token = window.localStorage.getItem('token');
+    }
+  } catch (_) {}
+
+  const defaultHeaders = {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...options.headers,
+  };
+
   const defaultOptions = {
     credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
+    headers: defaultHeaders,
     ...options,
   };
 

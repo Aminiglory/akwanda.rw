@@ -22,10 +22,24 @@ import LoadingIndicator from '../components/LoadingIndicator';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 // Lightweight UI-level timeout helper so dashboard doesn't hang indefinitely on slow networks
+// Also attaches Authorization Bearer token from localStorage for protected owner endpoints.
 const fetchWithUiTimeout = (url, options = {}, timeoutMs = 8000) => {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeoutMs);
-  return fetch(url, { ...options, signal: controller.signal })
+
+  let token = null;
+  try {
+    if (typeof window !== 'undefined') {
+      token = window.localStorage.getItem('token');
+    }
+  } catch (_) {}
+
+  const mergedHeaders = {
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(options.headers || {}),
+  };
+
+  return fetch(url, { ...options, headers: mergedHeaders, signal: controller.signal })
     .finally(() => clearTimeout(id));
 };
 
