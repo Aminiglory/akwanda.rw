@@ -813,14 +813,29 @@ const EnhancedUploadProperty = () => {
             {currentStep === 3 && (
               <div className="space-y-6">
                 <h2 className="text-xl font-semibold text-gray-900 border-b pb-2">Property Type</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {categories.map(cat => (
-                    <button type="button" key={cat.value} onClick={() => setFormData(prev=>({...prev, category: cat.value }))} className={`text-left border rounded-xl p-4 hover:bg-gray-50 ${formData.category===cat.value?'border-[#a06b42] ring-1 ring-[#a06b42]':'border-gray-200'}`}>
-                    <div className="font-semibold text-gray-900">{cat.label}</div>
-                    <div className="text-xs text-gray-600">Select {cat.label.toLowerCase()}</div>
-                  </button>
-                ))}
-              </div>
+                {propertyTypes.length === 0 ? (
+                  <p className="text-sm text-gray-600">
+                    No property types are configured yet. Please ask an admin to add types under Admin → Property Types.
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {propertyTypes.map((cat) => {
+                      const key = cat.key || cat.value;
+                      const label = cat.name || cat.label || key;
+                      return (
+                        <button
+                          type="button"
+                          key={key}
+                          onClick={() => setFormData(prev => ({ ...prev, category: key }))}
+                          className={`text-left border rounded-xl p-4 hover:bg-gray-50 ${String(formData.category)===String(key)?'border-[#a06b42] ring-1 ring-[#a06b42]':'border-gray-200'}`}
+                        >
+                          <div className="font-semibold text-gray-900">{label}</div>
+                          <div className="text-xs text-gray-600">Select {label.toLowerCase()}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">How many units?</label>
