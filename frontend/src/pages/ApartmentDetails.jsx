@@ -309,6 +309,7 @@ const ApartmentDetails = () => {
             cancellation: p.cancellationPolicy || 'Free cancellation up to 24 hours before check-in',
             houseRules: Array.isArray(p.roomRules) && p.roomRules.length ? p.roomRules : []
           },
+          isPremium: !!(p.isPremium || (p.commissionLevel && p.commissionLevel.isPremium)),
           lat: typeof p.latitude === 'number' ? p.latitude : null,
           lng: typeof p.longitude === 'number' ? p.longitude : null
         });
