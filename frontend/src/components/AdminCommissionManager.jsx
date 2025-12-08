@@ -426,7 +426,7 @@ const AdminCommissionManager = () => {
           <div>Changing these values will affect new and updated properties going forward. Existing bookings keep their stored commission amount.</div>
           <button
             type="button"
-            onClick={saveCommissionSettings}
+            onClick={() => saveCommissionSettings()}
             disabled={savingRates}
             className="ml-2 px-3 py-1.5 rounded bg-[#a06b42] text-white text-xs sm:text-sm disabled:opacity-60"
           >
