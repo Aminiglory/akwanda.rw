@@ -33,7 +33,8 @@ const BookingProcess = () => {
       country: 'Rwanda'
     },
     couponCode: '',
-    // Selected add-on services (by key). Used for information/negotiation only.
+    // Guest-facing UI no longer exposes add-on services; this field is kept only
+    // for backwards compatibility with existing bookings created earlier.
     services: {}
   });
 
@@ -699,7 +700,7 @@ const BookingProcess = () => {
                 {/* Info Banner */}
                 <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                   <div className="flex items-start gap-3">
-                    <FaCalendarAlt className="text-blue-600 text-lg mt-0.5 flex-shrink-0" />
+                    <FaCalendarAlt className="text-blue-600 text-lg mt-0.5" />
                     <div>
                       <h4 className="font-semibold text-blue-900 mb-1">Select a Room First</h4>
                       <p className="text-sm text-blue-700">
@@ -1361,60 +1362,6 @@ const BookingProcess = () => {
                           <span>Total:</span>
                           <span className="text-blue-600">RWF {totalPrice.toLocaleString()}</span>
                         </div>
-                      </div>
-
-                      {/* Guest-selected add-on services (info only, negotiable) */}
-                      <div className="pt-2 border-t border-dashed border-gray-200">
-                        <div className="text-sm font-semibold text-gray-900 mb-1">Additional Services</div>
-                        <div className="text-xs text-gray-500 mb-2">
-                          Select services for information only. Amounts are negotiable and are not added to the total.
-                        </div>
-                        {(!Array.isArray(property?.addOnServices) || property.addOnServices.length === 0) && (
-                          <div className="text-xs text-gray-400">No add-on services configured for this property.</div>
-                        )}
-                        {Array.isArray(property?.addOnServices) && property.addOnServices.map((addOn) => {
-                          const key = addOn.key;
-                          const checked = !!(bookingData.services && bookingData.services[key]);
-                          const included = addOn.includedItems && typeof addOn.includedItems === 'object'
-                            ? Object.keys(addOn.includedItems)
-                                .filter((k) => addOn.includedItems[k])
-                                .map((k) =>
-                                  k
-                                    .replace(/_/g, ' ')
-                                    .replace(/\s+/g, ' ')
-                                    .trim()
-                                    .replace(/^(.)/, (m) => m.toUpperCase())
-                                )
-                            : [];
-                          const isFree = !addOn.price || Number(addOn.price) <= 0;
-                          return (
-                            <div key={key} className="space-y-0.5 mb-1.5">
-                              <label className="flex items-center gap-2 text-sm">
-                                <input
-                                  type="checkbox"
-                                  checked={checked}
-                                  onChange={(e) =>
-                                    setBookingData((prev) => ({
-                                      ...prev,
-                                      services: { ...(prev.services || {}), [key]: e.target.checked },
-                                    }))
-                                  }
-                                />
-                                <span>{addOn.name}</span>
-                                <span
-                                  className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${
-                                    isFree ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'
-                                  }`}
-                                >
-                                  {isFree ? 'Free' : 'Paid (negotiable)'}
-                                </span>
-                              </label>
-                              {included.length > 0 && (
-                                <div className="pl-6 text-xs text-gray-500">Includes: {included.join(', ')}</div>
-                              )}
-                            </div>
-                          );
-                        })}
                       </div>
                     </div>
                   )}

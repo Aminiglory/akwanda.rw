@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocale } from '../contexts/LocaleContext';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { FaCalendar, FaDoorOpen, FaCopy, FaRuler, FaMoneyBillWave, FaGift, FaChartLine, FaUsers, FaGlobe, FaMobileAlt, FaCalendarTimes } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
@@ -8,6 +8,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 export default function RatesAvailability() {
   const { formatCurrencyRWF } = useLocale() || {};
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const rawView = searchParams.get('view') || 'calendar';
   const allowedViews = new Set([
@@ -73,6 +74,24 @@ export default function RatesAvailability() {
   ]);
   const [addOnServicesDraft, setAddOnServicesDraft] = useState([]);
   const [addOnCatalog, setAddOnCatalog] = useState([]);
+  const [showAddRoomModal, setShowAddRoomModal] = useState(false);
+  const [newRoom, setNewRoom] = useState({
+    roomNumber: '',
+    roomType: '',
+    pricePerNight: '',
+    capacity: 1,
+    unitCount: 1,
+    bathroomType: 'inside',
+    beds: {
+      twin: 0,
+      full: 0,
+      queen: 0,
+      king: 0,
+      bunk: 0,
+      sofa: 0,
+      futon: 0
+    }
+  });
 
   useEffect(() => {
     fetchProperties();
@@ -562,6 +581,109 @@ export default function RatesAvailability() {
     }
   };
 
+  const handleOpenAddRoomModal = () => {
+    if (!selectedProperty) {
+      toast.error('Please select a property first');
+      return;
+    }
+    setNewRoom({
+      roomNumber: '',
+      roomType: '',
+      pricePerNight: '',
+      capacity: 1,
+      unitCount: 1,
+      bathroomType: 'inside',
+      beds: {
+        twin: 0,
+        full: 0,
+        queen: 0,
+        king: 0,
+        bunk: 0,
+        sofa: 0,
+        futon: 0
+      }
+    });
+    setShowAddRoomModal(true);
+  };
+
+  const handleCreateRoom = async () => {
+    try {
+      if (!selectedProperty) {
+        toast.error('No property selected');
+        return;
+      }
+
+      const trimmedNumber = String(newRoom.roomNumber || '').trim();
+      const trimmedType = String(newRoom.roomType || '').trim();
+      const price = Number(newRoom.pricePerNight);
+      const capacity = Number(newRoom.capacity);
+      const unitCount = Math.max(1, Number(newRoom.unitCount) || 1);
+
+      if (!trimmedNumber || !trimmedType) {
+        toast.error('Please enter room number and room type');
+        return;
+      }
+      if (isNaN(price) || price <= 0) {
+        toast.error('Please enter a valid price per night');
+        return;
+      }
+      if (isNaN(capacity) || capacity <= 0) {
+        toast.error('Please enter a valid capacity');
+        return;
+      }
+
+      if (!propertyData || !Array.isArray(propertyData.rooms)) {
+        toast.error('Property rooms are not loaded yet. Please try again.');
+        return;
+      }
+
+      const existingRooms = propertyData.rooms || [];
+      const newRoomDoc = {
+        roomNumber: trimmedNumber,
+        roomType: trimmedType,
+        pricePerNight: price,
+        capacity,
+        unitCount,
+        amenities: [],
+        images: [],
+        isAvailable: true,
+        closedDates: [],
+        beds: newRoom.beds || {
+          twin: 0,
+          full: 0,
+          queen: 0,
+          king: 0,
+          bunk: 0,
+          sofa: 0,
+          futon: 0
+        },
+        bathroomType: newRoom.bathroomType || 'inside'
+      };
+
+      const res = await fetch(`${API_URL}/api/properties/${selectedProperty}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ rooms: [...existingRooms, newRoomDoc] })
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.message || 'Failed to add room');
+      }
+
+      toast.success('Room added successfully');
+      setShowAddRoomModal(false);
+      // Refresh property details and calendar so the new room appears
+      await fetchPropertyDetails();
+      if (view === 'calendar') {
+        await fetchCalendar();
+      }
+    } catch (e) {
+      toast.error(e.message || 'Could not add room');
+    }
+  };
+
   const renderContent = () => {
     switch (view) {
       case 'calendar':
@@ -605,7 +727,149 @@ export default function RatesAvailability() {
                       <option value="list">List view</option>
                     </select>
                   </div>
+                  <div className="flex items-center gap-2 text-xs">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!selectedProperty) return;
+                        navigate(`/owner/property?view=room-details&property=${selectedProperty}`);
+                      }}
+                      className="px-3 py-1.5 rounded-full border border-[#d4c4b0] bg-white text-[#4b2a00] hover:bg-[#f5f0e8]"
+                    >
+                      Manage rooms
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleOpenAddRoomModal}
+                      className="px-3 py-1.5 rounded-full border border-[#a06b42] bg-[#a06b42] text-white hover:bg-[#8f5a32]"
+                    >
+                      Add room
+                    </button>
+                  </div>
                 </div>
+
+                {showAddRoomModal && (
+                  <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40">
+                    <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+                      <h3 className="text-lg font-semibold text-[#4b2a00] mb-4">Add new room</h3>
+                      <div className="space-y-3 text-sm">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">Room number / name</label>
+                          <input
+                            type="text"
+                            value={newRoom.roomNumber}
+                            onChange={(e) => setNewRoom(r => ({ ...r, roomNumber: e.target.value }))}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#a06b42] focus:border-transparent"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">Room type</label>
+                          <input
+                            type="text"
+                            value={newRoom.roomType}
+                            onChange={(e) => setNewRoom(r => ({ ...r, roomType: e.target.value }))}
+                            placeholder="e.g. Deluxe double room"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#a06b42] focus:border-transparent"
+                          />
+                        </div>
+                        <div className="grid grid-cols-3 gap-3">
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">Price/night (RWF)</label>
+                            <input
+                              type="number"
+                              min="0"
+                              value={newRoom.pricePerNight}
+                              onChange={(e) => setNewRoom(r => ({ ...r, pricePerNight: e.target.value }))}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#a06b42] focus:border-transparent"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">Capacity</label>
+                            <input
+                              type="number"
+                              min="1"
+                              value={newRoom.capacity}
+                              onChange={(e) => setNewRoom(r => ({ ...r, capacity: Number(e.target.value) || 1 }))}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#a06b42] focus:border-transparent"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">Number of rooms of this type</label>
+                            <input
+                              type="number"
+                              min="1"
+                              value={newRoom.unitCount}
+                              onChange={(e) => setNewRoom(r => ({ ...r, unitCount: Math.max(1, Number(e.target.value) || 1) }))}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#a06b42] focus:border-transparent"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">Bathroom type</label>
+                          <select
+                            value={newRoom.bathroomType}
+                            onChange={(e) => setNewRoom(r => ({ ...r, bathroomType: e.target.value }))}
+                            className="w-full md:w-1/2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#a06b42] focus:border-transparent"
+                          >
+                            <option value="inside">Inside (private bathroom)</option>
+                            <option value="shared">Shared bathroom</option>
+                          </select>
+                        </div>
+                        <div className="mt-3">
+                          <div className="text-xs font-medium text-gray-700 mb-2">Beds</div>
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                            {Object.entries(newRoom.beds || {}).map(([type, count]) => (
+                              <div key={type} className="flex items-center justify-between border rounded-lg px-2 py-2 md:px-3">
+                                <span className="capitalize text-[11px] text-gray-700">{type} bed(s)</span>
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    className="px-2 py-1 md:px-3 md:py-1 border rounded text-xs"
+                                    onClick={() => setNewRoom(r => ({
+                                      ...r,
+                                      beds: { ...r.beds, [type]: Math.max(0, (r.beds?.[type] || 0) - 1) }
+                                    }))}
+                                    aria-label={`Decrease ${type} beds`}
+                                  >
+                                    -
+                                  </button>
+                                  <span className="w-6 text-center text-xs">{count}</span>
+                                  <button
+                                    type="button"
+                                    className="px-2 py-1 md:px-3 md:py-1 border rounded text-xs"
+                                    onClick={() => setNewRoom(r => ({
+                                      ...r,
+                                      beds: { ...r.beds, [type]: (r.beds?.[type] || 0) + 1 }
+                                    }))}
+                                    aria-label={`Increase ${type} beds`}
+                                  >
+                                    +
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mt-5 flex justify-end gap-3 text-sm">
+                        <button
+                          type="button"
+                          onClick={() => setShowAddRoomModal(false)}
+                          className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleCreateRoom}
+                          className="px-4 py-2 rounded-lg bg-[#a06b42] text-white hover:bg-[#8f5a32]"
+                        >
+                          Save room
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {pricingCalendarView === 'monthly' && (
                   <>
