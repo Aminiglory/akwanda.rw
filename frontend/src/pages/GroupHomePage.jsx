@@ -385,7 +385,14 @@ const GroupHomePage = () => {
                       <tr 
                         key={property._id} 
                         className="hover:bg-gray-50 cursor-pointer transition-colors"
-                        onClick={() => navigate(`/dashboard?property=${property._id}`)}
+                        onClick={() => {
+                          try {
+                            if (typeof window !== 'undefined' && window.localStorage) {
+                              window.localStorage.setItem('owner:lastPropertyId', String(property._id || ''));
+                            }
+                          } catch (_) {}
+                          navigate(`/dashboard?property=${property._id}`);
+                        }}
                       >
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {propertyId}
@@ -394,12 +401,40 @@ const GroupHomePage = () => {
                           <div className="flex items-center">
                             <FaMapMarkerAlt className="text-gray-400 mr-2" />
                             <div>
-                              <div className="text-sm font-medium text-gray-900">
-                                {property.title || property.name || 'Unnamed property'}
+                              <div className="flex items-center gap-2">
+                                <div className="text-sm font-medium text-gray-900">
+                                  {property.title || property.name || 'Unnamed property'}
+                                </div>
+                                {/* Premium badge based on commission level */}
+                                {(property.commissionLevel?.isPremium || property.isPremium) && (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-yellow-100 text-yellow-800">
+                                    Premium
+                                  </span>
+                                )}
                               </div>
                               <div className="text-sm text-gray-500">
                                 {property.city || property.address || property.location || 'Location not specified'}
                               </div>
+                              {/* Commission level summary, when available */}
+                              {(property.commissionLevel || typeof property.commissionRate === 'number') && (
+                                <div className="mt-1 text-xs text-gray-500 flex flex-wrap items-center gap-1">
+                                  {property.commissionLevel?.name && (
+                                    <span className="font-medium">
+                                      Level: {property.commissionLevel.name}
+                                    </span>
+                                  )}
+                                  {typeof property.commissionLevel?.onlineRate === 'number' && typeof property.commissionLevel?.directRate === 'number' && (
+                                    <span>
+                                      • Online {property.commissionLevel.onlineRate}% / Direct {property.commissionLevel.directRate}%
+                                    </span>
+                                  )}
+                                  {(!property.commissionLevel || (typeof property.commissionLevel?.onlineRate !== 'number' && typeof property.commissionLevel?.directRate !== 'number')) && typeof property.commissionRate === 'number' && (
+                                    <span>
+                                      • Base commission {property.commissionRate}%
+                                    </span>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           </div>
                         </td>

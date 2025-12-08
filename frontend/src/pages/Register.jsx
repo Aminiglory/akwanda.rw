@@ -104,6 +104,11 @@ const Register = () => {
                   </div>
                 </button>
               </div>
+              {formData.userType === 'host' && (
+                <p className="mt-2 text-xs text-gray-500">
+                  Hosts pay a commission per booking based on their commission level. Premium properties receive a visible badge and higher visibility for guests.
+                </p>
+              )}
             </div>
 
             {/* Name Fields */}

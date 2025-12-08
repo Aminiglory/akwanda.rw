@@ -135,6 +135,12 @@ const EnhancedUploadProperty = () => {
     phone: user?.phone || '',
     email: user?.email || ''
   });
+  // Commission level info for this property (edit mode only)
+  const [commissionLevels, setCommissionLevels] = useState([]);
+  const [commissionProperty, setCommissionProperty] = useState(null);
+  const [commissionLoading, setCommissionLoading] = useState(false);
+  const [commissionError, setCommissionError] = useState(null);
+  const [selectedCommissionLevelId, setSelectedCommissionLevelId] = useState('');
 
   // Responsive button styles: smaller on small screens, larger on md+
   const primaryBtn = 'bg-[#a06b42] hover:bg-[#8f5a32] text-white';
@@ -204,6 +210,34 @@ const EnhancedUploadProperty = () => {
     }
   }, [isEditing, editId]);
 
+  // Load commission levels for this property in edit mode
+  useEffect(() => {
+    if (!isEditing || !editId) return;
+    (async () => {
+      try {
+        setCommissionLoading(true);
+        setCommissionError(null);
+        const res = await fetch(`${API_URL}/api/properties/${editId}/commission`, {
+          credentials: 'include',
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(data.message || 'Failed to load commission levels');
+        }
+        const levels = Array.isArray(data.levels) ? data.levels : [];
+        setCommissionLevels(levels);
+        setCommissionProperty(data.property || null);
+        const currentId = data.property?.commissionLevel?._id || data.property?.commissionLevel || '';
+        setSelectedCommissionLevelId(currentId || (levels[0]?._id || ''));
+      } catch (e) {
+        console.error('Load commission levels error:', e);
+        setCommissionError(e.message || 'Failed to load commission levels');
+      } finally {
+        setCommissionLoading(false);
+      }
+    })();
+  }, [isEditing, editId]);
+
   // Load draft from localStorage if present (autosave resume)
   useEffect(() => {
     if (isEditing) return;
@@ -250,6 +284,30 @@ const EnhancedUploadProperty = () => {
       } catch (_) { setDeals([]); }
       finally { setDealsLoading(false); }
     };
+
+  const handleCommissionUpgrade = async () => {
+    if (!isEditing || !editId || !selectedCommissionLevelId) return;
+    try {
+      setCommissionLoading(true);
+      const res = await fetch(`${API_URL}/api/properties/${editId}/commission`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ levelId: selectedCommissionLevelId }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.message || 'Failed to update commission level');
+      }
+      setCommissionProperty(data.property || null);
+      toast.success('Commission level updated for this property');
+    } catch (e) {
+      console.error('Update commission level error:', e);
+      toast.error(e.message || 'Failed to update commission level');
+    } finally {
+      setCommissionLoading(false);
+    }
+  };
     loadDeals();
   }, [isEditing, editId]);
 
@@ -750,6 +808,82 @@ const EnhancedUploadProperty = () => {
                           {d.badge && (
                             <span className="px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-800">{d.badge}</span>
                           )}
+
+            {/* Commission level summary (edit mode only) */}
+            {isEditing && (
+              <div className="mt-6 mb-6 border border-gray-200 rounded-xl p-4 bg-gray-50">
+                <h2 className="text-lg font-semibold text-gray-900 mb-2">Commission level for this property</h2>
+                {commissionLoading && (
+                  <p className="text-sm text-gray-600">Loading commission levels…</p>
+                )}
+                {commissionError && !commissionLoading && (
+                  <p className="text-sm text-red-600">{commissionError}</p>
+                )}
+                {!commissionLoading && !commissionError && commissionLevels.length === 0 && (
+                  <p className="text-sm text-gray-600">
+                    No commission levels are configured yet. Ask an admin to create levels under the Commissions tab.
+                  </p>
+                )}
+                {!commissionLoading && commissionLevels.length > 0 && (
+                  <div className="space-y-3">
+                    {commissionProperty && (
+                      <div className="text-sm text-gray-700">
+                        <span className="font-medium">Current level: </span>
+                        {commissionProperty.commissionLevel?.name || 'Not set'}
+                        {commissionProperty.commissionLevel?.isPremium && (
+                          <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">
+                            Premium
+                          </span>
+                        )}
+                        {typeof commissionProperty.commissionRate === 'number' && (
+                          <span className="ml-2 text-xs text-gray-500">(Base commission: {commissionProperty.commissionRate}% )</span>
+                        )}
+                      </div>
+                    )}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {commissionLevels.map(level => (
+                        <label
+                          key={level._id}
+                          className={`border rounded-lg p-3 cursor-pointer text-sm ${String(selectedCommissionLevelId) === String(level._id) ? 'border-[#a06b42] ring-1 ring-[#a06b42] bg-white' : 'border-gray-200 bg-white hover:border-gray-300'}`}
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="font-semibold text-gray-900">{level.name}</span>
+                            <input
+                              type="radio"
+                              name="commissionLevel"
+                              className="h-4 w-4 text-[#a06b42]"
+                              checked={String(selectedCommissionLevelId) === String(level._id)}
+                              onChange={() => setSelectedCommissionLevelId(level._id)}
+                            />
+                          </div>
+                          <div className="text-xs text-gray-600 mb-1">
+                            Online: {level.onlineRate}% • Direct: {level.directRate}%
+                          </div>
+                          {level.isPremium && (
+                            <div className="text-xs text-yellow-800 bg-yellow-50 inline-flex items-center px-2 py-0.5 rounded-full mt-1">
+                              Premium badge
+                            </div>
+                          )}
+                          {level.description && (
+                            <div className="mt-1 text-xs text-gray-600">{level.description}</div>
+                          )}
+                        </label>
+                      ))}
+                    </div>
+                    <div className="flex justify-end mt-2">
+                      <button
+                        type="button"
+                        onClick={handleCommissionUpgrade}
+                        disabled={commissionLoading || !selectedCommissionLevelId}
+                        className={`px-3 py-2 rounded-lg text-sm ${primaryBtn} disabled:opacity-50`}
+                      >
+                        {commissionLoading ? 'Saving…' : 'Save commission level for this property'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
                         </div>
                       </div>
                     ))}

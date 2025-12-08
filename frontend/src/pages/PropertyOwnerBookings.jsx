@@ -453,6 +453,24 @@ const PropertyOwnerBookings = () => {
     // Apply property filter from URL for all tabs (dashboard, reservations, finance, etc.)
     if (propParam && String(filters.property) !== String(propParam)) {
       setFilters(prev => ({ ...prev, property: propParam }));
+      try {
+        if (typeof window !== 'undefined' && window.localStorage) {
+          window.localStorage.setItem('owner:lastPropertyId', String(propParam));
+        }
+      } catch (_) {}
+    } else if (!propParam) {
+      // No explicit property in URL: restore last selected property from localStorage if available
+      try {
+        if (typeof window !== 'undefined' && window.localStorage && filters.property === 'all') {
+          const lastId = window.localStorage.getItem('owner:lastPropertyId');
+          if (lastId && Array.isArray(properties) && properties.length) {
+            const exists = properties.find(p => String(p._id) === String(lastId));
+            if (exists) {
+              setFilters(prev => ({ ...prev, property: lastId }));
+            }
+          }
+        }
+      } catch (_) {}
     }
 
     // Normalize tab mapping to our internal tabs
@@ -609,6 +627,15 @@ const PropertyOwnerBookings = () => {
     setOwnerAddOns([]);
     // Keep dashboard filters aligned with the currently selected direct-booking property
     setFilters(prev => ({ ...prev, property: pid || 'all' }));
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        if (pid) {
+          window.localStorage.setItem('owner:lastPropertyId', String(pid));
+        } else {
+          window.localStorage.removeItem('owner:lastPropertyId');
+        }
+      }
+    } catch (_) {}
     if (!pid) return;
     try {
       const res = await fetch(`${API_URL}/api/properties/${pid}`, { credentials: 'include' });

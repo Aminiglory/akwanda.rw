@@ -690,6 +690,30 @@ export default function PropertyManagement() {
                   </div>
                 </div>
 
+                <div className="border-b pb-4">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-3">Badges &amp; Visibility</h3>
+                  <div className="flex flex-wrap gap-2 items-center">
+                    {propertyData.commissionLevel && propertyData.commissionLevel.name && (
+                      <span className="inline-flex items-center px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold">
+                        Commission level: {propertyData.commissionLevel.name}
+                      </span>
+                    )}
+                    {propertyData.commissionLevel && typeof propertyData.commissionLevel.onlineRate === 'number' && typeof propertyData.commissionLevel.directRate === 'number' && (
+                      <span className="inline-flex items-center px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-medium">
+                        Online {propertyData.commissionLevel.onlineRate}% / Direct {propertyData.commissionLevel.directRate}%
+                      </span>
+                    )}
+                    {!propertyData.commissionLevel && typeof propertyData.commissionRate === 'number' && (
+                      <span className="inline-flex items-center px-3 py-1 rounded-full bg-gray-100 text-gray-700 text-xs font-medium">
+                        Base commission {propertyData.commissionRate}%
+                      </span>
+                    )}
+                    <span className="inline-flex items-center px-3 py-1 rounded-full bg-orange-50 text-orange-700 text-xs font-semibold">
+                      {propertyData.commissionLevel && propertyData.commissionLevel.isPremium ? 'Premium badge visible to guests' : 'Standard visibility'}
+                    </span>
+                  </div>
+                </div>
+
                 {/* Location Details */}
                 <div className="border-b pb-4">
                   <h3 className="text-lg font-semibold text-gray-800 mb-3">Location Details</h3>
