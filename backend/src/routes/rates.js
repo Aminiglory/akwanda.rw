@@ -183,7 +183,10 @@ router.get('/calendar/:propertyId', requireAuth, async (req, res) => {
       closedDates: room.closedDates || [],
       rate: room.pricePerNight || property.pricePerNight || 0,
       minStay: room.minStay || 1,
-      maxStay: room.maxStay || 365
+      maxStay: room.maxStay || 365,
+      // Expose unitCount so frontend can compute Rooms to sell accurately
+      unitCount: typeof room.unitCount === 'number' && room.unitCount > 0 ? room.unitCount : 1,
+      capacity: room.capacity
     }));
     
     res.json({ calendar, propertyTitle: property.title });

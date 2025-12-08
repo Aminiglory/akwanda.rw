@@ -685,7 +685,13 @@ export default function RatesAvailability() {
                           const days = daysInMonth(activeMonth).filter(Boolean);
                           // rates calendar returns roomId field; fall back to _id if present
                           const roomId = room.roomId || room._id;
-                          const capacityUnits = Number(room.capacity || 1);
+                          // Prefer explicit unitCount from room data; fall back to capacity or 1
+                          const totalUnits = (() => {
+                            const uc = Number(room.unitCount);
+                            if (!Number.isNaN(uc) && uc > 0) return uc;
+                            const cap = Number(room.capacity || 1);
+                            return cap > 0 ? cap : 1;
+                          })();
                           const getBookedForDay = (d) => {
                             const dayStart = new Date(d.getFullYear(), d.getMonth(), d.getDate());
                             const dayEnd = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
@@ -743,11 +749,14 @@ export default function RatesAvailability() {
                                 <div className="text-[10px] text-gray-500">Approximate units available per day</div>
                               </td>
                               {days.map((d) => {
-                                const closed = isClosed(room, fmt(d));
-                                const units = closed ? 0 : capacityUnits;
+                                const dateStr = fmt(d);
+                                const closed = isClosed(room, dateStr);
+                                const booked = getBookedForDay(d);
+                                // Rooms to sell = total units minus net booked, but never below 0; if closed, force 0
+                                const remaining = closed ? 0 : Math.max(0, totalUnits - booked);
                                 return (
                                   <td key={d.toISOString()} className="px-1 py-1 text-center border-l border-[#f0e6d9]">
-                                    <div className="text-[10px] text-gray-800 font-medium">{units}</div>
+                                    <div className="text-[10px] text-gray-800 font-medium">{remaining}</div>
                                   </td>
                                 );
                               })}

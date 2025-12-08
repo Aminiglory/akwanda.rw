@@ -512,6 +512,7 @@ const EnhancedUploadProperty = () => {
       roomType: (roomTypeOptions[0] && roomTypeOptions[0].value) || '',
       pricePerNight: formData.pricePerNight || 0,
       capacity: 1,
+      unitCount: 1,
       amenities: [],
       beds: { twin: 0, full: 0, queen: 0, king: 0, bunk: 0, sofa: 0, futon: 0 },
       images: [],
@@ -1202,11 +1203,12 @@ const EnhancedUploadProperty = () => {
                         <h3 className="text-lg font-medium text-gray-900">Room {index + 1}</h3>
                         <button type="button" onClick={() => removeRoom(index)} className="text-red-600 hover:text-red-800"><FaTrash /></button>
                       </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                         <div><label className="block text-sm font-medium text-gray-700 mb-2">Room Number</label><input type="text" value={room.roomNumber} onChange={(e) => updateRoom(index, 'roomNumber', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" /></div>
                         <div><label className="block text-sm font-medium text-gray-700 mb-2">Room Type</label><select value={room.roomType} onChange={(e) => updateRoom(index, 'roomType', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">{roomTypeOptions.map(type => (<option key={type.value} value={type.value}>{type.label}</option>))}</select></div>
                         <div><label className="block text-sm font-medium text-gray-700 mb-2">Price per Night (RWF)</label><input type="number" value={room.pricePerNight} onChange={(e) => updateRoom(index, 'pricePerNight', Number(e.target.value))} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" min="0" /></div>
                         <div><label className="block text-sm font-medium text-gray-700 mb-2">Capacity</label><input type="number" value={room.capacity} onChange={(e) => updateRoom(index, 'capacity', Number(e.target.value))} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" min="1" /></div>
+                        <div><label className="block text-sm font-medium text-gray-700 mb-2">Number of rooms of this type</label><input type="number" min="1" value={room.unitCount ?? 1} onChange={(e) => updateRoom(index, 'unitCount', Math.max(1, Number(e.target.value) || 1))} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" /></div>
                         <div className="md:col-span-2 lg:col-span-4"><label className="block text-sm font-medium text-gray-700 mb-2">Bathroom type</label><select value={room.bathroomType || 'inside'} onChange={(e) => updateRoom(index, 'bathroomType', e.target.value)} className="w-full md:w-1/2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"><option value="inside">Inside (private bathroom)</option><option value="shared">Shared bathroom</option></select></div>
                       </div>
                       <div className="mt-4">

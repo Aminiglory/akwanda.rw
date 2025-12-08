@@ -6,6 +6,8 @@ const roomSchema = new mongoose.Schema({
   roomType: { type: String, required: true },
   pricePerNight: { type: Number, required: true },
   capacity: { type: Number, required: true, min: 0 },
+  // Number of identical physical rooms of this type that share the same calendar/price
+  unitCount: { type: Number, default: 1, min: 1 },
   amenities: [{ type: String }],
   images: [{ type: String }],
   isAvailable: { type: Boolean, default: true },
