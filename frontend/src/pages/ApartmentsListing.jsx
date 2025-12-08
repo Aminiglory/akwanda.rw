@@ -132,32 +132,33 @@ const ApartmentsListing = () => {
         const availableRooms = rooms.filter(r => r.isAvailable !== false).length;
 
         return ({
-        id: p._id,
-        title: p.title,
-        location: `${p.address}, ${p.city}`,
-        price: pricePerNight,
-        pricePerNight: pricePerNight,
-        category: p.category || 'apartment',
-        rating: p.ratings?.length ? (p.ratings.reduce((s, r) => s + r.rating, 0) / p.ratings.length).toFixed(1) : 0,
-        reviews: p.ratings?.length || 0,
-        viewCount: p.viewCount || 0,
-        bedrooms: p.bedrooms ?? 0,
-        bathrooms: p.bathrooms ?? 0,
-        size: p.size || "—",
-        image: img || "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=500&h=300&fit=crop",
-        images: Array.isArray(p.images) ? p.images.map(makeAbsolute) : (img ? [img] : []),
-        amenities:
-          Array.isArray(p.amenities) && p.amenities.length
-            ? p.amenities
-            : ["WiFi", "Parking", "Kitchen"],
-        rooms,
-        totalRooms,
-        availableRooms,
-        hasBreakfastIncluded,
-        isAvailable: p.isActive && (totalRooms === 0 || availableRooms > 0),
-        host: p.host ? `${p.host.firstName || ''} ${p.host.lastName || ''}`.trim() : "—",
-        hostId: p.host?._id || p.host?.id || null,
-      });
+          id: p._id,
+          title: p.title,
+          location: `${p.address}, ${p.city}`,
+          price: pricePerNight,
+          pricePerNight: pricePerNight,
+          category: p.category || 'apartment',
+          rating: p.ratings?.length ? (p.ratings.reduce((s, r) => s + r.rating, 0) / p.ratings.length).toFixed(1) : 0,
+          reviews: p.ratings?.length || 0,
+          viewCount: p.viewCount || 0,
+          bedrooms: p.bedrooms ?? 0,
+          bathrooms: p.bathrooms ?? 0,
+          size: p.size || "—",
+          image: img || "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=500&h=300&fit=crop",
+          images: Array.isArray(p.images) ? p.images.map(makeAbsolute) : (img ? [img] : []),
+          amenities:
+            Array.isArray(p.amenities) && p.amenities.length
+              ? p.amenities
+              : ["WiFi", "Parking", "Kitchen"],
+          rooms,
+          totalRooms,
+          availableRooms,
+          hasBreakfastIncluded,
+          isAvailable: p.isActive && (totalRooms === 0 || availableRooms > 0),
+          host: p.host ? `${p.host.firstName || ''} ${p.host.lastName || ''}`.trim() : "—",
+          hostId: p.host?._id || p.host?.id || null,
+          isPremium: !!(p.isPremium || (p.commissionLevel && p.commissionLevel.isPremium)),
+        });
       });
       // Only use stay properties for this page; do not mix in vehicles/cars
       const filtered = mapped.filter((p) => !['cars', 'car', 'vehicle', 'vehicles'].includes(String(p.category || '').toLowerCase()));
@@ -671,7 +672,7 @@ const ApartmentsListing = () => {
               </div>
             </div>
 
-            {/* Apartments grouped by category */}
+            {/* Apartments list (no category grouping) */}
             {loading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 {Array.from({ length: 6 }).map((_, index) => (
@@ -686,93 +687,74 @@ const ApartmentsListing = () => {
                   </div>
                 ))}
               </div>
+            ) : viewMode === 'table' ? (
+              <div className="hidden lg:block overflow-x-auto rounded-xl border border-gray-200">
+                <table className="min-w-full text-sm">
+                  <thead className="bg-[var(--ak-secondary-200)] text-gray-700">
+                    <tr>
+                      <th className="text-left px-4 py-3">Property</th>
+                      <th className="text-left px-4 py-3">Location</th>
+                      <th className="text-left px-4 py-3">Type</th>
+                      <th className="text-left px-4 py-3">Price/night</th>
+                      <th className="text-left px-4 py-3">Rating</th>
+                      <th className="text-left px-4 py-3">BR</th>
+                      <th className="text-left px-4 py-3">Bath</th>
+                      <th className="text-left px-4 py-3">Status</th>
+                      <th className="text-left px-4 py-3">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {apartments.map((a) => (
+                      <tr key={a.id} className="bg-white hover:bg-gray-50">
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-3">
+                            <img src={a.image} alt={a.title} className="w-14 h-14 rounded-lg object-cover" />
+                            <div>
+                              <Link to={`/apartment/${a.id}`} className="font-semibold text-gray-900 hover:underline line-clamp-1">{a.title}</Link>
+                              <div className="text-xs text-gray-500">Hosted by {a.host}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-gray-700">{a.location}</td>
+                        <td className="px-4 py-3 capitalize text-gray-700">{a.category}</td>
+                        <td className="px-4 py-3 font-semibold text-primary-700">{formatCurrencyRWF ? formatCurrencyRWF(a.price || 0) : `RWF ${Number(a.price || 0).toLocaleString()}`}</td>
+                        <td className="px-4 py-3 text-gray-700">{Number(a.rating || 0).toFixed(1)} ({a.reviews})</td>
+                        <td className="px-4 py-3 text-gray-700">{a.bedrooms}</td>
+                        <td className="px-4 py-3 text-gray-700">{a.bathrooms}</td>
+                        <td className="px-4 py-3">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${a.isAvailable ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                            {a.isAvailable ? 'Available' : 'Unavailable'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <Link to={`/apartment/${a.id}`} className="btn-primary text-white px-3 py-1.5 rounded-lg">View</Link>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             ) : (
-              Object.entries(
-                apartments.reduce((acc, a) => {
-                  const key = (a.category || 'Other').toString();
-                  if (!acc[key]) acc[key] = [];
-                  acc[key].push(a);
-                  return acc;
-                }, {})
-              ).filter(([_, list]) => list.length > 0)
-               .sort(([a], [b]) => a.localeCompare(b))
-               .map(([category, list]) => (
-                <div key={category} className="mb-10">
-                  <h2 className="text-2xl font-bold text-gray-900 mb-4">
-                    {category.charAt(0).toUpperCase() + category.slice(1)}
-                  </h2>
-                  {/* Conditional rendering: table on large screens when selected, grid otherwise */}
-                  {viewMode === 'table' ? (
-                    <div className="hidden lg:block overflow-x-auto rounded-xl border border-gray-200">
-                      <table className="min-w-full text-sm">
-                        <thead className="bg-[var(--ak-secondary-200)] text-gray-700">
-                          <tr>
-                            <th className="text-left px-4 py-3">Property</th>
-                            <th className="text-left px-4 py-3">Location</th>
-                            <th className="text-left px-4 py-3">Type</th>
-                            <th className="text-left px-4 py-3">Price/night</th>
-                            <th className="text-left px-4 py-3">Rating</th>
-                            <th className="text-left px-4 py-3">BR</th>
-                            <th className="text-left px-4 py-3">Bath</th>
-                            <th className="text-left px-4 py-3">Status</th>
-                            <th className="text-left px-4 py-3">Action</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                          {list.map((a) => (
-                            <tr key={a.id} className="bg-white hover:bg-gray-50">
-                              <td className="px-4 py-3">
-                                <div className="flex items-center gap-3">
-                                  <img src={a.image} alt={a.title} className="w-14 h-14 rounded-lg object-cover" />
-                                  <div>
-                                    <Link to={`/apartment/${a.id}`} className="font-semibold text-gray-900 hover:underline line-clamp-1">{a.title}</Link>
-                                    <div className="text-xs text-gray-500">Hosted by {a.host}</div>
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="px-4 py-3 text-gray-700">{a.location}</td>
-                              <td className="px-4 py-3 capitalize text-gray-700">{a.category}</td>
-                              <td className="px-4 py-3 font-semibold text-primary-700">{formatCurrencyRWF ? formatCurrencyRWF(a.price || 0) : `RWF ${Number(a.price || 0).toLocaleString()}`}</td>
-                              <td className="px-4 py-3 text-gray-700">{Number(a.rating || 0).toFixed(1)} ({a.reviews})</td>
-                              <td className="px-4 py-3 text-gray-700">{a.bedrooms}</td>
-                              <td className="px-4 py-3 text-gray-700">{a.bathrooms}</td>
-                              <td className="px-4 py-3">
-                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${a.isAvailable ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                  {a.isAvailable ? 'Available' : 'Unavailable'}
-                                </span>
-                              </td>
-                              <td className="px-4 py-3">
-                                <Link to={`/apartment/${a.id}`} className="btn-primary text-white px-3 py-1.5 rounded-lg">View</Link>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                      {list.map((apartment, index) => (
-                        <div
-                          key={apartment.id}
-                          className="h-full"
-                          style={{ animationDelay: `${index * 0.1}s` }}
-                        >
-                          <PropertyCard
-                            listing={{
-                              ...apartment,
-                              image: (apartment.images && apartment.images.length ? apartment.images[0] : apartment.image),
-                              price: apartment.pricePerNight || apartment.price,
-                              status: apartment.isAvailable ? 'active' : 'inactive',
-                            }}
-                            highlight={searchHighlight}
-                            onView={() => (window.location.href = apartment.href || `/apartment/${apartment.id}`)}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-               ))
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {apartments.map((apartment, index) => (
+                  <div
+                    key={apartment.id}
+                    className="h-full"
+                    style={{ animationDelay: `${index * 0.1}s` }}
+                  >
+                    <PropertyCard
+                      listing={{
+                        ...apartment,
+                        image: (apartment.images && apartment.images.length ? apartment.images[0] : apartment.image),
+                        price: apartment.pricePerNight || apartment.price,
+                        status: apartment.isAvailable ? 'active' : 'inactive',
+                      }}
+                      highlight={searchHighlight}
+                      onView={() => (window.location.href = apartment.href || `/apartment/${apartment.id}`)}
+                    />
+                  </div>
+                ))}
+              </div>
             )}
 
             {/* Load More */}

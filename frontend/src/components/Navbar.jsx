@@ -129,12 +129,7 @@ const Navbar = () => {
       label: t ? t('nav.stays') : "Stays",
       icon: FaHome,
       href: "/apartments",
-      children: [
-        { label: t ? t('nav.apartments') : "Apartments", href: "/apartments?category=apartment", icon: FaBuilding },
-        { label: t ? t('nav.hotels') : "Hotels", href: "/apartments?category=hotel", icon: FaBed },
-        { label: t ? t('nav.homes') : "Homes", href: "/apartments?category=home", icon: FaHome },
-        { label: t ? t('nav.resorts') : "Resorts", href: "/apartments?category=resort", icon: FaUmbrellaBeach },
-      ]
+      children: []
     },
     {
       label: t ? t('nav.flights') : "Flights",
