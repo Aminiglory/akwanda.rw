@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Tooltip } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { FaBed, FaBath, FaMapMarkerAlt, FaArrowLeft, FaStar } from 'react-icons/fa';
@@ -39,6 +39,21 @@ const PropertyMapView = () => {
     maxPrice: 1000000,
   });
 
+  const createPriceIcon = (property) => {
+    const rawPrice = Number(property.price || 0);
+    const label = formatCurrencyRWF
+      ? formatCurrencyRWF(rawPrice)
+      : `RWF ${rawPrice.toLocaleString()}`;
+
+    return L.divIcon({
+      html: `<div style="background:#1d4ed8;color:#ffffff;padding:4px 10px;border-radius:9999px;font-weight:600;font-size:12px;box-shadow:0 8px 20px rgba(15,23,42,0.45);white-space:nowrap;border:1px solid rgba(255,255,255,0.7);">${label}</div>`,
+      className: '',
+      iconSize: [80, 32],
+      iconAnchor: [40, 32],
+      popupAnchor: [0, -32],
+    });
+  };
+
   // Fetch properties from API or use passed properties
   useEffect(() => {
     const fetchProperties = async () => {
@@ -75,7 +90,15 @@ const PropertyMapView = () => {
   }, [location.state]);
 
   const handleMarkerClick = (property) => {
+    navigate(`/apartments/${property.id}`);
+  };
+
+  const handleMarkerHover = (property) => {
     setSelectedProperty(property);
+  };
+
+  const handleMarkerLeave = () => {
+    setSelectedProperty(null);
   };
 
   const handleClosePopup = () => {
@@ -138,53 +161,35 @@ const PropertyMapView = () => {
               <Marker 
                 key={property.id} 
                 position={[property.latitude, property.longitude]}
+                icon={createPriceIcon(property)}
                 eventHandlers={{
+                  mouseover: () => handleMarkerHover(property),
+                  mouseout: handleMarkerLeave,
                   click: () => handleMarkerClick(property),
                 }}
               >
-                <Popup>
-                  <div className="w-64">
-                    {property.images && property.images.length > 0 && (
-                      <img 
-                        src={property.images[0]} 
-                        alt={property.title} 
-                        className="w-full h-32 object-cover rounded-t-lg"
-                      />
-                    )}
-                    <div className="p-2">
-                      <h3 className="font-semibold text-sm">{property.title}</h3>
-                      <div className="flex items-center text-gray-600 text-xs mt-1">
-                        <FaMapMarkerAlt className="mr-1" />
-                        <span>{property.location || 'Location not specified'}</span>
-                      </div>
-                      <div className="flex items-center justify-between mt-2">
-                        <div className="flex items-center">
-                          <span className="text-yellow-500 flex items-center">
-                            <FaStar className="mr-1" />
-                            {property.rating || '4.5'}
-                          </span>
-                        </div>
-                        <span className="font-bold text-blue-600">
-                          {formatCurrencyRWF ? formatCurrencyRWF(property.price) : `RWF ${property.price?.toLocaleString()}`}
-                        </span>
-                      </div>
-                      <div className="flex items-center text-gray-500 text-xs mt-1">
-                        <span className="flex items-center mr-3">
-                          <FaBed className="mr-1" /> {property.bedrooms || 1}
-                        </span>
-                        <span className="flex items-center">
-                          <FaBath className="mr-1" /> {property.bathrooms || 1}
-                        </span>
-                      </div>
-                      <Link 
-                        to={`/apartments/${property.id}`}
-                        className="block mt-2 text-center text-sm bg-blue-600 text-white py-1 rounded hover:bg-blue-700 transition-colors"
-                      >
-                        View Details
-                      </Link>
+                <Tooltip
+                  direction="top"
+                  offset={[0, -30]}
+                  opacity={1}
+                  className="!bg-white !text-gray-900 !rounded-lg !shadow-lg"
+                >
+                  <div className="p-2">
+                    <div className="text-xs font-semibold line-clamp-1">{property.title}</div>
+                    <div className="text-[11px] text-gray-600 mt-0.5 line-clamp-1">
+                      {property.location || 'Location not specified'}
+                    </div>
+                    <div className="flex items-center justify-between mt-1 text-[11px]">
+                      <span className="flex items-center text-yellow-500">
+                        <FaStar className="mr-1" />
+                        {property.rating || '4.5'}
+                      </span>
+                      <span className="font-semibold text-blue-600">
+                        {formatCurrencyRWF ? formatCurrencyRWF(property.price) : `RWF ${property.price?.toLocaleString()}`}
+                      </span>
                     </div>
                   </div>
-                </Popup>
+                </Tooltip>
               </Marker>
             ))}
           </MapContainer>
