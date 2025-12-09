@@ -121,13 +121,17 @@ const PropertyCard = ({
 
   const handleShowOnMap = (e) => {
     e?.stopPropagation?.();
-    if (listing?.latitude && listing?.longitude) {
+    // Check for both direct and nested location data
+    const coords = listing?.location?.coordinates || [listing?.longitude, listing?.latitude];
+    if (coords && coords.length === 2 && !coords.some(coord => coord === undefined || coord === null)) {
       navigate('/map-view', { 
         state: { 
           focusedProperty: listing,
           properties: [listing] 
         } 
       });
+    } else {
+      console.warn('Property missing coordinates', listing);
     }
   };
 
@@ -355,7 +359,8 @@ const PropertyCard = ({
                 <FaTrash />
               </button>
             )}
-            {listing?.latitude && listing?.longitude && (
+            {(listing?.latitude && listing?.longitude) || 
+             (listing?.location?.coordinates && listing.location.coordinates.length === 2) ? (
               <button
                 type="button"
                 onClick={handleShowOnMap}
@@ -365,7 +370,7 @@ const PropertyCard = ({
               >
                 <FaMap />
               </button>
-            )}
+            ) : null}
           </div>
         </div>
       </div>
