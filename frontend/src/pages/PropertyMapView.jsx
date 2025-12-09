@@ -26,7 +26,7 @@ const DefaultIcon = L.icon({
 L.Marker.prototype.options.icon = DefaultIcon;
 
 const PropertyMapView = () => {
-  const { formatCurrencyRWF } = useLocale() || {};
+  const { formatCurrencyRWF, t } = useLocale() || {};
   const location = useLocation();
   const navigate = useNavigate();
   const initialFocused = location.state?.focusedProperty || null;
@@ -41,10 +41,9 @@ const PropertyMapView = () => {
   });
 
   const createPriceIcon = (property, isSelected) => {
-    const rawPrice = Number(property.price || 0);
-    const label = formatCurrencyRWF
-      ? formatCurrencyRWF(rawPrice)
-      : `RWF ${rawPrice.toLocaleString()}`;
+    const name = String(property.title || '').trim() || (t ? t('map.unnamedProperty') : 'Property');
+    const maxLen = 24;
+    const label = name.length > maxLen ? `${name.slice(0, maxLen - 1)}…` : name;
 
     return L.divIcon({
       html: `<div style="background:${isSelected ? '#b91c1c' : '#1d4ed8'};color:#ffffff;padding:${isSelected ? '6px 14px' : '4px 10px'};border-radius:9999px;font-weight:700;font-size:${isSelected ? '13px' : '12px'};box-shadow:0 10px 25px rgba(15,23,42,0.55);white-space:nowrap;border:1px solid rgba(255,255,255,0.85);transform:${isSelected ? 'scale(1.05)' : 'scale(1)'};">${label}</div>`,
@@ -78,6 +77,9 @@ const PropertyMapView = () => {
             ) || fp;
             setSelectedProperty(focused);
           }
+
+          setLoading(false);
+          return;
         } else {
           // Otherwise, fetch all properties with coordinates
           const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/properties?fields=id,title,price,images,bedrooms,bathrooms,type,rating,latitude,longitude`);
@@ -147,9 +149,9 @@ const PropertyMapView = () => {
           onClick={handleBackToListing}
           className="flex items-center text-blue-600 hover:text-blue-800"
         >
-          <FaArrowLeft className="mr-2" /> Back to Listings
+          <FaArrowLeft className="mr-2" /> {t ? t('map.backToListings') : 'Back to Listings'}
         </button>
-        <h1 className="text-xl font-bold">Properties on Map</h1>
+        <h1 className="text-xl font-bold">{t ? t('map.title') : 'Properties on Map'}</h1>
         <div className="w-8"></div> {/* For balance */}
       </header>
 
@@ -190,7 +192,7 @@ const PropertyMapView = () => {
                   <div className="p-2">
                     <div className="text-xs font-semibold line-clamp-1">{property.title}</div>
                     <div className="text-[11px] text-gray-600 mt-0.5 line-clamp-1">
-                      {property.location || 'Location not specified'}
+                      {property.location || (t ? t('map.locationNotSpecified') : 'Location not specified')}
                     </div>
                     <div className="flex items-center justify-between mt-1 text-[11px]">
                       <span className="flex items-center text-yellow-500">
@@ -225,7 +227,7 @@ const PropertyMapView = () => {
             </div>
             <div className="flex items-center text-gray-600 text-sm mb-3">
               <FaMapMarkerAlt className="mr-1" />
-              <span>{selectedProperty.address || 'Address not available'}</span>
+              <span>{selectedProperty.location || selectedProperty.address || (t ? t('map.addressNotAvailable') : 'Address not available')}</span>
             </div>
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center">
@@ -241,10 +243,10 @@ const PropertyMapView = () => {
             </div>
             <div className="flex items-center text-gray-500 text-sm mb-4">
               <span className="flex items-center mr-4">
-                <FaBed className="mr-1" /> {selectedProperty.bedrooms || 1} Beds
+                <FaBed className="mr-1" /> {selectedProperty.bedrooms || 1} {t ? t('map.bedsLabel') : 'Beds'}
               </span>
               <span className="flex items-center">
-                <FaBath className="mr-1" /> {selectedProperty.bathrooms || 1} Baths
+                <FaBath className="mr-1" /> {selectedProperty.bathrooms || 1} {t ? t('map.bathsLabel') : 'Baths'}
               </span>
             </div>
             <div className="flex space-x-3">
@@ -252,10 +254,10 @@ const PropertyMapView = () => {
                 to={`/apartment/${selectedProperty.id}`}
                 className="flex-1 bg-blue-600 text-white text-center py-2 rounded-lg hover:bg-blue-700 transition-colors"
               >
-                View Details
+                {t ? t('map.viewDetails') : 'View Details'}
               </Link>
               <button className="px-4 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors">
-                Book Now
+                {t ? t('map.bookNow') : 'Book Now'}
               </button>
             </div>
           </div>
@@ -264,26 +266,26 @@ const PropertyMapView = () => {
 
       {/* Filters Panel */}
       <div className="absolute top-20 left-4 z-10 bg-white p-4 rounded-lg shadow-lg w-64">
-        <h3 className="font-semibold mb-3">Filters</h3>
+        <h3 className="font-semibold mb-3">{t ? t('map.filtersTitle') : 'Filters'}</h3>
         
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Property Type</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{t ? t('map.propertyType') : 'Property Type'}</label>
           <select 
             className="w-full p-2 border rounded-md"
             value={activeFilters.type}
             onChange={(e) => setActiveFilters({...activeFilters, type: e.target.value})}
           >
-            <option value="all">All Types</option>
-            <option value="apartment">Apartment</option>
-            <option value="house">House</option>
-            <option value="villa">Villa</option>
-            <option value="hotel">Hotel</option>
+            <option value="all">{t ? t('map.typeAll') : 'All Types'}</option>
+            <option value="apartment">{t ? t('map.typeApartment') : 'Apartment'}</option>
+            <option value="house">{t ? t('map.typeHouse') : 'House'}</option>
+            <option value="villa">{t ? t('map.typeVilla') : 'Villa'}</option>
+            <option value="hotel">{t ? t('map.typeHotel') : 'Hotel'}</option>
           </select>
         </div>
         
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Price Range: {formatCurrencyRWF ? formatCurrencyRWF(activeFilters.minPrice) : `RWF ${activeFilters.minPrice?.toLocaleString()}`} - {formatCurrencyRWF ? formatCurrencyRWF(activeFilters.maxPrice) : `RWF ${activeFilters.maxPrice?.toLocaleString()}`}
+            {(t ? t('map.priceRangeLabel') : 'Price Range:')} {formatCurrencyRWF ? formatCurrencyRWF(activeFilters.minPrice) : `RWF ${activeFilters.minPrice?.toLocaleString()}`} - {formatCurrencyRWF ? formatCurrencyRWF(activeFilters.maxPrice) : `RWF ${activeFilters.maxPrice?.toLocaleString()}`}
           </label>
           <div className="flex space-x-2">
             <input
