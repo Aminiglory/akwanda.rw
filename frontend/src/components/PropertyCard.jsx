@@ -258,7 +258,7 @@ const PropertyCard = ({
             <button
               onClick={handleShowOnMap}
               className="p-2 rounded-full text-white bg-black bg-opacity-50 hover:bg-opacity-70 transition-all"
-              aria-label="Show on map"
+              aria-label="OpenStreetMap"
             >
               <FaMap className="fill-current" />
             </button>
@@ -279,7 +279,7 @@ const PropertyCard = ({
               onClick={handleShowOnMap}
               className="ml-2 text-xs font-semibold text-blue-600 hover:underline"
             >
-              Show on map
+              OpenStreetMap
             </button>
           )}
         </div>
@@ -396,8 +396,8 @@ const PropertyCard = ({
                 type="button"
                 onClick={handleShowOnMap}
                 className="p-2 border border-gray-300 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
-                aria-label="Show on Map"
-                title="Show on Map"
+                aria-label="OpenStreetMap"
+                title="OpenStreetMap"
               >
                 <FaMap />
               </button>

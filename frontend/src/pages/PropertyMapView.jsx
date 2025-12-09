@@ -29,9 +29,10 @@ const PropertyMapView = () => {
   const { formatCurrencyRWF } = useLocale() || {};
   const location = useLocation();
   const navigate = useNavigate();
+  const initialFocused = location.state?.focusedProperty || null;
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedProperty, setSelectedProperty] = useState(null);
+  const [selectedProperty, setSelectedProperty] = useState(initialFocused);
   const [bounds, setBounds] = useState(null);
   const [activeFilters, setActiveFilters] = useState({
     type: 'all',
@@ -39,17 +40,17 @@ const PropertyMapView = () => {
     maxPrice: 1000000,
   });
 
-  const createPriceIcon = (property) => {
+  const createPriceIcon = (property, isSelected) => {
     const rawPrice = Number(property.price || 0);
     const label = formatCurrencyRWF
       ? formatCurrencyRWF(rawPrice)
       : `RWF ${rawPrice.toLocaleString()}`;
 
     return L.divIcon({
-      html: `<div style="background:#1d4ed8;color:#ffffff;padding:4px 10px;border-radius:9999px;font-weight:600;font-size:12px;box-shadow:0 8px 20px rgba(15,23,42,0.45);white-space:nowrap;border:1px solid rgba(255,255,255,0.7);">${label}</div>`,
+      html: `<div style="background:${isSelected ? '#b91c1c' : '#1d4ed8'};color:#ffffff;padding:${isSelected ? '6px 14px' : '4px 10px'};border-radius:9999px;font-weight:700;font-size:${isSelected ? '13px' : '12px'};box-shadow:0 10px 25px rgba(15,23,42,0.55);white-space:nowrap;border:1px solid rgba(255,255,255,0.85);transform:${isSelected ? 'scale(1.05)' : 'scale(1)'};">${label}</div>`,
       className: '',
-      iconSize: [80, 32],
-      iconAnchor: [40, 32],
+      iconSize: isSelected ? [95, 38] : [80, 32],
+      iconAnchor: isSelected ? [48, 38] : [40, 32],
       popupAnchor: [0, -32],
     });
   };
@@ -60,12 +61,22 @@ const PropertyMapView = () => {
       try {
         // If properties are passed via state (from listing page)
         if (location.state?.properties) {
-          setProperties(location.state.properties);
-          if (location.state.properties.length > 0) {
+          const incomingProps = location.state.properties;
+          setProperties(incomingProps);
+
+          if (incomingProps.length > 0) {
             const bounds = L.latLngBounds(
-              location.state.properties.map(p => [p.latitude, p.longitude])
+              incomingProps.map(p => [p.latitude, p.longitude])
             );
             setBounds(bounds);
+          }
+
+          if (location.state.focusedProperty) {
+            const fp = location.state.focusedProperty;
+            const focused = incomingProps.find(
+              (p) => (p.id || p._id) === (fp.id || fp._id)
+            ) || fp;
+            setSelectedProperty(focused);
           }
         } else {
           // Otherwise, fetch all properties with coordinates
@@ -90,7 +101,7 @@ const PropertyMapView = () => {
   }, [location.state]);
 
   const handleMarkerClick = (property) => {
-    navigate(`/apartments/${property.id}`);
+    navigate(`/apartment/${property.id}`);
   };
 
   const handleMarkerHover = (property) => {
@@ -157,11 +168,13 @@ const PropertyMapView = () => {
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             />
             
-            {filteredProperties.map((property) => (
+            {filteredProperties.map((property) => {
+              const isSelected = selectedProperty && ((selectedProperty.id || selectedProperty._id) === (property.id || property._id));
+              return (
               <Marker 
                 key={property.id} 
                 position={[property.latitude, property.longitude]}
-                icon={createPriceIcon(property)}
+                icon={createPriceIcon(property, isSelected)}
                 eventHandlers={{
                   mouseover: () => handleMarkerHover(property),
                   mouseout: handleMarkerLeave,
@@ -191,7 +204,8 @@ const PropertyMapView = () => {
                   </div>
                 </Tooltip>
               </Marker>
-            ))}
+            );
+            })}
           </MapContainer>
         )}
       </div>
@@ -235,7 +249,7 @@ const PropertyMapView = () => {
             </div>
             <div className="flex space-x-3">
               <Link
-                to={`/apartments/${selectedProperty.id}`}
+                to={`/apartment/${selectedProperty.id}`}
                 className="flex-1 bg-blue-600 text-white text-center py-2 rounded-lg hover:bg-blue-700 transition-colors"
               >
                 View Details
