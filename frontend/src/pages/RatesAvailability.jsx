@@ -146,6 +146,26 @@ export default function RatesAvailability() {
         setListBookings([]);
       }
     };
+
+  const updateRoomUnitCount = async (roomId, nextUnits) => {
+    try {
+      if (!selectedProperty || !roomId) return;
+      const units = Math.max(1, Number(nextUnits) || 1);
+      const res = await fetch(`${API_URL}/api/properties/${selectedProperty}/rooms/${roomId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ unitCount: units }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.message || 'Failed to update rooms to sell');
+      toast.success('Rooms to sell updated');
+      fetchCalendar();
+    } catch (e) {
+      console.error('updateRoomUnitCount error:', e);
+      toast.error(e.message || 'Failed to update rooms to sell');
+    }
+  };
     loadListBookings();
   }, [selectedProperty, view, pricingCalendarView, activeMonth]);
 
@@ -872,16 +892,27 @@ export default function RatesAvailability() {
                 )}
 
                 {pricingCalendarView === 'monthly' && (
-                  <>
-                    {calendarData.map((room, idx) => {
-                      const cells = daysInMonth(activeMonth);
-                      const sel = roomRanges[room._id] || {};
-                      return (
-                        <div key={idx} className="border rounded-lg p-4">
-                          <div className="flex items-center justify-between mb-2">
-                            <h3 className="font-semibold text-[#4b2a00]">{room.roomType} <span className="text-sm text-gray-500">• {formatCurrencyRWF ? formatCurrencyRWF(room.rate || 0) : `RWF ${(room.rate || 0).toLocaleString()}`}/night</span></h3>
-                            <div className="text-xs text-gray-600">Min {room.minStay} • Max {room.maxStay} • Closed {room.closedDates?.length || 0}</div>
-                          </div>
+                  (() => {
+                    const expanded = calendarData.flatMap((room) => {
+                      const count = Math.max(1, Number(room.unitCount) || 1);
+                      return Array.from({ length: count }, (_, i) => ({ ...room, __unitIndex: i + 1 }));
+                    });
+                    return (
+                      <>
+                        {expanded.map((room, idx) => {
+                          const cells = daysInMonth(activeMonth);
+                          const sel = roomRanges[room._id] || {};
+                          return (
+                            <div key={idx} className="border rounded-lg p-4">
+                              <div className="flex items-center justify-between mb-2">
+                                <h3 className="font-semibold text-[#4b2a00]">
+                                  {room.roomType}
+                                  {room.__unitIndex ? ` #${room.__unitIndex}` : ''}
+                                  {' '}
+                                  <span className="text-sm text-gray-500">• {formatCurrencyRWF ? formatCurrencyRWF(room.rate || 0) : `RWF ${(room.rate || 0).toLocaleString()}`}/night</span>
+                                </h3>
+                                <div className="text-xs text-gray-600">Min {room.minStay} • Max {room.maxStay} • Closed {room.closedDates?.length || 0}</div>
+                              </div>
                           <div className="grid grid-cols-7 gap-1 text-xs text-gray-600 mb-1">
                             {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d => <div key={d} className="text-center py-1">{d}</div>)}
                           </div>
@@ -923,11 +954,33 @@ export default function RatesAvailability() {
                               <button onClick={() => handleOpenDates(room._id)} className="px-2 py-1 bg-[#a06b42] hover:bg-[#8f5a32] text-white rounded">Open</button>
                               <button onClick={() => handleCloseDates(room._id)} className="px-2 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded">Close</button>
                             </div>
+                            <div className="flex items-center gap-1 ml-4">
+                              <span className="text-[11px] text-gray-600">Rooms to sell:</span>
+                              <button
+                                type="button"
+                                className="px-2 py-1 border rounded text-xs"
+                                onClick={() => updateRoomUnitCount(room._id, (Number(room.unitCount) || 1) - 1)}
+                                aria-label="Decrease rooms to sell"
+                              >
+                                -
+                              </button>
+                              <span className="w-6 text-center text-xs">{Math.max(1, Number(room.unitCount) || 1)}</span>
+                              <button
+                                type="button"
+                                className="px-2 py-1 border rounded text-xs"
+                                onClick={() => updateRoomUnitCount(room._id, (Number(room.unitCount) || 1) + 1)}
+                                aria-label="Increase rooms to sell"
+                              >
+                                +
+                              </button>
+                            </div>
                           </div>
                         </div>
                       );
-                    })}
-                  </>
+                        })}
+                      </>
+                    );
+                  })()
                 )}
 
                 {pricingCalendarView === 'list' && (
