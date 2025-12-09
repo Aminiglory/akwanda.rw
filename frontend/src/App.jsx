@@ -68,6 +68,7 @@ const Experiences = lazyWithRetry(() => import('./pages/Experiences'));
 const Deals = lazyWithRetry(() => import('./pages/Deals'));
 const DealsPage = lazyWithRetry(() => import('./pages/DealsPage'));
 const TestDeals = lazyWithRetry(() => import('./pages/TestDeals'));
+const PropertyMapView = lazyWithRetry(() => import('./pages/PropertyMapView'));
 const DirectBooking = lazyWithRetry(() => import('./pages/DirectBooking'));
 const Invoice = lazyWithRetry(() => import('./pages/Invoice'));
 const Receipt = lazyWithRetry(() => import('./pages/Receipt'));
@@ -145,6 +146,7 @@ function App() {
             <Route path="/deals" element={<DealsPage />} />
             <Route path="/deals-old" element={<Deals />} />
             <Route path="/test-deals" element={<TestDeals />} />
+            <Route path="/map-view" element={<PropertyMapView />} />
             <Route path="/flights" element={<Flights />} />
             <Route path="/attractions" element={<Attractions />} />
             <Route path="/attractions/:id" element={<AttractionDetail />} />

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { FaHeart, FaMapMarkerAlt, FaBed, FaBath, FaRulerCombined, FaEdit, FaTrash } from 'react-icons/fa';
+import { Link, useNavigate } from 'react-router-dom';
+import { FaHeart, FaMapMarkerAlt, FaBed, FaBath, FaRulerCombined, FaEdit, FaTrash, FaMap } from 'react-icons/fa';
 import { useLocale } from '../contexts/LocaleContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -30,6 +30,7 @@ const PropertyCard = ({
   variant = 'default'
 }) => {
   const { formatCurrencyRWF, t } = useLocale() || {};
+  const navigate = useNavigate();
   const {
     title,
     image,
@@ -206,15 +207,26 @@ const PropertyCard = ({
           </span>
         )}
 
-        <button
-          type="button"
-          onClick={(e) => { e.stopPropagation?.(); onToggleWishlist && onToggleWishlist(); }}
-          className={`absolute top-3 right-3 w-9 h-9 rounded-full bg-white/90 hover:bg-white flex items-center justify-center shadow ${isWishlisted ? 'text-red-500' : 'text-gray-600 hover:text-red-500'}`}
-          aria-label="Wishlist"
-          aria-pressed={isWishlisted}
-        >
-          <FaHeart />
-        </button>
+        <div className="absolute top-3 right-3 flex flex-col space-y-2">
+          {onToggleWishlist && (
+            <button
+              onClick={handleWishlistToggle}
+              className={`p-2 rounded-full ${isWishlisted ? 'text-red-500' : 'text-white'} bg-black bg-opacity-50 hover:bg-opacity-70 transition-all`}
+              aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
+            >
+              <FaHeart className={isWishlisted ? 'fill-current' : 'fill-current'} />
+            </button>
+          )}
+          {(listing.latitude && listing.longitude) && (
+            <button
+              onClick={handleShowOnMap}
+              className="p-2 rounded-full text-white bg-black bg-opacity-50 hover:bg-opacity-70 transition-all"
+              aria-label="Show on map"
+            >
+              <FaMap className="fill-current" />
+            </button>
+          )}
+        </div>
       </div>
       <div className={`${isCompact ? 'p-4' : 'p-5'} flex-1 flex flex-col`}>
         <div className="flex items-start justify-between mb-1">
