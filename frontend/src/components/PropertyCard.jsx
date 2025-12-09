@@ -27,7 +27,8 @@ const PropertyCard = ({
   onEditHref,
   onToggleWishlist,
   highlight,
-  variant = 'default'
+  variant = 'default',
+  allListings,
 }) => {
   const { formatCurrencyRWF, t } = useLocale() || {};
   const navigate = useNavigate();
@@ -121,18 +122,38 @@ const PropertyCard = ({
 
   const handleShowOnMap = (e) => {
     e?.stopPropagation?.();
-    // Check for both direct and nested location data
-    const coords = listing?.location?.coordinates || [listing?.longitude, listing?.latitude];
-    if (coords && coords.length === 2 && !coords.some(coord => coord === undefined || coord === null)) {
-      navigate('/map-view', { 
-        state: { 
-          focusedProperty: listing,
-          properties: [listing] 
-        } 
-      });
-    } else {
-      console.warn('Property missing coordinates', listing);
+    const baseList = Array.isArray(allListings) && allListings.length ? allListings : [listing];
+    const mappedList = baseList
+      .map((item) => {
+        const directLat = item?.latitude;
+        const directLng = item?.longitude;
+        const coords = item?.location?.coordinates;
+        const hasCoordsArray = Array.isArray(coords) && coords.length === 2;
+        const latitude = typeof directLat === 'number' ? directLat : (hasCoordsArray ? coords[1] : undefined);
+        const longitude = typeof directLng === 'number' ? directLng : (hasCoordsArray ? coords[0] : undefined);
+        if (latitude == null || longitude == null || Number.isNaN(latitude) || Number.isNaN(longitude)) {
+          return null;
+        }
+        return {
+          ...item,
+          latitude,
+          longitude,
+        };
+      })
+      .filter(Boolean);
+    if (!mappedList.length) {
+      console.warn('No properties with valid coordinates for map view');
+      return;
     }
+    const currentId = listing?.id || listing?._id;
+    const focusedProperty =
+      mappedList.find((p) => (p.id || p._id) === currentId) || mappedList[0];
+    navigate('/map-view', {
+      state: {
+        focusedProperty,
+        properties: mappedList,
+      },
+    });
   };
 
   const showsBreakfast = !!(
@@ -251,6 +272,16 @@ const PropertyCard = ({
         <div className="flex items-center text-gray-600 text-sm mb-1">
           <FaMapMarkerAlt className="mr-1" />
           <span className="line-clamp-1">{highlightText(location)}</span>
+          {((listing?.latitude && listing?.longitude) ||
+            (listing?.location?.coordinates && listing.location.coordinates.length === 2)) && (
+            <button
+              type="button"
+              onClick={handleShowOnMap}
+              className="ml-2 text-xs font-semibold text-blue-600 hover:underline"
+            >
+              Show on map
+            </button>
+          )}
         </div>
         {Array.isArray(rooms) && rooms.length > 0 && (
           <div

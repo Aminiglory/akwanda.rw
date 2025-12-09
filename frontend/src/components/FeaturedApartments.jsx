@@ -128,6 +128,7 @@ const FeaturedApartments = () => {
                   price: Number(apartment.price || 0),
                   status: apartment.isAvailable ? 'active' : 'inactive',
                 }}
+                allListings={apartments}
                 onView={() => (window.location.href = `/apartment/${apartment.id}`)}
               />
             </div>
