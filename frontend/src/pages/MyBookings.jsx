@@ -44,6 +44,35 @@ const MyBookings = () => {
     }
   };
 
+  const canCancel = (b) => {
+    if (!b || !b.checkIn) return false;
+    if (b.status === 'cancelled' || b.status === 'ended') return false;
+    const now = new Date();
+    const ci = new Date(b.checkIn);
+    return now < ci;
+  };
+
+  const cancelBooking = async (b) => {
+    if (!b || !b._id) return;
+    try {
+      const confirmed = window.confirm('Are you sure you want to cancel this booking?');
+      if (!confirmed) return;
+      const res = await fetch(`${API_URL}/api/bookings/${b._id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data?.message || 'Failed to cancel booking');
+      }
+      toast.success('Booking cancelled');
+      setBookings((prev) => prev.map((x) => (x._id === b._id ? { ...x, status: 'cancelled' } : x)));
+    } catch (e) {
+      console.error('Failed to cancel booking:', e);
+      toast.error(e.message || 'Failed to cancel booking');
+    }
+  };
+
   useEffect(() => {
     loadBookings();
   }, []);
@@ -240,6 +269,15 @@ const MyBookings = () => {
                         >
                           Rebook
                         </Link>
+                        {canCancel(b) && (
+                          <button
+                            type="button"
+                            onClick={() => cancelBooking(b)}
+                            className="text-sm px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-700"
+                          >
+                            Cancel booking
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>

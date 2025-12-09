@@ -256,6 +256,7 @@ const Navbar = () => {
         { label: labelOr('nav.allReservations', 'All reservations'), href: attachPropertyParam('/dashboard?tab=reservations&scope=all'), icon: FaCalendarAlt },
         { label: labelOr('nav.checkIn', 'Check-in'), href: attachPropertyParam('/dashboard?tab=reservations&scope=checked-in'), icon: FaCalendarCheck },
         { label: labelOr('nav.checkOut', 'Check-out'), href: attachPropertyParam('/dashboard?tab=reservations&scope=checked-out'), icon: FaCalendarTimes },
+        { label: labelOr('nav.cancelledReservations', 'Cancelled'), href: attachPropertyParam('/dashboard?tab=reservations&scope=cancelled'), icon: FaCalendarTimes },
         { label: labelOr('nav.directBooking', 'Direct booking'), href: "/owner/direct-booking", icon: FaCalendarCheck },
       ]
     },

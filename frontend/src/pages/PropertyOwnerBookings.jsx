@@ -1384,8 +1384,8 @@ const PropertyOwnerBookings = () => {
       properties: Array.isArray(properties) ? properties.length : 'not-array',
     }),
     <div className="bg-[#f5f0e8]">
-      {/* Summary Cards - Dashboard overview - Always shown on dashboard route or when dashboard/calendar tab is active */}
-      {(location.pathname === '/dashboard' || activeTab === 'calendar' || activeTab === 'dashboard' || !activeTab) && (
+      {/* Summary Cards - Dashboard overview - Only shown on main dashboard home page */}
+      {location.pathname === '/dashboard' && (
         <div className="max-w-7xl mx-auto px-4 py-6">
           <div className="mb-6">
             {filters.property && filters.property !== 'all' && (
