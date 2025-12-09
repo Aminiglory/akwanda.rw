@@ -924,6 +924,66 @@ router.get('/:id/receipt', requireAuth, async (req, res) => {
   }
 });
 
+// Mark booking as paid (owner/admin), e.g. pay-on-arrival cash payments
+router.post('/:id/mark-paid', requireAuth, async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id).populate('property');
+    if (!booking) return res.status(404).json({ message: 'Booking not found' });
+
+    const isOwner = booking.property && String(booking.property.host) === String(req.user.id);
+    const isAdmin = req.user.userType === 'admin';
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ message: 'Only property owner or admin can mark booking as paid' });
+    }
+
+    // Only allow transition from unpaid/pending-like states
+    if (booking.paymentStatus === 'paid') {
+      return res.status(400).json({ message: 'Booking is already marked as paid' });
+    }
+
+    booking.paymentStatus = 'paid';
+    if (['pending', 'awaiting'].includes(booking.status)) {
+      booking.status = 'confirmed';
+    }
+
+    await booking.save();
+
+    // Keep invoice in sync for finance reporting
+    try {
+      await Invoice.findOneAndUpdate(
+        { booking: booking._id },
+        {
+          booking: booking._id,
+          property: booking.property?._id || booking.property,
+          host: booking.property?.host || (booking.property && booking.property.host),
+          guest: booking.guest,
+          confirmationCode: booking.confirmationCode,
+          propertyNumber: booking.property?.propertyNumber,
+          amountBeforeTax: booking.amountBeforeTax || 0,
+          taxAmount: booking.taxAmount || 0,
+          taxRate: booking.taxRate || 3,
+          totalAmount: booking.totalAmount || 0,
+          commissionAmount: booking.commissionAmount || 0,
+          commissionPaid: booking.commissionPaid || false,
+          paymentMethod: booking.paymentMethod,
+          paymentStatus: booking.paymentStatus,
+          issuedAt: booking.createdAt || new Date(),
+          paidAt: booking.paymentStatus === 'paid' ? new Date() : undefined
+        },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      );
+    } catch (e) {
+      console.error('Invoice upsert failed on mark-paid:', e.message);
+      // Non-blocking: do not fail the booking update if invoice write fails
+    }
+
+    return res.json({ booking });
+  } catch (error) {
+    console.error('Mark booking paid error:', error);
+    return res.status(500).json({ message: 'Failed to mark booking as paid', error: error.message });
+  }
+});
+
 // Cancel booking (guest/owner/admin)
 router.delete('/:id', requireAuth, async (req, res) => {
   try {

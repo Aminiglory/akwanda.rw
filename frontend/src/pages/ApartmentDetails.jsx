@@ -555,7 +555,13 @@ const ApartmentDetails = () => {
                         </div>
                         <div className="flex flex-col leading-tight">
                           <span className="text-[11px] font-semibold text-gray-900">
-                            {overall10 >= 9 ? 'Superb' : overall10 >= 8 ? 'Very good' : 'Guest rating'}
+                            {overall10 >= 8
+                              ? 'Very good'
+                              : overall10 >= 5
+                                ? 'Super'
+                                : overall10 >= 1
+                                  ? 'Good'
+                                  : 'Guest rating'}
                           </span>
                           <span className="text-[10px] text-gray-600">
                             {count} review{count === 1 ? '' : 's'}
@@ -977,7 +983,13 @@ const ApartmentDetails = () => {
                     </div>
                     <div className="hidden sm:flex flex-col text-xs">
                       <span className="font-semibold text-gray-900">
-                        {reviewsSummary.overallScore10 >= 9 ? 'Superb' : reviewsSummary.overallScore10 >= 8 ? 'Very good' : 'Guest rating'}
+                        {reviewsSummary.overallScore10 >= 8
+                          ? 'Very good'
+                          : reviewsSummary.overallScore10 >= 5
+                            ? 'Super'
+                            : reviewsSummary.overallScore10 >= 1
+                              ? 'Good'
+                              : 'Guest rating'}
                       </span>
                       <span className="text-gray-500">Based on {reviewsSummary.count} review{reviewsSummary.count === 1 ? '' : 's'}</span>
                     </div>

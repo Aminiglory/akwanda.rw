@@ -121,9 +121,18 @@ export default function OwnerReviews() {
 
   const renderRatingBadge = (rating) => {
     const score10 = (Number(rating) || 0) * 2;
-    const label = score10 >= 9 ? 'Superb' : score10 >= 8 ? 'Very good' : 'Guest rating';
-
     if (!score10) return null;
+
+    let label;
+    if (score10 >= 8) {
+      label = 'Very good';
+    } else if (score10 >= 5) {
+      label = 'Super';
+    } else if (score10 >= 1) {
+      label = 'Good';
+    } else {
+      label = 'Guest rating';
+    }
 
     return (
       <span className="inline-flex items-center gap-2 px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-xs font-medium">

@@ -748,6 +748,27 @@ const PropertyOwnerBookings = () => {
     openReceiptPdf(booking._id);
   };
 
+  const handleMarkPaid = async (booking) => {
+    if (!booking?._id) return;
+    try {
+      const res = await fetchWithUiTimeout(`${API_URL}/api/bookings/${booking._id}/mark-paid`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data?.message || 'Failed to mark booking as paid');
+      }
+      toast.success('Booking marked as paid');
+      // Refresh bookings so status and finance stats update
+      loadData();
+    } catch (error) {
+      console.error('[PropertyOwnerBookings] handleMarkPaid error', error);
+      toast.error(error.message || 'Failed to mark booking as paid');
+    }
+  };
+
   const openEditDirectModal = async (booking) => {
     try {
       if (!booking?._id) return;
@@ -1819,6 +1840,15 @@ const PropertyOwnerBookings = () => {
                         <FaFileInvoice className="mr-1" />
                         Receipt
                       </button>
+                      {(b.paymentMethod === 'cash' || !b.paymentMethod) && b.paymentStatus !== 'paid' && (
+                        <button
+                          onClick={() => handleMarkPaid(b)}
+                          className="inline-flex items-center px-2 py-1 rounded border border-blue-200 text-blue-700 hover:bg-blue-50"
+                        >
+                          <FaCheck className="mr-1" />
+                          Mark as paid
+                        </button>
+                      )}
                       {b.isDirect && (
                         <button
                           onClick={() => openEditDirectModal(b)}

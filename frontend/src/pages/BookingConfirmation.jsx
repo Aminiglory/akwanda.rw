@@ -344,9 +344,18 @@ const BookingConfirmation = () => {
         </div>
 
         {/* Actions row */}
-        <div className="flex items-center justify-center gap-3 mt-4">
+        <div className="flex items-center justify-center gap-3 mt-4 flex-wrap">
+          <a
+            href={`/receipt/${booking._id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg inline-flex items-center gap-2 text-sm"
+          >
+            <FaDownload />
+            <span>Download confirmation</span>
+          </a>
           {canCancel() && (
-            <button onClick={cancelBooking} className="px-5 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg">
+            <button onClick={cancelBooking} className="px-5 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm">
               Cancel booking
             </button>
           )}
