@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { FaHeart, FaMapMarkerAlt, FaBed, FaBath, FaRulerCombined, FaEdit, FaTrash } from 'react-icons/fa';
+import { Link, useNavigate } from 'react-router-dom';
+import { FaHeart, FaMapMarkerAlt, FaBed, FaBath, FaRulerCombined, FaEdit, FaTrash, FaMap } from 'react-icons/fa';
 import { useLocale } from '../contexts/LocaleContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -27,9 +27,11 @@ const PropertyCard = ({
   onEditHref,
   onToggleWishlist,
   highlight,
-  variant = 'default'
+  variant = 'default',
+  allListings,
 }) => {
   const { formatCurrencyRWF, t } = useLocale() || {};
+  const navigate = useNavigate();
   const {
     title,
     image,
@@ -116,6 +118,42 @@ const PropertyCard = ({
   const handleCloseReviews = (e) => {
     e?.stopPropagation?.();
     setIsReviewsOpen(false);
+  };
+
+  const handleShowOnMap = (e) => {
+    e?.stopPropagation?.();
+    const baseList = Array.isArray(allListings) && allListings.length ? allListings : [listing];
+    const mappedList = baseList
+      .map((item) => {
+        const directLat = item?.latitude;
+        const directLng = item?.longitude;
+        const coords = item?.location?.coordinates;
+        const hasCoordsArray = Array.isArray(coords) && coords.length === 2;
+        const latitude = typeof directLat === 'number' ? directLat : (hasCoordsArray ? coords[1] : undefined);
+        const longitude = typeof directLng === 'number' ? directLng : (hasCoordsArray ? coords[0] : undefined);
+        if (latitude == null || longitude == null || Number.isNaN(latitude) || Number.isNaN(longitude)) {
+          return null;
+        }
+        return {
+          ...item,
+          latitude,
+          longitude,
+        };
+      })
+      .filter(Boolean);
+    if (!mappedList.length) {
+      console.warn('No properties with valid coordinates for map view');
+      return;
+    }
+    const currentId = listing?.id || listing?._id;
+    const focusedProperty =
+      mappedList.find((p) => (p.id || p._id) === currentId) || mappedList[0];
+    navigate('/map-view', {
+      state: {
+        focusedProperty,
+        properties: mappedList,
+      },
+    });
   };
 
   const showsBreakfast = !!(
@@ -206,15 +244,26 @@ const PropertyCard = ({
           </span>
         )}
 
-        <button
-          type="button"
-          onClick={(e) => { e.stopPropagation?.(); onToggleWishlist && onToggleWishlist(); }}
-          className={`absolute top-3 right-3 w-9 h-9 rounded-full bg-white/90 hover:bg-white flex items-center justify-center shadow ${isWishlisted ? 'text-red-500' : 'text-gray-600 hover:text-red-500'}`}
-          aria-label="Wishlist"
-          aria-pressed={isWishlisted}
-        >
-          <FaHeart />
-        </button>
+        <div className="absolute top-3 right-3 flex flex-col space-y-2">
+          {onToggleWishlist && (
+            <button
+              onClick={handleWishlistToggle}
+              className={`p-2 rounded-full ${isWishlisted ? 'text-red-500' : 'text-white'} bg-black bg-opacity-50 hover:bg-opacity-70 transition-all`}
+              aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
+            >
+              <FaHeart className={isWishlisted ? 'fill-current' : 'fill-current'} />
+            </button>
+          )}
+          {(listing.latitude && listing.longitude) && (
+            <button
+              onClick={handleShowOnMap}
+              className="p-2 rounded-full text-white bg-black bg-opacity-50 hover:bg-opacity-70 transition-all"
+              aria-label="OpenStreetMap"
+            >
+              <FaMap className="fill-current" />
+            </button>
+          )}
+        </div>
       </div>
       <div className={`${isCompact ? 'p-4' : 'p-5'} flex-1 flex flex-col`}>
         <div className="flex items-start justify-between mb-1">
@@ -223,6 +272,16 @@ const PropertyCard = ({
         <div className="flex items-center text-gray-600 text-sm mb-1">
           <FaMapMarkerAlt className="mr-1" />
           <span className="line-clamp-1">{highlightText(location)}</span>
+          {((listing?.latitude && listing?.longitude) ||
+            (listing?.location?.coordinates && listing.location.coordinates.length === 2)) && (
+            <button
+              type="button"
+              onClick={handleShowOnMap}
+              className="ml-2 text-xs font-semibold text-blue-600 hover:underline"
+            >
+              OpenStreetMap
+            </button>
+          )}
         </div>
         {Array.isArray(rooms) && rooms.length > 0 && (
           <div
@@ -331,6 +390,18 @@ const PropertyCard = ({
                 <FaTrash />
               </button>
             )}
+            {(listing?.latitude && listing?.longitude) || 
+             (listing?.location?.coordinates && listing.location.coordinates.length === 2) ? (
+              <button
+                type="button"
+                onClick={handleShowOnMap}
+                className="p-2 border border-gray-300 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
+                aria-label="OpenStreetMap"
+                title="OpenStreetMap"
+              >
+                <FaMap />
+              </button>
+            ) : null}
           </div>
         </div>
       </div>

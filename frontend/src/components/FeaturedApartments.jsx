@@ -50,6 +50,14 @@ const FeaturedApartments = () => {
           const totalRooms = rooms.length;
           const availableRooms = rooms.filter(r => r.isAvailable !== false).length;
 
+          const hasCoordsArray = Array.isArray(p.location?.coordinates) && p.location.coordinates.length === 2;
+          const latitude = typeof p.latitude === 'number'
+            ? p.latitude
+            : (hasCoordsArray ? p.location.coordinates[1] : undefined);
+          const longitude = typeof p.longitude === 'number'
+            ? p.longitude
+            : (hasCoordsArray ? p.location.coordinates[0] : undefined);
+
           return {
             id: p._id,
             title: p.title,
@@ -72,7 +80,9 @@ const FeaturedApartments = () => {
             host: p.host ? `${p.host.firstName || ''} ${p.host.lastName || ''}`.trim() : '—',
             category: p.category || 'apartment', // For fallback image selection
             commissionRate,
-            isPremium
+            isPremium,
+            latitude,
+            longitude,
           };
         });
         // Split into premium vs standard (ads) and order premium first
@@ -128,6 +138,7 @@ const FeaturedApartments = () => {
                   price: Number(apartment.price || 0),
                   status: apartment.isAvailable ? 'active' : 'inactive',
                 }}
+                allListings={apartments}
                 onView={() => (window.location.href = `/apartment/${apartment.id}`)}
               />
             </div>

@@ -13,7 +13,7 @@ const createClusterCustomIcon = (cluster) => {
     className: 'custom-marker-cluster',
     iconSize: L.point(40, 40, true),
   });
-};\n
+};
 const customIcon = L.icon({
   iconUrl: '/marker-icon.png', // Add your custom marker icon
   iconSize: [32, 32],

@@ -131,12 +131,22 @@ const ApartmentsListing = () => {
         const totalRooms = rooms.length;
         const availableRooms = rooms.filter(r => r.isAvailable !== false).length;
 
+        const hasCoordsArray = Array.isArray(p.location?.coordinates) && p.location.coordinates.length === 2;
+        const latitude = typeof p.latitude === 'number'
+          ? p.latitude
+          : (hasCoordsArray ? p.location.coordinates[1] : undefined);
+        const longitude = typeof p.longitude === 'number'
+          ? p.longitude
+          : (hasCoordsArray ? p.location.coordinates[0] : undefined);
+
         return ({
           id: p._id,
           title: p.title,
           location: `${p.address}, ${p.city}`,
           price: pricePerNight,
           pricePerNight: pricePerNight,
+          latitude,
+          longitude,
           category: p.category || 'apartment',
           rating: p.ratings?.length ? (p.ratings.reduce((s, r) => s + r.rating, 0) / p.ratings.length).toFixed(1) : 0,
           reviews: p.ratings?.length || 0,
@@ -750,6 +760,7 @@ const ApartmentsListing = () => {
                         status: apartment.isAvailable ? 'active' : 'inactive',
                       }}
                       highlight={searchHighlight}
+                      allListings={apartments}
                       onView={() => (window.location.href = apartment.href || `/apartment/${apartment.id}`)}
                     />
                   </div>
