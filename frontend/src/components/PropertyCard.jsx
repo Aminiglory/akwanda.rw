@@ -119,6 +119,18 @@ const PropertyCard = ({
     setIsReviewsOpen(false);
   };
 
+  const handleShowOnMap = (e) => {
+    e?.stopPropagation?.();
+    if (listing?.latitude && listing?.longitude) {
+      navigate('/map-view', { 
+        state: { 
+          focusedProperty: listing,
+          properties: [listing] 
+        } 
+      });
+    }
+  };
+
   const showsBreakfast = !!(
     hasBreakfastIncluded ||
     String(title || '').toLowerCase().includes('breakfast') ||
@@ -341,6 +353,17 @@ const PropertyCard = ({
                 aria-label="Delete"
               >
                 <FaTrash />
+              </button>
+            )}
+            {listing?.latitude && listing?.longitude && (
+              <button
+                type="button"
+                onClick={handleShowOnMap}
+                className="p-2 border border-gray-300 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
+                aria-label="Show on Map"
+                title="Show on Map"
+              >
+                <FaMap />
               </button>
             )}
           </div>
