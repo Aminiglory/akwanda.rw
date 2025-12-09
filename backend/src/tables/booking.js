@@ -46,6 +46,10 @@ const bookingSchema = new mongoose.Schema(
     rating: { type: Number, min: 1, max: 5 },
     comment: { type: String },
     confirmationCode: { type: String, unique: true },
+    // Short human-friendly booking number (can be shown to guests)
+    bookingNumber: { type: String, index: true },
+    // Simple review PIN used to verify real guests when rating
+    reviewPin: { type: String },
     guestBreakdown: {
       adults: { type: Number, default: 1, min: 1 },
       children: { type: Number, default: 0, min: 0 },
@@ -81,10 +85,18 @@ bookingSchema.index({ property: 1, createdAt: -1 });
 bookingSchema.index({ guest: 1, createdAt: -1 });
 bookingSchema.index({ property: 1, status: 1, checkIn: 1, checkOut: 1 });
 
-// Generate confirmation code before saving
+// Generate confirmation code, booking number, and review PIN before saving
 bookingSchema.pre('save', function(next) {
   if (!this.confirmationCode) {
     this.confirmationCode = 'AKW' + Math.random().toString(36).substr(2, 6).toUpperCase();
+  }
+  if (!this.bookingNumber) {
+    // Use a readable shorter code derived from confirmationCode or random if missing
+    const base = this.confirmationCode || ('AKW' + Math.random().toString(36).substr(2, 6).toUpperCase());
+    this.bookingNumber = base.slice(0, 3) + '-' + base.slice(-4);
+  }
+  if (!this.reviewPin) {
+    this.reviewPin = String(Math.floor(1000 + Math.random() * 9000));
   }
   next();
 });

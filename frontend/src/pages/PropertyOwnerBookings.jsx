@@ -2119,26 +2119,7 @@ const PropertyOwnerBookings = () => {
               )}
             </div>
 
-            {analyticsView === 'dashboard' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="bg-[#fdf7f0] rounded-xl p-6 shadow-md border border-[#e0d5c7]">
-                  <h3 className="text-lg font-semibold text-[#4b2a00] mb-2">Occupancy Rate</h3>
-                  <div className="text-2xl font-bold text-[#a06b42]">{stats.occupancyRate}%</div>
-                </div>
-                <div className="bg-[#fdf7f0] rounded-xl p-6 shadow-md border border-[#e0d5c7]">
-                  <h3 className="text-lg font-semibold text-[#4b2a00] mb-2">Avg Rating</h3>
-                  <div className="text-2xl font-bold text-[#a06b42]">{stats.averageRating}</div>
-                </div>
-                <div className="bg-[#fdf7f0] rounded-xl p-6 shadow-md border border-[#e0d5c7]">
-                  <h3 className="text-lg font-semibold text-[#4b2a00] mb-2">Total Bookings</h3>
-                  <div className="text-2xl font-bold text-[#a06b42]">{stats.total}</div>
-                </div>
-                <div className="bg-[#fdf7f0] rounded-xl p-6 shadow-md border border-[#e0d5c7]">
-                  <h3 className="text-lg font-semibold text-[#4b2a00] mb-2">Properties</h3>
-                  <div className="text-2xl font-bold text-[#a06b42]">{stats.totalProperties}</div>
-                </div>
-              </div>
-            )}
+            {/* Removed duplicate analytics KPI cards so summary cards only appear on main dashboard tab */}
 
             {analyticsView === 'demand' && (
               <div className="space-y-4">

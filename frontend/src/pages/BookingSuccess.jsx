@@ -5,6 +5,8 @@ import { FaCheckCircle, FaCalendarAlt, FaMapMarkerAlt, FaBed } from 'react-icons
 const BookingSuccess = () => {
   const [params] = useSearchParams();
   const bookingId = params.get('id');
+  const bookingNumber = params.get('bn');
+  const reviewPin = params.get('pin');
   const property = params.get('property') || 'Your stay';
   const date = params.get('date');
   const location = params.get('loc');
@@ -22,12 +24,21 @@ const BookingSuccess = () => {
             <p className="text-gray-600 mt-1">Thank you! Your reservation has been secured successfully.</p>
 
             <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {bookingId && (
+              {(bookingNumber || bookingId) && (
                 <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50">
                   <FaCheckCircle className="text-blue-600" />
                   <div className="truncate">
-                    <div className="text-sm text-gray-500">Reference</div>
-                    <div className="font-medium text-gray-900 truncate">{bookingId}</div>
+                    <div className="text-sm text-gray-500">Booking number</div>
+                    <div className="font-medium text-gray-900 truncate">{bookingNumber || bookingId}</div>
+                  </div>
+                </div>
+              )}
+              {reviewPin && (
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50">
+                  <FaCheckCircle className="text-blue-600" />
+                  <div className="truncate">
+                    <div className="text-sm text-gray-500">Review PIN</div>
+                    <div className="font-medium text-gray-900 truncate">{reviewPin}</div>
                   </div>
                 </div>
               )}

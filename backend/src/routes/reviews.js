@@ -38,6 +38,7 @@ router.post('/', requireAuth, async (req, res) => {
     const {
       bookingId,
       propertyId,
+      reviewPin,
       overallScore10,
       staff,
       cleanliness,
@@ -58,6 +59,11 @@ router.post('/', requireAuth, async (req, res) => {
     if (!booking) return res.status(404).json({ message: 'Booking not found' });
     if (String(booking.guest) !== String(req.user.id)) {
       return res.status(403).json({ message: 'You can only review your own stays' });
+    }
+
+    // Optional extra security: require correct review PIN if defined on booking
+    if (booking.reviewPin && String(reviewPin || '').trim() !== String(booking.reviewPin)) {
+      return res.status(400).json({ message: 'Invalid review PIN for this booking' });
     }
 
     // Optional: require that stay has ended before review

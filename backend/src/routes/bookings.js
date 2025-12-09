@@ -869,6 +869,8 @@ router.get('/:id/receipt', requireAuth, async (req, res) => {
     const receipt = {
       bookingId: String(b._id),
       confirmationCode: b.confirmationCode || String(b._id),
+      bookingNumber: b.bookingNumber || null,
+      reviewPin: b.reviewPin || null,
       status: b.status,
       guests: b.numberOfGuests || 1,
       createdAt: b.createdAt || new Date(),

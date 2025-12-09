@@ -244,7 +244,23 @@ const PropertyCard = ({
           </span>
         )}
 
-        <div className="absolute top-3 right-3 flex flex-col space-y-2">
+        <div className="absolute top-3 right-3 flex flex-col items-end space-y-2">
+          {typeof rating !== 'undefined' && rating !== null && (
+            <button
+              type="button"
+              onClick={handleOpenReviews}
+              className="flex flex-col items-end text-xs focus:outline-none"
+            >
+              <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-blue-600 text-white font-semibold shadow">
+                {Number(rating || 0).toFixed(1)}
+              </span>
+              {typeof reviews !== 'undefined' && reviews !== null && (
+                <span className="mt-0.5 text-[11px] text-white drop-shadow underline">
+                  {reviews} review{reviews === 1 ? '' : 's'}
+                </span>
+              )}
+            </button>
+          )}
           {onToggleWishlist && (
             <button
               onClick={handleWishlistToggle}
@@ -340,29 +356,7 @@ const PropertyCard = ({
           </div>
         )}
         <div className="mt-4 flex items-center justify-between flex-none">
-          {typeof rating !== 'undefined' && rating !== null ? (
-            <button
-              type="button"
-              onClick={handleOpenReviews}
-              className="flex flex-col items-start text-xs focus:outline-none"
-            >
-              <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-blue-600 text-white font-semibold">
-                {Number(rating || 0).toFixed(1)}
-              </span>
-              {typeof reviews !== 'undefined' && reviews !== null && (
-                <span className="mt-0.5 text-gray-500 underline">
-                  {reviews} review{reviews === 1 ? '' : 's'}
-                </span>
-              )}
-              {typeof viewCount !== 'undefined' && viewCount !== null && (
-                <span className="mt-0.5 text-[11px] text-gray-400">
-                  {viewCount} view{viewCount === 1 ? '' : 's'}
-                </span>
-              )}
-            </button>
-          ) : (
-            <div />
-          )}
+          <div />
           <div className="flex items-center gap-2">
             <button
               type="button"

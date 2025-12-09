@@ -163,6 +163,8 @@ const BookingConfirmation = () => {
         paymentStatus: b.paymentStatus,
         bookingDate: b.createdAt,
         confirmationCode: b.confirmationCode,
+        bookingNumber: b.bookingNumber,
+        reviewPin: b.reviewPin,
         specialRequests: b.specialRequests || '',
         host: {
           name: '',
@@ -454,6 +456,18 @@ const BookingConfirmation = () => {
                   <div className="text-gray-600">Confirmation code</div>
                   <div className="font-semibold">{booking.confirmationCode || '—'}</div>
                 </div>
+                {booking.bookingNumber && (
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <div className="text-gray-600">Booking number</div>
+                    <div className="font-semibold">{booking.bookingNumber}</div>
+                  </div>
+                )}
+                {booking.reviewPin && (
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <div className="text-gray-600">Review PIN</div>
+                    <div className="font-semibold">{booking.reviewPin}</div>
+                  </div>
+                )}
                 <div className="bg-gray-50 rounded-lg p-3">
                   <div className="text-gray-600">Booked on</div>
                   <div className="font-semibold">{booking.bookingDate ? new Date(booking.bookingDate).toLocaleString() : '—'}</div>
@@ -468,6 +482,9 @@ const BookingConfirmation = () => {
                 <div className="flex justify-between"><span className="text-gray-600">Status</span><span className="font-medium">{booking.status}</span></div>
                 <div className="flex justify-between"><span className="text-gray-600">Payment</span><span className="font-medium">{booking.paymentStatus}</span></div>
                 <div className="flex justify-between"><span className="text-gray-600">Code</span><span className="font-medium">{booking.confirmationCode || '—'}</span></div>
+                {booking.bookingNumber && (
+                  <div className="flex justify-between"><span className="text-gray-600">Booking #</span><span className="font-medium">{booking.bookingNumber}</span></div>
+                )}
               </div>
               <a href="/my-bookings" className="mt-4 inline-block text-blue-600 hover:text-blue-700 text-sm">Go to My Bookings</a>
             </div>
