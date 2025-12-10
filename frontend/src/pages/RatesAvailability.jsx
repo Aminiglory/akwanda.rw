@@ -50,6 +50,7 @@ export default function RatesAvailability() {
   const [bulkRate, setBulkRate] = useState('');
   const [bulkMinStay, setBulkMinStay] = useState('');
   const [bulkMaxStay, setBulkMaxStay] = useState('');
+  const [bulkUnits, setBulkUnits] = useState('');
   const [listBookings, setListBookings] = useState([]);
   
   // State for switch case views (moved to top level to follow Rules of Hooks)
@@ -310,6 +311,8 @@ export default function RatesAvailability() {
     setBulkEditOpen(true);
     const todayStr = fmt(new Date());
     setBulkRange(r => ({ start: r.start || todayStr, end: r.end || todayStr }));
+    const currentUnits = room && typeof room.unitCount !== 'undefined' ? room.unitCount : 1;
+    setBulkUnits(String(currentUnits));
   };
 
   const closeBulkEdit = () => {
@@ -1029,6 +1032,26 @@ export default function RatesAvailability() {
                                     <div className="font-semibold">{room.roomType}</div>
                                     <div className="text-[10px] text-gray-500">Closed dates: {room.closedDates?.length || 0}</div>
                                   </div>
+                                  <div className="ml-2 flex items-center gap-1">
+                                    <span className="text-[10px] text-gray-600">Rooms to sell:</span>
+                                    <button
+                                      type="button"
+                                      className="px-2 py-1 border rounded text-[10px]"
+                                      onClick={() => updateRoomUnitCount(room._id, (Number(room.unitCount) || 1) - 1)}
+                                      aria-label="Decrease rooms to sell"
+                                    >
+                                      -
+                                    </button>
+                                    <span className="w-6 text-center text-[10px]">{Math.max(1, Number(room.unitCount) || 1)}</span>
+                                    <button
+                                      type="button"
+                                      className="px-2 py-1 border rounded text-[10px]"
+                                      onClick={() => updateRoomUnitCount(room._id, (Number(room.unitCount) || 1) + 1)}
+                                      aria-label="Increase rooms to sell"
+                                    >
+                                      +
+                                    </button>
+                                  </div>
                                   <button
                                     type="button"
                                     onClick={() => openBulkEdit(room)}
@@ -1284,6 +1307,59 @@ export default function RatesAvailability() {
                             Close selected dates
                           </button>
                         </div>
+                        {bulkEditRoom && (
+                          <div className="mt-2 flex items-center gap-2 text-xs">
+                            <span className="text-[11px] text-gray-600">Rooms to sell for this room type:</span>
+                            <button
+                              type="button"
+                              className="px-2 py-1 border rounded text-[11px]"
+                              onClick={() => {
+                                const current = bulkUnits === '' ? (Number(bulkEditRoom.unitCount) || 1) : Number(bulkUnits) || 1;
+                                const next = Math.max(1, current - 1);
+                                setBulkUnits(String(next));
+                              }}
+                              aria-label="Decrease rooms to sell"
+                            >
+                              -
+                            </button>
+                            <input
+                              type="number"
+                              min="1"
+                              className="w-16 px-2 py-1 border border-gray-300 rounded text-xs text-center"
+                              value={bulkUnits}
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                if (v === '') { setBulkUnits(''); return; }
+                                const n = Number(v);
+                                if (Number.isNaN(n) || n < 1) return;
+                                setBulkUnits(String(n));
+                              }}
+                            />
+                            <button
+                              type="button"
+                              className="px-2 py-1 border rounded text-[11px]"
+                              onClick={() => {
+                                const current = bulkUnits === '' ? (Number(bulkEditRoom.unitCount) || 1) : Number(bulkUnits) || 1;
+                                const next = Math.max(1, current + 1);
+                                setBulkUnits(String(next));
+                              }}
+                              aria-label="Increase rooms to sell"
+                            >
+                              +
+                            </button>
+                            <button
+                              type="button"
+                              className="ml-3 px-3 py-1 rounded-full bg-[#a06b42] text-white text-[11px] font-medium hover:bg-[#8f5a32]"
+                              onClick={async () => {
+                                if (!bulkEditRoom) return;
+                                const base = bulkUnits === '' ? (Number(bulkEditRoom.unitCount) || 1) : Number(bulkUnits) || 1;
+                                await updateRoomUnitCount(bulkEditRoom._id, base);
+                              }}
+                            >
+                              Save rooms to sell
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
 
