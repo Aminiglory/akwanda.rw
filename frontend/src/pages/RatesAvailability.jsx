@@ -147,6 +147,8 @@ export default function RatesAvailability() {
         setListBookings([]);
       }
     };
+    loadListBookings();
+  }, [selectedProperty, view, pricingCalendarView, activeMonth]);
 
   const updateRoomUnitCount = async (roomId, nextUnits) => {
     try {
@@ -174,8 +176,6 @@ export default function RatesAvailability() {
       toast.error(e.message || 'Failed to update rooms to sell');
     }
   };
-    loadListBookings();
-  }, [selectedProperty, view, pricingCalendarView, activeMonth]);
 
   // Keep add-on services draft in sync with loaded property data
   useEffect(() => {

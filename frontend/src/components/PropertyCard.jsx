@@ -246,15 +246,11 @@ const PropertyCard = ({
 
         <div className="absolute top-3 right-3 flex flex-col items-end space-y-2">
           {typeof rating !== 'undefined' && rating !== null && (
-            <button
-              type="button"
-              onClick={handleOpenReviews}
-              className="flex flex-col items-end text-xs focus:outline-none"
-            >
+            <div className="flex flex-col items-end text-xs">
               <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-blue-600 text-white font-semibold shadow">
                 {Number(rating || 0).toFixed(1)}
               </span>
-            </button>
+            </div>
           )}
           {onToggleWishlist && (
             <button
