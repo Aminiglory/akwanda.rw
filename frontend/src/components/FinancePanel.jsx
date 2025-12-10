@@ -17,6 +17,7 @@ const FinancePanel = ({ propertyOptions = [], activeSection = 'ledger' }) => {
   const [expenses, setExpenses] = useState([]);
   const [expensesTotal, setExpensesTotal] = useState(0);
   const [expenseFilters, setExpenseFilters] = useState({ from: '', to: '' });
+  const [editingExpenseId, setEditingExpenseId] = useState(null);
 
   const [summaryRange, setSummaryRange] = useState('monthly'); // weekly | monthly | annual
   const [summaryDate, setSummaryDate] = useState(() => new Date().toISOString().slice(0, 10));
@@ -156,7 +157,7 @@ const FinancePanel = ({ propertyOptions = [], activeSection = 'ledger' }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters.propertyId, summaryRange, summaryDate]);
 
-  const handleAddExpense = async (e) => {
+  const handleSaveExpense = async (e) => {
     e.preventDefault();
     if (!filters.propertyId) {
       toast.error('Select a property first');
@@ -170,8 +171,15 @@ const FinancePanel = ({ propertyOptions = [], activeSection = 'ledger' }) => {
     const date = expenseForm.date || new Date().toISOString().slice(0, 10);
     try {
       setSavingExpense(true);
-      const res = await fetch(`${API_URL}/api/finance/expenses`, {
-        method: 'POST',
+
+      const isEditing = !!editingExpenseId;
+      const url = isEditing
+        ? `${API_URL}/api/finance/expenses/${editingExpenseId}`
+        : `${API_URL}/api/finance/expenses`;
+      const method = isEditing ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method,
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -183,15 +191,51 @@ const FinancePanel = ({ propertyOptions = [], activeSection = 'ledger' }) => {
         }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.message || 'Failed to record expense');
-      toast.success('Expense recorded');
+      if (!res.ok) throw new Error(data.message || (isEditing ? 'Failed to update expense' : 'Failed to record expense'));
+      toast.success(isEditing ? 'Expense updated' : 'Expense recorded');
       setExpenseForm({ date: '', amount: '', category: '', note: '' });
+      setEditingExpenseId(null);
       await loadExpenses();
       await loadSummary();
     } catch (err) {
       toast.error(err.message || 'Failed to record expense');
     } finally {
       setSavingExpense(false);
+    }
+  };
+
+  const handleEditExpense = (exp) => {
+    setExpenseForm({
+      date: exp.date ? new Date(exp.date).toISOString().slice(0, 10) : '',
+      amount: exp.amount != null ? String(exp.amount) : '',
+      category: exp.category || '',
+      note: exp.note || '',
+    });
+    setEditingExpenseId(exp._id || null);
+  };
+
+  const handleDeleteExpense = async (id) => {
+    if (!id) return;
+    if (!filters.propertyId) {
+      toast.error('Select a property first');
+      return;
+    }
+    try {
+      const res = await fetch(`${API_URL}/api/finance/expenses/${id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || 'Failed to delete expense');
+      toast.success('Expense deleted');
+      if (editingExpenseId === id) {
+        setEditingExpenseId(null);
+        setExpenseForm({ date: '', amount: '', category: '', note: '' });
+      }
+      await loadExpenses();
+      await loadSummary();
+    } catch (e) {
+      toast.error(e.message || 'Failed to delete expense');
     }
   };
 
@@ -454,7 +498,7 @@ const FinancePanel = ({ propertyOptions = [], activeSection = 'ledger' }) => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <form onSubmit={handleAddExpense} className="bg-gray-50 rounded-lg p-4 border lg:col-span-1">
+          <form onSubmit={handleSaveExpense} className="bg-gray-50 rounded-lg p-4 border lg:col-span-1">
             <div className="mb-3">
               <label className="block text-xs font-medium text-gray-700 mb-1">Date</label>
               <input
@@ -501,8 +545,22 @@ const FinancePanel = ({ propertyOptions = [], activeSection = 'ledger' }) => {
                 savingExpense ? 'bg-blue-400' : 'bg-blue-600 hover:bg-blue-700'
               }`}
             >
-              {savingExpense ? 'Saving…' : 'Add Expense'}
+              {savingExpense
+                ? 'Saving…'
+                : (editingExpenseId ? 'Update Expense' : 'Add Expense')}
             </button>
+            {editingExpenseId && (
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingExpenseId(null);
+                  setExpenseForm({ date: '', amount: '', category: '', note: '' });
+                }}
+                className="mt-2 w-full inline-flex items-center justify-center px-4 py-2 rounded-lg text-sm font-medium text-gray-700 border border-gray-300 hover:bg-gray-50"
+              >
+                Cancel edit
+              </button>
+            )}
           </form>
 
           <div className="lg:col-span-2 bg-white rounded-lg border p-4">
@@ -521,6 +579,7 @@ const FinancePanel = ({ propertyOptions = [], activeSection = 'ledger' }) => {
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Note</th>
                       <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Amount</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
@@ -537,6 +596,22 @@ const FinancePanel = ({ propertyOptions = [], activeSection = 'ledger' }) => {
                         </td>
                         <td className="px-4 py-2 text-xs text-right font-semibold text-gray-900">
                           {formatCurrency(exp.amount)}
+                        </td>
+                        <td className="px-4 py-2 text-xs text-right space-x-2">
+                          <button
+                            type="button"
+                            onClick={() => handleEditExpense(exp)}
+                            className="inline-flex items-center px-2 py-1 border rounded text-[11px] text-gray-700 hover:bg-gray-50"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteExpense(exp._id)}
+                            className="inline-flex items-center px-2 py-1 border rounded text-[11px] text-red-600 hover:bg-red-50"
+                          >
+                            Delete
+                          </button>
                         </td>
                       </tr>
                     ))}

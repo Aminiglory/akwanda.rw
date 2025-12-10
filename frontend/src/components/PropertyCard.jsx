@@ -245,13 +245,6 @@ const PropertyCard = ({
         )}
 
         <div className="absolute top-3 right-3 flex flex-col items-end space-y-2">
-          {typeof rating !== 'undefined' && rating !== null && (
-            <div className="flex flex-col items-end text-xs">
-              <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-blue-600 text-white font-semibold shadow">
-                {Number(rating || 0).toFixed(1)}
-              </span>
-            </div>
-          )}
           {onToggleWishlist && (
             <button
               onClick={handleWishlistToggle}
@@ -353,9 +346,17 @@ const PropertyCard = ({
               const ratingsCount = Array.isArray(listing?.ratings) ? listing.ratings.length : 0;
               const reviewsArrayCount = Array.isArray(listing?.reviews) ? listing.reviews.length : 0;
               const count = explicitCount != null ? explicitCount : (ratingsCount || reviewsArrayCount);
-              const label = count && count > 0
-                ? `${count} review${count === 1 ? '' : 's'}`
-                : 'Reviews';
+              const hasRating = typeof rating === 'number' && !Number.isNaN(rating);
+              let label;
+              if (hasRating && count && count > 0) {
+                label = `${Number(rating || 0).toFixed(1)} · ${count} review${count === 1 ? '' : 's'}`;
+              } else if (hasRating) {
+                label = `${Number(rating || 0).toFixed(1)} · Reviews`;
+              } else if (count && count > 0) {
+                label = `${count} review${count === 1 ? '' : 's'}`;
+              } else {
+                label = 'Reviews';
+              }
               return (
                 <button
                   type="button"
