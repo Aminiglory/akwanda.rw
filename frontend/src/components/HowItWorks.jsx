@@ -431,37 +431,7 @@ const HowItWorks = () => {
           </div>
         )}
 
-        {/* What our users say */}
-        {testimonials && testimonials.length > 0 && (
-          <div className="bg-white py-12 px-4">
-            <div className="max-w-6xl mx-auto">
-              <h3 className="text-2xl md:text-3xl font-extrabold text-[#2B1B0E] mb-6">What our users say</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {testimonials.map((t, i) => (
-                  <div key={i} className="rounded-xl border border-gray-200 p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="font-semibold text-gray-900 text-sm truncate max-w-[70%]">{t.propertyTitle}</div>
-                      {(() => {
-                        const score10 = Math.max(0, Math.min(10, Number(t.rating || 0) * 2));
-                        if (!score10) return null;
-                        return (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[11px] font-medium">
-                            <span className="inline-flex items-center justify-center w-6 h-6 rounded bg-blue-600 text-white text-xs font-bold">
-                              {score10.toFixed(1)}
-                            </span>
-                            <span>Guest rating</span>
-                          </span>
-                        );
-                      })()}
-                    </div>
-                    <div className="text-sm text-gray-700 line-clamp-4">{t.comment}</div>
-                    {t.createdAt && (<div className="text-xs text-gray-400 mt-2">{new Date(t.createdAt).toLocaleDateString()}</div>)}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Reviews grid removed from HowItWorks – keep reviews only on property card modal and other property pages */}
       </div>
     </div>
   );
