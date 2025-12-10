@@ -5,7 +5,6 @@ import FeaturedApartments from '../components/FeaturedApartments';
 import LandingAttractions from '../components/LandingAttractions';
 import OurMission from '../components/OurMission';
 import HowItWorks from '../components/HowItWorks';
-import Testimonials from '../components/Testimonials';
 import { useLocale } from '../contexts/LocaleContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -223,9 +222,6 @@ const Home = () => {
             </div>
           </section>
         )}
-
-        {/* Testimonials (existing) */}
-        <Testimonials />
 
         {/* CTA band */}
         <section className="bg-[#a06b42] text-white">
