@@ -353,14 +353,16 @@ const PropertyCard = ({
               const ratingsCount = Array.isArray(listing?.ratings) ? listing.ratings.length : 0;
               const reviewsArrayCount = Array.isArray(listing?.reviews) ? listing.reviews.length : 0;
               const count = explicitCount != null ? explicitCount : (ratingsCount || reviewsArrayCount);
-              if (!count || count <= 0) return null;
+              const label = count && count > 0
+                ? `${count} review${count === 1 ? '' : 's'}`
+                : 'Reviews';
               return (
                 <button
                   type="button"
                   onClick={handleOpenReviews}
                   className="hover:underline font-medium"
                 >
-                  {count} review{count === 1 ? '' : 's'}
+                  {label}
                 </button>
               );
             })()}
