@@ -348,15 +348,22 @@ const PropertyCard = ({
         )}
         <div className="mt-4 flex items-center justify-between flex-none">
           <div className="text-[11px] text-gray-600">
-            {typeof reviews !== 'undefined' && reviews !== null && reviews > 0 && (
-              <button
-                type="button"
-                onClick={handleOpenReviews}
-                className="hover:underline"
-              >
-                {reviews} review{reviews === 1 ? '' : 's'}
-              </button>
-            )}
+            {(() => {
+              const explicitCount = typeof reviews === 'number' ? reviews : null;
+              const ratingsCount = Array.isArray(listing?.ratings) ? listing.ratings.length : 0;
+              const reviewsArrayCount = Array.isArray(listing?.reviews) ? listing.reviews.length : 0;
+              const count = explicitCount != null ? explicitCount : (ratingsCount || reviewsArrayCount);
+              if (!count || count <= 0) return null;
+              return (
+                <button
+                  type="button"
+                  onClick={handleOpenReviews}
+                  className="hover:underline font-medium"
+                >
+                  {count} review{count === 1 ? '' : 's'}
+                </button>
+              );
+            })()}
           </div>
           <div className="flex items-center gap-2">
             <button
