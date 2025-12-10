@@ -11,6 +11,28 @@ import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 
+const toRad = (value) => (value * Math.PI) / 180;
+
+const distanceInKm = (lat1, lon1, lat2, lon2) => {
+  if (
+    lat1 == null || lon1 == null ||
+    lat2 == null || lon2 == null ||
+    Number.isNaN(lat1) || Number.isNaN(lon1) ||
+    Number.isNaN(lat2) || Number.isNaN(lon2)
+  ) {
+    return null;
+  }
+  const R = 6371; // km
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
+
 // Fix for default marker icons
 const DefaultIcon = L.icon({
   iconUrl: markerIcon,
@@ -34,6 +56,7 @@ const PropertyMapView = () => {
   const [loading, setLoading] = useState(true);
   const [selectedProperty, setSelectedProperty] = useState(initialFocused);
   const [bounds, setBounds] = useState(null);
+  const [mapCenter, setMapCenter] = useState(null);
   const [activeFilters, setActiveFilters] = useState({
     type: 'all',
     minPrice: 0,
@@ -46,7 +69,7 @@ const PropertyMapView = () => {
     const label = name.length > maxLen ? `${name.slice(0, maxLen - 1)}…` : name;
 
     return L.divIcon({
-      html: `<div style="background:${isSelected ? '#b91c1c' : '#1d4ed8'};color:#ffffff;padding:${isSelected ? '6px 14px' : '4px 10px'};border-radius:9999px;font-weight:700;font-size:${isSelected ? '13px' : '12px'};box-shadow:0 10px 25px rgba(15,23,42,0.55);white-space:nowrap;border:1px solid rgba(255,255,255,0.85);transform:${isSelected ? 'scale(1.05)' : 'scale(1)'};">${label}</div>`,
+      html: `<div style="background:${isSelected ? '#b91c1c' : '#1d4ed8'};color:#ffffff;padding:${isSelected ? '6px 14px' : '4px 10px'};border-radius:9999px;font-weight:700;font-size:${isSelected ? '13px' : '12px'};box-shadow:0 10px 25px rgba(15,23,42,0.55);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border:1px solid rgba(255,255,255,0.85);transform:${isSelected ? 'scale(1.05)' : 'scale(1)'};">${label}</div>`,
       className: '',
       iconSize: isSelected ? [95, 38] : [80, 32],
       iconAnchor: isSelected ? [48, 38] : [40, 32],
@@ -64,10 +87,11 @@ const PropertyMapView = () => {
           setProperties(incomingProps);
 
           if (incomingProps.length > 0) {
-            const bounds = L.latLngBounds(
+            const nextBounds = L.latLngBounds(
               incomingProps.map(p => [p.latitude, p.longitude])
             );
-            setBounds(bounds);
+            setBounds(nextBounds);
+            setMapCenter(nextBounds.getCenter());
           }
 
           if (location.state.focusedProperty) {
@@ -84,12 +108,14 @@ const PropertyMapView = () => {
           // Otherwise, fetch all properties with coordinates
           const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/properties?fields=id,title,price,images,bedrooms,bathrooms,type,rating,latitude,longitude`);
           const data = await response.json();
-          setProperties(data);
-          if (data.length > 0) {
-            const bounds = L.latLngBounds(
-              data.map(p => [p.latitude, p.longitude])
+          const list = Array.isArray(data?.properties) ? data.properties : Array.isArray(data) ? data : [];
+          setProperties(list);
+          if (list.length > 0) {
+            const nextBounds = L.latLngBounds(
+              list.map(p => [p.latitude, p.longitude])
             );
-            setBounds(bounds);
+            setBounds(nextBounds);
+            setMapCenter(nextBounds.getCenter());
           }
         }
       } catch (error) {
@@ -124,14 +150,30 @@ const PropertyMapView = () => {
 
   // Filter properties based on active filters
   const filteredProperties = properties.filter(property => {
-    if (activeFilters.type !== 'all' && property.type !== activeFilters.type) {
+    if (activeFilters.type !== 'all' && property.type && property.type !== activeFilters.type) {
       return false;
     }
-    if (property.price < activeFilters.minPrice || property.price > activeFilters.maxPrice) {
-      return false;
+    const price = Number(property.price || 0);
+    if (Number.isFinite(price)) {
+      if (price < activeFilters.minPrice || price > activeFilters.maxPrice) {
+        return false;
+      }
     }
     return true;
   });
+
+  let distanceLabel = null;
+  if (mapCenter && selectedProperty && selectedProperty.latitude != null && selectedProperty.longitude != null) {
+    const d = distanceInKm(
+      mapCenter.lat,
+      mapCenter.lng,
+      Number(selectedProperty.latitude),
+      Number(selectedProperty.longitude)
+    );
+    if (d != null && Number.isFinite(d)) {
+      distanceLabel = d.toFixed(1);
+    }
+  }
 
   if (loading) {
     return (
@@ -225,10 +267,16 @@ const PropertyMapView = () => {
                 ×
               </button>
             </div>
-            <div className="flex items-center text-gray-600 text-sm mb-3">
+            <div className="flex items-center text-gray-600 text-sm mb-2">
               <FaMapMarkerAlt className="mr-1" />
               <span>{selectedProperty.location || selectedProperty.address || (t ? t('map.addressNotAvailable') : 'Address not available')}</span>
             </div>
+            {distanceLabel && (
+              <div className="text-xs text-gray-500 mb-3">
+                <span className="font-medium">{distanceLabel} km</span>{' '}
+                {t ? t('map.fromCenter') : 'from center'}
+              </div>
+            )}
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center">
                 <span className="text-yellow-500 flex items-center">
@@ -249,7 +297,7 @@ const PropertyMapView = () => {
                 <FaBath className="mr-1" /> {selectedProperty.bathrooms || 1} {t ? t('map.bathsLabel') : 'Baths'}
               </span>
             </div>
-            <div className="flex space-x-3">
+            <div className="flex flex-col sm:flex-row sm:space-x-3 space-y-2 sm:space-y-0">
               <Link
                 to={`/apartment/${selectedProperty.id}`}
                 className="flex-1 bg-blue-600 text-white text-center py-2 rounded-lg hover:bg-blue-700 transition-colors"
@@ -259,6 +307,16 @@ const PropertyMapView = () => {
               <button className="px-4 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors">
                 {t ? t('map.bookNow') : 'Book Now'}
               </button>
+              {selectedProperty.latitude != null && selectedProperty.longitude != null && (
+                <a
+                  href={`https://www.openstreetmap.org/directions?to=${selectedProperty.latitude},${selectedProperty.longitude}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm text-center"
+                >
+                  {t ? t('map.getDirections') : 'Get directions'}
+                </a>
+              )}
             </div>
           </div>
         </div>
