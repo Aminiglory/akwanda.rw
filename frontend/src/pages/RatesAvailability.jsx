@@ -150,7 +150,14 @@ export default function RatesAvailability() {
 
   const updateRoomUnitCount = async (roomId, nextUnits) => {
     try {
-      if (!selectedProperty || !roomId) return;
+      if (!selectedProperty) {
+        toast.error('No property selected');
+        return;
+      }
+      if (!roomId) {
+        toast.error('Room ID missing for rooms to sell update');
+        return;
+      }
       const units = Math.max(1, Number(nextUnits) || 1);
       const res = await fetch(`${API_URL}/api/properties/${selectedProperty}/rooms/${roomId}`, {
         method: 'PUT',
@@ -313,6 +320,20 @@ export default function RatesAvailability() {
     setBulkRange(r => ({ start: r.start || todayStr, end: r.end || todayStr }));
     const currentUnits = room && typeof room.unitCount !== 'undefined' ? room.unitCount : 1;
     setBulkUnits(String(currentUnits));
+    // Default price to this room's base rate if present
+    const baseRate = room && (room.rate || room.pricePerNight || room.price);
+    setBulkRate(baseRate != null && !Number.isNaN(Number(baseRate)) && Number(baseRate) > 0
+      ? String(Number(baseRate))
+      : '');
+    // Default restrictions to this room's min/max stay if present
+    const rMinStay = room && room.minStay;
+    const rMaxStay = room && room.maxStay;
+    setBulkMinStay(rMinStay != null && !Number.isNaN(Number(rMinStay)) && Number(rMinStay) > 0
+      ? String(Number(rMinStay))
+      : '');
+    setBulkMaxStay(rMaxStay != null && !Number.isNaN(Number(rMaxStay)) && Number(rMaxStay) > 0
+      ? String(Number(rMaxStay))
+      : '');
   };
 
   const closeBulkEdit = () => {
@@ -1024,7 +1045,7 @@ export default function RatesAvailability() {
                             }).length;
                           };
                           return (
-                          <React.Fragment key={room._id}>
+                          <React.Fragment key={room._id || room.roomId}>
                             <tr className="border-t border-[#f0e6d9] bg-[#fdf7f0]">
                               <td className="px-3 py-2 text-[11px] text-[#4b2a00] sticky left-0 z-10">
                                 <div className="flex items-center justify-between">
@@ -1037,7 +1058,10 @@ export default function RatesAvailability() {
                                     <button
                                       type="button"
                                       className="px-2 py-1 border rounded text-[10px]"
-                                      onClick={() => updateRoomUnitCount(room._id, (Number(room.unitCount) || 1) - 1)}
+                                      onClick={() => {
+                                        const rid = room.roomId || room._id;
+                                        updateRoomUnitCount(rid, (Number(room.unitCount) || 1) - 1);
+                                      }}
                                       aria-label="Decrease rooms to sell"
                                     >
                                       -
@@ -1046,7 +1070,10 @@ export default function RatesAvailability() {
                                     <button
                                       type="button"
                                       className="px-2 py-1 border rounded text-[10px]"
-                                      onClick={() => updateRoomUnitCount(room._id, (Number(room.unitCount) || 1) + 1)}
+                                      onClick={() => {
+                                        const rid = room.roomId || room._id;
+                                        updateRoomUnitCount(rid, (Number(room.unitCount) || 1) + 1);
+                                      }}
                                       aria-label="Increase rooms to sell"
                                     >
                                       +
@@ -1353,7 +1380,8 @@ export default function RatesAvailability() {
                               onClick={async () => {
                                 if (!bulkEditRoom) return;
                                 const base = bulkUnits === '' ? (Number(bulkEditRoom.unitCount) || 1) : Number(bulkUnits) || 1;
-                                await updateRoomUnitCount(bulkEditRoom._id, base);
+                                const rid = bulkEditRoom.roomId || bulkEditRoom._id;
+                                await updateRoomUnitCount(rid, base);
                               }}
                             >
                               Save rooms to sell
