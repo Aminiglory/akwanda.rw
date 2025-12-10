@@ -474,7 +474,11 @@ const PropertyOwnerBookings = () => {
     }
 
     // Normalize tab mapping to our internal tabs
-    if (tab) {
+    if (!tab && location.pathname === '/dashboard') {
+      // Any /dashboard URL without an explicit tab (even with other params like property)
+      // should show the main dashboard home view.
+      setActiveTab('dashboard');
+    } else if (tab) {
       if (tab === 'bookings' || tab === 'reservations') {
         setActiveTab('reservations');
         // Expand reservations section
