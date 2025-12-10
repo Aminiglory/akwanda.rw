@@ -90,7 +90,11 @@ const PropertyCard = ({
 
   const [isReviewsOpen, setIsReviewsOpen] = useState(false);
   const [isLoadingReviews, setIsLoadingReviews] = useState(false);
-  const [reviewsList, setReviewsList] = useState(() => (Array.isArray(listing?.ratings) ? listing.ratings : []));
+  const [reviewsList, setReviewsList] = useState(() => {
+    if (Array.isArray(listing?.ratings) && listing.ratings.length > 0) return listing.ratings;
+    if (Array.isArray(listing?.reviews) && listing.reviews.length > 0) return listing.reviews;
+    return [];
+  });
 
   const handleOpenReviews = async (e) => {
     e?.stopPropagation?.();
@@ -101,10 +105,18 @@ const PropertyCard = ({
         setIsLoadingReviews(true);
         const res = await fetch(`${API_URL}/api/properties/${pid}`, { credentials: 'include' });
         const data = await res.json().catch(() => ({}));
-        if (Array.isArray(data?.ratings)) {
-          setReviewsList(data.ratings);
-        } else if (Array.isArray(data?.reviews)) {
-          setReviewsList(data.reviews);
+        let next = [];
+        if (Array.isArray(data?.ratings) && data.ratings.length > 0) {
+          next = data.ratings;
+        } else if (Array.isArray(data?.reviews) && data.reviews.length > 0) {
+          next = data.reviews;
+        } else if (Array.isArray(data?.property?.ratings) && data.property.ratings.length > 0) {
+          next = data.property.ratings;
+        } else if (Array.isArray(data?.property?.reviews) && data.property.reviews.length > 0) {
+          next = data.property.reviews;
+        }
+        if (next.length > 0) {
+          setReviewsList(next);
         }
       } catch (_) {
         // ignore errors; modal will just show no reviews
