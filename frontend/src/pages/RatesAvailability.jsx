@@ -343,7 +343,7 @@ export default function RatesAvailability() {
 
   const applyBulkOpenClose = async (mode) => {
     if (!bulkEditRoom) return;
-    const roomId = bulkEditRoom._id;
+    const roomId = bulkEditRoom.roomId || bulkEditRoom._id;
     if (!bulkRange.start || !bulkRange.end) {
       toast.error('Please select both start and end dates');
       return;
@@ -366,7 +366,7 @@ export default function RatesAvailability() {
 
   const applyBulkRestrictions = async () => {
     if (!bulkEditRoom) return;
-    const roomId = bulkEditRoom._id;
+    const roomId = bulkEditRoom.roomId || bulkEditRoom._id;
     const minStay = bulkMinStay !== '' ? Number(bulkMinStay) : null;
     const maxStay = bulkMaxStay !== '' ? Number(bulkMaxStay) : null;
     if (minStay != null && maxStay != null && maxStay < minStay) {
@@ -983,7 +983,10 @@ export default function RatesAvailability() {
                               <button
                                 type="button"
                                 className="px-2 py-1 border rounded text-xs"
-                                onClick={() => updateRoomUnitCount(room._id, (Number(room.unitCount) || 1) - 1)}
+                                onClick={() => {
+                                  const rid = room.roomId || room._id;
+                                  updateRoomUnitCount(rid, (Number(room.unitCount) || 1) - 1);
+                                }}
                                 aria-label="Decrease rooms to sell"
                               >
                                 -
@@ -992,7 +995,10 @@ export default function RatesAvailability() {
                               <button
                                 type="button"
                                 className="px-2 py-1 border rounded text-xs"
-                                onClick={() => updateRoomUnitCount(room._id, (Number(room.unitCount) || 1) + 1)}
+                                onClick={() => {
+                                  const rid = room.roomId || room._id;
+                                  updateRoomUnitCount(rid, (Number(room.unitCount) || 1) + 1);
+                                }}
                                 aria-label="Increase rooms to sell"
                               >
                                 +
@@ -1112,8 +1118,8 @@ export default function RatesAvailability() {
                             </tr>
                             <tr className="border-t border-[#f0e6d9]">
                               <td className="px-3 py-2 text-[11px] text-gray-600 sticky left-0 bg-white z-10">
-                                <div className="font-semibold mb-1">Rooms to sell</div>
-                                <div className="text-[10px] text-gray-500">Approximate units available per day</div>
+                                <div className="font-semibold mb-1">Rooms to sell (remaining)</div>
+                                <div className="text-[10px] text-gray-500">Total rooms of this type minus bookings for each day</div>
                               </td>
                               {days.map((d) => {
                                 const dateStr = fmt(d);

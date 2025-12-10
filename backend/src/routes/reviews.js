@@ -288,6 +288,7 @@ router.get('/property/:propertyId', async (req, res) => {
       valueForMoney: rating.valueForMoney,
       title: rating.title,
       highlights: Array.isArray(rating.highlights) ? rating.highlights : [],
+      reservationNumber: rating.reservationNumber,
       guest: rating.guest ? {
         _id: rating.guest._id,
         firstName: rating.guest.firstName,
