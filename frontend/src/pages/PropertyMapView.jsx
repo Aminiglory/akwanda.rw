@@ -44,6 +44,14 @@ const PropertyMapView = () => {
     maxPrice: 1000000,
   });
 
+  const safeT = (key, fallback) => {
+    if (!t) return fallback;
+    const value = t(key);
+    if (!value || typeof value !== 'string') return fallback;
+    if (value === key) return fallback;
+    return value;
+  };
+
   const getMarkerLabel = (property) => (
     String(property.title || '').trim() || (t ? t('map.unnamedProperty') : 'Property')
   );
@@ -117,7 +125,8 @@ const PropertyMapView = () => {
   };
 
   const handleMarkerLeave = () => {
-    setSelectedProperty(null);
+    // Keep the last selected/hovered property visible instead of clearing,
+    // so the focused property from OpenStreetMap remains highlighted.
   };
 
   const handleClosePopup = () => {
@@ -171,9 +180,9 @@ const PropertyMapView = () => {
           onClick={handleBackToListing}
           className="flex items-center text-blue-600 hover:text-blue-800"
         >
-          <FaArrowLeft className="mr-2" /> {t ? t('map.backToListings') : 'Back to Listings'}
+          <FaArrowLeft className="mr-2" /> {safeT('backToListings', 'Back to listings')}
         </button>
-        <h1 className="text-xl font-bold">{t ? t('map.title') : 'Properties on Map'}</h1>
+        <h1 className="text-xl font-bold">{safeT('title', 'Properties on map')}</h1>
         <div className="w-8"></div> {/* For balance */}
       </header>
 
@@ -212,13 +221,15 @@ const PropertyMapView = () => {
                       style={{
                         backgroundColor: isSelected ? '#b91c1c' : '#1d4ed8',
                         color: '#ffffff',
-                        padding: isSelected ? '6px 18px' : '4px 14px',
+                        padding: isSelected ? '8px 26px' : '6px 22px',
                         borderRadius: 9999,
                         fontWeight: 700,
                         fontSize: isSelected ? 13 : 12,
                         boxShadow: '0 10px 25px rgba(15,23,42,0.55)',
                         whiteSpace: 'nowrap',
                         border: '1px solid rgba(255,255,255,0.85)',
+                        minWidth: 96,
+                        textAlign: 'center',
                       }}
                     >
                       {label}
@@ -246,12 +257,12 @@ const PropertyMapView = () => {
             </div>
             <div className="flex items-center text-gray-600 text-sm mb-2">
               <FaMapMarkerAlt className="mr-1" />
-              <span>{selectedProperty.location || selectedProperty.address || (t ? t('map.addressNotAvailable') : 'Address not available')}</span>
+              <span>{selectedProperty.location || selectedProperty.address || safeT('addressNotAvailable', 'Address not available')}</span>
             </div>
             {distanceLabel && (
               <div className="text-xs text-gray-500 mb-3">
                 <span className="font-medium">{distanceLabel} km</span>{' '}
-                {t ? t('map.fromCenter') : 'from center'}
+                {safeT('fromCenter', 'from center')}
               </div>
             )}
             <div className="flex items-center justify-between mb-3">
@@ -268,10 +279,10 @@ const PropertyMapView = () => {
             </div>
             <div className="flex items-center text-gray-500 text-sm mb-4">
               <span className="flex items-center mr-4">
-                <FaBed className="mr-1" /> {selectedProperty.bedrooms || 1} {t ? t('map.bedsLabel') : 'Beds'}
+                <FaBed className="mr-1" /> {selectedProperty.bedrooms || 1} {safeT('bedsLabel', 'Beds')}
               </span>
               <span className="flex items-center">
-                <FaBath className="mr-1" /> {selectedProperty.bathrooms || 1} {t ? t('map.bathsLabel') : 'Baths'}
+                <FaBath className="mr-1" /> {selectedProperty.bathrooms || 1} {safeT('bathsLabel', 'Baths')}
               </span>
             </div>
             <div className="flex flex-col sm:flex-row sm:space-x-3 space-y-2 sm:space-y-0">
@@ -279,10 +290,10 @@ const PropertyMapView = () => {
                 to={`/apartment/${selectedProperty.id}`}
                 className="flex-1 bg-blue-600 text-white text-center py-2 rounded-lg hover:bg-blue-700 transition-colors"
               >
-                {t ? t('map.viewDetails') : 'View Details'}
+                {safeT('viewDetails', 'View details')}
               </Link>
               <button className="px-4 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors">
-                {t ? t('map.bookNow') : 'Book Now'}
+                {safeT('bookNow', 'Book now')}
               </button>
               {selectedProperty.latitude != null && selectedProperty.longitude != null && (
                 <a
@@ -291,7 +302,7 @@ const PropertyMapView = () => {
                   rel="noopener noreferrer"
                   className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm text-center"
                 >
-                  {t ? t('map.getDirections') : 'Get directions'}
+                  {safeT('getDirections', 'Get directions')}
                 </a>
               )}
             </div>
@@ -301,26 +312,26 @@ const PropertyMapView = () => {
 
       {/* Filters Panel */}
       <div className="absolute top-20 left-4 z-10 bg-white p-4 rounded-lg shadow-lg w-64">
-        <h3 className="font-semibold mb-3">{t ? t('map.filtersTitle') : 'Filters'}</h3>
+        <h3 className="font-semibold mb-3">{safeT('filtersTitle', 'Filters')}</h3>
         
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">{t ? t('map.propertyType') : 'Property Type'}</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{safeT('propertyType', 'Property type')}</label>
           <select 
             className="w-full p-2 border rounded-md"
             value={activeFilters.type}
             onChange={(e) => setActiveFilters({...activeFilters, type: e.target.value})}
           >
-            <option value="all">{t ? t('map.typeAll') : 'All Types'}</option>
-            <option value="apartment">{t ? t('map.typeApartment') : 'Apartment'}</option>
-            <option value="house">{t ? t('map.typeHouse') : 'House'}</option>
-            <option value="villa">{t ? t('map.typeVilla') : 'Villa'}</option>
-            <option value="hotel">{t ? t('map.typeHotel') : 'Hotel'}</option>
+            <option value="all">{safeT('typeAll', 'All')}</option>
+            <option value="apartment">{safeT('typeApartment', 'Apartments')}</option>
+            <option value="house">{safeT('typeHouse', 'Houses')}</option>
+            <option value="villa">{safeT('typeVilla', 'Villas')}</option>
+            <option value="hotel">{safeT('typeHotel', 'Hotels')}</option>
           </select>
         </div>
         
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            {(t ? t('map.priceRangeLabel') : 'Price Range:')} {formatCurrencyRWF ? formatCurrencyRWF(activeFilters.minPrice) : `RWF ${activeFilters.minPrice?.toLocaleString()}`} - {formatCurrencyRWF ? formatCurrencyRWF(activeFilters.maxPrice) : `RWF ${activeFilters.maxPrice?.toLocaleString()}`}
+            {safeT('priceRangeLabel', 'Price range')}: {formatCurrencyRWF ? formatCurrencyRWF(activeFilters.minPrice) : `RWF ${activeFilters.minPrice?.toLocaleString()}`} - {formatCurrencyRWF ? formatCurrencyRWF(activeFilters.maxPrice) : `RWF ${activeFilters.maxPrice?.toLocaleString()}`}
           </label>
           <div className="flex space-x-2">
             <input
