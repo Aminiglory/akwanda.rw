@@ -1,15 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
-import { MapContainer, TileLayer, Marker, Tooltip } from 'react-leaflet';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
+import { GoogleMap, OverlayView, useLoadScript } from '@react-google-maps/api';
 import { FaBed, FaBath, FaMapMarkerAlt, FaArrowLeft, FaStar } from 'react-icons/fa';
 import { useLocale } from '../contexts/LocaleContext';
-
-// Fix for default marker icons
-import markerIcon from 'leaflet/dist/images/marker-icon.png';
-import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
-import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 
 const toRad = (value) => (value * Math.PI) / 180;
 
@@ -33,29 +26,17 @@ const distanceInKm = (lat1, lon1, lat2, lon2) => {
   return R * c;
 };
 
-// Fix for default marker icons
-const DefaultIcon = L.icon({
-  iconUrl: markerIcon,
-  iconRetinaUrl: markerIcon2x,
-  shadowUrl: markerShadow,
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  tooltipAnchor: [16, -28],
-  shadowSize: [41, 41]
-});
-
-L.Marker.prototype.options.icon = DefaultIcon;
-
 const PropertyMapView = () => {
   const { formatCurrencyRWF, t } = useLocale() || {};
   const location = useLocation();
   const navigate = useNavigate();
+  const { isLoaded, loadError } = useLoadScript({
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
+  });
   const initialFocused = location.state?.focusedProperty || null;
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedProperty, setSelectedProperty] = useState(initialFocused);
-  const [bounds, setBounds] = useState(null);
   const [mapCenter, setMapCenter] = useState(null);
   const [activeFilters, setActiveFilters] = useState({
     type: 'all',
@@ -63,19 +44,9 @@ const PropertyMapView = () => {
     maxPrice: 1000000,
   });
 
-  const createPriceIcon = (property, isSelected) => {
-    const name = String(property.title || '').trim() || (t ? t('map.unnamedProperty') : 'Property');
-    const maxLen = 24;
-    const label = name.length > maxLen ? `${name.slice(0, maxLen - 1)}…` : name;
-
-    return L.divIcon({
-      html: `<div style="background:${isSelected ? '#b91c1c' : '#1d4ed8'};color:#ffffff;padding:${isSelected ? '6px 14px' : '4px 10px'};border-radius:9999px;font-weight:700;font-size:${isSelected ? '13px' : '12px'};box-shadow:0 10px 25px rgba(15,23,42,0.55);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border:1px solid rgba(255,255,255,0.85);transform:${isSelected ? 'scale(1.05)' : 'scale(1)'};">${label}</div>`,
-      className: '',
-      iconSize: isSelected ? [95, 38] : [80, 32],
-      iconAnchor: isSelected ? [48, 38] : [40, 32],
-      popupAnchor: [0, -32],
-    });
-  };
+  const getMarkerLabel = (property) => (
+    String(property.title || '').trim() || (t ? t('map.unnamedProperty') : 'Property')
+  );
 
   // Fetch properties from API or use passed properties
   useEffect(() => {
@@ -87,11 +58,21 @@ const PropertyMapView = () => {
           setProperties(incomingProps);
 
           if (incomingProps.length > 0) {
-            const nextBounds = L.latLngBounds(
-              incomingProps.map(p => [p.latitude, p.longitude])
-            );
-            setBounds(nextBounds);
-            setMapCenter(nextBounds.getCenter());
+            // Center on focused property if available, otherwise on average of all
+            if (location.state.focusedProperty) {
+              const fp = location.state.focusedProperty;
+              const focused = incomingProps.find(
+                (p) => (p.id || p._id) === (fp.id || fp._id)
+              ) || fp;
+              if (focused.latitude != null && focused.longitude != null) {
+                setMapCenter({ lat: Number(focused.latitude), lng: Number(focused.longitude) });
+              }
+            } else {
+              const first = incomingProps[0];
+              if (first && first.latitude != null && first.longitude != null) {
+                setMapCenter({ lat: Number(first.latitude), lng: Number(first.longitude) });
+              }
+            }
           }
 
           if (location.state.focusedProperty) {
@@ -111,11 +92,10 @@ const PropertyMapView = () => {
           const list = Array.isArray(data?.properties) ? data.properties : Array.isArray(data) ? data : [];
           setProperties(list);
           if (list.length > 0) {
-            const nextBounds = L.latLngBounds(
-              list.map(p => [p.latitude, p.longitude])
-            );
-            setBounds(nextBounds);
-            setMapCenter(nextBounds.getCenter());
+            const first = list[0];
+            if (first && first.latitude != null && first.longitude != null) {
+              setMapCenter({ lat: Number(first.latitude), lng: Number(first.longitude) });
+            }
           }
         }
       } catch (error) {
@@ -175,7 +155,7 @@ const PropertyMapView = () => {
     }
   }
 
-  if (loading) {
+  if (loading || !isLoaded) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
@@ -197,60 +177,57 @@ const PropertyMapView = () => {
         <div className="w-8"></div> {/* For balance */}
       </header>
 
-      {/* Map Container */}
+      {/* Map Container (Google Maps) */}
       <div className="h-full w-full pt-16">
-        {bounds && (
-          <MapContainer 
-            center={bounds.getCenter()} 
-            zoom={13} 
-            style={{ height: '100%', width: '100%' }}
-            bounds={bounds}
-            boundsOptions={{ padding: [50, 50] }}
+        {mapCenter && (
+          <GoogleMap
+            center={mapCenter}
+            zoom={13}
+            mapContainerStyle={{ height: '100%', width: '100%' }}
+            options={{
+              disableDefaultUI: false,
+              clickableIcons: false,
+            }}
           >
-            <TileLayer
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            />
-            
             {filteredProperties.map((property) => {
+              if (property.latitude == null || property.longitude == null) return null;
               const isSelected = selectedProperty && ((selectedProperty.id || selectedProperty._id) === (property.id || property._id));
+              const label = getMarkerLabel(property);
               return (
-              <Marker 
-                key={property.id} 
-                position={[property.latitude, property.longitude]}
-                icon={createPriceIcon(property, isSelected)}
-                eventHandlers={{
-                  mouseover: () => handleMarkerHover(property),
-                  mouseout: handleMarkerLeave,
-                  click: () => handleMarkerClick(property),
-                }}
-              >
-                <Tooltip
-                  direction="top"
-                  offset={[0, -30]}
-                  opacity={1}
-                  className="!bg-white !text-gray-900 !rounded-lg !shadow-lg"
+                <OverlayView
+                  key={property.id}
+                  position={{ lat: Number(property.latitude), lng: Number(property.longitude) }}
+                  mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
                 >
-                  <div className="p-2">
-                    <div className="text-xs font-semibold line-clamp-1">{property.title}</div>
-                    <div className="text-[11px] text-gray-600 mt-0.5 line-clamp-1">
-                      {property.location || (t ? t('map.locationNotSpecified') : 'Location not specified')}
-                    </div>
-                    <div className="flex items-center justify-between mt-1 text-[11px]">
-                      <span className="flex items-center text-yellow-500">
-                        <FaStar className="mr-1" />
-                        {property.rating || '4.5'}
-                      </span>
-                      <span className="font-semibold text-blue-600">
-                        {formatCurrencyRWF ? formatCurrencyRWF(property.price) : `RWF ${property.price?.toLocaleString()}`}
-                      </span>
+                  <div
+                    onMouseEnter={() => handleMarkerHover(property)}
+                    onMouseLeave={handleMarkerLeave}
+                    onClick={() => handleMarkerClick(property)}
+                    className="cursor-pointer"
+                    style={{
+                      transform: 'translate(-50%, -100%)',
+                    }}
+                  >
+                    <div
+                      style={{
+                        backgroundColor: isSelected ? '#b91c1c' : '#1d4ed8',
+                        color: '#ffffff',
+                        padding: isSelected ? '6px 18px' : '4px 14px',
+                        borderRadius: 9999,
+                        fontWeight: 700,
+                        fontSize: isSelected ? 13 : 12,
+                        boxShadow: '0 10px 25px rgba(15,23,42,0.55)',
+                        whiteSpace: 'nowrap',
+                        border: '1px solid rgba(255,255,255,0.85)',
+                      }}
+                    >
+                      {label}
                     </div>
                   </div>
-                </Tooltip>
-              </Marker>
-            );
+                </OverlayView>
+              );
             })}
-          </MapContainer>
+          </GoogleMap>
         )}
       </div>
 
@@ -309,7 +286,7 @@ const PropertyMapView = () => {
               </button>
               {selectedProperty.latitude != null && selectedProperty.longitude != null && (
                 <a
-                  href={`https://www.openstreetmap.org/directions?to=${selectedProperty.latitude},${selectedProperty.longitude}`}
+                  href={`https://www.google.com/maps/dir/?api=1&destination=${selectedProperty.latitude},${selectedProperty.longitude}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm text-center"
