@@ -254,11 +254,6 @@ const PropertyCard = ({
               <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-blue-600 text-white font-semibold shadow">
                 {Number(rating || 0).toFixed(1)}
               </span>
-              {typeof reviews !== 'undefined' && reviews !== null && (
-                <span className="mt-0.5 text-[11px] text-white drop-shadow underline">
-                  {reviews} review{reviews === 1 ? '' : 's'}
-                </span>
-              )}
             </button>
           )}
           {onToggleWishlist && (
@@ -356,7 +351,17 @@ const PropertyCard = ({
           </div>
         )}
         <div className="mt-4 flex items-center justify-between flex-none">
-          <div />
+          <div className="text-[11px] text-gray-600">
+            {typeof reviews !== 'undefined' && reviews !== null && reviews > 0 && (
+              <button
+                type="button"
+                onClick={handleOpenReviews}
+                className="hover:underline"
+              >
+                {reviews} review{reviews === 1 ? '' : 's'}
+              </button>
+            )}
+          </div>
           <div className="flex items-center gap-2">
             <button
               type="button"
