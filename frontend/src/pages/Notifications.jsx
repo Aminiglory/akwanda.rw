@@ -145,58 +145,77 @@ const Notifications = () => {
           </div>
         ) : (
           <div className="space-y-3">
-            {filteredItems.map(n => (
-              <div id={`notif-${n.id}`} key={n.id} className={`modern-card p-4 ${!n.isRead ? 'border-l-4 border-blue-600' : ''} ${focusId===n.id ? 'ring-2 ring-blue-400' : ''}`}>
-                {/* Commission explainer card */}
-                {String(n.type || '').includes('commission') ? (
-                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="text-blue-700 font-semibold">Commission Update</div>
-                      <div className="text-sm text-gray-700 mt-1">{n.message}</div>
-                      <div className="text-xs text-gray-400 mt-1">{n.createdAt ? new Date(n.createdAt).toLocaleString() : ''}</div>
-                      <div className="mt-2 text-sm text-gray-600 bg-blue-50 border border-blue-100 rounded-lg p-2">
-                        You can start the booking process once your commission is set. This helps keep your listing visible and bookable.
+            {filteredItems.map(n => {
+              const messageText = n.message || '';
+              const bookingNumberMatch = messageText.match(/Booking number:\s*([A-Z0-9-]+)/i);
+              const reviewPinMatch = messageText.match(/Review PIN:\s*(\d+)/i);
+
+              return (
+                <div id={`notif-${n.id}`} key={n.id} className={`modern-card p-4 ${!n.isRead ? 'border-l-4 border-blue-600' : ''} ${focusId===n.id ? 'ring-2 ring-blue-400' : ''}`}>
+                  {String(n.type || '').includes('commission') ? (
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="text-blue-700 font-semibold">Commission Update</div>
+                        <div className="text-sm text-gray-700 mt-1">{n.message}</div>
+                        <div className="text-xs text-gray-400 mt-1">{n.createdAt ? new Date(n.createdAt).toLocaleString() : ''}</div>
+                        <div className="mt-2 text-sm text-gray-600 bg-blue-50 border border-blue-100 rounded-lg p-2">
+                          You can start the booking process once your commission is set. This helps keep your listing visible and bookable.
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {n.property && (
+                          <Link to={`/apartment/${n.property}`} className="px-3 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded">View Property</Link>
+                        )}
+                        {!n.isRead && (
+                          <button onClick={() => markRead(n.id)} className="px-3 py-2 text-sm bg-white border border-gray-200 hover:bg-gray-50 rounded">Dismiss</button>
+                        )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      {n.property && (
-                        <Link to={`/apartment/${n.property}`} className="px-3 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded">View Property</Link>
-                      )}
-                      {!n.isRead && (
-                        <button onClick={() => markRead(n.id)} className="px-3 py-2 text-sm bg-white border border-gray-200 hover:bg-gray-50 rounded">Dismiss</button>
-                      )}
+                  ) : (
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="font-semibold text-gray-900">{n.title}</div>
+                        <div className="text-sm text-gray-600 mt-1">{n.message}</div>
+                        {(bookingNumberMatch || reviewPinMatch) && (
+                          <div className="text-xs text-gray-700 mt-1 space-y-0.5">
+                            {bookingNumberMatch && (
+                              <div>
+                                <span className="font-semibold">Booking number:</span> {bookingNumberMatch[1]}
+                              </div>
+                            )}
+                            {reviewPinMatch && (
+                              <div>
+                                <span className="font-semibold">Review PIN:</span> {reviewPinMatch[1]}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        <div className="text-xs text-gray-400 mt-1">{n.createdAt ? new Date(n.createdAt).toLocaleString() : ''}</div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {n.booking && (
+                          <>
+                            <button onClick={() => openBooking(n)} className="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-800 rounded">Open</button>
+                            {(n.type === 'booking_paid' || n.type === 'booking_created') && (
+                              <button
+                                onClick={() => confirmBooking(n)}
+                                disabled={!!busy[n.id]}
+                                className="px-3 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded disabled:opacity-50"
+                              >
+                                {busy[n.id] ? 'Confirming...' : 'Confirm'}
+                              </button>
+                            )}
+                          </>
+                        )}
+                        {!n.isRead && (
+                          <button onClick={() => markRead(n.id)} className="px-3 py-2 text-sm bg-white border border-gray-200 hover:bg-gray-50 rounded">Mark read</button>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ) : (
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <div className="font-semibold text-gray-900">{n.title}</div>
-                      <div className="text-sm text-gray-600 mt-1">{n.message}</div>
-                      <div className="text-xs text-gray-400 mt-1">{n.createdAt ? new Date(n.createdAt).toLocaleString() : ''}</div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {n.booking && (
-                        <>
-                          <button onClick={() => openBooking(n)} className="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-800 rounded">Open</button>
-                          {(n.type === 'booking_paid' || n.type === 'booking_created') && (
-                            <button
-                              onClick={() => confirmBooking(n)}
-                              disabled={!!busy[n.id]}
-                              className="px-3 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded disabled:opacity-50"
-                            >
-                              {busy[n.id] ? 'Confirming...' : 'Confirm'}
-                            </button>
-                          )}
-                        </>
-                      )}
-                      {!n.isRead && (
-                        <button onClick={() => markRead(n.id)} className="px-3 py-2 text-sm bg-white border border-gray-200 hover:bg-gray-50 rounded">Mark read</button>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

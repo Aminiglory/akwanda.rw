@@ -106,7 +106,7 @@ router.post('/:id/confirm', requireAuth, requireWorkerPrivilege('canConfirmBooki
     await Notification.create({
       type: 'booking_confirmed',
       title: 'Your booking is confirmed!',
-      message: `Your booking for ${booking.property.title} has been confirmed by the ${confirmedBy}.`,
+      message: `Your booking for ${booking.property.title} has been confirmed by the ${confirmedBy}. Booking number: ${booking.bookingNumber}. Review PIN: ${booking.reviewPin}.`,
       booking: booking._id,
       property: booking.property._id,
       recipientUser: booking.guest._id,
@@ -664,7 +664,7 @@ router.post('/', requireAuth, async (req, res) => {
     await Notification.create({
       type: 'booking_created',
       title: 'Your booking was created',
-      message: 'Your booking was created.',
+      message: `Your booking was created. Booking number: ${booking.bookingNumber}. Review PIN: ${booking.reviewPin}.`,
       booking: booking._id,
       property: property._id,
       recipientUser: guestId,
