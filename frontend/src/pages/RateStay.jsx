@@ -40,6 +40,10 @@ const RateStay = () => {
       toast.error('Missing booking information. Please open this page from your booking details.');
       return;
     }
+    if (!bookingNumber || !bookingNumber.trim()) {
+      toast.error('Please enter your booking number');
+      return;
+    }
     if (overallScore10 <= 0 || overallScore10 > 10) {
       toast.error('Please choose an overall score from 1 to 10');
       return;
@@ -59,6 +63,7 @@ const RateStay = () => {
       await apiPost('/api/reviews', {
         bookingId,
         propertyId,
+        bookingNumber,
         reviewPin,
         overallScore10: clamp10(overallScore10),
         staff: clamp10(fields.staff),
@@ -115,7 +120,6 @@ const RateStay = () => {
                 value={bookingNumber}
                 onChange={(e) => setBookingNumber(e.target.value)}
                 placeholder="e.g. AKW-1234"
-                disabled
               />
             </div>
             <div className="bg-gray-50 rounded-lg p-3 text-sm">

@@ -1977,9 +1977,25 @@ router.get('/:id/reviews/summary', async (req, res) => {
 
         const ratings = Array.isArray(property.ratings) ? property.ratings : [];
 
-        // Use 0–10 overall score when present, fall back to legacy 1–5 rating mapped to 0–10.
+        // Compute an overall 0–10 score for each review as the average of aspect scores
+        // when available, falling back to the stored overallScore10 or legacy 1–5 rating.
         const scores = ratings
             .map(r => {
+                const aspectValues = [
+                    r.staff,
+                    r.cleanliness,
+                    r.locationScore,
+                    r.facilities,
+                    r.comfort,
+                    r.valueForMoney
+                ].filter(v => typeof v === 'number' && !isNaN(v));
+
+                if (aspectValues.length > 0) {
+                    const sumAspects = aspectValues.reduce((s, v) => s + v, 0);
+                    const avgAspects = sumAspects / aspectValues.length;
+                    return Math.max(0, Math.min(10, Number(avgAspects)));
+                }
+
                 if (typeof r.overallScore10 === 'number' && !isNaN(r.overallScore10)) {
                     return Math.max(0, Math.min(10, Number(r.overallScore10)));
                 }

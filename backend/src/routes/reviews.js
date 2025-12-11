@@ -38,6 +38,7 @@ router.post('/', requireAuth, async (req, res) => {
     const {
       bookingId,
       propertyId,
+      bookingNumber,
       reviewPin,
       overallScore10,
       staff,
@@ -61,9 +62,18 @@ router.post('/', requireAuth, async (req, res) => {
       return res.status(403).json({ message: 'You can only review your own stays' });
     }
 
-    // Optional extra security: require correct review PIN if defined on booking
-    if (booking.reviewPin && String(reviewPin || '').trim() !== String(booking.reviewPin)) {
-      return res.status(400).json({ message: 'Invalid review PIN for this booking' });
+    // Require booking number and PIN when they exist on the booking
+    if (booking.bookingNumber) {
+      const cleanedBn = String(bookingNumber || '').trim();
+      if (!cleanedBn || cleanedBn !== String(booking.bookingNumber)) {
+        return res.status(400).json({ message: 'Invalid booking number for this booking' });
+      }
+    }
+
+    if (booking.reviewPin) {
+      if (String(reviewPin || '').trim() !== String(booking.reviewPin)) {
+        return res.status(400).json({ message: 'Invalid review PIN for this booking' });
+      }
     }
 
     // Optional: require that stay has ended before review
@@ -80,13 +90,23 @@ router.post('/', requireAuth, async (req, res) => {
       return Math.min(10, Math.max(0, n));
     };
 
-    const overall10 = clamp10(overallScore10);
+    const overall10Raw = clamp10(overallScore10);
     const staffScore = clamp10(staff);
     const cleanScore = clamp10(cleanliness);
     const locScore = clamp10(locationScore);
     const facScore = clamp10(facilities);
     const comfortScore = clamp10(comfort);
     const valueScore = clamp10(valueForMoney);
+
+    // Compute overall score as the average of available aspect scores when present.
+    const aspectValues = [staffScore, cleanScore, locScore, facScore, comfortScore, valueScore]
+      .filter(v => typeof v === 'number');
+
+    let overall10 = overall10Raw;
+    if (aspectValues.length > 0) {
+      const sumAspects = aspectValues.reduce((s, v) => s + v, 0);
+      overall10 = Math.round((sumAspects / aspectValues.length) * 10) / 10;
+    }
 
     // Map 0-10 overall to legacy 1-5 stars for existing UI
     let legacyRating = 0;

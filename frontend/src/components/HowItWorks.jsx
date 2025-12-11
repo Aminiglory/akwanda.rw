@@ -430,8 +430,6 @@ const HowItWorks = () => {
             </div>
           </div>
         )}
-
-        {/* Reviews grid removed from HowItWorks – keep reviews only on property card modal and other property pages */}
       </div>
     </div>
   );
