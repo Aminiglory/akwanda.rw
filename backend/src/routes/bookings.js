@@ -1214,72 +1214,11 @@ router.get('/owner/visitors-analytics', requireAuth, async (req, res) => {
   }
 });
 
-// Post a review (guest or admin)
+// Legacy quick 1–5 star review endpoint is now disabled in favour of detailed 0–10 aspect ratings.
 router.post('/:id/review', requireAuth, async (req, res) => {
-  try {
-    const { rating, comment } = req.body || {};
-    const booking = await Booking.findById(req.params.id).populate('property');
-    if (!booking) return res.status(404).json({ message: 'Booking not found' });
-    const isGuest = String(booking.guest) === String(req.user.id);
-    const isAdmin = req.user.userType === 'admin';
-    if (!isGuest && !isAdmin) return res.status(403).json({ message: 'Forbidden' });
-    if (booking.checkOut && new Date() < new Date(booking.checkOut)) {
-      return res.status(400).json({ message: 'You can only review after your stay' });
-    }
-    const r = Number(rating);
-    if (!(r >= 1 && r <= 5)) return res.status(400).json({ message: 'Rating must be between 1 and 5' });
-
-    booking.rating = r;
-    booking.comment = String(comment || '').slice(0, 2000);
-    await booking.save();
-
-    // Also mirror this review into the property's ratings array, with pending status
-    try {
-      const prop = await Property.findById(booking.property._id).populate('ratings.guest');
-      if (prop) {
-        const guestId = booking.guest;
-        let ratingDoc = null;
-        if (Array.isArray(prop.ratings)) {
-          ratingDoc = prop.ratings.find(rt => String(rt.guest) === String(guestId));
-        }
-        if (!ratingDoc) {
-          prop.ratings.push({
-            guest: guestId,
-            rating: r,
-            comment: booking.comment,
-            status: 'pending'
-          });
-        } else {
-          ratingDoc.rating = r;
-          ratingDoc.comment = booking.comment;
-          ratingDoc.status = 'pending';
-          ratingDoc.createdAt = new Date();
-        }
-        await prop.save();
-      }
-    } catch (e) {
-      console.error('Failed to mirror review to property ratings:', e);
-    }
-
-    try {
-      if (booking.property?.host) {
-        await Notification.create({
-          type: 'review_received',
-          title: 'New review received',
-          message: `A guest left a rating of ${r}/5 on a recent stay.`,
-          booking: booking._id,
-          property: booking.property._id,
-          recipientUser: booking.property.host,
-          audience: 'host'
-        });
-      }
-    } catch (_) { }
-
-    return res.json({ bookingId: booking._id, rating: booking.rating, comment: booking.comment });
-  } catch (error) {
-    console.error('Post review error:', error);
-    res.status(500).json({ message: 'Failed to post review', error: error.message });
-  }
+  return res.status(410).json({
+    message: 'Quick star rating has been disabled. Please use the detailed review form with aspects and PIN.'
+  });
 });
 
 // Owner reviews summary

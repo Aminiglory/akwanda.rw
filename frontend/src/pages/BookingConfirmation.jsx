@@ -29,7 +29,6 @@ const BookingConfirmation = () => {
   const [newMessage, setNewMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [submittingReview, setSubmittingReview] = useState(false);
-  const [review, setReview] = useState({ rating: 0, comment: '' });
 
   // Defaults for resilient rendering
   const fallbackProperty = {
@@ -92,31 +91,7 @@ const BookingConfirmation = () => {
     if (!booking) return false;
     const now = new Date();
     const co = new Date(booking.checkOut);
-    return now > co && !booking?.rating;
-  };
-
-  const submitReview = async () => {
-    if (!review.rating || review.rating < 1 || review.rating > 5) {
-      toast.error('Please select a rating between 1 and 5');
-      return;
-    }
-    try {
-      setSubmittingReview(true);
-      const res = await fetch(`${API_URL}/api/bookings/${id}/review`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ rating: review.rating, comment: review.comment })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.message || 'Failed to submit review');
-      toast.success('Thank you for your review!');
-      setBooking(prev => ({ ...prev, rating: review.rating, comment: review.comment }));
-    } catch (e) {
-      toast.error(e.message);
-    } finally {
-      setSubmittingReview(false);
-    }
+    return now > co;
   };
 
   useEffect(() => {
@@ -361,43 +336,17 @@ const BookingConfirmation = () => {
               Cancel booking
             </button>
           )}
+          {canReview() && booking?.reviewPin && (
+            <Link
+              to={`/rate-stay?bookingId=${encodeURIComponent(booking._id)}&propertyId=${encodeURIComponent(booking.property?._id || booking.property)}&bn=${encodeURIComponent(booking.bookingNumber || '')}&pin=${encodeURIComponent(booking.reviewPin || '')}`}
+              className="px-5 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm"
+            >
+              Rate your stay
+            </Link>
+          )}
         </div>
 
-        {canReview() && (
-          <div className="modern-card-elevated p-6 mt-6">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Rate your stay</h2>
-            <p className="text-gray-600 mb-4">Share your experience to help the host improve.</p>
-            <div className="flex items-center gap-2 mb-2 flex-wrap">
-              {[1,2,3,4,5].map(n => (
-                <button
-                  key={n}
-                  onClick={() => setReview(r => ({ ...r, rating: n }))}
-                  className={`px-3 py-1 rounded text-sm border ${review.rating === n ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
-                  aria-label={`Rate ${n} out of 5`}
-                >
-                  {n}
-                </button>
-              ))}
-            </div>
-            <div className="text-xs text-gray-600 mb-4">
-              Overall score: <span className="font-semibold">{(review.rating ? review.rating * 2 : 0)}</span> / 10
-            </div>
-            <textarea
-              className="w-full border border-gray-300 rounded-lg p-3 mb-4"
-              placeholder="Write a comment (optional)"
-              rows={4}
-              value={review.comment}
-              onChange={(e) => setReview(r => ({ ...r, comment: e.target.value }))}
-            />
-            <button
-              onClick={submitReview}
-              disabled={submittingReview || review.rating === 0}
-              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50"
-            >
-              {submittingReview ? 'Submitting...' : 'Submit review'}
-            </button>
-          </div>
-        )}
+        {/* Guests can rate their stay using the detailed aspect-based review form. */}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
           <div className="lg:col-span-2 space-y-6">
