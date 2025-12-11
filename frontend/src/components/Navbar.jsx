@@ -1299,9 +1299,10 @@ const Navbar = () => {
                 </div>
               )}
 
-              {/* Notifications (admin and host) */}
-              {(user?.userType === "admin" || user?.userType === 'host') && (
+              {/* Notifications */}
+              {isAuthenticated && (
                 <div className="relative inline-flex items-center">
+
                   <button
                     onClick={toggleNotifications}
                     className={`notification-button relative px-3 py-2 rounded-lg transition-colors cursor-pointer ${
