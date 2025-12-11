@@ -1974,10 +1974,28 @@ router.get('/:id/reviews/summary', async (req, res) => {
     try {
         const property = await Property.findById(req.params.id).select('ratings host isActive');
         if (!property || !property.isActive) return res.status(404).json({ message: 'Property not found' });
+
         const ratings = Array.isArray(property.ratings) ? property.ratings : [];
-        const count = ratings.length;
-        const avg = count ? Math.round((ratings.reduce((s, r) => s + Number(r.rating || 0), 0) / count) * 10) / 10 : 0;
-        res.json({ summary: { average: avg, count } });
+
+        // Use 0–10 overall score when present, fall back to legacy 1–5 rating mapped to 0–10.
+        const scores = ratings
+            .map(r => {
+                if (typeof r.overallScore10 === 'number' && !isNaN(r.overallScore10)) {
+                    return Math.max(0, Math.min(10, Number(r.overallScore10)));
+                }
+                if (typeof r.rating === 'number' && !isNaN(r.rating)) {
+                    const mapped = Number(r.rating) * 2; // 1–5 -> 2–10
+                    return Math.max(0, Math.min(10, mapped));
+                }
+                return null;
+            })
+            .filter(v => v !== null);
+
+        const count = scores.length;
+        const sum = scores.reduce((s, v) => s + v, 0);
+        const avg10 = count ? Math.round((sum / count) * 10) / 10 : 0;
+
+        res.json({ summary: { average: avg10, count } });
     } catch (e) {
         res.status(500).json({ message: 'Failed to compute reviews summary', error: e.message });
     }
@@ -1987,14 +2005,31 @@ router.get('/:id/reviews/summary', async (req, res) => {
 router.get('/my-reviews/summary', requireAuth, async (req, res) => {
     try {
         const props = await Property.find({ host: req.user.id, isActive: true }).select('ratings');
-        let total = 0; let sum = 0;
+
+        let totalCount = 0;
+        let totalSum = 0;
+
         for (const p of props) {
             const ratings = Array.isArray(p.ratings) ? p.ratings : [];
-            total += ratings.length;
-            sum += ratings.reduce((s, r) => s + Number(r.rating || 0), 0);
+            const scores = ratings
+                .map(r => {
+                    if (typeof r.overallScore10 === 'number' && !isNaN(r.overallScore10)) {
+                        return Math.max(0, Math.min(10, Number(r.overallScore10)));
+                    }
+                    if (typeof r.rating === 'number' && !isNaN(r.rating)) {
+                        const mapped = Number(r.rating) * 2;
+                        return Math.max(0, Math.min(10, mapped));
+                    }
+                    return null;
+                })
+                .filter(v => v !== null);
+
+            totalCount += scores.length;
+            totalSum += scores.reduce((s, v) => s + v, 0);
         }
-        const avg = total ? Math.round((sum / total) * 10) / 10 : 0;
-        res.json({ summary: { average: avg, count: total } });
+
+        const avg10 = totalCount ? Math.round((totalSum / totalCount) * 10) / 10 : 0;
+        res.json({ summary: { average: avg10, count: totalCount } });
     } catch (e) {
         res.status(500).json({ message: 'Failed to compute my reviews summary', error: e.message });
     }
