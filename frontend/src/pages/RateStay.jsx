@@ -83,7 +83,18 @@ const RateStay = () => {
         navigate('/my-bookings');
       }
     } catch (e) {
-      toast.error(e?.message || 'Failed to submit review');
+      const raw = (e && (e.message || e.error || e.toString())) || '';
+      let friendly = 'Failed to submit review. Please check your details and try again.';
+
+      if (raw.includes('Invalid booking number')) {
+        friendly = 'The booking number you entered does not match this booking. Please copy it exactly from your confirmation message or notification.';
+      } else if (raw.includes('Invalid review PIN')) {
+        friendly = 'The review PIN you entered is incorrect. Please use the PIN shown in your booking confirmation or notification.';
+      } else if (raw.includes('You can review after your stay has ended')) {
+        friendly = 'You can only rate your stay after checkout. Please try again once your stay has ended.';
+      }
+
+      toast.error(friendly);
     } finally {
       setSubmitting(false);
     }

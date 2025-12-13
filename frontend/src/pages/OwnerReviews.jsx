@@ -119,8 +119,9 @@ export default function OwnerReviews() {
     }
   };
 
-  const renderRatingBadge = (rating) => {
-    const score10 = (Number(rating) || 0) * 2;
+  const renderRatingBadge = (review) => {
+    const hasOverall10 = typeof review.overallScore10 === 'number' && !Number.isNaN(review.overallScore10);
+    const score10 = hasOverall10 ? review.overallScore10 : (Number(review.rating) || 0) * 2;
     if (!score10) return null;
 
     let label;
@@ -288,7 +289,7 @@ export default function OwnerReviews() {
                         {review.property?.title}
                       </div>
                       <div className="flex items-center gap-1 mt-1">
-                        {renderRatingBadge(review.rating)}
+                        {renderRatingBadge(review)}
                       </div>
                     </div>
                   </div>
@@ -309,8 +310,46 @@ export default function OwnerReviews() {
                 </div>
 
                 {/* Review Comment */}
-                <div className="ml-16 mb-4">
+                <div className="ml-16 mb-4 space-y-3">
                   <p className="text-gray-700">{review.comment}</p>
+
+                  {(() => {
+                    const hasAspects = [
+                      review.staff,
+                      review.cleanliness,
+                      review.locationScore,
+                      review.facilities,
+                      review.comfort,
+                      review.valueForMoney,
+                    ].some(v => typeof v === 'number' && !Number.isNaN(v));
+
+                    if (!hasAspects) return null;
+
+                    const rows = [
+                      { key: 'staff', label: 'Staff', value: review.staff },
+                      { key: 'cleanliness', label: 'Cleanliness', value: review.cleanliness },
+                      { key: 'locationScore', label: 'Location', value: review.locationScore },
+                      { key: 'facilities', label: 'Facilities', value: review.facilities },
+                      { key: 'comfort', label: 'Comfort', value: review.comfort },
+                      { key: 'valueForMoney', label: 'Value for money', value: review.valueForMoney },
+                    ].filter(r => typeof r.value === 'number' && !Number.isNaN(r.value));
+
+                    if (!rows.length) return null;
+
+                    return (
+                      <div className="mt-1 pt-3 border-t border-gray-100">
+                        <p className="text-xs font-semibold text-gray-500 mb-2">Aspect scores</p>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs text-gray-700">
+                          {rows.map(row => (
+                            <div key={row.key} className="flex items-center justify-between">
+                              <span>{row.label}</span>
+                              <span className="font-semibold">{Number(row.value).toFixed(1)} / 10</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {/* Approval controls for pending reviews */}

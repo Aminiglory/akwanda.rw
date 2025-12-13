@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const Property = require('../tables/property');
 const User = require('../tables/user');
 const Booking = require('../tables/booking');
+const Notification = require('../tables/notification');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
 
@@ -363,6 +364,13 @@ router.get('/my-reviews', requireAuth, async (req, res) => {
           createdAt: rating.createdAt,
           replied: !!rating.reply,
           reply: rating.reply,
+          overallScore10: typeof rating.overallScore10 === 'number' ? rating.overallScore10 : undefined,
+          staff: typeof rating.staff === 'number' ? rating.staff : undefined,
+          cleanliness: typeof rating.cleanliness === 'number' ? rating.cleanliness : undefined,
+          locationScore: typeof rating.locationScore === 'number' ? rating.locationScore : undefined,
+          facilities: typeof rating.facilities === 'number' ? rating.facilities : undefined,
+          comfort: typeof rating.comfort === 'number' ? rating.comfort : undefined,
+          valueForMoney: typeof rating.valueForMoney === 'number' ? rating.valueForMoney : undefined,
           guest: rating.guest ? {
             _id: rating.guest._id,
             firstName: rating.guest.firstName,
@@ -413,7 +421,7 @@ router.post('/reply', requireAuth, async (req, res) => {
     const property = await Property.findOne({ 
       _id: propertyId, 
       host: req.user.id 
-    });
+    }).populate('ratings.guest');
     
     if (!property) {
       return res.status(404).json({ message: 'Property not found or unauthorized' });
@@ -427,7 +435,23 @@ router.post('/reply', requireAuth, async (req, res) => {
     rating.reply = reply.trim();
     rating.replyDate = new Date();
     await property.save();
-    
+
+    try {
+      if (rating.guest) {
+        await Notification.create({
+          type: 'review_reply',
+          title: 'Your review received a reply',
+          message: `The host replied to your review for ${property.title}.`,
+          booking: rating.booking || undefined,
+          property: property._id,
+          recipientUser: rating.guest._id || rating.guest,
+          audience: 'guest',
+        });
+      }
+    } catch (notifyErr) {
+      console.error('Failed to create review reply notification:', notifyErr);
+    }
+
     res.json({ 
       message: 'Reply posted successfully',
       review: {
@@ -451,7 +475,7 @@ router.get('/stats', requireAuth, async (req, res) => {
     }).select('ratings');
     
     let totalReviews = 0;
-    let totalRating = 0;
+    let totalRating = 0; // stored as 1-5 equivalent derived from 0-10 aspect average
     let unrepliedCount = 0;
     let fiveStarCount = 0;
     let lowRatingCount = 0;
@@ -464,11 +488,35 @@ router.get('/stats', requireAuth, async (req, res) => {
         if (rating.status === 'pending') pendingCount++;
         if (rating.status === 'approved' || !rating.status) {
           approvedCount++;
-          totalReviews++;
-          totalRating += rating.rating;
-          if (!rating.reply) unrepliedCount++;
-          if (rating.rating === 5) fiveStarCount++;
-          if (rating.rating < 4) lowRatingCount++;
+
+          // Derive a 0-10 score from aspect values where possible
+          const aspectValues = [
+            rating.staff,
+            rating.cleanliness,
+            rating.locationScore,
+            rating.facilities,
+            rating.comfort,
+            rating.valueForMoney,
+          ].filter(v => typeof v === 'number' && !isNaN(v));
+
+          let score10 = null;
+          if (aspectValues.length > 0) {
+            const sumAspects = aspectValues.reduce((s, v) => s + v, 0);
+            score10 = sumAspects / aspectValues.length;
+          } else if (typeof rating.overallScore10 === 'number' && !isNaN(rating.overallScore10)) {
+            score10 = rating.overallScore10;
+          } else if (typeof rating.rating === 'number' && !isNaN(rating.rating)) {
+            score10 = rating.rating * 2; // legacy 1–5 mapped to 0–10
+          }
+
+          if (score10 != null) {
+            totalReviews++;
+            const mappedStar = score10 / 2; // collapse back to 1–5 for compatibility
+            totalRating += mappedStar;
+            if (!rating.reply) unrepliedCount++;
+            if (mappedStar >= 4.5) fiveStarCount++;
+            if (mappedStar < 4) lowRatingCount++;
+          }
         }
         if (rating.status === 'rejected') rejectedCount++;
       }

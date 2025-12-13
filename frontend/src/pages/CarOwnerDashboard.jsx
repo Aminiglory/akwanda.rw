@@ -464,9 +464,9 @@ export default function CarOwnerDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f9f5ef] py-6">
+    <div className="min-h-screen bg-[#f9f5ef] py-4">
       <div className="max-w-6xl mx-auto px-4">
-        <div className="mb-4 flex justify-between items-center">
+        <div className="mb-3 flex justify-between items-center">
           {/* Back to main listing options (optional, safe to keep) */}
           <button
             type="button"
@@ -519,36 +519,38 @@ export default function CarOwnerDashboard() {
             </div>
           </div>
         </div>
+
+        {/* View selector to mirror PropertyManagement layout */}
+        <div className="mb-4 flex flex-wrap gap-2 text-sm">
+          <button
+            type="button"
+            onClick={() => setView('overview')}
+            className={`px-3 py-1.5 rounded-full border ${view === 'overview' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+          >
+            Overview
+          </button>
+          <button
+            type="button"
+            onClick={() => setView('vehicles')}
+            className={`px-3 py-1.5 rounded-full border ${view === 'vehicles' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+          >
+            Vehicles
+          </button>
+          <button
+            type="button"
+            onClick={() => setView('bookings')}
+            className={`px-3 py-1.5 rounded-full border ${view === 'bookings' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+          >
+            Bookings
+          </button>
+        </div>
       </div>
+
       {user?.isBlocked && (
         <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
           Your account is deactivated. Vehicle management is disabled until reactivated.
         </div>
       )}
-      {/* View selector to mirror PropertyManagement layout */}
-      <div className="mb-4 flex flex-wrap gap-2 text-sm">
-        <button
-          type="button"
-          onClick={() => setView('overview')}
-          className={`px-3 py-1.5 rounded-full border ${view === 'overview' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
-        >
-          Overview
-        </button>
-        <button
-          type="button"
-          onClick={() => setView('vehicles')}
-          className={`px-3 py-1.5 rounded-full border ${view === 'vehicles' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
-        >
-          Vehicles
-        </button>
-        <button
-          type="button"
-          onClick={() => setView('bookings')}
-          className={`px-3 py-1.5 rounded-full border ${view === 'bookings' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
-        >
-          Bookings
-        </button>
-      </div>
 
       {/* Overview section (stats, quick links, finance) */}
       {view === 'overview' && (
@@ -608,54 +610,56 @@ export default function CarOwnerDashboard() {
               <div className="text-sm font-semibold text-gray-900">Manage reservations</div>
               <div className="mt-0.5 text-[11px] text-gray-500">View and update all vehicle bookings</div>
             </button>
-            <Link
-              to="/transactions"
-              className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2 hover:border-[#a06b42] hover:shadow-md transition block"
+
+            <button
+              type="button"
+              onClick={() => window.open('/transactions', '_blank', 'noopener,noreferrer')}
+              className="text-left rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2 hover:border-[#a06b42] hover:shadow-md transition w-full"
             >
               <div className="text-[11px] text-gray-500">Finance</div>
               <div className="text-sm font-semibold text-gray-900">Payments & transactions</div>
               <div className="mt-0.5 text-[11px] text-gray-500">Track payouts and charges</div>
-            </Link>
-            <Link
-              to="/analytics"
-              className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2 hover:border-[#a06b42] hover:shadow-md transition block"
+            </button>
+
+            <button
+              type="button"
+              onClick={() => window.open('/analytics', '_blank', 'noopener,noreferrer')}
+              className="text-left rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2 hover:border-[#a06b42] hover:shadow-md transition w-full"
             >
               <div className="text-[11px] text-gray-500">Analytics</div>
               <div className="text-sm font-semibold text-gray-900">Performance overview</div>
               <div className="mt-0.5 text-[11px] text-gray-500">See trends across your listings</div>
-            </Link>
-            <Link
-              to="/owner/promotions"
-              className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2 hover:border-[#a06b42] hover:shadow-md transition block"
-            >
-              <div className="text-[11px] text-gray-500">Promotions</div>
-              <div className="text-sm font-semibold text-gray-900">Discounts & offers</div>
-              <div className="mt-0.5 text-[11px] text-gray-500">Manage deals for your listings</div>
-            </Link>
-            <Link
-              to="/owner/reviews"
-              className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2 hover:border-[#a06b42] hover:shadow-md transition block"
+            </button>
+
+            <button
+              type="button"
+              onClick={() => window.open('/owner/reviews', '_blank', 'noopener,noreferrer')}
+              className="text-left rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2 hover:border-[#a06b42] hover:shadow-md transition w-full"
             >
               <div className="text-[11px] text-gray-500">Reviews</div>
               <div className="text-sm font-semibold text-gray-900">Guest reviews</div>
               <div className="mt-0.5 text-[11px] text-gray-500">Read and reply to feedback</div>
-            </Link>
-            <Link
-              to="/messages?category=reservations"
-              className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2 hover:border-[#a06b42] hover:shadow-md transition block"
+            </button>
+
+            <button
+              type="button"
+              onClick={() => window.open('/messages?category=reservations', '_blank', 'noopener,noreferrer')}
+              className="text-left rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2 hover:border-[#a06b42] hover:shadow-md transition w-full"
             >
               <div className="text-[11px] text-gray-500">Messages</div>
               <div className="text-sm font-semibold text-gray-900">Guest communication</div>
               <div className="mt-0.5 text-[11px] text-gray-500">Open inbox with reservation auto-replies</div>
-            </Link>
-            <Link
-              to="/settings?tab=notifications"
-              className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2 hover:border-[#a06b42] hover:shadow-md transition block"
+            </button>
+
+            <button
+              type="button"
+              onClick={() => window.open('/settings?tab=notifications', '_blank', 'noopener,noreferrer')}
+              className="text-left rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2 hover:border-[#a06b42] hover:shadow-md transition w-full"
             >
               <div className="text-[11px] text-gray-500">Settings</div>
               <div className="text-sm font-semibold text-gray-900">Notifications & messaging</div>
               <div className="mt-0.5 text-[11px] text-gray-500">Control how guests contact you</div>
-            </Link>
+            </button>
           </div>
 
           <div className="mb-6 grid grid-cols-2 md:grid-cols-4 gap-3">
