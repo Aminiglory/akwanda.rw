@@ -755,21 +755,11 @@ const Navbar = () => {
 
   const getNotificationLink = (n) => {
     if (!n) return '#';
-    // In owner dashboard context, always deep-link into the notifications page
-    // so the selected notification is opened/focused there instead of guest-facing routes.
-    if (isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard()) {
-      return `/notifications?open=${encodeURIComponent(n.id || n._id || '')}`;
-    }
-    // Guest/admin routes mapping by type and attached entities
-    if ((n.type?.startsWith('booking') || n.type?.includes('receipt')) && (n.booking?._id || n.booking)) {
-      const bid = n.booking?._id || n.booking;
-      return `/booking-confirmation/${bid}`;
-    }
-    if (n.property?._id || n.property) {
-      const pid = n.property?._id || n.property;
-      return `/properties/${pid}`;
-    }
-    return '/admin';
+    // Always deep-link into the notifications page so the selected notification
+    // is opened and focused there (the Notifications page already supports
+    // ?open=<id> / ?id=<id> to highlight and scroll to a specific item).
+    const id = n.id || n._id || '';
+    return `/notifications?open=${encodeURIComponent(id)}`;
   };
 
   const isActiveRoute = (path) => {
@@ -1299,9 +1289,10 @@ const Navbar = () => {
                 </div>
               )}
 
-              {/* Notifications (admin and host) */}
-              {(user?.userType === "admin" || user?.userType === 'host') && (
+              {/* Notifications */}
+              {isAuthenticated && (
                 <div className="relative inline-flex items-center">
+
                   <button
                     onClick={toggleNotifications}
                     className={`notification-button relative px-3 py-2 rounded-lg transition-colors cursor-pointer ${

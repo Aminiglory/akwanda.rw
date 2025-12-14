@@ -90,7 +90,11 @@ const PropertyCard = ({
 
   const [isReviewsOpen, setIsReviewsOpen] = useState(false);
   const [isLoadingReviews, setIsLoadingReviews] = useState(false);
-  const [reviewsList, setReviewsList] = useState(() => (Array.isArray(listing?.ratings) ? listing.ratings : []));
+  const [reviewsList, setReviewsList] = useState(() => {
+    if (Array.isArray(listing?.ratings) && listing.ratings.length > 0) return listing.ratings;
+    if (Array.isArray(listing?.reviews) && listing.reviews.length > 0) return listing.reviews;
+    return [];
+  });
 
   const handleOpenReviews = async (e) => {
     e?.stopPropagation?.();
@@ -101,10 +105,18 @@ const PropertyCard = ({
         setIsLoadingReviews(true);
         const res = await fetch(`${API_URL}/api/properties/${pid}`, { credentials: 'include' });
         const data = await res.json().catch(() => ({}));
-        if (Array.isArray(data?.ratings)) {
-          setReviewsList(data.ratings);
-        } else if (Array.isArray(data?.reviews)) {
-          setReviewsList(data.reviews);
+        let next = [];
+        if (Array.isArray(data?.ratings) && data.ratings.length > 0) {
+          next = data.ratings;
+        } else if (Array.isArray(data?.reviews) && data.reviews.length > 0) {
+          next = data.reviews;
+        } else if (Array.isArray(data?.property?.ratings) && data.property.ratings.length > 0) {
+          next = data.property.ratings;
+        } else if (Array.isArray(data?.property?.reviews) && data.property.reviews.length > 0) {
+          next = data.property.reviews;
+        }
+        if (next.length > 0) {
+          setReviewsList(next);
         }
       } catch (_) {
         // ignore errors; modal will just show no reviews
@@ -245,17 +257,6 @@ const PropertyCard = ({
         )}
 
         <div className="absolute top-3 right-3 flex flex-col items-end space-y-2">
-          {typeof rating !== 'undefined' && rating !== null && (
-            <button
-              type="button"
-              onClick={handleOpenReviews}
-              className="flex flex-col items-end text-xs focus:outline-none"
-            >
-              <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-blue-600 text-white font-semibold shadow">
-                {Number(rating || 0).toFixed(1)}
-              </span>
-            </button>
-          )}
           {onToggleWishlist && (
             <button
               onClick={handleWishlistToggle}
@@ -352,15 +353,32 @@ const PropertyCard = ({
         )}
         <div className="mt-4 flex items-center justify-between flex-none">
           <div className="text-[11px] text-gray-600">
-            {typeof reviews !== 'undefined' && reviews !== null && reviews > 0 && (
-              <button
-                type="button"
-                onClick={handleOpenReviews}
-                className="hover:underline"
-              >
-                {reviews} review{reviews === 1 ? '' : 's'}
-              </button>
-            )}
+            {(() => {
+              const explicitCount = typeof reviews === 'number' ? reviews : null;
+              const ratingsCount = Array.isArray(listing?.ratings) ? listing.ratings.length : 0;
+              const reviewsArrayCount = Array.isArray(listing?.reviews) ? listing.reviews.length : 0;
+              const count = explicitCount != null ? explicitCount : (ratingsCount || reviewsArrayCount);
+              const hasRating = typeof rating === 'number' && !Number.isNaN(rating);
+              let label;
+              if (hasRating && count && count > 0) {
+                label = `${Number(rating || 0).toFixed(1)} · ${count} review${count === 1 ? '' : 's'}`;
+              } else if (hasRating) {
+                label = `${Number(rating || 0).toFixed(1)} · Reviews`;
+              } else if (count && count > 0) {
+                label = `${count} review${count === 1 ? '' : 's'}`;
+              } else {
+                label = 'Reviews';
+              }
+              return (
+                <button
+                  type="button"
+                  onClick={handleOpenReviews}
+                  className="hover:underline font-medium"
+                >
+                  {label}
+                </button>
+              );
+            })()}
           </div>
           <div className="flex items-center gap-2">
             <button

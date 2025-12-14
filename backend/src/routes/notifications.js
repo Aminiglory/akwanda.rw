@@ -23,7 +23,7 @@ router.get('/unread-count', requireAuth, async (req, res) => {
     const count = await Notification.countDocuments({
       recipientUser: req.user.id,
       isRead: false,
-      type: 'booking_confirmed',
+      type: { $in: ['booking_confirmed', 'booking_created', 'review_reply'] },
       $or: [
         { audience: { $exists: false } },
         { audience: { $in: ['guest','both'] } }
@@ -57,7 +57,7 @@ router.get('/list', requireAuth, async (req, res) => {
     const limit = Math.min(parseInt(req.query.limit || '50', 10), 200);
     const list = await Notification.find({
       recipientUser: req.user.id,
-      type: 'booking_confirmed',
+      type: { $in: ['booking_confirmed', 'booking_created', 'review_reply'] },
       $or: [
         { audience: { $exists: false } },
         { audience: { $in: ['guest','both'] } }

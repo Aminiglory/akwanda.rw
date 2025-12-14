@@ -414,30 +414,6 @@ const PropertyOwnerBookings = () => {
   const ownerVat18 = 0;
   const ownerGrandTotal = ownerSubtotal + ownerLevy3;
 
-  const loadOwnerProperties = async () => {
-    try {
-      const res = await fetchWithUiTimeout(`${API_URL}/api/properties/my-properties`, { credentials: 'include' });
-      const data = await res.json();
-      if (res.ok) setProperties(data.properties || []);
-    } catch (_) { }
-  };
-
-  const loadOwnerReviews = async () => {
-    try {
-      const res = await fetch(`${API_URL}/api/bookings/owner/reviews`, { credentials: 'include' });
-      const data = await res.json();
-      if (res.ok) {
-        setOwnerReviews(data.reviews || []);
-        setOwnerAvgRating(Number(data.avgRating || 0));
-        setOwnerReviewCount(Number(data.count || 0));
-      }
-    } catch (_) {
-      setOwnerReviews([]);
-      setOwnerAvgRating(0);
-      setOwnerReviewCount(0);
-    }
-  };
-
   useEffect(() => { loadOwnerProperties(); }, []);
 
   // Respond to navbar dropdown links like /my-bookings?tab=properties
@@ -474,7 +450,11 @@ const PropertyOwnerBookings = () => {
     }
 
     // Normalize tab mapping to our internal tabs
-    if (tab) {
+    if (!tab && location.pathname === '/dashboard') {
+      // Any /dashboard URL without an explicit tab (even with other params like property)
+      // should show the main dashboard home view.
+      setActiveTab('dashboard');
+    } else if (tab) {
       if (tab === 'bookings' || tab === 'reservations') {
         setActiveTab('reservations');
         // Expand reservations section
@@ -2858,7 +2838,7 @@ const PropertyOwnerBookings = () => {
               <h2 className="text-xl font-semibold">Guest Reviews</h2>
               <div className="flex items-center gap-2">
                 <FaStar className="text-yellow-400" />
-                <span className="text-2xl font-bold text-gray-900">{ownerAvgRating.toFixed(1)}</span>
+                <span className="text-2xl font-bold text-gray-900">{ownerAvgRating.toFixed(1)} / 10</span>
                 <span className="text-gray-500">({ownerReviewCount} reviews)</span>
               </div>
             </div>

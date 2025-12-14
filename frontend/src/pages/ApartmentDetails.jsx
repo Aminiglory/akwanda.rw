@@ -555,10 +555,10 @@ const ApartmentDetails = () => {
                         </div>
                         <div className="flex flex-col leading-tight">
                           <span className="text-[11px] font-semibold text-gray-900">
-                            {overall10 >= 8
-                              ? 'Very good'
-                              : overall10 >= 5
-                                ? 'Super'
+                            {overall10 > 7
+                              ? 'Super'
+                              : overall10 > 5
+                                ? 'Very good'
                                 : overall10 >= 1
                                   ? 'Good'
                                   : 'Guest rating'}
@@ -946,7 +946,7 @@ const ApartmentDetails = () => {
                   <FaBook className="text-blue-600" />
                   <h3 className="text-lg">House Rules</h3>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-2 mb-4">
                   {apartment.features.houseRules.map((rule, index) => (
                     <div key={index} className="flex items-start gap-3">
                       <div className="mt-2 w-2 h-2 bg-blue-600 rounded-full shrink-0"></div>
@@ -954,39 +954,18 @@ const ApartmentDetails = () => {
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
 
-            {/* Guest Reviews */}
-            <div className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-shadow p-5 md:p-6">
-              <div className="flex items-center gap-2 text-gray-900 font-semibold mb-3">
-                <FaStar className="text-blue-600" />
-                <h3 className="text-lg">Guest Reviews</h3>
-              </div>
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <p className="text-sm font-semibold text-gray-800">
-                    {reviewsSummary?.count
-                      ? `${reviewsSummary.count} stay${reviewsSummary.count === 1 ? '' : 's'} at this property`
-                      : 'No reviews yet for this property'}
-                  </p>
-                  {reviewsSummary?.overallScore10 ? (
-                    <p className="text-xs text-gray-500">
-                      Average guest score {reviewsSummary.overallScore10.toFixed(1)} / 10
-                    </p>
-                  ) : null}
-                </div>
                 {reviewsSummary?.overallScore10 ? (
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 mb-4">
                     <div className="flex items-center justify-center w-11 h-11 rounded-lg bg-blue-600 text-white text-xl font-bold">
                       {reviewsSummary.overallScore10.toFixed(1)}
                     </div>
                     <div className="hidden sm:flex flex-col text-xs">
                       <span className="font-semibold text-gray-900">
-                        {reviewsSummary.overallScore10 >= 8
-                          ? 'Very good'
-                          : reviewsSummary.overallScore10 >= 5
-                            ? 'Super'
+                        {reviewsSummary.overallScore10 > 7
+                          ? 'Super'
+                          : reviewsSummary.overallScore10 > 5
+                            ? 'Very good'
                             : reviewsSummary.overallScore10 >= 1
                               ? 'Good'
                               : 'Guest rating'}
@@ -995,206 +974,88 @@ const ApartmentDetails = () => {
                     </div>
                   </div>
                 ) : null}
-              </div>
 
-              {reviewsSummary?.count ? (
-                <div className="mb-5 border border-gray-100 rounded-xl p-4 bg-gray-50">
-                  <p className="text-xs font-semibold text-gray-800 mb-3">Basic categories</p>
-                  {[
-                    { key: 'staff', label: 'Staff' },
-                    { key: 'cleanliness', label: 'Cleanliness' },
-                    { key: 'locationScore', label: 'Location' },
-                    { key: 'facilities', label: 'Facilities' },
-                    { key: 'comfort', label: 'Comfort' },
-                    { key: 'valueForMoney', label: 'Value for money' },
-                  ].map(row => {
-                    const val = reviewsSummary[row.key] ?? 0;
-                    const pct = Math.max(0, Math.min(100, (val / 10) * 100));
-                    return (
-                      <div key={row.key} className="flex items-center gap-3 mb-1.5">
-                        <div className="w-28 text-xs text-gray-700">{row.label}</div>
-                        <div className="flex-1 h-2 rounded-full bg-gray-200 overflow-hidden">
-                          <div
-                            className="h-full rounded-full bg-blue-700"
-                            style={{ width: `${pct}%` }}
-                          />
-                        </div>
-                        <div className="w-8 text-right text-xs text-gray-800 font-semibold">
-                          {val ? val.toFixed(1) : '–'}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : null}
-
-              {reviewsLoading ? (
-                <div className="space-y-3">
-                  {Array.from({ length: 3 }).map((_, i) => (
-                    <div key={i} className="h-16 bg-gray-100 rounded-xl animate-pulse" />
-                  ))}
-                </div>
-              ) : reviewsError ? (
-                <p className="text-sm text-red-500">{reviewsError}</p>
-              ) : reviews && reviews.length > 0 ? (
-                <div className="space-y-4">
-                  {reviews.slice(0, 3).map((review) => {
-                    const guest = review.guest || {};
-                    const initials = (guest.fullName || `${guest.firstName || ''} ${guest.lastName || ''}` || 'G')
-                      .trim()
-                      .split(' ')
-                      .map((p) => p[0])
-                      .join('')
-                      .slice(0, 2)
-                      .toUpperCase();
-                    return (
-                      <div key={review._id} className="flex gap-3">
-                        <div className="flex-shrink-0">
-                          {guest.profilePicture ? (
-                            <img
-                              src={guest.profilePicture}
-                              alt={guest.fullName || 'Guest'}
-                              className="w-10 h-10 rounded-full object-cover"
+                {reviewsSummary?.count ? (
+                  <div className="mb-1 border border-gray-100 rounded-xl p-4 bg-gray-50">
+                    <p className="text-xs font-semibold text-gray-800 mb-3">Basic categories</p>
+                    {[
+                      { key: 'staff', label: 'Staff' },
+                      { key: 'cleanliness', label: 'Cleanliness' },
+                      { key: 'locationScore', label: 'Location' },
+                      { key: 'facilities', label: 'Facilities' },
+                      { key: 'comfort', label: 'Comfort' },
+                      { key: 'valueForMoney', label: 'Value for money' },
+                    ].map(row => {
+                      const val = reviewsSummary[row.key] ?? 0;
+                      const pct = Math.max(0, Math.min(100, (val / 10) * 100));
+                      return (
+                        <div key={row.key} className="flex items-center gap-3 mb-1.5">
+                          <div className="w-28 text-xs text-gray-700">{row.label}</div>
+                          <div className="flex-1 h-2 rounded-full bg-gray-200 overflow-hidden">
+                            <div
+                              className="h-full rounded-full bg-blue-700"
+                              style={{ width: `${pct}%` }}
                             />
-                          ) : (
-                            <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-semibold">
-                              {initials || 'G'}
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="text-sm font-semibold text-gray-800">{guest.fullName || 'Guest'}</p>
-                              <p className="text-xs text-gray-500">
-                                {review.createdAt ? new Date(review.createdAt).toLocaleDateString() : ''}
-                              </p>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <FaStar className="text-yellow-400" />
-                              <span className="text-sm font-medium text-gray-800">
-                                {Number(review.rating || 0).toFixed(1)}
-                              </span>
-                            </div>
                           </div>
-                          {review.comment && (
-                            <p className="mt-1 text-sm text-gray-700 break-words">
-                              {review.comment}
-                            </p>
-                          )}
+                          <div className="w-8 text-right text-xs text-gray-800 font-semibold">
+                            {val ? val.toFixed(1) : '–'}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
-                  {reviews.length > 3 && (
-                    <p className="text-xs text-gray-500">
-                      Showing 3 of {reviews.length} reviews.
-                    </p>
-                  )}
-                </div>
-              ) : (
-                <p className="text-sm text-gray-600">
-                  No guest reviews yet. Be the first to share your experience.
-                </p>
-              )}
-            </div>
-
-            {/* Host */}
-            <div className="bg-white rounded-2xl shadow-lg p-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-2">
-                Host Information
-              </h3>
-              <p className="text-sm text-gray-600">
-                For privacy and security, the property owner's personal details are not shown here.
-                After you complete your booking, we will automatically share the full host contact
-                information and assistance number in your booking confirmation.
-              </p>
-            </div>
-
-            {apartment.lat != null && apartment.lng != null && (
-              <div className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-shadow p-5 md:p-6">
-                <div className="flex items-center gap-2 text-gray-900 font-semibold mb-3">
-                  <FaMapMarkerAlt className="text-blue-600" />
-                  <h3 className="text-lg">Location &amp; Area Info</h3>
-                </div>
-                <p className="text-sm text-gray-600 mb-3">{apartment.location}</p>
-                <div className="rounded-2xl overflow-hidden border border-gray-100 h-64 mb-3">
-                  <iframe
-                    title="Property location map"
-                    src={`https://www.google.com/maps?q=${apartment.lat},${apartment.lng}&hl=en&z=14&output=embed`}
-                    className="w-full h-full border-0"
-                    loading="lazy"
-                    referrerPolicy="no-referrer-when-downgrade"
-                  />
-                </div>
-                <p className="text-xs text-gray-400">
-                  Map location is approximate and provided for orientation.
-                </p>
+                      );
+                    })}
+                  </div>
+                ) : null}
               </div>
             )}
-          </div>
 
-          {/* Booking Sidebar */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-2xl shadow-lg p-6 sticky top-8 space-y-4">
-              <div>
-                <div className="text-sm text-gray-500 mb-1">From</div>
-                <div className="text-2xl font-bold text-gray-900">
-                  {formatCurrencyRWF
-                    ? formatCurrencyRWF(apartment.pricePerNight || apartment.price || 0)
-                    : `RWF ${(apartment.pricePerNight || apartment.price || 0).toLocaleString()}`}
-                  <span className="text-sm font-normal text-gray-500 ml-1">/ night</span>
-                </div>
-                {searchCheckIn && searchCheckOut && (
-                  <div className="mt-2 text-xs text-gray-600">
-                    {new Date(searchCheckIn).toLocaleDateString()} - {new Date(searchCheckOut).toLocaleDateString()}
-                  </div>
-                )}
+            {searchCheckIn && searchCheckOut && (
+              <div className="mt-2 text-xs text-gray-600">
+                {new Date(searchCheckIn).toLocaleDateString()} - {new Date(searchCheckOut).toLocaleDateString()}
               </div>
+            )}
 
-              <div className="border-t border-gray-100 pt-4 space-y-2 text-sm text-gray-700">
-                <div className="flex items-center justify-between">
-                  <span>Check-in</span>
-                  <span className="font-medium">
-                    {searchCheckIn ? new Date(searchCheckIn).toLocaleDateString() : 'Select dates'}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span>Check-out</span>
-                  <span className="font-medium">
-                    {searchCheckOut ? new Date(searchCheckOut).toLocaleDateString() : 'Select dates'}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span>Guests</span>
-                  <span className="font-medium">{searchGuests || 'Select guests'}</span>
-                </div>
+            <div className="border-t border-gray-100 pt-4 space-y-2 text-sm text-gray-700">
+              <div className="flex items-center justify-between">
+                <span>Check-in</span>
+                <span className="font-medium">
+                  {searchCheckIn ? new Date(searchCheckIn).toLocaleDateString() : 'Select dates'}
+                </span>
               </div>
-
-              <button
-                type="button"
-                className="w-full inline-flex items-center justify-center px-4 py-3 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-colors"
-                onClick={() => {
-                  if (!isAuthenticated) {
-                    navigate('/login');
-                    return;
-                  }
-                  if (!searchCheckIn || !searchCheckOut) {
-                    toast.error('Please select check-in and check-out dates before reserving a room.');
-                    return;
-                  }
-                  if (selectedRoom === null || !roomsToDisplay[selectedRoom]) {
-                    toast.error('Please choose a room below and click "Reserve this room".');
-                    return;
-                  }
-                  handleReserveRoom(roomsToDisplay[selectedRoom]);
-                }}
-              >
-                {isAuthenticated ? 'Reserve selected room' : 'Login to book'}
-              </button>
-
-              {/* Commission details are surfaced in Notifications for property owners; no monthly pricing shown here. */}
+              <div className="flex items-center justify-between">
+                <span>Check-out</span>
+                <span className="font-medium">
+                  {searchCheckOut ? new Date(searchCheckOut).toLocaleDateString() : 'Select dates'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Guests</span>
+                <span className="font-medium">{searchGuests || 'Select guests'}</span>
+              </div>
             </div>
+
+            <button
+              type="button"
+              className="w-full inline-flex items-center justify-center px-4 py-3 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-colors"
+              onClick={() => {
+                if (!isAuthenticated) {
+                  navigate('/login');
+                  return;
+                }
+                if (!searchCheckIn || !searchCheckOut) {
+                  toast.error('Please select check-in and check-out dates before reserving a room.');
+                  return;
+                }
+                if (selectedRoom === null || !roomsToDisplay[selectedRoom]) {
+                  toast.error('Please choose a room below and click "Reserve this room".');
+                  return;
+                }
+                handleReserveRoom(roomsToDisplay[selectedRoom]);
+              }}
+            >
+              {isAuthenticated ? 'Reserve selected room' : 'Login to book'}
+            </button>
+
+            {/* Commission details are surfaced in Notifications for property owners; no monthly pricing shown here. */}
           </div>
         </div>
       </div>
