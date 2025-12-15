@@ -45,6 +45,7 @@ import {
   FaMoneyBillWave,
   FaMotorcycle,
   FaBicycle,
+  FaPlus,
 } from "react-icons/fa";
 import { useLocale } from "../contexts/LocaleContext";
 
