@@ -189,11 +189,19 @@ const Navbar = () => {
       label: labelOr('nav.finance', 'Finance'),
       icon: FaDollarSign,
       href: '/owner/attractions?view=finance',
+      children: [
+        { label: labelOr('nav.last30Days', 'Last 30 days'), href: '/owner/attractions?view=finance&range=30', icon: FaDollarSign },
+        { label: labelOr('nav.yearToDate', 'Year to date'), href: '/owner/attractions?view=finance&range=ytd', icon: FaDollarSign },
+      ],
     },
     {
       label: labelOr('nav.analytics', 'Analytics'),
       icon: FaChartLine,
       href: '/owner/attractions?view=analytics',
+      children: [
+        { label: labelOr('nav.last30Days', 'Last 30 days'), href: '/owner/attractions?view=analytics&range=30', icon: FaChartLine },
+        { label: labelOr('nav.yearToDate', 'Year to date'), href: '/owner/attractions?view=analytics&range=ytd', icon: FaChartLine },
+      ],
     },
     {
       label: labelOr('nav.reviews', 'Reviews'),
@@ -249,11 +257,19 @@ const Navbar = () => {
       label: labelOr('nav.finance', 'Finance'),
       icon: FaDollarSign,
       href: '/owner/cars?view=finance',
+      children: [
+        { label: labelOr('nav.last30Days', 'Last 30 days'), href: '/owner/cars?view=finance&range=30', icon: FaDollarSign },
+        { label: labelOr('nav.yearToDate', 'Year to date'), href: '/owner/cars?view=finance&range=ytd', icon: FaDollarSign },
+      ],
     },
     {
       label: labelOr('nav.analytics', 'Analytics'),
       icon: FaChartLine,
       href: '/owner/cars?view=analytics',
+      children: [
+        { label: labelOr('nav.last30Days', 'Last 30 days'), href: '/owner/cars?view=analytics&range=30', icon: FaChartLine },
+        { label: labelOr('nav.yearToDate', 'Year to date'), href: '/owner/cars?view=analytics&range=ytd', icon: FaChartLine },
+      ],
     },
     {
       label: labelOr('nav.reviews', 'Reviews'),
@@ -915,6 +931,15 @@ const Navbar = () => {
   };
 
   const avatarUrl = user?.avatar ? makeAbsolute(user.avatar) : null;
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/');
+    } catch (e) {
+      toast.error(e?.message || 'Could not log out');
+    }
+  };
 
   const handleListProperty = () => {
     // Always guard into owner mode before listing

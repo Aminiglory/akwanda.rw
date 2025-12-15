@@ -30,7 +30,13 @@ export default function OwnerAttractionsDashboard() {
   const [successOpen, setSuccessOpen] = useState(false);
   const [successTitle, setSuccessTitle] = useState('Success');
   const [successMsg, setSuccessMsg] = useState('Action completed successfully.');
-  const [view, setView] = useState('overview'); // 'overview' | 'attractions' | 'bookings'
+  const [view, setView] = useState('overview'); // 'overview' | 'attractions' | 'bookings' | 'finance' | 'analytics' | 'reviews' | 'messages' | 'settings'
+  const financeRange = (searchParams.get('range') || '').toLowerCase();
+  const financeRangeLabel = financeRange === '30'
+    ? 'Last 30 days'
+    : financeRange === 'ytd'
+      ? 'Year to date'
+      : 'All time';
 
   const { t } = useLocale() || {};
 
@@ -59,16 +65,20 @@ export default function OwnerAttractionsDashboard() {
       case 'bookings':
         if (view !== 'bookings') setView('bookings');
         break;
-      // For now, finance/analytics/reviews/messages/settings all reuse the
-      // overview section, which already surfaces key stats. This keeps
-      // navigation working and within the owner dashboard while we avoid
-      // creating separate pages.
       case 'finance':
+        if (view !== 'finance') setView('finance');
+        break;
       case 'analytics':
+        if (view !== 'analytics') setView('analytics');
+        break;
       case 'reviews':
+        if (view !== 'reviews') setView('reviews');
+        break;
       case 'messages':
+        if (view !== 'messages') setView('messages');
+        break;
       case 'settings':
-        if (view !== 'overview') setView('overview');
+        if (view !== 'settings') setView('settings');
         break;
       default:
         break;
@@ -447,6 +457,61 @@ export default function OwnerAttractionsDashboard() {
             </Link>
           </div>
         </>
+      )}
+
+      {/* Finance view: simple revenue placeholder (backend does not yet provide detailed finance per attraction) */}
+      {view === 'finance' && (
+        <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-3 text-sm text-gray-700">
+          <h2 className="text-lg font-semibold mb-1">Finance overview</h2>
+          <p>
+            A dedicated finance view for attractions will appear here. For now, overall booking totals and
+            payouts remain available from the main Finance sections of your owner account.
+            <span className="ml-1 font-semibold">Range: {financeRangeLabel}</span>
+          </p>
+        </div>
+      )}
+
+      {/* Analytics view: simple stats placeholder */}
+      {view === 'analytics' && (
+        <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-3 text-sm text-gray-700">
+          <h2 className="text-lg font-semibold mb-1">Analytics</h2>
+          <p>
+            Detailed analytics for attractions will be added here. At the moment, you can see basic
+            performance from the overview cards and global analytics sections.
+            <span className="ml-1 font-semibold">Range: {financeRangeLabel}</span>
+          </p>
+        </div>
+      )}
+
+      {/* Reviews/messages/settings placeholders */}
+      {view === 'reviews' && (
+        <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-3 text-sm text-gray-700">
+          <h2 className="text-lg font-semibold mb-1">Attraction reviews</h2>
+          <p>
+            Attraction reviews are managed from the main reviews page. Use the Reviews link in the top
+            owner navigation to open <span className="font-mono">/owner/reviews</span> in a full page.
+          </p>
+        </div>
+      )}
+
+      {view === 'messages' && (
+        <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-3 text-sm text-gray-700">
+          <h2 className="text-lg font-semibold mb-1">Messages</h2>
+          <p>
+            Attraction reservation messages are handled in your main inbox. Use the Messages link in the
+            top navigation to open the full messaging interface with reservation filters.
+          </p>
+        </div>
+      )}
+
+      {view === 'settings' && (
+        <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-3 text-sm text-gray-700">
+          <h2 className="text-lg font-semibold mb-1">Settings</h2>
+          <p>
+            Attraction-specific settings will appear here in the future. For now you can manage notification
+            and account settings from the main Settings section of your profile.
+          </p>
+        </div>
       )}
 
       {/* Create form: only in Attractions view */}

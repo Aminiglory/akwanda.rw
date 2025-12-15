@@ -71,7 +71,7 @@ export default function CarOwnerDashboard() {
     const mo = parseInt(searchParams.get('monthOffset') || '0', 10);
     return Number.isNaN(mo) ? 0 : mo;
   });
-  const [view, setView] = useState('overview'); // 'overview' | 'vehicles' | 'bookings'
+  const [view, setView] = useState('overview'); // 'overview' | 'vehicles' | 'bookings' | 'finance' | 'analytics' | 'reviews' | 'messages' | 'settings'
   const propertyContextId = searchParams.get('property') || '';
   const [propertyContextLabel, setPropertyContextLabel] = useState('');
 
@@ -177,17 +177,20 @@ export default function CarOwnerDashboard() {
         if (view !== 'bookings') setView('bookings');
         if (bookingView !== 'calendar') setBookingView('calendar');
         break;
-      // For now, finance/analytics/promotions/reviews/messages/settings
-      // all land on the overview, which already surfaces finance and
-      // high-level stats for vehicles. This keeps navigation working
-      // and within the owner dashboard without needing separate pages.
       case 'finance':
+        if (view !== 'finance') setView('finance');
+        break;
       case 'analytics':
-      case 'promotions':
+        if (view !== 'analytics') setView('analytics');
+        break;
       case 'reviews':
+        if (view !== 'reviews') setView('reviews');
+        break;
       case 'messages':
+        if (view !== 'messages') setView('messages');
+        break;
       case 'settings':
-        if (view !== 'overview') setView('overview');
+        if (view !== 'settings') setView('settings');
         break;
       default:
         break;
@@ -590,7 +593,7 @@ export default function CarOwnerDashboard() {
         </div>
       )}
 
-      {/* Overview section (stats, quick links, finance) */}
+      {/* Overview section (stats, quick links, finance snapshot) */}
       {view === 'overview' && (
         <>
           {Array.isArray(cars) && cars.length > 0 ? (
@@ -724,6 +727,158 @@ export default function CarOwnerDashboard() {
             </div>
           </div>
         </>
+      )}
+
+      {/* Finance view: focus on revenue stats for vehicles */}
+      {view === 'finance' && (
+        <>
+          <div className="mb-4">
+            <h2 className="text-xl font-semibold text-gray-900">Finance overview</h2>
+            <p className="text-xs text-gray-600 mt-1">
+              Revenue and bookings for your vehicles based on car bookings data.
+              <span className="ml-1 font-semibold">Range: {financeRangeLabel}</span>
+            </p>
+          </div>
+
+          <div className="mb-4 max-w-xs">
+            {Array.isArray(cars) && cars.length > 0 && (
+              <>
+                <label className="block text-xs text-gray-600 mb-1">Vehicle scope</label>
+                <select
+                  className="w-full px-3 py-2 border rounded text-sm"
+                  value={selectedCarId || ''}
+                  onChange={e => setSelectedCarId(e.target.value)}
+                >
+                  <option value="">All vehicles</option>
+                  {cars.map(c => (
+                    <option key={c._id} value={c._id}>
+                      {c.vehicleName || `${c.brand || ''} ${c.model || ''}`.trim() || 'Untitled vehicle'}
+                    </option>
+                  ))}
+                </select>
+              </>
+            )}
+          </div>
+
+          <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2">
+              <div className="text-[11px] text-gray-500">Last 30 days revenue</div>
+              <div className="text-sm font-semibold text-gray-900">
+                {formatCurrencyRWF ? formatCurrencyRWF(financeStats.rev30 || 0) : `RWF ${Number(financeStats.rev30 || 0).toLocaleString()}`}
+              </div>
+              <div className="mt-0.5 text-[11px] text-gray-500">{financeStats.bookings30} bookings</div>
+            </div>
+            <div className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2">
+              <div className="text-[11px] text-gray-500">Year-to-date revenue</div>
+              <div className="text-sm font-semibold text-gray-900">
+                {formatCurrencyRWF ? formatCurrencyRWF(financeStats.revYtd || 0) : `RWF ${Number(financeStats.revYtd || 0).toLocaleString()}`}
+              </div>
+              <div className="mt-0.5 text-[11px] text-gray-500">{financeStats.bookingsYtd} bookings</div>
+            </div>
+            <div className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2">
+              <div className="text-[11px] text-gray-500">Avg revenue / booking (30d)</div>
+              <div className="text-sm font-semibold text-gray-900">
+                {formatCurrencyRWF ? formatCurrencyRWF(financeStats.avg30 || 0) : `RWF ${Number(financeStats.avg30 || 0).toLocaleString()}`}
+              </div>
+              <div className="mt-0.5 text-[11px] text-gray-500">Based on last 30 days</div>
+            </div>
+          </div>
+
+          <div className="mb-4">
+            <button
+              type="button"
+              onClick={exportBookingsCsv}
+              className="inline-flex items-center px-3 py-1.5 rounded-md bg-[#a06b42] hover:bg-[#8f5a32] text-white text-xs font-medium"
+            >
+              Export bookings as CSV
+            </button>
+          </div>
+        </>
+      )}
+
+      {/* Analytics view: reuse finance stats but framed as performance */}
+      {view === 'analytics' && (
+        <>
+          <div className="mb-4">
+            <h2 className="text-xl font-semibold text-gray-900">Performance analytics</h2>
+            <p className="text-xs text-gray-600 mt-1">
+              High-level performance metrics for your vehicles based on bookings.
+              <span className="ml-1 font-semibold">Range: {financeRangeLabel}</span>
+            </p>
+          </div>
+
+          <div className="mb-6 grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2">
+              <div className="text-[11px] text-gray-500">Total bookings</div>
+              <div className="text-lg font-semibold text-gray-900">{stats.totalBookings}</div>
+            </div>
+            <div className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2">
+              <div className="text-[11px] text-gray-500">Active</div>
+              <div className="text-lg font-semibold text-emerald-700">{stats.active}</div>
+            </div>
+            <div className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2">
+              <div className="text-[11px] text-gray-500">Completed</div>
+              <div className="text-lg font-semibold text-blue-700">{stats.completed}</div>
+            </div>
+            <div className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2">
+              <div className="text-[11px] text-gray-500">Avg rental length</div>
+              <div className="text-lg font-semibold text-gray-900">{stats.avgRentalLength.toFixed(1)} days</div>
+            </div>
+          </div>
+
+          <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2">
+              <div className="text-[11px] text-gray-500">Last 30 days revenue</div>
+              <div className="text-sm font-semibold text-gray-900">
+                {formatCurrencyRWF ? formatCurrencyRWF(financeStats.rev30 || 0) : `RWF ${Number(financeStats.rev30 || 0).toLocaleString()}`}
+              </div>
+            </div>
+            <div className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2">
+              <div className="text-[11px] text-gray-500">Year-to-date revenue</div>
+              <div className="text-sm font-semibold text-gray-900">
+                {formatCurrencyRWF ? formatCurrencyRWF(financeStats.revYtd || 0) : `RWF ${Number(financeStats.revYtd || 0).toLocaleString()}`}
+              </div>
+            </div>
+            <div className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2">
+              <div className="text-[11px] text-gray-500">Avg revenue / booking (30d)</div>
+              <div className="text-sm font-semibold text-gray-900">
+                {formatCurrencyRWF ? formatCurrencyRWF(financeStats.avg30 || 0) : `RWF ${Number(financeStats.avg30 || 0).toLocaleString()}`}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Simple placeholder panels for reviews/messages/settings views to keep navigation working */}
+      {view === 'reviews' && (
+        <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-3 text-sm text-gray-700">
+          <h2 className="text-lg font-semibold mb-1">Vehicle reviews</h2>
+          <p>
+            Detailed reviews are currently managed from the main reviews page. Use the navigation link
+            to <span className="font-semibold">Reviews</span> in the owner navbar to open
+            <span className="font-mono"> /owner/reviews</span> in a full page.
+          </p>
+        </div>
+      )}
+
+      {view === 'messages' && (
+        <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-3 text-sm text-gray-700">
+          <h2 className="text-lg font-semibold mb-1">Messages</h2>
+          <p>
+            Vehicle reservation messages are handled in your main inbox. Use the Messages item in the top
+            navigation to open the full messaging interface with reservation filters.
+          </p>
+        </div>
+      )}
+
+      {view === 'settings' && (
+        <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-3 text-sm text-gray-700">
+          <h2 className="text-lg font-semibold mb-1">Settings</h2>
+          <p>
+            Vehicle-specific settings will appear here in the future. For now you can manage notification
+            and account settings from the main Settings section of your profile.
+          </p>
+        </div>
       )}
 
       {/* Vehicles management: create + list, shown on Vehicles view */}
