@@ -168,6 +168,43 @@ const PropertyCard = ({
     });
   };
 
+  const handleGetDirections = (e) => {
+    e?.stopPropagation?.();
+    const baseList = Array.isArray(allListings) && allListings.length ? allListings : [listing];
+    const mappedList = baseList
+      .map((item) => {
+        const directLat = item?.latitude;
+        const directLng = item?.longitude;
+        const coords = item?.location?.coordinates;
+        const hasCoordsArray = Array.isArray(coords) && coords.length === 2;
+        const latitude = typeof directLat === 'number' ? directLat : (hasCoordsArray ? coords[1] : undefined);
+        const longitude = typeof directLng === 'number' ? directLng : (hasCoordsArray ? coords[0] : undefined);
+        if (latitude == null || longitude == null || Number.isNaN(latitude) || Number.isNaN(longitude)) {
+          return null;
+        }
+        return {
+          ...item,
+          latitude,
+          longitude,
+        };
+      })
+      .filter(Boolean);
+    if (!mappedList.length) {
+      console.warn('No properties with valid coordinates for directions');
+      return;
+    }
+    const currentId = listing?.id || listing?._id;
+    const focusedProperty =
+      mappedList.find((p) => (p.id || p._id) === currentId) || mappedList[0];
+    navigate('/map-view', {
+      state: {
+        focusedProperty,
+        properties: mappedList,
+        requestDirections: true,
+      },
+    });
+  };
+
   const showsBreakfast = !!(
     hasBreakfastIncluded ||
     String(title || '').toLowerCase().includes('breakfast') ||
@@ -388,6 +425,16 @@ const PropertyCard = ({
             >
               {t ? t('property.viewDetails') : 'View Details'}
             </button>
+            {((listing?.latitude && listing?.longitude) ||
+              (listing?.location?.coordinates && listing.location.coordinates.length === 2)) && (
+              <button
+                type="button"
+                onClick={handleGetDirections}
+                className="hidden md:inline-flex px-3 py-2 rounded-lg border border-amber-700 text-amber-800 bg-amber-50 hover:bg-amber-100 transition-colors text-xs font-semibold"
+              >
+                {t ? t('map.getDirections', 'Get directions') : 'Get directions'}
+              </button>
+            )}
             {onEditHref && (
               <Link
                 to={onEditHref}

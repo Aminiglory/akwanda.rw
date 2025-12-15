@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
-import { GoogleMap, OverlayView, useLoadScript } from '@react-google-maps/api';
+import { GoogleMap, OverlayView, DirectionsRenderer, useLoadScript } from '@react-google-maps/api';
 import { FaBed, FaBath, FaMapMarkerAlt, FaArrowLeft, FaStar } from 'react-icons/fa';
 import { useLocale } from '../contexts/LocaleContext';
+import { useDirections } from '../hooks/useDirections';
 
 const toRad = (value) => (value * Math.PI) / 180;
 
@@ -15,6 +16,23 @@ const distanceInKm = (lat1, lon1, lat2, lon2) => {
   ) {
     return null;
   }
+
+  // Auto-request directions when coming from a card with requestDirections flag
+  useEffect(() => {
+    if (
+      !autoRequestedDirections &&
+      location.state?.requestDirections &&
+      selectedProperty &&
+      selectedProperty.latitude != null &&
+      selectedProperty.longitude != null
+    ) {
+      getDirections({
+        lat: Number(selectedProperty.latitude),
+        lng: Number(selectedProperty.longitude),
+      });
+      setAutoRequestedDirections(true);
+    }
+  }, [autoRequestedDirections, location.state, selectedProperty, getDirections]);
   const R = 6371; // km
   const dLat = toRad(lat2 - lat1);
   const dLon = toRad(lon2 - lon1);
@@ -38,6 +56,7 @@ const PropertyMapView = () => {
   const [loading, setLoading] = useState(true);
   const [selectedProperty, setSelectedProperty] = useState(initialFocused);
   const [mapCenter, setMapCenter] = useState(null);
+  const [autoRequestedDirections, setAutoRequestedDirections] = useState(false);
   const [activeFilters, setActiveFilters] = useState({
     type: 'all',
     minPrice: 0,
@@ -55,6 +74,14 @@ const PropertyMapView = () => {
   const getMarkerLabel = (property) => (
     String(property.title || '').trim() || (t ? t('map.unnamedProperty') : 'Property')
   );
+
+  const {
+    directions,
+    loadingDirections,
+    directionsErrorKey,
+    getDirections,
+    clearDirections,
+  } = useDirections();
 
   // Fetch properties from API or use passed properties
   useEffect(() => {
@@ -174,6 +201,23 @@ const PropertyMapView = () => {
 
   return (
     <div className="relative h-screen w-full">
+      {/* Directions error toast */}
+      {directionsErrorKey && (
+        <div className="absolute z-30 left-1/2 top-24 -translate-x-1/2 w-[90%] max-w-md">
+          <div className="bg-red-50 text-red-700 text-xs md:text-sm px-3 py-2 rounded-lg shadow flex items-start justify-between gap-3">
+            <span className="flex-1">
+              {t ? t(directionsErrorKey) : 'Unable to load directions.'}
+            </span>
+            <button
+              type="button"
+              onClick={clearDirections}
+              className="text-red-500 hover:text-red-700 text-xs font-semibold"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
       {/* Header */}
       <header className="absolute top-0 left-0 right-0 z-10 bg-white shadow-md p-4 flex justify-between items-center">
         <button 
@@ -238,6 +282,20 @@ const PropertyMapView = () => {
                 </OverlayView>
               );
             })}
+
+            {directions && (
+              <DirectionsRenderer
+                directions={directions}
+                options={{
+                  suppressMarkers: true,
+                  polylineOptions: {
+                    strokeColor: '#8b5a2b',
+                    strokeOpacity: 0.9,
+                    strokeWeight: 5,
+                  },
+                }}
+              />
+            )}
           </GoogleMap>
         )}
       </div>
@@ -296,14 +354,21 @@ const PropertyMapView = () => {
                 {safeT('bookNow', 'Book now')}
               </button>
               {selectedProperty.latitude != null && selectedProperty.longitude != null && (
-                <a
-                  href={`https://www.google.com/maps/dir/?api=1&destination=${selectedProperty.latitude},${selectedProperty.longitude}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm text-center"
+                <button
+                  type="button"
+                  onClick={() =>
+                    getDirections({
+                      lat: Number(selectedProperty.latitude),
+                      lng: Number(selectedProperty.longitude),
+                    })
+                  }
+                  disabled={loadingDirections}
+                  className="px-4 py-2 border border-amber-700 text-amber-800 rounded-lg bg-amber-50 hover:bg-amber-100 disabled:opacity-60 transition-colors text-sm text-center font-semibold"
                 >
-                  {safeT('getDirections', 'Get directions')}
-                </a>
+                  {loadingDirections
+                    ? safeT('getDirectionsLoading', 'Getting route…')
+                    : safeT('getDirections', 'Get directions')}
+                </button>
               )}
             </div>
           </div>
