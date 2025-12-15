@@ -83,6 +83,18 @@ const Notifications = () => {
     }
   };
 
+  const openReview = (n) => {
+    const isHost = user?.userType === 'host' || user?.userType === 'admin';
+    // Mark as read but do not change any global mode; just navigate to the proper reviews page
+    markRead(n.id);
+    if (isHost) {
+      // Open owner reviews focused on items that typically need attention
+      navigate('/owner/reviews?filter=unreplied');
+    } else {
+      navigate('/account/reviews');
+    }
+  };
+
   const confirmBooking = async (n) => {
     const bid = n.booking?._id || n.booking;
     if (!bid) return;
@@ -149,9 +161,19 @@ const Notifications = () => {
               const messageText = n.message || '';
               const bookingNumberMatch = messageText.match(/Booking number:\s*([A-Z0-9-]+)/i);
               const reviewPinMatch = messageText.match(/Review PIN:\s*(\d+)/i);
+              const isReviewNotification = String(n.type || '').toLowerCase().includes('review') || !!reviewPinMatch;
 
               return (
-                <div id={`notif-${n.id}`} key={n.id} className={`modern-card p-4 ${!n.isRead ? 'border-l-4 border-blue-600' : ''} ${focusId===n.id ? 'ring-2 ring-blue-400' : ''}`}>
+                <div
+                  id={`notif-${n.id}`}
+                  key={n.id}
+                  className={`modern-card p-4 ${!n.isRead ? 'border-l-4 border-blue-600' : ''} ${focusId===n.id ? 'ring-2 ring-blue-400' : ''}`}
+                  onClick={() => {
+                    if (isReviewNotification) {
+                      openReview(n);
+                    }
+                  }}
+                >
                   {String(n.type || '').includes('commission') ? (
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                       <div className="flex-1 min-w-0">
@@ -195,10 +217,21 @@ const Notifications = () => {
                       <div className="flex items-center gap-2">
                         {n.booking && (
                           <>
-                            <button onClick={() => openBooking(n)} className="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-800 rounded">Open</button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openBooking(n);
+                              }}
+                              className="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-800 rounded"
+                            >
+                              Open
+                            </button>
                             {(n.type === 'booking_paid' || n.type === 'booking_created') && (
                               <button
-                                onClick={() => confirmBooking(n)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  confirmBooking(n);
+                                }}
                                 disabled={!!busy[n.id]}
                                 className="px-3 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded disabled:opacity-50"
                               >
@@ -208,7 +241,15 @@ const Notifications = () => {
                           </>
                         )}
                         {!n.isRead && (
-                          <button onClick={() => markRead(n.id)} className="px-3 py-2 text-sm bg-white border border-gray-200 hover:bg-gray-50 rounded">Mark read</button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              markRead(n.id);
+                            }}
+                            className="px-3 py-2 text-sm bg-white border border-gray-200 hover:bg-gray-50 rounded"
+                          >
+                            Mark read
+                          </button>
                         )}
                       </div>
                     </div>

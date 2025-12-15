@@ -186,6 +186,23 @@ const Navbar = () => {
       ]
     },
     {
+      label: labelOr('nav.property', 'Property'),
+      icon: FaBed,
+      href: attachPropertyParam('/owner/property'),
+      children: [
+        { label: labelOr('nav.propertyPolicies', 'Property policies'), href: attachPropertyParam('/owner/property?view=policies'), icon: FaFileAlt },
+        { label: labelOr('nav.reservationPolicies', 'Reservation policies'), href: attachPropertyParam('/owner/property?view=reservation-policies'), icon: FaFileAlt },
+        { label: labelOr('nav.facilitiesServices', 'Facilities and services'), href: attachPropertyParam('/owner/property?view=facilities'), icon: FaCog },
+        { label: labelOr('nav.roomDetails', 'Room details'), href: attachPropertyParam('/owner/property?view=room-details'), icon: FaBed },
+        { label: labelOr('nav.roomAmenities', 'Room Amenities'), href: attachPropertyParam('/owner/property?view=room-amenities'), icon: FaBed },
+        { label: labelOr('nav.yourProfile', 'your profile'), href: attachPropertyParam('/owner/property?view=profile'), icon: FaUser },
+        { label: labelOr('nav.viewDescriptions', 'View your descriptions'), href: attachPropertyParam('/owner/property?view=descriptions'), icon: FaFileAlt },
+        { label: labelOr('nav.photos', 'Photos'), href: attachPropertyParam('/owner/property?view=photos'), icon: FaImages },
+        { label: labelOr('nav.messagingPreferences', 'Messaging preferences'), href: '/settings?tab=messaging', icon: FaEnvelope },
+        { label: labelOr('nav.propertyManagement', 'Property management'), href: attachPropertyParam('/owner/property?view=general-info'), icon: FaImages },
+      ]
+    },
+    {
       label: labelOr('nav.finance', 'Finance'),
       icon: FaDollarSign,
       href: '/owner/attractions?view=finance',
@@ -228,7 +245,6 @@ const Navbar = () => {
     },
   ];
 
-  // Vehicle owner navigation items (car dashboard scopes)
   const carOwnerNavItems = [
     {
       label: labelOr('nav.vehiclesHome', 'Vehicles'),
@@ -251,6 +267,34 @@ const Navbar = () => {
         { label: labelOr('nav.completedReservations', 'Completed'), href: '/owner/cars?view=reservations&status=completed', icon: FaCalendarAlt },
         { label: labelOr('nav.cancelledReservations', 'Cancelled'), href: '/owner/cars?view=reservations&status=cancelled', icon: FaCalendarAlt },
       ]
+    },
+    {
+      label: labelOr('nav.property', 'Property'),
+      icon: FaBed,
+      href: attachPropertyParam('/owner/property'),
+      children: [
+        { label: labelOr('nav.propertyPolicies', 'Property policies'), href: attachPropertyParam('/owner/property?view=policies'), icon: FaFileAlt },
+        { label: labelOr('nav.reservationPolicies', 'Reservation policies'), href: attachPropertyParam('/owner/property?view=reservation-policies'), icon: FaFileAlt },
+        { label: labelOr('nav.facilitiesServices', 'Facilities and services'), href: attachPropertyParam('/owner/property?view=facilities'), icon: FaCog },
+        { label: labelOr('nav.roomDetails', 'Room details'), href: attachPropertyParam('/owner/property?view=room-details'), icon: FaBed },
+        { label: labelOr('nav.roomAmenities', 'Room Amenities'), href: attachPropertyParam('/owner/property?view=room-amenities'), icon: FaBed },
+        { label: labelOr('nav.yourProfile', 'your profile'), href: attachPropertyParam('/owner/property?view=profile'), icon: FaUser },
+        { label: labelOr('nav.viewDescriptions', 'View your descriptions'), href: attachPropertyParam('/owner/property?view=descriptions'), icon: FaFileAlt },
+        { label: labelOr('nav.photos', 'Photos'), href: attachPropertyParam('/owner/property?view=photos'), icon: FaImages },
+        { label: labelOr('nav.messagingPreferences', 'Messaging preferences'), href: '/settings?tab=messaging', icon: FaEnvelope },
+        { label: labelOr('nav.propertyManagement', 'Property management'), href: attachPropertyParam('/owner/property?view=general-info'), icon: FaImages },
+      ]
+    },
+    {
+      label: labelOr('nav.promotions', 'Promotions'),
+      icon: FaShoppingBag,
+      href: '/owner/promotions',
+      children: [
+        { label: labelOr('nav.managePromotions', 'Manage promotions'), href: '/owner/promotions', icon: FaShoppingBag },
+        { label: labelOr('nav.createNewPromotion', 'Create new promotion'), href: '/owner/promotions?mode=new', icon: FaPlus },
+        { label: labelOr('nav.activePromotions', 'Active promotions'), href: '/owner/promotions?status=active', icon: FaShoppingBag },
+        { label: labelOr('nav.expiredPromotions', 'Expired promotions'), href: '/owner/promotions?status=expired', icon: FaShoppingBag },
+      ],
     },
     {
       label: labelOr('nav.calendar', 'Calendar'),

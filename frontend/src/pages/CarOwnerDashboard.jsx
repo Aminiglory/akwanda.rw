@@ -592,24 +592,115 @@ export default function CarOwnerDashboard() {
         <div className="mb-4 flex flex-wrap gap-2 text-sm">
           <button
             type="button"
-            onClick={() => setView('overview')}
+            onClick={() => {
+              setView('overview');
+              try {
+                const next = new URLSearchParams(searchParams.toString());
+                next.delete('view');
+                setSearchParams(next, { replace: true });
+              } catch (_) {}
+            }}
             className={`px-3 py-1.5 rounded-full border ${view === 'overview' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
           >
             Overview
           </button>
           <button
             type="button"
-            onClick={() => setView('vehicles')}
+            onClick={() => {
+              setView('vehicles');
+              try {
+                const next = new URLSearchParams(searchParams.toString());
+                next.set('view', 'vehicles');
+                setSearchParams(next, { replace: true });
+              } catch (_) {}
+            }}
             className={`px-3 py-1.5 rounded-full border ${view === 'vehicles' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
           >
             Vehicles
           </button>
           <button
             type="button"
-            onClick={() => setView('bookings')}
+            onClick={() => {
+              setView('bookings');
+              try {
+                const next = new URLSearchParams(searchParams.toString());
+                next.set('view', 'bookings');
+                setSearchParams(next, { replace: true });
+              } catch (_) {}
+            }}
             className={`px-3 py-1.5 rounded-full border ${view === 'bookings' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
           >
             Bookings
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setView('finance');
+              try {
+                const next = new URLSearchParams(searchParams.toString());
+                next.set('view', 'finance');
+                setSearchParams(next, { replace: true });
+              } catch (_) {}
+            }}
+            className={`px-3 py-1.5 rounded-full border ${view === 'finance' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+          >
+            Finance
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setView('analytics');
+              try {
+                const next = new URLSearchParams(searchParams.toString());
+                next.set('view', 'analytics');
+                setSearchParams(next, { replace: true });
+              } catch (_) {}
+            }}
+            className={`px-3 py-1.5 rounded-full border ${view === 'analytics' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+          >
+            Analytics
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setView('reviews');
+              try {
+                const next = new URLSearchParams(searchParams.toString());
+                next.set('view', 'reviews');
+                setSearchParams(next, { replace: true });
+              } catch (_) {}
+            }}
+            className={`px-3 py-1.5 rounded-full border ${view === 'reviews' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+          >
+            Reviews
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setView('messages');
+              try {
+                const next = new URLSearchParams(searchParams.toString());
+                next.set('view', 'messages');
+                setSearchParams(next, { replace: true });
+              } catch (_) {}
+            }}
+            className={`px-3 py-1.5 rounded-full border ${view === 'messages' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+          >
+            Messages
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setView('settings');
+              try {
+                const next = new URLSearchParams(searchParams.toString());
+                next.set('view', 'settings');
+                setSearchParams(next, { replace: true });
+              } catch (_) {}
+            }}
+            className={`px-3 py-1.5 rounded-full border ${view === 'settings' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+          >
+            Settings
           </button>
         </div>
       </div>
