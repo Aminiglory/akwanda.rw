@@ -817,13 +817,19 @@ const Navbar = () => {
     return location.pathname === path;
   };
 
-  // Check if user is in property owner dashboard context
+  // Check if user is in *property* owner dashboard context (exclude vehicles/attractions dashboards)
   const isInPropertyOwnerDashboard = () => {
     // Treat the main step-based listing wizard (/upload) as OUTSIDE the dashboard.
     // The dashboard is only for management after at least one listing exists.
     // Note: /my-bookings is now a guest bookings page and should NOT be considered part of the owner dashboard.
-    const ownerRoutes = ['/group-home', '/dashboard', '/user-dashboard', '/owner', '/messages', '/notifications'];
-    return ownerRoutes.some(route => location.pathname.startsWith(route));
+    const ownerPropertyRoutes = [
+      '/group-home',
+      '/dashboard',
+      '/user-dashboard',
+      '/owner/property',
+      '/owner/rates',
+    ];
+    return ownerPropertyRoutes.some(route => location.pathname.startsWith(route));
   };
 
   // True when user is on the listing wizard routes (outside dashboard but still listing context)
