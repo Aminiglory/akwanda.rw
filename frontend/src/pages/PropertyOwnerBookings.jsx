@@ -414,8 +414,6 @@ const PropertyOwnerBookings = () => {
   const ownerVat18 = 0;
   const ownerGrandTotal = ownerSubtotal + ownerLevy3;
 
-  useEffect(() => { loadOwnerProperties(); }, []);
-
   // Respond to navbar dropdown links like /my-bookings?tab=properties
   useEffect(() => {
     const params = new URLSearchParams(location.search);
