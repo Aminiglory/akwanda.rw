@@ -190,8 +190,14 @@ const Navbar = () => {
       icon: FaDollarSign,
       href: '/owner/attractions?view=finance',
       children: [
+        { label: labelOr('nav.allPayments', 'All payments'), href: '/owner/attractions?view=finance&filter=all', icon: FaDollarSign },
+        { label: labelOr('nav.paid', 'Paid'), href: '/owner/attractions?view=finance&filter=paid', icon: FaDollarSign },
+        { label: labelOr('nav.pending', 'Pending'), href: '/owner/attractions?view=finance&filter=pending', icon: FaDollarSign },
+        { label: labelOr('nav.unpaid', 'Unpaid'), href: '/owner/attractions?view=finance&filter=unpaid', icon: FaDollarSign },
         { label: labelOr('nav.last30Days', 'Last 30 days'), href: '/owner/attractions?view=finance&range=30', icon: FaDollarSign },
+        { label: labelOr('nav.monthToDate', 'Month to date'), href: '/owner/attractions?view=finance&range=mtd', icon: FaDollarSign },
         { label: labelOr('nav.yearToDate', 'Year to date'), href: '/owner/attractions?view=finance&range=ytd', icon: FaDollarSign },
+        { label: labelOr('nav.expenses', 'Expenses & profit'), href: '/owner/attractions?view=finance&mode=expenses', icon: FaDollarSign },
       ],
     },
     {
@@ -200,7 +206,9 @@ const Navbar = () => {
       href: '/owner/attractions?view=analytics',
       children: [
         { label: labelOr('nav.last30Days', 'Last 30 days'), href: '/owner/attractions?view=analytics&range=30', icon: FaChartLine },
+        { label: labelOr('nav.last90Days', 'Last 90 days'), href: '/owner/attractions?view=analytics&range=90', icon: FaChartLine },
         { label: labelOr('nav.yearToDate', 'Year to date'), href: '/owner/attractions?view=analytics&range=ytd', icon: FaChartLine },
+        { label: labelOr('nav.customRange', 'Custom range'), href: '/owner/attractions?view=analytics&range=custom', icon: FaChartLine },
       ],
     },
     {
@@ -258,8 +266,14 @@ const Navbar = () => {
       icon: FaDollarSign,
       href: '/owner/cars?view=finance',
       children: [
+        { label: labelOr('nav.allPayments', 'All payments'), href: '/owner/cars?view=finance&filter=all', icon: FaDollarSign },
+        { label: labelOr('nav.paid', 'Paid'), href: '/owner/cars?view=finance&filter=paid', icon: FaDollarSign },
+        { label: labelOr('nav.pending', 'Pending'), href: '/owner/cars?view=finance&filter=pending', icon: FaDollarSign },
+        { label: labelOr('nav.unpaid', 'Unpaid'), href: '/owner/cars?view=finance&filter=unpaid', icon: FaDollarSign },
         { label: labelOr('nav.last30Days', 'Last 30 days'), href: '/owner/cars?view=finance&range=30', icon: FaDollarSign },
+        { label: labelOr('nav.monthToDate', 'Month to date'), href: '/owner/cars?view=finance&range=mtd', icon: FaDollarSign },
         { label: labelOr('nav.yearToDate', 'Year to date'), href: '/owner/cars?view=finance&range=ytd', icon: FaDollarSign },
+        { label: labelOr('nav.expenses', 'Expenses & profit'), href: '/owner/cars?view=finance&mode=expenses', icon: FaDollarSign },
       ],
     },
     {
@@ -268,7 +282,9 @@ const Navbar = () => {
       href: '/owner/cars?view=analytics',
       children: [
         { label: labelOr('nav.last30Days', 'Last 30 days'), href: '/owner/cars?view=analytics&range=30', icon: FaChartLine },
+        { label: labelOr('nav.last90Days', 'Last 90 days'), href: '/owner/cars?view=analytics&range=90', icon: FaChartLine },
         { label: labelOr('nav.yearToDate', 'Year to date'), href: '/owner/cars?view=analytics&range=ytd', icon: FaChartLine },
+        { label: labelOr('nav.customRange', 'Custom range'), href: '/owner/cars?view=analytics&range=custom', icon: FaChartLine },
       ],
     },
     {

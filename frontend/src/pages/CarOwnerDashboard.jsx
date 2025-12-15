@@ -286,6 +286,7 @@ export default function CarOwnerDashboard() {
 
   const financeStats = useMemo(() => {
     const baseList = Array.isArray(bookings) ? bookings : [];
+    const filter = (searchParams.get('filter') || 'all').toLowerCase();
     const now = new Date();
     const start30 = new Date(now);
     start30.setDate(start30.getDate() - 30);
@@ -298,6 +299,11 @@ export default function CarOwnerDashboard() {
 
     baseList.forEach(b => {
       if (selectedCarId && String(b.car?._id) !== String(selectedCarId)) return;
+
+      const status = String(b.paymentStatus || b.status || '').toLowerCase();
+      if (filter === 'paid' && status !== 'paid') return;
+      if (filter === 'pending' && status !== 'pending') return;
+      if (filter === 'unpaid' && status !== 'unpaid') return;
       const amount = Number(b.totalAmount || 0);
       const start = new Date(b.pickupDate);
       if (start >= start30 && start <= now) {
@@ -312,7 +318,14 @@ export default function CarOwnerDashboard() {
 
     const avg30 = bookings30 > 0 ? rev30 / bookings30 : 0;
     return { rev30, revYtd, bookings30, bookingsYtd, avg30 };
-  }, [bookings, selectedCarId]);
+  }, [bookings, selectedCarId, searchParams]);
+
+  const rangeParam = (searchParams.get('range') || '').toLowerCase();
+  const financeRangeLabel = rangeParam === '30'
+    ? 'Last 30 days'
+    : rangeParam === 'ytd'
+      ? 'Year to date'
+      : 'All time';
 
   const calendarMeta = useMemo(() => {
     const base = new Date();
@@ -733,9 +746,9 @@ export default function CarOwnerDashboard() {
       {view === 'finance' && (
         <>
           <div className="mb-4">
-            <h2 className="text-xl font-semibold text-gray-900">Finance overview</h2>
+            <h2 className="text-xl font-semibold text-gray-900">{financeModeLabel} - {financeFilterLabel}</h2>
             <p className="text-xs text-gray-600 mt-1">
-              Revenue and bookings for your vehicles based on car bookings data.
+              Revenue and payments for your vehicles based on car bookings data.
               <span className="ml-1 font-semibold">Range: {financeRangeLabel}</span>
             </p>
           </div>

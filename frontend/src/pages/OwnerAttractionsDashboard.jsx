@@ -36,7 +36,27 @@ export default function OwnerAttractionsDashboard() {
     ? 'Last 30 days'
     : financeRange === 'ytd'
       ? 'Year to date'
-      : 'All time';
+      : financeRange === '90'
+        ? 'Last 90 days'
+        : financeRange === 'mtd'
+          ? 'Month to date'
+          : financeRange === 'custom'
+            ? 'Custom range'
+            : 'All time';
+
+  const financeFilter = (searchParams.get('filter') || 'all').toLowerCase();
+  const financeMode = (searchParams.get('mode') || 'overview').toLowerCase();
+
+  const financeFilterLabel = (() => {
+    switch (financeFilter) {
+      case 'paid': return 'Paid payments';
+      case 'pending': return 'Pending payments';
+      case 'unpaid': return 'Unpaid payments';
+      default: return 'All payments';
+    }
+  })();
+
+  const financeModeLabel = financeMode === 'expenses' ? 'Expenses & profit' : 'Overview';
 
   const { t } = useLocale() || {};
 
@@ -462,7 +482,7 @@ export default function OwnerAttractionsDashboard() {
       {/* Finance view: simple revenue placeholder (backend does not yet provide detailed finance per attraction) */}
       {view === 'finance' && (
         <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-3 text-sm text-gray-700">
-          <h2 className="text-lg font-semibold mb-1">Finance overview</h2>
+          <h2 className="text-lg font-semibold mb-1">{financeModeLabel} - {financeFilterLabel}</h2>
           <p>
             A dedicated finance view for attractions will appear here. For now, overall booking totals and
             payouts remain available from the main Finance sections of your owner account.
