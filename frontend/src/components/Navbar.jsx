@@ -76,6 +76,7 @@ const Navbar = () => {
   const [switchLoading, setSwitchLoading] = useState(false);
   const [myProperties, setMyProperties] = useState([]);
   const [myCars, setMyCars] = useState([]);
+  const [myAttractions, setMyAttractions] = useState([]);
   const [propDropdownOpen, setPropDropdownOpen] = useState(false);
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
   const dropdownButtonRefs = useRef({});
@@ -187,27 +188,27 @@ const Navbar = () => {
     {
       label: labelOr('nav.finance', 'Finance'),
       icon: FaDollarSign,
-      href: '/transactions',
+      href: '/owner/attractions?view=finance',
     },
     {
       label: labelOr('nav.analytics', 'Analytics'),
       icon: FaChartLine,
-      href: '/analytics',
+      href: '/owner/attractions?view=analytics',
     },
     {
       label: labelOr('nav.reviews', 'Reviews'),
       icon: FaStar,
-      href: '/owner/reviews',
+      href: '/owner/attractions?view=reviews',
     },
     {
       label: labelOr('nav.messages', 'Messages'),
       icon: FaEnvelope,
-      href: '/messages?category=reservations',
+      href: '/owner/attractions?view=messages',
     },
     {
       label: labelOr('nav.settings', 'Settings'),
       icon: FaSettings,
-      href: '/settings?tab=notifications',
+      href: '/owner/attractions?view=settings',
     },
   ];
 
@@ -216,63 +217,58 @@ const Navbar = () => {
     {
       label: labelOr('nav.vehiclesHome', 'Vehicles'),
       icon: FaHome,
-      href: '/owner/cars',
+      href: '/owner/cars?view=dashboard',
       children: [
-        { label: labelOr('nav.vehiclesHome', 'Dashboard'), href: '/owner/cars', icon: FaHome },
-        { label: labelOr('nav.myVehicles', 'My vehicles'), href: '/owner/cars', icon: FaCar },
+        { label: labelOr('nav.vehiclesHome', 'Dashboard'), href: '/owner/cars?view=dashboard', icon: FaHome },
+        { label: labelOr('nav.myVehicles', 'My vehicles'), href: '/owner/cars?view=vehicles', icon: FaCar },
       ]
     },
     {
       label: labelOr('nav.reservations', 'Reservations'),
       icon: FaCalendarAlt,
-      href: '/owner/cars?section=reservations',
+      href: '/owner/cars?view=reservations',
       children: [
-        { label: labelOr('nav.allReservations', 'All reservations'), href: '/owner/cars?section=reservations', icon: FaCalendarAlt },
-        { label: labelOr('nav.pendingReservations', 'Pending'), href: '/owner/cars?section=reservations&status=pending', icon: FaCalendarAlt },
-        { label: labelOr('nav.confirmedReservations', 'Confirmed'), href: '/owner/cars?section=reservations&status=confirmed', icon: FaCalendarAlt },
-        { label: labelOr('nav.activeReservations', 'Active'), href: '/owner/cars?section=reservations&status=active', icon: FaCalendarAlt },
-        { label: labelOr('nav.completedReservations', 'Completed'), href: '/owner/cars?section=reservations&status=completed', icon: FaCalendarAlt },
-        { label: labelOr('nav.cancelledReservations', 'Cancelled'), href: '/owner/cars?section=reservations&status=cancelled', icon: FaCalendarAlt },
+        { label: labelOr('nav.allReservations', 'All reservations'), href: '/owner/cars?view=reservations', icon: FaCalendarAlt },
+        { label: labelOr('nav.pendingReservations', 'Pending'), href: '/owner/cars?view=reservations&status=pending', icon: FaCalendarAlt },
+        { label: labelOr('nav.confirmedReservations', 'Confirmed'), href: '/owner/cars?view=reservations&status=confirmed', icon: FaCalendarAlt },
+        { label: labelOr('nav.activeReservations', 'Active'), href: '/owner/cars?view=reservations&status=active', icon: FaCalendarAlt },
+        { label: labelOr('nav.completedReservations', 'Completed'), href: '/owner/cars?view=reservations&status=completed', icon: FaCalendarAlt },
+        { label: labelOr('nav.cancelledReservations', 'Cancelled'), href: '/owner/cars?view=reservations&status=cancelled', icon: FaCalendarAlt },
       ]
     },
     {
       label: labelOr('nav.calendar', 'Calendar'),
       icon: FaCalendarAlt,
-      href: '/owner/cars?section=calendar',
+      href: '/owner/cars?view=calendar',
       children: [
-        { label: labelOr('nav.thisMonth', 'This month'), href: '/owner/cars?section=calendar&monthOffset=0', icon: FaCalendarAlt },
-        { label: labelOr('nav.nextMonth', 'Next month'), href: '/owner/cars?section=calendar&monthOffset=1', icon: FaCalendarAlt },
+        { label: labelOr('nav.thisMonth', 'This month'), href: '/owner/cars?view=calendar&monthOffset=0', icon: FaCalendarAlt },
+        { label: labelOr('nav.nextMonth', 'Next month'), href: '/owner/cars?view=calendar&monthOffset=1', icon: FaCalendarAlt },
       ]
     },
     {
       label: labelOr('nav.finance', 'Finance'),
       icon: FaDollarSign,
-      href: '/transactions',
+      href: '/owner/cars?view=finance',
     },
     {
       label: labelOr('nav.analytics', 'Analytics'),
       icon: FaChartLine,
-      href: '/analytics',
-    },
-    {
-      label: labelOr('nav.promotions', 'Promotions'),
-      icon: FaShoppingBag,
-      href: '/owner/promotions',
+      href: '/owner/cars?view=analytics',
     },
     {
       label: labelOr('nav.reviews', 'Reviews'),
       icon: FaStar,
-      href: '/owner/reviews',
+      href: '/owner/cars?view=reviews',
     },
     {
       label: labelOr('nav.messages', 'Messages'),
       icon: FaEnvelope,
-      href: '/messages?category=reservations',
+      href: '/owner/cars?view=messages',
     },
     {
       label: labelOr('nav.settings', 'Settings'),
       icon: FaSettings,
-      href: '/settings?tab=notifications',
+      href: '/owner/cars?view=settings',
     },
   ];
 
@@ -573,7 +569,6 @@ const Navbar = () => {
     return () => { if (timer) clearInterval(timer); };
   }, [isAuthenticated, user?.userType]);
 
-
   // Load host's properties for property selector (desktop and mobile)
   useEffect(() => {
     let cancelled = false;
@@ -605,6 +600,42 @@ const Navbar = () => {
     return () => { cancelled = true; };
   }, [isAuthenticated, user?.userType]);
 
+  // Load host's cars for vehicle selector (navbar context)
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        if (!isAuthenticated || user?.userType !== 'host') return;
+        const res = await fetch(`${API_URL}/api/cars/mine`, { credentials: 'include' });
+        if (!res.ok) return;
+        const data = await res.json().catch(() => ({}));
+        const list = Array.isArray(data.cars) ? data.cars : [];
+        if (!cancelled) setMyCars(list);
+      } catch (_) {
+        if (!cancelled) setMyCars([]);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [isAuthenticated, user?.userType]);
+
+  // Load host's attractions for attraction selector (navbar context)
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        if (!isAuthenticated || user?.userType !== 'host') return;
+        const res = await fetch(`${API_URL}/api/attractions/mine`, { credentials: 'include' });
+        if (!res.ok) return;
+        const data = await res.json().catch(() => ({}));
+        const list = Array.isArray(data.attractions) ? data.attractions : [];
+        if (!cancelled) setMyAttractions(list);
+      } catch (_) {
+        if (!cancelled) setMyAttractions([]);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [isAuthenticated, user?.userType]);
+
   // Keep selected property in sync with URL and loaded properties
   useEffect(() => {
     if (!isAuthenticated || user?.userType !== 'host') return;
@@ -631,7 +662,6 @@ const Navbar = () => {
     const firstId = String(myProperties[0]._id || '');
     setSelectedPropertyId(existsInList ? String(urlProp) : firstId);
   }, [isAuthenticated, user?.userType, myProperties, location.search, location.pathname]);
-
 
   // Fetch dynamic badge counts for navigation
   useEffect(() => {
@@ -1210,10 +1240,40 @@ const Navbar = () => {
                   </div>
                 )}
 
-                {/* Main Navigation Items - client side (desktop only, mobile goes to dropdown).
-                    Hide for any user while they are on the listing wizard so it doesn't look like guest mode. */}
-                {user?.userType !== 'admin' && !isInAnyOwnerDashboard() && !isOnListingWizard && (
-                  <div className="hidden lg:flex items-center space-x-1 ml-4">
+                {/* Vehicle selector (desktop) - next to logo in car owner dashboard */}
+                {isAuthenticated &&
+                  user?.userType === 'host' &&
+                  isInCarOwnerDashboard() &&
+                  Array.isArray(myCars) && myCars.length > 0 && (
+                  <div className="hidden lg:block">
+                    <div className="flex items-center gap-2">
+                      <select
+                        className="px-2 py-1.5 border border-[#d4c4b0] rounded-lg bg-white text-xs font-medium text-[#4b2a00] focus:outline-none focus:ring-1 focus:ring-[#a06b42] focus:border-[#a06b42] transition-all"
+                        title={t ? t('banner.chooseVehicleToManage') : 'Choose vehicle to manage'}
+                        onChange={(e) => {
+                          const id = e.target.value;
+                          try {
+                            const params = new URLSearchParams(location.search || '');
+                            if (!id) {
+                              params.delete('car');
+                            } else {
+                              params.set('car', String(id));
+                            }
+                            navigate({ pathname: '/owner/cars', search: params.toString() }, { replace: false });
+                          } catch (_) {}
+                        }}
+                        defaultValue={''}
+                      >
+                        <option value="">{t ? t('banner.allVehicles') : 'All vehicles'}</option>
+                        {myCars.map((c) => {
+                          const id = String(c._id || '');
+                          const name = c.vehicleName || `${c.brand || ''} ${c.model || ''}`.trim() || 'Vehicle';
+                          return (
+                            <option key={id} value={id}>{name}</option>
+                          );
+                        })}
+                      </select>
+                    </div>
                     {mainNavItems.map((item, index) => {
                       const Icon = item.icon;
                       const isActive = isActiveRoute(item.href);

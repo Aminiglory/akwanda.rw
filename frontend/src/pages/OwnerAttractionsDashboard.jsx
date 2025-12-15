@@ -45,6 +45,36 @@ export default function OwnerAttractionsDashboard() {
     }
   };
 
+  // Sync high-level view with ?view= from URL (used by owner navbar)
+  useEffect(() => {
+    const v = (searchParams.get('view') || '').toLowerCase();
+    switch (v) {
+      case 'overview':
+      case '':
+        if (view !== 'overview') setView('overview');
+        break;
+      case 'attractions':
+        if (view !== 'attractions') setView('attractions');
+        break;
+      case 'bookings':
+        if (view !== 'bookings') setView('bookings');
+        break;
+      // For now, finance/analytics/reviews/messages/settings all reuse the
+      // overview section, which already surfaces key stats. This keeps
+      // navigation working and within the owner dashboard while we avoid
+      // creating separate pages.
+      case 'finance':
+      case 'analytics':
+      case 'reviews':
+      case 'messages':
+      case 'settings':
+        if (view !== 'overview') setView('overview');
+        break;
+      default:
+        break;
+    }
+  }, [searchParams, view]);
+
   const [selectedAttractionId, setSelectedAttractionId] = useState(() => searchParams.get('attraction') || 'all');
 
   const filteredItems = useMemo(() => {

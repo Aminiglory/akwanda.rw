@@ -156,6 +156,44 @@ export default function CarOwnerDashboard() {
 
   useEffect(() => { loadData(); }, []);
 
+  // Sync high-level view with ?view= from URL used by owner navbar
+  useEffect(() => {
+    const v = (searchParams.get('view') || '').toLowerCase();
+    switch (v) {
+      case 'dashboard':
+      case '':
+        if (view !== 'overview') setView('overview');
+        break;
+      case 'vehicles':
+        if (view !== 'vehicles') setView('vehicles');
+        break;
+      case 'reservations':
+      case 'bookings':
+        if (view !== 'bookings') setView('bookings');
+        // keep list view for reservations; calendar handled separately below
+        if (bookingView !== 'list') setBookingView('list');
+        break;
+      case 'calendar':
+        if (view !== 'bookings') setView('bookings');
+        if (bookingView !== 'calendar') setBookingView('calendar');
+        break;
+      // For now, finance/analytics/promotions/reviews/messages/settings
+      // all land on the overview, which already surfaces finance and
+      // high-level stats for vehicles. This keeps navigation working
+      // and within the owner dashboard without needing separate pages.
+      case 'finance':
+      case 'analytics':
+      case 'promotions':
+      case 'reviews':
+      case 'messages':
+      case 'settings':
+        if (view !== 'overview') setView('overview');
+        break;
+      default:
+        break;
+    }
+  }, [searchParams, view, bookingView]);
+
   useEffect(() => {
     if (!Array.isArray(cars) || cars.length === 0) return;
     let initialId = '';
@@ -465,7 +503,7 @@ export default function CarOwnerDashboard() {
 
   return (
     <div className="min-h-screen bg-[#f9f5ef] py-4">
-      <div className="max-w-6xl mx-auto px-4">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-3 flex justify-between items-center">
           {/* Back to main listing options (optional, safe to keep) */}
           <button
