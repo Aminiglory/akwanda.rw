@@ -3,6 +3,7 @@ import { useSearchParams, Link } from 'react-router-dom';
 import ReceiptPreview from '../components/ReceiptPreview';
 import toast from 'react-hot-toast';
 import SuccessModal from '../components/SuccessModal';
+import { useLocale } from '../contexts/LocaleContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 const makeAbsolute = (u) => {
@@ -14,7 +15,7 @@ const makeAbsolute = (u) => {
 };
 
 export default function OwnerAttractionsDashboard() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const propertyContextId = searchParams.get('property') || '';
   const [propertyContextLabel, setPropertyContextLabel] = useState('');
   const [items, setItems] = useState([]);
@@ -30,6 +31,36 @@ export default function OwnerAttractionsDashboard() {
   const [successTitle, setSuccessTitle] = useState('Success');
   const [successMsg, setSuccessMsg] = useState('Action completed successfully.');
   const [view, setView] = useState('overview'); // 'overview' | 'attractions' | 'bookings'
+
+  const { t } = useLocale() || {};
+
+  const labelOr = (key, fallback) => {
+    if (!t) return fallback;
+    try {
+      const v = t(key);
+      if (!v || v === key) return fallback;
+      return v;
+    } catch (_) {
+      return fallback;
+    }
+  };
+
+  const [selectedAttractionId, setSelectedAttractionId] = useState(() => searchParams.get('attraction') || 'all');
+
+  const filteredItems = useMemo(() => {
+    if (!Array.isArray(items)) return [];
+    if (!selectedAttractionId || selectedAttractionId === 'all') return items;
+    return items.filter(a => String(a._id) === String(selectedAttractionId));
+  }, [items, selectedAttractionId]);
+
+  const filteredBookings = useMemo(() => {
+    if (!Array.isArray(bookings)) return [];
+    if (!selectedAttractionId || selectedAttractionId === 'all') return bookings;
+    return bookings.filter(b => {
+      const id = b?.attraction?._id || b?.attraction;
+      return id && String(id) === String(selectedAttractionId);
+    });
+  }, [bookings, selectedAttractionId]);
 
   const empty = useMemo(() => ({
     name: '',
@@ -69,7 +100,7 @@ export default function OwnerAttractionsDashboard() {
 
   function exportBookingsCsv() {
     const rows = [['Attraction','Guest','Visit Date','Tickets','Amount','Status']];
-    const filtered = bookings.filter(b => {
+    const filtered = filteredBookings.filter(b => {
       if (bookingFilters.status && b.status !== bookingFilters.status) return false;
       if (bookingFilters.from) {
         const from = new Date(bookingFilters.from);
@@ -246,7 +277,44 @@ export default function OwnerAttractionsDashboard() {
         </div>
       )}
 
-      <h1 className="text-2xl font-bold text-gray-900 mb-4">My Attractions</h1>
+      <div className="mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+        <h1 className="text-2xl font-bold text-gray-900">My Attractions</h1>
+        {items.length > 0 && (
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-600 hidden sm:inline">
+              {labelOr('ownerAttractions.manageScopeLabel', 'Manage')}
+            </span>
+            <select
+              value={selectedAttractionId || 'all'}
+              onChange={(e) => {
+                const id = e.target.value || 'all';
+                setSelectedAttractionId(id);
+                try {
+                  const next = new URLSearchParams(searchParams.toString());
+                  if (id === 'all') {
+                    next.delete('attraction');
+                  } else {
+                    next.set('attraction', String(id));
+                  }
+                  setSearchParams(next, { replace: true });
+                } catch (_) {}
+              }}
+              className="min-w-[180px] px-3 py-2 border border-[#d4c4b0] rounded-lg bg-white text-xs font-medium text-[#4b2a00] focus:outline-none focus:ring-1 focus:ring-[#a06b42] focus:border-[#a06b42] transition-all"
+            >
+              <option value="all">{labelOr('ownerAttractions.allProperties', 'All Properties')}</option>
+              {items.map((item) => {
+                const id = String(item._id || '');
+                const name = item.name || 'Attraction';
+                const city = item.city || item.location || '';
+                const label = city ? `${name} - ${city}` : name;
+                return (
+                  <option key={id} value={id}>{label}</option>
+                );
+              })}
+            </select>
+          </div>
+        )}
+      </div>
 
       {/* View selector similar to Property/Car dashboards */}
       <div className="mb-4 flex flex-wrap gap-2 text-sm">
@@ -279,15 +347,15 @@ export default function OwnerAttractionsDashboard() {
           <div className="mb-4 grid grid-cols-2 md:grid-cols-4 gap-3">
             <div className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2">
               <div className="text-[11px] text-gray-500">Total attractions</div>
-              <div className="text-lg font-semibold text-gray-900">{items.length}</div>
+              <div className="text-lg font-semibold text-gray-900">{filteredItems.length}</div>
             </div>
             <div className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2">
               <div className="text-[11px] text-gray-500">Total bookings</div>
-              <div className="text-lg font-semibold text-gray-900">{bookings.length}</div>
+              <div className="text-lg font-semibold text-gray-900">{filteredBookings.length}</div>
             </div>
             <div className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2">
               <div className="text-[11px] text-gray-500">Active attractions</div>
-              <div className="text-lg font-semibold text-emerald-700">{items.filter(a => a.isActive).length}</div>
+              <div className="text-lg font-semibold text-emerald-700">{filteredItems.filter(a => a.isActive).length}</div>
             </div>
           </div>
 
@@ -502,7 +570,7 @@ export default function OwnerAttractionsDashboard() {
       {view === 'attractions' && (loading ? <div>Loading...</div> : (
         viewMode==='cards' ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {items.map(item => (
+            {filteredItems.map(item => (
               <div key={item._id} className="bg-white rounded-lg shadow p-4">
                 <div className="flex gap-4">
                   <div className="w-32 h-24 bg-gray-100 rounded overflow-hidden">
@@ -546,7 +614,7 @@ export default function OwnerAttractionsDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {items.map(item => (
+                {filteredItems.map(item => (
                   <tr key={item._id} className="border-t">
                     <td className="p-3 font-medium">{item.name}</td>
                     <td className="p-3">{item.category}</td>
@@ -603,7 +671,7 @@ export default function OwnerAttractionsDashboard() {
               </tr>
             </thead>
             <tbody>
-              {bookings.filter(b => {
+              {filteredBookings.filter(b => {
                 if (bookingFilters.status && b.status !== bookingFilters.status) return false;
                 if (bookingFilters.from) {
                   const from = new Date(bookingFilters.from);
