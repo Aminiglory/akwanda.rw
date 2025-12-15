@@ -327,6 +327,20 @@ export default function CarOwnerDashboard() {
       ? 'Year to date'
       : 'All time';
 
+  const financeFilter = (searchParams.get('filter') || 'all').toLowerCase();
+  const financeMode = (searchParams.get('mode') || 'overview').toLowerCase();
+
+  const financeFilterLabel = (() => {
+    switch (financeFilter) {
+      case 'paid': return 'Paid payments';
+      case 'pending': return 'Pending payments';
+      case 'unpaid': return 'Unpaid payments';
+      default: return 'All payments';
+    }
+  })();
+
+  const financeModeLabel = financeMode === 'expenses' ? 'Expenses & profit' : 'Overview';
+
   const calendarMeta = useMemo(() => {
     const base = new Date();
     const monthDate = new Date(base.getFullYear(), base.getMonth() + calendarMonthOffset, 1);
