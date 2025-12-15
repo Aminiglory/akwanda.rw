@@ -166,10 +166,12 @@ const Footer = () => {
           <div className="flex flex-wrap justify-center gap-3 sm:gap-4">
             {quickLinks.map((link, index) => {
               const IconComponent = link.icon;
+              const openInNewTab = link.href && link.href.startsWith('/owner/');
               return (
                 <a
                   key={index}
                   href={link.href}
+                  {...(openInNewTab ? { target: '_blank', rel: 'noreferrer' } : {})}
                   className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 px-3 py-1.5 text-sm md:px-4 md:py-2 md:text-base rounded-lg transition-all duration-300 hover:scale-105"
                 >
                   <IconComponent className="text-blue-400" />

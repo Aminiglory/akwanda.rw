@@ -320,21 +320,42 @@ export default function OwnerAttractionsDashboard() {
       <div className="mb-4 flex flex-wrap gap-2 text-sm">
         <button
           type="button"
-          onClick={() => setView('overview')}
+          onClick={() => {
+            setView('overview');
+            try {
+              const next = new URLSearchParams(searchParams.toString());
+              next.delete('view');
+              setSearchParams(next, { replace: true });
+            } catch (_) {}
+          }}
           className={`px-3 py-1.5 rounded-full border ${view === 'overview' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
         >
           Overview
         </button>
         <button
           type="button"
-          onClick={() => setView('attractions')}
+          onClick={() => {
+            setView('attractions');
+            try {
+              const next = new URLSearchParams(searchParams.toString());
+              next.set('view', 'attractions');
+              setSearchParams(next, { replace: true });
+            } catch (_) {}
+          }}
           className={`px-3 py-1.5 rounded-full border ${view === 'attractions' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
         >
           Attractions
         </button>
         <button
           type="button"
-          onClick={() => setView('bookings')}
+          onClick={() => {
+            setView('bookings');
+            try {
+              const next = new URLSearchParams(searchParams.toString());
+              next.set('view', 'bookings');
+              setSearchParams(next, { replace: true });
+            } catch (_) {}
+          }}
           className={`px-3 py-1.5 rounded-full border ${view === 'bookings' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
         >
           Bookings

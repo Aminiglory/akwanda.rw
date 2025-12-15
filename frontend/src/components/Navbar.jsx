@@ -165,6 +165,52 @@ const Navbar = () => {
     }
   ];
 
+  // Attraction owner navigation items (attractions dashboard scopes)
+  const attractionOwnerNavItems = [
+    {
+      label: labelOr('nav.attractionsHome', 'Attractions'),
+      icon: FaHome,
+      href: '/owner/attractions',
+      children: [
+        { label: labelOr('nav.attractionsHome', 'Dashboard'), href: '/owner/attractions', icon: FaHome },
+        { label: labelOr('nav.myAttractions', 'My attractions'), href: '/owner/attractions?view=attractions', icon: FaUmbrellaBeach },
+      ]
+    },
+    {
+      label: labelOr('nav.reservations', 'Reservations'),
+      icon: FaCalendarAlt,
+      href: '/owner/attractions?view=bookings',
+      children: [
+        { label: labelOr('nav.allReservations', 'All reservations'), href: '/owner/attractions?view=bookings', icon: FaCalendarAlt },
+      ]
+    },
+    {
+      label: labelOr('nav.finance', 'Finance'),
+      icon: FaDollarSign,
+      href: '/transactions',
+    },
+    {
+      label: labelOr('nav.analytics', 'Analytics'),
+      icon: FaChartLine,
+      href: '/analytics',
+    },
+    {
+      label: labelOr('nav.reviews', 'Reviews'),
+      icon: FaStar,
+      href: '/owner/reviews',
+    },
+    {
+      label: labelOr('nav.messages', 'Messages'),
+      icon: FaEnvelope,
+      href: '/messages?category=reservations',
+    },
+    {
+      label: labelOr('nav.settings', 'Settings'),
+      icon: FaSettings,
+      href: '/settings?tab=notifications',
+    },
+  ];
+
   // Vehicle owner navigation items (car dashboard scopes)
   const carOwnerNavItems = [
     {
@@ -567,9 +613,14 @@ const Navbar = () => {
       return;
     }
 
-    // On the group home page, do not auto-select a property.
-    // The management navigation should stay hidden until the owner picks a property row.
-    if (location.pathname.startsWith('/group-home')) {
+    // On the group home page and non-property dashboards (vehicles/attractions),
+    // do not auto-select a property. The property-specific navigation should be
+    // neutral in those contexts.
+    if (
+      location.pathname.startsWith('/group-home') ||
+      location.pathname.startsWith('/owner/cars') ||
+      location.pathname.startsWith('/owner/attractions')
+    ) {
       setSelectedPropertyId('');
       return;
     }
@@ -790,14 +841,14 @@ const Navbar = () => {
     return location.pathname.startsWith('/owner/cars');
   };
 
-  // Any owner dashboard (properties or vehicles)
-  const isInAnyOwnerDashboard = () => {
-    return isInPropertyOwnerDashboard() || isInCarOwnerDashboard();
+  // Attractions owner dashboard context
+  const isInAttractionOwnerDashboard = () => {
+    return location.pathname.startsWith('/owner/attractions');
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate("/logout-success");
+  // Any owner dashboard (properties, vehicles, or attractions)
+  const isInAnyOwnerDashboard = () => {
+    return isInPropertyOwnerDashboard() || isInCarOwnerDashboard() || isInAttractionOwnerDashboard();
   };
 
   const toggleMenu = () => {
@@ -1475,7 +1526,12 @@ const Navbar = () => {
             {/* Owner navigation (Booking.com style) in second navbar */}
             {isAuthenticated && user?.userType === 'host' && isInAnyOwnerDashboard() && !!selectedPropertyId && (
               <div className="w-full flex flex-wrap items-center gap-1 pt-1 mt-1">
-                {(isInCarOwnerDashboard() ? carOwnerNavItems : bookingComNavItems).map((item, idx) => {
+                {(isInCarOwnerDashboard()
+                  ? carOwnerNavItems
+                  : isInAttractionOwnerDashboard()
+                    ? attractionOwnerNavItems
+                    : bookingComNavItems
+                ).map((item, idx) => {
                   const Icon = item.icon;
                   const isOpen = activeDropdown === item.label;
                   const isParentActive = isActiveRoute(item.href);
@@ -1586,7 +1642,12 @@ const Navbar = () => {
           {/* Owner navigation (Booking.com style) - only in owner dashboard context */}
           {user?.userType === 'host' && isInAnyOwnerDashboard() && !!selectedPropertyId && (
             <div className="px-2 pb-2">
-              {(isInCarOwnerDashboard() ? carOwnerNavItems : bookingComNavItems).map((item, idx) => {
+              {(isInCarOwnerDashboard()
+                ? carOwnerNavItems
+                : isInAttractionOwnerDashboard()
+                  ? attractionOwnerNavItems
+                  : bookingComNavItems
+              ).map((item, idx) => {
                 const Icon = item.icon;
                 const open = !!expandedMobileItems[item.label];
                 return (
@@ -1635,7 +1696,7 @@ const Navbar = () => {
                 return (
                   <div key={i} className="mb-2">
                     {hasChildren ? (
-                      <>
+                      <div>
                         <button
                           type="button"
                           onClick={() => setExpandedMobileItems((s) => ({ ...s, [`main-${i}`]: !isExpanded }))}
@@ -1650,19 +1711,19 @@ const Navbar = () => {
                         {isExpanded && (
                           <div className="mt-1 rounded-md bg-[#fff8f1] border border-[#e0d5c7] overflow-hidden">
                             {m.children.map((child, cidx) => (
-                <Link
+                              <Link
                                 key={cidx}
                                 to={child.href || m.href}
                                 className="flex items-center gap-2 px-2 py-1.5 text-sm text-[#4b2a00] hover:bg-white border-t border-[#f0e6d9] first:border-t-0"
-                  onClick={() => setIsMenuOpen(false)}
-                >
+                                onClick={() => setIsMenuOpen(false)}
+                              >
                                 {child.icon && <child.icon className="text-xs" />}
                                 <span>{child.label}</span>
-                </Link>
-              ))}
-            </div>
+                              </Link>
+                            ))}
+                          </div>
                         )}
-                      </>
+                      </div>
                     ) : (
                       <Link
                         to={m.href}
