@@ -8,7 +8,7 @@ const bcrypt = require('bcryptjs');
 const http = require('http');
 const { Server } = require('socket.io');
 const jwt = require('jsonwebtoken');
-
+//back
 const authRouter = require('./src/tables/auth');
 const propertiesRouter = require('./src/routes/properties');
 const bookingsRouter = require('./src/routes/bookings');
