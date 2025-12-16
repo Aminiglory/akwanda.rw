@@ -818,7 +818,10 @@ export default function CarOwnerDashboard() {
 
             <button
               type="button"
-              onClick={() => window.open('/transactions', '_blank', 'noopener,noreferrer')}
+              onClick={() => {
+                setView('finance');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
               className="group text-left rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5 hover:border-[#a06b42] hover:shadow-md transition flex flex-col gap-1"
             >
               <div className="flex items-center gap-2">
@@ -831,7 +834,10 @@ export default function CarOwnerDashboard() {
 
             <button
               type="button"
-              onClick={() => window.open('/analytics', '_blank', 'noopener,noreferrer')}
+              onClick={() => {
+                setView('analytics');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
               className="group text-left rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5 hover:border-[#a06b42] hover:shadow-md transition flex flex-col gap-1"
             >
               <div className="flex items-center gap-2">
@@ -844,7 +850,10 @@ export default function CarOwnerDashboard() {
 
             <button
               type="button"
-              onClick={() => window.open('/owner/reviews', '_blank', 'noopener,noreferrer')}
+              onClick={() => {
+                setView('reviews');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
               className="group text-left rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5 hover:border-[#a06b42] hover:shadow-md transition flex flex-col gap-1"
             >
               <div className="flex items-center gap-2">
@@ -857,7 +866,10 @@ export default function CarOwnerDashboard() {
 
             <button
               type="button"
-              onClick={() => window.open('/messages?category=reservations', '_blank', 'noopener,noreferrer')}
+              onClick={() => {
+                setView('messages');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
               className="group text-left rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5 hover:border-[#a06b42] hover:shadow-md transition flex flex-col gap-1"
             >
               <div className="flex items-center gap-2">
@@ -870,7 +882,10 @@ export default function CarOwnerDashboard() {
 
             <button
               type="button"
-              onClick={() => window.open('/settings?tab=notifications', '_blank', 'noopener,noreferrer')}
+              onClick={() => {
+                setView('settings');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
               className="group text-left rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5 hover:border-[#a06b42] hover:shadow-md transition flex flex-col gap-1"
             >
               <div className="flex items-center gap-2">
@@ -925,7 +940,7 @@ export default function CarOwnerDashboard() {
               <>
                 <label className="block text-xs text-gray-600 mb-1">Vehicle scope</label>
                 <select
-                  className="w-full px-3 py-2 border rounded text-sm"
+                  className="w-full px-3 py-2 border border-[#e0d5c7] rounded-lg bg-white text-sm focus:outline-none focus:ring-1 focus:ring-[#a06b42] focus:border-[#a06b42]"
                   value={selectedCarId || ''}
                   onChange={e => setSelectedCarId(e.target.value)}
                 >
@@ -941,21 +956,21 @@ export default function CarOwnerDashboard() {
           </div>
 
           <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2">
+            <div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5">
               <div className="text-[11px] text-gray-500">Last 30 days revenue</div>
               <div className="text-sm font-semibold text-gray-900">
                 {formatCurrencyRWF ? formatCurrencyRWF(financeStats.rev30 || 0) : `RWF ${Number(financeStats.rev30 || 0).toLocaleString()}`}
               </div>
               <div className="mt-0.5 text-[11px] text-gray-500">{financeStats.bookings30} bookings</div>
             </div>
-            <div className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2">
+            <div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5">
               <div className="text-[11px] text-gray-500">Year-to-date revenue</div>
               <div className="text-sm font-semibold text-gray-900">
                 {formatCurrencyRWF ? formatCurrencyRWF(financeStats.revYtd || 0) : `RWF ${Number(financeStats.revYtd || 0).toLocaleString()}`}
               </div>
               <div className="mt-0.5 text-[11px] text-gray-500">{financeStats.bookingsYtd} bookings</div>
             </div>
-            <div className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2">
+            <div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5">
               <div className="text-[11px] text-gray-500">Avg revenue / booking (30d)</div>
               <div className="text-sm font-semibold text-gray-900">
                 {formatCurrencyRWF ? formatCurrencyRWF(financeStats.avg30 || 0) : `RWF ${Number(financeStats.avg30 || 0).toLocaleString()}`}
@@ -968,7 +983,7 @@ export default function CarOwnerDashboard() {
             <button
               type="button"
               onClick={exportBookingsCsv}
-              className="inline-flex items-center px-3 py-1.5 rounded-md bg-[#a06b42] hover:bg-[#8f5a32] text-white text-xs font-medium"
+              className="inline-flex items-center px-3 py-1.5 rounded-md bg-[#a06b42] hover:bg-[#8f5a32] text-white text-xs font-medium shadow-sm"
             >
               Export bookings as CSV
             </button>
@@ -988,38 +1003,38 @@ export default function CarOwnerDashboard() {
           </div>
 
           <div className="mb-6 grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2">
+            <div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5">
               <div className="text-[11px] text-gray-500">Total bookings</div>
               <div className="text-lg font-semibold text-gray-900">{stats.totalBookings}</div>
             </div>
-            <div className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2">
+            <div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5">
               <div className="text-[11px] text-gray-500">Active</div>
               <div className="text-lg font-semibold text-emerald-700">{stats.active}</div>
             </div>
-            <div className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2">
+            <div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5">
               <div className="text-[11px] text-gray-500">Completed</div>
               <div className="text-lg font-semibold text-blue-700">{stats.completed}</div>
             </div>
-            <div className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2">
+            <div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5">
               <div className="text-[11px] text-gray-500">Avg rental length</div>
               <div className="text-lg font-semibold text-gray-900">{stats.avgRentalLength.toFixed(1)} days</div>
             </div>
           </div>
 
           <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2">
+            <div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5">
               <div className="text-[11px] text-gray-500">Last 30 days revenue</div>
               <div className="text-sm font-semibold text-gray-900">
                 {formatCurrencyRWF ? formatCurrencyRWF(financeStats.rev30 || 0) : `RWF ${Number(financeStats.rev30 || 0).toLocaleString()}`}
               </div>
             </div>
-            <div className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2">
+            <div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5">
               <div className="text-[11px] text-gray-500">Year-to-date revenue</div>
               <div className="text-sm font-semibold text-gray-900">
                 {formatCurrencyRWF ? formatCurrencyRWF(financeStats.revYtd || 0) : `RWF ${Number(financeStats.revYtd || 0).toLocaleString()}`}
               </div>
             </div>
-            <div className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2">
+            <div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5">
               <div className="text-[11px] text-gray-500">Avg revenue / booking (30d)</div>
               <div className="text-sm font-semibold text-gray-900">
                 {formatCurrencyRWF ? formatCurrencyRWF(financeStats.avg30 || 0) : `RWF ${Number(financeStats.avg30 || 0).toLocaleString()}`}
@@ -1031,9 +1046,9 @@ export default function CarOwnerDashboard() {
 
       {/* Simple placeholder panels for reviews/messages/settings views to keep navigation working */}
       {view === 'reviews' && (
-        <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-3 text-sm text-gray-700">
-          <h2 className="text-lg font-semibold mb-1">Vehicle reviews</h2>
-          <p>
+        <div className="mb-6 rounded-2xl bg-white border border-[#e0d5c7] px-4 py-4 text-sm text-gray-700 shadow-sm">
+          <h2 className="text-lg font-semibold mb-1 text-[#4b2a00]">Vehicle reviews</h2>
+          <p className="text-xs text-gray-600">
             Detailed reviews are currently managed from the main reviews page. Use the navigation link
             to <span className="font-semibold">Reviews</span> in the owner navbar to open
             <span className="font-mono"> /owner/reviews</span> in a full page.
@@ -1042,9 +1057,9 @@ export default function CarOwnerDashboard() {
       )}
 
       {view === 'messages' && (
-        <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-3 text-sm text-gray-700">
-          <h2 className="text-lg font-semibold mb-1">Messages</h2>
-          <p>
+        <div className="mb-6 rounded-2xl bg-white border border-[#e0d5c7] px-4 py-4 text-sm text-gray-700 shadow-sm">
+          <h2 className="text-lg font-semibold mb-1 text-[#4b2a00]">Messages</h2>
+          <p className="text-xs text-gray-600">
             Vehicle reservation messages are handled in your main inbox. Use the Messages item in the top
             navigation to open the full messaging interface with reservation filters.
           </p>
@@ -1052,9 +1067,9 @@ export default function CarOwnerDashboard() {
       )}
 
       {view === 'settings' && (
-        <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-3 text-sm text-gray-700">
-          <h2 className="text-lg font-semibold mb-1">Settings</h2>
-          <p>
+        <div className="mb-6 rounded-2xl bg-white border border-[#e0d5c7] px-4 py-4 text-sm text-gray-700 shadow-sm">
+          <h2 className="text-lg font-semibold mb-1 text-[#4b2a00]">Settings</h2>
+          <p className="text-xs text-gray-600">
             Vehicle-specific settings will appear here in the future. For now you can manage notification
             and account settings from the main Settings section of your profile.
           </p>
@@ -1520,9 +1535,11 @@ export default function CarOwnerDashboard() {
       {view === 'vehicles' && (
         <>
           {loading ? (
-            <div>Loading...</div>
+            <div className="bg-white rounded-2xl border border-[#e0d5c7] p-6 text-center text-sm text-gray-600 shadow-sm">
+              Loading your vehicles...
+            </div>
           ) : (!Array.isArray(cars) || cars.length === 0) ? (
-            <div className="bg-white rounded-lg shadow p-6 text-center text-sm text-gray-600">
+            <div className="bg-white rounded-2xl border border-[#e0d5c7] p-6 text-center text-sm text-gray-600 shadow-sm">
               <p className="mb-3">You haven't listed any vehicles yet.</p>
               <button
                 type="button"
@@ -1580,7 +1597,7 @@ export default function CarOwnerDashboard() {
               ))}
             </div>
           ) : (
-            <div className="bg-white rounded-lg shadow overflow-x-auto">
+            <div className="bg-white rounded-2xl shadow-sm border border-[#e0d5c7] overflow-x-auto">
               <table className="min-w-full text-sm">
                 <thead>
                   <tr className="bg-gray-50 text-left">
@@ -1753,6 +1770,25 @@ export default function CarOwnerDashboard() {
                     </td>
                   </tr>
                 ))}
+                {bookings.filter(b => {
+                  if (selectedCarId && String(b.car?._id) !== String(selectedCarId)) return false;
+                  if (bookingFilters.status && b.status !== bookingFilters.status) return false;
+                  if (bookingFilters.from) {
+                    const from = new Date(bookingFilters.from);
+                    if (new Date(b.pickupDate) < from) return false;
+                  }
+                  if (bookingFilters.to) {
+                    const to = new Date(bookingFilters.to);
+                    if (new Date(b.returnDate) > to) return false;
+                  }
+                  return true;
+                }).length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-6 text-center text-xs text-gray-500">
+                      No bookings match your current filters.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
