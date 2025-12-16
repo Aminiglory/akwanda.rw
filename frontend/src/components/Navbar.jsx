@@ -478,16 +478,26 @@ const Navbar = () => {
         // Silently handle errors for unauthenticated users
       }
     };
+
+    const loadUnreadMessages = async () => {
+      try {
+        const data = await safeApiGet('/api/messages/unread-count', { count: 0 });
+        setUnreadMsgCount(Number(data?.count || 0));
+      } catch (error) {
+        // Silently handle errors for unauthenticated users
+      }
+    };
+
     const loadUserStats = async () => {
       if (user?.userType === 'host') {
         try {
-        // Try stats endpoint first, fallback to dashboard
-        let data = await safeApiGet('/api/reports/stats', null);
-        if (!data) {
-          data = await safeApiGet('/api/reports/dashboard', { properties: 0, bookings: 0, rating: 0 });
-        }
+          // Try stats endpoint first, fallback to dashboard
+          let data = await safeApiGet('/api/reports/stats', null);
+          if (!data) {
+            data = await safeApiGet('/api/reports/dashboard', { properties: 0, bookings: 0, rating: 0 });
+          }
 
-        setUserStats({
+          setUserStats({
             properties: data?.totalProperties || 0,
             bookings: data?.totalBookings || 0,
             rating: data?.averageRating || 0
