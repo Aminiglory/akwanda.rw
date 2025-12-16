@@ -110,6 +110,16 @@ const propertySchema = new mongoose.Schema(
     longitude: { type: Number },
     // Booking.com-like globally unique property identifier (human-friendly)
     propertyNumber: { type: String, unique: true, sparse: true, index: true },
+    // Auto-confirmation configuration for new bookings
+    autoConfirmEnabled: { type: Boolean, default: false },
+    // Minimum hours before check-in for auto-confirm to apply (protect last-minute edge cases)
+    autoConfirmMinHoursBeforeCheckIn: { type: Number, default: 4, min: 0, max: 720 },
+    // Maximum length of stay (nights) allowed for auto-confirm
+    autoConfirmMaxNights: { type: Number, default: 30, min: 1, max: 365 },
+    // Maximum total guests allowed for auto-confirm
+    autoConfirmMaxGuests: { type: Number, default: 6, min: 1, max: 50 },
+    // When true, auto-confirm only runs if normal availability checks pass (conservative default)
+    autoConfirmRequireFullAvailability: { type: Boolean, default: true },
     promotions: [{
       type: { type: String, enum: ['last_minute','advance_purchase','coupon','member_rate'], required: true },
       title: { type: String },

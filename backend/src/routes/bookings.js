@@ -609,6 +609,113 @@ router.post('/', requireAuth, async (req, res) => {
       services: services && typeof services === 'object' ? services : {},
       directAddOns: directAddOnsClean
     });
+    
+    // Auto-confirm logic: allow hosts to automatically confirm safe bookings
+    // based on per-property configuration, while respecting availability and
+    // payment status. Only applies to bookings that are still in a pending
+    // state after initial creation.
+    try {
+      const refreshedProperty = await Property.findById(property._id).select(
+        'autoConfirmEnabled autoConfirmMinHoursBeforeCheckIn autoConfirmMaxNights autoConfirmMaxGuests autoConfirmRequireFullAvailability checkInTime checkOutTime title propertyNumber host'
+      );
+
+      if (refreshedProperty && refreshedProperty.autoConfirmEnabled && booking.status === 'pending') {
+        const now = new Date();
+        const diffMs = booking.checkIn - now;
+        const diffHours = diffMs / (1000 * 60 * 60);
+        const minHours = typeof refreshedProperty.autoConfirmMinHoursBeforeCheckIn === 'number'
+          ? refreshedProperty.autoConfirmMinHoursBeforeCheckIn
+          : 4;
+
+        const maxNights = typeof refreshedProperty.autoConfirmMaxNights === 'number'
+          ? refreshedProperty.autoConfirmMaxNights
+          : 30;
+        const maxGuests = typeof refreshedProperty.autoConfirmMaxGuests === 'number'
+          ? refreshedProperty.autoConfirmMaxGuests
+          : 6;
+
+        const totalGuestsForAuto = (booking.guestBreakdown?.adults || 0)
+          + (booking.guestBreakdown?.children || 0)
+          + (booking.guestBreakdown?.infants || 0);
+
+        const nightsForAuto = Math.max(1, Math.ceil((booking.checkOut - booking.checkIn) / (1000 * 60 * 60 * 24)));
+
+        // Only auto-confirm when payment is safe: either cash+markPaid or an already paid booking.
+        const paymentSafe =
+          booking.paymentMethod === 'cash'
+            ? booking.paymentStatus === 'paid'
+            : booking.paymentStatus === 'paid';
+
+        const timeOk = diffHours >= minHours;
+        const nightsOk = nightsForAuto <= maxNights;
+        const guestsOk = totalGuestsForAuto <= maxGuests;
+
+        // Availability has already been checked above via the overlap query.
+        const availabilityOk = refreshedProperty.autoConfirmRequireFullAvailability ? true : true;
+
+        if (paymentSafe && timeOk && nightsOk && guestsOk && availabilityOk) {
+          booking.status = 'confirmed';
+          await booking.save();
+
+          // Upsert invoice for auto-confirmed bookings so they appear in reporting.
+          try {
+            await Invoice.findOneAndUpdate(
+              { booking: booking._id },
+              {
+                booking: booking._id,
+                property: refreshedProperty._id,
+                host: refreshedProperty.host,
+                guest: booking.guest,
+                confirmationCode: booking.confirmationCode,
+                propertyNumber: refreshedProperty.propertyNumber,
+                amountBeforeTax: booking.amountBeforeTax || 0,
+                taxAmount: booking.taxAmount || 0,
+                taxRate: booking.taxRate || 3,
+                totalAmount: booking.totalAmount || 0,
+                commissionAmount: booking.commissionAmount || 0,
+                commissionPaid: booking.commissionPaid || false,
+                paymentMethod: booking.paymentMethod,
+                paymentStatus: booking.paymentStatus,
+                issuedAt: booking.createdAt || new Date(),
+                paidAt: booking.paymentStatus === 'paid' ? new Date() : undefined
+              },
+              { upsert: true, new: true, setDefaultsOnInsert: true }
+            );
+          } catch (e) {
+            console.error('Invoice upsert failed for auto-confirmed booking:', e.message);
+          }
+
+          // Notify guest and host that the booking was auto-confirmed
+          try {
+            await Notification.create({
+              type: 'booking_confirmed',
+              title: 'Your booking is confirmed!',
+              message: `Your booking for ${refreshedProperty.title} was automatically confirmed. Booking number: ${booking.bookingNumber}. Review PIN: ${booking.reviewPin}.`,
+              booking: booking._id,
+              property: refreshedProperty._id,
+              recipientUser: booking.guest,
+              audience: 'guest'
+            });
+
+            if (booking.commissionAmount > 0) {
+              await Notification.create({
+                type: 'commission_due',
+                title: 'Commission Payment Due',
+                message: `Commission of RWF ${booking.commissionAmount.toLocaleString()} is due for auto-confirmed booking ${booking.confirmationCode}. Rate: ${booking.commissionRate || 10}%`,
+                booking: booking._id,
+                property: refreshedProperty._id,
+                recipientUser: refreshedProperty.host,
+                audience: 'host'
+              });
+            }
+          } catch (e) {
+            console.error('Auto-confirm notification error:', e.message);
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Auto-confirm evaluation failed:', e.message);
+    }
 
     // If this is a direct booking that is already confirmed/paid (e.g. cash at desk),
     // immediately upsert an Invoice record so it appears in invoices without

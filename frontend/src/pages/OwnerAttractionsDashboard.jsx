@@ -58,6 +58,63 @@ export default function OwnerAttractionsDashboard() {
 
   const financeModeLabel = financeMode === 'expenses' ? 'Expenses & profit' : 'Overview';
 
+  // Finance stats for attractions, based on bookings loaded for this dashboard
+  const financeStats = useMemo(() => {
+    const baseList = Array.isArray(bookings) ? bookings : [];
+    const filter = financeFilter;
+    const now = new Date();
+    const start30 = new Date(now);
+    start30.setDate(start30.getDate() - 30);
+    const start90 = new Date(now);
+    start90.setDate(start90.getDate() - 90);
+    const startYear = new Date(now.getFullYear(), 0, 1);
+
+    let totalAll = 0;
+    let totalRange = 0;
+    let countAll = 0;
+    let countRange = 0;
+
+    baseList.forEach(b => {
+      const status = String(b.paymentStatus || b.status || '').toLowerCase();
+      if (filter === 'paid' && status !== 'paid') return;
+      if (filter === 'pending' && status !== 'pending') return;
+      if (filter === 'unpaid' && status !== 'unpaid') return;
+
+      const amount = Number(b.totalAmount || 0);
+      const visit = b.visitDate ? new Date(b.visitDate) : null;
+      if (!visit || Number.isNaN(visit.getTime())) {
+        // If we cannot determine visit date, include in overall totals only
+        totalAll += amount;
+        countAll += 1;
+        return;
+      }
+
+      // Overall
+      totalAll += amount;
+      countAll += 1;
+
+      // Range-specific
+      let inRange = false;
+      if (financeRange === '30') {
+        inRange = visit >= start30 && visit <= now;
+      } else if (financeRange === '90') {
+        inRange = visit >= start90 && visit <= now;
+      } else if (financeRange === 'ytd') {
+        inRange = visit >= startYear && visit <= now;
+      } else if (!financeRange || financeRange === 'all') {
+        inRange = true;
+      }
+
+      if (inRange) {
+        totalRange += amount;
+        countRange += 1;
+      }
+    });
+
+    const avgPerBooking = countRange > 0 ? totalRange / countRange : 0;
+    return { totalAll, totalRange, countAll, countRange, avgPerBooking };
+  }, [bookings, financeFilter, financeRange]);
+
   const { t } = useLocale() || {};
 
   const labelOr = (key, fallback) => {
@@ -549,27 +606,63 @@ export default function OwnerAttractionsDashboard() {
         </>
       )}
 
-      {/* Finance view: simple revenue placeholder (backend does not yet provide detailed finance per attraction) */}
+      {/* Finance view: computed from attraction bookings for this dashboard */}
       {view === 'finance' && (
-        <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-3 text-sm text-gray-700">
-          <h2 className="text-lg font-semibold mb-1">{financeModeLabel} - {financeFilterLabel}</h2>
-          <p>
-            A dedicated finance view for attractions will appear here. For now, overall booking totals and
-            payouts remain available from the main Finance sections of your owner account.
-            <span className="ml-1 font-semibold">Range: {financeRangeLabel}</span>
-          </p>
+        <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-4 text-sm text-gray-700">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+            <div>
+              <h2 className="text-lg font-semibold">{financeModeLabel} - {financeFilterLabel}</h2>
+              <p className="text-xs text-gray-500">Range: {financeRangeLabel}</p>
+            </div>
+            <div className="text-xs text-gray-500">
+              Based on {financeStats.countAll} attraction bookings in this dashboard.
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2">
+              <div className="text-[11px] text-gray-500">Total revenue (all time)</div>
+              <div className="text-lg font-semibold text-gray-900">{Number(financeStats.totalAll || 0).toLocaleString()}</div>
+            </div>
+            <div className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2">
+              <div className="text-[11px] text-gray-500">Revenue in range</div>
+              <div className="text-lg font-semibold text-gray-900">{Number(financeStats.totalRange || 0).toLocaleString()}</div>
+            </div>
+            <div className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2">
+              <div className="text-[11px] text-gray-500">Bookings in range</div>
+              <div className="text-lg font-semibold text-gray-900">{financeStats.countRange}</div>
+            </div>
+            <div className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2">
+              <div className="text-[11px] text-gray-500">Avg revenue / booking (range)</div>
+              <div className="text-lg font-semibold text-gray-900">{Number(financeStats.avgPerBooking || 0).toLocaleString()}</div>
+            </div>
+          </div>
         </div>
       )}
 
-      {/* Analytics view: simple stats placeholder */}
+      {/* Analytics view: simple stats derived from bookings */}
       {view === 'analytics' && (
-        <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-3 text-sm text-gray-700">
-          <h2 className="text-lg font-semibold mb-1">Analytics</h2>
-          <p>
-            Detailed analytics for attractions will be added here. At the moment, you can see basic
-            performance from the overview cards and global analytics sections.
-            <span className="ml-1 font-semibold">Range: {financeRangeLabel}</span>
-          </p>
+        <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-4 text-sm text-gray-700">
+          <h2 className="text-lg font-semibold mb-3">Analytics</h2>
+          <p className="text-xs text-gray-500 mb-3">Range: {financeRangeLabel}</p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2">
+              <div className="text-[11px] text-gray-500">Total bookings</div>
+              <div className="text-lg font-semibold text-gray-900">{filteredBookings.length}</div>
+            </div>
+            <div className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2">
+              <div className="text-[11px] text-gray-500">Completed bookings</div>
+              <div className="text-lg font-semibold text-gray-900">{filteredBookings.filter(b => (b.status || '').toLowerCase() === 'completed').length}</div>
+            </div>
+            <div className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2">
+              <div className="text-[11px] text-gray-500">Cancelled bookings</div>
+              <div className="text-lg font-semibold text-gray-900">{filteredBookings.filter(b => (b.status || '').toLowerCase() === 'cancelled').length}</div>
+            </div>
+            <div className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2">
+              <div className="text-[11px] text-gray-500">Revenue (all time)</div>
+              <div className="text-lg font-semibold text-gray-900">{Number((Array.isArray(bookings) ? bookings.reduce((sum, b) => sum + Number(b.totalAmount || 0), 0) : 0)).toLocaleString()}</div>
+            </div>
+          </div>
         </div>
       )}
 

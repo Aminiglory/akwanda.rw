@@ -170,6 +170,7 @@ const Navbar = () => {
   // Attraction owner navigation items (attractions dashboard scopes)
   const attractionOwnerNavItems = [
     {
+      // Mirrors "Home" in property dashboard
       label: labelOr('nav.attractionsHome', 'Attractions'),
       icon: FaHome,
       href: '/owner/attractions',
@@ -179,6 +180,7 @@ const Navbar = () => {
       ]
     },
     {
+      // Mirrors "Reservations" section in property dashboard
       label: labelOr('nav.reservations', 'Reservations'),
       icon: FaCalendarAlt,
       href: '/owner/attractions?view=bookings',
@@ -187,6 +189,7 @@ const Navbar = () => {
       ]
     },
     {
+      // Mirrors shared "Property" configuration
       label: labelOr('nav.property', 'Property'),
       icon: FaBed,
       href: attachPropertyParam('/owner/property'),
@@ -204,6 +207,7 @@ const Navbar = () => {
       ]
     },
     {
+      // Mirrors "Finance" in property dashboard
       label: labelOr('nav.finance', 'Finance'),
       icon: FaDollarSign,
       href: '/owner/attractions?view=finance',
@@ -219,6 +223,7 @@ const Navbar = () => {
       ],
     },
     {
+      // Mirrors "Sales Reporting & Analytics" section label
       label: labelOr('nav.analytics', 'Analytics'),
       icon: FaChartLine,
       href: '/owner/attractions?view=analytics',
@@ -230,16 +235,19 @@ const Navbar = () => {
       ],
     },
     {
-      label: labelOr('nav.reviews', 'Reviews'),
+      // Mirrors "Guest reviews" entry
+      label: labelOr('nav.guestReviews', 'Guest reviews'),
       icon: FaStar,
       href: '/owner/attractions?view=reviews',
     },
     {
-      label: labelOr('nav.messages', 'Messages'),
+      // Mirrors "Inbox" / Messages
+      label: labelOr('nav.inbox', 'Inbox'),
       icon: FaEnvelope,
       href: '/owner/attractions?view=messages',
     },
     {
+      // Mirrors "Settings"
       label: labelOr('nav.settings', 'Settings'),
       icon: FaSettings,
       href: '/owner/attractions?view=settings',
@@ -248,6 +256,7 @@ const Navbar = () => {
 
   const carOwnerNavItems = [
     {
+      // Mirrors "Home" in property dashboard
       label: labelOr('nav.vehiclesHome', 'Vehicles'),
       icon: FaHome,
       href: '/owner/cars?view=dashboard',
@@ -1086,8 +1095,8 @@ const Navbar = () => {
 
   return (
     <> 
-      {/* Top Bar - First Level (hidden on landing page, listing wizard, in any owner dashboard, and for logged-in hosts in guest mode) */}
-      {location.pathname !== '/' && !isOnListingWizard && !(isAuthenticated && user?.userType === 'host') && (
+      {/* Top Bar - First Level (hidden on listing wizard and inside any owner dashboard) */}
+      {!isOnListingWizard && !isInAnyOwnerDashboard() && (
       <div className="w-full bg-[#8b5a35] text-white py-2 px-4 border-b border-[#7a4d2c] relative z-[1000] shadow-sm">
         <div className="max-w-7xl mx-auto flex justify-between items-center text-xs">
           <div className="flex items-center space-x-4 lg:space-x-6">

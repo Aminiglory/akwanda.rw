@@ -1870,7 +1870,16 @@ router.delete('/:id', requireAuth, async (req, res) => {
             });
         }
         
+        // Delete the property itself
         await Property.findByIdAndDelete(req.params.id);
+
+        // Also delete all notifications linked to this property to avoid orphaned records
+        try {
+            await Notification.deleteMany({ property: property._id });
+        } catch (cleanupErr) {
+            console.error('Failed to delete notifications for deleted property:', cleanupErr);
+            // Do not fail the whole request on notification cleanup issues
+        }
         
         res.json({ 
             success: true,

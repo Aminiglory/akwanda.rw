@@ -15,11 +15,15 @@ const Notifications = () => {
   const [busy, setBusy] = useState({});
   const [filter, setFilter] = useState('all'); // all | commission | bookings | unread | read
   const [focusId, setFocusId] = useState(null);
+  const hasFocusedRef = useRef(false);
 
   // Parse query param ?open or ?id to focus a notification
   const openParam = useMemo(() => new URLSearchParams(location.search).get('open') || new URLSearchParams(location.search).get('id'), [location.search]);
 
-  const ownerRoutes = ['/group-home', '/dashboard', '/user-dashboard', '/owner', '/messages', '/notifications'];
+  // Routes that represent the property/owner dashboards. The generic
+  // /notifications page is intentionally NOT included here so that even
+  // host users see guest-facing notifications when browsing in traveler mode.
+  const ownerRoutes = ['/group-home', '/dashboard', '/user-dashboard', '/owner', '/messages'];
 
   const isOwnerContext = () => {
     if (!isAuthenticated || user?.userType !== 'host') return false;
@@ -55,12 +59,21 @@ const Notifications = () => {
 
   useEffect(() => { load(); }, []);
 
-  // When items load or param changes, focus the target notification
+  // Reset one-time focus flag whenever the query param changes
+  useEffect(() => {
+    hasFocusedRef.current = false;
+  }, [openParam]);
+
+  // When items load or param changes, focus the target notification ONCE
   useEffect(() => {
     if (!openParam || !items || items.length === 0) return;
+    if (hasFocusedRef.current) return; // already focused; don't keep snapping back while user scrolls
+
     const id = String(openParam);
     setFocusId(id);
-    // mark as read and scroll into view
+    hasFocusedRef.current = true;
+
+    // mark as read and scroll into view once
     try { markRead(id); } catch (_) {}
     const el = document.getElementById(`notif-${id}`);
     if (el && typeof el.scrollIntoView === 'function') {
