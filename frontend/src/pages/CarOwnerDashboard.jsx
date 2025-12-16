@@ -712,16 +712,15 @@ export default function CarOwnerDashboard() {
             Settings
           </button>
         </div>
-      </div>
 
-      {user?.isBlocked && (
-        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
-          Your account is deactivated. Vehicle management is disabled until reactivated.
-        </div>
-      )}
+        {user?.isBlocked && (
+          <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
+            Your account is deactivated. Vehicle management is disabled until reactivated.
+          </div>
+        )}
 
-      {/* Overview section (stats, quick links, finance snapshot) */}
-      {view === 'overview' && (
+        {/* Overview section (stats, quick links, finance snapshot) */}
+        {view === 'overview' && (
         <>
           {/* Vehicle context selector */}
           {Array.isArray(cars) && cars.length > 0 ? (
@@ -924,8 +923,8 @@ export default function CarOwnerDashboard() {
         </>
       )}
 
-      {/* Finance view: focus on revenue stats for vehicles */}
-      {view === 'finance' && (
+        {/* Finance view: focus on revenue stats for vehicles */}
+        {view === 'finance' && (
         <>
           <div className="mb-4">
             <h2 className="text-xl font-semibold text-gray-900">{financeModeLabel} - {financeFilterLabel}</h2>
@@ -991,8 +990,8 @@ export default function CarOwnerDashboard() {
         </>
       )}
 
-      {/* Analytics view: reuse finance stats but framed as performance */}
-      {view === 'analytics' && (
+        {/* Analytics view: reuse finance stats but framed as performance */}
+        {view === 'analytics' && (
         <>
           <div className="mb-4">
             <h2 className="text-xl font-semibold text-gray-900">Performance analytics</h2>
@@ -1044,8 +1043,8 @@ export default function CarOwnerDashboard() {
         </>
       )}
 
-      {/* Simple placeholder panels for reviews/messages/settings views to keep navigation working */}
-      {view === 'reviews' && (
+        {/* Simple placeholder panels for reviews/messages/settings views to keep navigation working */}
+        {view === 'reviews' && (
         <div className="mb-6 rounded-2xl bg-white border border-[#e0d5c7] px-4 py-4 text-sm text-gray-700 shadow-sm">
           <h2 className="text-lg font-semibold mb-1 text-[#4b2a00]">Vehicle reviews</h2>
           <p className="text-xs text-gray-600">
@@ -1056,7 +1055,7 @@ export default function CarOwnerDashboard() {
         </div>
       )}
 
-      {view === 'messages' && (
+        {view === 'messages' && (
         <div className="mb-6 rounded-2xl bg-white border border-[#e0d5c7] px-4 py-4 text-sm text-gray-700 shadow-sm">
           <h2 className="text-lg font-semibold mb-1 text-[#4b2a00]">Messages</h2>
           <p className="text-xs text-gray-600">
@@ -1066,7 +1065,7 @@ export default function CarOwnerDashboard() {
         </div>
       )}
 
-      {view === 'settings' && (
+        {view === 'settings' && (
         <div className="mb-6 rounded-2xl bg-white border border-[#e0d5c7] px-4 py-4 text-sm text-gray-700 shadow-sm">
           <h2 className="text-lg font-semibold mb-1 text-[#4b2a00]">Settings</h2>
           <p className="text-xs text-gray-600">
@@ -1076,8 +1075,8 @@ export default function CarOwnerDashboard() {
         </div>
       )}
 
-      {/* Vehicles management: create + list, shown on Vehicles view */}
-      {view === 'vehicles' && showCreateForm && (
+        {/* Vehicles management: create + list, shown on Vehicles view */}
+        {view === 'vehicles' && showCreateForm && (
       <form ref={createFormRef} onSubmit={createCar} className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6 md:p-8 mb-8">
         <div className="mb-6 pb-4 border-b border-gray-200">
           <h2 className="text-2xl font-bold text-gray-900 mb-2">List a New Vehicle</h2>
@@ -1531,8 +1530,8 @@ export default function CarOwnerDashboard() {
       </form>
       )}
 
-      {/* Cars List */}
-      {view === 'vehicles' && (
+        {/* Cars List */}
+        {view === 'vehicles' && (
         <>
           {loading ? (
             <div className="bg-white rounded-2xl border border-[#e0d5c7] p-6 text-center text-sm text-gray-600 shadow-sm">
@@ -1642,10 +1641,10 @@ export default function CarOwnerDashboard() {
             </div>
           )}
         </>
-      )}
+        )}
 
-      {/* Bookings */}
-      {view === 'bookings' && (
+        {/* Bookings */}
+        {view === 'bookings' && (
       <div className="mt-8" ref={bookingsRef}>
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -1870,8 +1869,8 @@ export default function CarOwnerDashboard() {
       </div>
       )}
 
-      {receiptBooking && (
-        <ReceiptPreview
+        {receiptBooking && (
+          <ReceiptPreview
           title="Vehicle Rental Receipt"
           lines={[
             { label: 'Receipt', value: `#${String(receiptBooking._id).slice(-8)}` },
@@ -1890,6 +1889,7 @@ export default function CarOwnerDashboard() {
         />
       )}
       <SuccessModal open={successOpen} title={successTitle} message={successMsg} onClose={() => setSuccessOpen(false)} />
+      </div>
     </div>
   );
 }
