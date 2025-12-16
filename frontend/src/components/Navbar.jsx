@@ -453,128 +453,7 @@ const Navbar = () => {
     },
   ];
 
-  // Owner management links organised by topic, with reservations and sublinks
-  const ownerManagementLinks = [
-    {
-      category: t ? t('nav.reservations') : "Reservations",
-      icon: FaCalendarAlt,
-      links: [
-        { label: t ? t('nav.allReservations') : "All reservations", href: attachPropertyParam('/dashboard?tab=reservations&scope=all') },
-        { label: t ? t('nav.paidReservations') : "Paid reservations", href: attachPropertyParam('/dashboard?tab=reservations&scope=paid') },
-        { label: t ? t('nav.pendingReservations') : "Pending reservations", href: attachPropertyParam('/dashboard?tab=reservations&scope=pending') },
-        { label: t ? t('nav.unpaidReservations') : "Unpaid reservations", href: attachPropertyParam('/dashboard?tab=reservations&scope=unpaid') },
-        { label: t ? t('nav.cancelledReservations') : "Cancelled reservations", href: attachPropertyParam('/dashboard?tab=reservations&scope=cancelled') },
-        { label: t ? t('nav.directBooking') : "Direct booking", href: "/owner/direct-booking" },
-      ]
-    },
-    {
-      category: t ? t('nav.property') : "Property",
-      icon: FaBed,
-      links: [
-        { label: labelOr('nav.propertyPolicies', 'Property policies'), href: attachPropertyParam('/owner/property?view=policies') },
-        { label: labelOr('nav.reservationPolicies', 'Reservation policies'), href: attachPropertyParam('/owner/property?view=reservation-policies') },
-        { label: labelOr('nav.facilitiesServices', 'Facilities and services'), href: attachPropertyParam('/owner/property?view=facilities') },
-        { label: labelOr('nav.roomDetails', 'Room details'), href: attachPropertyParam('/owner/property?view=room-details') },
-        { label: labelOr('nav.roomAmenities', 'Room Amenities'), href: attachPropertyParam('/owner/property?view=room-amenities') },
-        { label: labelOr('nav.yourProfile', 'your profile'), href: attachPropertyParam('/owner/property?view=profile') },
-        { label: labelOr('nav.viewDescriptions', 'View your descriptions'), href: attachPropertyParam('/owner/property?view=descriptions') },
-        { label: labelOr('nav.photos', 'Photos'), href: attachPropertyParam('/owner/property?view=photos') },
-        { label: labelOr('nav.messagingPreferences', 'Messaging preferences'), href: '/settings?tab=messaging' },
-        { label: labelOr('nav.propertyManagement', 'Property management'), href: attachPropertyParam('/owner/property?view=general-info') },
-      ]
-    },
-    {
-      category: t ? t('nav.calendar') : "Calendar",
-      icon: FaCalendarAlt,
-      links: [
-        { label: t ? t('nav.thisMonth') : "This month", href: attachPropertyParam("/dashboard?tab=reservations&view=calendar&monthOffset=0") },
-        { label: t ? t('nav.nextMonth') : "Next month", href: attachPropertyParam("/dashboard?tab=reservations&view=calendar&monthOffset=1") },
-        { label: t ? t('nav.thisYear') : "This year", href: attachPropertyParam("/dashboard?tab=reservations&view=calendar") },
-      ]
-    },
-    {
-      category: t ? t('nav.finance') : "Finance",
-      icon: FaDollarSign,
-      links: [
-        { label: t ? t('nav.allPayments') : "All payments", href: attachPropertyParam('/dashboard?tab=finance&finance_status=all') },
-        { label: t ? t('nav.paid') : "Paid", href: attachPropertyParam('/dashboard?tab=finance&finance_status=paid') },
-        { label: t ? t('nav.pending') : "Pending", href: attachPropertyParam('/dashboard?tab=finance&finance_status=pending') },
-        { label: t ? t('nav.unpaid') : "Unpaid", href: attachPropertyParam('/dashboard?tab=finance&finance_status=unpaid') },
-        { label: t ? t('nav.last30Days') : "Last 30 days", href: attachPropertyParam('/dashboard?tab=finance&view=last30') },
-        { label: t ? t('nav.monthToDate') : "Month to date", href: attachPropertyParam('/dashboard?tab=finance&view=mtd') },
-        { label: t ? t('nav.yearToDate') : "Year to date", href: attachPropertyParam('/dashboard?tab=finance&view=ytd') },
-        { label: t ? t('nav.expenses') : "Expenses & profit", href: attachPropertyParam('/dashboard?tab=finance&view=expenses') },
-      ]
-    },
-    {
-      category: t ? t('nav.analytics') : "Analytics",
-      icon: FaChartLine,
-      links: [
-        { label: t ? t('nav.last30Days') : "Last 30 days", href: attachPropertyParam('/dashboard?tab=analytics&range=30') },
-        { label: t ? t('nav.last90Days') : "Last 90 days", href: attachPropertyParam('/dashboard?tab=analytics&range=90') },
-        { label: t ? t('nav.yearToDate') : "Year to date", href: attachPropertyParam('/dashboard?tab=analytics&range=ytd') },
-        { label: t ? t('nav.customRange') : "Custom range", href: attachPropertyParam('/dashboard?tab=analytics&range=custom') },
-      ]
-    },
-    {
-      category: t ? t('nav.promotions') : "Promotions",
-      icon: FaShoppingBag,
-      links: [
-        { label: t ? t('nav.managePromotions') : "Manage promotions", href: "/owner/promotions" },
-        { label: t ? t('nav.createNewPromotion') : "Create new promotion", href: "/owner/promotions?mode=new" },
-        { label: t ? t('nav.activePromotions') : "Active promotions", href: "/owner/promotions?status=active" },
-        { label: t ? t('nav.expiredPromotions') : "Expired promotions", href: "/owner/promotions?status=expired" },
-      ]
-    },
-    {
-      category: t ? t('nav.reviews') : "Reviews",
-      icon: FaStar,
-      links: [
-        { label: t ? t('nav.allReviews') : "All reviews", href: "/owner/reviews" },
-        { label: t ? t('nav.unrepliedReviews') : "Unreplied reviews", href: "/owner/reviews?filter=unreplied" },
-        { label: t ? t('nav.fiveStarReviews') : "5-star reviews", href: "/owner/reviews?filter=5star" },
-        { label: t ? t('nav.lowRatings') : "Low ratings", href: "/owner/reviews?filter=low" },
-      ]
-    },
-    {
-      category: t ? t('nav.messages') : "Messages",
-      icon: FaEnvelope,
-      links: [
-        { label: t ? t('nav.inbox') : "Inbox", href: "/messages" },
-        { label: t ? t('nav.unreadMessages') : "Unread messages", href: "/messages?filter=unread" },
-        { label: t ? t('nav.archivedMessages') : "Archived messages", href: "/messages?filter=archived" },
-      ]
-    },
-    {
-      category: t ? t('nav.settings') : "Settings",
-      icon: FaSettings,
-      links: [
-        { label: t ? t('nav.propertySettings') : "Property settings", href: "/upload" },
-        { label: t ? t('nav.accountSettings') : "Account settings", href: "/settings" },
-        { label: t ? t('nav.paymentSettings') : "Payment settings", href: "/settings?tab=payment" },
-        { label: t ? t('nav.notificationSettings') : "Notification settings", href: "/settings?tab=notifications" },
-        { label: t ? t('nav.workers') : "Workers", href: "/owner/workers" },
-      ]
-    }
-  ];
-
-  useEffect(() => {
-    if (socket && isAuthenticated) {
-      socket.on("newMessage", (data) => {
-        setUnreadMsgCount((prev) => prev + 1);
-      });
-
-      socket.on("messageRead", () => {
-        setUnreadMsgCount(0);
-      });
-
-      return () => {
-        socket.off("newMessage");
-        socket.off("messageRead");
-      };
-    }
-  }, [socket, isAuthenticated]);
-
+  // Fetch unread notification counts and owner stats for navbar badges
   useEffect(() => {
     if (!isAuthenticated) {
       // Reset counts when user logs out
@@ -584,19 +463,17 @@ const Navbar = () => {
       return;
     }
     let timer;
+
     const loadUnread = async () => {
       try {
-      const data = await safeApiGet('/api/notifications/unread-count', { count: 0 });
-        setUnreadNotifCount(Number(data?.count || 0));
-      } catch (error) {
-        // Silently handle errors for unauthenticated users
-      }
-    };
+        // Use owner-scoped unread count when host is in the owner dashboard,
+        // otherwise use the generic guest/global unread count.
+        const endpoint = (isAuthenticated && user?.userType === 'host' && isInPropertyOwnerDashboard())
+          ? '/api/user/notifications/unread-count'
+          : '/api/notifications/unread-count';
 
-    const loadUnreadMessages = async () => {
-      try {
-      const data = await safeApiGet('/api/messages/unread-count', { count: 0 });
-        setUnreadMsgCount(Number(data?.count || 0));
+        const data = await safeApiGet(endpoint, { count: 0 });
+        setUnreadNotifCount(Number(data?.count || 0));
       } catch (error) {
         // Silently handle errors for unauthenticated users
       }
@@ -1685,7 +1562,7 @@ const Navbar = () => {
             </div>
 
             {/* Owner navigation (Booking.com style) in second navbar */}
-            {isAuthenticated && user?.userType === 'host' && isInAnyOwnerDashboard() && (isInPropertyOwnerDashboard() ? !!selectedPropertyId : true) && (
+            {isAuthenticated && user?.userType === 'host' && (isInAnyOwnerDashboard() || location.pathname === '/') && (isInPropertyOwnerDashboard() ? !!selectedPropertyId : true) && (
               <div className="w-full flex flex-wrap items-center gap-1 pt-1 mt-1">
                 {(isInCarOwnerDashboard()
                   ? carOwnerNavItems
@@ -1800,8 +1677,8 @@ const Navbar = () => {
             </div>
           )}
 
-          {/* Owner navigation (Booking.com style) - only in owner dashboard context */}
-          {user?.userType === 'host' && isInAnyOwnerDashboard() && (isInPropertyOwnerDashboard() ? !!selectedPropertyId : true) && (
+          {/* Owner navigation (Booking.com style) - shown in owner dashboards and on landing page for hosts */}
+          {user?.userType === 'host' && (isInAnyOwnerDashboard() || location.pathname === '/') && (isInPropertyOwnerDashboard() ? !!selectedPropertyId : true) && (
             <div className="px-2 pb-2">
               {(isInCarOwnerDashboard()
                 ? carOwnerNavItems

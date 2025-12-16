@@ -83,7 +83,13 @@ const Notifications = () => {
 
   const markRead = async (id) => {
     try {
-      await fetch(`${API_URL}/api/notifications/${id}/read`, { method: 'PATCH', credentials: 'include' });
+      const ownerMode = isOwnerContext();
+      const endpoint = ownerMode
+        ? `${API_URL}/api/user/notifications/${id}/read`
+        : `${API_URL}/api/notifications/${id}/read`;
+      const method = ownerMode ? 'POST' : 'PATCH';
+
+      await fetch(endpoint, { method, credentials: 'include' });
       setItems(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
     } catch (_) {}
   };
@@ -113,6 +119,22 @@ const Notifications = () => {
     if (!bid) return;
     try {
       setBusy(prev => ({ ...prev, [n.id]: true }));
+      // First fetch the latest booking to ensure it is still confirmable.
+      const checkRes = await fetch(`${API_URL}/api/bookings/${bid}`, { credentials: 'include' });
+      const checkData = await checkRes.json().catch(() => ({}));
+      if (!checkRes.ok) {
+        throw new Error(checkData?.message || 'Could not load booking');
+      }
+
+      const currentStatus = String(checkData?.booking?.status || '').toLowerCase();
+      if (currentStatus && currentStatus !== 'pending' && currentStatus !== 'awaiting') {
+        // Do not call confirm endpoint for non-confirmable states; show an info message instead.
+        toast.success(`Booking is already ${currentStatus}. No further confirmation is needed.`);
+        markRead(n.id);
+        navigate(`/booking-confirmation/${bid}`);
+        return;
+      }
+
       const res = await fetch(`${API_URL}/api/bookings/${bid}/confirm`, { method: 'POST', credentials: 'include' });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.message || 'Failed to confirm booking');

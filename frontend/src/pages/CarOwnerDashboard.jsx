@@ -5,6 +5,15 @@ import ReceiptPreview from '../components/ReceiptPreview';
 import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
 import SuccessModal from '../components/SuccessModal';
+import {
+  FaCar,
+  FaCalendarAlt,
+  FaDollarSign,
+  FaChartLine,
+  FaStar,
+  FaEnvelope,
+  FaCog,
+} from 'react-icons/fa';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 const makeAbsolute = (u) => {
@@ -714,129 +723,182 @@ export default function CarOwnerDashboard() {
       {/* Overview section (stats, quick links, finance snapshot) */}
       {view === 'overview' && (
         <>
+          {/* Vehicle context selector */}
           {Array.isArray(cars) && cars.length > 0 ? (
-            <div className="mb-4 max-w-xs">
-              <label className="block text-xs text-gray-600 mb-1">Selected vehicle</label>
-              <select
-                className="w-full px-3 py-2 border rounded text-sm"
-                value={selectedCarId || ''}
-                onChange={e => setSelectedCarId(e.target.value)}
-              >
-                {cars.map(c => (
-                  <option key={c._id} value={c._id}>
-                    {c.vehicleName || `${c.brand || ''} ${c.model || ''}`.trim() || 'Untitled vehicle'}
-                  </option>
-                ))}
-              </select>
+            <div className="mb-4 max-w-sm bg-white border border-[#e0d5c7] rounded-xl px-3 py-2 shadow-sm flex items-center gap-3">
+              <div className="w-9 h-9 rounded-full bg-[#f5ebe0] flex items-center justify-center text-[#a06b42]">
+                <FaCar className="text-sm" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <label className="block text-[11px] text-gray-500">Vehicle focus</label>
+                <select
+                  className="mt-0.5 w-full px-2 py-1.5 border border-[#e0d5c7] rounded-md text-xs bg-[#faf6f0] focus:outline-none focus:ring-1 focus:ring-[#a06b42] focus:border-[#a06b42]"
+                  value={selectedCarId || ''}
+                  onChange={e => setSelectedCarId(e.target.value)}
+                >
+                  {cars.map(c => (
+                    <option key={c._id} value={c._id}>
+                      {c.vehicleName || `${c.brand || ''} ${c.model || ''}`.trim() || 'Untitled vehicle'}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           ) : (
-            <div className="mb-4 text-xs text-gray-600 bg-white border border-[#e0d5c7] rounded-lg px-3 py-2">
-              Once you list vehicles, you'll see per-vehicle stats here. For now, the cards below show overall bookings and revenue.
+            <div className="mb-4 text-xs text-gray-700 bg-white border border-[#e0d5c7] rounded-xl px-3 py-3">
+              <div className="font-semibold text-gray-900 mb-0.5">No vehicles listed yet</div>
+              <p className="text-[11px] text-gray-600">
+                Once you list vehicles, you'll see per-vehicle stats here. For now, the summary cards show overall bookings and revenue for your account.
+              </p>
             </div>
           )}
 
-          <div className="mb-4 grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2">
-              <div className="text-[11px] text-gray-500">Total bookings</div>
-              <div className="text-lg font-semibold text-gray-900">{stats.totalBookings}</div>
+          {/* High-level stats */}
+          <div className="mb-5 grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5 flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-[#e9f2ff] flex items-center justify-center text-[#2563eb]">
+                <FaCalendarAlt className="text-xs" />
+              </div>
+              <div>
+                <div className="text-[11px] text-gray-500">Total bookings</div>
+                <div className="text-lg font-semibold text-gray-900 leading-snug">{stats.totalBookings}</div>
+              </div>
             </div>
-            <div className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2">
-              <div className="text-[11px] text-gray-500">Active</div>
-              <div className="text-lg font-semibold text-emerald-700">{stats.active}</div>
+
+            <div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5 flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-[#ecfdf3] flex items-center justify-center text-emerald-700">
+                <FaCar className="text-xs" />
+              </div>
+              <div>
+                <div className="text-[11px] text-gray-500">Active</div>
+                <div className="text-lg font-semibold text-emerald-700 leading-snug">{stats.active}</div>
+              </div>
             </div>
-            <div className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2">
-              <div className="text-[11px] text-gray-500">Completed</div>
-              <div className="text-lg font-semibold text-blue-700">{stats.completed}</div>
+
+            <div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5 flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-[#eff6ff] flex items-center justify-center text-blue-700">
+                <FaCalendarAlt className="text-xs" />
+              </div>
+              <div>
+                <div className="text-[11px] text-gray-500">Completed</div>
+                <div className="text-lg font-semibold text-blue-700 leading-snug">{stats.completed}</div>
+              </div>
             </div>
-            <div className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2">
-              <div className="text-[11px] text-gray-500">Revenue (RWF)</div>
-              <div className="text-lg font-semibold text-gray-900">
-                {formatCurrencyRWF ? formatCurrencyRWF(stats.totalRevenue || 0) : `RWF ${Number(stats.totalRevenue || 0).toLocaleString()}`}
+
+            <div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5 flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-[#fff7ed] flex items-center justify-center text-[#a06b42]">
+                <FaDollarSign className="text-xs" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-[11px] text-gray-500">Revenue (RWF)</div>
+                <div className="text-sm font-semibold text-gray-900 truncate">
+                  {formatCurrencyRWF ? formatCurrencyRWF(stats.totalRevenue || 0) : `RWF ${Number(stats.totalRevenue || 0).toLocaleString()}`}
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="mb-6 grid grid-cols-2 md:grid-cols-4 gap-3">
+          {/* Quick management links */}
+          <div className="mb-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
             <button
               type="button"
               onClick={() => {
                 setView('bookings');
                 if (bookingsRef.current) bookingsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
               }}
-              className="text-left rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2 hover:border-[#a06b42] hover:shadow-md transition"
+              className="group text-left rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5 hover:border-[#a06b42] hover:shadow-md transition flex flex-col gap-1"
             >
-              <div className="text-[11px] text-gray-500">Bookings</div>
-              <div className="text-sm font-semibold text-gray-900">Manage reservations</div>
-              <div className="mt-0.5 text-[11px] text-gray-500">View and update all vehicle bookings</div>
+              <div className="flex items-center gap-2">
+                <span className="inline-flex w-7 h-7 rounded-full bg-[#f5ebe0] items-center justify-center text-[#a06b42]"><FaCalendarAlt className="text-xs" /></span>
+                <span className="text-[11px] font-medium text-gray-700">Bookings</span>
+              </div>
+              <div className="text-xs font-semibold text-gray-900">Manage reservations</div>
+              <div className="text-[11px] text-gray-500">View and update all vehicle bookings</div>
             </button>
 
             <button
               type="button"
               onClick={() => window.open('/transactions', '_blank', 'noopener,noreferrer')}
-              className="text-left rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2 hover:border-[#a06b42] hover:shadow-md transition w-full"
+              className="group text-left rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5 hover:border-[#a06b42] hover:shadow-md transition flex flex-col gap-1"
             >
-              <div className="text-[11px] text-gray-500">Finance</div>
-              <div className="text-sm font-semibold text-gray-900">Payments & transactions</div>
-              <div className="mt-0.5 text-[11px] text-gray-500">Track payouts and charges</div>
+              <div className="flex items-center gap-2">
+                <span className="inline-flex w-7 h-7 rounded-full bg-[#fff7ed] items-center justify-center text-[#a06b42]"><FaDollarSign className="text-xs" /></span>
+                <span className="text-[11px] font-medium text-gray-700">Finance</span>
+              </div>
+              <div className="text-xs font-semibold text-gray-900">Payments & transactions</div>
+              <div className="text-[11px] text-gray-500">Track payouts and charges</div>
             </button>
 
             <button
               type="button"
               onClick={() => window.open('/analytics', '_blank', 'noopener,noreferrer')}
-              className="text-left rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2 hover:border-[#a06b42] hover:shadow-md transition w-full"
+              className="group text-left rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5 hover:border-[#a06b42] hover:shadow-md transition flex flex-col gap-1"
             >
-              <div className="text-[11px] text-gray-500">Analytics</div>
-              <div className="text-sm font-semibold text-gray-900">Performance overview</div>
-              <div className="mt-0.5 text-[11px] text-gray-500">See trends across your listings</div>
+              <div className="flex items-center gap-2">
+                <span className="inline-flex w-7 h-7 rounded-full bg-[#e9f2ff] items-center justify-center text-[#2563eb]"><FaChartLine className="text-xs" /></span>
+                <span className="text-[11px] font-medium text-gray-700">Analytics</span>
+              </div>
+              <div className="text-xs font-semibold text-gray-900">Performance overview</div>
+              <div className="text-[11px] text-gray-500">See trends across your listings</div>
             </button>
 
             <button
               type="button"
               onClick={() => window.open('/owner/reviews', '_blank', 'noopener,noreferrer')}
-              className="text-left rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2 hover:border-[#a06b42] hover:shadow-md transition w-full"
+              className="group text-left rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5 hover:border-[#a06b42] hover:shadow-md transition flex flex-col gap-1"
             >
-              <div className="text-[11px] text-gray-500">Reviews</div>
-              <div className="text-sm font-semibold text-gray-900">Guest reviews</div>
-              <div className="mt-0.5 text-[11px] text-gray-500">Read and reply to feedback</div>
+              <div className="flex items-center gap-2">
+                <span className="inline-flex w-7 h-7 rounded-full bg-[#fef3c7] items-center justify-center text-[#d97706]"><FaStar className="text-xs" /></span>
+                <span className="text-[11px] font-medium text-gray-700">Reviews</span>
+              </div>
+              <div className="text-xs font-semibold text-gray-900">Guest reviews</div>
+              <div className="text-[11px] text-gray-500">Read and reply to feedback</div>
             </button>
 
             <button
               type="button"
               onClick={() => window.open('/messages?category=reservations', '_blank', 'noopener,noreferrer')}
-              className="text-left rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2 hover:border-[#a06b42] hover:shadow-md transition w-full"
+              className="group text-left rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5 hover:border-[#a06b42] hover:shadow-md transition flex flex-col gap-1"
             >
-              <div className="text-[11px] text-gray-500">Messages</div>
-              <div className="text-sm font-semibold text-gray-900">Guest communication</div>
-              <div className="mt-0.5 text-[11px] text-gray-500">Open inbox with reservation auto-replies</div>
+              <div className="flex items-center gap-2">
+                <span className="inline-flex w-7 h-7 rounded-full bg-[#eff6ff] items-center justify-center text-[#2563eb]"><FaEnvelope className="text-xs" /></span>
+                <span className="text-[11px] font-medium text-gray-700">Messages</span>
+              </div>
+              <div className="text-xs font-semibold text-gray-900">Guest communication</div>
+              <div className="text-[11px] text-gray-500">Open inbox with reservation auto-replies</div>
             </button>
 
             <button
               type="button"
               onClick={() => window.open('/settings?tab=notifications', '_blank', 'noopener,noreferrer')}
-              className="text-left rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2 hover:border-[#a06b42] hover:shadow-md transition w-full"
+              className="group text-left rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5 hover:border-[#a06b42] hover:shadow-md transition flex flex-col gap-1"
             >
-              <div className="text-[11px] text-gray-500">Settings</div>
-              <div className="text-sm font-semibold text-gray-900">Notifications & messaging</div>
-              <div className="mt-0.5 text-[11px] text-gray-500">Control how guests contact you</div>
+              <div className="flex items-center gap-2">
+                <span className="inline-flex w-7 h-7 rounded-full bg-[#f5ebe0] items-center justify-center text-[#a06b42]"><FaCog className="text-xs" /></span>
+                <span className="text-[11px] font-medium text-gray-700">Settings</span>
+              </div>
+              <div className="text-xs font-semibold text-gray-900">Notifications & messaging</div>
+              <div className="text-[11px] text-gray-500">Control how guests contact you</div>
             </button>
           </div>
 
+          {/* Finance snapshot */}
           <div className="mb-6 grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2">
+            <div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5">
               <div className="text-[11px] text-gray-500">Last 30 days revenue</div>
               <div className="text-sm font-semibold text-gray-900">
                 {formatCurrencyRWF ? formatCurrencyRWF(financeStats.rev30 || 0) : `RWF ${Number(financeStats.rev30 || 0).toLocaleString()}`}
               </div>
               <div className="mt-0.5 text-[11px] text-gray-500">{financeStats.bookings30} bookings</div>
             </div>
-            <div className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2">
+            <div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5">
               <div className="text-[11px] text-gray-500">Year-to-date revenue</div>
               <div className="text-sm font-semibold text-gray-900">
                 {formatCurrencyRWF ? formatCurrencyRWF(financeStats.revYtd || 0) : `RWF ${Number(financeStats.revYtd || 0).toLocaleString()}`}
               </div>
               <div className="mt-0.5 text-[11px] text-gray-500">{financeStats.bookingsYtd} bookings</div>
             </div>
-            <div className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2">
+            <div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5">
               <div className="text-[11px] text-gray-500">Avg revenue / booking (30d)</div>
               <div className="text-sm font-semibold text-gray-900">
                 {formatCurrencyRWF ? formatCurrencyRWF(financeStats.avg30 || 0) : `RWF ${Number(financeStats.avg30 || 0).toLocaleString()}`}

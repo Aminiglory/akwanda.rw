@@ -446,6 +446,26 @@ router.get('/notifications', requireAuth, async (req, res) => {
     res.json({ notifications: filtered });
 });
 
+// Unread count for host/owner notifications
+router.get('/notifications/unread-count', requireAuth, async (req, res) => {
+    try {
+        const Notification = require('../tables/notification');
+
+        const count = await Notification.countDocuments({
+            recipientUser: req.user.id,
+            isRead: false,
+            $or: [
+                { audience: { $exists: false } },
+                { audience: { $in: ['host', 'both'] } }
+            ]
+        });
+
+        res.json({ count });
+    } catch (e) {
+        res.status(500).json({ message: 'Failed to get unread count' });
+    }
+});
+
 router.post('/notifications/:id/read', requireAuth, async (req, res) => {
     const Notification = require('../tables/notification');
     const n = await Notification.findOne({ _id: req.params.id, recipientUser: req.user.id });
