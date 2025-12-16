@@ -1241,10 +1241,11 @@ const Navbar = () => {
                             } else {
                               params.set('car', String(id));
                             }
-                            navigate({ pathname: '/owner/cars', search: params.toString() }, { replace: false });
+                            const qs = params.toString();
+                            const url = qs ? `${location.pathname}?${qs}` : location.pathname;
+                            navigate(url, { replace: true });
                           } catch (_) {}
                         }}
-                        defaultValue={''}
                       >
                         <option value="">{t ? t('banner.allVehicles') : 'All vehicles'}</option>
                         {myCars.map((c) => {
@@ -1256,22 +1257,28 @@ const Navbar = () => {
                         })}
                       </select>
                     </div>
+                  </div>
+                )}
+
+                {/* Main navigation (Stays / Flights / Rentals / Attractions) - desktop, non-owner dashboards */}
+                {!isInAnyOwnerDashboard() && (
+                  <div className="hidden lg:flex items-center space-x-1 ml-2">
                     {mainNavItems.map((item, index) => {
                       const Icon = item.icon;
                       const isActive = isActiveRoute(item.href);
                       const hasChildren = item.children && item.children.length > 0;
                       return (
                         <div key={index} className="relative group">
-                        <Link
-                          to={item.href}
+                          <Link
+                            to={item.href}
                             className={`flex items-center space-x-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                            isActive
+                              isActive
                                 ? 'bg-[#a06b42] text-white'
-                              : 'text-[#6b5744] hover:text-[#4b2a00] hover:bg-[#e8dcc8]'
-                          }`}
-                        >
+                                : 'text-[#6b5744] hover:text-[#4b2a00] hover:bg-[#e8dcc8]'
+                            }`}
+                          >
                             <Icon className="text-xs" />
-                          <span>{item.label}</span>
+                            <span>{item.label}</span>
                             {hasChildren && <FaChevronDown className="text-[10px] ml-0.5" />}
                           </Link>
                           {hasChildren && (
@@ -1286,7 +1293,7 @@ const Navbar = () => {
                                   >
                                     {ChildIcon && <ChildIcon className="text-xs" />}
                                     <span>{child.label}</span>
-                        </Link>
+                                  </Link>
                                 );
                               })}
                             </div>
