@@ -273,7 +273,6 @@ const PropertyMapView = () => {
                         boxShadow: '0 10px 25px rgba(15,23,42,0.55)',
                         whiteSpace: 'nowrap',
                         border: '1px solid rgba(255,255,255,0.85)',
-                        minWidth: 96,
                         textAlign: 'center',
                       }}
                     >
