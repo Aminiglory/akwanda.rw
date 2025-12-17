@@ -198,16 +198,34 @@ const Notifications = () => {
               const reviewPinMatch = messageText.match(/Review PIN:\s*(\d+)/i);
               const isReviewNotification = String(n.type || '').toLowerCase().includes('review') || !!reviewPinMatch;
 
+              const handleCardClick = () => {
+                // Commission-style notifications keep their own CTAs; just mark read on click
+                if (String(n.type || '').includes('commission')) {
+                  if (!n.isRead) markRead(n.id);
+                  return;
+                }
+
+                if (isReviewNotification) {
+                  openReview(n);
+                  return;
+                }
+
+                if (n.booking) {
+                  openBooking(n);
+                  return;
+                }
+
+                if (!n.isRead) {
+                  markRead(n.id);
+                }
+              };
+
               return (
                 <div
                   id={`notif-${n.id}`}
                   key={n.id}
-                  className={`modern-card p-4 ${!n.isRead ? 'border-l-4 border-blue-600' : ''} ${focusId===n.id ? 'ring-2 ring-blue-400' : ''}`}
-                  onClick={() => {
-                    if (isReviewNotification) {
-                      openReview(n);
-                    }
-                  }}
+                  className={`modern-card p-4 cursor-pointer transition ${!n.isRead ? 'border-l-4 border-blue-600 bg-blue-50' : 'bg-white'} ${focusId===n.id ? 'ring-2 ring-blue-400' : ''}`}
+                  onClick={handleCardClick}
                 >
                   {String(n.type || '').includes('commission') ? (
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
@@ -224,7 +242,10 @@ const Notifications = () => {
                           <Link to={`/apartment/${n.property}`} className="px-3 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded">View Property</Link>
                         )}
                         {!n.isRead && (
-                          <button onClick={() => markRead(n.id)} className="px-3 py-2 text-sm bg-white border border-gray-200 hover:bg-gray-50 rounded">Dismiss</button>
+                          <button onClick={(e) => {
+                            e.stopPropagation();
+                            markRead(n.id);
+                          }} className="px-3 py-2 text-sm bg-white border border-gray-200 hover:bg-gray-50 rounded">Dismiss</button>
                         )}
                       </div>
                     </div>
@@ -250,42 +271,19 @@ const Notifications = () => {
                         <div className="text-xs text-gray-400 mt-1">{n.createdAt ? new Date(n.createdAt).toLocaleString() : ''}</div>
                       </div>
                       <div className="flex items-center gap-2">
-                        {n.booking && (
-                          <>
+                        {n.booking &&
+                          (n.type === 'booking_paid' || n.type === 'booking_created') && (
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                openBooking(n);
+                                confirmBooking(n);
                               }}
-                              className="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-800 rounded"
+                              disabled={!!busy[n.id]}
+                              className="px-3 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded disabled:opacity-50"
                             >
-                              Open
+                              {busy[n.id] ? 'Confirming...' : 'Confirm'}
                             </button>
-                            {(n.type === 'booking_paid' || n.type === 'booking_created') && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  confirmBooking(n);
-                                }}
-                                disabled={!!busy[n.id]}
-                                className="px-3 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded disabled:opacity-50"
-                              >
-                                {busy[n.id] ? 'Confirming...' : 'Confirm'}
-                              </button>
-                            )}
-                          </>
-                        )}
-                        {!n.isRead && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              markRead(n.id);
-                            }}
-                            className="px-3 py-2 text-sm bg-white border border-gray-200 hover:bg-gray-50 rounded"
-                          >
-                            Mark read
-                          </button>
-                        )}
+                          )}
                       </div>
                     </div>
                   )}

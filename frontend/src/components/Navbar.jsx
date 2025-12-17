@@ -1412,7 +1412,10 @@ const Navbar = () => {
                                     markNotificationRead(n.id);
                                     setIsNotificationOpen(false);
                                   }}
-                                  className={`block text-[10px] py-1.5 rounded hover:bg-gray-50 ${!n.isRead ? 'font-semibold' : 'text-gray-600'}`}
+                                  className={`block text-[10px] py-1.5 rounded transition-colors ${!n.isRead
+                                    ? 'bg-blue-50 hover:bg-blue-100 font-semibold text-gray-900'
+                                    : 'hover:bg-gray-50 text-gray-600'
+                                  }`}
                                 >
                                   <div className="flex items-start gap-1.5">
                                     <div className={`${!n.isRead ? 'bg-blue-600' : 'bg-gray-300'} w-1.5 h-1.5 mt-0.5 rounded-full`}></div>
