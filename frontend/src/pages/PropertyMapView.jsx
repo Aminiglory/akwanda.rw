@@ -17,22 +17,6 @@ const distanceInKm = (lat1, lon1, lat2, lon2) => {
     return null;
   }
 
-  // Auto-request directions when coming from a card with requestDirections flag
-  useEffect(() => {
-    if (
-      !autoRequestedDirections &&
-      location.state?.requestDirections &&
-      selectedProperty &&
-      selectedProperty.latitude != null &&
-      selectedProperty.longitude != null
-    ) {
-      getDirections({
-        lat: Number(selectedProperty.latitude),
-        lng: Number(selectedProperty.longitude),
-      });
-      setAutoRequestedDirections(true);
-    }
-  }, [autoRequestedDirections, location.state, selectedProperty, getDirections]);
   const R = 6371; // km
   const dLat = toRad(lat2 - lat1);
   const dLon = toRad(lon2 - lon1);
@@ -82,6 +66,23 @@ const PropertyMapView = () => {
     getDirections,
     clearDirections,
   } = useDirections();
+
+  // Auto-request directions when coming from a card with requestDirections flag
+  useEffect(() => {
+    if (
+      !autoRequestedDirections &&
+      location.state?.requestDirections &&
+      selectedProperty &&
+      selectedProperty.latitude != null &&
+      selectedProperty.longitude != null
+    ) {
+      getDirections({
+        lat: Number(selectedProperty.latitude),
+        lng: Number(selectedProperty.longitude),
+      });
+      setAutoRequestedDirections(true);
+    }
+  }, [autoRequestedDirections, location.state, selectedProperty, getDirections]);
 
   // Fetch properties from API or use passed properties
   useEffect(() => {
