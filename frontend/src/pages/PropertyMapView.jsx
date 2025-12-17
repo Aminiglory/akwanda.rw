@@ -266,14 +266,16 @@ const PropertyMapView = () => {
                       style={{
                         backgroundColor: isSelected ? '#b91c1c' : '#1d4ed8',
                         color: '#ffffff',
-                        padding: isSelected ? '8px 26px' : '6px 22px',
+                        padding: isSelected ? '7px 22px' : '5px 20px',
                         borderRadius: 9999,
                         fontWeight: 700,
-                        fontSize: isSelected ? 13 : 12,
+                        fontSize: isSelected ? 12 : 11,
+                        lineHeight: 1.1,
                         boxShadow: '0 10px 25px rgba(15,23,42,0.55)',
                         whiteSpace: 'nowrap',
                         border: '1px solid rgba(255,255,255,0.85)',
                         textAlign: 'center',
+                        display: 'inline-block',
                       }}
                     >
                       {label}
