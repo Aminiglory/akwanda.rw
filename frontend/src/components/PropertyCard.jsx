@@ -388,8 +388,8 @@ const PropertyCard = ({
             </div>
           </div>
         )}
-        <div className="mt-4 flex items-center justify-between gap-2 flex-wrap flex-none">
-          <div className="text-[11px] text-gray-600 flex-shrink-0">
+        <div className="mt-4 flex items-center justify-between flex-none">
+          <div className="text-[11px] text-gray-600">
             {(() => {
               const explicitCount = typeof reviews === 'number' ? reviews : null;
               const ratingsCount = Array.isArray(listing?.ratings) ? listing.ratings.length : 0;
@@ -417,11 +417,11 @@ const PropertyCard = ({
               );
             })()}
           </div>
-          <div className="flex items-center gap-2 flex-wrap justify-end flex-1">
+          <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={onView}
-              className="px-3 py-1.5 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors text-xs sm:text-sm"
+              className="px-3 py-2 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors text-xs"
             >
               {t ? t('property.viewDetails') : 'View Details'}
             </button>
@@ -430,7 +430,7 @@ const PropertyCard = ({
               <button
                 type="button"
                 onClick={handleGetDirections}
-                className="inline-flex px-3 py-1.5 rounded-lg border border-amber-700 text-amber-800 bg-amber-50 hover:bg-amber-100 transition-colors text-[11px] font-semibold"
+                className="hidden md:inline-flex px-3 py-2 rounded-lg border border-amber-700 text-amber-800 bg-amber-50 hover:bg-amber-100 transition-colors text-xs font-semibold"
               >
                 {t ? t('map.getDirections', 'Get directions') : 'Get directions'}
               </button>
@@ -459,11 +459,11 @@ const PropertyCard = ({
               <button
                 type="button"
                 onClick={handleShowOnMap}
-                className="p-2 border border-gray-300 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors flex-shrink-0"
+                className="p-2 border border-gray-300 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
                 aria-label="OpenStreetMap"
                 title="OpenStreetMap"
               >
-                <FaMap />
+                <FaMap className="text-sm" />
               </button>
             ) : null}
           </div>
