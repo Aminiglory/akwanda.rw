@@ -13,12 +13,38 @@ const Notifications = () => {
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState([]);
   const [busy, setBusy] = useState({});
-  const [filter, setFilter] = useState('all'); // all | commission | bookings | unread | read
+  const [filter, setFilter] = useState(() => {
+    const params = new URLSearchParams(location.search || '');
+    const f = params.get('filter');
+    const allowed = ['all', 'commission', 'bookings', 'unread', 'read'];
+    return allowed.includes(f) ? f : 'all';
+  }); // all | commission | bookings | unread | read
   const [focusId, setFocusId] = useState(null);
   const hasFocusedRef = useRef(false);
 
   // Parse query param ?open or ?id to focus a notification
   const openParam = useMemo(() => new URLSearchParams(location.search).get('open') || new URLSearchParams(location.search).get('id'), [location.search]);
+
+  // Keep filter in sync with ?filter= query param (e.g. from navbar links)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search || '');
+    const f = params.get('filter');
+    const allowed = ['all', 'commission', 'bookings', 'unread', 'read'];
+    if (f && allowed.includes(f) && f !== filter) {
+      setFilter(f);
+    }
+  }, [location.search]);
+
+  const setFilterAndSyncUrl = (value) => {
+    setFilter(value);
+    const params = new URLSearchParams(location.search || '');
+    if (!value || value === 'all') {
+      params.delete('filter');
+    } else {
+      params.set('filter', value);
+    }
+    navigate({ pathname: location.pathname, search: params.toString() ? `?${params.toString()}` : '' }, { replace: true });
+  };
 
   // Routes that represent the property/owner dashboards. The generic
   // /notifications page is intentionally NOT included here so that even
@@ -166,11 +192,11 @@ const Notifications = () => {
 
         {/* Filter Chips */}
         <div className="flex flex-wrap items-center gap-2 mb-4">
-          <button onClick={() => setFilter('all')} className={`px-3 py-1.5 rounded-full text-sm border ${filter==='all' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}>All</button>
-          <button onClick={() => setFilter('commission')} className={`px-3 py-1.5 rounded-full text-sm border ${filter==='commission' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}>Commission</button>
-          <button onClick={() => setFilter('bookings')} className={`px-3 py-1.5 rounded-full text-sm border ${filter==='bookings' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}>Bookings</button>
-          <button onClick={() => setFilter('unread')} className={`px-3 py-1.5 rounded-full text-sm border ${filter==='unread' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}>Unread</button>
-          <button onClick={() => setFilter('read')} className={`px-3 py-1.5 rounded-full text-sm border ${filter==='read' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}>Read</button>
+          <button onClick={() => setFilterAndSyncUrl('all')} className={`px-3 py-1.5 rounded-full text-sm border ${filter==='all' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}>All</button>
+          <button onClick={() => setFilterAndSyncUrl('commission')} className={`px-3 py-1.5 rounded-full text-sm border ${filter==='commission' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}>Commission</button>
+          <button onClick={() => setFilterAndSyncUrl('bookings')} className={`px-3 py-1.5 rounded-full text-sm border ${filter==='bookings' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}>Bookings</button>
+          <button onClick={() => setFilterAndSyncUrl('unread')} className={`px-3 py-1.5 rounded-full text-sm border ${filter==='unread' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}>Unread</button>
+          <button onClick={() => setFilterAndSyncUrl('read')} className={`px-3 py-1.5 rounded-full text-sm border ${filter==='read' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}>Read</button>
         </div>
 
         {loading ? (
@@ -252,7 +278,12 @@ const Notifications = () => {
                   ) : (
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <div className="font-semibold text-gray-900">{n.title}</div>
+                        <div className="flex items-center gap-2">
+                          <div className="font-semibold text-gray-900">{n.title}</div>
+                          {!n.isRead && (
+                            <span className="inline-flex items-center px-2 py-0.5 text-[11px] font-medium text-blue-800 bg-blue-100 rounded-full">Unread</span>
+                          )}
+                        </div>
                         <div className="text-sm text-gray-600 mt-1">{n.message}</div>
                         {(bookingNumberMatch || reviewPinMatch) && (
                           <div className="text-xs text-gray-700 mt-1 space-y-0.5">
