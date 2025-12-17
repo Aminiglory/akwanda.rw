@@ -34,22 +34,29 @@ export const AuthProvider = ({ children }) => {
   };
 
   useEffect(() => {
-    // Try restore from localStorage immediately for fast paint
-    const savedUser = localStorage.getItem('user');
+    // Try restore from storage immediately for fast paint
+    const sessionUser = sessionStorage.getItem('user');
+    const localUser = localStorage.getItem('user');
+    const savedUser = sessionUser || localUser;
     if (savedUser) setUser(JSON.parse(savedUser));
-    // Then verify with backend
+
+    // Then verify with backend using whichever token is present
     (async () => {
       try {
-        const token = localStorage.getItem('token');
+        const token = sessionStorage.getItem('token') || localStorage.getItem('token');
         const headers = token ? { Authorization: `Bearer ${token}` } : {};
         const res = await fetch(`${API_URL}/api/auth/me`, { credentials: 'include', headers });
         const data = await res.json();
         if (res.ok && data.user) {
           const normalized = { ...data.user, avatar: makeAbsolute(data.user.avatar) };
           setUser(normalized);
-          localStorage.setItem('user', JSON.stringify(normalized));
+          // Persist back into whichever storage already had a user, defaulting to localStorage
+          const targetStorage = sessionUser ? sessionStorage : localStorage;
+          targetStorage.setItem('user', JSON.stringify(normalized));
         } else if (!res.ok) {
           setUser(null);
+          sessionStorage.removeItem('user');
+          sessionStorage.removeItem('token');
           localStorage.removeItem('user');
           localStorage.removeItem('token');
         }
@@ -61,7 +68,7 @@ export const AuthProvider = ({ children }) => {
     })();
   }, []);
 
-  const login = async (email, password) => {
+  const login = async (email, password, remember = true) => {
     try {
       setIsLoading(true);
       const res = await fetch(`${API_URL}/api/auth/login`, {
@@ -74,8 +81,15 @@ export const AuthProvider = ({ children }) => {
       if (!res.ok) throw new Error(data.message || 'Login failed');
       const normalized = { ...data.user, avatar: makeAbsolute(data.user.avatar) };
       setUser(normalized);
-      localStorage.setItem('user', JSON.stringify(normalized));
-      if (data.token) localStorage.setItem('token', data.token);
+      // Clear any previous auth data
+      sessionStorage.removeItem('user');
+      sessionStorage.removeItem('token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('token');
+
+      const storage = remember ? localStorage : sessionStorage;
+      storage.setItem('user', JSON.stringify(normalized));
+      if (data.token) storage.setItem('token', data.token);
       return { success: true, user: data.user };
     } catch (error) {
       return { success: false, error: error.message };
@@ -111,6 +125,8 @@ export const AuthProvider = ({ children }) => {
       await fetch(`${API_URL}/api/auth/logout`, { method: 'POST', credentials: 'include' });
     } catch (e) { /* ignore */ }
     setUser(null);
+    sessionStorage.removeItem('user');
+    sessionStorage.removeItem('token');
     localStorage.removeItem('user');
     localStorage.removeItem('token');
   };
@@ -145,7 +161,7 @@ export const AuthProvider = ({ children }) => {
 
   const refreshUser = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = sessionStorage.getItem('token') || localStorage.getItem('token');
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
       const res = await fetch(`${API_URL}/api/auth/me`, { credentials: 'include', headers });
       const data = await res.json();
