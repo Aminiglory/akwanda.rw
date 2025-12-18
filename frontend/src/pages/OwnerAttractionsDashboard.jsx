@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import ReceiptPreview from '../components/ReceiptPreview';
 import toast from 'react-hot-toast';
@@ -33,6 +33,7 @@ export default function OwnerAttractionsDashboard() {
   const [successTitle, setSuccessTitle] = useState('Success');
   const [successMsg, setSuccessMsg] = useState('Action completed successfully.');
   const [view, setView] = useState('overview'); // 'overview' | 'attractions' | 'bookings' | 'finance' | 'analytics' | 'reviews' | 'messages' | 'settings'
+  const createFormRef = useRef(null);
   const financeRange = (searchParams.get('range') || '').toLowerCase();
   const financeRangeLabel = financeRange === '30'
     ? 'Last 30 days'
@@ -409,21 +410,42 @@ export default function OwnerAttractionsDashboard() {
           <div className="inline-flex rounded-lg overflow-hidden border border-[#d4c4b0] bg-[#a06b42] text-white px-3 py-2 text-sm">
             Attractions
           </div>
-          <div className="inline-flex rounded-lg overflow-hidden border">
+          <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => setViewMode('cards')}
-              className={`px-3 py-2 text-sm ${viewMode==='cards' ? 'bg-[#a06b42] text-white' : 'bg-white text-gray-700'}`}
+              onClick={() => {
+                setView('attractions');
+                try {
+                  const next = new URLSearchParams(searchParams.toString());
+                  next.set('view', 'attractions');
+                  setSearchParams(next, { replace: true });
+                } catch (_) {}
+                setTimeout(() => {
+                  if (createFormRef.current) {
+                    createFormRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }
+                }, 50);
+              }}
+              className="px-4 py-2 rounded-lg bg-[#a06b42] hover:bg-[#8f5a32] text-white text-sm font-medium shadow-sm"
             >
-              Cards
+              {labelOr('ownerAttractions.listAttraction', 'List an attraction')}
             </button>
-            <button
-              type="button"
-              onClick={() => setViewMode('table')}
-              className={`px-3 py-2 text-sm ${viewMode==='table' ? 'bg-[#a06b42] text-white' : 'bg-white text-gray-700'}`}
-            >
-              Table
-            </button>
+            <div className="inline-flex rounded-lg overflow-hidden border">
+              <button
+                type="button"
+                onClick={() => setViewMode('cards')}
+                className={`px-3 py-2 text-sm ${viewMode==='cards' ? 'bg-[#a06b42] text-white' : 'bg-white text-gray-700'}`}
+              >
+                Cards
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('table')}
+                className={`px-3 py-2 text-sm ${viewMode==='table' ? 'bg-[#a06b42] text-white' : 'bg-white text-gray-700'}`}
+              >
+                Table
+              </button>
+            </div>
           </div>
         </div>
 
@@ -802,7 +824,11 @@ export default function OwnerAttractionsDashboard() {
 
       {/* Create form: only in Attractions view */}
       {view === 'attractions' && (
-        <form onSubmit={createItem} className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6 md:p-8 mb-8">
+        <form
+          ref={createFormRef}
+          onSubmit={createItem}
+          className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6 md:p-8 mb-8"
+        >
           <div className="mb-6 pb-4 border-b border-gray-200">
             <h2 className="text-2xl font-bold text-gray-900 mb-2">List a New Attraction</h2>
             <p className="text-sm text-gray-600">Share your unique experiences and attractions with travelers</p>
