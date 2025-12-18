@@ -413,22 +413,10 @@ export default function OwnerAttractionsDashboard() {
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => {
-                setView('attractions');
-                try {
-                  const next = new URLSearchParams(searchParams.toString());
-                  next.set('view', 'attractions');
-                  setSearchParams(next, { replace: true });
-                } catch (_) {}
-                setTimeout(() => {
-                  if (createFormRef.current) {
-                    createFormRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                  }
-                }, 50);
-              }}
+              onClick={() => window.location.assign('/upload-property')}
               className="px-4 py-2 rounded-lg bg-[#a06b42] hover:bg-[#8f5a32] text-white text-sm font-medium shadow-sm"
             >
-              {labelOr('ownerAttractions.listAttraction', 'List an attraction')}
+              {labelOr('ownerAttractions.listAttraction', 'List your attraction')}
             </button>
             <div className="inline-flex rounded-lg overflow-hidden border">
               <button
