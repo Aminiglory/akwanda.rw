@@ -314,10 +314,10 @@ const Navbar = () => {
       href: '/owner/cars?view=overview',
       children: [
         { label: 'Business overview', href: '/owner/cars?view=overview', icon: FaHome },
-        { label: 'Revenue summary', href: '/owner/cars?view=finance', icon: FaDollarSign },
-        { label: 'Vehicles status', href: '/owner/cars?view=overview', icon: FaCar },
-        { label: 'Alerts', href: '/owner/cars?view=overview', icon: FaBell },
-        { label: 'Recent activities', href: '/owner/cars?view=bookings', icon: FaCalendarAlt },
+        { label: 'Revenue summary', href: '/owner/cars?view=revenue', icon: FaDollarSign },
+        { label: 'Vehicles status', href: '/owner/cars?view=vehicles', icon: FaCar },
+        { label: 'Alerts', href: '/owner/cars?view=alerts', icon: FaBell },
+        { label: 'Recent activities', href: '/owner/cars?view=activities', icon: FaCalendarAlt },
       ],
     },
     {
@@ -327,7 +327,7 @@ const Navbar = () => {
       href: '/owner/cars?view=vehicles',
       children: [
         { label: 'All vehicles', href: '/owner/cars?view=vehicles', icon: FaCar },
-        { label: 'Add new vehicle', href: '/owner/cars?view=vehicles', icon: FaPlus },
+        { label: 'Add new vehicle', href: '/upload-property?type=rental', icon: FaPlus },
         { label: 'Vehicle details', href: '/owner/cars?view=vehicles', icon: FaCar },
         { label: 'Maintenance history', href: '/owner/cars?view=vehicles', icon: FaWrench },
         { label: 'Insurance & registration', href: '/owner/cars?view=vehicles', icon: FaFileAlt },
