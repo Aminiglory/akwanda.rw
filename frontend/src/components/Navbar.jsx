@@ -188,11 +188,11 @@ const Navbar = () => {
       icon: FaUmbrellaBeach,
       href: '/owner/attractions?view=attractions',
       children: [
-        { label: labelOr('nav.allAttractions', 'All attractions'), href: '/owner/attractions?view=attractions', icon: FaUmbrellaBeach },
-        { label: labelOr('nav.addAttraction', 'Add new attraction'), href: '/owner/attractions?view=attractions', icon: FaPlus },
-        { label: labelOr('nav.attractionDetails', 'Attraction details'), href: '/owner/attractions?view=attractions', icon: FaFileAlt },
-        { label: labelOr('nav.schedulesAvailability', 'Schedules & availability'), href: '/owner/attractions?view=attractions', icon: FaCalendarAlt },
-        { label: labelOr('nav.mediaContent', 'Media & content'), href: '/owner/attractions?view=attractions', icon: FaImages },
+        { label: labelOr('nav.allAttractions', 'All attractions'), href: '/owner/attractions?view=attractions&section=list', icon: FaUmbrellaBeach },
+        { label: labelOr('nav.addAttraction', 'Add new attraction'), href: '/upload-property?type=attraction', icon: FaPlus },
+        { label: labelOr('nav.attractionDetails', 'Attraction details'), href: '/owner/attractions?view=attractions&section=details', icon: FaFileAlt },
+        { label: labelOr('nav.schedulesAvailability', 'Schedules & availability'), href: '/owner/attractions?view=attractions&section=schedule', icon: FaCalendarAlt },
+        { label: labelOr('nav.mediaContent', 'Media & content'), href: '/owner/attractions?view=attractions&section=media', icon: FaImages },
       ],
     },
     {

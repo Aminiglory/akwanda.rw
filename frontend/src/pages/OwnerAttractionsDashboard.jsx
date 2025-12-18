@@ -49,6 +49,7 @@ export default function OwnerAttractionsDashboard() {
 
   const financeFilter = (searchParams.get('filter') || 'all').toLowerCase();
   const financeMode = (searchParams.get('mode') || 'overview').toLowerCase();
+  const attractionsSection = (searchParams.get('section') || 'list').toLowerCase();
 
   const financeFilterLabel = (() => {
     switch (financeFilter) {
@@ -416,7 +417,7 @@ export default function OwnerAttractionsDashboard() {
               onClick={() => window.location.assign('/upload-property?type=attraction')}
               className="px-4 py-2 rounded-lg bg-[#a06b42] hover:bg-[#8f5a32] text-white text-sm font-medium shadow-sm"
             >
-              {labelOr('ownerAttractions.listAttraction', 'List Your Attraction')}
+              List Your Attraction
             </button>
             <div className="inline-flex rounded-lg overflow-hidden border">
               <button
@@ -436,6 +437,63 @@ export default function OwnerAttractionsDashboard() {
             </div>
           </div>
         </div>
+
+      {view === 'attractions' && (
+        <div className="mb-4 flex flex-wrap gap-2 text-xs sm:text-sm">
+          <button
+            type="button"
+            onClick={() => {
+              try {
+                const next = new URLSearchParams(searchParams.toString());
+                next.delete('section');
+                setSearchParams(next, { replace: true });
+              } catch (_) {}
+            }}
+            className={`px-3 py-1.5 rounded-full border ${attractionsSection === 'list' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+          >
+            All attractions
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              try {
+                const next = new URLSearchParams(searchParams.toString());
+                next.set('section', 'details');
+                setSearchParams(next, { replace: true });
+              } catch (_) {}
+            }}
+            className={`px-3 py-1.5 rounded-full border ${attractionsSection === 'details' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+          >
+            Attraction details
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              try {
+                const next = new URLSearchParams(searchParams.toString());
+                next.set('section', 'schedule');
+                setSearchParams(next, { replace: true });
+              } catch (_) {}
+            }}
+            className={`px-3 py-1.5 rounded-full border ${attractionsSection === 'schedule' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+          >
+            Schedules & availability
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              try {
+                const next = new URLSearchParams(searchParams.toString());
+                next.set('section', 'media');
+                setSearchParams(next, { replace: true });
+              } catch (_) {}
+            }}
+            className={`px-3 py-1.5 rounded-full border ${attractionsSection === 'media' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+          >
+            Media & content
+          </button>
+        </div>
+      )}
 
       {propertyContextId && (
         <div className="mb-2 text-xs text-gray-600">
@@ -811,7 +869,7 @@ export default function OwnerAttractionsDashboard() {
       )}
 
       {/* List: only in Attractions view */}
-      {view === 'attractions' && (loading ? <div>Loading...</div> : (
+      {view === 'attractions' && attractionsSection === 'list' && (loading ? <div>Loading...</div> : (
         viewMode==='cards' ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {filteredItems.map(item => (
@@ -873,6 +931,21 @@ export default function OwnerAttractionsDashboard() {
           </div>
         )
       ))}
+
+      {view === 'attractions' && attractionsSection !== 'list' && (
+        <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-4 text-sm text-gray-700">
+          <h2 className="text-lg font-semibold mb-2">
+            {attractionsSection === 'details'
+              ? 'Attraction details'
+              : attractionsSection === 'schedule'
+                ? 'Schedules & availability'
+                : 'Media & content'}
+          </h2>
+          <p className="text-xs text-gray-500">
+            Use the All attractions section to manage your listings. Additional tools for this section will appear here.
+          </p>
+        </div>
+      )}
 
       {/* Bookings: only in Bookings view */}
       {view === 'bookings' && (
