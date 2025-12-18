@@ -597,7 +597,7 @@ export default function OwnerAttractionsDashboard() {
       </div>
 
       {view === 'attractions' && (
-        <div className="mb-4 flex flex-wrap gap-2 text-xs sm:text-sm">
+        <div className="mb-4 flex flex-wrap gap-2 text-[11px] sm:text-xs">
           <button
             type="button"
             onClick={() => {
@@ -607,7 +607,11 @@ export default function OwnerAttractionsDashboard() {
                 setSearchParams(next, { replace: true });
               } catch (_) {}
             }}
-            className={`px-3 py-1.5 rounded-full border ${attractionsSection === 'list' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+            className={`px-2.5 py-1 rounded-full border ${
+              attractionsSection === 'list'
+                ? 'bg-[#f5e6d5] text-[#4b2a00] border-[#a06b42] font-semibold'
+                : 'bg-white text-[#6b5744] border-[#e0d5c7] hover:bg-[#f9f1e7]'
+            }`}
           >
             All attractions
           </button>
@@ -620,7 +624,11 @@ export default function OwnerAttractionsDashboard() {
                 setSearchParams(next, { replace: true });
               } catch (_) {}
             }}
-            className={`px-3 py-1.5 rounded-full border ${attractionsSection === 'details' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+            className={`px-2.5 py-1 rounded-full border ${
+              attractionsSection === 'details'
+                ? 'bg-[#f5e6d5] text-[#4b2a00] border-[#a06b42] font-semibold'
+                : 'bg-white text-[#6b5744] border-[#e0d5c7] hover:bg-[#f9f1e7]'
+            }`}
           >
             Attraction details
           </button>
@@ -633,7 +641,11 @@ export default function OwnerAttractionsDashboard() {
                 setSearchParams(next, { replace: true });
               } catch (_) {}
             }}
-            className={`px-3 py-1.5 rounded-full border ${attractionsSection === 'schedule' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+            className={`px-2.5 py-1 rounded-full border ${
+              attractionsSection === 'schedule'
+                ? 'bg-[#f5e6d5] text-[#4b2a00] border-[#a06b42] font-semibold'
+                : 'bg-white text-[#6b5744] border-[#e0d5c7] hover:bg-[#f9f1e7]'
+            }`}
           >
             Schedules & availability
           </button>
@@ -646,7 +658,11 @@ export default function OwnerAttractionsDashboard() {
                 setSearchParams(next, { replace: true });
               } catch (_) {}
             }}
-            className={`px-3 py-1.5 rounded-full border ${attractionsSection === 'media' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+            className={`px-2.5 py-1 rounded-full border ${
+              attractionsSection === 'media'
+                ? 'bg-[#f5e6d5] text-[#4b2a00] border-[#a06b42] font-semibold'
+                : 'bg-white text-[#6b5744] border-[#e0d5c7] hover:bg-[#f9f1e7]'
+            }`}
           >
             Media & content
           </button>
@@ -872,10 +888,10 @@ export default function OwnerAttractionsDashboard() {
         ) : filteredItems.length === 0 ? (
           <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-6 text-sm text-gray-700 text-center">
             <h2 className="text-lg font-semibold mb-1">
-              {labelOr('ownerAttractions.emptyTitle', 'No attractions listed')}
+              No attractions listed
             </h2>
             <p className="text-xs text-gray-500">
-              {labelOr('ownerAttractions.emptyDescription', 'You have no attractions listed yet. Use the "List Your Attraction" button above to add your first one.')}
+              You have no attractions listed yet. Use the "List Your Attraction" button above to add your first one.
             </p>
           </div>
         ) : (
