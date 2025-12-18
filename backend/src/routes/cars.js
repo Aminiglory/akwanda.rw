@@ -57,6 +57,17 @@ router.get('/', async (req, res) => {
   }
 });
 
+// Owner: list my cars (must be declared before /:id so "/mine" doesn't get treated as an ID)
+router.get('/mine', requireAuth, async (req, res) => {
+  try {
+    const CarRental = require('../tables/carRental');
+    const cars = await CarRental.find({ owner: req.user.id }).sort({ createdAt: -1 });
+    res.json({ cars });
+  } catch (e) {
+    res.status(500).json({ message: 'Failed to load my cars' });
+  }
+});
+
 // Public car details
 router.get('/:id', async (req, res) => {
   try {
@@ -66,17 +77,6 @@ router.get('/:id', async (req, res) => {
     res.json({ car });
   } catch (e) {
     res.status(500).json({ message: 'Failed to load car' });
-  }
-});
-
-// Owner: list my cars
-router.get('/mine', requireAuth, async (req, res) => {
-  try {
-    const CarRental = require('../tables/carRental');
-    const cars = await CarRental.find({ owner: req.user.id }).sort({ createdAt: -1 });
-    res.json({ cars });
-  } catch (e) {
-    res.status(500).json({ message: 'Failed to load my cars' });
   }
 });
 

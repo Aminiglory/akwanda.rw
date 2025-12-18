@@ -69,6 +69,16 @@ router.get('/', async (req, res) => {
   }
 });
 
+// Owner/Admin: list my attractions (must be declared before /:id so "/mine" isn't treated as an ID)
+router.get('/mine', requireAuth, async (req, res) => {
+  try {
+    const list = await Attraction.find({ owner: req.user.id }).sort({ createdAt: -1 });
+    res.json({ attractions: list });
+  } catch (e) {
+    res.status(500).json({ message: 'Failed to load my attractions' });
+  }
+});
+
 // Public: details
 router.get('/:id', async (req, res) => {
   try {
@@ -91,16 +101,6 @@ router.post('/', requireAuth, async (req, res) => {
     res.status(201).json({ attraction: created });
   } catch (e) {
     res.status(500).json({ message: 'Failed to create attraction', error: e.message });
-  }
-});
-
-// Owner/Admin: list my attractions
-router.get('/mine', requireAuth, async (req, res) => {
-  try {
-    const list = await Attraction.find({ owner: req.user.id }).sort({ createdAt: -1 });
-    res.json({ attractions: list });
-  } catch (e) {
-    res.status(500).json({ message: 'Failed to load my attractions' });
   }
 });
 
