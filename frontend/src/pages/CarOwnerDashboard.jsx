@@ -50,6 +50,10 @@ export default function CarOwnerDashboard() {
     daysRented: 0,
     avgRentalLength: 0
   });
+  const [carExpenses, setCarExpenses] = useState([]);
+  const [carExpensesTotal, setCarExpensesTotal] = useState(0);
+  const [carFinanceSummary, setCarFinanceSummary] = useState(null);
+  const [carFinanceLoading, setCarFinanceLoading] = useState(false);
   const emptyCar = useMemo(() => ({
     vehicleName: '', vehicleType: 'economy', brand: '', model: '', year: new Date().getFullYear(),
     licensePlate: '', capacity: 4, pricePerDay: 0, pricePerWeek: '', pricePerMonth: '',
@@ -160,6 +164,29 @@ export default function CarOwnerDashboard() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url; a.download = 'vehicle-bookings.csv'; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function exportExpensesCsv() {
+    const rows = [['Date','Vehicle','Category','Amount','Note']];
+    const list = Array.isArray(carExpenses) ? carExpenses : [];
+    list.forEach(e => {
+      const d = e.date ? new Date(e.date) : null;
+      const dateStr = d ? d.toLocaleDateString() : '';
+      const vehicleName = (e.car?.vehicleName || `${e.car?.brand || ''} ${e.car?.model || ''}`.trim() || '').replace(/,/g,' ');
+      rows.push([
+        dateStr,
+        vehicleName,
+        String(e.category || '').replace(/,/g,' '),
+        String(e.amount || ''),
+        String(e.note || '').replace(/\r?\n/g,' ').replace(/,/g,' ')
+      ]);
+    });
+    const csv = rows.map(r => r.join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'vehicle-expenses.csv'; a.click();
     URL.revokeObjectURL(url);
   }
 
@@ -349,6 +376,52 @@ export default function CarOwnerDashboard() {
   })();
 
   const financeModeLabel = financeMode === 'expenses' ? 'Expenses & profit' : 'Overview';
+
+  // Load vehicle-level finance data (expenses + summary) when viewing finance/analytics
+  useEffect(() => {
+    const v = view;
+    const mode = financeMode;
+    if (v !== 'finance' && v !== 'analytics') return;
+    if (v === 'finance' && mode !== 'expenses') return;
+
+    (async () => {
+      try {
+        setCarFinanceLoading(true);
+        const params = new URLSearchParams();
+        if (selectedCarId) params.set('car', String(selectedCarId));
+
+        const query = params.toString();
+        const [expRes, sumRes] = await Promise.all([
+          fetch(`${API_URL}/api/car-finance/expenses${query ? `?${query}` : ''}`, { credentials: 'include' }),
+          fetch(`${API_URL}/api/car-finance/summary${query ? `?${query}` : ''}`, { credentials: 'include' })
+        ]);
+
+        const expData = await expRes.json().catch(() => ({}));
+        const sumData = await sumRes.json().catch(() => ({}));
+
+        if (expRes.ok) {
+          setCarExpenses(Array.isArray(expData.expenses) ? expData.expenses : []);
+          setCarExpensesTotal(Number(expData.total || 0));
+        } else {
+          setCarExpenses([]);
+          setCarExpensesTotal(0);
+        }
+
+        if (sumRes.ok) {
+          setCarFinanceSummary(sumData || null);
+        } else {
+          setCarFinanceSummary(null);
+        }
+      } catch (e) {
+        console.error('[Vehicles][carFinance] error', e);
+        setCarExpenses([]);
+        setCarExpensesTotal(0);
+        setCarFinanceSummary(null);
+      } finally {
+        setCarFinanceLoading(false);
+      }
+    })();
+  }, [view, financeMode, selectedCarId, searchParams]);
 
   const calendarMeta = useMemo(() => {
     const base = new Date();
@@ -823,6 +896,52 @@ export default function CarOwnerDashboard() {
               <div className="mt-0.5 text-[11px] text-gray-500">Based on last 30 days</div>
             </div>
           </div>
+
+          {financeMode === 'expenses' && (
+            <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5">
+                <div className="text-[11px] text-gray-500">Total expenses (period)</div>
+                <div className="text-sm font-semibold text-gray-900">
+                  {carFinanceLoading
+                    ? 'Loading...'
+                    : formatCurrencyRWF
+                      ? formatCurrencyRWF(carExpensesTotal || 0)
+                      : `RWF ${Number(carExpensesTotal || 0).toLocaleString()}`}
+                </div>
+                <div className="mt-0.5 text-[11px] text-gray-500">
+                  {Array.isArray(carExpenses) ? carExpenses.length : 0} expense entries
+                </div>
+              </div>
+
+              <div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5">
+                <div className="text-[11px] text-gray-500">Revenue (period)</div>
+                <div className="text-sm font-semibold text-gray-900">
+                  {carFinanceLoading
+                    ? 'Loading...'
+                    : formatCurrencyRWF
+                      ? formatCurrencyRWF(carFinanceSummary?.revenueTotal || 0)
+                      : `RWF ${Number(carFinanceSummary?.revenueTotal || 0).toLocaleString()}`}
+                </div>
+                <div className="mt-0.5 text-[11px] text-gray-500">
+                  {(carFinanceSummary?.counts?.bookings || 0)} bookings in range
+                </div>
+              </div>
+
+              <div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5">
+                <div className="text-[11px] text-gray-500">Profit (revenue - expenses)</div>
+                <div className={`text-sm font-semibold ${
+                  (carFinanceSummary?.profit || 0) >= 0 ? 'text-emerald-700' : 'text-red-600'
+                }`}>
+                  {carFinanceLoading
+                    ? 'Loading...'
+                    : formatCurrencyRWF
+                      ? formatCurrencyRWF(carFinanceSummary?.profit || 0)
+                      : `RWF ${Number(carFinanceSummary?.profit || 0).toLocaleString()}`}
+                </div>
+                <div className="mt-0.5 text-[11px] text-gray-500">Based on selected period and vehicle scope</div>
+              </div>
+            </div>
+          )}
         </>
       )}
 
