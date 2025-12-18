@@ -200,6 +200,18 @@ export default function CarOwnerDashboard() {
       case '':
         if (view !== 'overview') setView('overview');
         break;
+      case 'revenue':
+        // Dashboard > Revenue summary shortcut
+        if (view !== 'finance') setView('finance');
+        break;
+      case 'alerts':
+        // Dashboard > Alerts shortcut
+        if (view !== 'settings') setView('settings');
+        break;
+      case 'activities':
+        // Dashboard > Recent activities shortcut
+        if (view !== 'bookings') setView('bookings');
+        break;
       case 'vehicles':
         if (view !== 'vehicles') setView('vehicles');
         break;
