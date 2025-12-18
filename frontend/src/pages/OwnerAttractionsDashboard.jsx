@@ -38,13 +38,13 @@ export default function OwnerAttractionsDashboard() {
     ? 'Last 30 days'
     : financeRange === 'ytd'
       ? 'Year to date'
-      : financeRange === '90'
-        ? 'Last 90 days'
         : financeRange === 'mtd'
           ? 'Month to date'
           : financeRange === 'custom'
             ? 'Custom range'
             : 'All time';
+
+  const analyticsSegment = (searchParams.get('segment') || 'overview').toLowerCase();
 
   const financeFilter = (searchParams.get('filter') || 'all').toLowerCase();
   const financeMode = (searchParams.get('mode') || 'overview').toLowerCase();
@@ -732,7 +732,15 @@ export default function OwnerAttractionsDashboard() {
       {/* Analytics view: simple stats derived from bookings */}
       {view === 'analytics' && (
         <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-4 text-sm text-gray-700">
-          <h2 className="text-lg font-semibold mb-3">Analytics</h2>
+          <h2 className="text-lg font-semibold mb-3">
+            {analyticsSegment === 'attractions'
+              ? labelOr('ownerAttractions.analytics.attractionPerformance', 'Attraction performance')
+              : analyticsSegment === 'bookings'
+                ? labelOr('ownerAttractions.analytics.bookingTrends', 'Booking trends')
+                : analyticsSegment === 'revenue'
+                  ? labelOr('ownerAttractions.analytics.revenueReports', 'Revenue reports')
+                  : labelOr('ownerAttractions.analytics.overview', 'Analytics overview')}
+          </h2>
           <p className="text-xs text-gray-500 mb-3">Range: {financeRangeLabel}</p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2">

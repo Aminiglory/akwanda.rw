@@ -213,6 +213,10 @@ const Navbar = () => {
       icon: FaChartLine,
       href: '/owner/attractions?view=analytics',
       children: [
+        { label: labelOr('nav.analyticsOverview', 'Overview dashboard'), href: '/owner/attractions?view=analytics', icon: FaChartLine },
+        { label: labelOr('nav.analyticsAttractionPerformance', 'Attraction performance'), href: '/owner/attractions?view=analytics&segment=attractions', icon: FaUmbrellaBeach },
+        { label: labelOr('nav.analyticsBookingTrends', 'Booking trends'), href: '/owner/attractions?view=analytics&segment=bookings', icon: FaCalendarAlt },
+        { label: labelOr('nav.analyticsRevenueReports', 'Revenue reports'), href: '/owner/attractions?view=analytics&segment=revenue', icon: FaDollarSign },
         { label: labelOr('nav.last30Days', 'Last 30 days'), href: '/owner/attractions?view=analytics&range=30', icon: FaChartLine },
         { label: labelOr('nav.last90Days', 'Last 90 days'), href: '/owner/attractions?view=analytics&range=90', icon: FaChartLine },
         { label: labelOr('nav.yearToDate', 'Year to date'), href: '/owner/attractions?view=analytics&range=ytd', icon: FaChartLine },
