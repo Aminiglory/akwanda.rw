@@ -13,6 +13,7 @@ const Login = () => {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const { login, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -28,8 +29,8 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    
-    const result = await login(formData.email, formData.password);
+
+    const result = await login(formData.email, formData.password, rememberMe);
     
     if (result.success) {
       const role = result.user?.userType;
@@ -127,7 +128,12 @@ const Login = () => {
             {/* Remember Me & Forgot Password */}
             <div className="flex items-center justify-between text-sm">
               <label className="flex items-center gap-2">
-                <input type="checkbox" className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                />
                 <span className="text-gray-700">{t ? t('auth.rememberMe') : 'Remember me'}</span>
               </label>
               <Link to="/reset-password" className="text-blue-700 hover:text-blue-900">{t ? t('auth.forgotPassword') : 'Forgot password?'}</Link>

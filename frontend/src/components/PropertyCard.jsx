@@ -421,7 +421,7 @@ const PropertyCard = ({
             <button
               type="button"
               onClick={onView}
-              className="px-3 py-2 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors text-sm"
+              className="px-3 py-2 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors text-xs"
             >
               {t ? t('property.viewDetails') : 'View Details'}
             </button>
@@ -463,7 +463,7 @@ const PropertyCard = ({
                 aria-label="OpenStreetMap"
                 title="OpenStreetMap"
               >
-                <FaMap />
+                <FaMap className="text-sm" />
               </button>
             ) : null}
           </div>

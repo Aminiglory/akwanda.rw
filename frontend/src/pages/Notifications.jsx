@@ -13,12 +13,38 @@ const Notifications = () => {
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState([]);
   const [busy, setBusy] = useState({});
-  const [filter, setFilter] = useState('all'); // all | commission | bookings | unread | read
+  const [filter, setFilter] = useState(() => {
+    const params = new URLSearchParams(location.search || '');
+    const f = params.get('filter');
+    const allowed = ['all', 'commission', 'bookings', 'unread', 'read'];
+    return allowed.includes(f) ? f : 'all';
+  }); // all | commission | bookings | unread | read
   const [focusId, setFocusId] = useState(null);
   const hasFocusedRef = useRef(false);
 
   // Parse query param ?open or ?id to focus a notification
   const openParam = useMemo(() => new URLSearchParams(location.search).get('open') || new URLSearchParams(location.search).get('id'), [location.search]);
+
+  // Keep filter in sync with ?filter= query param (e.g. from navbar links)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search || '');
+    const f = params.get('filter');
+    const allowed = ['all', 'commission', 'bookings', 'unread', 'read'];
+    if (f && allowed.includes(f) && f !== filter) {
+      setFilter(f);
+    }
+  }, [location.search]);
+
+  const setFilterAndSyncUrl = (value) => {
+    setFilter(value);
+    const params = new URLSearchParams(location.search || '');
+    if (!value || value === 'all') {
+      params.delete('filter');
+    } else {
+      params.set('filter', value);
+    }
+    navigate({ pathname: location.pathname, search: params.toString() ? `?${params.toString()}` : '' }, { replace: true });
+  };
 
   // Routes that represent the property/owner dashboards. The generic
   // /notifications page is intentionally NOT included here so that even
@@ -166,11 +192,11 @@ const Notifications = () => {
 
         {/* Filter Chips */}
         <div className="flex flex-wrap items-center gap-2 mb-4">
-          <button onClick={() => setFilter('all')} className={`px-3 py-1.5 rounded-full text-sm border ${filter==='all' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}>All</button>
-          <button onClick={() => setFilter('commission')} className={`px-3 py-1.5 rounded-full text-sm border ${filter==='commission' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}>Commission</button>
-          <button onClick={() => setFilter('bookings')} className={`px-3 py-1.5 rounded-full text-sm border ${filter==='bookings' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}>Bookings</button>
-          <button onClick={() => setFilter('unread')} className={`px-3 py-1.5 rounded-full text-sm border ${filter==='unread' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}>Unread</button>
-          <button onClick={() => setFilter('read')} className={`px-3 py-1.5 rounded-full text-sm border ${filter==='read' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}>Read</button>
+          <button onClick={() => setFilterAndSyncUrl('all')} className={`px-3 py-1.5 rounded-full text-sm border ${filter==='all' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}>All</button>
+          <button onClick={() => setFilterAndSyncUrl('commission')} className={`px-3 py-1.5 rounded-full text-sm border ${filter==='commission' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}>Commission</button>
+          <button onClick={() => setFilterAndSyncUrl('bookings')} className={`px-3 py-1.5 rounded-full text-sm border ${filter==='bookings' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}>Bookings</button>
+          <button onClick={() => setFilterAndSyncUrl('unread')} className={`px-3 py-1.5 rounded-full text-sm border ${filter==='unread' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}>Unread</button>
+          <button onClick={() => setFilterAndSyncUrl('read')} className={`px-3 py-1.5 rounded-full text-sm border ${filter==='read' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}>Read</button>
         </div>
 
         {loading ? (
@@ -198,16 +224,34 @@ const Notifications = () => {
               const reviewPinMatch = messageText.match(/Review PIN:\s*(\d+)/i);
               const isReviewNotification = String(n.type || '').toLowerCase().includes('review') || !!reviewPinMatch;
 
+              const handleCardClick = () => {
+                // Commission-style notifications keep their own CTAs; just mark read on click
+                if (String(n.type || '').includes('commission')) {
+                  if (!n.isRead) markRead(n.id);
+                  return;
+                }
+
+                if (isReviewNotification) {
+                  openReview(n);
+                  return;
+                }
+
+                if (n.booking) {
+                  openBooking(n);
+                  return;
+                }
+
+                if (!n.isRead) {
+                  markRead(n.id);
+                }
+              };
+
               return (
                 <div
                   id={`notif-${n.id}`}
                   key={n.id}
-                  className={`modern-card p-4 ${!n.isRead ? 'border-l-4 border-blue-600' : ''} ${focusId===n.id ? 'ring-2 ring-blue-400' : ''}`}
-                  onClick={() => {
-                    if (isReviewNotification) {
-                      openReview(n);
-                    }
-                  }}
+                  className={`modern-card p-4 cursor-pointer transition ${!n.isRead ? 'border-l-4 border-blue-600 bg-blue-50' : 'bg-white'} ${focusId===n.id ? 'ring-2 ring-blue-400' : ''}`}
+                  onClick={handleCardClick}
                 >
                   {String(n.type || '').includes('commission') ? (
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
@@ -224,14 +268,22 @@ const Notifications = () => {
                           <Link to={`/apartment/${n.property}`} className="px-3 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded">View Property</Link>
                         )}
                         {!n.isRead && (
-                          <button onClick={() => markRead(n.id)} className="px-3 py-2 text-sm bg-white border border-gray-200 hover:bg-gray-50 rounded">Dismiss</button>
+                          <button onClick={(e) => {
+                            e.stopPropagation();
+                            markRead(n.id);
+                          }} className="px-3 py-2 text-sm bg-white border border-gray-200 hover:bg-gray-50 rounded">Dismiss</button>
                         )}
                       </div>
                     </div>
                   ) : (
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <div className="font-semibold text-gray-900">{n.title}</div>
+                        <div className="flex items-center gap-2">
+                          <div className="font-semibold text-gray-900">{n.title}</div>
+                          {!n.isRead && (
+                            <span className="inline-flex items-center px-2 py-0.5 text-[11px] font-medium text-blue-800 bg-blue-100 rounded-full">Unread</span>
+                          )}
+                        </div>
                         <div className="text-sm text-gray-600 mt-1">{n.message}</div>
                         {(bookingNumberMatch || reviewPinMatch) && (
                           <div className="text-xs text-gray-700 mt-1 space-y-0.5">
@@ -250,42 +302,19 @@ const Notifications = () => {
                         <div className="text-xs text-gray-400 mt-1">{n.createdAt ? new Date(n.createdAt).toLocaleString() : ''}</div>
                       </div>
                       <div className="flex items-center gap-2">
-                        {n.booking && (
-                          <>
+                        {n.booking &&
+                          (n.type === 'booking_paid' || n.type === 'booking_created') && (
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                openBooking(n);
+                                confirmBooking(n);
                               }}
-                              className="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-800 rounded"
+                              disabled={!!busy[n.id]}
+                              className="px-3 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded disabled:opacity-50"
                             >
-                              Open
+                              {busy[n.id] ? 'Confirming...' : 'Confirm'}
                             </button>
-                            {(n.type === 'booking_paid' || n.type === 'booking_created') && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  confirmBooking(n);
-                                }}
-                                disabled={!!busy[n.id]}
-                                className="px-3 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded disabled:opacity-50"
-                              >
-                                {busy[n.id] ? 'Confirming...' : 'Confirm'}
-                              </button>
-                            )}
-                          </>
-                        )}
-                        {!n.isRead && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              markRead(n.id);
-                            }}
-                            className="px-3 py-2 text-sm bg-white border border-gray-200 hover:bg-gray-50 rounded"
-                          >
-                            Mark read
-                          </button>
-                        )}
+                          )}
                       </div>
                     </div>
                   )}

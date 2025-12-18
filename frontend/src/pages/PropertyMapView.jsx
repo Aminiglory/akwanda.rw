@@ -17,22 +17,6 @@ const distanceInKm = (lat1, lon1, lat2, lon2) => {
     return null;
   }
 
-  // Auto-request directions when coming from a card with requestDirections flag
-  useEffect(() => {
-    if (
-      !autoRequestedDirections &&
-      location.state?.requestDirections &&
-      selectedProperty &&
-      selectedProperty.latitude != null &&
-      selectedProperty.longitude != null
-    ) {
-      getDirections({
-        lat: Number(selectedProperty.latitude),
-        lng: Number(selectedProperty.longitude),
-      });
-      setAutoRequestedDirections(true);
-    }
-  }, [autoRequestedDirections, location.state, selectedProperty, getDirections]);
   const R = 6371; // km
   const dLat = toRad(lat2 - lat1);
   const dLon = toRad(lon2 - lon1);
@@ -82,6 +66,23 @@ const PropertyMapView = () => {
     getDirections,
     clearDirections,
   } = useDirections();
+
+  // Auto-request directions when coming from a card with requestDirections flag
+  useEffect(() => {
+    if (
+      !autoRequestedDirections &&
+      location.state?.requestDirections &&
+      selectedProperty &&
+      selectedProperty.latitude != null &&
+      selectedProperty.longitude != null
+    ) {
+      getDirections({
+        lat: Number(selectedProperty.latitude),
+        lng: Number(selectedProperty.longitude),
+      });
+      setAutoRequestedDirections(true);
+    }
+  }, [autoRequestedDirections, location.state, selectedProperty, getDirections]);
 
   // Fetch properties from API or use passed properties
   useEffect(() => {
@@ -265,15 +266,16 @@ const PropertyMapView = () => {
                       style={{
                         backgroundColor: isSelected ? '#b91c1c' : '#1d4ed8',
                         color: '#ffffff',
-                        padding: isSelected ? '8px 26px' : '6px 22px',
+                        padding: isSelected ? '7px 22px' : '5px 20px',
                         borderRadius: 9999,
                         fontWeight: 700,
-                        fontSize: isSelected ? 13 : 12,
+                        fontSize: isSelected ? 12 : 11,
+                        lineHeight: 1.1,
                         boxShadow: '0 10px 25px rgba(15,23,42,0.55)',
                         whiteSpace: 'nowrap',
                         border: '1px solid rgba(255,255,255,0.85)',
-                        minWidth: 96,
                         textAlign: 'center',
+                        display: 'inline-block',
                       }}
                     >
                       {label}
