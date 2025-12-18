@@ -46,6 +46,9 @@ import {
   FaMotorcycle,
   FaBicycle,
   FaPlus,
+  FaWrench,
+  FaRoad,
+  FaGasPump,
 } from "react-icons/fa";
 import { useLocale } from "../contexts/LocaleContext";
 
@@ -238,88 +241,118 @@ const Navbar = () => {
 
   const carOwnerNavItems = [
     {
-      // Mirrors "Home" in property dashboard
-      label: labelOr('nav.vehiclesHome', 'Vehicles'),
+      // Dashboard (Home)
+      label: 'Dashboard',
       icon: FaHome,
-      href: '/owner/cars?view=dashboard',
+      href: '/owner/cars?view=overview',
       children: [
-        { label: labelOr('nav.vehiclesHome', 'Dashboard'), href: '/owner/cars?view=dashboard', icon: FaHome },
-        { label: labelOr('nav.myVehicles', 'My vehicles'), href: '/owner/cars?view=vehicles', icon: FaCar },
-      ]
-    },
-    {
-      label: labelOr('nav.reservations', 'Reservations'),
-      icon: FaCalendarAlt,
-      href: '/owner/cars?view=reservations',
-      children: [
-        { label: labelOr('nav.allReservations', 'All reservations'), href: '/owner/cars?view=reservations', icon: FaCalendarAlt },
-        { label: labelOr('nav.pendingReservations', 'Pending'), href: '/owner/cars?view=reservations&status=pending', icon: FaCalendarAlt },
-        { label: labelOr('nav.confirmedReservations', 'Confirmed'), href: '/owner/cars?view=reservations&status=confirmed', icon: FaCalendarAlt },
-        { label: labelOr('nav.activeReservations', 'Active'), href: '/owner/cars?view=reservations&status=active', icon: FaCalendarAlt },
-        { label: labelOr('nav.completedReservations', 'Completed'), href: '/owner/cars?view=reservations&status=completed', icon: FaCalendarAlt },
-        { label: labelOr('nav.cancelledReservations', 'Cancelled'), href: '/owner/cars?view=reservations&status=cancelled', icon: FaCalendarAlt },
-      ]
-    },
-    {
-      label: labelOr('nav.promotions', 'Promotions'),
-      icon: FaShoppingBag,
-      href: '/owner/promotions',
-      children: [
-        { label: labelOr('nav.managePromotions', 'Manage promotions'), href: '/owner/promotions', icon: FaShoppingBag },
-        { label: labelOr('nav.createNewPromotion', 'Create new promotion'), href: '/owner/promotions?mode=new', icon: FaPlus },
-        { label: labelOr('nav.activePromotions', 'Active promotions'), href: '/owner/promotions?status=active', icon: FaShoppingBag },
-        { label: labelOr('nav.expiredPromotions', 'Expired promotions'), href: '/owner/promotions?status=expired', icon: FaShoppingBag },
+        { label: 'Business overview', href: '/owner/cars?view=overview', icon: FaHome },
+        { label: 'Revenue summary', href: '/owner/cars?view=finance', icon: FaDollarSign },
+        { label: 'Vehicles status', href: '/owner/cars?view=overview', icon: FaCar },
+        { label: 'Alerts', href: '/owner/cars?view=overview', icon: FaBell },
+        { label: 'Recent activities', href: '/owner/cars?view=bookings', icon: FaCalendarAlt },
       ],
     },
     {
-      label: labelOr('nav.calendar', 'Calendar'),
-      icon: FaCalendarAlt,
-      href: '/owner/cars?view=calendar',
+      // Vehicle Management
+      label: 'Vehicle management',
+      icon: FaCar,
+      href: '/owner/cars?view=vehicles',
       children: [
-        { label: labelOr('nav.thisMonth', 'This month'), href: '/owner/cars?view=calendar&monthOffset=0', icon: FaCalendarAlt },
-        { label: labelOr('nav.nextMonth', 'Next month'), href: '/owner/cars?view=calendar&monthOffset=1', icon: FaCalendarAlt },
-      ]
+        { label: 'All vehicles', href: '/owner/cars?view=vehicles', icon: FaCar },
+        { label: 'Add new vehicle', href: '/owner/cars?view=vehicles', icon: FaPlus },
+        { label: 'Vehicle details', href: '/owner/cars?view=vehicles', icon: FaCar },
+        { label: 'Maintenance history', href: '/owner/cars?view=vehicles', icon: FaWrench },
+        { label: 'Insurance & registration', href: '/owner/cars?view=vehicles', icon: FaFileAlt },
+      ],
     },
     {
-      label: labelOr('nav.finance', 'Finance'),
+      // Trip & Route Management
+      label: 'Trips & routes',
+      icon: FaRoad,
+      href: '/owner/cars?view=bookings',
+      children: [
+        { label: 'All trips', href: '/owner/cars?view=bookings', icon: FaCalendarAlt },
+        { label: 'Add trip', href: '/owner/cars?view=bookings', icon: FaPlus },
+        { label: 'Route tracker', href: '/owner/cars?view=analytics', icon: FaMapMarkerAlt },
+        { label: 'Trip reports', href: '/owner/cars?view=analytics', icon: FaChartLine },
+        { label: 'Distance & earnings log', href: '/owner/cars?view=finance', icon: FaDollarSign },
+      ],
+    },
+    {
+      // Fuel Management
+      label: 'Fuel management',
+      icon: FaGasPump,
+      href: '/owner/cars?view=analytics',
+      children: [
+        { label: 'Fuel logs', href: '/owner/cars?view=analytics', icon: FaGasPump },
+        { label: 'Add fuel record', href: '/owner/cars?view=analytics', icon: FaPlus },
+        { label: 'Fuel consumption report', href: '/owner/cars?view=analytics', icon: FaChartLine },
+        { label: 'Fuel cost analysis', href: '/owner/cars?view=analytics', icon: FaDollarSign },
+      ],
+    },
+    {
+      // Expense Management
+      label: 'Expenses',
+      icon: FaMoneyBillWave,
+      href: '/owner/cars?view=finance',
+      children: [
+        { label: 'All expenses', href: '/owner/cars?view=finance&mode=expenses', icon: FaMoneyBillWave },
+        { label: 'Add expense', href: '/owner/cars?view=finance&mode=expenses', icon: FaPlus },
+        { label: 'Expense categories', href: '/owner/cars?view=finance&mode=expenses', icon: FaFileAlt },
+        { label: 'Expense reports', href: '/owner/cars?view=finance&mode=expenses', icon: FaChartLine },
+      ],
+    },
+    {
+      // Income / Revenue Management
+      label: 'Income & revenue',
       icon: FaDollarSign,
       href: '/owner/cars?view=finance',
       children: [
-        { label: labelOr('nav.allPayments', 'All payments'), href: '/owner/cars?view=finance&filter=all', icon: FaDollarSign },
-        { label: labelOr('nav.paid', 'Paid'), href: '/owner/cars?view=finance&filter=paid', icon: FaDollarSign },
-        { label: labelOr('nav.pending', 'Pending'), href: '/owner/cars?view=finance&filter=pending', icon: FaDollarSign },
-        { label: labelOr('nav.unpaid', 'Unpaid'), href: '/owner/cars?view=finance&filter=unpaid', icon: FaDollarSign },
-        { label: labelOr('nav.last30Days', 'Last 30 days'), href: '/owner/cars?view=finance&range=30', icon: FaDollarSign },
-        { label: labelOr('nav.monthToDate', 'Month to date'), href: '/owner/cars?view=finance&range=mtd', icon: FaDollarSign },
-        { label: labelOr('nav.yearToDate', 'Year to date'), href: '/owner/cars?view=finance&range=ytd', icon: FaDollarSign },
-        { label: labelOr('nav.expenses', 'Expenses & profit'), href: '/owner/cars?view=finance&mode=expenses', icon: FaDollarSign },
+        { label: 'All transactions', href: '/owner/cars?view=finance', icon: FaDollarSign },
+        { label: 'Add income', href: '/owner/cars?view=finance', icon: FaPlus },
+        { label: 'Client payments', href: '/owner/cars?view=finance', icon: FaMoneyBillWave },
+        { label: 'Invoices & receipts', href: '/owner/cars?view=finance', icon: FaFileAlt },
+        { label: 'Revenue reports', href: '/owner/cars?view=finance', icon: FaChartLine },
       ],
     },
     {
-      label: labelOr('nav.analytics', 'Analytics'),
+      // Clients & Contracts
+      label: 'Clients & contracts',
+      icon: FaUsers,
+      href: '/owner/cars?view=overview',
+      children: [
+        { label: 'All clients', href: '/owner/cars?view=overview', icon: FaUsers },
+        { label: 'Add client', href: '/owner/cars?view=overview', icon: FaPlus },
+        { label: 'All contracts', href: '/owner/cars?view=overview', icon: FaFileAlt },
+        { label: 'Add contract', href: '/owner/cars?view=overview', icon: FaPlus },
+        { label: 'Client reports', href: '/owner/cars?view=analytics', icon: FaChartLine },
+      ],
+    },
+    {
+      // Reports & Analytics
+      label: 'Reports & analytics',
       icon: FaChartLine,
       href: '/owner/cars?view=analytics',
       children: [
-        { label: labelOr('nav.last30Days', 'Last 30 days'), href: '/owner/cars?view=analytics&range=30', icon: FaChartLine },
-        { label: labelOr('nav.last90Days', 'Last 90 days'), href: '/owner/cars?view=analytics&range=90', icon: FaChartLine },
-        { label: labelOr('nav.yearToDate', 'Year to date'), href: '/owner/cars?view=analytics&range=ytd', icon: FaChartLine },
-        { label: labelOr('nav.customRange', 'Custom range'), href: '/owner/cars?view=analytics&range=custom', icon: FaChartLine },
+        { label: 'Monthly summary', href: '/owner/cars?view=analytics', icon: FaChartLine },
+        { label: 'Vehicle performance', href: '/owner/cars?view=analytics', icon: FaCar },
+        { label: 'Driver performance', href: '/owner/cars?view=analytics', icon: FaUsers },
+        { label: 'Fuel efficiency', href: '/owner/cars?view=analytics', icon: FaGasPump },
+        { label: 'Profit & loss', href: '/owner/cars?view=finance&mode=expenses', icon: FaDollarSign },
       ],
     },
     {
-      label: labelOr('nav.reviews', 'Reviews'),
-      icon: FaStar,
-      href: '/owner/cars?view=reviews',
-    },
-    {
-      label: labelOr('nav.messages', 'Messages'),
-      icon: FaEnvelope,
-      href: '/owner/cars?view=messages',
-    },
-    {
-      label: labelOr('nav.settings', 'Settings'),
-      icon: FaSettings,
+      // Notifications & Alerts
+      label: 'Notifications & alerts',
+      icon: FaBell,
       href: '/owner/cars?view=settings',
+      children: [
+        { label: 'Maintenance reminders', href: '/owner/cars?view=settings', icon: FaBell },
+        { label: 'Insurance expiry alerts', href: '/owner/cars?view=settings', icon: FaBell },
+        { label: 'License renewal notifications', href: '/owner/cars?view=settings', icon: FaBell },
+        { label: 'Driver activity alerts', href: '/owner/cars?view=settings', icon: FaBell },
+      ],
     },
   ];
 
