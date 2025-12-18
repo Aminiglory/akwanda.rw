@@ -631,24 +631,11 @@ export default function CarOwnerDashboard() {
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
-              onClick={() => {
-                setShowCreateForm(prev => {
-                  const next = !prev;
-                  if (!prev && next) {
-                    // Open form then scroll it into view
-                    setTimeout(() => {
-                      if (createFormRef.current) {
-                        createFormRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                      }
-                    }, 50);
-                  }
-                  return next;
-                });
-              }}
+              onClick={() => window.location.assign('/upload-property')}
               className="px-4 py-2 rounded-lg bg-[#a06b42] hover:bg-[#8f5a32] text-white text-sm font-medium"
               disabled={user?.isBlocked}
             >
-              {showCreateForm ? 'Close form' : 'List a vehicle'}
+              List a vehicle
             </button>
 
             <div className="inline-flex rounded-lg overflow-hidden border">

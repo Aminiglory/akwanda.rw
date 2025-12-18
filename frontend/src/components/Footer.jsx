@@ -75,6 +75,7 @@ const Footer = () => {
     { icon: FaBuffer, name: t ? t('footer.listProperty') : "List Property", href: "/upload-property" },
     ...(user?.userType === 'host'
       ? [
+          { icon: FaBed, name: t ? t('footer.manageStays') : 'Manage Stays', href: '/dashboard' },
           { icon: FaCar, name: 'Vehicles', href: '/owner/cars' },
           { icon: FaMountain, name: 'Attractions', href: '/owner/attractions' }
         ]
