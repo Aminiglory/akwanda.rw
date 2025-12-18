@@ -413,10 +413,10 @@ export default function OwnerAttractionsDashboard() {
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => window.location.assign('/upload-property')}
+              onClick={() => window.location.assign('/upload-property?type=attraction')}
               className="px-4 py-2 rounded-lg bg-[#a06b42] hover:bg-[#8f5a32] text-white text-sm font-medium shadow-sm"
             >
-              {labelOr('ownerAttractions.listAttraction', 'List your attraction')}
+              {labelOr('ownerAttractions.listAttraction', 'List Your Attraction')}
             </button>
             <div className="inline-flex rounded-lg overflow-hidden border">
               <button

@@ -558,7 +558,7 @@ export default function CarOwnerDashboard() {
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
-              onClick={() => window.location.assign('/upload-property')}
+              onClick={() => window.location.assign('/upload-property?type=rental')}
               className="px-4 py-2 rounded-lg bg-[#a06b42] hover:bg-[#8f5a32] text-white text-sm font-medium"
               disabled={user?.isBlocked}
             >

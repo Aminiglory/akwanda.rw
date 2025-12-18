@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 import EnhancedUploadProperty from './EnhancedUploadProperty';
@@ -432,11 +432,32 @@ const initialFlightData = {
 const ListProperty = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [listingType, setListingType] = useState('stay');
   const [attractionStep, setAttractionStep] = useState(1);
   const [attractionForm, setAttractionForm] = useState(initialAttraction);
   const [flightStep, setFlightStep] = useState(1);
   const [flightData, setFlightData] = useState(initialFlightData);
+
+  // If a specific listing type is provided in the URL, preselect its tile
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(location.search || '');
+      const rawType = (params.get('type') || '').toLowerCase();
+      const allowed = ['stay', 'rental', 'attraction', 'flight'];
+      if (!rawType || !allowed.includes(rawType)) return;
+
+      setListingType(rawType);
+      if (rawType === 'attraction') {
+        setAttractionStep(1);
+      }
+      if (rawType === 'flight') {
+        setFlightStep(1);
+      }
+    } catch (_) {
+      // best-effort only
+    }
+  }, [location.search]);
 
   useEffect(() => {
     const { openingHoursStart, openingHoursEnd, duration } = attractionForm;
