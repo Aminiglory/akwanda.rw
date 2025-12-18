@@ -407,10 +407,7 @@ export default function OwnerAttractionsDashboard() {
             Back to listing options
           </button>
         </div>
-        <div className="mb-4 flex items-center justify-between gap-2">
-          <div className="inline-flex rounded-lg overflow-hidden border border-[#d4c4b0] bg-[#a06b42] text-white px-3 py-2 text-sm">
-            Attractions
-          </div>
+        <div className="mb-4 flex items-center justify-end gap-2">
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -875,10 +872,10 @@ export default function OwnerAttractionsDashboard() {
         ) : filteredItems.length === 0 ? (
           <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-6 text-sm text-gray-700 text-center">
             <h2 className="text-lg font-semibold mb-1">
-              {labelOr('ownerAttractions.emptyTitle', 'No attractions yet')}
+              {labelOr('ownerAttractions.emptyTitle', 'No attractions listed')}
             </h2>
             <p className="text-xs text-gray-500">
-              {labelOr('ownerAttractions.emptyDescription', 'You have not listed any attractions yet. Use the "List Your Attraction" button above to add your first experience.')}
+              {labelOr('ownerAttractions.emptyDescription', 'You have no attractions listed yet. Use the "List Your Attraction" button above to add your first one.')}
             </p>
           </div>
         ) : (
