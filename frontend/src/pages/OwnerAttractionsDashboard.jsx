@@ -4,6 +4,7 @@ import ReceiptPreview from '../components/ReceiptPreview';
 import toast from 'react-hot-toast';
 import SuccessModal from '../components/SuccessModal';
 import { useLocale } from '../contexts/LocaleContext';
+import { useAuth } from '../contexts/AuthContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 const makeAbsolute = (u) => {
@@ -16,6 +17,7 @@ const makeAbsolute = (u) => {
 
 export default function OwnerAttractionsDashboard() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const { user } = useAuth() || {};
   const propertyContextId = searchParams.get('property') || '';
   const [propertyContextLabel, setPropertyContextLabel] = useState('');
   const [items, setItems] = useState([]);
@@ -115,7 +117,7 @@ export default function OwnerAttractionsDashboard() {
     return { totalAll, totalRange, countAll, countRange, avgPerBooking };
   }, [bookings, financeFilter, financeRange]);
 
-  const { t } = useLocale() || {};
+  const { t, formatCurrencyRWF } = useLocale() || {};
 
   const labelOr = (key, fallback) => {
     if (!t) return fallback;
@@ -126,6 +128,12 @@ export default function OwnerAttractionsDashboard() {
     } catch (_) {
       return fallback;
     }
+  };
+
+  const formatAmount = (value) => {
+    const num = Number(value || 0);
+    if (formatCurrencyRWF) return formatCurrencyRWF(num);
+    return `RWF ${num.toLocaleString()}`;
   };
 
   // Sync high-level view with ?view= from URL (used by owner navbar)
@@ -178,6 +186,37 @@ export default function OwnerAttractionsDashboard() {
       return id && String(id) === String(selectedAttractionId);
     });
   }, [bookings, selectedAttractionId]);
+
+  const overviewFinanceStats = useMemo(() => {
+    const baseList = Array.isArray(filteredBookings) ? filteredBookings : [];
+    const now = new Date();
+    const start30 = new Date(now);
+    start30.setDate(start30.getDate() - 30);
+    const startYear = new Date(now.getFullYear(), 0, 1);
+
+    let rev30 = 0;
+    let revYtd = 0;
+    let bookings30 = 0;
+    let bookingsYtd = 0;
+
+    baseList.forEach(b => {
+      const amount = Number(b.totalAmount || 0);
+      const visit = b.visitDate ? new Date(b.visitDate) : null;
+      if (!visit || Number.isNaN(visit.getTime())) return;
+
+      if (visit >= start30 && visit <= now) {
+        rev30 += amount;
+        bookings30 += 1;
+      }
+      if (visit >= startYear && visit <= now) {
+        revYtd += amount;
+        bookingsYtd += 1;
+      }
+    });
+
+    const avg30 = bookings30 > 0 ? rev30 / bookings30 : 0;
+    return { rev30, revYtd, bookings30, bookingsYtd, avg30 };
+  }, [filteredBookings]);
 
   const empty = useMemo(() => ({
     name: '',
@@ -549,6 +588,15 @@ export default function OwnerAttractionsDashboard() {
         </button>
       </div>
 
+      {user?.isBlocked && (
+        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700 text-sm">
+          {labelOr(
+            'ownerAttractions.blockedBanner',
+            'Your account is deactivated. Attraction management is disabled until reactivated.'
+          )}
+        </div>
+      )}
+
       {/* Overview: basic stats + quick links */}
       {view === 'overview' && (
         <>
@@ -603,6 +651,47 @@ export default function OwnerAttractionsDashboard() {
               <div className="mt-0.5 text-[11px] text-gray-500">See trends across your listings</div>
             </Link>
           </div>
+
+          <div className="mb-6 grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5">
+              <div className="text-[11px] text-gray-500">
+                {labelOr('ownerAttractions.overview.last30Revenue', 'Last 30 days revenue')}
+              </div>
+              <div className="text-sm font-semibold text-gray-900">
+                {formatAmount(overviewFinanceStats.rev30)}
+              </div>
+              <div className="mt-0.5 text-[11px] text-gray-500">
+                {overviewFinanceStats.bookings30}{' '}
+                {labelOr('ownerAttractions.overview.bookingsLabel', 'bookings')}
+              </div>
+            </div>
+            <div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5">
+              <div className="text-[11px] text-gray-500">
+                {labelOr('ownerAttractions.overview.ytdRevenue', 'Year-to-date revenue')}
+              </div>
+              <div className="text-sm font-semibold text-gray-900">
+                {formatAmount(overviewFinanceStats.revYtd)}
+              </div>
+              <div className="mt-0.5 text-[11px] text-gray-500">
+                {overviewFinanceStats.bookingsYtd}{' '}
+                {labelOr('ownerAttractions.overview.bookingsLabel', 'bookings')}
+              </div>
+            </div>
+            <div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5">
+              <div className="text-[11px] text-gray-500">
+                {labelOr('ownerAttractions.overview.avgRevenuePerBooking', 'Avg revenue / booking (30d)')}
+              </div>
+              <div className="text-sm font-semibold text-gray-900">
+                {formatAmount(overviewFinanceStats.avg30)}
+              </div>
+              <div className="mt-0.5 text-[11px] text-gray-500">
+                {labelOr(
+                  'ownerAttractions.overview.avgRevenuePerBookingHint',
+                  'Based on last 30 days'
+                )}
+              </div>
+            </div>
+          </div>
         </>
       )}
 
@@ -622,11 +711,11 @@ export default function OwnerAttractionsDashboard() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2">
               <div className="text-[11px] text-gray-500">Total revenue (all time)</div>
-              <div className="text-lg font-semibold text-gray-900">{Number(financeStats.totalAll || 0).toLocaleString()}</div>
+              <div className="text-lg font-semibold text-gray-900">{formatAmount(financeStats.totalAll)}</div>
             </div>
             <div className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2">
               <div className="text-[11px] text-gray-500">Revenue in range</div>
-              <div className="text-lg font-semibold text-gray-900">{Number(financeStats.totalRange || 0).toLocaleString()}</div>
+              <div className="text-lg font-semibold text-gray-900">{formatAmount(financeStats.totalRange)}</div>
             </div>
             <div className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2">
               <div className="text-[11px] text-gray-500">Bookings in range</div>
@@ -634,7 +723,7 @@ export default function OwnerAttractionsDashboard() {
             </div>
             <div className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2">
               <div className="text-[11px] text-gray-500">Avg revenue / booking (range)</div>
-              <div className="text-lg font-semibold text-gray-900">{Number(financeStats.avgPerBooking || 0).toLocaleString()}</div>
+              <div className="text-lg font-semibold text-gray-900">{formatAmount(financeStats.avgPerBooking)}</div>
             </div>
           </div>
         </div>
@@ -660,7 +749,13 @@ export default function OwnerAttractionsDashboard() {
             </div>
             <div className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2">
               <div className="text-[11px] text-gray-500">Revenue (all time)</div>
-              <div className="text-lg font-semibold text-gray-900">{Number((Array.isArray(bookings) ? bookings.reduce((sum, b) => sum + Number(b.totalAmount || 0), 0) : 0)).toLocaleString()}</div>
+              <div className="text-lg font-semibold text-gray-900">
+                {formatAmount(
+                  Array.isArray(bookings)
+                    ? bookings.reduce((sum, b) => sum + Number(b.totalAmount || 0), 0)
+                    : 0
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -987,7 +1082,7 @@ export default function OwnerAttractionsDashboard() {
                   <td className="px-4 py-3 text-sm text-gray-700">{b.guest?.firstName} {b.guest?.lastName}</td>
                   <td className="px-4 py-3 text-xs text-gray-600">{new Date(b.visitDate).toLocaleDateString()}</td>
                   <td className="px-4 py-3 text-sm text-gray-700">{b.numberOfPeople}</td>
-                  <td className="px-4 py-3 text-sm font-semibold text-[#4b2a00]">RWF {Number(b.totalAmount || 0).toLocaleString()}</td>
+                  <td className="px-4 py-3 text-sm font-semibold text-[#4b2a00]">{formatAmount(b.totalAmount)}</td>
                   <td className="px-4 py-3">
                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${
                       b.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
