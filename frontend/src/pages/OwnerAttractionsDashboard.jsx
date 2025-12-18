@@ -438,63 +438,6 @@ export default function OwnerAttractionsDashboard() {
           </div>
         </div>
 
-      {view === 'attractions' && (
-        <div className="mb-4 flex flex-wrap gap-2 text-xs sm:text-sm">
-          <button
-            type="button"
-            onClick={() => {
-              try {
-                const next = new URLSearchParams(searchParams.toString());
-                next.delete('section');
-                setSearchParams(next, { replace: true });
-              } catch (_) {}
-            }}
-            className={`px-3 py-1.5 rounded-full border ${attractionsSection === 'list' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
-          >
-            All attractions
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              try {
-                const next = new URLSearchParams(searchParams.toString());
-                next.set('section', 'details');
-                setSearchParams(next, { replace: true });
-              } catch (_) {}
-            }}
-            className={`px-3 py-1.5 rounded-full border ${attractionsSection === 'details' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
-          >
-            Attraction details
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              try {
-                const next = new URLSearchParams(searchParams.toString());
-                next.set('section', 'schedule');
-                setSearchParams(next, { replace: true });
-              } catch (_) {}
-            }}
-            className={`px-3 py-1.5 rounded-full border ${attractionsSection === 'schedule' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
-          >
-            Schedules & availability
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              try {
-                const next = new URLSearchParams(searchParams.toString());
-                next.set('section', 'media');
-                setSearchParams(next, { replace: true });
-              } catch (_) {}
-            }}
-            className={`px-3 py-1.5 rounded-full border ${attractionsSection === 'media' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
-          >
-            Media & content
-          </button>
-        </div>
-      )}
-
       {propertyContextId && (
         <div className="mb-2 text-xs text-gray-600">
           You are managing property context: <span className="font-semibold">{propertyContextLabel || propertyContextId}</span>
@@ -655,6 +598,63 @@ export default function OwnerAttractionsDashboard() {
           Settings
         </button>
       </div>
+
+      {view === 'attractions' && (
+        <div className="mb-4 flex flex-wrap gap-2 text-xs sm:text-sm">
+          <button
+            type="button"
+            onClick={() => {
+              try {
+                const next = new URLSearchParams(searchParams.toString());
+                next.delete('section');
+                setSearchParams(next, { replace: true });
+              } catch (_) {}
+            }}
+            className={`px-3 py-1.5 rounded-full border ${attractionsSection === 'list' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+          >
+            All attractions
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              try {
+                const next = new URLSearchParams(searchParams.toString());
+                next.set('section', 'details');
+                setSearchParams(next, { replace: true });
+              } catch (_) {}
+            }}
+            className={`px-3 py-1.5 rounded-full border ${attractionsSection === 'details' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+          >
+            Attraction details
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              try {
+                const next = new URLSearchParams(searchParams.toString());
+                next.set('section', 'schedule');
+                setSearchParams(next, { replace: true });
+              } catch (_) {}
+            }}
+            className={`px-3 py-1.5 rounded-full border ${attractionsSection === 'schedule' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+          >
+            Schedules & availability
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              try {
+                const next = new URLSearchParams(searchParams.toString());
+                next.set('section', 'media');
+                setSearchParams(next, { replace: true });
+              } catch (_) {}
+            }}
+            className={`px-3 py-1.5 rounded-full border ${attractionsSection === 'media' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+          >
+            Media & content
+          </button>
+        </div>
+      )}
 
       {user?.isBlocked && (
         <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700 text-sm">
@@ -869,68 +869,81 @@ export default function OwnerAttractionsDashboard() {
       )}
 
       {/* List: only in Attractions view */}
-      {view === 'attractions' && attractionsSection === 'list' && (loading ? <div>Loading...</div> : (
-        viewMode==='cards' ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {filteredItems.map(item => (
-              <div key={item._id} className="bg-white rounded-lg shadow p-4">
-                <div className="flex gap-4">
-                  <div className="w-32 h-24 bg-gray-100 rounded overflow-hidden">
-                    {item.images?.[0] ? <img src={makeAbsolute(item.images[0])} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-400">No image</div>}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-semibold">{item.name}</h3>
-                      <button onClick={()=>updateItem(item._id, { isActive: !item.isActive })} className={`px-2 py-1 rounded text-sm ${item.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-700'}`}>{item.isActive ? 'Active' : 'Inactive'}</button>
-                    </div>
-                    <p className="text-sm text-gray-600">{item.city || item.location}</p>
-                    {item.price != null && (<p className="text-sm font-medium mt-1">RWF {Number(item.price || 0).toLocaleString()}</p>)}
-                  </div>
-                </div>
-                <div className="mt-3 flex items-center gap-2">
-                  <label className="text-sm">Upload Images:</label>
-                  <input type="file" multiple disabled={uploadingId===item._id} onChange={e=>uploadImages(item._id, e.target.files)} />
-                  <button onClick={()=>deleteItem(item._id)} className="ml-auto px-3 py-1 bg-red-600 text-white rounded text-sm">Delete</button>
-                </div>
-                {item.images?.length>0 && (
-                  <div className="mt-3 grid grid-cols-4 gap-2">
-                    {item.images.map((img, i)=> (
-                      <img key={i} src={makeAbsolute(img)} className="w-full h-20 object-cover rounded" />
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
+      {view === 'attractions' && attractionsSection === 'list' && (
+        loading ? (
+          <div>Loading...</div>
+        ) : filteredItems.length === 0 ? (
+          <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-6 text-sm text-gray-700 text-center">
+            <h2 className="text-lg font-semibold mb-1">
+              {labelOr('ownerAttractions.emptyTitle', 'No attractions yet')}
+            </h2>
+            <p className="text-xs text-gray-500">
+              {labelOr('ownerAttractions.emptyDescription', 'You have not listed any attractions yet. Use the "List Your Attraction" button above to add your first experience.')}
+            </p>
           </div>
         ) : (
-          <div className="bg-white rounded-lg shadow overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead>
-                <tr className="bg-gray-50 text-left">
-                  <th className="p-3">Name</th>
-                  <th className="p-3">Category</th>
-                  <th className="p-3">City</th>
-                  <th className="p-3">Price</th>
-                  <th className="p-3">Status</th>
-                  <th className="p-3">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredItems.map(item => (
-                  <tr key={item._id} className="border-t">
-                    <td className="p-3 font-medium">{item.name}</td>
-                    <td className="p-3">{item.category}</td>
-                    <td className="p-3">{item.city || item.location}</td>
-                    <td className="p-3">RWF {Number(item.price || 0).toLocaleString()}</td>
-                    <td className="p-3"><button onClick={()=>updateItem(item._id, { isActive: !item.isActive })} className={`px-2 py-1 rounded text-xs ${item.isActive ? 'bg-green-100 text-green-700':'bg-gray-200 text-gray-700'}`}>{item.isActive ? 'Active':'Inactive'}</button></td>
-                    <td className="p-3"><button onClick={()=>deleteItem(item._id)} className="px-3 py-1 bg-red-600 text-white rounded text-xs">Delete</button></td>
+          viewMode==='cards' ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {filteredItems.map(item => (
+                <div key={item._id} className="bg-white rounded-lg shadow p-4">
+                  <div className="flex gap-4">
+                    <div className="w-32 h-24 bg-gray-100 rounded overflow-hidden">
+                      {item.images?.[0] ? <img src={makeAbsolute(item.images[0])} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-400">No image</div>}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-semibold">{item.name}</h3>
+                        <button onClick={()=>updateItem(item._id, { isActive: !item.isActive })} className={`px-2 py-1 rounded text-sm ${item.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-700'}`}>{item.isActive ? 'Active' : 'Inactive'}</button>
+                      </div>
+                      <p className="text-sm text-gray-600">{item.city || item.location}</p>
+                      {item.price != null && (<p className="text-sm font-medium mt-1">RWF {Number(item.price || 0).toLocaleString()}</p>)}
+                    </div>
+                  </div>
+                  <div className="mt-3 flex items-center gap-2">
+                    <label className="text-sm">Upload Images:</label>
+                    <input type="file" multiple disabled={uploadingId===item._id} onChange={e=>uploadImages(item._id, e.target.files)} />
+                    <button onClick={()=>deleteItem(item._id)} className="ml-auto px-3 py-1 bg-red-600 text-white rounded text-sm">Delete</button>
+                  </div>
+                  {item.images?.length>0 && (
+                    <div className="mt-3 grid grid-cols-4 gap-2">
+                      {item.images.map((img, i)=> (
+                        <img key={i} src={makeAbsolute(img)} className="w-full h-20 object-cover rounded" />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="bg-white rounded-lg shadow overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <thead>
+                  <tr className="bg-gray-50 text-left">
+                    <th className="p-3">Name</th>
+                    <th className="p-3">Category</th>
+                    <th className="p-3">City</th>
+                    <th className="p-3">Price</th>
+                    <th className="p-3">Status</th>
+                    <th className="p-3">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {filteredItems.map(item => (
+                    <tr key={item._id} className="border-t">
+                      <td className="p-3 font-medium">{item.name}</td>
+                      <td className="p-3">{item.category}</td>
+                      <td className="p-3">{item.city || item.location}</td>
+                      <td className="p-3">RWF {Number(item.price || 0).toLocaleString()}</td>
+                      <td className="p-3"><button onClick={()=>updateItem(item._id, { isActive: !item.isActive })} className={`px-2 py-1 rounded text-xs ${item.isActive ? 'bg-green-100 text-green-700':'bg-gray-200 text-gray-700'}`}>{item.isActive ? 'Active':'Inactive'}</button></td>
+                      <td className="p-3"><button onClick={()=>deleteItem(item._id)} className="px-3 py-1 bg-red-600 text-white rounded text-xs">Delete</button></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )
         )
-      ))}
+      )}
 
       {view === 'attractions' && attractionsSection !== 'list' && (
         <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-4 text-sm text-gray-700">
