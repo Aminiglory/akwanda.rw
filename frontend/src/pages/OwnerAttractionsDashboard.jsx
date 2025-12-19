@@ -50,6 +50,7 @@ export default function OwnerAttractionsDashboard() {
   const financeFilter = (searchParams.get('filter') || 'all').toLowerCase();
   const financeMode = (searchParams.get('mode') || 'overview').toLowerCase();
   const attractionsSection = (searchParams.get('section') || 'list').toLowerCase();
+  const dashboardSub = (searchParams.get('sub') || '').toLowerCase();
 
   const financeFilterLabel = (() => {
     switch (financeFilter) {
@@ -404,8 +405,6 @@ export default function OwnerAttractionsDashboard() {
     } catch (e) { console.error('[Attractions][uploadImages] error', e); toast.error(e.message); } finally { setUploadingId(null); }
   }
 
-  const isActiveTab = (path) => location.pathname.startsWith(path);
-
   return (
     <div className="min-h-screen bg-[#f9f5ef] py-6">
       <div className="max-w-6xl mx-auto px-4">
@@ -454,25 +453,102 @@ export default function OwnerAttractionsDashboard() {
       )}
 
       {view === 'expenses' && (
-        <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-4 text-sm text-gray-700">
-          <h2 className="text-lg font-semibold mb-2">
-            {labelOr('ownerAttractions.expensesTitle', 'Attraction expenses')}
-          </h2>
-          <p className="text-xs text-gray-500 mb-2">
-            {labelOr('ownerAttractions.expensesDescription', 'Detailed expense tracking for your attractions will appear here. For now you can use the Finance tab to view overall payments and revenue.')}
-          </p>
-        </div>
+        <>
+          <div className="mb-3 flex flex-wrap gap-2 text-[11px] sm:text-xs">
+            {(() => {
+              const s = ['all', 'add', 'categories', 'reports'].includes(dashboardSub) ? dashboardSub : 'all';
+              const setSub = (val) => {
+                try {
+                  const next = new URLSearchParams(searchParams.toString());
+                  next.set('view', 'expenses');
+                  next.set('sub', val);
+                  setSearchParams(next, { replace: true });
+                } catch (_) {}
+              };
+              const pill = (val, label) => (
+                <button
+                  key={val}
+                  type="button"
+                  onClick={() => setSub(val)}
+                  className={`px-2.5 py-1 rounded-full border ${
+                    s === val
+                      ? 'bg-[#f5e6d5] text-[#4b2a00] border-[#a06b42] font-semibold'
+                      : 'bg-white text-[#6b5744] border-[#e0d5c7] hover:bg-[#f9f1e7]'
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+              return (
+                <>
+                  {pill('all', labelOr('nav.allExpenses', 'All expenses'))}
+                  {pill('add', labelOr('nav.addExpense', 'Add expense'))}
+                  {pill('categories', labelOr('nav.expenseCategories', 'Expense categories'))}
+                  {pill('reports', labelOr('nav.expenseReports', 'Expense reports'))}
+                </>
+              );
+            })()}
+          </div>
+
+          <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-4 text-sm text-gray-700">
+            <h2 className="text-lg font-semibold mb-2">
+              {labelOr('nav.expenses', 'Expenses')}
+            </h2>
+            <p className="text-xs text-gray-500 mb-2">
+              {labelOr('ownerAttractions.expensesDescription', 'Detailed expense tracking for your attractions will appear here. For now you can use the Finance tab to view overall payments and revenue.')}
+            </p>
+          </div>
+        </>
       )}
 
       {view === 'income-revenue' && (
-        <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-4 text-sm text-gray-700">
-          <h2 className="text-lg font-semibold mb-2">
-            {labelOr('ownerAttractions.incomeRevenueTitle', 'Income & revenue')}
-          </h2>
-          <p className="text-xs text-gray-500 mb-2">
-            {labelOr('ownerAttractions.incomeRevenueDescription', 'Tools for managing attraction income, payouts and revenue reports will appear here. For now you can use the Finance and Analytics tabs for high-level numbers.')}
-          </p>
-        </div>
+        <>
+          <div className="mb-3 flex flex-wrap gap-2 text-[11px] sm:text-xs">
+            {(() => {
+              const s = ['transactions', 'add', 'payments', 'invoices', 'reports'].includes(dashboardSub) ? dashboardSub : 'transactions';
+              const setSub = (val) => {
+                try {
+                  const next = new URLSearchParams(searchParams.toString());
+                  next.set('view', 'income-revenue');
+                  next.set('sub', val);
+                  setSearchParams(next, { replace: true });
+                } catch (_) {}
+              };
+              const pill = (val, label) => (
+                <button
+                  key={val}
+                  type="button"
+                  onClick={() => setSub(val)}
+                  className={`px-2.5 py-1 rounded-full border ${
+                    s === val
+                      ? 'bg-[#f5e6d5] text-[#4b2a00] border-[#a06b42] font-semibold'
+                      : 'bg-white text-[#6b5744] border-[#e0d5c7] hover:bg-[#f9f1e7]'
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+              return (
+                <>
+                  {pill('transactions', labelOr('nav.allTransactions', 'All transactions'))}
+                  {pill('add', labelOr('nav.addIncome', 'Add income'))}
+                  {pill('payments', labelOr('nav.clientPayments', 'Client payments'))}
+                  {pill('invoices', labelOr('nav.invoicesReceipts', 'Invoices & receipts'))}
+                  {pill('reports', labelOr('nav.revenueReports', 'Revenue reports'))}
+                </>
+              );
+            })()}
+          </div>
+
+          <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-4 text-sm text-gray-700">
+            <h2 className="text-lg font-semibold mb-2">
+              {labelOr('nav.incomeRevenue', 'Income & revenue')}
+            </h2>
+            <p className="text-xs text-gray-500 mb-2">
+              {labelOr('ownerAttractions.incomeRevenueDescription', 'Tools for managing attraction income, payouts and revenue reports will appear here. For now you can use the Finance and Analytics tabs for high-level numbers.')}
+            </p>
+          </div>
+        </>
       )}
 
       <div className="mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
@@ -551,10 +627,11 @@ export default function OwnerAttractionsDashboard() {
             try {
               const next = new URLSearchParams(searchParams.toString());
               next.set('view', 'bookings');
+              next.delete('sub');
               setSearchParams(next, { replace: true });
             } catch (_) {}
           }}
-          className={`px-3 py-1.5 rounded-full border ${view === 'bookings' ? 'bg-[#a06b42] text:white border-[#a06b42]' : 'bg:white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+          className={`px-3 py-1.5 rounded-full border ${view === 'bookings' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
         >
           Bookings
         </button>
@@ -565,6 +642,7 @@ export default function OwnerAttractionsDashboard() {
             try {
               const next = new URLSearchParams(searchParams.toString());
               next.set('view', 'finance');
+              next.delete('sub');
               setSearchParams(next, { replace: true });
             } catch (_) {}
           }}
@@ -579,12 +657,13 @@ export default function OwnerAttractionsDashboard() {
             try {
               const next = new URLSearchParams(searchParams.toString());
               next.set('view', 'expenses');
+              next.delete('sub');
               setSearchParams(next, { replace: true });
             } catch (_) {}
           }}
           className={`px-3 py-1.5 rounded-full border ${view === 'expenses' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
         >
-          {labelOr('ownerAttractions.expensesTab', 'Expenses')}
+          {labelOr('nav.expenses', 'Expenses')}
         </button>
         <button
           type="button"
@@ -593,12 +672,28 @@ export default function OwnerAttractionsDashboard() {
             try {
               const next = new URLSearchParams(searchParams.toString());
               next.set('view', 'income-revenue');
+              next.delete('sub');
               setSearchParams(next, { replace: true });
             } catch (_) {}
           }}
           className={`px-3 py-1.5 rounded-full border ${view === 'income-revenue' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
         >
-          {labelOr('ownerAttractions.incomeRevenueTab', 'Income & revenue')}
+          {labelOr('nav.incomeRevenue', 'Income & revenue')}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setView('clients-contracts');
+            try {
+              const next = new URLSearchParams(searchParams.toString());
+              next.set('view', 'clients-contracts');
+              next.delete('sub');
+              setSearchParams(next, { replace: true });
+            } catch (_) {}
+          }}
+          className={`px-3 py-1.5 rounded-full border ${view === 'clients-contracts' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+        >
+          {labelOr('nav.clientsContracts', 'Clients & contracts')}
         </button>
         <button
           type="button"
@@ -607,6 +702,7 @@ export default function OwnerAttractionsDashboard() {
             try {
               const next = new URLSearchParams(searchParams.toString());
               next.set('view', 'analytics');
+              next.delete('sub');
               setSearchParams(next, { replace: true });
             } catch (_) {}
           }}
@@ -621,6 +717,7 @@ export default function OwnerAttractionsDashboard() {
             try {
               const next = new URLSearchParams(searchParams.toString());
               next.set('view', 'reviews');
+              next.delete('sub');
               setSearchParams(next, { replace: true });
             } catch (_) {}
           }}
@@ -635,6 +732,7 @@ export default function OwnerAttractionsDashboard() {
             try {
               const next = new URLSearchParams(searchParams.toString());
               next.set('view', 'messages');
+              next.delete('sub');
               setSearchParams(next, { replace: true });
             } catch (_) {}
           }}
@@ -649,6 +747,7 @@ export default function OwnerAttractionsDashboard() {
             try {
               const next = new URLSearchParams(searchParams.toString());
               next.set('view', 'settings');
+              next.delete('sub');
               setSearchParams(next, { replace: true });
             } catch (_) {}
           }}
@@ -663,12 +762,13 @@ export default function OwnerAttractionsDashboard() {
             try {
               const next = new URLSearchParams(searchParams.toString());
               next.set('view', 'notifications');
+              next.delete('sub');
               setSearchParams(next, { replace: true });
             } catch (_) {}
           }}
           className={`px-3 py-1.5 rounded-full border ${view === 'notifications' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
         >
-          {labelOr('ownerAttractions.notificationsTab', 'Notifications')}
+          {labelOr('nav.notificationsAlerts', 'Notifications')}
         </button>
       </div>
 
@@ -1171,6 +1271,7 @@ export default function OwnerAttractionsDashboard() {
             </div>
           </div>
         </div>
+        </>
       )}
 
       {/* Reviews/messages/settings placeholders */}
@@ -1205,25 +1306,100 @@ export default function OwnerAttractionsDashboard() {
       )}
 
       {view === 'clients-contracts' && (
-        <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-3 text-sm text-gray-700">
-          <h2 className="text-lg font-semibold mb-1">
-            {labelOr('ownerAttractions.clientsContractsTitle', 'Clients & contracts')}
-          </h2>
-          <p className="text-xs text-gray-500">
-            {labelOr('ownerAttractions.clientsContractsDescription', 'Management tools for your attraction clients and contracts will appear here. For now you can use the Bookings tab to review reservations.')}
-          </p>
-        </div>
+        <>
+          <div className="mb-3 flex flex-wrap gap-2 text-[11px] sm:text-xs">
+            {(() => {
+              const s = ['clients', 'add-client', 'contracts', 'add-contract', 'reports'].includes(dashboardSub) ? dashboardSub : 'clients';
+              const setSub = (val) => {
+                try {
+                  const next = new URLSearchParams(searchParams.toString());
+                  next.set('view', 'clients-contracts');
+                  next.set('sub', val);
+                  setSearchParams(next, { replace: true });
+                } catch (_) {}
+              };
+              const pill = (val, label) => (
+                <button
+                  key={val}
+                  type="button"
+                  onClick={() => setSub(val)}
+                  className={`px-2.5 py-1 rounded-full border ${
+                    s === val
+                      ? 'bg-[#f5e6d5] text-[#4b2a00] border-[#a06b42] font-semibold'
+                      : 'bg-white text-[#6b5744] border-[#e0d5c7] hover:bg-[#f9f1e7]'
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+              return (
+                <>
+                  {pill('clients', labelOr('nav.allClients', 'All clients'))}
+                  {pill('add-client', labelOr('nav.addClient', 'Add client'))}
+                  {pill('contracts', labelOr('nav.allContracts', 'All contracts'))}
+                  {pill('add-contract', labelOr('nav.addContract', 'Add contract'))}
+                  {pill('reports', labelOr('nav.clientReports', 'Client reports'))}
+                </>
+              );
+            })()}
+          </div>
+          <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-3 text-sm text-gray-700">
+            <h2 className="text-lg font-semibold mb-1">
+              {labelOr('nav.clientsContracts', 'Clients & contracts')}
+            </h2>
+            <p className="text-xs text-gray-500">
+              {labelOr('ownerAttractions.clientsContractsDescription', 'Management tools for your attraction clients and contracts will appear here. For now you can use the Bookings tab to review reservations.')}
+            </p>
+          </div>
+        </>
       )}
 
       {view === 'notifications' && (
-        <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-3 text-sm text-gray-700">
-          <h2 className="text-lg font-semibold mb-1">
-            {labelOr('ownerAttractions.notificationsTitle', 'Notifications & alerts')}
-          </h2>
-          <p className="text-xs text-gray-500">
-            {labelOr('ownerAttractions.notificationsDescription', 'Here you will see attraction-specific alerts, reminders and policy notifications. For now you can use the bell icon at the top of the page for your main notifications feed.')}
-          </p>
-        </div>
+        <>
+          <div className="mb-3 flex flex-wrap gap-2 text-[11px] sm:text-xs">
+            {(() => {
+              const s = ['maintenance', 'policy', 'expiry', 'activity'].includes(dashboardSub) ? dashboardSub : 'maintenance';
+              const setSub = (val) => {
+                try {
+                  const next = new URLSearchParams(searchParams.toString());
+                  next.set('view', 'notifications');
+                  next.set('sub', val);
+                  setSearchParams(next, { replace: true });
+                } catch (_) {}
+              };
+              const pill = (val, label) => (
+                <button
+                  key={val}
+                  type="button"
+                  onClick={() => setSub(val)}
+                  className={`px-2.5 py-1 rounded-full border ${
+                    s === val
+                      ? 'bg-[#f5e6d5] text-[#4b2a00] border-[#a06b42] font-semibold'
+                      : 'bg-white text-[#6b5744] border-[#e0d5c7] hover:bg-[#f9f1e7]'
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+              return (
+                <>
+                  {pill('maintenance', labelOr('nav.maintenanceReminders', 'Maintenance reminders'))}
+                  {pill('policy', labelOr('nav.policyAlerts', 'Policy & safety alerts'))}
+                  {pill('expiry', labelOr('nav.expiryAlerts', 'Expiry alerts'))}
+                  {pill('activity', labelOr('nav.activityAlerts', 'Guest activity alerts'))}
+                </>
+              );
+            })()}
+          </div>
+          <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-3 text-sm text-gray-700">
+            <h2 className="text-lg font-semibold mb-1">
+              {labelOr('nav.notificationsAlerts', 'Notifications & alerts')}
+            </h2>
+            <p className="text-xs text-gray-500">
+              {labelOr('ownerAttractions.notificationsDescription', 'Here you will see attraction-specific alerts, reminders and policy notifications. For now you can use the bell icon at the top of the page for your main notifications feed.')}
+            </p>
+          </div>
+        </>
       )}
 
       {/* List: only in Attractions view */}
@@ -1321,6 +1497,22 @@ export default function OwnerAttractionsDashboard() {
       {/* Bookings: only in Bookings view */}
       {view === 'bookings' && (
       <div className="mt-8">
+        <div className="mb-3 flex flex-wrap gap-2 text-[11px] sm:text-xs">
+          <button
+            type="button"
+            onClick={() => {
+              try {
+                const next = new URLSearchParams(searchParams.toString());
+                next.set('view', 'bookings');
+                next.delete('sub');
+                setSearchParams(next, { replace: true });
+              } catch (_) {}
+            }}
+            className="px-2.5 py-1 rounded-full border bg-[#f5e6d5] text-[#4b2a00] border-[#a06b42] font-semibold"
+          >
+            {labelOr('nav.allReservations', 'All reservations')}
+          </button>
+        </div>
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-xl font-semibold text-gray-900">Bookings</h2>
@@ -1432,8 +1624,7 @@ export default function OwnerAttractionsDashboard() {
         message={successMsg}
         onClose={() => setSuccessOpen(false)}
       />
+      </div>
     </div>
   );
-  </div>
-  )}
 
