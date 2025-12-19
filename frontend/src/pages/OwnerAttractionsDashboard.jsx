@@ -155,6 +155,15 @@ export default function OwnerAttractionsDashboard() {
       case 'finance':
         if (view !== 'finance') setView('finance');
         break;
+      case 'expenses':
+        if (view !== 'expenses') setView('expenses');
+        break;
+      case 'income-revenue':
+        if (view !== 'income-revenue') setView('income-revenue');
+        break;
+      case 'clients-contracts':
+        if (view !== 'clients-contracts') setView('clients-contracts');
+        break;
       case 'analytics':
         if (view !== 'analytics') setView('analytics');
         break;
@@ -166,6 +175,9 @@ export default function OwnerAttractionsDashboard() {
         break;
       case 'settings':
         if (view !== 'settings') setView('settings');
+        break;
+      case 'notifications':
+        if (view !== 'notifications') setView('notifications');
         break;
       default:
         break;
@@ -441,6 +453,28 @@ export default function OwnerAttractionsDashboard() {
         </div>
       )}
 
+      {view === 'expenses' && (
+        <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-4 text-sm text-gray-700">
+          <h2 className="text-lg font-semibold mb-2">
+            {labelOr('ownerAttractions.expensesTitle', 'Attraction expenses')}
+          </h2>
+          <p className="text-xs text-gray-500 mb-2">
+            {labelOr('ownerAttractions.expensesDescription', 'Detailed expense tracking for your attractions will appear here. For now you can use the Finance tab to view overall payments and revenue.')}
+          </p>
+        </div>
+      )}
+
+      {view === 'income-revenue' && (
+        <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-4 text-sm text-gray-700">
+          <h2 className="text-lg font-semibold mb-2">
+            {labelOr('ownerAttractions.incomeRevenueTitle', 'Income & revenue')}
+          </h2>
+          <p className="text-xs text-gray-500 mb-2">
+            {labelOr('ownerAttractions.incomeRevenueDescription', 'Tools for managing attraction income, payouts and revenue reports will appear here. For now you can use the Finance and Analytics tabs for high-level numbers.')}
+          </p>
+        </div>
+      )}
+
       <div className="mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <h1 className="text-2xl font-bold text-gray-900">My Attractions</h1>
         {items.length > 0 && (
@@ -541,6 +575,34 @@ export default function OwnerAttractionsDashboard() {
         <button
           type="button"
           onClick={() => {
+            setView('expenses');
+            try {
+              const next = new URLSearchParams(searchParams.toString());
+              next.set('view', 'expenses');
+              setSearchParams(next, { replace: true });
+            } catch (_) {}
+          }}
+          className={`px-3 py-1.5 rounded-full border ${view === 'expenses' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+        >
+          {labelOr('ownerAttractions.expensesTab', 'Expenses')}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setView('income-revenue');
+            try {
+              const next = new URLSearchParams(searchParams.toString());
+              next.set('view', 'income-revenue');
+              setSearchParams(next, { replace: true });
+            } catch (_) {}
+          }}
+          className={`px-3 py-1.5 rounded-full border ${view === 'income-revenue' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+        >
+          {labelOr('ownerAttractions.incomeRevenueTab', 'Income & revenue')}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
             setView('analytics');
             try {
               const next = new URLSearchParams(searchParams.toString());
@@ -593,6 +655,20 @@ export default function OwnerAttractionsDashboard() {
           className={`px-3 py-1.5 rounded-full border ${view === 'settings' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
         >
           Settings
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setView('notifications');
+            try {
+              const next = new URLSearchParams(searchParams.toString());
+              next.set('view', 'notifications');
+              setSearchParams(next, { replace: true });
+            } catch (_) {}
+          }}
+          className={`px-3 py-1.5 rounded-full border ${view === 'notifications' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+        >
+          {labelOr('ownerAttractions.notificationsTab', 'Notifications')}
         </button>
       </div>
 
@@ -877,6 +953,28 @@ export default function OwnerAttractionsDashboard() {
           <p>
             Attraction-specific settings will appear here in the future. For now you can manage notification
             and account settings from the main Settings section of your profile.
+          </p>
+        </div>
+      )}
+
+      {view === 'clients-contracts' && (
+        <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-3 text-sm text-gray-700">
+          <h2 className="text-lg font-semibold mb-1">
+            {labelOr('ownerAttractions.clientsContractsTitle', 'Clients & contracts')}
+          </h2>
+          <p className="text-xs text-gray-500">
+            {labelOr('ownerAttractions.clientsContractsDescription', 'Management tools for your attraction clients and contracts will appear here. For now you can use the Bookings tab to review reservations.')}
+          </p>
+        </div>
+      )}
+
+      {view === 'notifications' && (
+        <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-3 text-sm text-gray-700">
+          <h2 className="text-lg font-semibold mb-1">
+            {labelOr('ownerAttractions.notificationsTitle', 'Notifications & alerts')}
+          </h2>
+          <p className="text-xs text-gray-500">
+            {labelOr('ownerAttractions.notificationsDescription', 'Here you will see attraction-specific alerts, reminders and policy notifications. For now you can use the bell icon at the top of the page for your main notifications feed.')}
           </p>
         </div>
       )}

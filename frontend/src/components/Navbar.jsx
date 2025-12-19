@@ -176,10 +176,10 @@ const Navbar = () => {
       // Mirrors "Home" in property dashboard
       label: labelOr('nav.attractionsHome', 'Attractions'),
       icon: FaHome,
-      href: '/owner/attractions',
+      href: '/owner/attractions?view=overview',
       children: [
-        { label: labelOr('nav.attractionsHome', 'Dashboard'), href: '/owner/attractions', icon: FaHome },
-        { label: labelOr('nav.myAttractions', 'My attractions'), href: '/owner/attractions?view=attractions', icon: FaUmbrellaBeach },
+        { label: labelOr('nav.attractionsHome', 'Dashboard'), href: '/owner/attractions?view=overview', icon: FaHome },
+        { label: labelOr('nav.myAttractions', 'My attractions'), href: '/owner/attractions?view=overview', icon: FaUmbrellaBeach },
       ]
     },
     {
@@ -224,38 +224,38 @@ const Navbar = () => {
       // Expense Management (mirrors vehicle Expenses)
       label: labelOr('nav.expenses', 'Expenses'),
       icon: FaMoneyBillWave,
-      href: '/owner/attractions?view=finance&mode=expenses',
+      href: '/owner/attractions?view=expenses',
       children: [
-        { label: labelOr('nav.allExpenses', 'All expenses'), href: '/owner/attractions?view=finance&mode=expenses', icon: FaMoneyBillWave },
-        { label: labelOr('nav.addExpense', 'Add expense'), href: '/owner/attractions?view=finance&mode=expenses', icon: FaPlus },
-        { label: labelOr('nav.expenseCategories', 'Expense categories'), href: '/owner/attractions?view=finance&mode=expenses', icon: FaFileAlt },
-        { label: labelOr('nav.expenseReports', 'Expense reports'), href: '/owner/attractions?view=finance&mode=expenses', icon: FaChartLine },
+        { label: labelOr('nav.allExpenses', 'All expenses'), href: '/owner/attractions?view=expenses', icon: FaMoneyBillWave },
+        { label: labelOr('nav.addExpense', 'Add expense'), href: '/owner/attractions?view=expenses', icon: FaPlus },
+        { label: labelOr('nav.expenseCategories', 'Expense categories'), href: '/owner/attractions?view=expenses', icon: FaFileAlt },
+        { label: labelOr('nav.expenseReports', 'Expense reports'), href: '/owner/attractions?view=expenses', icon: FaChartLine },
       ],
     },
     {
       // Income / Revenue Management
       label: labelOr('nav.incomeRevenue', 'Income & revenue'),
       icon: FaDollarSign,
-      href: '/owner/attractions?view=finance',
+      href: '/owner/attractions?view=income-revenue',
       children: [
-        { label: labelOr('nav.allTransactions', 'All transactions'), href: '/owner/attractions?view=finance', icon: FaDollarSign },
-        { label: labelOr('nav.addIncome', 'Add income'), href: '/owner/attractions?view=finance', icon: FaPlus },
-        { label: labelOr('nav.clientPayments', 'Client payments'), href: '/owner/attractions?view=finance', icon: FaMoneyBillWave },
-        { label: labelOr('nav.invoicesReceipts', 'Invoices & receipts'), href: '/owner/attractions?view=finance', icon: FaFileAlt },
-        { label: labelOr('nav.revenueReports', 'Revenue reports'), href: '/owner/attractions?view=analytics&segment=revenue', icon: FaChartLine },
+        { label: labelOr('nav.allTransactions', 'All transactions'), href: '/owner/attractions?view=income-revenue', icon: FaDollarSign },
+        { label: labelOr('nav.addIncome', 'Add income'), href: '/owner/attractions?view=income-revenue', icon: FaPlus },
+        { label: labelOr('nav.clientPayments', 'Client payments'), href: '/owner/attractions?view=income-revenue', icon: FaMoneyBillWave },
+        { label: labelOr('nav.invoicesReceipts', 'Invoices & receipts'), href: '/owner/attractions?view=income-revenue', icon: FaFileAlt },
+        { label: labelOr('nav.revenueReports', 'Revenue reports'), href: '/owner/attractions?view=income-revenue', icon: FaChartLine },
       ],
     },
     {
       // Clients & Contracts
       label: labelOr('nav.clientsContracts', 'Clients & contracts'),
       icon: FaUsers,
-      href: '/owner/attractions?view=bookings',
+      href: '/owner/attractions?view=clients-contracts',
       children: [
-        { label: labelOr('nav.allClients', 'All clients'), href: '/owner/attractions?view=bookings', icon: FaUsers },
-        { label: labelOr('nav.addClient', 'Add client'), href: '/owner/attractions?view=bookings', icon: FaPlus },
-        { label: labelOr('nav.allContracts', 'All contracts'), href: '/owner/attractions?view=bookings', icon: FaFileAlt },
-        { label: labelOr('nav.addContract', 'Add contract'), href: '/owner/attractions?view=bookings', icon: FaPlus },
-        { label: labelOr('nav.clientReports', 'Client reports'), href: '/owner/attractions?view=analytics&segment=bookings', icon: FaChartLine },
+        { label: labelOr('nav.allClients', 'All clients'), href: '/owner/attractions?view=clients-contracts', icon: FaUsers },
+        { label: labelOr('nav.addClient', 'Add client'), href: '/owner/attractions?view=clients-contracts', icon: FaPlus },
+        { label: labelOr('nav.allContracts', 'All contracts'), href: '/owner/attractions?view=clients-contracts', icon: FaFileAlt },
+        { label: labelOr('nav.addContract', 'Add contract'), href: '/owner/attractions?view=clients-contracts', icon: FaPlus },
+        { label: labelOr('nav.clientReports', 'Client reports'), href: '/owner/attractions?view=clients-contracts', icon: FaChartLine },
       ],
     },
     {
@@ -296,12 +296,12 @@ const Navbar = () => {
       // Notifications & Alerts
       label: labelOr('nav.notificationsAlerts', 'Notifications & alerts'),
       icon: FaBell,
-      href: '/owner/attractions?view=settings',
+      href: '/owner/attractions?view=notifications',
       children: [
-        { label: labelOr('nav.maintenanceReminders', 'Maintenance reminders'), href: '/owner/attractions?view=settings', icon: FaBell },
-        { label: labelOr('nav.policyAlerts', 'Policy & safety alerts'), href: '/owner/attractions?view=settings', icon: FaBell },
-        { label: labelOr('nav.expiryAlerts', 'Expiry alerts'), href: '/owner/attractions?view=settings', icon: FaBell },
-        { label: labelOr('nav.activityAlerts', 'Guest activity alerts'), href: '/owner/attractions?view=settings', icon: FaBell },
+        { label: labelOr('nav.maintenanceReminders', 'Maintenance reminders'), href: '/owner/attractions?view=notifications', icon: FaBell },
+        { label: labelOr('nav.policyAlerts', 'Policy & safety alerts'), href: '/owner/attractions?view=notifications', icon: FaBell },
+        { label: labelOr('nav.expiryAlerts', 'Expiry alerts'), href: '/owner/attractions?view=notifications', icon: FaBell },
+        { label: labelOr('nav.activityAlerts', 'Guest activity alerts'), href: '/owner/attractions?view=notifications', icon: FaBell },
       ],
     },
   ];
