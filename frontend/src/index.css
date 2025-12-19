@@ -149,6 +149,17 @@ img[loading="lazy"].loaded {
   background-color: #8F633E; /* Darker Toffee */
 }
 
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
 /* Custom Animations */
 @keyframes fadeInDown {
   from {

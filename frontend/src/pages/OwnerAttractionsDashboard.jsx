@@ -252,7 +252,49 @@ export default function OwnerAttractionsDashboard() {
     isActive: true,
     highlights: ''
   }), []);
+
   const [form, setForm] = useState(empty);
+
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editorMode, setEditorMode] = useState('create');
+  const [editingId, setEditingId] = useState(null);
+
+  const openCreateEditor = () => {
+    setEditorMode('create');
+    setEditingId(null);
+    setForm(empty);
+    setCreateImages([]);
+    setEditorOpen(true);
+  };
+
+  const openEditEditor = (item) => {
+    const id = item?._id;
+    if (!id) return;
+    setEditorMode('edit');
+    setEditingId(String(id));
+    setCreateImages([]);
+    setForm({
+      name: item?.name || '',
+      description: item?.description || '',
+      category: item?.category || 'tour',
+      location: item?.location || '',
+      city: item?.city || '',
+      country: item?.country || 'Rwanda',
+      price: Number(item?.price || 0),
+      currency: item?.currency || 'RWF',
+      isActive: Boolean(item?.isActive),
+      highlights: Array.isArray(item?.highlights) ? item.highlights.join(', ') : (item?.highlights || '')
+    });
+    setEditorOpen(true);
+  };
+
+  const closeEditor = () => {
+    setEditorOpen(false);
+    setEditingId(null);
+    setEditorMode('create');
+    setForm(empty);
+    setCreateImages([]);
+  };
 
   async function loadMine() {
     try {
@@ -332,6 +374,78 @@ export default function OwnerAttractionsDashboard() {
 
   function reset() { setForm(empty); }
 
+  async function saveEditor() {
+    try {
+      if (user?.isBlocked) {
+        toast.error(labelOr('ownerAttractions.blockedToast', 'Your account is deactivated.')); 
+        return;
+      }
+      if (!String(form.name || '').trim()) {
+        toast.error(labelOr('ownerAttractions.errors.nameRequired', 'Name is required'));
+        return;
+      }
+
+      const payload = {
+        ...form,
+        price: Number(form.price || 0),
+        highlights: String(form.highlights || '').split(',').map(s => s.trim()).filter(Boolean)
+      };
+
+      if (editorMode === 'create' && (!createImages || createImages.length === 0)) {
+        toast.error(labelOr('ownerAttractions.errors.addAtLeastOneImage', 'Please add at least one image'));
+        return;
+      }
+
+      setSaving(true);
+
+      if (editorMode === 'create') {
+        const res = await fetch(`${API_URL}/api/attractions`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || labelOr('ownerAttractions.errors.failedToCreate', 'Failed to create'));
+        setItems(list => [data.attraction, ...list]);
+        await uploadImages(data.attraction._id, createImages);
+        toast.success(labelOr('ownerAttractions.toasts.created', 'Attraction created'));
+        setSuccessTitle(labelOr('ownerAttractions.modals.createdTitle', 'Attraction Created'));
+        setSuccessMsg(labelOr('ownerAttractions.modals.createdMessage', 'Your attraction was created successfully.'));
+        setSuccessOpen(true);
+        closeEditor();
+      } else {
+        const id = editingId;
+        if (!id) {
+          toast.error(labelOr('ownerAttractions.errors.missingAttractionId', 'Missing attraction id'));
+          return;
+        }
+        const res = await fetch(`${API_URL}/api/attractions/${id}`, {
+          method: 'PATCH',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || labelOr('ownerAttractions.errors.updateFailed', 'Update failed'));
+        setItems(list => list.map(x => String(x._id) === String(id) ? data.attraction : x));
+        if (createImages && createImages.length > 0) {
+          await uploadImages(id, createImages);
+        }
+        toast.success(labelOr('ownerAttractions.toasts.updated', 'Updated'));
+        setSuccessTitle(labelOr('ownerAttractions.modals.updatedTitle', 'Attraction Updated'));
+        setSuccessMsg(labelOr('ownerAttractions.modals.updatedMessage', 'Your attraction was updated successfully.'));
+        setSuccessOpen(true);
+        closeEditor();
+      }
+    } catch (e) {
+      console.error('[Attractions][saveEditor] error', e);
+      toast.error(e.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function createItem(e) {
     e.preventDefault();
     try {
@@ -350,9 +464,9 @@ export default function OwnerAttractionsDashboard() {
       console.log('[Attractions][create] result', { status: res.status, id: data?.attraction?._id });
       if (!res.ok) throw new Error(data.message || 'Failed to create');
       setItems(list => [data.attraction, ...list]);
-      toast.success('Attraction created');
-      setSuccessTitle('Attraction Created');
-      setSuccessMsg('Your attraction was created successfully.');
+      toast.success(labelOr('ownerAttractions.toasts.created', 'Attraction created'));
+      setSuccessTitle(labelOr('ownerAttractions.modals.createdTitle', 'Attraction Created'));
+      setSuccessMsg(labelOr('ownerAttractions.modals.createdMessage', 'Your attraction was created successfully.'));
       setSuccessOpen(true);
       await uploadImages(data.attraction._id, createImages);
       reset();
@@ -370,15 +484,15 @@ export default function OwnerAttractionsDashboard() {
       console.log('[Attractions][update] result', { status: res.status });
       if (!res.ok) throw new Error(data.message || 'Update failed');
       setItems(list => list.map(x => x._id === id ? data.attraction : x));
-      toast.success('Updated');
-      setSuccessTitle('Attraction Updated');
-      setSuccessMsg('Your attraction was updated successfully.');
+      toast.success(labelOr('ownerAttractions.toasts.updated', 'Updated'));
+      setSuccessTitle(labelOr('ownerAttractions.modals.updatedTitle', 'Attraction Updated'));
+      setSuccessMsg(labelOr('ownerAttractions.modals.updatedMessage', 'Your attraction was updated successfully.'));
       setSuccessOpen(true);
     } catch (e) { console.error('[Attractions][update] error', e); toast.error(e.message); }
   }
 
   async function deleteItem(id) {
-    if (!confirm('Delete this attraction?')) return;
+    if (!confirm(labelOr('ownerAttractions.confirm.deleteAttraction', 'Delete this attraction?'))) return;
     try {
       console.log('[Attractions][delete] id', id);
       const res = await fetch(`${API_URL}/api/attractions/${id}`, { method: 'DELETE', credentials: 'include' });
@@ -386,9 +500,9 @@ export default function OwnerAttractionsDashboard() {
       console.log('[Attractions][delete] result', { status: res.status });
       if (!res.ok) throw new Error(data.message || 'Delete failed');
       setItems(list => list.filter(x => x._id !== id));
-      toast.success('Deleted');
-      setSuccessTitle('Attraction Deleted');
-      setSuccessMsg('Your attraction was deleted successfully.');
+      toast.success(labelOr('ownerAttractions.toasts.deleted', 'Deleted'));
+      setSuccessTitle(labelOr('ownerAttractions.modals.deletedTitle', 'Attraction Deleted'));
+      setSuccessMsg(labelOr('ownerAttractions.modals.deletedMessage', 'Your attraction was deleted successfully.'));
       setSuccessOpen(true);
     } catch (e) { console.error('[Attractions][delete] error', e); toast.error(e.message); }
   }
@@ -405,9 +519,9 @@ export default function OwnerAttractionsDashboard() {
       console.log('[Attractions][uploadImages] result', { status: res.status, imageCount: (data?.attraction?.images||[]).length });
       if (!res.ok) throw new Error(data.message || 'Upload failed');
       setItems(list => list.map(x => x._id === id ? data.attraction : x));
-      toast.success('Images uploaded');
-      setSuccessTitle('Images Uploaded');
-      setSuccessMsg('Your attraction images were uploaded successfully.');
+      toast.success(labelOr('ownerAttractions.toasts.imagesUploaded', 'Images uploaded'));
+      setSuccessTitle(labelOr('ownerAttractions.modals.imagesUploadedTitle', 'Images Uploaded'));
+      setSuccessMsg(labelOr('ownerAttractions.modals.imagesUploadedMessage', 'Your attraction images were uploaded successfully.'));
       setSuccessOpen(true);
     } catch (e) { console.error('[Attractions][uploadImages] error', e); toast.error(e.message); } finally { setUploadingId(null); }
   }
@@ -499,7 +613,7 @@ export default function OwnerAttractionsDashboard() {
       </div>
 
       {/* View selector similar to Property/Car dashboards */}
-      <div className="mb-4 -mx-1 px-1 overflow-x-auto">
+      <div className="mb-4 -mx-1 px-1 overflow-x-auto scrollbar-hide">
         <div className="flex flex-nowrap gap-2 text-sm min-w-max">
         <button
           type="button"
@@ -701,7 +815,7 @@ export default function OwnerAttractionsDashboard() {
                 : 'bg-white text-[#6b5744] border-[#e0d5c7] hover:bg-[#f9f1e7]'
             }`}
           >
-            All attractions
+            {labelOr('nav.allAttractions', 'All attractions')}
           </button>
           <button
             type="button"
@@ -718,7 +832,7 @@ export default function OwnerAttractionsDashboard() {
                 : 'bg-white text-[#6b5744] border-[#e0d5c7] hover:bg-[#f9f1e7]'
             }`}
           >
-            Attraction details
+            {labelOr('nav.attractionDetails', 'Attraction details')}
           </button>
           <button
             type="button"
@@ -735,7 +849,7 @@ export default function OwnerAttractionsDashboard() {
                 : 'bg-white text-[#6b5744] border-[#e0d5c7] hover:bg-[#f9f1e7]'
             }`}
           >
-            Schedules & availability
+            {labelOr('nav.schedulesAvailability', 'Schedules & availability')}
           </button>
           <button
             type="button"
@@ -752,7 +866,7 @@ export default function OwnerAttractionsDashboard() {
                 : 'bg-white text-[#6b5744] border-[#e0d5c7] hover:bg-[#f9f1e7]'
             }`}
           >
-            Media & content
+            {labelOr('nav.mediaContent', 'Media & content')}
           </button>
         </div>
       )}
@@ -1316,79 +1430,145 @@ export default function OwnerAttractionsDashboard() {
 
       {/* List: only in Attractions view */}
       {view === 'attractions' && attractionsSection === 'list' && (
-        loading ? (
-          <div>Loading...</div>
-        ) : filteredItems.length === 0 ? (
-          <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-6 text-sm text-gray-700 text-center">
-            <h2 className="text-lg font-semibold mb-1">
-              No attractions listed
-            </h2>
-            <p className="text-xs text-gray-500">
-              You have no attractions listed yet. Use the "List Your Attraction" button above to add your first one.
-            </p>
+        <>
+          <div className="mb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div>
+              <div className="text-sm font-semibold text-[#3b2a18]">
+                {labelOr('ownerAttractions.manageAllTitle', 'All attractions')}
+              </div>
+              <div className="text-[11px] text-gray-500">
+                {labelOr('ownerAttractions.manageAllSubtitle', 'Create, view, update and delete your attractions from here.')}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={openCreateEditor}
+              className="inline-flex items-center justify-center px-3 py-2 rounded-lg bg-[#a06b42] hover:bg-[#8f5a32] text-white text-xs font-medium shadow-sm"
+            >
+              {labelOr('ownerAttractions.addNewAttraction', 'Add new attraction')}
+            </button>
           </div>
-        ) : (
-          viewMode==='cards' ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {filteredItems.map(item => (
-                <div key={item._id} className="bg-white rounded-lg shadow p-4">
-                  <div className="flex gap-4">
-                    <div className="w-32 h-24 bg-gray-100 rounded overflow-hidden">
-                      {item.images?.[0] ? <img src={makeAbsolute(item.images[0])} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-400">No image</div>}
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <h3 className="font-semibold">{item.name}</h3>
-                        <button onClick={()=>updateItem(item._id, { isActive: !item.isActive })} className={`px-2 py-1 rounded text-sm ${item.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-700'}`}>{item.isActive ? 'Active' : 'Inactive'}</button>
-                      </div>
-                      <p className="text-sm text-gray-600">{item.city || item.location}</p>
-                      {item.price != null && (<p className="text-sm font-medium mt-1">RWF {Number(item.price || 0).toLocaleString()}</p>)}
-                    </div>
-                  </div>
-                  <div className="mt-3 flex items-center gap-2">
-                    <label className="text-sm">Upload Images:</label>
-                    <input type="file" multiple disabled={uploadingId===item._id} onChange={e=>uploadImages(item._id, e.target.files)} />
-                    <button onClick={()=>deleteItem(item._id)} className="ml-auto px-3 py-1 bg-red-600 text-white rounded text-sm">Delete</button>
-                  </div>
-                  {item.images?.length>0 && (
-                    <div className="mt-3 grid grid-cols-4 gap-2">
-                      {item.images.map((img, i)=> (
-                        <img key={i} src={makeAbsolute(img)} className="w-full h-20 object-cover rounded" />
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
+
+          {loading ? (
+            <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-6 text-sm text-gray-700">
+              {labelOr('common.loading', 'Loading...')}
+            </div>
+          ) : filteredItems.length === 0 ? (
+            <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-6 text-sm text-gray-700 text-center">
+              <h2 className="text-lg font-semibold mb-1">
+                {labelOr('ownerAttractions.empty.title', 'No attractions listed')}
+              </h2>
+              <p className="text-xs text-gray-500">
+                {labelOr('ownerAttractions.empty.subtitle', 'You have no attractions listed yet. Add your first attraction to start receiving bookings.')}
+              </p>
+              <div className="mt-4 flex justify-center">
+                <button
+                  type="button"
+                  onClick={openCreateEditor}
+                  className="px-4 py-2 rounded-lg bg-[#a06b42] hover:bg-[#8f5a32] text-white text-sm font-medium shadow-sm"
+                >
+                  {labelOr('ownerAttractions.addNewAttraction', 'Add new attraction')}
+                </button>
+              </div>
             </div>
           ) : (
-            <div className="bg-white rounded-lg shadow overflow-x-auto">
-              <table className="min-w-full text-sm">
-                <thead>
-                  <tr className="bg-gray-50 text-left">
-                    <th className="p-3">Name</th>
-                    <th className="p-3">Category</th>
-                    <th className="p-3">City</th>
-                    <th className="p-3">Price</th>
-                    <th className="p-3">Status</th>
-                    <th className="p-3">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredItems.map(item => (
-                    <tr key={item._id} className="border-t">
-                      <td className="p-3 font-medium">{item.name}</td>
-                      <td className="p-3">{item.category}</td>
-                      <td className="p-3">{item.city || item.location}</td>
-                      <td className="p-3">RWF {Number(item.price || 0).toLocaleString()}</td>
-                      <td className="p-3"><button onClick={()=>updateItem(item._id, { isActive: !item.isActive })} className={`px-2 py-1 rounded text-xs ${item.isActive ? 'bg-green-100 text-green-700':'bg-gray-200 text-gray-700'}`}>{item.isActive ? 'Active':'Inactive'}</button></td>
-                      <td className="p-3"><button onClick={()=>deleteItem(item._id)} className="px-3 py-1 bg-red-600 text-white rounded text-xs">Delete</button></td>
+            viewMode==='cards' ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {filteredItems.map(item => (
+                  <div key={item._id} className="bg-white rounded-xl shadow-sm border border-[#e0d5c7] p-4">
+                    <div className="flex flex-col sm:flex-row gap-4">
+                      <div className="w-full sm:w-40 h-28 bg-[#f7efe4] rounded-lg overflow-hidden border border-[#f0e6d9]">
+                        {item.images?.[0]
+                          ? <img src={makeAbsolute(item.images[0])} alt="" className="w-full h-full object-cover" />
+                          : <div className="w-full h-full flex items-center justify-center text-[#6b5744] text-xs">{labelOr('ownerAttractions.noImage', 'No image')}</div>}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <h3 className="font-semibold text-[#3b2a18] truncate">{item.name}</h3>
+                            <p className="text-sm text-gray-600 truncate">{item.city || item.location || labelOr('ownerAttractions.locationUnknown', 'Location not set')}</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={()=>updateItem(item._id, { isActive: !item.isActive })}
+                            className={`shrink-0 px-2.5 py-1 rounded-full text-[11px] border ${item.isActive ? 'bg-green-50 text-green-700 border-green-200' : 'bg-[#f7efe4] text-[#6b5744] border-[#e0d5c7]'}`}
+                          >
+                            {item.isActive ? labelOr('ownerAttractions.status.active', 'Active') : labelOr('ownerAttractions.status.inactive', 'Inactive')}
+                          </button>
+                        </div>
+                        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-gray-700">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-[#fffaf4] border border-[#f0e6d9]">
+                            {labelOr('ownerAttractions.fields.category', 'Category')}: {item.category || '-'}
+                          </span>
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-[#fffaf4] border border-[#f0e6d9]">
+                            {labelOr('ownerAttractions.fields.price', 'Price')}: {formatAmount(item.price)}
+                          </span>
+                        </div>
+                        {item.description && (
+                          <p className="mt-2 text-xs text-gray-600 line-clamp-2">{item.description}</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="mt-3 flex flex-col sm:flex-row sm:items-center gap-2">
+                      <div className="flex items-center gap-2">
+                        <label className="text-xs text-[#6b5744]">{labelOr('ownerAttractions.uploadImages', 'Upload images')}:</label>
+                        <input type="file" multiple disabled={uploadingId===item._id} onChange={e=>uploadImages(item._id, e.target.files)} className="text-xs" />
+                      </div>
+                      <div className="sm:ml-auto flex flex-wrap items-center gap-2">
+                        <button type="button" onClick={() => openEditEditor(item)} className="px-3 py-1.5 rounded-lg bg-white border border-[#d4c4b0] text-[#4b2a00] text-xs font-medium hover:bg-[#f9f1e7]">
+                          {labelOr('common.edit', 'Edit')}
+                        </button>
+                        <button type="button" onClick={()=>deleteItem(item._id)} className="px-3 py-1.5 rounded-lg bg-red-600 text-white text-xs font-medium hover:bg-red-700">
+                          {labelOr('common.delete', 'Delete')}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="bg-white rounded-xl shadow-sm border border-[#e0d5c7] overflow-x-auto scrollbar-hide">
+                <table className="min-w-full text-sm">
+                  <thead>
+                    <tr className="bg-[#f7efe4] text-left text-[11px] uppercase tracking-wide text-[#6b5744]">
+                      <th className="p-3">{labelOr('ownerAttractions.table.name', 'Name')}</th>
+                      <th className="p-3">{labelOr('ownerAttractions.table.category', 'Category')}</th>
+                      <th className="p-3">{labelOr('ownerAttractions.table.city', 'City')}</th>
+                      <th className="p-3">{labelOr('ownerAttractions.table.price', 'Price')}</th>
+                      <th className="p-3">{labelOr('ownerAttractions.table.status', 'Status')}</th>
+                      <th className="p-3">{labelOr('ownerAttractions.table.actions', 'Actions')}</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )
-        )
+                  </thead>
+                  <tbody>
+                    {filteredItems.map(item => (
+                      <tr key={item._id} className="border-t border-[#f0e6d9] hover:bg-[#fffaf4]">
+                        <td className="p-3 font-medium text-[#3b2a18]">{item.name}</td>
+                        <td className="p-3 text-gray-700">{item.category}</td>
+                        <td className="p-3 text-gray-700">{item.city || item.location}</td>
+                        <td className="p-3 text-[#4b2a00] font-semibold">{formatAmount(item.price)}</td>
+                        <td className="p-3">
+                          <button type="button" onClick={()=>updateItem(item._id, { isActive: !item.isActive })} className={`px-2 py-1 rounded-full text-[11px] border ${item.isActive ? 'bg-green-50 text-green-700 border-green-200':'bg-[#f7efe4] text-[#6b5744] border-[#e0d5c7]'}`}> 
+                            {item.isActive ? labelOr('ownerAttractions.status.active', 'Active') : labelOr('ownerAttractions.status.inactive', 'Inactive')}
+                          </button>
+                        </td>
+                        <td className="p-3">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <button type="button" onClick={() => openEditEditor(item)} className="px-3 py-1 rounded-lg bg-white border border-[#d4c4b0] text-[#4b2a00] text-xs font-medium hover:bg-[#f9f1e7]">
+                              {labelOr('common.edit', 'Edit')}
+                            </button>
+                            <button type="button" onClick={()=>deleteItem(item._id)} className="px-3 py-1 rounded-lg bg-red-600 text-white text-xs font-medium hover:bg-red-700">
+                              {labelOr('common.delete', 'Delete')}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )
+          )}
+        </>
       )}
 
       {view === 'attractions' && attractionsSection !== 'list' && (
@@ -1627,6 +1807,194 @@ export default function OwnerAttractionsDashboard() {
           onPrint={() => window.print()}
           onClose={() => setReceiptBooking(null)}
         />
+      )}
+
+      {editorOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-black/40" onClick={closeEditor}></div>
+          <div className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-[#e0d5c7] overflow-hidden">
+            <div className="px-5 py-4 border-b border-[#f0e6d9] bg-[#fffaf4]">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="text-lg font-semibold text-[#3b2a18]">
+                    {editorMode === 'create'
+                      ? labelOr('ownerAttractions.editor.createTitle', 'Create attraction')
+                      : labelOr('ownerAttractions.editor.editTitle', 'Edit attraction')}
+                  </div>
+                  <div className="mt-0.5 text-xs text-gray-600">
+                    {labelOr('ownerAttractions.editor.subtitle', 'Fill in the details below. You can upload images after saving too.')}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={closeEditor}
+                  className="px-3 py-1.5 rounded-lg bg-white border border-[#d4c4b0] text-[#4b2a00] text-xs font-medium hover:bg-[#f9f1e7]"
+                >
+                  {labelOr('common.close', 'Close')}
+                </button>
+              </div>
+            </div>
+
+            <div className="px-5 py-4 max-h-[75vh] overflow-y-auto">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="md:col-span-2">
+                  <label className="block text-[11px] text-[#6b5744] mb-1">
+                    {labelOr('ownerAttractions.fields.name', 'Name')}
+                  </label>
+                  <input
+                    type="text"
+                    value={form.name}
+                    onChange={(e) => setForm(prev => ({ ...prev, name: e.target.value }))}
+                    className="w-full px-3 py-2 border border-[#d4c4b0] rounded-lg text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] text-[#6b5744] mb-1">
+                    {labelOr('ownerAttractions.fields.category', 'Category')}
+                  </label>
+                  <select
+                    value={form.category}
+                    onChange={(e) => setForm(prev => ({ ...prev, category: e.target.value }))}
+                    className="w-full px-3 py-2 border border-[#d4c4b0] rounded-lg text-sm bg-white"
+                  >
+                    <option value="tour">{labelOr('ownerAttractions.categories.tour', 'Tour')}</option>
+                    <option value="activity">{labelOr('ownerAttractions.categories.activity', 'Activity')}</option>
+                    <option value="museum">{labelOr('ownerAttractions.categories.museum', 'Museum')}</option>
+                    <option value="park">{labelOr('ownerAttractions.categories.park', 'Park')}</option>
+                    <option value="other">{labelOr('ownerAttractions.categories.other', 'Other')}</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] text-[#6b5744] mb-1">
+                    {labelOr('ownerAttractions.fields.city', 'City')}
+                  </label>
+                  <input
+                    type="text"
+                    value={form.city}
+                    onChange={(e) => setForm(prev => ({ ...prev, city: e.target.value }))}
+                    className="w-full px-3 py-2 border border-[#d4c4b0] rounded-lg text-sm"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-[11px] text-[#6b5744] mb-1">
+                    {labelOr('ownerAttractions.fields.location', 'Location')}
+                  </label>
+                  <input
+                    type="text"
+                    value={form.location}
+                    onChange={(e) => setForm(prev => ({ ...prev, location: e.target.value }))}
+                    className="w-full px-3 py-2 border border-[#d4c4b0] rounded-lg text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] text-[#6b5744] mb-1">
+                    {labelOr('ownerAttractions.fields.price', 'Price')}
+                  </label>
+                  <input
+                    type="number"
+                    value={form.price}
+                    onChange={(e) => setForm(prev => ({ ...prev, price: e.target.value }))}
+                    className="w-full px-3 py-2 border border-[#d4c4b0] rounded-lg text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] text-[#6b5744] mb-1">
+                    {labelOr('ownerAttractions.fields.currency', 'Currency')}
+                  </label>
+                  <select
+                    value={form.currency}
+                    onChange={(e) => setForm(prev => ({ ...prev, currency: e.target.value }))}
+                    className="w-full px-3 py-2 border border-[#d4c4b0] rounded-lg text-sm bg-white"
+                  >
+                    <option value="RWF">RWF</option>
+                  </select>
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-[11px] text-[#6b5744] mb-1">
+                    {labelOr('ownerAttractions.fields.description', 'Description')}
+                  </label>
+                  <textarea
+                    value={form.description}
+                    onChange={(e) => setForm(prev => ({ ...prev, description: e.target.value }))}
+                    className="w-full px-3 py-2 border border-[#d4c4b0] rounded-lg text-sm min-h-[96px]"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-[11px] text-[#6b5744] mb-1">
+                    {labelOr('ownerAttractions.fields.highlights', 'Highlights (comma-separated)')}
+                  </label>
+                  <input
+                    type="text"
+                    value={form.highlights}
+                    onChange={(e) => setForm(prev => ({ ...prev, highlights: e.target.value }))}
+                    className="w-full px-3 py-2 border border-[#d4c4b0] rounded-lg text-sm"
+                  />
+                </div>
+
+                <div className="md:col-span-2 flex items-center gap-2">
+                  <input
+                    id="attractionActive"
+                    type="checkbox"
+                    checked={!!form.isActive}
+                    onChange={(e) => setForm(prev => ({ ...prev, isActive: e.target.checked }))}
+                  />
+                  <label htmlFor="attractionActive" className="text-sm text-gray-700">
+                    {labelOr('ownerAttractions.fields.isActive', 'Active')}
+                  </label>
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-[11px] text-[#6b5744] mb-1">
+                    {editorMode === 'create'
+                      ? labelOr('ownerAttractions.fields.imagesRequired', 'Images (required)')
+                      : labelOr('ownerAttractions.fields.imagesOptional', 'Images (optional)')}
+                  </label>
+                  <input
+                    type="file"
+                    multiple
+                    onChange={(e) => setCreateImages(e.target.files ? Array.from(e.target.files) : [])}
+                    className="text-sm"
+                  />
+                  {createImages?.length > 0 && (
+                    <div className="mt-2 text-xs text-gray-600">
+                      {createImages.length}{' '}
+                      {labelOr('ownerAttractions.fields.imagesSelected', 'images selected')}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="px-5 py-4 border-t border-[#f0e6d9] bg-white flex flex-col sm:flex-row gap-2 sm:justify-end">
+              <button
+                type="button"
+                onClick={closeEditor}
+                className="px-4 py-2 rounded-lg bg-white border border-[#d4c4b0] text-[#4b2a00] text-sm font-medium hover:bg-[#f9f1e7]"
+              >
+                {labelOr('common.cancel', 'Cancel')}
+              </button>
+              <button
+                type="button"
+                disabled={saving}
+                onClick={saveEditor}
+                className="px-4 py-2 rounded-lg bg-[#a06b42] hover:bg-[#8f5a32] disabled:opacity-60 text-white text-sm font-medium shadow-sm"
+              >
+                {saving
+                  ? labelOr('common.saving', 'Saving...')
+                  : (editorMode === 'create'
+                    ? labelOr('common.create', 'Create')
+                    : labelOr('common.save', 'Save'))}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       <SuccessModal
