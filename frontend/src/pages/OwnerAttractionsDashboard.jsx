@@ -854,7 +854,181 @@ export default function OwnerAttractionsDashboard() {
 
       {/* Finance view: computed from attraction bookings for this dashboard */}
       {view === 'finance' && (
-        <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-4 text-sm text-gray-700">
+        <>
+          <div className="mb-3 flex flex-wrap gap-2 text-[11px] sm:text-xs">
+            <button
+              type="button"
+              onClick={() => {
+                try {
+                  const next = new URLSearchParams(searchParams.toString());
+                  next.set('view', 'finance');
+                  next.set('filter', 'all');
+                  next.delete('mode');
+                  setSearchParams(next, { replace: true });
+                } catch (_) {}
+              }}
+              className={`px-2.5 py-1 rounded-full border ${
+                financeFilter === 'all' && financeMode !== 'expenses'
+                  ? 'bg-[#f5e6d5] text-[#4b2a00] border-[#a06b42] font-semibold'
+                  : 'bg-white text-[#6b5744] border-[#e0d5c7] hover:bg-[#f9f1e7]'
+              }`}
+            >
+              {labelOr('ownerAttractions.finance.allPayments', 'All payments')}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                try {
+                  const next = new URLSearchParams(searchParams.toString());
+                  next.set('view', 'finance');
+                  next.set('filter', 'paid');
+                  next.delete('mode');
+                  setSearchParams(next, { replace: true });
+                } catch (_) {}
+              }}
+              className={`px-2.5 py-1 rounded-full border ${
+                financeFilter === 'paid' && financeMode !== 'expenses'
+                  ? 'bg-[#f5e6d5] text-[#4b2a00] border-[#a06b42] font-semibold'
+                  : 'bg-white text-[#6b5744] border-[#e0d5c7] hover:bg-[#f9f1e7]'
+              }`}
+            >
+              {labelOr('ownerAttractions.finance.paid', 'Paid')}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                try {
+                  const next = new URLSearchParams(searchParams.toString());
+                  next.set('view', 'finance');
+                  next.set('filter', 'pending');
+                  next.delete('mode');
+                  setSearchParams(next, { replace: true });
+                } catch (_) {}
+              }}
+              className={`px-2.5 py-1 rounded-full border ${
+                financeFilter === 'pending' && financeMode !== 'expenses'
+                  ? 'bg-[#f5e6d5] text-[#4b2a00] border-[#a06b42] font-semibold'
+                  : 'bg-white text-[#6b5744] border-[#e0d5c7] hover:bg-[#f9f1e7]'
+              }`}
+            >
+              {labelOr('ownerAttractions.finance.pending', 'Pending')}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                try {
+                  const next = new URLSearchParams(searchParams.toString());
+                  next.set('view', 'finance');
+                  next.set('filter', 'unpaid');
+                  next.delete('mode');
+                  setSearchParams(next, { replace: true });
+                } catch (_) {}
+              }}
+              className={`px-2.5 py-1 rounded-full border ${
+                financeFilter === 'unpaid' && financeMode !== 'expenses'
+                  ? 'bg-[#f5e6d5] text-[#4b2a00] border-[#a06b42] font-semibold'
+                  : 'bg-white text-[#6b5744] border-[#e0d5c7] hover:bg-[#f9f1e7]'
+              }`}
+            >
+              {labelOr('ownerAttractions.finance.unpaid', 'Unpaid')}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                try {
+                  const next = new URLSearchParams(searchParams.toString());
+                  next.set('view', 'finance');
+                  next.set('mode', 'expenses');
+                  next.set('filter', financeFilter || 'all');
+                  setSearchParams(next, { replace: true });
+                } catch (_) {}
+              }}
+              className={`px-2.5 py-1 rounded-full border ${
+                financeMode === 'expenses'
+                  ? 'bg-[#f5e6d5] text-[#4b2a00] border-[#a06b42] font-semibold'
+                  : 'bg-white text-[#6b5744] border-[#e0d5c7] hover:bg-[#f9f1e7]'
+              }`}
+            >
+              {labelOr('ownerAttractions.finance.expensesMode', 'Expenses & profit')}
+            </button>
+            <span className="inline-flex items-center px-1 text-[10px] text-gray-400">
+              |
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                try {
+                  const next = new URLSearchParams(searchParams.toString());
+                  next.set('view', 'finance');
+                  next.delete('range');
+                  setSearchParams(next, { replace: true });
+                } catch (_) {}
+              }}
+              className={`px-2.5 py-1 rounded-full border ${
+                !financeRange || financeRange === 'all'
+                  ? 'bg-[#f5e6d5] text-[#4b2a00] border-[#a06b42] font-semibold'
+                  : 'bg-white text-[#6b5744] border-[#e0d5c7] hover:bg-[#f9f1e7]'
+              }`}
+            >
+              {labelOr('ownerAttractions.finance.rangeAll', 'All time')}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                try {
+                  const next = new URLSearchParams(searchParams.toString());
+                  next.set('view', 'finance');
+                  next.set('range', '30');
+                  setSearchParams(next, { replace: true });
+                } catch (_) {}
+              }}
+              className={`px-2.5 py-1 rounded-full border ${
+                financeRange === '30'
+                  ? 'bg-[#f5e6d5] text-[#4b2a00] border-[#a06b42] font-semibold'
+                  : 'bg-white text-[#6b5744] border-[#e0d5c7] hover:bg-[#f9f1e7]'
+              }`}
+            >
+              {labelOr('ownerAttractions.finance.range30', 'Last 30 days')}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                try {
+                  const next = new URLSearchParams(searchParams.toString());
+                  next.set('view', 'finance');
+                  next.set('range', 'mtd');
+                  setSearchParams(next, { replace: true });
+                } catch (_) {}
+              }}
+              className={`px-2.5 py-1 rounded-full border ${
+                financeRange === 'mtd'
+                  ? 'bg-[#f5e6d5] text-[#4b2a00] border-[#a06b42] font-semibold'
+                  : 'bg-white text-[#6b5744] border-[#e0d5c7] hover:bg-[#f9f1e7]'
+              }`}
+            >
+              {labelOr('ownerAttractions.finance.rangeMtd', 'Month to date')}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                try {
+                  const next = new URLSearchParams(searchParams.toString());
+                  next.set('view', 'finance');
+                  next.set('range', 'ytd');
+                  setSearchParams(next, { replace: true });
+                } catch (_) {}
+              }}
+              className={`px-2.5 py-1 rounded-full border ${
+                financeRange === 'ytd'
+                  ? 'bg-[#f5e6d5] text-[#4b2a00] border-[#a06b42] font-semibold'
+                  : 'bg-white text-[#6b5744] border-[#e0d5c7] hover:bg-[#f9f1e7]'
+              }`}
+            >
+              {labelOr('ownerAttractions.finance.rangeYtd', 'Year to date')}
+            </button>
+          </div>
+
+          <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-4 text-sm text-gray-700">
           <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
             <div>
               <h2 className="text-lg font-semibold">{financeModeLabel} - {financeFilterLabel}</h2>
@@ -884,10 +1058,83 @@ export default function OwnerAttractionsDashboard() {
             </div>
           </div>
         </div>
+        </>
       )}
 
       {/* Analytics view: simple stats derived from bookings */}
       {view === 'analytics' && (
+        <>
+        <div className="mb-3 flex flex-wrap gap-2 text-[11px] sm:text-xs">
+          <button
+            type="button"
+            onClick={() => {
+              try {
+                const next = new URLSearchParams(searchParams.toString());
+                next.delete('segment');
+                setSearchParams(next, { replace: true });
+              } catch (_) {}
+            }}
+            className={`px-2.5 py-1 rounded-full border ${
+              !analyticsSegment || analyticsSegment === 'overview'
+                ? 'bg-[#f5e6d5] text-[#4b2a00] border-[#a06b42] font-semibold'
+                : 'bg-white text-[#6b5744] border-[#e0d5c7] hover:bg-[#f9f1e7]'
+            }`}
+          >
+            {labelOr('ownerAttractions.analytics.overview', 'Overview')}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              try {
+                const next = new URLSearchParams(searchParams.toString());
+                next.set('segment', 'attractions');
+                setSearchParams(next, { replace: true });
+              } catch (_) {}
+            }}
+            className={`px-2.5 py-1 rounded-full border ${
+              analyticsSegment === 'attractions'
+                ? 'bg-[#f5e6d5] text-[#4b2a00] border-[#a06b42] font-semibold'
+                : 'bg-white text-[#6b5744] border-[#e0d5c7] hover:bg-[#f9f1e7]'
+            }`}
+          >
+            {labelOr('ownerAttractions.analytics.attractionPerformance', 'Attraction performance')}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              try {
+                const next = new URLSearchParams(searchParams.toString());
+                next.set('segment', 'bookings');
+                setSearchParams(next, { replace: true });
+              } catch (_) {}
+            }}
+            className={`px-2.5 py-1 rounded-full border ${
+              analyticsSegment === 'bookings'
+                ? 'bg-[#f5e6d5] text-[#4b2a00] border-[#a06b42] font-semibold'
+                : 'bg-white text-[#6b5744] border-[#e0d5c7] hover:bg-[#f9f1e7]'
+            }`}
+          >
+            {labelOr('ownerAttractions.analytics.bookingTrends', 'Booking trends')}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              try {
+                const next = new URLSearchParams(searchParams.toString());
+                next.set('segment', 'revenue');
+                setSearchParams(next, { replace: true });
+              } catch (_) {}
+            }}
+            className={`px-2.5 py-1 rounded-full border ${
+              analyticsSegment === 'revenue'
+                ? 'bg-[#f5e6d5] text-[#4b2a00] border-[#a06b42] font-semibold'
+                : 'bg-white text-[#6b5744] border-[#e0d5c7] hover:bg-[#f9f1e7]'
+            }`}
+          >
+            {labelOr('ownerAttractions.analytics.revenueReports', 'Revenue reports')}
+          </button>
+        </div>
+
         <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-4 text-sm text-gray-700">
           <h2 className="text-lg font-semibold mb-3">
             {analyticsSegment === 'attractions'
