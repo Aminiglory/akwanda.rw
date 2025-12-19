@@ -49,8 +49,13 @@ export default function OwnerAttractionsDashboard() {
 
   const financeFilter = (searchParams.get('filter') || 'all').toLowerCase();
   const financeMode = (searchParams.get('mode') || 'overview').toLowerCase();
-  const attractionsSection = (searchParams.get('section') || 'list').toLowerCase();
-  const dashboardSub = (searchParams.get('sub') || '').toLowerCase();
+  const currentViewParam = (searchParams.get('view') || 'overview').toLowerCase();
+  const sectionParam = (searchParams.get('section') || '').toLowerCase();
+  const attractionsSection = currentViewParam === 'attractions' ? (sectionParam || 'list') : 'list';
+  const expensesSection = currentViewParam === 'expenses' ? (sectionParam || 'all') : 'all';
+  const incomeRevenueSection = currentViewParam === 'income-revenue' ? (sectionParam || 'transactions') : 'transactions';
+  const clientsContractsSection = currentViewParam === 'clients-contracts' ? (sectionParam || 'clients') : 'clients';
+  const notificationsSection = currentViewParam === 'notifications' ? (sectionParam || 'maintenance') : 'maintenance';
 
   const financeFilterLabel = (() => {
     switch (financeFilter) {
@@ -126,7 +131,9 @@ export default function OwnerAttractionsDashboard() {
     if (!t) return fallback;
     try {
       const v = t(key);
-      if (!v || v === key) return fallback;
+      if (!v) return fallback;
+      const last = String(key || '').split('.').pop();
+      if (v === key || (last && v === last)) return fallback;
       return v;
     } catch (_) {
       return fallback;
@@ -452,105 +459,6 @@ export default function OwnerAttractionsDashboard() {
         </div>
       )}
 
-      {view === 'expenses' && (
-        <>
-          <div className="mb-3 flex flex-wrap gap-2 text-[11px] sm:text-xs">
-            {(() => {
-              const s = ['all', 'add', 'categories', 'reports'].includes(dashboardSub) ? dashboardSub : 'all';
-              const setSub = (val) => {
-                try {
-                  const next = new URLSearchParams(searchParams.toString());
-                  next.set('view', 'expenses');
-                  next.set('sub', val);
-                  setSearchParams(next, { replace: true });
-                } catch (_) {}
-              };
-              const pill = (val, label) => (
-                <button
-                  key={val}
-                  type="button"
-                  onClick={() => setSub(val)}
-                  className={`px-2.5 py-1 rounded-full border ${
-                    s === val
-                      ? 'bg-[#f5e6d5] text-[#4b2a00] border-[#a06b42] font-semibold'
-                      : 'bg-white text-[#6b5744] border-[#e0d5c7] hover:bg-[#f9f1e7]'
-                  }`}
-                >
-                  {label}
-                </button>
-              );
-              return (
-                <>
-                  {pill('all', labelOr('nav.allExpenses', 'All expenses'))}
-                  {pill('add', labelOr('nav.addExpense', 'Add expense'))}
-                  {pill('categories', labelOr('nav.expenseCategories', 'Expense categories'))}
-                  {pill('reports', labelOr('nav.expenseReports', 'Expense reports'))}
-                </>
-              );
-            })()}
-          </div>
-
-          <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-4 text-sm text-gray-700">
-            <h2 className="text-lg font-semibold mb-2">
-              {labelOr('nav.expenses', 'Expenses')}
-            </h2>
-            <p className="text-xs text-gray-500 mb-2">
-              {labelOr('ownerAttractions.expensesDescription', 'Detailed expense tracking for your attractions will appear here. For now you can use the Finance tab to view overall payments and revenue.')}
-            </p>
-          </div>
-        </>
-      )}
-
-      {view === 'income-revenue' && (
-        <>
-          <div className="mb-3 flex flex-wrap gap-2 text-[11px] sm:text-xs">
-            {(() => {
-              const s = ['transactions', 'add', 'payments', 'invoices', 'reports'].includes(dashboardSub) ? dashboardSub : 'transactions';
-              const setSub = (val) => {
-                try {
-                  const next = new URLSearchParams(searchParams.toString());
-                  next.set('view', 'income-revenue');
-                  next.set('sub', val);
-                  setSearchParams(next, { replace: true });
-                } catch (_) {}
-              };
-              const pill = (val, label) => (
-                <button
-                  key={val}
-                  type="button"
-                  onClick={() => setSub(val)}
-                  className={`px-2.5 py-1 rounded-full border ${
-                    s === val
-                      ? 'bg-[#f5e6d5] text-[#4b2a00] border-[#a06b42] font-semibold'
-                      : 'bg-white text-[#6b5744] border-[#e0d5c7] hover:bg-[#f9f1e7]'
-                  }`}
-                >
-                  {label}
-                </button>
-              );
-              return (
-                <>
-                  {pill('transactions', labelOr('nav.allTransactions', 'All transactions'))}
-                  {pill('add', labelOr('nav.addIncome', 'Add income'))}
-                  {pill('payments', labelOr('nav.clientPayments', 'Client payments'))}
-                  {pill('invoices', labelOr('nav.invoicesReceipts', 'Invoices & receipts'))}
-                  {pill('reports', labelOr('nav.revenueReports', 'Revenue reports'))}
-                </>
-              );
-            })()}
-          </div>
-
-          <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-4 text-sm text-gray-700">
-            <h2 className="text-lg font-semibold mb-2">
-              {labelOr('nav.incomeRevenue', 'Income & revenue')}
-            </h2>
-            <p className="text-xs text-gray-500 mb-2">
-              {labelOr('ownerAttractions.incomeRevenueDescription', 'Tools for managing attraction income, payouts and revenue reports will appear here. For now you can use the Finance and Analytics tabs for high-level numbers.')}
-            </p>
-          </div>
-        </>
-      )}
-
       <div className="mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <h1 className="text-2xl font-bold text-gray-900">My Attractions</h1>
         {items.length > 0 && (
@@ -591,7 +499,8 @@ export default function OwnerAttractionsDashboard() {
       </div>
 
       {/* View selector similar to Property/Car dashboards */}
-      <div className="mb-4 flex flex-wrap gap-2 text-sm">
+      <div className="mb-4 -mx-1 px-1 overflow-x-auto">
+        <div className="flex flex-nowrap gap-2 text-sm min-w-max">
         <button
           type="button"
           onClick={() => {
@@ -599,6 +508,7 @@ export default function OwnerAttractionsDashboard() {
             try {
               const next = new URLSearchParams(searchParams.toString());
               next.delete('view');
+              next.delete('section');
               setSearchParams(next, { replace: true });
             } catch (_) {}
           }}
@@ -613,6 +523,7 @@ export default function OwnerAttractionsDashboard() {
             try {
               const next = new URLSearchParams(searchParams.toString());
               next.set('view', 'attractions');
+              next.delete('section');
               setSearchParams(next, { replace: true });
             } catch (_) {}
           }}
@@ -627,7 +538,7 @@ export default function OwnerAttractionsDashboard() {
             try {
               const next = new URLSearchParams(searchParams.toString());
               next.set('view', 'bookings');
-              next.delete('sub');
+              next.delete('section');
               setSearchParams(next, { replace: true });
             } catch (_) {}
           }}
@@ -642,7 +553,7 @@ export default function OwnerAttractionsDashboard() {
             try {
               const next = new URLSearchParams(searchParams.toString());
               next.set('view', 'finance');
-              next.delete('sub');
+              next.delete('section');
               setSearchParams(next, { replace: true });
             } catch (_) {}
           }}
@@ -657,7 +568,7 @@ export default function OwnerAttractionsDashboard() {
             try {
               const next = new URLSearchParams(searchParams.toString());
               next.set('view', 'expenses');
-              next.delete('sub');
+              next.delete('section');
               setSearchParams(next, { replace: true });
             } catch (_) {}
           }}
@@ -672,7 +583,7 @@ export default function OwnerAttractionsDashboard() {
             try {
               const next = new URLSearchParams(searchParams.toString());
               next.set('view', 'income-revenue');
-              next.delete('sub');
+              next.delete('section');
               setSearchParams(next, { replace: true });
             } catch (_) {}
           }}
@@ -687,7 +598,7 @@ export default function OwnerAttractionsDashboard() {
             try {
               const next = new URLSearchParams(searchParams.toString());
               next.set('view', 'clients-contracts');
-              next.delete('sub');
+              next.delete('section');
               setSearchParams(next, { replace: true });
             } catch (_) {}
           }}
@@ -702,7 +613,7 @@ export default function OwnerAttractionsDashboard() {
             try {
               const next = new URLSearchParams(searchParams.toString());
               next.set('view', 'analytics');
-              next.delete('sub');
+              next.delete('section');
               setSearchParams(next, { replace: true });
             } catch (_) {}
           }}
@@ -717,7 +628,7 @@ export default function OwnerAttractionsDashboard() {
             try {
               const next = new URLSearchParams(searchParams.toString());
               next.set('view', 'reviews');
-              next.delete('sub');
+              next.delete('section');
               setSearchParams(next, { replace: true });
             } catch (_) {}
           }}
@@ -732,7 +643,7 @@ export default function OwnerAttractionsDashboard() {
             try {
               const next = new URLSearchParams(searchParams.toString());
               next.set('view', 'messages');
-              next.delete('sub');
+              next.delete('section');
               setSearchParams(next, { replace: true });
             } catch (_) {}
           }}
@@ -747,7 +658,7 @@ export default function OwnerAttractionsDashboard() {
             try {
               const next = new URLSearchParams(searchParams.toString());
               next.set('view', 'settings');
-              next.delete('sub');
+              next.delete('section');
               setSearchParams(next, { replace: true });
             } catch (_) {}
           }}
@@ -762,7 +673,7 @@ export default function OwnerAttractionsDashboard() {
             try {
               const next = new URLSearchParams(searchParams.toString());
               next.set('view', 'notifications');
-              next.delete('sub');
+              next.delete('section');
               setSearchParams(next, { replace: true });
             } catch (_) {}
           }}
@@ -770,6 +681,7 @@ export default function OwnerAttractionsDashboard() {
         >
           {labelOr('nav.notificationsAlerts', 'Notifications')}
         </button>
+        </div>
       </div>
 
       {view === 'attractions' && (
@@ -1309,12 +1221,12 @@ export default function OwnerAttractionsDashboard() {
         <>
           <div className="mb-3 flex flex-wrap gap-2 text-[11px] sm:text-xs">
             {(() => {
-              const s = ['clients', 'add-client', 'contracts', 'add-contract', 'reports'].includes(dashboardSub) ? dashboardSub : 'clients';
-              const setSub = (val) => {
+              const s = ['clients', 'add-client', 'contracts', 'add-contract', 'reports'].includes(clientsContractsSection) ? clientsContractsSection : 'clients';
+              const setSection = (val) => {
                 try {
                   const next = new URLSearchParams(searchParams.toString());
                   next.set('view', 'clients-contracts');
-                  next.set('sub', val);
+                  next.set('section', val);
                   setSearchParams(next, { replace: true });
                 } catch (_) {}
               };
@@ -1322,7 +1234,7 @@ export default function OwnerAttractionsDashboard() {
                 <button
                   key={val}
                   type="button"
-                  onClick={() => setSub(val)}
+                  onClick={() => setSection(val)}
                   className={`px-2.5 py-1 rounded-full border ${
                     s === val
                       ? 'bg-[#f5e6d5] text-[#4b2a00] border-[#a06b42] font-semibold'
@@ -1358,12 +1270,12 @@ export default function OwnerAttractionsDashboard() {
         <>
           <div className="mb-3 flex flex-wrap gap-2 text-[11px] sm:text-xs">
             {(() => {
-              const s = ['maintenance', 'policy', 'expiry', 'activity'].includes(dashboardSub) ? dashboardSub : 'maintenance';
-              const setSub = (val) => {
+              const s = ['maintenance', 'policy', 'expiry', 'activity'].includes(notificationsSection) ? notificationsSection : 'maintenance';
+              const setSection = (val) => {
                 try {
                   const next = new URLSearchParams(searchParams.toString());
                   next.set('view', 'notifications');
-                  next.set('sub', val);
+                  next.set('section', val);
                   setSearchParams(next, { replace: true });
                 } catch (_) {}
               };
@@ -1371,7 +1283,7 @@ export default function OwnerAttractionsDashboard() {
                 <button
                   key={val}
                   type="button"
-                  onClick={() => setSub(val)}
+                  onClick={() => setSection(val)}
                   className={`px-2.5 py-1 rounded-full border ${
                     s === val
                       ? 'bg-[#f5e6d5] text-[#4b2a00] border-[#a06b42] font-semibold'
@@ -1492,6 +1404,105 @@ export default function OwnerAttractionsDashboard() {
             Use the All attractions section to manage your listings. Additional tools for this section will appear here.
           </p>
         </div>
+      )}
+
+      {view === 'expenses' && (
+        <>
+          <div className="mb-3 flex flex-wrap gap-2 text-[11px] sm:text-xs">
+            {(() => {
+              const s = ['all', 'add', 'categories', 'reports'].includes(expensesSection) ? expensesSection : 'all';
+              const setSection = (val) => {
+                try {
+                  const next = new URLSearchParams(searchParams.toString());
+                  next.set('view', 'expenses');
+                  next.set('section', val);
+                  setSearchParams(next, { replace: true });
+                } catch (_) {}
+              };
+              const pill = (val, label) => (
+                <button
+                  key={val}
+                  type="button"
+                  onClick={() => setSection(val)}
+                  className={`px-2.5 py-1 rounded-full border ${
+                    s === val
+                      ? 'bg-[#f5e6d5] text-[#4b2a00] border-[#a06b42] font-semibold'
+                      : 'bg-white text-[#6b5744] border-[#e0d5c7] hover:bg-[#f9f1e7]'
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+              return (
+                <>
+                  {pill('all', labelOr('nav.allExpenses', 'All expenses'))}
+                  {pill('add', labelOr('nav.addExpense', 'Add expense'))}
+                  {pill('categories', labelOr('nav.expenseCategories', 'Expense categories'))}
+                  {pill('reports', labelOr('nav.expenseReports', 'Expense reports'))}
+                </>
+              );
+            })()}
+          </div>
+
+          <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-4 text-sm text-gray-700">
+            <h2 className="text-lg font-semibold mb-2">
+              {labelOr('nav.expenses', 'Expenses')}
+            </h2>
+            <p className="text-xs text-gray-500 mb-2">
+              {labelOr('ownerAttractions.expensesDescription', 'Detailed expense tracking for your attractions will appear here. For now you can use the Finance tab to view overall payments and revenue.')}
+            </p>
+          </div>
+        </>
+      )}
+
+      {view === 'income-revenue' && (
+        <>
+          <div className="mb-3 flex flex-wrap gap-2 text-[11px] sm:text-xs">
+            {(() => {
+              const s = ['transactions', 'add', 'payments', 'invoices', 'reports'].includes(incomeRevenueSection) ? incomeRevenueSection : 'transactions';
+              const setSection = (val) => {
+                try {
+                  const next = new URLSearchParams(searchParams.toString());
+                  next.set('view', 'income-revenue');
+                  next.set('section', val);
+                  setSearchParams(next, { replace: true });
+                } catch (_) {}
+              };
+              const pill = (val, label) => (
+                <button
+                  key={val}
+                  type="button"
+                  onClick={() => setSection(val)}
+                  className={`px-2.5 py-1 rounded-full border ${
+                    s === val
+                      ? 'bg-[#f5e6d5] text-[#4b2a00] border-[#a06b42] font-semibold'
+                      : 'bg-white text-[#6b5744] border-[#e0d5c7] hover:bg-[#f9f1e7]'
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+              return (
+                <>
+                  {pill('transactions', labelOr('nav.allTransactions', 'All transactions'))}
+                  {pill('add', labelOr('nav.addIncome', 'Add income'))}
+                  {pill('payments', labelOr('nav.clientPayments', 'Client payments'))}
+                  {pill('invoices', labelOr('nav.invoicesReceipts', 'Invoices & receipts'))}
+                  {pill('reports', labelOr('nav.revenueReports', 'Revenue reports'))}
+                </>
+              );
+            })()}
+          </div>
+
+          <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-4 text-sm text-gray-700">
+            <h2 className="text-lg font-semibold mb-2">
+              {labelOr('nav.incomeRevenue', 'Income & revenue')}
+            </h2>
+            <p className="text-xs text-gray-500 mb-2">
+              {labelOr('ownerAttractions.incomeRevenueDescription', 'Tools for managing attraction income, payouts and revenue reports will appear here. For now you can use the Finance and Analytics tabs for high-level numbers.')}
+            </p>
+          </div>
+        </>
       )}
 
       {/* Bookings: only in Bookings view */}
@@ -1627,4 +1638,6 @@ export default function OwnerAttractionsDashboard() {
       </div>
     </div>
   );
+
+}
 
