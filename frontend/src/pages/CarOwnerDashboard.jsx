@@ -49,6 +49,7 @@ export default function CarOwnerDashboard() {
     : financeRange === 'ytd' ? 'Year to date'
     : financeRange === '90' ? 'Last 90 days'
     : 'Last 30 days';
+  const clientsContractsMode = (searchParams.get('mode') || 'list').toLowerCase();
   const financeStats = {
     rev30: 0,
     revYtd: 0,
@@ -56,7 +57,10 @@ export default function CarOwnerDashboard() {
     bookings30: 0,
     bookingsYtd: 0,
   };
+  // Single URL param `section` is used for several views (analytics, vehicles, bookings)
   const analyticsSection = (searchParams.get('section') || '').toLowerCase();
+  const vehiclesSection = analyticsSection || 'list';
+  const [bookingView, setBookingView] = useState(() => (analyticsSection === 'calendar' ? 'calendar' : 'list'));
   const bookingsRef = useRef(null);
   const createFormRef = useRef(null);
   const [fuelSummary, setFuelSummary] = useState({ totalLiters: 0, totalCost: 0 });
@@ -631,6 +635,102 @@ export default function CarOwnerDashboard() {
         </>
       )}
 
+        {view === 'revenue' && (
+        <div className="mb-6 rounded-2xl bg-white border border-[#e0d5c7] px-4 py-4 shadow-sm">
+          <h2 className="text-lg font-semibold mb-1 text-[#4b2a00]">Revenue summary</h2>
+          <p className="text-xs text-gray-600 mb-3">
+            High-level revenue overview for your vehicles. Detailed breakdown is available in the Finance view.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+            <div>
+              <div className="text-[11px] text-gray-500 mb-0.5">Total revenue to date</div>
+              <div className="font-semibold text-gray-900">
+                {formatCurrencyRWF
+                  ? formatCurrencyRWF(stats.totalRevenue || 0)
+                  : `RWF ${Number(stats.totalRevenue || 0).toLocaleString()}`}
+              </div>
+            </div>
+            <div>
+              <div className="text-[11px] text-gray-500 mb-0.5">Last 30 days revenue</div>
+              <div className="font-semibold text-gray-900">
+                {formatCurrencyRWF
+                  ? formatCurrencyRWF(financeStats.rev30 || 0)
+                  : `RWF ${Number(financeStats.rev30 || 0).toLocaleString()}`}
+              </div>
+            </div>
+            <div>
+              <div className="text-[11px] text-gray-500 mb-0.5">Year-to-date revenue</div>
+              <div className="font-semibold text-gray-900">
+                {formatCurrencyRWF
+                  ? formatCurrencyRWF(financeStats.revYtd || 0)
+                  : `RWF ${Number(financeStats.revYtd || 0).toLocaleString()}`}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+        {view === 'activities' && (
+        <div className="mb-6 rounded-2xl bg-white border border-[#e0d5c7] px-4 py-4 shadow-sm">
+          <h2 className="text-lg font-semibold mb-1 text-[#4b2a00]">Recent activities</h2>
+          <p className="text-xs text-gray-600 mb-3">
+            Latest booking activity across your vehicles.
+          </p>
+          <ul className="divide-y divide-[#f1e4d4] text-xs">
+            {(() => {
+              const list = Array.isArray(bookings) ? [...bookings] : [];
+              list.sort((a, b) => {
+                const da = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+                const db = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+                return db - da;
+              });
+              const top = list.slice(0, 10);
+              if (top.length === 0) {
+                return (
+                  <li className="py-2 text-[11px] text-gray-600">
+                    No recent booking activity yet.
+                  </li>
+                );
+              }
+              return top.map(b => {
+                const created = b.createdAt ? new Date(b.createdAt) : null;
+                const status = String(b.status || '').toLowerCase();
+                const vehicleLabel = (b.car?.vehicleName || `${b.car?.brand || ''} ${b.car?.model || ''}`.trim() || 'Vehicle').replace(/,/g, ' ');
+                return (
+                  <li key={b._id} className="py-2 flex items-start gap-2">
+                    <span
+                      className={`mt-1 inline-block w-2 h-2 rounded-full ${
+                        status === 'completed'
+                          ? 'bg-emerald-500'
+                          : status === 'cancelled'
+                            ? 'bg-red-500'
+                            : 'bg-amber-400'
+                      }`}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="font-semibold text-[#4b2a00] truncate text-[11px]">
+                          {vehicleLabel}
+                        </div>
+                        {created && (
+                          <span className="text-[10px] text-gray-500 whitespace-nowrap">
+                            {created.toLocaleDateString()}{' '}
+                            {created.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[11px] text-gray-700 mt-0.5">
+                        Status: <span className="font-semibold">{status || 'n/a'}</span>
+                      </div>
+                    </div>
+                  </li>
+                );
+              });
+            })()}
+          </ul>
+        </div>
+      )}
+
         {/* Finance view: focus on revenue stats for vehicles */}
         {view === 'finance' && (
         <>
@@ -730,7 +830,7 @@ export default function CarOwnerDashboard() {
                       const vehicleLabel = (b.car?.vehicleName || `${b.car?.brand || ''} ${b.car?.model || ''}`.trim() || 'Vehicle').replace(/,/g, ' ');
                       const pickup = b.pickupDate ? new Date(b.pickupDate) : null;
                       const ret = b.returnDate ? new Date(b.returnDate) : null;
-                      const status = String(b.paymentStatus || b.status || '').toLowerCase();
+                      const status = String(b.status || '').toLowerCase();
                       const amount = Number(b.totalAmount || 0);
                       return (
                         <tr key={b._id} className="hover:bg-[#fdf7ee] transition-colors">
@@ -1194,6 +1294,36 @@ export default function CarOwnerDashboard() {
           <p className="text-xs text-gray-600">
             Vehicle-specific settings will appear here in the future. For now you can manage notification
             and account settings from the main Settings section of your profile.
+          </p>
+        </div>
+      )}
+
+        {view === 'clients' && (
+        <div className="mb-6 rounded-2xl bg-white border border-[#e0d5c7] px-4 py-4 text-sm text-gray-700 shadow-sm">
+          <h2 className="text-lg font-semibold mb-1 text-[#4b2a00]">
+            {clientsContractsMode === 'add' ? 'Add client' : 'Clients'}
+          </h2>
+          <p className="text-xs text-gray-600">
+            The dedicated Clients management tables and forms will appear here. For now this panel confirms
+            that the navigation link is working for
+            {clientsContractsMode === 'add' ? ' adding a new client.' : ' viewing your client list.'}
+          </p>
+        </div>
+      )}
+
+        {view === 'contracts' && (
+        <div className="mb-6 rounded-2xl bg-white border border-[#e0d5c7] px-4 py-4 text-sm text-gray-700 shadow-sm">
+          <h2 className="text-lg font-semibold mb-1 text-[#4b2a00]">
+            {clientsContractsMode === 'add'
+              ? 'Add contract'
+              : clientsContractsMode === 'reports'
+                ? 'Contract reports'
+                : 'Contracts'}
+          </h2>
+          <p className="text-xs text-gray-600">
+            The full Contracts tables, forms and reports will be implemented here. At the moment this
+            placeholder ensures the Clients & contracts dashboard links open a visible panel instead of
+            a blank screen.
           </p>
         </div>
       )}
