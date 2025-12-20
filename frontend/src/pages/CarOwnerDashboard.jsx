@@ -114,6 +114,58 @@ export default function CarOwnerDashboard() {
   const [ownerNotifShowUnreadOnly, setOwnerNotifShowUnreadOnly] = useState(false);
   const [ownerNotifTypeFilter, setOwnerNotifTypeFilter] = useState('all');
 
+  function exportBookingsCsv() {
+    try {
+      const rows = Array.isArray(bookings) ? bookings : [];
+      const header = [
+        'Booking ID',
+        'Vehicle',
+        'Pickup date',
+        'Return date',
+        'Days',
+        'Status',
+        'Payment status',
+        'Total amount (RWF)'
+      ];
+
+      const lines = [header.join(',')];
+      rows.forEach(b => {
+        const vehicleLabel = (b.car?.vehicleName || `${b.car?.brand || ''} ${b.car?.model || ''}`.trim() || 'Vehicle').replace(/,/g, ' ');
+        const pickup = b.pickupDate ? new Date(b.pickupDate).toISOString().slice(0, 10) : '';
+        const ret = b.returnDate ? new Date(b.returnDate).toISOString().slice(0, 10) : '';
+        const days = b.numberOfDays || '';
+        const status = String(b.status || '').toLowerCase();
+        const payStatus = String(b.paymentStatus || '').toLowerCase();
+        const amount = Number(b.totalAmount || 0);
+
+        lines.push([
+          b._id || '',
+          vehicleLabel,
+          pickup,
+          ret,
+          days,
+          status,
+          payStatus,
+          amount
+        ].join(','));
+      });
+
+      const csv = lines.join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'vehicle-bookings.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('[Vehicles][bookings][exportCsv] error', err);
+      toast.error(err.message || 'Failed to export bookings CSV');
+    }
+  }
+
   async function loadData() {
     try {
       setLoading(true);
