@@ -418,6 +418,9 @@ export default function CarOwnerDashboard() {
                   ))}
                 </select>
               </div>
+            )}
+          </>
+        )}
         {/* Finance view: focus on revenue stats for vehicles */}
         {view === 'finance' && (
         <>
