@@ -75,6 +75,7 @@ export default function CarOwnerDashboard() {
   const [successTitle, setSuccessTitle] = useState('Success');
   const [successMsg, setSuccessMsg] = useState('Action completed successfully.');
   const [selectedCarId, setSelectedCarId] = useState('');
+  const [showCreateForm, setShowCreateForm] = useState(false);
   const [stats, setStats] = useState({
     totalBookings: 0,
     pending: 0,
@@ -506,6 +507,130 @@ export default function CarOwnerDashboard() {
             )}
           </>
         )}
+
+        {/* Overview dashboard: business overview, revenue summary, recent activities */}
+        {view === 'overview' && (
+        <>
+          <div className="mb-6 grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5">
+              <div className="text-[11px] text-gray-500">Total vehicles</div>
+              <div className="text-lg font-semibold text-gray-900">{Array.isArray(cars) ? cars.length : 0}</div>
+            </div>
+            <div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5">
+              <div className="text-[11px] text-gray-500">Active / upcoming bookings</div>
+              <div className="text-lg font-semibold text-emerald-700">
+                {Array.isArray(bookings)
+                  ? bookings.filter(b => {
+                      const s = String(b.status || '').toLowerCase();
+                      return s === 'active' || s === 'confirmed' || s === 'pending';
+                    }).length
+                  : 0}
+              </div>
+            </div>
+            <div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5">
+              <div className="text-[11px] text-gray-500">Completed bookings</div>
+              <div className="text-lg font-semibold text-blue-700">{stats.completed}</div>
+            </div>
+            <div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5">
+              <div className="text-[11px] text-gray-500">Revenue to date</div>
+              <div className="text-sm font-semibold text-gray-900">
+                {formatCurrencyRWF
+                  ? formatCurrencyRWF(stats.totalRevenue || 0)
+                  : `RWF ${Number(stats.totalRevenue || 0).toLocaleString()}`}
+              </div>
+            </div>
+          </div>
+
+          <div className="mb-6 rounded-2xl bg-white shadow-sm border border-gray-100 px-4 py-4">
+            <h2 className="text-sm font-semibold text-[#4b2a00] mb-1">Revenue summary</h2>
+            <p className="text-[11px] text-gray-600 mb-1">
+              High-level view of your vehicle revenue based on recent bookings.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-2 text-xs">
+              <div>
+                <div className="text-[11px] text-gray-500 mb-0.5">Last 30 days (bookings)</div>
+                <div className="font-semibold text-gray-900">{financeStats.bookings30}</div>
+              </div>
+              <div>
+                <div className="text-[11px] text-gray-500 mb-0.5">Last 30 days revenue</div>
+                <div className="font-semibold text-gray-900">
+                  {formatCurrencyRWF
+                    ? formatCurrencyRWF(financeStats.rev30 || 0)
+                    : `RWF ${Number(financeStats.rev30 || 0).toLocaleString()}`}
+                </div>
+              </div>
+              <div>
+                <div className="text-[11px] text-gray-500 mb-0.5">Year-to-date revenue</div>
+                <div className="font-semibold text-gray-900">
+                  {formatCurrencyRWF
+                    ? formatCurrencyRWF(financeStats.revYtd || 0)
+                    : `RWF ${Number(financeStats.revYtd || 0).toLocaleString()}`}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="mb-6 rounded-2xl bg-white shadow-sm border border-gray-100 px-4 py-4">
+            <h2 className="text-sm font-semibold text-[#4b2a00] mb-1">Recent activities</h2>
+            <p className="text-[11px] text-gray-600 mb-3">
+              Latest booking activity across your vehicles.
+            </p>
+            <ul className="divide-y divide-[#f1e4d4] text-xs">
+              {(() => {
+                const list = Array.isArray(bookings) ? [...bookings] : [];
+                list.sort((a, b) => {
+                  const da = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+                  const db = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+                  return db - da;
+                });
+                const top = list.slice(0, 5);
+                if (top.length === 0) {
+                  return (
+                    <li className="py-2 text-[11px] text-gray-600">
+                      No recent booking activity yet.
+                    </li>
+                  );
+                }
+                return top.map(b => {
+                  const created = b.createdAt ? new Date(b.createdAt) : null;
+                  const status = String(b.status || '').toLowerCase();
+                  const vehicleLabel = (b.car?.vehicleName || `${b.car?.brand || ''} ${b.car?.model || ''}`.trim() || 'Vehicle').replace(/,/g, ' ');
+                  return (
+                    <li key={b._id} className="py-2 flex items-start gap-2">
+                      <span
+                        className={`mt-1 inline-block w-2 h-2 rounded-full ${
+                          status === 'completed'
+                            ? 'bg-emerald-500'
+                            : status === 'cancelled'
+                              ? 'bg-red-500'
+                              : 'bg-amber-400'
+                        }`}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="font-semibold text-[#4b2a00] truncate text-[11px]">
+                            {vehicleLabel}
+                          </div>
+                          {created && (
+                            <span className="text-[10px] text-gray-500 whitespace-nowrap">
+                              {created.toLocaleDateString()}{' '}
+                              {created.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[11px] text-gray-700 mt-0.5">
+                          Status: <span className="font-semibold">{status || 'n/a'}</span>
+                        </div>
+                      </div>
+                    </li>
+                  );
+                });
+              })()}
+            </ul>
+          </div>
+        </>
+      )}
+
         {/* Finance view: focus on revenue stats for vehicles */}
         {view === 'finance' && (
         <>
