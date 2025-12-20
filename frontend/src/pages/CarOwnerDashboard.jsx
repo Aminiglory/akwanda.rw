@@ -31,6 +31,24 @@ export default function CarOwnerDashboard() {
   const { formatCurrencyRWF } = useLocale() || {};
   const view = (searchParams.get('view') || 'overview').toLowerCase();
   const financeMode = (searchParams.get('mode') || 'expenses').toLowerCase();
+  const financeFilter = (searchParams.get('filter') || 'all').toLowerCase();
+  const financeRange = (searchParams.get('range') || '30').toLowerCase();
+
+  const financeModeLabel = financeMode === 'income'
+    ? 'Income & revenue'
+    : 'Expenses';
+
+  const financeFilterLabel =
+    financeFilter === 'paid' ? 'Paid'
+    : financeFilter === 'pending' ? 'Pending'
+    : financeFilter === 'unpaid' ? 'Unpaid'
+    : 'All payments';
+
+  const financeRangeLabel =
+    financeRange === 'mtd' ? 'Month to date'
+    : financeRange === 'ytd' ? 'Year to date'
+    : financeRange === '90' ? 'Last 90 days'
+    : 'Last 30 days';
   const [cars, setCars] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [bookingFilters, setBookingFilters] = useState({ status: '', from: '', to: '' });
