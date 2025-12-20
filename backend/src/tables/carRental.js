@@ -25,6 +25,12 @@ const carRentalSchema = new mongoose.Schema(
     fuelType: { type: String, enum: ['petrol', 'diesel', 'hybrid', 'electric'], default: 'petrol' },
     transmission: { type: String, enum: ['manual', 'automatic'], default: 'manual' },
     mileage: { type: Number },
+    // Insurance & registration
+    insuranceProvider: { type: String },
+    insurancePolicyNumber: { type: String },
+    insuranceExpiryDate: { type: Date },
+    registrationNumber: { type: String },
+    registrationExpiryDate: { type: Date },
     // Safety and extras
     abs: { type: Boolean, default: false },
     insuranceIncluded: { type: Boolean, default: true },

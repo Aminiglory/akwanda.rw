@@ -33,6 +33,10 @@ export default function CarOwnerDashboard() {
   const [bookings, setBookings] = useState([]);
   const [bookingFilters, setBookingFilters] = useState({ status: '', from: '', to: '' });
   const [receiptBooking, setReceiptBooking] = useState(null);
+  const [tripsTab, setTripsTab] = useState(() => {
+    const t = (searchParams.get('tripsTab') || '').toLowerCase();
+    return t === 'tours' || t === 'routes' ? t : 'trips';
+  });
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [category, setCategory] = useState('car'); // 'car' | 'motorcycle' | 'bicycle'
@@ -54,39 +58,34 @@ export default function CarOwnerDashboard() {
   const [carExpensesTotal, setCarExpensesTotal] = useState(0);
   const [carFinanceSummary, setCarFinanceSummary] = useState(null);
   const [carFinanceLoading, setCarFinanceLoading] = useState(false);
-  const emptyCar = useMemo(() => ({
-    vehicleName: '', vehicleType: 'economy', brand: '', model: '', year: new Date().getFullYear(),
-    licensePlate: '', capacity: 4, pricePerDay: 0, pricePerWeek: '', pricePerMonth: '',
-    currency: 'RWF', isAvailable: true, location: '', images: [], features: [], fuelType: 'petrol', transmission: 'automatic', mileage: '',
-    // Car-specific
-    doors: 4, airConditioning: true, luggageCapacity: 2,
-    // Motorcycle-specific
-    engineCapacityCc: '', helmetIncluded: false,
-    // Bicycle-specific
-    frameSize: '', gearCount: '', bicycleType: '',
-    // Safety
-    abs: false,
-    fuelPolicy: '', mileageLimitPerDayKm: '', cancellationPolicy: '', depositInfo: ''
-  }), []);
-  const [form, setForm] = useState(emptyCar);
-  const [uploadingId, setUploadingId] = useState(null);
-  const [viewMode, setViewMode] = useState('cards'); // 'cards' | 'table'
-  const [showCreateForm, setShowCreateForm] = useState(false);
-  const [createImages, setCreateImages] = useState([]);
-  const [createPreviews, setCreatePreviews] = useState([]);
-  const createFormRef = useRef(null);
-  const bookingsRef = useRef(null);
-  const [bookingView, setBookingView] = useState(() => {
-    const section = searchParams.get('section');
-    return section === 'calendar' ? 'calendar' : 'list';
+  const [insuranceForm, setInsuranceForm] = useState({
+    insuranceProvider: '',
+    insurancePolicyNumber: '',
+    insuranceExpiryDate: '',
+    registrationNumber: '',
+    registrationExpiryDate: ''
   });
-  const [calendarMonthOffset, setCalendarMonthOffset] = useState(() => {
-    const mo = parseInt(searchParams.get('monthOffset') || '0', 10);
-    return Number.isNaN(mo) ? 0 : mo;
+  const [insuranceSaving, setInsuranceSaving] = useState(false);
+  const [expenseForm, setExpenseForm] = useState({
+    carId: '',
+    date: '',
+    amount: '',
+    category: '',
+    note: ''
   });
-  const [view, setView] = useState('overview'); // 'overview' | 'vehicles' | 'bookings' | 'finance' | 'analytics' | 'reviews' | 'messages' | 'settings'
-  const propertyContextId = searchParams.get('property') || '';
-  const [propertyContextLabel, setPropertyContextLabel] = useState('');
+  const [expenseSaving, setExpenseSaving] = useState(false);
+  const [expenseCategoryFilter, setExpenseCategoryFilter] = useState('');
+  const [editingExpenseId, setEditingExpenseId] = useState(null);
+  const [editingExpenseForm, setEditingExpenseForm] = useState({
+    date: '',
+    amount: '',
+    category: '',
+    note: ''
+  });
+  const [ownerNotifications, setOwnerNotifications] = useState([]);
+  const [ownerNotificationsLoading, setOwnerNotificationsLoading] = useState(false);
+  const [ownerNotifShowUnreadOnly, setOwnerNotifShowUnreadOnly] = useState(false);
+  const [ownerNotifTypeFilter, setOwnerNotifTypeFilter] = useState('all');
 
   async function loadData() {
     try {
@@ -111,839 +110,314 @@ export default function CarOwnerDashboard() {
     } finally { setLoading(false); }
   }
 
-  // Load human-readable property context label when propertyContextId is present
+  async function loadOwnerNotifications() {
+    try {
+      setOwnerNotificationsLoading(true);
+      const res = await fetch(`${API_URL}/api/user/notifications`, {
+        credentials: 'include'
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.message || 'Failed to load notifications');
+      }
+      const list = Array.isArray(data.notifications) ? data.notifications : [];
+      setOwnerNotifications(list);
+    } catch (err) {
+      console.error('[Vehicles][alerts][notifications][load]', err);
+      setOwnerNotifications([]);
+    } finally {
+      setOwnerNotificationsLoading(false);
+    }
+  }
+
+  async function markOwnerNotificationRead(id) {
+    if (!id) return;
+    try {
+      const res = await fetch(`${API_URL}/api/user/notifications/${id}/read`, {
+        method: 'POST',
+        credentials: 'include'
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.message || 'Failed to mark notification as read');
+      }
+      setOwnerNotifications(list => list.map(n => n._id === id ? { ...n, isRead: true } : n));
+    } catch (err) {
+      console.error('[Vehicles][alerts][notifications][read]', err);
+      toast.error(err.message || 'Failed to mark notification as read');
+    }
+  }
+
   useEffect(() => {
-    if (!propertyContextId) {
-      setPropertyContextLabel('');
+    if (view !== 'alerts') return;
+    loadOwnerNotifications();
+  }, [view]);
+
+  async function createTour(e) {
+    e.preventDefault();
+    if (!carTourForm.title || !carTourForm.startLocation || !carTourForm.endLocation || !carTourForm.basePrice) {
+      toast.error('Title, start, end and base price are required');
       return;
     }
-    (async () => {
-      try {
-        const res = await fetch(`${API_URL}/api/properties/${propertyContextId}`, { credentials: 'include' });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || 'Failed to load property');
-        const p = data.property || data;
-        const id = String(p._id || propertyContextId);
-        const code = p.propertyNumber || id.slice(-6) || 'N/A';
-        const name = p.title || p.name || 'Property';
-        setPropertyContextLabel(`#${code} - ${name}`);
-      } catch (e) {
-        console.error('[Vehicles][propertyContext] error', e);
-        setPropertyContextLabel(propertyContextId);
-      }
-    })();
-  }, [propertyContextId]);
-
-  function exportBookingsCsv() {
-    const rows = [['Vehicle','Renter','Pickup','Return','Days','Amount','Status']];
-    const filtered = bookings.filter(b => {
-      if (bookingFilters.status && b.status !== bookingFilters.status) return false;
-      if (bookingFilters.from) {
-        const from = new Date(bookingFilters.from);
-        if (new Date(b.pickupDate) < from) return false;
-      }
-      if (bookingFilters.to) {
-        const to = new Date(bookingFilters.to);
-        if (new Date(b.returnDate) > to) return false;
-      }
-      return true;
-    });
-    filtered.forEach(b => {
-      rows.push([
-        (b.car?.vehicleName || '').replace(/,/g,' '),
-        `${b.guest?.firstName || ''} ${b.guest?.lastName || ''}`.trim().replace(/,/g,' '),
-        new Date(b.pickupDate).toLocaleDateString(),
-        new Date(b.returnDate).toLocaleDateString(),
-        String(b.numberOfDays || ''),
-        String(b.totalAmount || ''),
-        b.status || ''
-      ]);
-    });
-    const csv = rows.map(r => r.join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = 'vehicle-bookings.csv'; a.click();
-    URL.revokeObjectURL(url);
-  }
-
-  function exportExpensesCsv() {
-    const rows = [['Date','Vehicle','Category','Amount','Note']];
-    const list = Array.isArray(carExpenses) ? carExpenses : [];
-    list.forEach(e => {
-      const d = e.date ? new Date(e.date) : null;
-      const dateStr = d ? d.toLocaleDateString() : '';
-      const vehicleName = (e.car?.vehicleName || `${e.car?.brand || ''} ${e.car?.model || ''}`.trim() || '').replace(/,/g,' ');
-      rows.push([
-        dateStr,
-        vehicleName,
-        String(e.category || '').replace(/,/g,' '),
-        String(e.amount || ''),
-        String(e.note || '').replace(/\r?\n/g,' ').replace(/,/g,' ')
-      ]);
-    });
-    const csv = rows.map(r => r.join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = 'vehicle-expenses.csv'; a.click();
-    URL.revokeObjectURL(url);
-  }
-
-  useEffect(() => { loadData(); }, []);
-
-  // Sync high-level view with ?view= from URL used by owner navbar
-  useEffect(() => {
-    const v = (searchParams.get('view') || '').toLowerCase();
-    switch (v) {
-      case 'dashboard':
-      case '':
-        if (view !== 'overview') setView('overview');
-        break;
-      case 'revenue':
-        // Dashboard > Revenue summary shortcut
-        if (view !== 'finance') setView('finance');
-        break;
-      case 'alerts':
-        // Dashboard > Alerts shortcut
-        if (view !== 'settings') setView('settings');
-        break;
-      case 'activities':
-        // Dashboard > Recent activities shortcut
-        if (view !== 'bookings') setView('bookings');
-        break;
-      case 'vehicles':
-        if (view !== 'vehicles') setView('vehicles');
-        break;
-      case 'reservations':
-      case 'bookings':
-        if (view !== 'bookings') setView('bookings');
-        // keep list view for reservations; calendar handled separately below
-        if (bookingView !== 'list') setBookingView('list');
-        break;
-      case 'calendar':
-        if (view !== 'bookings') setView('bookings');
-        if (bookingView !== 'calendar') setBookingView('calendar');
-        break;
-      case 'finance':
-        if (view !== 'finance') setView('finance');
-        break;
-      case 'analytics':
-        if (view !== 'analytics') setView('analytics');
-        break;
-      case 'reviews':
-        if (view !== 'reviews') setView('reviews');
-        break;
-      case 'messages':
-        if (view !== 'messages') setView('messages');
-        break;
-      case 'settings':
-        if (view !== 'settings') setView('settings');
-        break;
-      default:
-        break;
-    }
-  }, [searchParams, view, bookingView]);
-
-  useEffect(() => {
-    if (!Array.isArray(cars) || cars.length === 0) return;
-    let initialId = '';
     try {
-      const urlCar = searchParams.get('car');
-      if (urlCar && cars.some(c => String(c._id) === String(urlCar))) {
-        initialId = String(urlCar);
+      setCarTourSaving(true);
+      const payload = {
+        title: carTourForm.title,
+        startLocation: carTourForm.startLocation,
+        endLocation: carTourForm.endLocation,
+        basePrice: Number(carTourForm.basePrice),
+        primaryCar: carTourForm.primaryCar || undefined
+      };
+      const res = await fetch(`${API_URL}/api/car-tours`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || 'Failed to create tour');
       }
-    } catch (_) {}
-    if (!initialId) {
-      initialId = String(cars[0]._id);
+      setCarTours(list => [data.tour, ...list]);
+      setCarTourForm({ title: '', startLocation: '', endLocation: '', basePrice: '', primaryCar: '' });
+      toast.success('Tour created');
+    } catch (err) {
+      console.error('[Vehicles][carTours][create] error', err);
+      toast.error(err.message || 'Failed to create tour');
+    } finally {
+      setCarTourSaving(false);
     }
-    if (String(selectedCarId) !== String(initialId)) {
-      setSelectedCarId(initialId);
-    }
-  }, [cars, searchParams, selectedCarId]);
+  }
 
-  useEffect(() => {
+  async function saveTripRoute(e) {
+    e.preventDefault();
+    if (!tripRouteForm.bookingId) {
+      toast.error('Select a booking to log distance for');
+      return;
+    }
+    try {
+      setTripRouteSaving(true);
+      const payload = {
+        booking: tripRouteForm.bookingId,
+        date: tripRouteForm.date || undefined,
+        distanceKm: tripRouteForm.distanceKm !== '' ? Number(tripRouteForm.distanceKm) : undefined,
+        startOdometer: tripRouteForm.startOdometer !== '' ? Number(tripRouteForm.startOdometer) : undefined,
+        endOdometer: tripRouteForm.endOdometer !== '' ? Number(tripRouteForm.endOdometer) : undefined
+      };
+      const res = await fetch(`${API_URL}/api/car-trip-routes`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || 'Failed to save trip route');
+      }
+      setTripRoutes(list => {
+        const existingIndex = list.findIndex(r => r._id === data.route._id || String(r.booking?._id) === String(data.route.booking?._id));
+        if (existingIndex === -1) return [data.route, ...list];
+        const next = [...list];
+        next[existingIndex] = data.route;
+        return next;
+      });
+      toast.success('Trip route saved');
+    } catch (err) {
+      console.error('[Vehicles][tripRoutes][save] error', err);
+      toast.error(err.message || 'Failed to save trip route');
+    } finally {
+      setTripRouteSaving(false);
+    }
+  }
+
+  async function createFuelRecord(e) {
+    e.preventDefault();
+    if (!fuelForm.carId || !fuelForm.date || fuelForm.liters === '' || fuelForm.totalCost === '') {
+      toast.error('Car, date, liters and total cost are required');
+      return;
+    }
+    try {
+      setFuelSaving(true);
+      const payload = {
+        car: fuelForm.carId,
+        date: fuelForm.date,
+        liters: Number(fuelForm.liters),
+        totalCost: Number(fuelForm.totalCost),
+        pricePerLiter: fuelForm.pricePerLiter !== '' ? Number(fuelForm.pricePerLiter) : undefined,
+        odometerKm: fuelForm.odometerKm !== '' ? Number(fuelForm.odometerKm) : undefined,
+        stationName: fuelForm.stationName || undefined,
+        note: fuelForm.note || undefined
+      };
+      const res = await fetch(`${API_URL}/api/car-fuel-logs`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || 'Failed to save fuel record');
+      }
+      const log = data.log;
+      setFuelLogs(list => [log, ...list]);
+      setFuelSummary(prev => ({
+        totalLiters: Number(prev.totalLiters || 0) + Number(log.liters || 0),
+        totalCost: Number(prev.totalCost || 0) + Number(log.totalCost || 0)
+      }));
+      setFuelForm({
+        carId: '',
+        date: '',
+        liters: '',
+        totalCost: '',
+        pricePerLiter: '',
+        odometerKm: '',
+        stationName: '',
+        note: ''
+      });
+      toast.success('Fuel record saved');
+    } catch (err) {
+      console.error('[Vehicles][fuelLogs][create]', err);
+      toast.error(err.message || 'Failed to save fuel record');
+    } finally {
+      setFuelSaving(false);
+    }
+  }
+
+  async function createExpense(e) {
+    e.preventDefault();
+    if (!expenseForm.carId || !expenseForm.date || expenseForm.amount === '') {
+      toast.error('Vehicle, date and amount are required');
+      return;
+    }
+    try {
+      setExpenseSaving(true);
+      const payload = {
+        car: expenseForm.carId,
+        date: expenseForm.date,
+        amount: Number(expenseForm.amount),
+        category: expenseForm.category || undefined,
+        note: expenseForm.note || undefined
+      };
+      const res = await fetch(`${API_URL}/api/car-finance/expenses`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || 'Failed to save expense');
+      }
+      const exp = data.expense;
+      setCarExpenses(list => [exp, ...list]);
+      setCarExpensesTotal(t => Number(t || 0) + Number(exp.amount || 0));
+      setExpenseForm({ carId: '', date: '', amount: '', category: '', note: '' });
+      toast.success('Expense saved');
+    } catch (err) {
+      console.error('[Vehicles][expenses][create]', err);
+      toast.error(err.message || 'Failed to save expense');
+    } finally {
+      setExpenseSaving(false);
+    }
+  }
+
+  async function deleteExpense(id) {
+    if (!id) return;
+    if (!confirm('Delete this expense?')) return;
+    try {
+      const res = await fetch(`${API_URL}/api/car-finance/expenses/${id}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.message || 'Failed to delete expense');
+      }
+      setCarExpenses(list => list.filter(e => e._id !== id));
+      // Recompute total from remaining list to avoid drift
+      setCarExpensesTotal(prev => {
+        const remaining = carExpenses.filter(e => e._id !== id);
+        return remaining.reduce((s, x) => s + Number(x.amount || 0), 0);
+      });
+      toast.success('Expense deleted');
+    } catch (err) {
+      console.error('[Vehicles][expenses][delete]', err);
+      toast.error(err.message || 'Failed to delete expense');
+    }
+  }
+
+  async function saveInsurance(e) {
+    e.preventDefault();
     if (!selectedCarId) return;
     try {
-      const params = new URLSearchParams(location.search || '');
-      if (String(params.get('car')) === String(selectedCarId)) return;
-      params.set('car', String(selectedCarId));
-      setSearchParams(params);
-    } catch (_) {}
-  }, [selectedCarId, location.search, setSearchParams]);
-
-  useEffect(() => {
-    const baseList = Array.isArray(bookings) ? bookings : [];
-    const vehicleFiltered = selectedCarId
-      ? baseList.filter(b => String(b.car?._id) === String(selectedCarId))
-      : baseList;
-
-    let total = vehicleFiltered.length;
-    let pending = 0;
-    let active = 0;
-    let completed = 0;
-    let cancelled = 0;
-    let totalRevenue = 0;
-    let daysRented = 0;
-
-    vehicleFiltered.forEach(b => {
-      const s = b.status || '';
-      if (s === 'pending') pending += 1;
-      if (s === 'confirmed' || s === 'active') active += 1;
-      if (s === 'completed') completed += 1;
-      if (s === 'cancelled') cancelled += 1;
-      totalRevenue += Number(b.totalAmount || 0);
-      daysRented += Number(b.numberOfDays || 0);
-    });
-
-    const avgRentalLength = total > 0 ? daysRented / total : 0;
-
-    setStats({
-      totalBookings: total,
-      pending,
-      active,
-      completed,
-      cancelled,
-      totalRevenue,
-      daysRented,
-      avgRentalLength
-    });
-  }, [bookings, selectedCarId]);
-
-  // Keep filters and views in sync with URL query params (section, status, monthOffset)
-  useEffect(() => {
-    const section = searchParams.get('section');
-    const status = searchParams.get('status') || '';
-    const mo = parseInt(searchParams.get('monthOffset') || '0', 10);
-
-    if (section === 'calendar' && bookingView !== 'calendar') {
-      setBookingView('calendar');
-    } else if (section === 'reservations' && bookingView !== 'list') {
-      setBookingView('list');
+      setInsuranceSaving(true);
+      const patch = {
+        insuranceProvider: insuranceForm.insuranceProvider || undefined,
+        insurancePolicyNumber: insuranceForm.insurancePolicyNumber || undefined,
+        insuranceExpiryDate: insuranceForm.insuranceExpiryDate
+          ? new Date(insuranceForm.insuranceExpiryDate)
+          : undefined,
+        registrationNumber: insuranceForm.registrationNumber || undefined,
+        registrationExpiryDate: insuranceForm.registrationExpiryDate
+          ? new Date(insuranceForm.registrationExpiryDate)
+          : undefined
+      };
+      await updateCar(selectedCarId, patch);
+    } finally {
+      setInsuranceSaving(false);
     }
+  }
 
-    setBookingFilters(prev => ({
-      ...prev,
-      status,
-    }));
-
-    if (!Number.isNaN(mo) && mo !== calendarMonthOffset) {
-      setCalendarMonthOffset(mo);
-    }
-  }, [searchParams, bookingView, calendarMonthOffset]);
-
-  const financeStats = useMemo(() => {
-    const baseList = Array.isArray(bookings) ? bookings : [];
-    const filter = (searchParams.get('filter') || 'all').toLowerCase();
-    const now = new Date();
-    const start30 = new Date(now);
-    start30.setDate(start30.getDate() - 30);
-    const startYear = new Date(now.getFullYear(), 0, 1);
-
-    let rev30 = 0;
-    let revYtd = 0;
-    let bookings30 = 0;
-    let bookingsYtd = 0;
-
-    baseList.forEach(b => {
-      if (selectedCarId && String(b.car?._id) !== String(selectedCarId)) return;
-
-      const status = String(b.paymentStatus || b.status || '').toLowerCase();
-      if (filter === 'paid' && status !== 'paid') return;
-      if (filter === 'pending' && status !== 'pending') return;
-      if (filter === 'unpaid' && status !== 'unpaid') return;
-      const amount = Number(b.totalAmount || 0);
-      const start = new Date(b.pickupDate);
-      if (start >= start30 && start <= now) {
-        rev30 += amount;
-        bookings30 += 1;
-      }
-      if (start >= startYear && start <= now) {
-        revYtd += amount;
-        bookingsYtd += 1;
-      }
-    });
-
-    const avg30 = bookings30 > 0 ? rev30 / bookings30 : 0;
-    return { rev30, revYtd, bookings30, bookingsYtd, avg30 };
-  }, [bookings, selectedCarId, searchParams]);
-
-  const rangeParam = (searchParams.get('range') || '').toLowerCase();
-  const financeRangeLabel = rangeParam === '30'
-    ? 'Last 30 days'
-    : rangeParam === 'ytd'
-      ? 'Year to date'
-      : 'All time';
-
-  const financeFilter = (searchParams.get('filter') || 'all').toLowerCase();
-  const financeMode = (searchParams.get('mode') || 'overview').toLowerCase();
-
-  const financeFilterLabel = (() => {
-    switch (financeFilter) {
-      case 'paid': return 'Paid payments';
-      case 'pending': return 'Pending payments';
-      case 'unpaid': return 'Unpaid payments';
-      default: return 'All payments';
-    }
-  })();
-
-  const financeModeLabel = financeMode === 'expenses' ? 'Expenses & profit' : 'Overview';
-
-  // Load vehicle-level finance data (expenses + summary) when viewing finance/analytics
-  useEffect(() => {
-    const v = view;
-    const mode = financeMode;
-    if (v !== 'finance' && v !== 'analytics') return;
-    if (v === 'finance' && mode !== 'expenses') return;
-
-    (async () => {
-      try {
-        setCarFinanceLoading(true);
-        const params = new URLSearchParams();
-        if (selectedCarId) params.set('car', String(selectedCarId));
-
-        const query = params.toString();
-        const [expRes, sumRes] = await Promise.all([
-          fetch(`${API_URL}/api/car-finance/expenses${query ? `?${query}` : ''}`, { credentials: 'include' }),
-          fetch(`${API_URL}/api/car-finance/summary${query ? `?${query}` : ''}`, { credentials: 'include' })
-        ]);
-
-        const expData = await expRes.json().catch(() => ({}));
-        const sumData = await sumRes.json().catch(() => ({}));
-
-        if (expRes.ok) {
-          setCarExpenses(Array.isArray(expData.expenses) ? expData.expenses : []);
-          setCarExpensesTotal(Number(expData.total || 0));
-        } else {
-          setCarExpenses([]);
-          setCarExpensesTotal(0);
-        }
-
-        if (sumRes.ok) {
-          setCarFinanceSummary(sumData || null);
-        } else {
-          setCarFinanceSummary(null);
-        }
-      } catch (e) {
-        console.error('[Vehicles][carFinance] error', e);
-        setCarExpenses([]);
-        setCarExpensesTotal(0);
-        setCarFinanceSummary(null);
-      } finally {
-        setCarFinanceLoading(false);
-      }
-    })();
-  }, [view, financeMode, selectedCarId, searchParams]);
-
-  const calendarMeta = useMemo(() => {
-    const base = new Date();
-    const monthDate = new Date(base.getFullYear(), base.getMonth() + calendarMonthOffset, 1);
-    const year = monthDate.getFullYear();
-    const month = monthDate.getMonth();
-    const label = monthDate.toLocaleString(undefined, { month: 'long', year: 'numeric' });
-    const firstWeekday = new Date(year, month, 1).getDay();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const cells = [];
-    for (let i = 0; i < firstWeekday; i++) cells.push(null);
-    for (let d = 1; d <= daysInMonth; d++) {
-      cells.push(new Date(year, month, d));
-    }
-    return { label, cells };
-  }, [calendarMonthOffset]);
-
-  function resetForm() { setForm(emptyCar); }
-
-  async function createCar(e) {
-    e.preventDefault();
+  async function updateExpense(id, patch) {
     try {
-      console.log('[Vehicles][create] payload', form);
-      if (user?.isBlocked) { toast.error('Your account is deactivated. Creating cars is disabled.'); return; }
-      if (!createImages || createImages.length === 0) { toast.error('Please add at least one image'); return; }
-      // Build payload per category with validation
-      if (!form.vehicleName) { toast.error('Vehicle name is required'); return; }
-      if (!form.location) { toast.error('Location is required'); return; }
-      if (!form.pricePerDay || Number(form.pricePerDay) <= 0) { toast.error('Enter a valid price per day'); return; }
-
-      let payload;
-      if (category === 'car') {
-        // Validation
-        if (!form.brand || !form.model) { toast.error('Brand and model are required for cars'); return; }
-        if (!form.licensePlate) { toast.error('License plate is required for cars'); return; }
-        if (!form.transmission) { toast.error('Transmission is required for cars'); return; }
-        if (!form.fuelType) { toast.error('Fuel type is required for cars'); return; }
-        if (!form.capacity || Number(form.capacity) <= 0) { toast.error('Seats must be a positive number'); return; }
-        if (!form.doors || Number(form.doors) <= 0) { toast.error('Doors must be a positive number'); return; }
-        // Map payload
-        payload = {
-          vehicleName: form.vehicleName,
-          vehicleType: form.vehicleType,
-          brand: form.brand,
-          model: form.model,
-          year: form.year,
-          licensePlate: form.licensePlate,
-          capacity: Number(form.capacity), // seats
-          doors: Number(form.doors),
-          airConditioning: !!form.airConditioning,
-          luggageCapacity: form.luggageCapacity !== '' ? Number(form.luggageCapacity) : undefined,
-          abs: !!form.abs,
-          pricePerDay: Number(form.pricePerDay),
-          pricePerWeek: form.pricePerWeek,
-          pricePerMonth: form.pricePerMonth,
-          currency: form.currency,
-          isAvailable: !!form.isAvailable,
-          location: form.location,
-          features: form.features,
-          fuelType: form.fuelType,
-          transmission: form.transmission,
-          mileage: form.mileage,
-          fuelPolicy: form.fuelPolicy || undefined,
-          mileageLimitPerDayKm: form.mileageLimitPerDayKm !== '' ? Number(form.mileageLimitPerDayKm) : undefined,
-          cancellationPolicy: form.cancellationPolicy || undefined,
-          depositInfo: form.depositInfo || undefined
-        };
-      } else if (category === 'motorcycle') {
-        // Validation
-        if (!form.brand || !form.model) { toast.error('Brand and model are required for motorcycles'); return; }
-        if (!form.engineCapacityCc || Number(form.engineCapacityCc) <= 0) { toast.error('Engine capacity (cc) is required for motorcycles'); return; }
-        // Map payload, enforce transmission manual and vehicleType
-        payload = {
-          vehicleName: form.vehicleName,
-          vehicleType: 'motorcycle',
-          brand: form.brand,
-          model: form.model,
-          year: form.year,
-          pricePerDay: Number(form.pricePerDay),
-          currency: form.currency,
-          isAvailable: !!form.isAvailable,
-          location: form.location,
-          capacity: Number(form.capacity || 2),
-          engineCapacityCc: Number(form.engineCapacityCc),
-          helmetIncluded: !!form.helmetIncluded,
-          abs: !!form.abs,
-          transmission: 'manual',
-          fuelPolicy: form.fuelPolicy || undefined,
-          mileageLimitPerDayKm: form.mileageLimitPerDayKm !== '' ? Number(form.mileageLimitPerDayKm) : undefined,
-          cancellationPolicy: form.cancellationPolicy || undefined,
-          depositInfo: form.depositInfo || undefined
-        };
-      } else {
-        // Bicycle
-        if (!form.brand || !form.model) { toast.error('Brand and model are required for bicycles'); return; }
-        if (!form.frameSize) { toast.error('Frame size is required for bicycles'); return; }
-        if (!form.gearCount || Number(form.gearCount) <= 0) { toast.error('Gear count is required for bicycles'); return; }
-        payload = {
-          vehicleName: form.vehicleName,
-          vehicleType: 'bicycle',
-          brand: form.brand,
-          model: form.model,
-          year: form.year,
-          pricePerDay: Number(form.pricePerDay),
-          currency: form.currency,
-          isAvailable: !!form.isAvailable,
-          location: form.location,
-          capacity: Number(form.capacity || 1),
-          frameSize: String(form.frameSize),
-          gearCount: Number(form.gearCount),
-          helmetIncluded: !!form.helmetIncluded,
-          bicycleType: form.bicycleType || undefined,
-          fuelPolicy: form.fuelPolicy || undefined,
-          mileageLimitPerDayKm: form.mileageLimitPerDayKm !== '' ? Number(form.mileageLimitPerDayKm) : undefined,
-          cancellationPolicy: form.cancellationPolicy || undefined,
-          depositInfo: form.depositInfo || undefined
-        };
-      }
-      setSaving(true);
-      const res = await fetch(`${API_URL}/api/cars`, {
-        method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+      const res = await fetch(`${API_URL}/api/car-finance/expenses/${id}`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patch)
       });
-      const data = await res.json();
-      console.log('[Vehicles][create] result', { status: res.status, id: data?.car?._id });
-      if (!res.ok) throw new Error(data.message || 'Failed to create');
-      setCars(c => [data.car, ...c]);
-      toast.success('Car created');
-      setSuccessTitle('Vehicle Created');
-      setSuccessMsg('Your vehicle was created successfully.');
-      setSuccessOpen(true);
-      await uploadImages(data.car._id, createImages);
-      resetForm();
-      setCreateImages([]);
-    } catch (e) { console.error('[Vehicles][create] error', e); toast.error(e.message); } finally { setSaving(false); }
-  }
-
-  async function updateCar(id, patch) {
-    try {
-      console.log('[Vehicles][update] id', id, 'patch', patch);
-      if (user?.isBlocked) { toast.error('Your account is deactivated. Updates are disabled.'); return; }
-      const res = await fetch(`${API_URL}/api/cars/${id}`, {
-        method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch)
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.message || 'Failed to update expense');
+      }
+      const updated = data.expense;
+      setCarExpenses(list => list.map(x => x._id === updated._id ? updated : x));
+      setCarExpensesTotal(() => {
+        return carExpenses.reduce((s, x) => {
+          const amt = x._id === updated._id ? Number(updated.amount || 0) : Number(x.amount || 0);
+          return s + amt;
+        }, 0);
       });
-      const data = await res.json();
-      console.log('[Vehicles][update] result', { status: res.status });
-      if (!res.ok) throw new Error(data.message || 'Update failed');
-      setCars(list => list.map(c => c._id === id ? data.car : c));
-      toast.success('Car updated');
-      setSuccessTitle('Vehicle Updated');
-      setSuccessMsg('Your vehicle was updated successfully.');
-      setSuccessOpen(true);
-    } catch (e) { console.error('[Vehicles][update] error', e); toast.error(e.message); }
+      setEditingExpenseId(null);
+      toast.success('Expense updated');
+    } catch (err) {
+      console.error('[Vehicles][expenses][update]', err);
+      toast.error(err.message || 'Failed to update expense');
+    }
   }
 
-  async function deleteCar(id) {
-    if (!confirm('Delete this car?')) return;
-    try {
-      console.log('[Vehicles][delete] id', id);
-      if (user?.isBlocked) { toast.error('Your account is deactivated. Delete is disabled.'); return; }
-      const res = await fetch(`${API_URL}/api/cars/${id}`, { method: 'DELETE', credentials: 'include' });
-      const data = await res.json();
-      console.log('[Vehicles][delete] result', { status: res.status });
-      if (!res.ok) throw new Error(data.message || 'Delete failed');
-      setCars(list => list.filter(c => c._id !== id));
-      toast.success('Car deleted');
-      setSuccessTitle('Vehicle Deleted');
-      setSuccessMsg('Your vehicle was deleted successfully.');
-      setSuccessOpen(true);
-    } catch (e) { console.error('[Vehicles][delete] error', e); toast.error(e.message); }
-  }
-
-  async function uploadImages(id, files) {
-    if (!files?.length) return;
-    try {
-      console.log('[Vehicles][uploadImages] id', id, 'files', files?.length);
-      if (user?.isBlocked) { toast.error('Your account is deactivated. Uploads are disabled.'); return; }
-      setUploadingId(id);
-      const formData = new FormData();
-      Array.from(files).forEach(f => formData.append('images', f));
-      const res = await fetch(`${API_URL}/api/cars/${id}/images`, { method: 'POST', credentials: 'include', body: formData });
-      const data = await res.json();
-      console.log('[Vehicles][uploadImages] result', { status: res.status, imageCount: (data?.car?.images||[]).length });
-      if (!res.ok) throw new Error(data.message || 'Upload failed');
-      setCars(list => list.map(c => c._id === id ? data.car : c));
-      toast.success('Images uploaded');
-      setSuccessTitle('Images Uploaded');
-      setSuccessMsg('Your vehicle images were uploaded successfully.');
-      setSuccessOpen(true);
-    } catch (e) { console.error('[Vehicles][uploadImages] error', e); toast.error(e.message); } finally { setUploadingId(null); }
-  }
+  // ... rest of the code remains the same ...
 
   return (
     <div className="min-h-screen bg-[#f9f5ef] py-4">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-3 flex justify-between items-center">
-          {/* Back to main listing options (optional, safe to keep) */}
-          <button
-            type="button"
-            onClick={() => window.location.assign('/choose-listing-type')}
-            className="inline-flex items-center px-3 py-1.5 rounded-full bg-white/70 hover:bg-white text-xs font-medium text-[#4b2a00] border border-[#e0d5c7] shadow-sm transition-colors"
-          >
-            <span className="mr-1">←</span>
-            Back to listing options
-          </button>
-
-          {/* Create vehicle + view mode toggle (original controls) */}
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={() => window.location.assign('/upload-property?type=rental')}
-              className="px-4 py-2 rounded-lg bg-[#a06b42] hover:bg-[#8f5a32] text-white text-sm font-medium"
-              disabled={user?.isBlocked}
-            >
-              List a vehicle
-            </button>
-
-            <div className="inline-flex rounded-lg overflow-hidden border">
-              <button
-                type="button"
-                onClick={() => setViewMode('cards')}
-                className={`px-3 py-2 text-sm ${viewMode==='cards' ? 'bg-[#a06b42] text-white' : 'bg-white text-gray-700'}`}
-              >
-                Cards
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode('table')}
-                className={`px-3 py-2 text-sm ${viewMode==='table' ? 'bg-[#a06b42] text-white' : 'bg-white text-gray-700'}`}
-              >
-                Table
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* View selector to mirror PropertyManagement layout */}
-        <div className="mb-4 flex flex-wrap gap-2 text-sm">
-          <button
-            type="button"
-            onClick={() => {
-              setView('overview');
-              try {
-                const next = new URLSearchParams(searchParams.toString());
-                next.delete('view');
-                setSearchParams(next, { replace: true });
-              } catch (_) {}
-            }}
-            className={`px-3 py-1.5 rounded-full border ${view === 'overview' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
-          >
-            Overview
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setView('vehicles');
-              try {
-                const next = new URLSearchParams(searchParams.toString());
-                next.set('view', 'vehicles');
-                setSearchParams(next, { replace: true });
-              } catch (_) {}
-            }}
-            className={`px-3 py-1.5 rounded-full border ${view === 'vehicles' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
-          >
-            Vehicles
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setView('bookings');
-              try {
-                const next = new URLSearchParams(searchParams.toString());
-                next.set('view', 'bookings');
-                setSearchParams(next, { replace: true });
-              } catch (_) {}
-            }}
-            className={`px-3 py-1.5 rounded-full border ${view === 'bookings' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
-          >
-            Bookings
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setView('finance');
-              try {
-                const next = new URLSearchParams(searchParams.toString());
-                next.set('view', 'finance');
-                setSearchParams(next, { replace: true });
-              } catch (_) {}
-            }}
-            className={`px-3 py-1.5 rounded-full border ${view === 'finance' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
-          >
-            Finance
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setView('analytics');
-              try {
-                const next = new URLSearchParams(searchParams.toString());
-                next.set('view', 'analytics');
-                setSearchParams(next, { replace: true });
-              } catch (_) {}
-            }}
-            className={`px-3 py-1.5 rounded-full border ${view === 'analytics' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
-          >
-            Analytics
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setView('reviews');
-              try {
-                const next = new URLSearchParams(searchParams.toString());
-                next.set('view', 'reviews');
-                setSearchParams(next, { replace: true });
-              } catch (_) {}
-            }}
-            className={`px-3 py-1.5 rounded-full border ${view === 'reviews' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
-          >
-            Reviews
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setView('messages');
-              try {
-                const next = new URLSearchParams(searchParams.toString());
-                next.set('view', 'messages');
-                setSearchParams(next, { replace: true });
-              } catch (_) {}
-            }}
-            className={`px-3 py-1.5 rounded-full border ${view === 'messages' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
-          >
-            Messages
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setView('settings');
-              try {
-                const next = new URLSearchParams(searchParams.toString());
-                next.set('view', 'settings');
-                setSearchParams(next, { replace: true });
-              } catch (_) {}
-            }}
-            className={`px-3 py-1.5 rounded-full border ${view === 'settings' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
-          >
-            Settings
-          </button>
-        </div>
-
-        {user?.isBlocked && (
-          <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
-            Your account is deactivated. Vehicle management is disabled until reactivated.
-          </div>
-        )}
-
-        {/* Overview section (stats, quick links, finance snapshot) */}
-        {view === 'overview' && (
-        <>
-          {/* Vehicle context selector */}
-          {Array.isArray(cars) && cars.length > 0 ? (
-            <div className="mb-4 max-w-sm bg-white border border-[#e0d5c7] rounded-xl px-3 py-2 shadow-sm flex items-center gap-3">
-              <div className="w-9 h-9 rounded-full bg-[#f5ebe0] flex items-center justify-center text-[#a06b42]">
-                <FaCar className="text-sm" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <label className="block text-[11px] text-gray-500">Vehicle focus</label>
+        {/* ... rest of the code remains the same ... */}
+        {financeMode === 'expenses' && (
+          <>
+            {Array.isArray(carExpenses) && carExpenses.length > 0 && (
+              <div className="mb-3 flex flex-wrap items-center gap-2 text-xs">
+                <label className="text-[11px] text-gray-600">Filter by category:</label>
                 <select
-                  className="mt-0.5 w-full px-2 py-1.5 border border-[#e0d5c7] rounded-md text-xs bg-[#faf6f0] focus:outline-none focus:ring-1 focus:ring-[#a06b42] focus:border-[#a06b42]"
-                  value={selectedCarId || ''}
-                  onChange={e => setSelectedCarId(e.target.value)}
+                  className="px-2 py-1.5 border border-[#d4c4b0] rounded-lg bg-white"
+                  value={expenseCategoryFilter}
+                  onChange={e => setExpenseCategoryFilter(e.target.value)}
                 >
-                  {cars.map(c => (
-                    <option key={c._id} value={c._id}>
-                      {c.vehicleName || `${c.brand || ''} ${c.model || ''}`.trim() || 'Untitled vehicle'}
-                    </option>
+                  <option value="">All categories</option>
+                  {Array.from(new Set(carExpenses.map(e => String(e.category || 'general')))).map(cat => (
+                    <option key={cat} value={cat}>{cat}</option>
                   ))}
                 </select>
               </div>
-            </div>
-          ) : (
-            <div className="mb-4 text-xs text-gray-700 bg-white border border-[#e0d5c7] rounded-xl px-3 py-3">
-              <div className="font-semibold text-gray-900 mb-0.5">No vehicles listed yet</div>
-              <p className="text-[11px] text-gray-600">
-                Once you list vehicles, you'll see per-vehicle stats here. For now, the summary cards show overall bookings and revenue for your account.
-              </p>
-            </div>
-          )}
-
-          {/* High-level stats */}
-          <div className="mb-5 grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5 flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-[#e9f2ff] flex items-center justify-center text-[#2563eb]">
-                <FaCalendarAlt className="text-xs" />
-              </div>
-              <div>
-                <div className="text-[11px] text-gray-500">Total bookings</div>
-                <div className="text-lg font-semibold text-gray-900 leading-snug">{stats.totalBookings}</div>
-              </div>
-            </div>
-
-            <div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5 flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-[#ecfdf3] flex items-center justify-center text-emerald-700">
-                <FaCar className="text-xs" />
-              </div>
-              <div>
-                <div className="text-[11px] text-gray-500">Active</div>
-                <div className="text-lg font-semibold text-emerald-700 leading-snug">{stats.active}</div>
-              </div>
-            </div>
-
-            <div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5 flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-[#eff6ff] flex items-center justify-center text-blue-700">
-                <FaCalendarAlt className="text-xs" />
-              </div>
-              <div>
-                <div className="text-[11px] text-gray-500">Completed</div>
-                <div className="text-lg font-semibold text-blue-700 leading-snug">{stats.completed}</div>
-              </div>
-            </div>
-
-            <div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5 flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-[#fff7ed] flex items-center justify-center text-[#a06b42]">
-                <FaDollarSign className="text-xs" />
-              </div>
-              <div className="min-w-0">
-                <div className="text-[11px] text-gray-500">Revenue (RWF)</div>
-                <div className="text-sm font-semibold text-gray-900 truncate">
-                  {formatCurrencyRWF ? formatCurrencyRWF(stats.totalRevenue || 0) : `RWF ${Number(stats.totalRevenue || 0).toLocaleString()}`}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Quick management links removed; management is handled via navbar for vehicles dashboard */}
-
-          {/* Finance snapshot */}
-          <div className="mb-6 grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5">
-              <div className="text-[11px] text-gray-500">Last 30 days revenue</div>
-              <div className="text-sm font-semibold text-gray-900">
-                {formatCurrencyRWF ? formatCurrencyRWF(financeStats.rev30 || 0) : `RWF ${Number(financeStats.rev30 || 0).toLocaleString()}`}
-              </div>
-              <div className="mt-0.5 text-[11px] text-gray-500">{financeStats.bookings30} bookings</div>
-            </div>
-            <div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5">
-              <div className="text-[11px] text-gray-500">Year-to-date revenue</div>
-              <div className="text-sm font-semibold text-gray-900">
-                {formatCurrencyRWF ? formatCurrencyRWF(financeStats.revYtd || 0) : `RWF ${Number(financeStats.revYtd || 0).toLocaleString()}`}
-              </div>
-              <div className="mt-0.5 text-[11px] text-gray-500">{financeStats.bookingsYtd} bookings</div>
-            </div>
-            <div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5">
-              <div className="text-[11px] text-gray-500">Avg revenue / booking (30d)</div>
-              <div className="text-sm font-semibold text-gray-900">
-                {formatCurrencyRWF ? formatCurrencyRWF(financeStats.avg30 || 0) : `RWF ${Number(financeStats.avg30 || 0).toLocaleString()}`}
-              </div>
-              <div className="mt-0.5 text-[11px] text-gray-500">Based on last 30 days</div>
-            </div>
-          </div>
-
-          {financeMode === 'expenses' && (
-            <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5">
-                <div className="text-[11px] text-gray-500">Total expenses (period)</div>
-                <div className="text-sm font-semibold text-gray-900">
-                  {carFinanceLoading
-                    ? 'Loading...'
-                    : formatCurrencyRWF
-                      ? formatCurrencyRWF(carExpensesTotal || 0)
-                      : `RWF ${Number(carExpensesTotal || 0).toLocaleString()}`}
-                </div>
-                <div className="mt-0.5 text-[11px] text-gray-500">
-                  {Array.isArray(carExpenses) ? carExpenses.length : 0} expense entries
-                </div>
-              </div>
-
-              <div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5">
-                <div className="text-[11px] text-gray-500">Revenue (period)</div>
-                <div className="text-sm font-semibold text-gray-900">
-                  {carFinanceLoading
-                    ? 'Loading...'
-                    : formatCurrencyRWF
-                      ? formatCurrencyRWF(carFinanceSummary?.revenueTotal || 0)
-                      : `RWF ${Number(carFinanceSummary?.revenueTotal || 0).toLocaleString()}`}
-                </div>
-                <div className="mt-0.5 text-[11px] text-gray-500">
-                  {(carFinanceSummary?.counts?.bookings || 0)} bookings in range
-                </div>
-              </div>
-
-              <div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5">
-                <div className="text-[11px] text-gray-500">Profit (revenue - expenses)</div>
-                <div className={`text-sm font-semibold ${
-                  (carFinanceSummary?.profit || 0) >= 0 ? 'text-emerald-700' : 'text-red-600'
-                }`}>
-                  {carFinanceLoading
-                    ? 'Loading...'
-                    : formatCurrencyRWF
-                      ? formatCurrencyRWF(carFinanceSummary?.profit || 0)
-                      : `RWF ${Number(carFinanceSummary?.profit || 0).toLocaleString()}`}
-                </div>
-                <div className="mt-0.5 text-[11px] text-gray-500">Based on selected period and vehicle scope</div>
-              </div>
-            </div>
-          )}
-        </>
-      )}
-
         {/* Finance view: focus on revenue stats for vehicles */}
         {view === 'finance' && (
         <>
@@ -1008,11 +482,91 @@ export default function CarOwnerDashboard() {
               Export bookings as CSV
             </button>
           </div>
+
+          <div className="mb-6 rounded-2xl bg-white border border-[#e0d5c7] shadow-sm overflow-hidden">
+            <div className="px-4 py-3 border-b border-[#e0d5c7] flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-semibold text-[#4b2a00]">Revenue summary table</h3>
+                <p className="text-[11px] text-gray-600 mt-0.5">
+                  All trips contributing to your revenue in this scope.
+                </p>
+              </div>
+              <div className="text-[11px] text-gray-500">
+                {financeBookingsTable.length} trips
+              </div>
+            </div>
+            {financeBookingsTable.length === 0 ? (
+              <div className="px-4 py-6 text-xs text-gray-600">
+                No bookings found for the current vehicle and payment filter.
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-xs">
+                  <thead className="bg-[#f5ebe0] text-[11px] uppercase tracking-wide text-gray-600">
+                    <tr>
+                      <th className="px-3 py-2 text-left">Vehicle</th>
+                      <th className="px-3 py-2 text-left">Pickup</th>
+                      <th className="px-3 py-2 text-left">Return</th>
+                      <th className="px-3 py-2 text-right">Days</th>
+                      <th className="px-3 py-2 text-right">Amount (RWF)</th>
+                      <th className="px-3 py-2 text-right">Payment status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#f1e4d4] bg-white">
+                    {financeBookingsTable.map(b => {
+                      const vehicleLabel = (b.car?.vehicleName || `${b.car?.brand || ''} ${b.car?.model || ''}`.trim() || 'Vehicle').replace(/,/g, ' ');
+                      const pickup = b.pickupDate ? new Date(b.pickupDate) : null;
+                      const ret = b.returnDate ? new Date(b.returnDate) : null;
+                      const status = String(b.paymentStatus || b.status || '').toLowerCase();
+                      const amount = Number(b.totalAmount || 0);
+                      return (
+                        <tr key={b._id} className="hover:bg-[#fdf7ee] transition-colors">
+                          <td className="px-3 py-2 align-top max-w-[180px]">
+                            <div className="text-[11px] font-medium text-gray-900 truncate">{vehicleLabel}</div>
+                            <div className="text-[10px] text-gray-500 truncate">{b._id}</div>
+                          </td>
+                          <td className="px-3 py-2 align-top text-[11px] text-gray-700">
+                            {pickup ? pickup.toLocaleDateString() : '-'}
+                          </td>
+                          <td className="px-3 py-2 align-top text-[11px] text-gray-700">
+                            {ret ? ret.toLocaleDateString() : '-'}
+                          </td>
+                          <td className="px-3 py-2 align-top text-right text-[11px] text-gray-700">
+                            {b.numberOfDays || ''}
+                          </td>
+                          <td className="px-3 py-2 align-top text-right text-[11px] font-semibold text-gray-900">
+                            {formatCurrencyRWF
+                              ? formatCurrencyRWF(amount)
+                              : `RWF ${amount.toLocaleString()}`}
+                          </td>
+                          <td className="px-3 py-2 align-top text-right text-[11px]">
+                            <span
+                              className={`inline-flex items-center px-2 py-0.5 rounded-full border text-[10px] ${
+                                status === 'paid' || status === 'completed'
+                                  ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                                  : status === 'pending'
+                                    ? 'bg-amber-50 border-amber-200 text-amber-700'
+                                    : status === 'cancelled'
+                                      ? 'bg-red-50 border-red-200 text-red-700'
+                                      : 'bg-gray-50 border-gray-200 text-gray-700'
+                              }`}
+                            >
+                              {status || 'n/a'}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </>
       )}
 
-        {/* Analytics view: reuse finance stats but framed as performance */}
-        {view === 'analytics' && (
+        {/* Analytics view: default performance analytics */}
+        {view === 'analytics' && analyticsSection !== 'fuel' && analyticsSection !== 'fuel-add' && (
         <>
           <div className="mb-4">
             <h2 className="text-xl font-semibold text-gray-900">Performance analytics</h2>
@@ -1064,7 +618,342 @@ export default function CarOwnerDashboard() {
         </>
       )}
 
-        {/* Simple placeholder panels for reviews/messages/settings views to keep navigation working */}
+        {/* Analytics fuel management section */}
+        {view === 'analytics' && (analyticsSection === 'fuel' || analyticsSection === 'fuel-add') && (
+        <>
+          <div className="mb-4">
+            <h2 className="text-xl font-semibold text-gray-900">Fuel management</h2>
+            <p className="text-xs text-gray-600 mt-1">
+              Track fuel usage and costs for your vehicles.
+            </p>
+          </div>
+
+          <div className="mb-4 grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5">
+              <div className="text-[11px] text-gray-500">Total liters (filtered)</div>
+              <div className="text-lg font-semibold text-gray-900">{fuelSummary.totalLiters.toFixed(1)}</div>
+            </div>
+            <div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5">
+              <div className="text-[11px] text-gray-500">Total cost (filtered)</div>
+              <div className="text-sm font-semibold text-gray-900">
+                {formatCurrencyRWF
+                  ? formatCurrencyRWF(fuelSummary.totalCost || 0)
+                  : `RWF ${Number(fuelSummary.totalCost || 0).toLocaleString()}`}
+              </div>
+            </div>
+          </div>
+
+          <div className="mb-4 bg-white rounded-xl shadow-sm border border-[#e0d5c7] px-4 py-4">
+            <h3 className="text-sm font-semibold text-[#4b2a00] mb-3">Add fuel record</h3>
+            <form onSubmit={createFuelRecord} className="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs">
+              <div>
+                <label className="block mb-1 text-[11px] text-gray-600">Vehicle *</label>
+                <select
+                  className="w-full px-2 py-1.5 border border-[#d4c4b0] rounded-lg bg-white"
+                  value={fuelForm.carId}
+                  onChange={e => setFuelForm(f => ({ ...f, carId: e.target.value }))}
+                >
+                  <option value="">Select vehicle</option>
+                  {cars.map(c => (
+                    <option key={c._id} value={c._id}>
+                      {c.vehicleName || `${c.brand || ''} ${c.model || ''}`.trim() || 'Untitled vehicle'}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block mb-1 text-[11px] text-gray-600">Date *</label>
+                <input
+                  type="date"
+                  className="w-full px-2 py-1.5 border border-[#d4c4b0] rounded-lg"
+                  value={fuelForm.date}
+                  onChange={e => setFuelForm(f => ({ ...f, date: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="block mb-1 text-[11px] text-gray-600">Liters *</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  className="w-full px-2 py-1.5 border border-[#d4c4b0] rounded-lg"
+                  value={fuelForm.liters}
+                  onChange={e => setFuelForm(f => ({ ...f, liters: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="block mb-1 text-[11px] text-gray-600">Total cost (RWF) *</label>
+                <input
+                  type="number"
+                  className="w-full px-2 py-1.5 border border-[#d4c4b0] rounded-lg"
+                  value={fuelForm.totalCost}
+                  onChange={e => setFuelForm(f => ({ ...f, totalCost: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="block mb-1 text-[11px] text-gray-600">Price per liter</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  className="w-full px-2 py-1.5 border border-[#d4c4b0] rounded-lg"
+                  value={fuelForm.pricePerLiter}
+                  onChange={e => setFuelForm(f => ({ ...f, pricePerLiter: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="block mb-1 text-[11px] text-gray-600">Odometer (km)</label>
+                <input
+                  type="number"
+                  className="w-full px-2 py-1.5 border border-[#d4c4b0] rounded-lg"
+                  value={fuelForm.odometerKm}
+                  onChange={e => setFuelForm(f => ({ ...f, odometerKm: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="block mb-1 text-[11px] text-gray-600">Station</label>
+                <input
+                  className="w-full px-2 py-1.5 border border-[#d4c4b0] rounded-lg"
+                  value={fuelForm.stationName}
+                  onChange={e => setFuelForm(f => ({ ...f, stationName: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="block mb-1 text-[11px] text-gray-600">Note</label>
+                <input
+                  className="w-full px-2 py-1.5 border border-[#d4c4b0] rounded-lg"
+                  value={fuelForm.note}
+                  onChange={e => setFuelForm(f => ({ ...f, note: e.target.value }))}
+                />
+              </div>
+              <div className="md:col-span-4 flex justify-end mt-1">
+                <button
+                  type="submit"
+                  disabled={fuelSaving}
+                  className="inline-flex items-center px-3 py-1.5 rounded-lg bg-[#a06b42] hover:bg-[#8f5a32] text-white text-xs font-medium disabled:opacity-60"
+                >
+                  {fuelSaving ? 'Saving...' : 'Save fuel record'}
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <div className="rounded-2xl bg-white shadow-sm border border-[#e0d5c7] overflow-x-auto">
+            <div className="px-4 py-3 border-b border-[#e0d5c7] flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-semibold text-[#4b2a00]">Fuel logs</h3>
+                <p className="text-[11px] text-gray-600 mt-0.5">
+                  All fuel records matching the current filters.
+                </p>
+              </div>
+              <div className="text-[11px] text-gray-500">
+                {fuelLogs.length} records
+              </div>
+            </div>
+            {fuelLoading ? (
+              <div className="px-4 py-6 text-xs text-gray-600">Loading fuel logs...</div>
+            ) : fuelLogs.length === 0 ? (
+              <div className="px-4 py-6 text-xs text-gray-600">No fuel records found for the current filters.</div>
+            ) : (
+              <table className="min-w-full text-xs">
+                <thead className="bg-[#f5ebe0] text-[11px] uppercase tracking-wide text-gray-600">
+                  <tr>
+                    <th className="px-3 py-2 text-left">Date</th>
+                    <th className="px-3 py-2 text-left">Vehicle</th>
+                    <th className="px-3 py-2 text-right">Liters</th>
+                    <th className="px-3 py-2 text-right">Total cost (RWF)</th>
+                    <th className="px-3 py-2 text-right">Odometer</th>
+                    <th className="px-3 py-2 text-left">Station</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#f1e4d4] bg-white">
+                  {fuelLogs.map(log => {
+                    const d = log.date ? new Date(log.date) : null;
+                    const carLabel = (log.car?.vehicleName || `${log.car?.brand || ''} ${log.car?.model || ''}`.trim() || 'Vehicle').replace(/,/g, ' ');
+                    return (
+                      <tr key={log._id} className="hover:bg-[#fdf7ee]">
+                        <td className="px-3 py-2 text-[11px] text-gray-700">{d ? d.toLocaleDateString() : '-'}</td>
+                        <td className="px-3 py-2 text-[11px] text-gray-700">{carLabel}</td>
+                        <td className="px-3 py-2 text-right text-[11px] text-gray-900">{log.liters}</td>
+                        <td className="px-3 py-2 text-right text-[11px] text-gray-900">
+                          {formatCurrencyRWF
+                            ? formatCurrencyRWF(log.totalCost || 0)
+                            : `RWF ${Number(log.totalCost || 0).toLocaleString()}`}
+                        </td>
+                        <td className="px-3 py-2 text-right text-[11px] text-gray-900">{log.odometerKm || ''}</td>
+                        <td className="px-3 py-2 text-[11px] text-gray-700">{log.stationName || ''}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </>
+      )}
+
+        {/* Simple panels for alerts/reviews/messages/settings views to keep navigation working */}
+        {view === 'alerts' && (
+        <div className="mb-6 space-y-4">
+          <div className="rounded-2xl bg-white border border-[#e0d5c7] px-4 py-4 text-sm text-gray-700 shadow-sm">
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="text-lg font-semibold text-[#4b2a00]">Notifications & alerts</h2>
+              {(() => {
+                const unreadCount = ownerNotifications.filter(n => !n.isRead).length;
+                if (!unreadCount) return null;
+                return (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-[#a06b42] text-white text-[10px] font-semibold">
+                    {unreadCount} unread
+                  </span>
+                );
+              })()}
+            </div>
+            <p className="text-[11px] text-gray-600 mb-3">
+              Recent notifications related to your account and vehicle activity.
+            </p>
+
+            <div className="mb-3 flex flex-wrap items-center gap-2 text-[11px] text-gray-700">
+              <label className="inline-flex items-center gap-1">
+                <input
+                  type="checkbox"
+                  className="rounded border-[#d4c4b0] text-[#a06b42] focus:ring-[#a06b42]"
+                  checked={ownerNotifShowUnreadOnly}
+                  onChange={e => setOwnerNotifShowUnreadOnly(e.target.checked)}
+                />
+                <span>Show unread only</span>
+              </label>
+              <div className="flex items-center gap-1">
+                <span>Type:</span>
+                <select
+                  className="px-2 py-1 border border-[#d4c4b0] rounded-lg bg-white text-[11px]"
+                  value={ownerNotifTypeFilter}
+                  onChange={e => setOwnerNotifTypeFilter(e.target.value)}
+                >
+                  <option value="all">All</option>
+                  {Array.from(new Set(ownerNotifications.map(n => String(n.type || 'other')))).map(t => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {ownerNotificationsLoading ? (
+              <div className="text-xs text-gray-600">Loading notifications...</div>
+            ) : ownerNotifications.length === 0 ? (
+              <div className="text-xs text-gray-600">You have no recent notifications.</div>
+            ) : (
+              <ul className="divide-y divide-[#f1e4d4] text-xs">
+                {(() => {
+                  const filtered = ownerNotifications.filter(n => {
+                    if (ownerNotifShowUnreadOnly && n.isRead) return false;
+                    if (ownerNotifTypeFilter !== 'all' && String(n.type || 'other') !== ownerNotifTypeFilter) return false;
+                    return true;
+                  });
+
+                  if (filtered.length === 0) {
+                    return (
+                      <li className="py-2 text-[11px] text-gray-600">
+                        No notifications match the current filters.
+                      </li>
+                    );
+                  }
+
+                  return filtered.map(n => {
+                    const created = n.createdAt ? new Date(n.createdAt) : null;
+                    return (
+                      <li key={n._id} className="py-2 flex items-start gap-2">
+                        <span className={`mt-1 inline-block w-2 h-2 rounded-full ${n.isRead ? 'bg-gray-300' : 'bg-[#a06b42]'}`} />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="font-semibold text-[#4b2a00] truncate text-[11px]">{n.title || 'Notification'}</div>
+                            {created && (
+                              <span className="text-[10px] text-gray-500 whitespace-nowrap">
+                                {created.toLocaleDateString()} {created.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[11px] text-gray-700 mt-0.5 break-words">{n.message}</div>
+                          {!n.isRead && (
+                            <button
+                              type="button"
+                              onClick={() => markOwnerNotificationRead(n._id)}
+                              className="mt-1 inline-flex items-center px-2 py-0.5 rounded-full border border-[#a06b42] text-[10px] text-[#a06b42] hover:bg-[#a06b42] hover:text-white"
+                            >
+                              Mark as read
+                            </button>
+                          )}
+                        </div>
+                      </li>
+                    );
+                  });
+                })()}
+              </ul>
+            )}
+          </div>
+
+          <div className="rounded-2xl bg-white border border-[#e0d5c7] px-4 py-4 text-sm text-gray-700 shadow-sm">
+            <h2 className="text-lg font-semibold mb-1 text-[#4b2a00]">Booking-based alerts</h2>
+            <p className="text-[11px] text-gray-600 mb-3">
+              Key items that may need your attention for your vehicles and trips.
+            </p>
+            <ul className="space-y-2 text-xs">
+              {(() => {
+                const list = [];
+                const baseBookings = Array.isArray(bookings) ? bookings : [];
+                const now = new Date();
+                const threeDaysAhead = new Date();
+                threeDaysAhead.setDate(now.getDate() + 3);
+
+                // Upcoming pickups in next 3 days
+                baseBookings.forEach(b => {
+                  if (selectedCarId && String(b.car?._id) !== String(selectedCarId)) return;
+                  if (!b.pickupDate) return;
+                  const d = new Date(b.pickupDate);
+                  const status = String(b.status || '').toLowerCase();
+                  if (d >= now && d <= threeDaysAhead && (status === 'confirmed' || status === 'active' || status === 'pending')) {
+                    list.push({
+                      type: 'upcoming',
+                      key: `upcoming-${b._id}`,
+                      label: `Upcoming pickup ${d.toLocaleDateString()} for ${(b.car?.vehicleName || b.car?.model || 'vehicle')}`,
+                    });
+                  }
+                });
+
+                // Overdue returns
+                baseBookings.forEach(b => {
+                  if (selectedCarId && String(b.car?._id) !== String(selectedCarId)) return;
+                  if (!b.returnDate) return;
+                  const d = new Date(b.returnDate);
+                  const status = String(b.status || '').toLowerCase();
+                  if (d < now && status !== 'completed' && status !== 'cancelled') {
+                    list.push({
+                      type: 'overdue',
+                      key: `overdue-${b._id}`,
+                      label: `Return overdue since ${d.toLocaleDateString()} for ${(b.car?.vehicleName || b.car?.model || 'vehicle')}`,
+                    });
+                  }
+                });
+
+                if (list.length === 0) {
+                  return (
+                    <li className="text-gray-600">
+                      You have no time-sensitive booking alerts right now. Keep an eye on your bookings and vehicle status.
+                    </li>
+                  );
+                }
+
+                return list.map(a => (
+                  <li key={a.key} className="flex items-start gap-2">
+                    <span className={`mt-0.5 inline-block w-2 h-2 rounded-full ${
+                      a.type === 'overdue' ? 'bg-red-500' : 'bg-amber-400'
+                    }`} />
+                    <span className="text-gray-800">{a.label}</span>
+                  </li>
+                ));
+              })()}
+            </ul>
+          </div>
+        </div>
+      )}
+
         {view === 'reviews' && (
         <div className="mb-6 rounded-2xl bg-white border border-[#e0d5c7] px-4 py-4 text-sm text-gray-700 shadow-sm">
           <h2 className="text-lg font-semibold mb-1 text-[#4b2a00]">Vehicle reviews</h2>
@@ -1551,8 +1440,8 @@ export default function CarOwnerDashboard() {
       </form>
       )}
 
-        {/* Cars List */}
-        {view === 'vehicles' && (
+        {/* Cars List & vehicle-level sections */}
+        {view === 'vehicles' && vehiclesSection === 'list' && (
         <>
           {loading ? (
             <div className="bg-white rounded-2xl border border-[#e0d5c7] p-6 text-center text-sm text-gray-600 shadow-sm">

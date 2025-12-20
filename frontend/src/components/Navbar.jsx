@@ -326,11 +326,11 @@ const Navbar = () => {
       icon: FaCar,
       href: '/owner/cars?view=vehicles',
       children: [
-        { label: 'All vehicles', href: '/owner/cars?view=vehicles', icon: FaCar },
+        { label: 'All vehicles', href: '/owner/cars?view=vehicles&section=list', icon: FaCar },
         { label: 'Add new vehicle', href: '/upload-property?type=rental', icon: FaPlus },
-        { label: 'Vehicle details', href: '/owner/cars?view=vehicles', icon: FaCar },
-        { label: 'Maintenance history', href: '/owner/cars?view=vehicles', icon: FaWrench },
-        { label: 'Insurance & registration', href: '/owner/cars?view=vehicles', icon: FaFileAlt },
+        { label: 'Vehicle details', href: '/owner/cars?view=vehicles&section=details', icon: FaCar },
+        { label: 'Maintenance history', href: '/owner/cars?view=vehicles&section=maintenance', icon: FaWrench },
+        { label: 'Insurance & registration', href: '/owner/cars?view=vehicles&section=insurance', icon: FaFileAlt },
       ],
     },
     {
@@ -350,12 +350,12 @@ const Navbar = () => {
       // Fuel Management
       label: 'Fuel management',
       icon: FaGasPump,
-      href: '/owner/cars?view=analytics',
+      href: '/owner/cars?view=analytics&section=fuel',
       children: [
-        { label: 'Fuel logs', href: '/owner/cars?view=analytics', icon: FaGasPump },
-        { label: 'Add fuel record', href: '/owner/cars?view=analytics', icon: FaPlus },
-        { label: 'Fuel consumption report', href: '/owner/cars?view=analytics', icon: FaChartLine },
-        { label: 'Fuel cost analysis', href: '/owner/cars?view=analytics', icon: FaDollarSign },
+        { label: 'Fuel logs', href: '/owner/cars?view=analytics&section=fuel', icon: FaGasPump },
+        { label: 'Add fuel record', href: '/owner/cars?view=analytics&section=fuel-add', icon: FaPlus },
+        { label: 'Fuel consumption report', href: '/owner/cars?view=analytics&section=fuel', icon: FaChartLine },
+        { label: 'Fuel cost analysis', href: '/owner/cars?view=analytics&section=fuel', icon: FaDollarSign },
       ],
     },
     {
@@ -376,24 +376,21 @@ const Navbar = () => {
       icon: FaDollarSign,
       href: '/owner/cars?view=finance',
       children: [
-        { label: 'All transactions', href: '/owner/cars?view=finance', icon: FaDollarSign },
-        { label: 'Add income', href: '/owner/cars?view=finance', icon: FaPlus },
-        { label: 'Client payments', href: '/owner/cars?view=finance', icon: FaMoneyBillWave },
-        { label: 'Invoices & receipts', href: '/owner/cars?view=finance', icon: FaFileAlt },
-        { label: 'Revenue reports', href: '/owner/cars?view=finance', icon: FaChartLine },
+        { label: 'All transactions', href: '/owner/cars?view=finance&mode=income', icon: FaDollarSign },
+        { label: 'Add income', href: '/owner/cars?view=finance&mode=income', icon: FaPlus },
       ],
     },
     {
       // Clients & Contracts
       label: 'Clients & contracts',
       icon: FaUsers,
-      href: '/owner/cars?view=overview',
+      href: '/owner/cars?view=clients&mode=list',
       children: [
-        { label: 'All clients', href: '/owner/cars?view=overview', icon: FaUsers },
-        { label: 'Add client', href: '/owner/cars?view=overview', icon: FaPlus },
-        { label: 'All contracts', href: '/owner/cars?view=overview', icon: FaFileAlt },
-        { label: 'Add contract', href: '/owner/cars?view=overview', icon: FaPlus },
-        { label: 'Client reports', href: '/owner/cars?view=analytics', icon: FaChartLine },
+        { label: 'All clients', href: '/owner/cars?view=clients&mode=list', icon: FaUsers },
+        { label: 'Add client', href: '/owner/cars?view=clients&mode=add', icon: FaPlus },
+        { label: 'All contracts', href: '/owner/cars?view=contracts&mode=list', icon: FaFileAlt },
+        { label: 'Add contract', href: '/owner/cars?view=contracts&mode=add', icon: FaPlus },
+        { label: 'Client reports', href: '/owner/cars?view=contracts&mode=reports', icon: FaChartLine },
       ],
     },
     {
@@ -405,7 +402,7 @@ const Navbar = () => {
         { label: 'Monthly summary', href: '/owner/cars?view=analytics', icon: FaChartLine },
         { label: 'Vehicle performance', href: '/owner/cars?view=analytics', icon: FaCar },
         { label: 'Driver performance', href: '/owner/cars?view=analytics', icon: FaUsers },
-        { label: 'Fuel efficiency', href: '/owner/cars?view=analytics', icon: FaGasPump },
+        { label: 'Fuel efficiency', href: '/owner/cars?view=analytics&section=fuel', icon: FaGasPump },
         { label: 'Profit & loss', href: '/owner/cars?view=finance&mode=expenses', icon: FaDollarSign },
       ],
     },
@@ -413,12 +410,12 @@ const Navbar = () => {
       // Notifications & Alerts
       label: 'Notifications & alerts',
       icon: FaBell,
-      href: '/owner/cars?view=settings',
+      href: '/owner/cars?view=alerts',
       children: [
-        { label: 'Maintenance reminders', href: '/owner/cars?view=settings', icon: FaBell },
-        { label: 'Insurance expiry alerts', href: '/owner/cars?view=settings', icon: FaBell },
-        { label: 'License renewal notifications', href: '/owner/cars?view=settings', icon: FaBell },
-        { label: 'Driver activity alerts', href: '/owner/cars?view=settings', icon: FaBell },
+        { label: 'Maintenance reminders', href: '/owner/cars?view=alerts', icon: FaBell },
+        { label: 'Insurance expiry alerts', href: '/owner/cars?view=alerts', icon: FaBell },
+        { label: 'License renewal notifications', href: '/owner/cars?view=alerts', icon: FaBell },
+        { label: 'Driver activity alerts', href: '/owner/cars?view=alerts', icon: FaBell },
       ],
     },
   ];

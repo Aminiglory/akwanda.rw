@@ -96,6 +96,49 @@ router.get('/expenses', requireAuth, async (req, res) => {
   }
 });
 
+// DELETE /api/car-finance/expenses/:id
+router.delete('/expenses/:id', requireAuth, async (req, res) => {
+  try {
+    const exp = await CarExpense.findById(req.params.id).populate('car', 'owner');
+    if (!exp) return res.status(404).json({ message: 'Expense not found' });
+    const isOwner = String(exp.owner) === String(req.user.id);
+    const isAdmin = req.user.userType === 'admin';
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+    await exp.deleteOne();
+    return res.json({ success: true });
+  } catch (e) {
+    console.error('CarExpense delete error', e);
+    return res.status(500).json({ message: 'Failed to delete car expense' });
+  }
+});
+
+// PATCH /api/car-finance/expenses/:id
+router.patch('/expenses/:id', requireAuth, async (req, res) => {
+  try {
+    const exp = await CarExpense.findById(req.params.id).populate('car', 'owner');
+    if (!exp) return res.status(404).json({ message: 'Expense not found' });
+    const isOwner = String(exp.owner) === String(req.user.id);
+    const isAdmin = req.user.userType === 'admin';
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+
+    const { date, amount, category, note } = req.body || {};
+    if (date !== undefined) exp.date = new Date(date);
+    if (amount !== undefined) exp.amount = Number(amount);
+    if (category !== undefined) exp.category = category || 'general';
+    if (note !== undefined) exp.note = note || '';
+
+    await exp.save();
+    return res.json({ expense: exp });
+  } catch (e) {
+    console.error('CarExpense update error', e);
+    return res.status(500).json({ message: 'Failed to update car expense' });
+  }
+});
+
 // GET /api/car-finance/summary?car=<id>&range=weekly|monthly|annual&date=YYYY-MM-DD
 router.get('/summary', requireAuth, async (req, res) => {
   try {
