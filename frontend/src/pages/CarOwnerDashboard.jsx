@@ -49,6 +49,13 @@ export default function CarOwnerDashboard() {
     : financeRange === 'ytd' ? 'Year to date'
     : financeRange === '90' ? 'Last 90 days'
     : 'Last 30 days';
+  const financeStats = {
+    rev30: 0,
+    revYtd: 0,
+    avg30: 0,
+    bookings30: 0,
+    bookingsYtd: 0,
+  };
   const [cars, setCars] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [bookingFilters, setBookingFilters] = useState({ status: '', from: '', to: '' });
