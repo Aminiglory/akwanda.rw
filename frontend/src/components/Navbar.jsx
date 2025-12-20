@@ -1643,7 +1643,7 @@ const Navbar = () => {
             </div>
 
             {/* Owner navigation (Booking.com style) in second navbar */}
-            {isAuthenticated && user?.userType === 'host' && (isInAnyOwnerDashboard() || location.pathname === '/') && (isInPropertyOwnerDashboard() ? !!selectedPropertyId : true) && (
+            {isAuthenticated && user?.userType === 'host' && isInAnyOwnerDashboard() && (isInPropertyOwnerDashboard() ? !!selectedPropertyId : true) && (
               <div className="w-full flex flex-wrap items-center gap-1 pt-1 mt-1">
                 {(isInCarOwnerDashboard()
                   ? carOwnerNavItems
@@ -1758,8 +1758,8 @@ const Navbar = () => {
             </div>
           )}
 
-          {/* Owner navigation (Booking.com style) - shown in owner dashboards and on landing page for hosts */}
-          {user?.userType === 'host' && (isInAnyOwnerDashboard() || location.pathname === '/') && (isInPropertyOwnerDashboard() ? !!selectedPropertyId : true) && (
+          {/* Owner navigation (Booking.com style) - only shown inside owner dashboards */}
+          {user?.userType === 'host' && isInAnyOwnerDashboard() && (isInPropertyOwnerDashboard() ? !!selectedPropertyId : true) && (
             <div className="px-2 pb-2">
               {(isInCarOwnerDashboard()
                 ? carOwnerNavItems
