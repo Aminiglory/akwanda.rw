@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const { uploadBuffer } = require('../utils/cloudinary');
 const Attraction = require('../tables/attraction');
+const AttractionBooking = require('../tables/attractionBooking');
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
@@ -40,10 +41,36 @@ router.post('/:id/availability', async (req, res) => {
   try {
     const { visitDate, tickets } = req.body || {};
     if (!visitDate) return res.status(400).json({ message: 'visitDate required' });
-    const a = await Attraction.findById(req.params.id).select('isActive');
+    const a = await Attraction.findById(req.params.id).select('isActive capacity operatingHours');
     if (!a || !a.isActive) return res.json({ available: false });
-    // For MVP: always available when active (capacity logic can be added later)
-    return res.json({ available: true });
+
+    const when = new Date(visitDate);
+    if (Number.isNaN(when.getTime())) return res.status(400).json({ message: 'Invalid visit date' });
+
+    const day = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'][when.getDay()];
+    const allowedDays = Array.isArray(a.operatingHours?.days) ? a.operatingHours.days : [];
+    if (allowedDays.length > 0 && !allowedDays.includes(day)) {
+      return res.json({ available: false, reason: 'closed' });
+    }
+
+    const qty = Math.max(1, Number(tickets || 1));
+    const capacity = Math.max(1, Number(a.capacity || 0) || 50);
+
+    const start = new Date(when);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(when);
+    end.setHours(23, 59, 59, 999);
+
+    const booked = await AttractionBooking.find({
+      attraction: a._id,
+      visitDate: { $gte: start, $lte: end },
+      status: { $ne: 'cancelled' }
+    }).select('numberOfPeople').lean();
+
+    const alreadyBooked = (booked || []).reduce((sum, b) => sum + Number(b.numberOfPeople || 0), 0);
+    const remaining = Math.max(0, capacity - alreadyBooked);
+    const available = remaining >= qty;
+    return res.json({ available, remaining, capacity });
   } catch (e) {
     return res.status(500).json({ message: 'Failed to check availability' });
   }
@@ -76,6 +103,20 @@ router.get('/mine', requireAuth, async (req, res) => {
     res.json({ attractions: list });
   } catch (e) {
     res.status(500).json({ message: 'Failed to load my attractions' });
+  }
+});
+
+// Owner/Admin: details (including inactive)
+router.get('/:id/manage', requireAuth, async (req, res) => {
+  try {
+    const a = await Attraction.findById(req.params.id);
+    if (!a) return res.status(404).json({ message: 'Attraction not found' });
+    if (!(req.user?.userType === 'admin' || String(a.owner) === String(req.user.id))) {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+    res.json({ attraction: a });
+  } catch (e) {
+    res.status(500).json({ message: 'Failed to load attraction' });
   }
 });
 
