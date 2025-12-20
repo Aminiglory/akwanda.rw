@@ -34,6 +34,7 @@ export default function OwnerAttractionsDashboard() {
   const [successMsg, setSuccessMsg] = useState('Action completed successfully.');
   const [view, setView] = useState('overview'); // 'overview' | 'attractions' | 'bookings' | 'finance' | 'analytics' | 'reviews' | 'messages' | 'settings'
   const createFormRef = useRef(null);
+  const [bookingsMenuOpen, setBookingsMenuOpen] = useState(false);
   const [activeAttraction, setActiveAttraction] = useState(null);
   const [activeAttractionLoading, setActiveAttractionLoading] = useState(false);
 
@@ -80,6 +81,24 @@ export default function OwnerAttractionsDashboard() {
     }
   })();
 
+  const bookingStatusParam = (searchParams.get('bstatus') || 'all').toLowerCase();
+  const bookingPaymentParam = (searchParams.get('pstatus') || 'all').toLowerCase();
+
+  const normalizePaymentStatus = (b) => {
+    const raw = (b?.paymentStatus ?? b?.payment_state ?? b?.payment ?? '').toString().toLowerCase();
+    if (raw === 'paid' || raw === 'pending' || raw === 'unpaid') return raw;
+    // Fallback: this project doesn't persist a dedicated paymentStatus in the attraction booking schema.
+    // Derive a reasonable value from existing fields to keep filters working on real DB data.
+    const status = String(b?.status || '').toLowerCase();
+    if (status === 'cancelled') return 'unpaid';
+    if (status === 'completed') return 'paid';
+    if (status === 'confirmed') return 'pending';
+    if (status === 'pending') return 'pending';
+    return 'pending';
+  };
+
+  const normalizeBookingStatus = (b) => String(b?.status || '').toLowerCase();
+
   const financeModeLabel = financeMode === 'expenses' ? 'Expenses & profit' : 'Overview';
 
   // Finance stats for attractions, based on bookings loaded for this dashboard
@@ -99,10 +118,10 @@ export default function OwnerAttractionsDashboard() {
     let countRange = 0;
 
     baseList.forEach(b => {
-      const status = String(b.paymentStatus || b.status || '').toLowerCase();
-      if (filter === 'paid' && status !== 'paid') return;
-      if (filter === 'pending' && status !== 'pending') return;
-      if (filter === 'unpaid' && status !== 'unpaid') return;
+      const pay = normalizePaymentStatus(b);
+      if (filter === 'paid' && pay !== 'paid') return;
+      if (filter === 'pending' && pay !== 'pending') return;
+      if (filter === 'unpaid' && pay !== 'unpaid') return;
 
       const amount = Number(b.totalAmount || 0);
       const visit = b.visitDate ? new Date(b.visitDate) : null;
@@ -320,6 +339,29 @@ export default function OwnerAttractionsDashboard() {
     });
   }, [bookings, selectedAttractionId]);
 
+  const filteredBookingsForView = useMemo(() => {
+    const list = Array.isArray(filteredBookings) ? filteredBookings : [];
+    const bs = bookingStatusParam;
+    const ps = bookingPaymentParam;
+    return list.filter(b => {
+      if (bs && bs !== 'all') {
+        if (normalizeBookingStatus(b) !== bs) return false;
+      }
+      if (ps && ps !== 'all') {
+        if (normalizePaymentStatus(b) !== ps) return false;
+      }
+      if (bookingFilters.from) {
+        const from = new Date(bookingFilters.from);
+        if (new Date(b.visitDate) < from) return false;
+      }
+      if (bookingFilters.to) {
+        const to = new Date(bookingFilters.to);
+        if (new Date(b.visitDate) > to) return false;
+      }
+      return true;
+    });
+  }, [filteredBookings, bookingStatusParam, bookingPaymentParam, bookingFilters.from, bookingFilters.to]);
+
   const overviewFinanceStats = useMemo(() => {
     const baseList = Array.isArray(filteredBookings) ? filteredBookings : [];
     const now = new Date();
@@ -427,18 +469,7 @@ export default function OwnerAttractionsDashboard() {
 
   function exportBookingsCsv() {
     const rows = [['Attraction','Guest','Visit Date','Tickets','Amount','Status']];
-    const filtered = filteredBookings.filter(b => {
-      if (bookingFilters.status && b.status !== bookingFilters.status) return false;
-      if (bookingFilters.from) {
-        const from = new Date(bookingFilters.from);
-        if (new Date(b.visitDate) < from) return false;
-      }
-      if (bookingFilters.to) {
-        const to = new Date(bookingFilters.to);
-        if (new Date(b.visitDate) > to) return false;
-      }
-      return true;
-    });
+    const filtered = filteredBookingsForView;
     filtered.forEach(b => rows.push([
       (b.attraction?.name || '').replace(/,/g,' '),
       `${b.guest?.firstName || ''} ${b.guest?.lastName || ''}`.trim().replace(/,/g,' '),
@@ -753,21 +784,76 @@ export default function OwnerAttractionsDashboard() {
         >
           Attractions
         </button>
-        <button
-          type="button"
-          onClick={() => {
-            setView('bookings');
-            try {
-              const next = new URLSearchParams(searchParams.toString());
-              next.set('view', 'bookings');
-              next.delete('section');
-              setSearchParams(next, { replace: true });
-            } catch (_) {}
-          }}
-          className={`px-3 py-1.5 rounded-full border ${view === 'bookings' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
-        >
-          Bookings
-        </button>
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => {
+              setView('bookings');
+              try {
+                const next = new URLSearchParams(searchParams.toString());
+                next.set('view', 'bookings');
+                next.delete('section');
+                setSearchParams(next, { replace: true });
+              } catch (_) {}
+            }}
+            className={`px-3 py-1.5 rounded-full border ${view === 'bookings' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+          >
+            Bookings
+          </button>
+          <button
+            type="button"
+            onClick={() => setBookingsMenuOpen(v => !v)}
+            className="absolute -right-2 top-0 h-full px-2 text-[10px] text-gray-600"
+            title={labelOr('ownerAttractions.bookings.filters', 'Booking filters')}
+          >
+            ▾
+          </button>
+          {bookingsMenuOpen && (
+            <div
+              className="absolute z-20 mt-2 w-64 rounded-xl border border-[#e0d5c7] bg-white shadow-lg p-2"
+              onMouseLeave={() => setBookingsMenuOpen(false)}
+            >
+              <div className="px-2 py-1 text-[11px] text-gray-500">{labelOr('ownerAttractions.bookings.status', 'Booking status')}</div>
+              <div className="flex flex-wrap gap-1 px-2 pb-2">
+                {['all','pending','confirmed','completed','cancelled'].map(s => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => {
+                      const next = new URLSearchParams(searchParams.toString());
+                      next.set('view','bookings');
+                      if (s === 'all') next.delete('bstatus'); else next.set('bstatus', s);
+                      setSearchParams(next, { replace: true });
+                      setBookingsMenuOpen(false);
+                    }}
+                    className={`px-2 py-1 rounded-full border text-[11px] ${bookingStatusParam === s ? 'bg-[#f5e6d5] text-[#4b2a00] border-[#a06b42] font-semibold' : 'bg-white text-[#6b5744] border-[#e0d5c7] hover:bg-[#f9f1e7]'}`}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+              <div className="px-2 py-1 text-[11px] text-gray-500">{labelOr('ownerAttractions.bookings.payment', 'Payment status')}</div>
+              <div className="flex flex-wrap gap-1 px-2 pb-2">
+                {['all','paid','pending','unpaid'].map(s => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => {
+                      const next = new URLSearchParams(searchParams.toString());
+                      next.set('view','bookings');
+                      if (s === 'all') next.delete('pstatus'); else next.set('pstatus', s);
+                      setSearchParams(next, { replace: true });
+                      setBookingsMenuOpen(false);
+                    }}
+                    className={`px-2 py-1 rounded-full border text-[11px] ${bookingPaymentParam === s ? 'bg-[#f5e6d5] text-[#4b2a00] border-[#a06b42] font-semibold' : 'bg-white text-[#6b5744] border-[#e0d5c7] hover:bg-[#f9f1e7]'}`}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
         <button
           type="button"
           onClick={() => {
@@ -2291,21 +2377,52 @@ export default function OwnerAttractionsDashboard() {
       {/* Bookings: only in Bookings view */}
       {view === 'bookings' && (
       <div className="mt-8">
+        <div className="mb-2 flex flex-wrap gap-2 text-[11px] sm:text-xs">
+          {['all','pending','confirmed','completed','cancelled'].map(s => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => {
+                try {
+                  const next = new URLSearchParams(searchParams.toString());
+                  next.set('view', 'bookings');
+                  if (s === 'all') next.delete('bstatus'); else next.set('bstatus', s);
+                  setSearchParams(next, { replace: true });
+                } catch (_) {}
+              }}
+              className={`px-2.5 py-1 rounded-full border ${
+                bookingStatusParam === s
+                  ? 'bg-[#f5e6d5] text-[#4b2a00] border-[#a06b42] font-semibold'
+                  : 'bg-white text-[#6b5744] border-[#e0d5c7] hover:bg-[#f9f1e7]'
+              }`}
+            >
+              {s === 'all' ? labelOr('nav.allReservations', 'All reservations') : s}
+            </button>
+          ))}
+        </div>
+
         <div className="mb-3 flex flex-wrap gap-2 text-[11px] sm:text-xs">
-          <button
-            type="button"
-            onClick={() => {
-              try {
-                const next = new URLSearchParams(searchParams.toString());
-                next.set('view', 'bookings');
-                next.delete('sub');
-                setSearchParams(next, { replace: true });
-              } catch (_) {}
-            }}
-            className="px-2.5 py-1 rounded-full border bg-[#f5e6d5] text-[#4b2a00] border-[#a06b42] font-semibold"
-          >
-            {labelOr('nav.allReservations', 'All reservations')}
-          </button>
+          {['all','paid','pending','unpaid'].map(s => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => {
+                try {
+                  const next = new URLSearchParams(searchParams.toString());
+                  next.set('view', 'bookings');
+                  if (s === 'all') next.delete('pstatus'); else next.set('pstatus', s);
+                  setSearchParams(next, { replace: true });
+                } catch (_) {}
+              }}
+              className={`px-2.5 py-1 rounded-full border ${
+                bookingPaymentParam === s
+                  ? 'bg-[#f5e6d5] text-[#4b2a00] border-[#a06b42] font-semibold'
+                  : 'bg-white text-[#6b5744] border-[#e0d5c7] hover:bg-[#f9f1e7]'
+              }`}
+            >
+              {s === 'all' ? labelOr('ownerAttractions.finance.allPayments', 'All payments') : s}
+            </button>
+          ))}
         </div>
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -2314,13 +2431,6 @@ export default function OwnerAttractionsDashboard() {
           </div>
         </div>
         <div className="mb-4 bg-white rounded-xl shadow-sm border border-[#e0d5c7] px-3 py-3 flex flex-wrap items-end gap-3">
-          <div>
-            <label className="block text-[11px] text-gray-600 mb-1">Status</label>
-            <select value={bookingFilters.status} onChange={e=>setBookingFilters({ ...bookingFilters, status: e.target.value })} className="px-3 py-2 border border-[#d4c4b0] rounded-lg text-sm">
-              <option value="">All</option>
-              {['pending','confirmed','completed','cancelled'].map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-          </div>
           <div>
             <label className="block text-[11px] text-gray-600 mb-1">From</label>
             <input type="date" value={bookingFilters.from} onChange={e=>setBookingFilters({ ...bookingFilters, from: e.target.value })} className="px-3 py-2 border border-[#d4c4b0] rounded-lg text-sm" />
@@ -2340,29 +2450,32 @@ export default function OwnerAttractionsDashboard() {
                 <th className="px-4 py-2">Visit Date</th>
                 <th className="px-4 py-2">Tickets</th>
                 <th className="px-4 py-2">Amount</th>
+                <th className="px-4 py-2">Payment</th>
                 <th className="px-4 py-2">Status</th>
                 <th className="px-4 py-2">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {filteredBookings.filter(b => {
-                if (bookingFilters.status && b.status !== bookingFilters.status) return false;
-                if (bookingFilters.from) {
-                  const from = new Date(bookingFilters.from);
-                  if (new Date(b.visitDate) < from) return false;
-                }
-                if (bookingFilters.to) {
-                  const to = new Date(bookingFilters.to);
-                  if (new Date(b.visitDate) > to) return false;
-                }
-                return true;
-              }).map(b => (
+              {filteredBookingsForView.map(b => (
                 <tr key={b._id} className="border-t border-[#f0e6d9] hover:bg-[#fffaf4]">
                   <td className="px-4 py-3 text-sm font-medium text-[#3b2a18]">{b.attraction?.name}</td>
                   <td className="px-4 py-3 text-sm text-gray-700">{b.guest?.firstName} {b.guest?.lastName}</td>
                   <td className="px-4 py-3 text-xs text-gray-600">{new Date(b.visitDate).toLocaleDateString()}</td>
                   <td className="px-4 py-3 text-sm text-gray-700">{b.numberOfPeople}</td>
                   <td className="px-4 py-3 text-sm font-semibold text-[#4b2a00]">{formatAmount(b.totalAmount)}</td>
+                  <td className="px-4 py-3">
+                    {(() => {
+                      const pay = normalizePaymentStatus(b);
+                      const cls = pay === 'paid'
+                        ? 'bg-emerald-100 text-emerald-800'
+                        : pay === 'pending'
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : 'bg-red-100 text-red-800';
+                      return (
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${cls}`}>{pay}</span>
+                      );
+                    })()}
+                  </td>
                   <td className="px-4 py-3">
                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${
                       b.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
