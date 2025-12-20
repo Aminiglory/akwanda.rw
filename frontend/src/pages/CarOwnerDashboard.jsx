@@ -829,22 +829,137 @@ export default function CarOwnerDashboard() {
 
           {/* Expenses / income sub-panels based on financeMode */}
           {financeMode === 'expenses-all' && (
-          <div className="mb-4 rounded-2xl bg-white border border-[#e0d5c7] px-4 py-4 text-sm text-gray-700 shadow-sm">
-            <h3 className="text-sm font-semibold text-[#4b2a00] mb-1">All expenses</h3>
-            <p className="text-xs text-gray-600 mb-1">
-              A detailed expenses table by vehicle, category and date will be implemented here. For now you
-              can use the main finance summary and future filters to analyze costs.
-            </p>
+          <div className="mb-4 rounded-2xl bg-white border border-[#e0d5c7] px-4 py-4 text-xs text-gray-700 shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h3 className="text-sm font-semibold text-[#4b2a00] mb-0.5">All expenses</h3>
+                <p className="text-[11px] text-gray-600">
+                  Expenses recorded for your vehicles. Use the category filter above to narrow down.
+                </p>
+              </div>
+              <div className="text-[11px] text-gray-600">
+                Total: {formatCurrencyRWF
+                  ? formatCurrencyRWF(carExpensesTotal || 0)
+                  : `RWF ${Number(carExpensesTotal || 0).toLocaleString()}`}
+              </div>
+            </div>
+
+            {(!Array.isArray(carExpenses) || carExpenses.length === 0) ? (
+            <div className="py-4 text-[11px] text-gray-600">
+              No expenses recorded yet for the current filters.
+            </div>
+            ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-[11px]">
+                <thead className="bg-[#f5ebe0] uppercase tracking-wide text-gray-600">
+                  <tr>
+                    <th className="px-3 py-2 text-left">Date</th>
+                    <th className="px-3 py-2 text-left">Vehicle</th>
+                    <th className="px-3 py-2 text-left">Category</th>
+                    <th className="px-3 py-2 text-left">Note</th>
+                    <th className="px-3 py-2 text-right">Amount (RWF)</th>
+                    <th className="px-3 py-2 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#f1e4d4] bg-white">
+                  {carExpenses.map(exp => {
+                    const d = exp.date ? new Date(exp.date) : null;
+                    const vehicleLabel = (exp.car?.vehicleName || `${exp.car?.brand || ''} ${exp.car?.model || ''}`.trim() || 'Vehicle').replace(/,/g, ' ');
+                    return (
+                      <tr key={exp._id} className="hover:bg-[#fdf7ee]">
+                        <td className="px-3 py-2 text-gray-700">{d ? d.toLocaleDateString() : '-'}</td>
+                        <td className="px-3 py-2 text-gray-700">{vehicleLabel}</td>
+                        <td className="px-3 py-2 text-gray-700">{exp.category || 'general'}</td>
+                        <td className="px-3 py-2 text-gray-700 max-w-[200px] truncate">{exp.note || ''}</td>
+                        <td className="px-3 py-2 text-right font-semibold text-gray-900">
+                          {formatCurrencyRWF
+                            ? formatCurrencyRWF(Number(exp.amount || 0))
+                            : `RWF ${Number(exp.amount || 0).toLocaleString()}`}
+                        </td>
+                        <td className="px-3 py-2 text-right">
+                          <button
+                            type="button"
+                            onClick={() => deleteExpense(exp._id)}
+                            className="inline-flex items-center px-2 py-0.5 rounded border border-red-200 text-[10px] text-red-700 hover:bg-red-50"
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            )}
           </div>
           )}
 
           {financeMode === 'expenses-add' && (
-          <div className="mb-4 rounded-2xl bg-white border border-[#e0d5c7] px-4 py-4 text-sm text-gray-700 shadow-sm">
-            <h3 className="text-sm font-semibold text-[#4b2a00] mb-1">Add expense</h3>
-            <p className="text-xs text-gray-600 mb-2">
-              A full expense creation form (vehicle, category, amount, date, notes) will be added here. This
-              placeholder ensures the "Add expense" link opens its own screen.
-            </p>
+          <div className="mb-4 rounded-2xl bg-white border border-[#e0d5c7] px-4 py-4 text-xs text-gray-700 shadow-sm">
+            <h3 className="text-sm font-semibold text-[#4b2a00] mb-2">Add expense</h3>
+            <form onSubmit={createExpense} className="grid grid-cols-1 md:grid-cols-5 gap-3">
+              <div>
+                <label className="block mb-1 text-[11px] text-gray-600">Vehicle *</label>
+                <select
+                  className="w-full px-2 py-1.5 border border-[#d4c4b0] rounded-lg bg-white"
+                  value={expenseForm.carId}
+                  onChange={e => setExpenseForm(f => ({ ...f, carId: e.target.value }))}
+                >
+                  <option value="">Select vehicle</option>
+                  {cars.map(c => (
+                    <option key={c._id} value={c._id}>
+                      {c.vehicleName || `${c.brand || ''} ${c.model || ''}`.trim() || 'Untitled vehicle'}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block mb-1 text-[11px] text-gray-600">Date *</label>
+                <input
+                  type="date"
+                  className="w-full px-2 py-1.5 border border-[#d4c4b0] rounded-lg"
+                  value={expenseForm.date}
+                  onChange={e => setExpenseForm(f => ({ ...f, date: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="block mb-1 text-[11px] text-gray-600">Amount (RWF) *</label>
+                <input
+                  type="number"
+                  className="w-full px-2 py-1.5 border border-[#d4c4b0] rounded-lg"
+                  value={expenseForm.amount}
+                  onChange={e => setExpenseForm(f => ({ ...f, amount: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="block mb-1 text-[11px] text-gray-600">Category</label>
+                <input
+                  className="w-full px-2 py-1.5 border border-[#d4c4b0] rounded-lg"
+                  placeholder="e.g. fuel, maintenance"
+                  value={expenseForm.category}
+                  onChange={e => setExpenseForm(f => ({ ...f, category: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="block mb-1 text-[11px] text-gray-600">Note</label>
+                <input
+                  className="w-full px-2 py-1.5 border border-[#d4c4b0] rounded-lg"
+                  placeholder="Optional description"
+                  value={expenseForm.note}
+                  onChange={e => setExpenseForm(f => ({ ...f, note: e.target.value }))}
+                />
+              </div>
+              <div className="md:col-span-5 flex justify-end mt-1">
+                <button
+                  type="submit"
+                  disabled={expenseSaving}
+                  className="inline-flex items-center px-3 py-1.5 rounded-lg bg-[#a06b42] hover:bg-[#8f5a32] text-white text-xs font-medium disabled:opacity-60"
+                >
+                  {expenseSaving ? 'Saving...' : 'Save expense'}
+                </button>
+              </div>
+            </form>
           </div>
           )}
 
