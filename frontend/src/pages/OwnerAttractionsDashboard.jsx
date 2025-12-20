@@ -260,11 +260,7 @@ export default function OwnerAttractionsDashboard() {
   const [editingId, setEditingId] = useState(null);
 
   const openCreateEditor = () => {
-    setEditorMode('create');
-    setEditingId(null);
-    setForm(empty);
-    setCreateImages([]);
-    setEditorOpen(true);
+    window.location.assign('/upload-property?type=attraction');
   };
 
   const openEditEditor = (item) => {
