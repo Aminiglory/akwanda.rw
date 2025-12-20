@@ -827,6 +827,76 @@ export default function CarOwnerDashboard() {
             </button>
           </div>
 
+          {/* Expenses / income sub-panels based on financeMode */}
+          {financeMode === 'expenses-all' && (
+          <div className="mb-4 rounded-2xl bg-white border border-[#e0d5c7] px-4 py-4 text-sm text-gray-700 shadow-sm">
+            <h3 className="text-sm font-semibold text-[#4b2a00] mb-1">All expenses</h3>
+            <p className="text-xs text-gray-600 mb-1">
+              A detailed expenses table by vehicle, category and date will be implemented here. For now you
+              can use the main finance summary and future filters to analyze costs.
+            </p>
+          </div>
+          )}
+
+          {financeMode === 'expenses-add' && (
+          <div className="mb-4 rounded-2xl bg-white border border-[#e0d5c7] px-4 py-4 text-sm text-gray-700 shadow-sm">
+            <h3 className="text-sm font-semibold text-[#4b2a00] mb-1">Add expense</h3>
+            <p className="text-xs text-gray-600 mb-2">
+              A full expense creation form (vehicle, category, amount, date, notes) will be added here. This
+              placeholder ensures the "Add expense" link opens its own screen.
+            </p>
+          </div>
+          )}
+
+          {financeMode === 'expenses-categories' && (
+          <div className="mb-4 rounded-2xl bg-white border border-[#e0d5c7] px-4 py-4 text-sm text-gray-700 shadow-sm">
+            <h3 className="text-sm font-semibold text-[#4b2a00] mb-1">Expense categories</h3>
+            <p className="text-xs text-gray-600 mb-2">
+              Category management for your vehicle expenses (fuel, maintenance, insurance, etc.) will be
+              configured here. For now this panel simply confirms the navigation works.
+            </p>
+          </div>
+          )}
+
+          {financeMode === 'expenses-reports' && (
+          <div className="mb-4 rounded-2xl bg-white border border-[#e0d5c7] px-4 py-4 text-sm text-gray-700 shadow-sm">
+            <h3 className="text-sm font-semibold text-[#4b2a00] mb-1">Expense reports</h3>
+            <p className="text-xs text-gray-600 mb-2">
+              Expense breakdowns by vehicle, category and period will be implemented here. At the moment this
+              is a placeholder so that the "Expense reports" link has its own dedicated view.
+            </p>
+          </div>
+          )}
+
+          {financeMode === 'distance-log' && (
+          <div className="mb-4 rounded-2xl bg-white border border-[#e0d5c7] px-4 py-4 text-sm text-gray-700 shadow-sm">
+            <h3 className="text-sm font-semibold text-[#4b2a00] mb-1">Distance & earnings log</h3>
+            <p className="text-xs text-gray-600 mb-2">
+              A combined log of distance travelled and earnings per trip will be shown here in the future.
+              This panel is currently a placeholder linked from the Trips & routes menu.
+            </p>
+          </div>
+          )}
+
+          {financeMode === 'income-all' && (
+          <div className="mb-4 rounded-2xl bg-white border border-[#e0d5c7] px-4 py-4 text-sm text-gray-700 shadow-sm">
+            <h3 className="text-sm font-semibold text-[#4b2a00] mb-1">All income</h3>
+            <p className="text-xs text-gray-600 mb-2">
+              A detailed income ledger (payments received, pending and refunded) will be implemented here.
+            </p>
+          </div>
+          )}
+
+          {financeMode === 'income-add' && (
+          <div className="mb-4 rounded-2xl bg-white border border-[#e0d5c7] px-4 py-4 text-sm text-gray-700 shadow-sm">
+            <h3 className="text-sm font-semibold text-[#4b2a00] mb-1">Add income</h3>
+            <p className="text-xs text-gray-600 mb-2">
+              A form for manually recording income entries (e.g. offline payments) will be added here. For
+              now it serves as a distinct destination for the "Add income" link.
+            </p>
+          </div>
+          )}
+
           <div className="mb-6 rounded-2xl bg-white border border-[#e0d5c7] shadow-sm overflow-hidden">
             <div className="px-4 py-3 border-b border-[#e0d5c7] flex items-center justify-between">
               <div>
