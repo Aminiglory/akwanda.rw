@@ -910,7 +910,12 @@ export default function CarOwnerDashboard() {
       )}
 
         {/* Analytics view: default performance analytics */}
-        {view === 'analytics' && analyticsSection !== 'fuel' && analyticsSection !== 'fuel-add' && (
+        {view === 'analytics'
+        && analyticsSection !== 'fuel-logs'
+        && analyticsSection !== 'fuel-add'
+        && analyticsSection !== 'fuel-report'
+        && analyticsSection !== 'fuel-cost'
+        && (
         <>
           <div className="mb-4">
             <h2 className="text-xl font-semibold text-gray-900">Performance analytics</h2>
@@ -963,7 +968,11 @@ export default function CarOwnerDashboard() {
       )}
 
         {/* Analytics fuel management section */}
-        {view === 'analytics' && (analyticsSection === 'fuel' || analyticsSection === 'fuel-add') && (
+        {view === 'analytics'
+        && (analyticsSection === 'fuel-logs'
+          || analyticsSection === 'fuel-add'
+          || analyticsSection === 'fuel-report'
+          || analyticsSection === 'fuel-cost') && (
         <>
           <div className="mb-4">
             <h2 className="text-xl font-semibold text-gray-900">Fuel management</h2>
@@ -987,6 +996,8 @@ export default function CarOwnerDashboard() {
             </div>
           </div>
 
+          {/* Add fuel record panel (fuel-add) */}
+          {analyticsSection === 'fuel-add' && (
           <div className="mb-4 bg-white rounded-xl shadow-sm border border-[#e0d5c7] px-4 py-4">
             <h3 className="text-sm font-semibold text-[#4b2a00] mb-3">Add fuel record</h3>
             <form onSubmit={createFuelRecord} className="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs">
@@ -1079,7 +1090,10 @@ export default function CarOwnerDashboard() {
               </div>
             </form>
           </div>
+          )}
 
+          {/* Fuel logs panel (fuel-logs) */}
+          {analyticsSection === 'fuel-logs' && (
           <div className="rounded-2xl bg-white shadow-sm border border-[#e0d5c7] overflow-x-auto">
             <div className="px-4 py-3 border-b border-[#e0d5c7] flex items-center justify-between">
               <div>
@@ -1131,6 +1145,29 @@ export default function CarOwnerDashboard() {
               </table>
             )}
           </div>
+          )}
+
+          {/* Fuel consumption report (fuel-report) */}
+          {analyticsSection === 'fuel-report' && (
+          <div className="mt-4 rounded-2xl bg-white shadow-sm border border-[#e0d5c7] px-4 py-4 text-sm text-gray-700">
+            <h3 className="text-sm font-semibold text-[#4b2a00] mb-2">Fuel consumption report</h3>
+            <p className="text-xs text-gray-600 mb-2">
+              Detailed charts and per-vehicle consumption breakdown will be implemented here. For now you
+              can use the summary cards above and fuel logs to understand usage.
+            </p>
+          </div>
+          )}
+
+          {/* Fuel cost analysis (fuel-cost) */}
+          {analyticsSection === 'fuel-cost' && (
+          <div className="mt-4 rounded-2xl bg-white shadow-sm border border-[#e0d5c7] px-4 py-4 text-sm text-gray-700">
+            <h3 className="text-sm font-semibold text-[#4b2a00] mb-2">Fuel cost analysis</h3>
+            <p className="text-xs text-gray-600 mb-2">
+              Cost per kilometer, per vehicle and per period will be implemented here. Currently the
+              summary cards above show total cost for the selected filters.
+            </p>
+          </div>
+          )}
         </>
       )}
 
@@ -1356,6 +1393,88 @@ export default function CarOwnerDashboard() {
             placeholder ensures the Clients & contracts dashboard links open a visible panel instead of
             a blank screen.
           </p>
+        </div>
+      )}
+
+        {view === 'vehicles' && vehiclesSection === 'insurance' && (
+        <div className="mb-6 rounded-2xl bg-white border border-[#e0d5c7] px-4 py-4 text-sm text-gray-700 shadow-sm">
+          <h2 className="text-lg font-semibold mb-2 text-[#4b2a00]">Insurance & registration</h2>
+          <p className="text-xs text-gray-600 mb-4">
+            Manage insurance policy and registration details for your vehicles.
+          </p>
+
+          <form onSubmit={saveInsurance} className="space-y-4 max-w-xl">
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Vehicle *</label>
+              <select
+                className="w-full px-3 py-2 border border-[#d4c4b0] rounded-lg bg-white text-sm"
+                value={selectedCarId || ''}
+                onChange={e => setSelectedCarId(e.target.value)}
+              >
+                <option value="">Select vehicle</option>
+                {cars.map(c => (
+                  <option key={c._id} value={c._id}>
+                    {c.vehicleName || `${c.brand || ''} ${c.model || ''}`.trim() || 'Untitled vehicle'}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Insurance provider</label>
+                <input
+                  className="w-full px-3 py-2 border border-[#d4c4b0] rounded-lg text-sm"
+                  value={insuranceForm.insuranceProvider}
+                  onChange={e => setInsuranceForm(f => ({ ...f, insuranceProvider: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Policy number</label>
+                <input
+                  className="w-full px-3 py-2 border border-[#d4c4b0] rounded-lg text-sm"
+                  value={insuranceForm.insurancePolicyNumber}
+                  onChange={e => setInsuranceForm(f => ({ ...f, insurancePolicyNumber: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Insurance expiry date</label>
+                <input
+                  type="date"
+                  className="w-full px-3 py-2 border border-[#d4c4b0] rounded-lg text-sm"
+                  value={insuranceForm.insuranceExpiryDate}
+                  onChange={e => setInsuranceForm(f => ({ ...f, insuranceExpiryDate: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Registration number</label>
+                <input
+                  className="w-full px-3 py-2 border border-[#d4c4b0] rounded-lg text-sm"
+                  value={insuranceForm.registrationNumber}
+                  onChange={e => setInsuranceForm(f => ({ ...f, registrationNumber: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Registration expiry date</label>
+                <input
+                  type="date"
+                  className="w-full px-3 py-2 border border-[#d4c4b0] rounded-lg text-sm"
+                  value={insuranceForm.registrationExpiryDate}
+                  onChange={e => setInsuranceForm(f => ({ ...f, registrationExpiryDate: e.target.value }))}
+                />
+              </div>
+            </div>
+
+            <div className="pt-2 flex justify-end">
+              <button
+                type="submit"
+                disabled={insuranceSaving || !selectedCarId}
+                className="inline-flex items-center px-4 py-2 rounded-lg bg-[#a06b42] hover:bg-[#8f5a32] text-white text-xs font-medium disabled:opacity-60"
+              >
+                {insuranceSaving ? 'Saving...' : 'Save insurance details'}
+              </button>
+            </div>
+          </form>
         </div>
       )}
 
