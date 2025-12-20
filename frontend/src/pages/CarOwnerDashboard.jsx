@@ -64,8 +64,39 @@ export default function CarOwnerDashboard() {
   const bookingsRef = useRef(null);
   const createFormRef = useRef(null);
   const [fuelSummary, setFuelSummary] = useState({ totalLiters: 0, totalCost: 0 });
+  const [fuelForm, setFuelForm] = useState({
+    carId: '',
+    date: '',
+    liters: '',
+    totalCost: '',
+    pricePerLiter: '',
+    odometerKm: '',
+    stationName: '',
+    note: ''
+  });
+  const [fuelSaving, setFuelSaving] = useState(false);
+  const [fuelLogs, setFuelLogs] = useState([]);
+  const [fuelLoading, setFuelLoading] = useState(false);
   const [cars, setCars] = useState([]);
   const [bookings, setBookings] = useState([]);
+  const [carTours, setCarTours] = useState([]);
+  const [carTourForm, setCarTourForm] = useState({
+    title: '',
+    startLocation: '',
+    endLocation: '',
+    basePrice: '',
+    primaryCar: ''
+  });
+  const [carTourSaving, setCarTourSaving] = useState(false);
+  const [tripRoutes, setTripRoutes] = useState([]);
+  const [tripRouteForm, setTripRouteForm] = useState({
+    bookingId: '',
+    date: '',
+    distanceKm: '',
+    startOdometer: '',
+    endOdometer: ''
+  });
+  const [tripRouteSaving, setTripRouteSaving] = useState(false);
   const [bookingFilters, setBookingFilters] = useState({ status: '', from: '', to: '' });
   const [receiptBooking, setReceiptBooking] = useState(null);
   const [tripsTab, setTripsTab] = useState(() => {
