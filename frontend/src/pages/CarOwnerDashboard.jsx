@@ -29,6 +29,7 @@ export default function CarOwnerDashboard() {
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const { formatCurrencyRWF } = useLocale() || {};
+  const view = (searchParams.get('view') || 'overview').toLowerCase();
   const [cars, setCars] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [bookingFilters, setBookingFilters] = useState({ status: '', from: '', to: '' });
