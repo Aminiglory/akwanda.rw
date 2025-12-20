@@ -56,6 +56,10 @@ export default function CarOwnerDashboard() {
     bookings30: 0,
     bookingsYtd: 0,
   };
+  const analyticsSection = (searchParams.get('section') || '').toLowerCase();
+  const bookingsRef = useRef(null);
+  const createFormRef = useRef(null);
+  const [fuelSummary, setFuelSummary] = useState({ totalLiters: 0, totalCost: 0 });
   const [cars, setCars] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [bookingFilters, setBookingFilters] = useState({ status: '', from: '', to: '' });
@@ -113,6 +117,8 @@ export default function CarOwnerDashboard() {
   const [ownerNotificationsLoading, setOwnerNotificationsLoading] = useState(false);
   const [ownerNotifShowUnreadOnly, setOwnerNotifShowUnreadOnly] = useState(false);
   const [ownerNotifTypeFilter, setOwnerNotifTypeFilter] = useState('all');
+
+  const financeBookingsTable = Array.isArray(bookings) ? bookings : [];
 
   function exportBookingsCsv() {
     try {
