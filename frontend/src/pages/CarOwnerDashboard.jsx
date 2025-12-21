@@ -827,6 +827,191 @@ export default function CarOwnerDashboard() {
             </button>
           </div>
 
+          {/* Expenses / income sub-panels based on financeMode */}
+          {financeMode === 'expenses-all' && (
+          <div className="mb-4 rounded-2xl bg-white border border-[#e0d5c7] px-4 py-4 text-xs text-gray-700 shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h3 className="text-sm font-semibold text-[#4b2a00] mb-0.5">All expenses</h3>
+                <p className="text-[11px] text-gray-600">
+                  Expenses recorded for your vehicles. Use the category filter above to narrow down.
+                </p>
+              </div>
+              <div className="text-[11px] text-gray-600">
+                Total: {formatCurrencyRWF
+                  ? formatCurrencyRWF(carExpensesTotal || 0)
+                  : `RWF ${Number(carExpensesTotal || 0).toLocaleString()}`}
+              </div>
+            </div>
+
+            {(!Array.isArray(carExpenses) || carExpenses.length === 0) ? (
+            <div className="py-4 text-[11px] text-gray-600">
+              No expenses recorded yet for the current filters.
+            </div>
+            ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-[11px]">
+                <thead className="bg-[#f5ebe0] uppercase tracking-wide text-gray-600">
+                  <tr>
+                    <th className="px-3 py-2 text-left">Date</th>
+                    <th className="px-3 py-2 text-left">Vehicle</th>
+                    <th className="px-3 py-2 text-left">Category</th>
+                    <th className="px-3 py-2 text-left">Note</th>
+                    <th className="px-3 py-2 text-right">Amount (RWF)</th>
+                    <th className="px-3 py-2 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#f1e4d4] bg-white">
+                  {carExpenses.map(exp => {
+                    const d = exp.date ? new Date(exp.date) : null;
+                    const vehicleLabel = (exp.car?.vehicleName || `${exp.car?.brand || ''} ${exp.car?.model || ''}`.trim() || 'Vehicle').replace(/,/g, ' ');
+                    return (
+                      <tr key={exp._id} className="hover:bg-[#fdf7ee]">
+                        <td className="px-3 py-2 text-gray-700">{d ? d.toLocaleDateString() : '-'}</td>
+                        <td className="px-3 py-2 text-gray-700">{vehicleLabel}</td>
+                        <td className="px-3 py-2 text-gray-700">{exp.category || 'general'}</td>
+                        <td className="px-3 py-2 text-gray-700 max-w-[200px] truncate">{exp.note || ''}</td>
+                        <td className="px-3 py-2 text-right font-semibold text-gray-900">
+                          {formatCurrencyRWF
+                            ? formatCurrencyRWF(Number(exp.amount || 0))
+                            : `RWF ${Number(exp.amount || 0).toLocaleString()}`}
+                        </td>
+                        <td className="px-3 py-2 text-right">
+                          <button
+                            type="button"
+                            onClick={() => deleteExpense(exp._id)}
+                            className="inline-flex items-center px-2 py-0.5 rounded border border-red-200 text-[10px] text-red-700 hover:bg-red-50"
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            )}
+          </div>
+          )}
+
+          {financeMode === 'expenses-add' && (
+          <div className="mb-4 rounded-2xl bg-white border border-[#e0d5c7] px-4 py-4 text-xs text-gray-700 shadow-sm">
+            <h3 className="text-sm font-semibold text-[#4b2a00] mb-2">Add expense</h3>
+            <form onSubmit={createExpense} className="grid grid-cols-1 md:grid-cols-5 gap-3">
+              <div>
+                <label className="block mb-1 text-[11px] text-gray-600">Vehicle *</label>
+                <select
+                  className="w-full px-2 py-1.5 border border-[#d4c4b0] rounded-lg bg-white"
+                  value={expenseForm.carId}
+                  onChange={e => setExpenseForm(f => ({ ...f, carId: e.target.value }))}
+                >
+                  <option value="">Select vehicle</option>
+                  {cars.map(c => (
+                    <option key={c._id} value={c._id}>
+                      {c.vehicleName || `${c.brand || ''} ${c.model || ''}`.trim() || 'Untitled vehicle'}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block mb-1 text-[11px] text-gray-600">Date *</label>
+                <input
+                  type="date"
+                  className="w-full px-2 py-1.5 border border-[#d4c4b0] rounded-lg"
+                  value={expenseForm.date}
+                  onChange={e => setExpenseForm(f => ({ ...f, date: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="block mb-1 text-[11px] text-gray-600">Amount (RWF) *</label>
+                <input
+                  type="number"
+                  className="w-full px-2 py-1.5 border border-[#d4c4b0] rounded-lg"
+                  value={expenseForm.amount}
+                  onChange={e => setExpenseForm(f => ({ ...f, amount: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="block mb-1 text-[11px] text-gray-600">Category</label>
+                <input
+                  className="w-full px-2 py-1.5 border border-[#d4c4b0] rounded-lg"
+                  placeholder="e.g. fuel, maintenance"
+                  value={expenseForm.category}
+                  onChange={e => setExpenseForm(f => ({ ...f, category: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="block mb-1 text-[11px] text-gray-600">Note</label>
+                <input
+                  className="w-full px-2 py-1.5 border border-[#d4c4b0] rounded-lg"
+                  placeholder="Optional description"
+                  value={expenseForm.note}
+                  onChange={e => setExpenseForm(f => ({ ...f, note: e.target.value }))}
+                />
+              </div>
+              <div className="md:col-span-5 flex justify-end mt-1">
+                <button
+                  type="submit"
+                  disabled={expenseSaving}
+                  className="inline-flex items-center px-3 py-1.5 rounded-lg bg-[#a06b42] hover:bg-[#8f5a32] text-white text-xs font-medium disabled:opacity-60"
+                >
+                  {expenseSaving ? 'Saving...' : 'Save expense'}
+                </button>
+              </div>
+            </form>
+          </div>
+          )}
+
+          {financeMode === 'expenses-categories' && (
+          <div className="mb-4 rounded-2xl bg-white border border-[#e0d5c7] px-4 py-4 text-sm text-gray-700 shadow-sm">
+            <h3 className="text-sm font-semibold text-[#4b2a00] mb-1">Expense categories</h3>
+            <p className="text-xs text-gray-600 mb-2">
+              Category management for your vehicle expenses (fuel, maintenance, insurance, etc.) will be
+              configured here. For now this panel simply confirms the navigation works.
+            </p>
+          </div>
+          )}
+
+          {financeMode === 'expenses-reports' && (
+          <div className="mb-4 rounded-2xl bg-white border border-[#e0d5c7] px-4 py-4 text-sm text-gray-700 shadow-sm">
+            <h3 className="text-sm font-semibold text-[#4b2a00] mb-1">Expense reports</h3>
+            <p className="text-xs text-gray-600 mb-2">
+              Expense breakdowns by vehicle, category and period will be implemented here. At the moment this
+              is a placeholder so that the "Expense reports" link has its own dedicated view.
+            </p>
+          </div>
+          )}
+
+          {financeMode === 'distance-log' && (
+          <div className="mb-4 rounded-2xl bg-white border border-[#e0d5c7] px-4 py-4 text-sm text-gray-700 shadow-sm">
+            <h3 className="text-sm font-semibold text-[#4b2a00] mb-1">Distance & earnings log</h3>
+            <p className="text-xs text-gray-600 mb-2">
+              A combined log of distance travelled and earnings per trip will be shown here in the future.
+              This panel is currently a placeholder linked from the Trips & routes menu.
+            </p>
+          </div>
+          )}
+
+          {financeMode === 'income-all' && (
+          <div className="mb-4 rounded-2xl bg-white border border-[#e0d5c7] px-4 py-4 text-sm text-gray-700 shadow-sm">
+            <h3 className="text-sm font-semibold text-[#4b2a00] mb-1">All income</h3>
+            <p className="text-xs text-gray-600 mb-2">
+              A detailed income ledger (payments received, pending and refunded) will be implemented here.
+            </p>
+          </div>
+          )}
+
+          {financeMode === 'income-add' && (
+          <div className="mb-4 rounded-2xl bg-white border border-[#e0d5c7] px-4 py-4 text-sm text-gray-700 shadow-sm">
+            <h3 className="text-sm font-semibold text-[#4b2a00] mb-1">Add income</h3>
+            <p className="text-xs text-gray-600 mb-2">
+              A form for manually recording income entries (e.g. offline payments) will be added here. For
+              now it serves as a distinct destination for the "Add income" link.
+            </p>
+          </div>
+          )}
+
           <div className="mb-6 rounded-2xl bg-white border border-[#e0d5c7] shadow-sm overflow-hidden">
             <div className="px-4 py-3 border-b border-[#e0d5c7] flex items-center justify-between">
               <div>
@@ -910,7 +1095,12 @@ export default function CarOwnerDashboard() {
       )}
 
         {/* Analytics view: default performance analytics */}
-        {view === 'analytics' && analyticsSection !== 'fuel' && analyticsSection !== 'fuel-add' && (
+        {view === 'analytics'
+        && analyticsSection !== 'fuel-logs'
+        && analyticsSection !== 'fuel-add'
+        && analyticsSection !== 'fuel-report'
+        && analyticsSection !== 'fuel-cost'
+        && (
         <>
           <div className="mb-4">
             <h2 className="text-xl font-semibold text-gray-900">Performance analytics</h2>
@@ -963,7 +1153,11 @@ export default function CarOwnerDashboard() {
       )}
 
         {/* Analytics fuel management section */}
-        {view === 'analytics' && (analyticsSection === 'fuel' || analyticsSection === 'fuel-add') && (
+        {view === 'analytics'
+        && (analyticsSection === 'fuel-logs'
+          || analyticsSection === 'fuel-add'
+          || analyticsSection === 'fuel-report'
+          || analyticsSection === 'fuel-cost') && (
         <>
           <div className="mb-4">
             <h2 className="text-xl font-semibold text-gray-900">Fuel management</h2>
@@ -987,6 +1181,8 @@ export default function CarOwnerDashboard() {
             </div>
           </div>
 
+          {/* Add fuel record panel (fuel-add) */}
+          {analyticsSection === 'fuel-add' && (
           <div className="mb-4 bg-white rounded-xl shadow-sm border border-[#e0d5c7] px-4 py-4">
             <h3 className="text-sm font-semibold text-[#4b2a00] mb-3">Add fuel record</h3>
             <form onSubmit={createFuelRecord} className="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs">
@@ -1079,7 +1275,10 @@ export default function CarOwnerDashboard() {
               </div>
             </form>
           </div>
+          )}
 
+          {/* Fuel logs panel (fuel-logs) */}
+          {analyticsSection === 'fuel-logs' && (
           <div className="rounded-2xl bg-white shadow-sm border border-[#e0d5c7] overflow-x-auto">
             <div className="px-4 py-3 border-b border-[#e0d5c7] flex items-center justify-between">
               <div>
@@ -1131,6 +1330,29 @@ export default function CarOwnerDashboard() {
               </table>
             )}
           </div>
+          )}
+
+          {/* Fuel consumption report (fuel-report) */}
+          {analyticsSection === 'fuel-report' && (
+          <div className="mt-4 rounded-2xl bg-white shadow-sm border border-[#e0d5c7] px-4 py-4 text-sm text-gray-700">
+            <h3 className="text-sm font-semibold text-[#4b2a00] mb-2">Fuel consumption report</h3>
+            <p className="text-xs text-gray-600 mb-2">
+              Detailed charts and per-vehicle consumption breakdown will be implemented here. For now you
+              can use the summary cards above and fuel logs to understand usage.
+            </p>
+          </div>
+          )}
+
+          {/* Fuel cost analysis (fuel-cost) */}
+          {analyticsSection === 'fuel-cost' && (
+          <div className="mt-4 rounded-2xl bg-white shadow-sm border border-[#e0d5c7] px-4 py-4 text-sm text-gray-700">
+            <h3 className="text-sm font-semibold text-[#4b2a00] mb-2">Fuel cost analysis</h3>
+            <p className="text-xs text-gray-600 mb-2">
+              Cost per kilometer, per vehicle and per period will be implemented here. Currently the
+              summary cards above show total cost for the selected filters.
+            </p>
+          </div>
+          )}
         </>
       )}
 
@@ -1356,6 +1578,88 @@ export default function CarOwnerDashboard() {
             placeholder ensures the Clients & contracts dashboard links open a visible panel instead of
             a blank screen.
           </p>
+        </div>
+      )}
+
+        {view === 'vehicles' && vehiclesSection === 'insurance' && (
+        <div className="mb-6 rounded-2xl bg-white border border-[#e0d5c7] px-4 py-4 text-sm text-gray-700 shadow-sm">
+          <h2 className="text-lg font-semibold mb-2 text-[#4b2a00]">Insurance & registration</h2>
+          <p className="text-xs text-gray-600 mb-4">
+            Manage insurance policy and registration details for your vehicles.
+          </p>
+
+          <form onSubmit={saveInsurance} className="space-y-4 max-w-xl">
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Vehicle *</label>
+              <select
+                className="w-full px-3 py-2 border border-[#d4c4b0] rounded-lg bg-white text-sm"
+                value={selectedCarId || ''}
+                onChange={e => setSelectedCarId(e.target.value)}
+              >
+                <option value="">Select vehicle</option>
+                {cars.map(c => (
+                  <option key={c._id} value={c._id}>
+                    {c.vehicleName || `${c.brand || ''} ${c.model || ''}`.trim() || 'Untitled vehicle'}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Insurance provider</label>
+                <input
+                  className="w-full px-3 py-2 border border-[#d4c4b0] rounded-lg text-sm"
+                  value={insuranceForm.insuranceProvider}
+                  onChange={e => setInsuranceForm(f => ({ ...f, insuranceProvider: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Policy number</label>
+                <input
+                  className="w-full px-3 py-2 border border-[#d4c4b0] rounded-lg text-sm"
+                  value={insuranceForm.insurancePolicyNumber}
+                  onChange={e => setInsuranceForm(f => ({ ...f, insurancePolicyNumber: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Insurance expiry date</label>
+                <input
+                  type="date"
+                  className="w-full px-3 py-2 border border-[#d4c4b0] rounded-lg text-sm"
+                  value={insuranceForm.insuranceExpiryDate}
+                  onChange={e => setInsuranceForm(f => ({ ...f, insuranceExpiryDate: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Registration number</label>
+                <input
+                  className="w-full px-3 py-2 border border-[#d4c4b0] rounded-lg text-sm"
+                  value={insuranceForm.registrationNumber}
+                  onChange={e => setInsuranceForm(f => ({ ...f, registrationNumber: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Registration expiry date</label>
+                <input
+                  type="date"
+                  className="w-full px-3 py-2 border border-[#d4c4b0] rounded-lg text-sm"
+                  value={insuranceForm.registrationExpiryDate}
+                  onChange={e => setInsuranceForm(f => ({ ...f, registrationExpiryDate: e.target.value }))}
+                />
+              </div>
+            </div>
+
+            <div className="pt-2 flex justify-end">
+              <button
+                type="submit"
+                disabled={insuranceSaving || !selectedCarId}
+                className="inline-flex items-center px-4 py-2 rounded-lg bg-[#a06b42] hover:bg-[#8f5a32] text-white text-xs font-medium disabled:opacity-60"
+              >
+                {insuranceSaving ? 'Saving...' : 'Save insurance details'}
+              </button>
+            </div>
+          </form>
         </div>
       )}
 
