@@ -766,6 +766,7 @@ export default function OwnerAttractionsDashboard() {
             </select>
           </div>
         )}
+      </div>
 
       {/* View selector similar to Property/Car dashboards */}
       <div className="mb-4 -mx-1 px-1 overflow-x-auto scrollbar-hide">
