@@ -667,38 +667,120 @@ export default function CarOwnerDashboard() {
       )}
 
         {view === 'revenue' && (
-        <div className="mb-6 rounded-2xl bg-white border border-[#e0d5c7] px-4 py-4 shadow-sm">
-          <h2 className="text-lg font-semibold mb-1 text-[#4b2a00]">Revenue summary</h2>
-          <p className="text-xs text-gray-600 mb-3">
-            High-level revenue overview for your vehicles. Detailed breakdown is available in the Finance view.
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-            <div>
-              <div className="text-[11px] text-gray-500 mb-0.5">Total revenue to date</div>
-              <div className="font-semibold text-gray-900">
-                {formatCurrencyRWF
-                  ? formatCurrencyRWF(stats.totalRevenue || 0)
-                  : `RWF ${Number(stats.totalRevenue || 0).toLocaleString()}`}
+        <>
+          <div className="mb-6 rounded-2xl bg-white border border-[#e0d5c7] px-4 py-4 shadow-sm">
+            <h2 className="text-lg font-semibold mb-1 text-[#4b2a00]">Revenue summary</h2>
+            <p className="text-xs text-gray-600 mb-3">
+              High-level revenue overview for your vehicles.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+              <div>
+                <div className="text-[11px] text-gray-500 mb-0.5">Total revenue to date</div>
+                <div className="font-semibold text-gray-900">
+                  {formatCurrencyRWF
+                    ? formatCurrencyRWF(stats.totalRevenue || 0)
+                    : `RWF ${Number(stats.totalRevenue || 0).toLocaleString()}`}
+                </div>
               </div>
-            </div>
-            <div>
-              <div className="text-[11px] text-gray-500 mb-0.5">Last 30 days revenue</div>
-              <div className="font-semibold text-gray-900">
-                {formatCurrencyRWF
-                  ? formatCurrencyRWF(financeStats.rev30 || 0)
-                  : `RWF ${Number(financeStats.rev30 || 0).toLocaleString()}`}
+              <div>
+                <div className="text-[11px] text-gray-500 mb-0.5">Last 30 days revenue</div>
+                <div className="font-semibold text-gray-900">
+                  {formatCurrencyRWF
+                    ? formatCurrencyRWF(financeStats.rev30 || 0)
+                    : `RWF ${Number(financeStats.rev30 || 0).toLocaleString()}`}
+                </div>
               </div>
-            </div>
-            <div>
-              <div className="text-[11px] text-gray-500 mb-0.5">Year-to-date revenue</div>
-              <div className="font-semibold text-gray-900">
-                {formatCurrencyRWF
-                  ? formatCurrencyRWF(financeStats.revYtd || 0)
-                  : `RWF ${Number(financeStats.revYtd || 0).toLocaleString()}`}
+              <div>
+                <div className="text-[11px] text-gray-500 mb-0.5">Year-to-date revenue</div>
+                <div className="font-semibold text-gray-900">
+                  {formatCurrencyRWF
+                    ? formatCurrencyRWF(financeStats.revYtd || 0)
+                    : `RWF ${Number(financeStats.revYtd || 0).toLocaleString()}`}
+                </div>
               </div>
             </div>
           </div>
-        </div>
+
+          <div className="mb-6 rounded-2xl bg-white border border-[#e0d5c7] shadow-sm overflow-hidden">
+            <div className="px-4 py-3 border-b border-[#e0d5c7] flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-semibold text-[#4b2a00]">Revenue summary table</h3>
+                <p className="text-[11px] text-gray-600 mt-0.5">
+                  All trips contributing to your revenue for this account.
+                </p>
+              </div>
+              <div className="text-[11px] text-gray-500">
+                {financeBookingsTable.length} trips
+              </div>
+            </div>
+            {financeBookingsTable.length === 0 ? (
+            <div className="px-4 py-6 text-xs text-gray-600">
+              No bookings found for the current filters.
+            </div>
+            ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-xs">
+                <thead className="bg-[#f5ebe0] text-[11px] uppercase tracking-wide text-gray-600">
+                  <tr>
+                    <th className="px-3 py-2 text-left">Vehicle</th>
+                    <th className="px-3 py-2 text-left">Pickup</th>
+                    <th className="px-3 py-2 text-left">Return</th>
+                    <th className="px-3 py-2 text-right">Days</th>
+                    <th className="px-3 py-2 text-right">Amount (RWF)</th>
+                    <th className="px-3 py-2 text-right">Payment status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#f1e4d4] bg-white">
+                  {financeBookingsTable.map(b => {
+                    const vehicleLabel = (b.car?.vehicleName || `${b.car?.brand || ''} ${b.car?.model || ''}`.trim() || 'Vehicle').replace(/,/g, ' ');
+                    const pickup = b.pickupDate ? new Date(b.pickupDate) : null;
+                    const ret = b.returnDate ? new Date(b.returnDate) : null;
+                    const status = String(b.status || '').toLowerCase();
+                    const amount = Number(b.totalAmount || 0);
+                    return (
+                      <tr key={b._id} className="hover:bg-[#fdf7ee] transition-colors">
+                        <td className="px-3 py-2 align-top max-w-[180px]">
+                          <div className="text-[11px] font-medium text-gray-900 truncate">{vehicleLabel}</div>
+                          <div className="text-[10px] text-gray-500 truncate">{b._id}</div>
+                        </td>
+                        <td className="px-3 py-2 align-top text-[11px] text-gray-700">
+                          {pickup ? pickup.toLocaleDateString() : '-'}
+                        </td>
+                        <td className="px-3 py-2 align-top text-[11px] text-gray-700">
+                          {ret ? ret.toLocaleDateString() : '-'}
+                        </td>
+                        <td className="px-3 py-2 align-top text-right text-[11px] text-gray-700">
+                          {b.numberOfDays || ''}
+                        </td>
+                        <td className="px-3 py-2 align-top text-right text-[11px] font-semibold text-gray-900">
+                          {formatCurrencyRWF
+                            ? formatCurrencyRWF(amount)
+                            : `RWF ${amount.toLocaleString()}`}
+                        </td>
+                        <td className="px-3 py-2 align-top text-right text-[11px]">
+                          <span
+                            className={`inline-flex items-center px-2 py-0.5 rounded-full border text-[10px] ${
+                              status === 'paid' || status === 'completed'
+                                ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                                : status === 'pending'
+                                  ? 'bg-amber-50 border-amber-200 text-amber-700'
+                                  : status === 'cancelled'
+                                    ? 'bg-red-50 border-red-200 text-red-700'
+                                    : 'bg-gray-50 border-gray-200 text-gray-700'
+                            }`}
+                          >
+                            {status || 'n/a'}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            )}
+          </div>
+        </>
       )}
 
         {view === 'activities' && (
@@ -1408,9 +1490,26 @@ export default function CarOwnerDashboard() {
             ) : (
               <ul className="divide-y divide-[#f1e4d4] text-xs">
                 {(() => {
+                  const allowedTypes = new Set([
+                    'booking_created',
+                    'booking_paid',
+                    'booking_confirmed',
+                    'booking_status_updated',
+                    'booking_cancelled',
+                    'commission_due',
+                    'commission_paid',
+                    'account_blocked',
+                    'account_reactivated',
+                    'fine_added',
+                    'new_message',
+                  ]);
+
                   const filtered = ownerNotifications.filter(n => {
+                    const t = String(n.type || 'other');
+                    // Only show host/vehicle-relevant notifications
+                    if (!allowedTypes.has(t)) return false;
                     if (ownerNotifShowUnreadOnly && n.isRead) return false;
-                    if (ownerNotifTypeFilter !== 'all' && String(n.type || 'other') !== ownerNotifTypeFilter) return false;
+                    if (ownerNotifTypeFilter !== 'all' && t !== ownerNotifTypeFilter) return false;
                     return true;
                   });
 
