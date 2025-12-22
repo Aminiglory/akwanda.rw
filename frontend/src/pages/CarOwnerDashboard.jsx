@@ -62,6 +62,22 @@ export default function CarOwnerDashboard() {
   const vehiclesSection = analyticsSection || 'list';
   const [bookingView, setBookingView] = useState(() => (analyticsSection === 'calendar' ? 'calendar' : 'list'));
   const bookingsRef = useRef(null);
+
+  // Direct booking (host-side) for vehicles
+  const [showDirectCarBooking, setShowDirectCarBooking] = useState(false);
+  const [directCarBookingSaving, setDirectCarBookingSaving] = useState(false);
+  const [directCarForm, setDirectCarForm] = useState({
+    carId: '',
+    pickupDate: '',
+    returnDate: '',
+    pickupLocation: '',
+    returnLocation: '',
+    guestName: '',
+    guestEmail: '',
+    guestPhone: '',
+    paymentMethod: 'cash',
+    finalPrice: '',
+  });
   const createFormRef = useRef(null);
   const [fuelSummary, setFuelSummary] = useState({ totalLiters: 0, totalCost: 0 });
   const [fuelForm, setFuelForm] = useState({
@@ -155,6 +171,92 @@ export default function CarOwnerDashboard() {
   const [ownerNotifTypeFilter, setOwnerNotifTypeFilter] = useState('all');
 
   const financeBookingsTable = Array.isArray(bookings) ? bookings : [];
+
+  const suggestDirectPrice = () => {
+    try {
+      if (!directCarForm.carId || !directCarForm.pickupDate || !directCarForm.returnDate) return null;
+      const car = Array.isArray(cars) ? cars.find(c => String(c._id) === String(directCarForm.carId)) : null;
+      if (!car) return null;
+      const start = new Date(directCarForm.pickupDate);
+      const end = new Date(directCarForm.returnDate);
+      if (!(start instanceof Date) || !(end instanceof Date) || Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end <= start) return null;
+      const MS_PER_DAY = 24 * 60 * 60 * 1000;
+      const numberOfDays = Math.ceil((end - start) / MS_PER_DAY);
+      let total = (car.pricePerDay || 0) * numberOfDays;
+      if (car.pricePerWeek && numberOfDays >= 7) {
+        const weeks = Math.floor(numberOfDays / 7);
+        const remainder = numberOfDays % 7;
+        total = weeks * car.pricePerWeek + remainder * (car.pricePerDay || 0);
+      }
+      if (car.pricePerMonth && numberOfDays >= 30) {
+        const months = Math.floor(numberOfDays / 30);
+        const rem = numberOfDays % 30;
+        total = months * car.pricePerMonth + rem * ((car.pricePerWeek || (car.pricePerDay || 0) * 7) / 7);
+      }
+      return total;
+    } catch (_) {
+      return null;
+    }
+  };
+
+  async function submitDirectCarBooking(e) {
+    e?.preventDefault?.();
+    try {
+      if (!directCarForm.carId || !directCarForm.pickupDate || !directCarForm.returnDate || !directCarForm.pickupLocation) {
+        toast.error('Please fill vehicle, dates and pickup location');
+        return;
+      }
+      const priceNum = Number(directCarForm.finalPrice);
+      if (!priceNum || !Number.isFinite(priceNum) || priceNum <= 0) {
+        toast.error('Enter the final agreed price');
+        return;
+      }
+      setDirectCarBookingSaving(true);
+      const payload = {
+        carId: directCarForm.carId,
+        pickupDate: directCarForm.pickupDate,
+        returnDate: directCarForm.returnDate,
+        pickupLocation: directCarForm.pickupLocation,
+        returnLocation: directCarForm.returnLocation || directCarForm.pickupLocation,
+        guestName: directCarForm.guestName || undefined,
+        guestEmail: directCarForm.guestEmail || undefined,
+        guestPhone: directCarForm.guestPhone || undefined,
+        paymentMethod: directCarForm.paymentMethod || undefined,
+        finalPrice: priceNum,
+      };
+      const res = await fetch(`${API_URL}/api/car-bookings/direct`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.message || 'Failed to create direct booking');
+      }
+      const booking = data.booking || data;
+      setBookings(prev => Array.isArray(prev) ? [booking, ...prev] : [booking]);
+      toast.success('Direct booking recorded');
+      setShowDirectCarBooking(false);
+      setDirectCarForm({
+        carId: '',
+        pickupDate: '',
+        returnDate: '',
+        pickupLocation: '',
+        returnLocation: '',
+        guestName: '',
+        guestEmail: '',
+        guestPhone: '',
+        paymentMethod: 'cash',
+        finalPrice: '',
+      });
+    } catch (err) {
+      console.error('[CarOwner][directBooking] error', err);
+      toast.error(err.message || 'Failed to create direct booking');
+    } finally {
+      setDirectCarBookingSaving(false);
+    }
+  }
 
   function exportBookingsCsv() {
     try {
@@ -2338,6 +2440,14 @@ export default function CarOwnerDashboard() {
             <h2 className="text-xl font-semibold text-gray-900">Bookings</h2>
             <p className="text-xs text-gray-500 mt-0.5">View and manage all reservations for your vehicles.</p>
           </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowDirectCarBooking(true)}
+              className="inline-flex items-center px-3 py-1.5 rounded-full bg-[#a06b42] hover:bg-[#8f5a32] text-white text-xs font-medium shadow-sm"
+            >
+              New direct booking
+            </button>
           <div className="inline-flex rounded-full overflow-hidden border border-[#d4c4b0] bg-white">
             <button
               type="button"
@@ -2421,7 +2531,18 @@ export default function CarOwnerDashboard() {
                   return true;
                 }).map(b => (
                   <tr key={b._id} className="border-t border-[#f0e6d9] hover:bg-[#fffaf4]">
-                    <td className="px-4 py-3 text-sm font-medium text-[#3b2a18]">{b.car?.vehicleName}</td>
+                    <td className="px-4 py-3 text-sm font-medium text-[#3b2a18]">
+                      <div className="flex items-center gap-2">
+                        <span>{b.car?.vehicleName || 'Vehicle'}</span>
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                          b.channel === 'direct'
+                            ? 'bg-[#f5e6d5] text-[#4b2a00] border border-[#e0d5c7]'
+                            : 'bg-blue-50 text-blue-700 border border-blue-100'
+                        }`}>
+                          {b.channel === 'direct' ? 'Direct' : 'Online'}
+                        </span>
+                      </div>
+                    </td>
                     <td className="px-4 py-3 text-sm text-gray-700">{b.guest?.firstName} {b.guest?.lastName}</td>
                     <td className="px-4 py-3 text-xs text-gray-600">{new Date(b.pickupDate).toLocaleDateString()} <span className="mx-1">→</span> {new Date(b.returnDate).toLocaleDateString()}</td>
                     <td className="px-4 py-3 text-sm font-semibold text-[#4b2a00]">{formatCurrencyRWF ? formatCurrencyRWF(b.totalAmount || 0) : `RWF ${Number(b.totalAmount || 0).toLocaleString()}`}</td>
@@ -2554,7 +2675,8 @@ export default function CarOwnerDashboard() {
           </div>
         )}
       </div>
-      )}
+    </div>
+    )}
 
         {receiptBooking && (
           <ReceiptPreview
@@ -2574,6 +2696,168 @@ export default function CarOwnerDashboard() {
           onPrint={() => window.print()}
           onClose={() => setReceiptBooking(null)}
         />
+      )}
+
+      {showDirectCarBooking && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-[9999] p-4">
+          <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-[#e0d5c7]">
+            <div className="px-5 py-4 border-b border-[#f0e6d9] flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-[#4b2a00]">New direct booking</h2>
+                <p className="text-xs text-gray-600 mt-0.5">
+                  Record an offline/negotiated reservation for one of your vehicles. The final agreed price will be used for commission.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowDirectCarBooking(false)}
+                className="px-3 py-1.5 rounded-lg bg-white border border-[#d4c4b0] text-[#4b2a00] text-xs font-medium hover:bg-[#f9f1e7]"
+              >
+                Close
+              </button>
+            </div>
+
+            <form onSubmit={submitDirectCarBooking} className="px-5 py-4 space-y-4 text-sm text-gray-800">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] text-gray-600 mb-1">Vehicle *</label>
+                  <select
+                    className="w-full px-3 py-2 border border-[#d4c4b0] rounded-lg bg-white text-sm"
+                    value={directCarForm.carId}
+                    onChange={e => setDirectCarForm(f => ({ ...f, carId: e.target.value }))}
+                  >
+                    <option value="">Select vehicle</option>
+                    {Array.isArray(cars) && cars.map(c => (
+                      <option key={c._id} value={c._id}>
+                        {c.vehicleName || `${c.brand || ''} ${c.model || ''}`.trim() || 'Untitled vehicle'}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[11px] text-gray-600 mb-1">Payment method</label>
+                  <select
+                    className="w-full px-3 py-2 border border-[#d4c4b0] rounded-lg bg-white text-sm"
+                    value={directCarForm.paymentMethod}
+                    onChange={e => setDirectCarForm(f => ({ ...f, paymentMethod: e.target.value }))}
+                  >
+                    <option value="cash">Cash</option>
+                    <option value="mobile_money">Mobile money</option>
+                    <option value="card">Card</option>
+                    <option value="bank_transfer">Bank transfer</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] text-gray-600 mb-1">Pickup date *</label>
+                  <input
+                    type="date"
+                    className="w-full px-3 py-2 border border-[#d4c4b0] rounded-lg text-sm"
+                    value={directCarForm.pickupDate}
+                    onChange={e => setDirectCarForm(f => ({ ...f, pickupDate: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] text-gray-600 mb-1">Return date *</label>
+                  <input
+                    type="date"
+                    className="w-full px-3 py-2 border border-[#d4c4b0] rounded-lg text-sm"
+                    value={directCarForm.returnDate}
+                    onChange={e => setDirectCarForm(f => ({ ...f, returnDate: e.target.value }))}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] text-gray-600 mb-1">Pickup location *</label>
+                  <input
+                    className="w-full px-3 py-2 border border-[#d4c4b0] rounded-lg text-sm"
+                    value={directCarForm.pickupLocation}
+                    onChange={e => setDirectCarForm(f => ({ ...f, pickupLocation: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] text-gray-600 mb-1">Return location</label>
+                  <input
+                    className="w-full px-3 py-2 border border-[#d4c4b0] rounded-lg text-sm"
+                    value={directCarForm.returnLocation}
+                    onChange={e => setDirectCarForm(f => ({ ...f, returnLocation: e.target.value }))}
+                    placeholder="Defaults to pickup location"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] text-gray-600 mb-1">Guest name</label>
+                  <input
+                    className="w-full px-3 py-2 border border-[#d4c4b0] rounded-lg text-sm"
+                    value={directCarForm.guestName}
+                    onChange={e => setDirectCarForm(f => ({ ...f, guestName: e.target.value }))}
+                  />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-[11px] text-gray-600 mb-1">Guest phone</label>
+                    <input
+                      className="w-full px-3 py-2 border border-[#d4c4b0] rounded-lg text-sm"
+                      value={directCarForm.guestPhone}
+                      onChange={e => setDirectCarForm(f => ({ ...f, guestPhone: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] text-gray-600 mb-1">Guest email</label>
+                    <input
+                      type="email"
+                      className="w-full px-3 py-2 border border-[#d4c4b0] rounded-lg text-sm"
+                      value={directCarForm.guestEmail}
+                      onChange={e => setDirectCarForm(f => ({ ...f, guestEmail: e.target.value }))}
+                    />
+                  </div>
+                </div>
+
+                <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+                  <div>
+                    <label className="block text-[11px] text-gray-600 mb-1">Suggested price (system)</label>
+                    <div className="px-3 py-2 border border-dashed border-[#d4c4b0] rounded-lg text-xs text-gray-700 bg-[#fdf7ee]">
+                      {(() => {
+                        const suggested = suggestDirectPrice();
+                        if (!suggested) return 'Select vehicle and dates to see suggested price.';
+                        return formatCurrencyRWF
+                          ? formatCurrencyRWF(suggested)
+                          : `RWF ${Number(suggested || 0).toLocaleString()}`;
+                      })()}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] text-gray-600 mb-1">Final agreed price *</label>
+                    <input
+                      type="number"
+                      className="w-full px-3 py-2 border border-[#d4c4b0] rounded-lg text-sm"
+                      value={directCarForm.finalPrice}
+                      onChange={e => setDirectCarForm(f => ({ ...f, finalPrice: e.target.value }))}
+                      placeholder="Enter final agreed total"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-[#f0e6d9] flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowDirectCarBooking(false)}
+                  className="px-4 py-2 rounded-lg bg-white border border-[#d4c4b0] text-[#4b2a00] text-xs font-medium hover:bg-[#f9f1e7]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={directCarBookingSaving}
+                  className="px-4 py-2 rounded-lg bg-[#a06b42] hover:bg-[#8f5a32] text-white text-xs font-medium disabled:opacity-60"
+                >
+                  {directCarBookingSaving ? 'Saving...' : 'Save direct booking'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
       <SuccessModal open={successOpen} title={successTitle} message={successMsg} onClose={() => setSuccessOpen(false)} />
       </div>
