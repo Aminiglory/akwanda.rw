@@ -99,6 +99,20 @@ export default function OwnerAttractionsDashboard() {
 
   const normalizeBookingStatus = (b) => String(b?.status || '').toLowerCase();
 
+  const goToDashboardView = (nextView, extraParams = {}) => {
+    setView(nextView);
+    try {
+      const next = new URLSearchParams(searchParams.toString());
+      next.set('view', nextView);
+      next.delete('section');
+      Object.entries(extraParams || {}).forEach(([k, v]) => {
+        if (v === undefined || v === null || v === '') next.delete(k);
+        else next.set(k, String(v));
+      });
+      setSearchParams(next, { replace: true });
+    } catch (_) {}
+  };
+
   const financeModeLabel = financeMode === 'expenses' ? 'Expenses & profit' : 'Overview';
 
   // Finance stats for attractions, based on bookings loaded for this dashboard
@@ -363,7 +377,7 @@ export default function OwnerAttractionsDashboard() {
   }, [filteredBookings, bookingStatusParam, bookingPaymentParam, bookingFilters.from, bookingFilters.to]);
 
   const overviewFinanceStats = useMemo(() => {
-    const baseList = Array.isArray(filteredBookings) ? filteredBookings : [];
+    const baseList = Array.isArray(bookings) ? bookings : [];
     const now = new Date();
     const start30 = new Date(now);
     start30.setDate(start30.getDate() - 30);
@@ -375,6 +389,8 @@ export default function OwnerAttractionsDashboard() {
     let bookingsYtd = 0;
 
     baseList.forEach(b => {
+      const pay = normalizePaymentStatus(b);
+      if (pay !== 'paid') return;
       const amount = Number(b.totalAmount || 0);
       const visit = b.visitDate ? new Date(b.visitDate) : null;
       if (!visit || Number.isNaN(visit.getTime())) return;
@@ -391,7 +407,7 @@ export default function OwnerAttractionsDashboard() {
 
     const avg30 = bookings30 > 0 ? rev30 / bookings30 : 0;
     return { rev30, revYtd, bookings30, bookingsYtd, avg30 };
-  }, [filteredBookings]);
+  }, [bookings]);
 
   const empty = useMemo(() => ({
     name: '',
@@ -675,7 +691,7 @@ export default function OwnerAttractionsDashboard() {
             className="inline-flex items-center px-3 py-1.5 rounded-full bg-white/70 hover:bg-white text-xs font-medium text-[#4b2a00] border border-[#e0d5c7] shadow-sm transition-colors"
           >
             <span className="mr-1">←</span>
-            Back to listing options
+            {labelOr('ownerAttractions.backToListingOptions', 'Back to listing options')}
           </button>
         </div>
         <div className="mb-4 flex items-center justify-end gap-2">
@@ -685,7 +701,7 @@ export default function OwnerAttractionsDashboard() {
               onClick={() => window.location.assign('/upload-property?type=attraction')}
               className="px-4 py-2 rounded-lg bg-[#a06b42] hover:bg-[#8f5a32] text-white text-sm font-medium shadow-sm"
             >
-              List Your Attraction
+              {labelOr('ownerAttractions.listYourAttraction', 'List Your Attraction')}
             </button>
             <div className="inline-flex rounded-lg overflow-hidden border">
               <button
@@ -693,14 +709,14 @@ export default function OwnerAttractionsDashboard() {
                 onClick={() => setViewMode('cards')}
                 className={`px-3 py-2 text-sm ${viewMode==='cards' ? 'bg-[#a06b42] text-white' : 'bg-white text-gray-700'}`}
               >
-                Cards
+                {labelOr('ownerAttractions.viewMode.cards', 'Cards')}
               </button>
               <button
                 type="button"
                 onClick={() => setViewMode('table')}
                 className={`px-3 py-2 text-sm ${viewMode==='table' ? 'bg-[#a06b42] text-white' : 'bg-white text-gray-700'}`}
               >
-                Table
+                {labelOr('ownerAttractions.viewMode.table', 'Table')}
               </button>
             </div>
           </div>
@@ -708,12 +724,13 @@ export default function OwnerAttractionsDashboard() {
 
       {propertyContextId && (
         <div className="mb-2 text-xs text-gray-600">
-          You are managing property context: <span className="font-semibold">{propertyContextLabel || propertyContextId}</span>
+          {labelOr('ownerAttractions.propertyContextLabel', 'You are managing property context:')}{' '}
+          <span className="font-semibold">{propertyContextLabel || propertyContextId}</span>
         </div>
       )}
 
       <div className="mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-        <h1 className="text-2xl font-bold text-gray-900">My Attractions</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{labelOr('ownerAttractions.title', 'My Attractions')}</h1>
         {items.length > 0 && (
           <div className="flex items-center gap-2">
             <span className="text-xs text-gray-600 hidden sm:inline">
@@ -749,246 +766,161 @@ export default function OwnerAttractionsDashboard() {
             </select>
           </div>
         )}
-      </div>
 
       {/* View selector similar to Property/Car dashboards */}
       <div className="mb-4 -mx-1 px-1 overflow-x-auto scrollbar-hide">
         <div className="flex flex-nowrap gap-2 text-sm min-w-max">
-        <button
-          type="button"
-          onClick={() => {
-            setView('overview');
-            try {
-              const next = new URLSearchParams(searchParams.toString());
-              next.delete('view');
-              next.delete('section');
-              setSearchParams(next, { replace: true });
-            } catch (_) {}
-          }}
-          className={`px-3 py-1.5 rounded-full border ${view === 'overview' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
-        >
-          Overview
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setView('attractions');
-            try {
-              const next = new URLSearchParams(searchParams.toString());
-              next.set('view', 'attractions');
-              next.delete('section');
-              setSearchParams(next, { replace: true });
-            } catch (_) {}
-          }}
-          className={`px-3 py-1.5 rounded-full border ${view === 'attractions' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
-        >
-          Attractions
-        </button>
-        <div className="relative">
           <button
             type="button"
             onClick={() => {
-              setView('bookings');
-              try {
-                const next = new URLSearchParams(searchParams.toString());
-                next.set('view', 'bookings');
-                next.delete('section');
-                setSearchParams(next, { replace: true });
-              } catch (_) {}
+              goToDashboardView('overview');
             }}
-            className={`px-3 py-1.5 rounded-full border ${view === 'bookings' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+            className={`px-3 py-1.5 rounded-full border ${view === 'overview' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
           >
-            Bookings
+            {labelOr('ownerAttractions.nav.overview', 'Overview')}
           </button>
           <button
             type="button"
-            onClick={() => setBookingsMenuOpen(v => !v)}
-            className="absolute -right-2 top-0 h-full px-2 text-[10px] text-gray-600"
-            title={labelOr('ownerAttractions.bookings.filters', 'Booking filters')}
+            onClick={() => goToDashboardView('attractions')}
+            className={`px-3 py-1.5 rounded-full border ${view === 'attractions' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
           >
-            ▾
+            {labelOr('ownerAttractions.nav.attractions', 'Attractions')}
           </button>
-          {bookingsMenuOpen && (
-            <div
-              className="absolute z-20 mt-2 w-64 rounded-xl border border-[#e0d5c7] bg-white shadow-lg p-2"
-              onMouseLeave={() => setBookingsMenuOpen(false)}
+
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => goToDashboardView('bookings')}
+              className={`px-3 py-1.5 rounded-full border ${view === 'bookings' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
             >
-              <div className="px-2 py-1 text-[11px] text-gray-500">{labelOr('ownerAttractions.bookings.status', 'Booking status')}</div>
-              <div className="flex flex-wrap gap-1 px-2 pb-2">
-                {['all','pending','confirmed','completed','cancelled'].map(s => (
-                  <button
-                    key={s}
-                    type="button"
-                    onClick={() => {
-                      const next = new URLSearchParams(searchParams.toString());
-                      next.set('view','bookings');
-                      if (s === 'all') next.delete('bstatus'); else next.set('bstatus', s);
-                      setSearchParams(next, { replace: true });
-                      setBookingsMenuOpen(false);
-                    }}
-                    className={`px-2 py-1 rounded-full border text-[11px] ${bookingStatusParam === s ? 'bg-[#f5e6d5] text-[#4b2a00] border-[#a06b42] font-semibold' : 'bg-white text-[#6b5744] border-[#e0d5c7] hover:bg-[#f9f1e7]'}`}
-                  >
-                    {s}
-                  </button>
-                ))}
+              {labelOr('ownerAttractions.nav.bookings', 'Bookings')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setBookingsMenuOpen(v => !v)}
+              className="absolute -right-2 top-0 h-full px-2 text-[10px] text-gray-600"
+              title={labelOr('ownerAttractions.bookings.filters', 'Booking filters')}
+            >
+              ▾
+            </button>
+            {bookingsMenuOpen && (
+              <div
+                className="absolute z-20 mt-2 w-64 rounded-xl border border-[#e0d5c7] bg-white shadow-lg p-2"
+                onMouseLeave={() => setBookingsMenuOpen(false)}
+              >
+                <div className="px-2 py-1 text-[11px] text-gray-500">{labelOr('ownerAttractions.bookings.status', 'Booking status')}</div>
+                <div className="flex flex-wrap gap-1 px-2 pb-2">
+                  {['all','pending','confirmed','completed','cancelled'].map(s => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => {
+                        const next = new URLSearchParams(searchParams.toString());
+                        next.set('view','bookings');
+                        if (s === 'all') next.delete('bstatus'); else next.set('bstatus', s);
+                        setSearchParams(next, { replace: true });
+                        setBookingsMenuOpen(false);
+                      }}
+                      className={`px-2 py-1 rounded-full border text-[11px] ${bookingStatusParam === s ? 'bg-[#f5e6d5] text-[#4b2a00] border-[#a06b42] font-semibold' : 'bg-white text-[#6b5744] border-[#e0d5c7] hover:bg-[#f9f1e7]'}`}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+                <div className="px-2 py-1 text-[11px] text-gray-500">{labelOr('ownerAttractions.bookings.payment', 'Payment status')}</div>
+                <div className="flex flex-wrap gap-1 px-2 pb-2">
+                  {['all','paid','pending','unpaid'].map(s => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => {
+                        const next = new URLSearchParams(searchParams.toString());
+                        next.set('view','bookings');
+                        if (s === 'all') next.delete('pstatus'); else next.set('pstatus', s);
+                        setSearchParams(next, { replace: true });
+                        setBookingsMenuOpen(false);
+                      }}
+                      className={`px-2 py-1 rounded-full border text-[11px] ${bookingPaymentParam === s ? 'bg-[#f5e6d5] text-[#4b2a00] border-[#a06b42] font-semibold' : 'bg-white text-[#6b5744] border-[#e0d5c7] hover:bg-[#f9f1e7]'}`}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
               </div>
-              <div className="px-2 py-1 text-[11px] text-gray-500">{labelOr('ownerAttractions.bookings.payment', 'Payment status')}</div>
-              <div className="flex flex-wrap gap-1 px-2 pb-2">
-                {['all','paid','pending','unpaid'].map(s => (
-                  <button
-                    key={s}
-                    type="button"
-                    onClick={() => {
-                      const next = new URLSearchParams(searchParams.toString());
-                      next.set('view','bookings');
-                      if (s === 'all') next.delete('pstatus'); else next.set('pstatus', s);
-                      setSearchParams(next, { replace: true });
-                      setBookingsMenuOpen(false);
-                    }}
-                    className={`px-2 py-1 rounded-full border text-[11px] ${bookingPaymentParam === s ? 'bg-[#f5e6d5] text-[#4b2a00] border-[#a06b42] font-semibold' : 'bg-white text-[#6b5744] border-[#e0d5c7] hover:bg-[#f9f1e7]'}`}
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-        <button
-          type="button"
-          onClick={() => {
-            setView('finance');
-            try {
-              const next = new URLSearchParams(searchParams.toString());
-              next.set('view', 'finance');
-              next.delete('section');
-              setSearchParams(next, { replace: true });
-            } catch (_) {}
-          }}
-          className={`px-3 py-1.5 rounded-full border ${view === 'finance' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
-        >
-          Finance
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setView('expenses');
-            try {
-              const next = new URLSearchParams(searchParams.toString());
-              next.set('view', 'expenses');
-              next.delete('section');
-              setSearchParams(next, { replace: true });
-            } catch (_) {}
-          }}
-          className={`px-3 py-1.5 rounded-full border ${view === 'expenses' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
-        >
-          {labelOr('nav.expenses', 'Expenses')}
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setView('income-revenue');
-            try {
-              const next = new URLSearchParams(searchParams.toString());
-              next.set('view', 'income-revenue');
-              next.delete('section');
-              setSearchParams(next, { replace: true });
-            } catch (_) {}
-          }}
-          className={`px-3 py-1.5 rounded-full border ${view === 'income-revenue' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
-        >
-          {labelOr('nav.incomeRevenue', 'Income & revenue')}
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setView('clients-contracts');
-            try {
-              const next = new URLSearchParams(searchParams.toString());
-              next.set('view', 'clients-contracts');
-              next.delete('section');
-              setSearchParams(next, { replace: true });
-            } catch (_) {}
-          }}
-          className={`px-3 py-1.5 rounded-full border ${view === 'clients-contracts' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
-        >
-          {labelOr('nav.clientsContracts', 'Clients & contracts')}
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setView('analytics');
-            try {
-              const next = new URLSearchParams(searchParams.toString());
-              next.set('view', 'analytics');
-              next.delete('section');
-              setSearchParams(next, { replace: true });
-            } catch (_) {}
-          }}
-          className={`px-3 py-1.5 rounded-full border ${view === 'analytics' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
-        >
-          Analytics
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setView('reviews');
-            try {
-              const next = new URLSearchParams(searchParams.toString());
-              next.set('view', 'reviews');
-              next.delete('section');
-              setSearchParams(next, { replace: true });
-            } catch (_) {}
-          }}
-          className={`px-3 py-1.5 rounded-full border ${view === 'reviews' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
-        >
-          Reviews
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setView('messages');
-            try {
-              const next = new URLSearchParams(searchParams.toString());
-              next.set('view', 'messages');
-              next.delete('section');
-              setSearchParams(next, { replace: true });
-            } catch (_) {}
-          }}
-          className={`px-3 py-1.5 rounded-full border ${view === 'messages' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
-        >
-          Messages
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setView('settings');
-            try {
-              const next = new URLSearchParams(searchParams.toString());
-              next.set('view', 'settings');
-              next.delete('section');
-              setSearchParams(next, { replace: true });
-            } catch (_) {}
-          }}
-          className={`px-3 py-1.5 rounded-full border ${view === 'settings' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
-        >
-          Settings
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setView('notifications');
-            try {
-              const next = new URLSearchParams(searchParams.toString());
-              next.set('view', 'notifications');
-              next.delete('section');
-              setSearchParams(next, { replace: true });
-            } catch (_) {}
-          }}
-          className={`px-3 py-1.5 rounded-full border ${view === 'notifications' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
-        >
-          {labelOr('nav.notificationsAlerts', 'Notifications')}
-        </button>
+            )}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => goToDashboardView('finance')}
+            className={`px-3 py-1.5 rounded-full border ${view === 'finance' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+          >
+            {labelOr('ownerAttractions.nav.finance', 'Finance')}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => goToDashboardView('expenses')}
+            className={`px-3 py-1.5 rounded-full border ${view === 'expenses' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+          >
+            {labelOr('nav.expenses', 'Expenses')}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => goToDashboardView('income-revenue')}
+            className={`px-3 py-1.5 rounded-full border ${view === 'income-revenue' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+          >
+            {labelOr('nav.incomeRevenue', 'Income & revenue')}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => goToDashboardView('clients-contracts')}
+            className={`px-3 py-1.5 rounded-full border ${view === 'clients-contracts' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+          >
+            {labelOr('nav.clientsContracts', 'Clients & contracts')}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => goToDashboardView('analytics')}
+            className={`px-3 py-1.5 rounded-full border ${view === 'analytics' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+          >
+            {labelOr('ownerAttractions.nav.analytics', 'Reports & analytics')}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => goToDashboardView('reviews')}
+            className={`px-3 py-1.5 rounded-full border ${view === 'reviews' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+          >
+            {labelOr('ownerAttractions.nav.reviews', 'Reviews')}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => goToDashboardView('messages')}
+            className={`px-3 py-1.5 rounded-full border ${view === 'messages' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+          >
+            {labelOr('ownerAttractions.nav.messages', 'Messages')}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => goToDashboardView('settings')}
+            className={`px-3 py-1.5 rounded-full border ${view === 'settings' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+          >
+            {labelOr('ownerAttractions.nav.settings', 'Settings')}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => goToDashboardView('notifications')}
+            className={`px-3 py-1.5 rounded-full border ${view === 'notifications' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+          >
+            {labelOr('nav.notificationsAlerts', 'Notifications')}
+          </button>
         </div>
       </div>
 
@@ -1077,60 +1009,70 @@ export default function OwnerAttractionsDashboard() {
       {/* Overview: basic stats + quick links */}
       {view === 'overview' && (
         <>
-          <div className="mb-4 grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2">
-              <div className="text-[11px] text-gray-500">Total attractions</div>
-              <div className="text-lg font-semibold text-gray-900">{filteredItems.length}</div>
+          <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="rounded-xl bg-white shadow-sm border border-[#e0d5c7] px-3 py-2">
+              <div className="text-[11px] text-gray-500">
+                {labelOr('ownerAttractions.overview.totalAttractions', 'Total attractions')}
+              </div>
+              <div className="text-lg font-semibold text-gray-900">{Array.isArray(items) ? items.length : 0}</div>
             </div>
-            <div className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2">
-              <div className="text-[11px] text-gray-500">Total bookings</div>
-              <div className="text-lg font-semibold text-gray-900">{filteredBookings.length}</div>
+            <div className="rounded-xl bg-white shadow-sm border border-[#e0d5c7] px-3 py-2">
+              <div className="text-[11px] text-gray-500">
+                {labelOr('ownerAttractions.overview.totalBookings', 'Total bookings')}
+              </div>
+              <div className="text-lg font-semibold text-gray-900">{Array.isArray(bookings) ? bookings.length : 0}</div>
             </div>
-            <div className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2">
-              <div className="text-[11px] text-gray-500">Active attractions</div>
-              <div className="text-lg font-semibold text-emerald-700">{filteredItems.filter(a => a.isActive).length}</div>
+            <div className="rounded-xl bg-white shadow-sm border border-[#e0d5c7] px-3 py-2">
+              <div className="text-[11px] text-gray-500">
+                {labelOr('ownerAttractions.overview.activeAttractions', 'Active attractions')}
+              </div>
+              <div className="text-lg font-semibold text-emerald-700">
+                {(Array.isArray(items) ? items : []).filter(a => a?.isActive).length}
+              </div>
             </div>
           </div>
 
-          <div className="mb-6 grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <button
               type="button"
-              onClick={() => setView('attractions')}
-              className="text-left rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2 hover:border-[#a06b42] hover:shadow-md transition"
+              onClick={() => goToDashboardView('attractions')}
+              className="text-left rounded-xl bg-white shadow-sm border border-[#e0d5c7] px-3 py-2 hover:border-[#a06b42] hover:shadow-md transition"
             >
-              <div className="text-[11px] text-gray-500">Attractions</div>
-              <div className="text-sm font-semibold text-gray-900">Manage experiences</div>
-              <div className="mt-0.5 text-[11px] text-gray-500">Create and update your attractions</div>
+              <div className="text-[11px] text-gray-500">{labelOr('ownerAttractions.overview.card.attractions.title', 'Attractions')}</div>
+              <div className="text-sm font-semibold text-gray-900">{labelOr('ownerAttractions.overview.card.attractions.heading', 'Manage experiences')}</div>
+              <div className="mt-0.5 text-[11px] text-gray-500">{labelOr('ownerAttractions.overview.card.attractions.hint', 'Create and update your attractions')}</div>
             </button>
             <button
               type="button"
-              onClick={() => setView('bookings')}
-              className="text-left rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2 hover:border-[#a06b42] hover:shadow-md transition"
+              onClick={() => goToDashboardView('bookings')}
+              className="text-left rounded-xl bg-white shadow-sm border border-[#e0d5c7] px-3 py-2 hover:border-[#a06b42] hover:shadow-md transition"
             >
-              <div className="text-[11px] text-gray-500">Bookings</div>
-              <div className="text-sm font-semibold text-gray-900">Reservations</div>
-              <div className="mt-0.5 text-[11px] text-gray-500">View and manage all attraction bookings</div>
+              <div className="text-[11px] text-gray-500">{labelOr('ownerAttractions.overview.card.bookings.title', 'Bookings')}</div>
+              <div className="text-sm font-semibold text-gray-900">{labelOr('ownerAttractions.overview.card.bookings.heading', 'Reservations')}</div>
+              <div className="mt-0.5 text-[11px] text-gray-500">{labelOr('ownerAttractions.overview.card.bookings.hint', 'View and manage all attraction bookings')}</div>
             </button>
-            <Link
-              to="/transactions"
-              className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2 hover:border-[#a06b42] hover:shadow-md transition block"
+            <button
+              type="button"
+              onClick={() => goToDashboardView('finance')}
+              className="text-left rounded-xl bg-white shadow-sm border border-[#e0d5c7] px-3 py-2 hover:border-[#a06b42] hover:shadow-md transition"
             >
-              <div className="text-[11px] text-gray-500">Finance</div>
-              <div className="text-sm font-semibold text-gray-900">Payments & transactions</div>
-              <div className="mt-0.5 text-[11px] text-gray-500">Track payouts and charges</div>
-            </Link>
-            <Link
-              to="/analytics"
-              className="rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2 hover:border-[#a06b42] hover:shadow-md transition block"
+              <div className="text-[11px] text-gray-500">{labelOr('ownerAttractions.overview.card.finance.title', 'Finance')}</div>
+              <div className="text-sm font-semibold text-gray-900">{labelOr('ownerAttractions.overview.card.finance.heading', 'Payments & transactions')}</div>
+              <div className="mt-0.5 text-[11px] text-gray-500">{labelOr('ownerAttractions.overview.card.finance.hint', 'Track payouts and charges')}</div>
+            </button>
+            <button
+              type="button"
+              onClick={() => goToDashboardView('analytics')}
+              className="text-left rounded-xl bg-white shadow-sm border border-[#e0d5c7] px-3 py-2 hover:border-[#a06b42] hover:shadow-md transition"
             >
-              <div className="text-[11px] text-gray-500">Analytics</div>
-              <div className="text-sm font-semibold text-gray-900">Performance overview</div>
-              <div className="mt-0.5 text-[11px] text-gray-500">See trends across your listings</div>
-            </Link>
+              <div className="text-[11px] text-gray-500">{labelOr('ownerAttractions.overview.card.analytics.title', 'Analytics')}</div>
+              <div className="text-sm font-semibold text-gray-900">{labelOr('ownerAttractions.overview.card.analytics.heading', 'Performance overview')}</div>
+              <div className="mt-0.5 text-[11px] text-gray-500">{labelOr('ownerAttractions.overview.card.analytics.hint', 'See trends across your listings')}</div>
+            </button>
           </div>
 
-          <div className="mb-6 grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5">
+          <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="rounded-2xl bg-white shadow-sm border border-[#e0d5c7] px-3 py-2.5">
               <div className="text-[11px] text-gray-500">
                 {labelOr('ownerAttractions.overview.last30Revenue', 'Last 30 days revenue')}
               </div>
@@ -1142,7 +1084,7 @@ export default function OwnerAttractionsDashboard() {
                 {labelOr('ownerAttractions.overview.bookingsLabel', 'bookings')}
               </div>
             </div>
-            <div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5">
+            <div className="rounded-2xl bg-white shadow-sm border border-[#e0d5c7] px-3 py-2.5">
               <div className="text-[11px] text-gray-500">
                 {labelOr('ownerAttractions.overview.ytdRevenue', 'Year-to-date revenue')}
               </div>
@@ -1154,7 +1096,7 @@ export default function OwnerAttractionsDashboard() {
                 {labelOr('ownerAttractions.overview.bookingsLabel', 'bookings')}
               </div>
             </div>
-            <div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5">
+            <div className="rounded-2xl bg-white shadow-sm border border-[#e0d5c7] px-3 py-2.5">
               <div className="text-[11px] text-gray-500">
                 {labelOr('ownerAttractions.overview.avgRevenuePerBooking', 'Avg revenue / booking (30d)')}
               </div>
