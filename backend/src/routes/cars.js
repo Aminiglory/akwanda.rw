@@ -112,6 +112,9 @@ router.post('/', requireAuth, async (req, res) => {
     const created = await CarRental.create(payload);
     res.status(201).json({ car: created });
   } catch (e) {
+    if (e && (e.name === 'ValidationError' || e.name === 'CastError')) {
+      return res.status(400).json({ message: 'Failed to create car', error: e.message });
+    }
     res.status(500).json({ message: 'Failed to create car', error: e.message });
   }
 });
@@ -168,6 +171,68 @@ router.post('/:id/images', requireAuth, requireOwnerOrAdmin(async (req) => {
     res.json({ car, images: uploaded });
   } catch (e) {
     res.status(500).json({ message: 'Failed to upload images' });
+  }
+});
+
+// Owner upload required documents
+router.post('/:id/documents', requireAuth, requireOwnerOrAdmin(async (req) => {
+  const CarRental = require('../tables/carRental');
+  const c = await CarRental.findById(req.params.id).select('owner');
+  return c?.owner;
+}), upload.fields([
+  { name: 'registrationCertificate', maxCount: 1 },
+  { name: 'insurancePolicy', maxCount: 1 },
+  { name: 'inspectionCertificate', maxCount: 1 },
+  { name: 'numberPlatePhoto', maxCount: 1 },
+  { name: 'proofOfOwnership', maxCount: 1 },
+  { name: 'ownerId', maxCount: 1 },
+  { name: 'driversLicense', maxCount: 1 },
+  { name: 'businessRegistration', maxCount: 1 },
+  { name: 'taxCertificate', maxCount: 1 }
+]), async (req, res) => {
+  try {
+    const CarRental = require('../tables/carRental');
+    const car = await CarRental.findById(req.params.id);
+    if (!car) return res.status(404).json({ message: 'Car not found' });
+
+    const files = req.files || {};
+    const uploadedEntries = await Promise.all(
+      Object.keys(files).map(async (field) => {
+        const file = files[field]?.[0];
+        if (!file?.buffer) return null;
+        const result = await uploadBuffer(file.buffer, file.originalname, 'cars/documents');
+        const url = result?.secure_url || result?.url;
+        return url ? [field, url] : null;
+      })
+    );
+
+    const docMap = {
+      registrationCertificate: 'registrationCertificateUrl',
+      insurancePolicy: 'insurancePolicyUrl',
+      inspectionCertificate: 'inspectionCertificateUrl',
+      numberPlatePhoto: 'numberPlatePhotoUrl',
+      proofOfOwnership: 'proofOfOwnershipUrl',
+      ownerId: 'ownerIdUrl',
+      driversLicense: 'driversLicenseUrl',
+      businessRegistration: 'businessRegistrationUrl',
+      taxCertificate: 'taxCertificateUrl'
+    };
+
+    car.documents = car.documents || {};
+    const saved = {};
+    for (const entry of uploadedEntries) {
+      if (!entry) continue;
+      const [field, url] = entry;
+      const targetKey = docMap[field];
+      if (!targetKey) continue;
+      car.documents[targetKey] = url;
+      saved[targetKey] = url;
+    }
+
+    await car.save();
+    res.json({ car, documents: saved });
+  } catch (e) {
+    res.status(500).json({ message: 'Failed to upload documents' });
   }
 });
 

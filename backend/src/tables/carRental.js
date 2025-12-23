@@ -7,7 +7,8 @@ const carRentalSchema = new mongoose.Schema(
     carCode: { type: String, unique: true, index: true },
     vehicleName: { type: String, required: true },
     // Support cars, motorcycles, and bicycles
-    vehicleType: { type: String, enum: ['economy', 'compact', 'mid-size', 'full-size', 'luxury', 'suv', 'minivan', 'motorcycle', 'bicycle'], required: true },
+    category: { type: String, enum: ['car', 'motorcycle', 'bicycle'], default: 'car' },
+    vehicleType: { type: String, required: true },
     brand: { type: String, required: true },
     model: { type: String, required: true },
     year: { type: Number, required: true },
@@ -21,6 +22,17 @@ const carRentalSchema = new mongoose.Schema(
     isAvailable: { type: Boolean, default: true },
     location: { type: String, required: true },
     images: [{ type: String }],
+    documents: {
+      registrationCertificateUrl: { type: String },
+      insurancePolicyUrl: { type: String },
+      inspectionCertificateUrl: { type: String },
+      numberPlatePhotoUrl: { type: String },
+      proofOfOwnershipUrl: { type: String },
+      ownerIdUrl: { type: String },
+      driversLicenseUrl: { type: String },
+      businessRegistrationUrl: { type: String },
+      taxCertificateUrl: { type: String }
+    },
     features: [{ type: String }], // AC, GPS, Bluetooth, etc.
     fuelType: { type: String, enum: ['petrol', 'diesel', 'hybrid', 'electric'], default: 'petrol' },
     transmission: { type: String, enum: ['manual', 'automatic'], default: 'manual' },
@@ -54,7 +66,27 @@ const carRentalSchema = new mongoose.Schema(
     fuelPolicy: { type: String }, // e.g. "Same-to-same", "Full-to-full"
     mileageLimitPerDayKm: { type: Number },
     cancellationPolicy: { type: String },
-    depositInfo: { type: String }
+    depositInfo: { type: String },
+    // Availability & pickup
+    withDriver: { type: Boolean, default: false },
+    selfDrive: { type: Boolean, default: true },
+    pickupLat: { type: Number },
+    pickupLng: { type: Number },
+    // Rental conditions
+    licenseRequired: { type: Boolean },
+    minAge: { type: Number },
+    idRequired: { type: Boolean },
+    extraInsuranceAvailable: { type: Boolean },
+    maxDrivers: { type: Number },
+    noSmoking: { type: Boolean },
+    noPets: { type: Boolean },
+    // Owner / company info
+    ownerName: { type: String },
+    ownerPhone: { type: String },
+    ownerWhatsapp: { type: String },
+    ownerEmail: { type: String },
+    ownerAddress: { type: String },
+    ownerEmergency: { type: String }
   },
   { timestamps: true }
 );

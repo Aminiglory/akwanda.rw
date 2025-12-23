@@ -196,6 +196,27 @@ const dictionaries = {
       action: 'Action',
       view: 'View'
     },
+    vehicleListing: {
+      docs: {
+        title: '6. Required Documents',
+        subtitle: 'Upload clear photos or PDFs of the required documents. They will be stored securely with this vehicle listing.',
+        required: 'Required',
+        optional: 'Optional',
+        upload: 'Upload document',
+        accepted: 'JPG, PNG, or PDF',
+        selected: 'Selected:',
+        requiredError: 'Please upload the required documents',
+        registration: 'Vehicle registration certificate',
+        insurance: 'Vehicle insurance policy',
+        proofOfOwnership: 'Proof of ownership / lease agreement',
+        inspection: 'Vehicle inspection certificate',
+        plate: 'Photo of number plate',
+        ownerId: 'Owner ID / Passport',
+        driversLicense: "Driver's license (if applicable)",
+        businessRegistration: 'Business registration (companies only)',
+        taxCertificate: 'Tax certificate (if applicable)'
+      }
+    },
     vehicleDetail: {
       pricePerDay: 'per day',
       pickupDate: 'Pickup date',
@@ -480,10 +501,10 @@ const dictionaries = {
       satisfactionRate: 'Taux de satisfaction'
     },
     vehicles: {
-      title: 'Location de véhicules',
+      title: 'Locations de véhicules',
       subtitle: 'Trouvez la voiture, la moto ou le vélo idéal',
       location: 'Lieu',
-      allTypes: 'Tous les types',
+      allTypes: 'Tous types',
       searchBrandModel: 'Rechercher marque/modèle',
       searchVehicles: 'Rechercher des véhicules',
       grid: 'Grille',
@@ -497,6 +518,27 @@ const dictionaries = {
       fuel: 'Carburant',
       action: 'Action',
       view: 'Voir'
+    },
+    vehicleListing: {
+      docs: {
+        title: '6. Documents requis',
+        subtitle: "Téléchargez des photos claires ou des PDF des documents requis. Ils seront stockés en toute sécurité avec cette annonce.",
+        required: 'Requis',
+        optional: 'Optionnel',
+        upload: 'Télécharger le document',
+        accepted: 'JPG, PNG ou PDF',
+        selected: 'Sélectionné :',
+        requiredError: 'Veuillez télécharger les documents requis',
+        registration: "Certificat d'immatriculation du véhicule",
+        insurance: "Police d'assurance du véhicule",
+        proofOfOwnership: "Preuve de propriété / contrat de location",
+        inspection: "Certificat d'inspection du véhicule",
+        plate: "Photo de la plaque d'immatriculation",
+        ownerId: "Pièce d'identité / Passeport du propriétaire",
+        driversLicense: 'Permis de conduire (si applicable)',
+        businessRegistration: "Registre du commerce (entreprises uniquement)",
+        taxCertificate: "Attestation fiscale (si applicable)"
+      }
     },
     vehicleDetail: {
       pricePerDay: 'par jour',

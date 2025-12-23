@@ -213,9 +213,11 @@ const VehicleListingForm = forwardRef(({ onCreated, onSuccess }, ref) => {
   const [form, setForm] = useState(emptyCarState);
   const [createImages, setCreateImages] = useState([]);
   const [createPreviews, setCreatePreviews] = useState([]);
+  const [documentFiles, setDocumentFiles] = useState({});
+  const [documentPreviews, setDocumentPreviews] = useState({});
   const [saving, setSaving] = useState(false);
   const [uploadingId, setUploadingId] = useState(null);
-  const { formatCurrencyRWF } = useLocale() || {};
+  const { formatCurrencyRWF, t } = useLocale() || {};
   const [vehicleStep, setVehicleStep] = useState(1);
   const totalVehicleSteps = 8;
   const steps = [
@@ -266,6 +268,21 @@ const VehicleListingForm = forwardRef(({ onCreated, onSuccess }, ref) => {
     }
   };
 
+  const uploadDocuments = async (carId) => {
+    const entries = Object.entries(documentFiles || {}).filter(([, f]) => !!f);
+    if (!entries.length) return null;
+    const formData = new FormData();
+    entries.forEach(([key, file]) => formData.append(key, file));
+    const res = await fetch(`${API_URL}/api/cars/${carId}/documents`, {
+      method: 'POST',
+      credentials: 'include',
+      body: formData
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Failed to upload documents');
+    return data.car;
+  };
+
   useEffect(() => {
     if (!user) return;
     if (
@@ -290,12 +307,20 @@ const VehicleListingForm = forwardRef(({ onCreated, onSuccess }, ref) => {
     }));
   }, [user, form.ownerName, form.ownerPhone, form.ownerWhatsapp, form.ownerEmail, form.ownerAddress]);
 
-  const handleImageUpload = (e) => {
+  const handleVehiclePhotoUpload = (e) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
     setCreateImages(prev => [...prev, ...files]);
     const newPreviews = files.map(f => URL.createObjectURL(f));
     setCreatePreviews(prev => [...prev, ...newPreviews]);
+  };
+
+  const handleDocumentUpload = (docKey) => (e) => {
+    const file = (e.target.files && e.target.files[0]) || null;
+    if (!file) return;
+    setDocumentFiles(prev => ({ ...prev, [docKey]: file }));
+    const url = URL.createObjectURL(file);
+    setDocumentPreviews(prev => ({ ...prev, [docKey]: url }));
   };
 
   const removeImage = (index) => {
@@ -330,8 +355,22 @@ const VehicleListingForm = forwardRef(({ onCreated, onSuccess }, ref) => {
       toast.error('Please add at least one image');
       return;
     }
-    if (!form.vehicleName || !form.location || !form.pricePerDay) {
-      toast.error('Vehicle name, price per day, and location are required');
+    if (category !== 'bicycle') {
+      if (!documentFiles?.registrationCertificate || !documentFiles?.insurancePolicy || !documentFiles?.proofOfOwnership) {
+        toast.error(t?.('vehicleListing.docs.requiredError') || 'Please upload the required documents');
+        return;
+      }
+    }
+    if (!form.vehicleName || !form.location || !Number(form.pricePerDay || 0)) {
+      toast.error(t?.('msg.fillRequiredFields') || 'Please fill all required fields');
+      return;
+    }
+    if (!form.brand || !form.model || !form.year || !Number(form.capacity || 0)) {
+      toast.error(t?.('msg.fillRequiredFields') || 'Please fill all required fields');
+      return;
+    }
+    if (!form.ownerName || !form.ownerPhone) {
+      toast.error(t?.('msg.fillRequiredFields') || 'Please fill all required fields');
       return;
     }
     setSaving(true);
@@ -410,10 +449,13 @@ const VehicleListingForm = forwardRef(({ onCreated, onSuccess }, ref) => {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to create vehicle');
+      await uploadDocuments(data.car._id);
       const updatedCar = await uploadImages(data.car._id);
       toast.success('Vehicle listed successfully.');
       setCreateImages([]);
       setCreatePreviews([]);
+      setDocumentFiles({});
+      setDocumentPreviews({});
       setForm(emptyCarState);
       setCategory('car');
       onCreated?.(updatedCar || data.car);
@@ -880,76 +922,176 @@ const VehicleListingForm = forwardRef(({ onCreated, onSuccess }, ref) => {
 
       {vehicleStep === 6 && (
         <div className="space-y-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">6. Required Documents</h3>
-          <p className="text-sm text-gray-600">Upload clear photos of the required documents. They will be stored securely with this vehicle listing.</p>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">{t?.('vehicleListing.docs.title') || '6. Required Documents'}</h3>
+          <p className="text-sm text-gray-600">{t?.('vehicleListing.docs.subtitle') || 'Upload clear photos or PDFs of the required documents. They will be stored securely with this vehicle listing.'}</p>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-3">
-              {featureCards('Vehicle registration paper available', 'hasRegistrationPaper', form, setForm)}
-              <div className="border-2 border-dashed border-[#a06b42]/40 rounded-xl p-4 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-[#a06b42]/5">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-gray-800">{t?.('vehicleListing.docs.registration') || 'Vehicle registration certificate'}</span>
+                {category !== 'bicycle' && <span className="text-xs text-red-600">{t?.('vehicleListing.docs.required') || 'Required'}</span>}
+              </div>
+              <div className="border-2 border-dashed border-[#a06b42]/40 rounded-xl p-4 flex flex-col items-center justify-center text-center hover:bg-[#a06b42]/5">
                 <input
                   id="vehicle-doc-registration"
                   type="file"
-                  accept="image/*"
-                  onChange={handleImageUpload}
+                  accept="image/*,.pdf"
+                  onChange={handleDocumentUpload('registrationCertificate')}
                   className="hidden"
                 />
                 <label htmlFor="vehicle-doc-registration" className="flex flex-col items-center gap-2 text-sm text-gray-700 cursor-pointer">
                   <FaUpload className="text-[#a06b42] text-xl" />
-                  <span className="font-medium">Upload registration paper image</span>
-                  <span className="text-xs text-gray-500">JPEG or PNG, clear and readable</span>
+                  <span className="font-medium">{t?.('vehicleListing.docs.upload') || 'Upload document'}</span>
+                  <span className="text-xs text-gray-500">{t?.('vehicleListing.docs.accepted') || 'JPG, PNG, or PDF'}</span>
                 </label>
               </div>
+              {documentPreviews?.registrationCertificate && (
+                <div className="text-xs text-gray-600 break-all">{t?.('vehicleListing.docs.selected') || 'Selected:'} {documentFiles?.registrationCertificate?.name}</div>
+              )}
             </div>
+
             <div className="space-y-3">
-              {featureCards('Vehicle insurance document available', 'hasInsuranceDocument', form, setForm)}
-              <div className="border-2 border-dashed border-[#a06b42]/40 rounded-xl p-4 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-[#a06b42]/5">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-gray-800">{t?.('vehicleListing.docs.insurance') || 'Vehicle insurance policy'}</span>
+                {category !== 'bicycle' && <span className="text-xs text-red-600">{t?.('vehicleListing.docs.required') || 'Required'}</span>}
+              </div>
+              <div className="border-2 border-dashed border-[#a06b42]/40 rounded-xl p-4 flex flex-col items-center justify-center text-center hover:bg-[#a06b42]/5">
                 <input
                   id="vehicle-doc-insurance"
                   type="file"
-                  accept="image/*"
-                  onChange={handleImageUpload}
+                  accept="image/*,.pdf"
+                  onChange={handleDocumentUpload('insurancePolicy')}
                   className="hidden"
                 />
                 <label htmlFor="vehicle-doc-insurance" className="flex flex-col items-center gap-2 text-sm text-gray-700 cursor-pointer">
                   <FaUpload className="text-[#a06b42] text-xl" />
-                  <span className="font-medium">Upload insurance document image</span>
-                  <span className="text-xs text-gray-500">Show full policy details if possible</span>
+                  <span className="font-medium">{t?.('vehicleListing.docs.upload') || 'Upload document'}</span>
+                  <span className="text-xs text-gray-500">{t?.('vehicleListing.docs.accepted') || 'JPG, PNG, or PDF'}</span>
                 </label>
               </div>
+              {documentPreviews?.insurancePolicy && (
+                <div className="text-xs text-gray-600 break-all">{t?.('vehicleListing.docs.selected') || 'Selected:'} {documentFiles?.insurancePolicy?.name}</div>
+              )}
             </div>
+
             <div className="space-y-3">
-              {featureCards('Photo of number plate available', 'hasNumberPlatePhoto', form, setForm)}
-              <div className="border-2 border-dashed border-[#a06b42]/40 rounded-xl p-4 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-[#a06b42]/5">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-gray-800">{t?.('vehicleListing.docs.proofOfOwnership') || 'Proof of ownership / lease agreement'}</span>
+                {category !== 'bicycle' && <span className="text-xs text-red-600">{t?.('vehicleListing.docs.required') || 'Required'}</span>}
+              </div>
+              <div className="border-2 border-dashed border-[#a06b42]/40 rounded-xl p-4 flex flex-col items-center justify-center text-center hover:bg-[#a06b42]/5">
                 <input
-                  id="vehicle-doc-plate"
+                  id="vehicle-doc-ownership"
                   type="file"
-                  accept="image/*"
-                  onChange={handleImageUpload}
+                  accept="image/*,.pdf"
+                  onChange={handleDocumentUpload('proofOfOwnership')}
                   className="hidden"
                 />
-                <label htmlFor="vehicle-doc-plate" className="flex flex-col items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                <label htmlFor="vehicle-doc-ownership" className="flex flex-col items-center gap-2 text-sm text-gray-700 cursor-pointer">
                   <FaUpload className="text-[#a06b42] text-xl" />
-                  <span className="font-medium">Upload number plate photo</span>
-                  <span className="text-xs text-gray-500">Ensure both letters and numbers are readable</span>
+                  <span className="font-medium">{t?.('vehicleListing.docs.upload') || 'Upload document'}</span>
+                  <span className="text-xs text-gray-500">{t?.('vehicleListing.docs.accepted') || 'JPG, PNG, or PDF'}</span>
                 </label>
               </div>
+              {documentPreviews?.proofOfOwnership && (
+                <div className="text-xs text-gray-600 break-all">{t?.('vehicleListing.docs.selected') || 'Selected:'} {documentFiles?.proofOfOwnership?.name}</div>
+              )}
             </div>
+
             <div className="space-y-3">
-              {featureCards('Inspection certificate (if available)', 'hasInspectionCertificate', form, setForm)}
-              <div className="border-2 border-dashed border-[#a06b42]/40 rounded-xl p-4 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-[#a06b42]/5">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-gray-800">{t?.('vehicleListing.docs.inspection') || 'Vehicle inspection certificate'}</span>
+                <span className="text-xs text-gray-500">{t?.('vehicleListing.docs.optional') || 'Optional'}</span>
+              </div>
+              <div className="border-2 border-dashed border-[#a06b42]/40 rounded-xl p-4 flex flex-col items-center justify-center text-center hover:bg-[#a06b42]/5">
                 <input
                   id="vehicle-doc-inspection"
                   type="file"
-                  accept="image/*"
-                  onChange={handleImageUpload}
+                  accept="image/*,.pdf"
+                  onChange={handleDocumentUpload('inspectionCertificate')}
                   className="hidden"
                 />
                 <label htmlFor="vehicle-doc-inspection" className="flex flex-col items-center gap-2 text-sm text-gray-700 cursor-pointer">
                   <FaUpload className="text-[#a06b42] text-xl" />
-                  <span className="font-medium">Upload inspection certificate</span>
-                  <span className="text-xs text-gray-500">If you have a recent inspection document</span>
+                  <span className="font-medium">{t?.('vehicleListing.docs.upload') || 'Upload document'}</span>
+                  <span className="text-xs text-gray-500">{t?.('vehicleListing.docs.accepted') || 'JPG, PNG, or PDF'}</span>
                 </label>
               </div>
+              {documentPreviews?.inspectionCertificate && (
+                <div className="text-xs text-gray-600 break-all">{t?.('vehicleListing.docs.selected') || 'Selected:'} {documentFiles?.inspectionCertificate?.name}</div>
+              )}
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-gray-800">{t?.('vehicleListing.docs.plate') || 'Photo of number plate'}</span>
+                <span className="text-xs text-gray-500">{t?.('vehicleListing.docs.optional') || 'Optional'}</span>
+              </div>
+              <div className="border-2 border-dashed border-[#a06b42]/40 rounded-xl p-4 flex flex-col items-center justify-center text-center hover:bg-[#a06b42]/5">
+                <input
+                  id="vehicle-doc-plate"
+                  type="file"
+                  accept="image/*,.pdf"
+                  onChange={handleDocumentUpload('numberPlatePhoto')}
+                  className="hidden"
+                />
+                <label htmlFor="vehicle-doc-plate" className="flex flex-col items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                  <FaUpload className="text-[#a06b42] text-xl" />
+                  <span className="font-medium">{t?.('vehicleListing.docs.upload') || 'Upload document'}</span>
+                  <span className="text-xs text-gray-500">{t?.('vehicleListing.docs.accepted') || 'JPG, PNG, or PDF'}</span>
+                </label>
+              </div>
+              {documentPreviews?.numberPlatePhoto && (
+                <div className="text-xs text-gray-600 break-all">{t?.('vehicleListing.docs.selected') || 'Selected:'} {documentFiles?.numberPlatePhoto?.name}</div>
+              )}
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-gray-800">{t?.('vehicleListing.docs.businessRegistration') || 'Business registration (companies only)'}</span>
+                <span className="text-xs text-gray-500">{t?.('vehicleListing.docs.optional') || 'Optional'}</span>
+              </div>
+              <div className="border-2 border-dashed border-[#a06b42]/40 rounded-xl p-4 flex flex-col items-center justify-center text-center hover:bg-[#a06b42]/5">
+                <input
+                  id="vehicle-doc-business"
+                  type="file"
+                  accept="image/*,.pdf"
+                  onChange={handleDocumentUpload('businessRegistration')}
+                  className="hidden"
+                />
+                <label htmlFor="vehicle-doc-business" className="flex flex-col items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                  <FaUpload className="text-[#a06b42] text-xl" />
+                  <span className="font-medium">{t?.('vehicleListing.docs.upload') || 'Upload document'}</span>
+                  <span className="text-xs text-gray-500">{t?.('vehicleListing.docs.accepted') || 'JPG, PNG, or PDF'}</span>
+                </label>
+              </div>
+              {documentPreviews?.businessRegistration && (
+                <div className="text-xs text-gray-600 break-all">{t?.('vehicleListing.docs.selected') || 'Selected:'} {documentFiles?.businessRegistration?.name}</div>
+              )}
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-gray-800">{t?.('vehicleListing.docs.taxCertificate') || 'Tax certificate (if applicable)'}</span>
+                <span className="text-xs text-gray-500">{t?.('vehicleListing.docs.optional') || 'Optional'}</span>
+              </div>
+              <div className="border-2 border-dashed border-[#a06b42]/40 rounded-xl p-4 flex flex-col items-center justify-center text-center hover:bg-[#a06b42]/5">
+                <input
+                  id="vehicle-doc-tax"
+                  type="file"
+                  accept="image/*,.pdf"
+                  onChange={handleDocumentUpload('taxCertificate')}
+                  className="hidden"
+                />
+                <label htmlFor="vehicle-doc-tax" className="flex flex-col items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                  <FaUpload className="text-[#a06b42] text-xl" />
+                  <span className="font-medium">{t?.('vehicleListing.docs.upload') || 'Upload document'}</span>
+                  <span className="text-xs text-gray-500">{t?.('vehicleListing.docs.accepted') || 'JPG, PNG, or PDF'}</span>
+                </label>
+              </div>
+              {documentPreviews?.taxCertificate && (
+                <div className="text-xs text-gray-600 break-all">{t?.('vehicleListing.docs.selected') || 'Selected:'} {documentFiles?.taxCertificate?.name}</div>
+              )}
             </div>
           </div>
         </div>
@@ -967,7 +1109,7 @@ const VehicleListingForm = forwardRef(({ onCreated, onSuccess }, ref) => {
                 type="file"
                 multiple
                 accept="image/*"
-                onChange={handleImageUpload}
+                onChange={handleVehiclePhotoUpload}
                 className="hidden"
               />
               <label htmlFor="vehicle-main-photos" className="flex flex-col items-center gap-2 text-sm text-gray-700 cursor-pointer">
