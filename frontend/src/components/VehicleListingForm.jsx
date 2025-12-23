@@ -211,6 +211,34 @@ const VehicleListingForm = forwardRef(({ onCreated, onSuccess }, ref) => {
   const { formatCurrencyRWF, t } = useLocale() || {};
   const [vehicleStep, setVehicleStep] = useState(1);
   const totalVehicleSteps = 8;
+
+  const tr = (key, fallback, ...args) => {
+    const v = t?.(key, ...args);
+    if (typeof v === 'string' && v) {
+      const last = String(key || '').split('.').pop();
+      if (v !== key && v !== last) return v;
+    }
+    return fallback;
+  };
+
+  const fieldLabel = (fieldKey, fallback) => {
+    const key = `vehicleListing.form.fields.${fieldKey}`;
+    return tr(key, fallback);
+  };
+
+  const toastMissing = (fieldKeys) => {
+    const labels = fieldKeys
+      .filter(Boolean)
+      .map((k) => fieldLabel(k, k))
+      .filter(Boolean);
+    const fieldsText = labels.join(', ');
+    const translated = t?.('vehicleListing.form.missingFields', fieldsText);
+    if (typeof translated === 'string' && translated && translated !== 'missingFields') {
+      toast.error(translated);
+      return;
+    }
+    toast.error(`Please fill in: ${fieldsText}`.trim());
+  };
   const steps = [
     '1. Vehicle Basic Information',
     '2. Rental Pricing',
@@ -343,7 +371,7 @@ const VehicleListingForm = forwardRef(({ onCreated, onSuccess }, ref) => {
       return;
     }
     if (!createImages.length) {
-      toast.error('Please add at least one image');
+      toast.error(t?.('vehicleListing.form.imagesRequired') || 'Please add at least one image.');
       return;
     }
     if (category !== 'bicycle') {
@@ -352,16 +380,19 @@ const VehicleListingForm = forwardRef(({ onCreated, onSuccess }, ref) => {
         return;
       }
     }
-    if (!form.vehicleName || !form.location || !Number(form.pricePerDay || 0)) {
-      toast.error(t?.('msg.fillRequiredFields') || 'Please fill all required fields');
-      return;
-    }
-    if (!form.brand || !form.model || !form.year || !Number(form.capacity || 0)) {
-      toast.error(t?.('msg.fillRequiredFields') || 'Please fill all required fields');
-      return;
-    }
-    if (!form.ownerName || !form.ownerPhone) {
-      toast.error(t?.('msg.fillRequiredFields') || 'Please fill all required fields');
+    const missingCore = [];
+    if (!form.vehicleName) missingCore.push('vehicleName');
+    if (!form.brand) missingCore.push('brand');
+    if (!form.model) missingCore.push('model');
+    if (!form.vehicleType) missingCore.push('vehicleType');
+    if (category !== 'bicycle' && !form.licensePlate) missingCore.push('licensePlate');
+    if (!Number(form.pricePerDay || 0)) missingCore.push('pricePerDay');
+    if (!form.location) missingCore.push('pickupLocation');
+    if (!Number(form.capacity || 0)) missingCore.push('capacity');
+    if (!form.ownerName) missingCore.push('ownerName');
+    if (!form.ownerPhone) missingCore.push('ownerPhone');
+    if (missingCore.length) {
+      toastMissing(missingCore);
       return;
     }
     setSaving(true);
@@ -452,34 +483,32 @@ const VehicleListingForm = forwardRef(({ onCreated, onSuccess }, ref) => {
 
   const validateVehicleStep = (step) => {
     if (step === 1) {
-      if (!form.vehicleName || !form.brand || !form.model) {
-        toast.error(t?.('msg.fillRequiredFields') || 'Please fill all required fields');
-        return false;
-      }
-      if (!form.vehicleType) {
-        toast.error(t?.('msg.fillRequiredFields') || 'Please fill all required fields');
-        return false;
-      }
-      if (category !== 'bicycle' && !form.licensePlate) {
-        toast.error(t?.('msg.fillRequiredFields') || 'Please fill all required fields');
+      const missing = [];
+      if (!form.vehicleName) missing.push('vehicleName');
+      if (!form.brand) missing.push('brand');
+      if (!form.model) missing.push('model');
+      if (!form.vehicleType) missing.push('vehicleType');
+      if (category !== 'bicycle' && !form.licensePlate) missing.push('licensePlate');
+      if (missing.length) {
+        toastMissing(missing);
         return false;
       }
     }
     if (step === 2) {
       if (!form.pricePerDay) {
-        toast.error(t?.('msg.fillRequiredFields') || 'Please fill all required fields');
+        toastMissing(['pricePerDay']);
         return false;
       }
     }
     if (step === 3) {
       if (!form.location) {
-        toast.error(t?.('msg.fillRequiredFields') || 'Please fill all required fields');
+        toastMissing(['pickupLocation']);
         return false;
       }
     }
     if (step === 4) {
       if (!form.capacity) {
-        toast.error(t?.('msg.fillRequiredFields') || 'Please fill all required fields');
+        toastMissing(['capacity']);
         return false;
       }
     }
@@ -499,7 +528,10 @@ const VehicleListingForm = forwardRef(({ onCreated, onSuccess }, ref) => {
     }
     if (step === 8) {
       if (!form.ownerName || !form.ownerPhone) {
-        toast.error(t?.('msg.fillRequiredFields') || 'Please fill all required fields');
+        const missing = [];
+        if (!form.ownerName) missing.push('ownerName');
+        if (!form.ownerPhone) missing.push('ownerPhone');
+        toastMissing(missing);
         return false;
       }
     }

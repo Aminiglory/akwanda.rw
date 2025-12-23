@@ -198,6 +198,20 @@ const dictionaries = {
     },
     vehicleListing: {
       form: {
+        missingFields: (fields = '') => fields ? `Please fill in: ${fields}` : 'Please fill in the required fields',
+        fields: {
+          vehicleName: 'Vehicle name',
+          brand: 'Brand',
+          model: 'Model',
+          vehicleType: 'Vehicle type',
+          licensePlate: 'License plate number',
+          pricePerDay: 'Price per day',
+          pickupLocation: 'Pickup / drop-off location',
+          capacity: 'Number of seats',
+          photos: 'Vehicle photos',
+          ownerName: 'Owner / company name',
+          ownerPhone: 'Phone number'
+        },
         pickupInstructions: 'Pickup instructions (optional)',
         pickupInstructionsPlaceholder: 'Meeting point, landmarks, ID check, delivery notes, etc.',
         imagesRequired: 'Please add at least one image.'
@@ -326,7 +340,7 @@ const dictionaries = {
   msg: {
     mustLoginToList: 'Please login to list a property',
     ownerOnly: 'Only property owners can list properties. Please use Owner Login.',
-    fillRequiredFields: 'Please fill all required fields',
+    fillRequiredFields: 'Veuillez remplir tous les champs obligatoires',
     propertyUpdated: 'Property updated',
     propertyCreated: 'Property created',
     saveFailed: 'Failed to save',
@@ -526,6 +540,20 @@ const dictionaries = {
     },
     vehicleListing: {
       form: {
+        missingFields: (fields = '') => fields ? `Veuillez remplir : ${fields}` : 'Veuillez remplir les champs obligatoires',
+        fields: {
+          vehicleName: 'Nom du véhicule',
+          brand: 'Marque',
+          model: 'Modèle',
+          vehicleType: 'Type de véhicule',
+          licensePlate: "Numéro de plaque d'immatriculation",
+          pricePerDay: 'Prix par jour',
+          pickupLocation: 'Lieu de prise en charge / retour',
+          capacity: 'Nombre de places',
+          photos: 'Photos du véhicule',
+          ownerName: 'Nom du propriétaire / entreprise',
+          ownerPhone: 'Numéro de téléphone'
+        },
         pickupInstructions: 'Instructions de prise en charge (facultatif)',
         pickupInstructionsPlaceholder: 'Point de rendez-vous, repères, vérification d’identité, notes de livraison, etc.',
         imagesRequired: 'Veuillez ajouter au moins une image.'
@@ -810,6 +838,11 @@ const t = useMemo(() => {
       return fallback;
     }
 
+    const rootFallback = resolveDictValue(dictionaries, path, args);
+    if (rootFallback !== null && rootFallback !== undefined) {
+      return rootFallback;
+    }
+
     if (typeof path === 'string') {
       const parts = path.split('.');
       return parts[parts.length - 1] || '';
@@ -851,7 +884,10 @@ const translateSync = useMemo(() => {
     if (pathOrText == null) return fallback ?? '';
     if (typeof pathOrText !== 'string') return pathOrText;
 
-    const resolved = resolveDictValue(dict, pathOrText) ?? resolveDictValue(dictionaries[DEFAULT_LANG], pathOrText);
+    const resolved =
+      resolveDictValue(dict, pathOrText) ??
+      resolveDictValue(dictionaries[DEFAULT_LANG], pathOrText) ??
+      resolveDictValue(dictionaries, pathOrText);
     if (resolved !== null && resolved !== undefined) {
       return resolved;
     }
