@@ -114,6 +114,38 @@ export default function CarOwnerDashboard() {
   });
   const [tripRouteSaving, setTripRouteSaving] = useState(false);
   const [bookingFilters, setBookingFilters] = useState({ status: '', from: '', to: '' });
+  const [calendarMonthOffset, setCalendarMonthOffset] = useState(() => {
+    try {
+      const raw = searchParams.get('monthOffset');
+      const parsed = raw != null ? parseInt(raw, 10) : 0;
+      return Number.isNaN(parsed) ? 0 : parsed;
+    } catch (_) {
+      return 0;
+    }
+  });
+  const calendarMeta = useMemo(() => {
+    const today = new Date();
+    const base = new Date(today.getFullYear(), today.getMonth(), 1);
+    if (calendarMonthOffset) {
+      base.setMonth(base.getMonth() + calendarMonthOffset);
+    }
+
+    const year = base.getFullYear();
+    const month = base.getMonth();
+    const label = base.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    const cells = [];
+    for (let i = 0; i < firstDay; i++) cells.push(null);
+    for (let d = 1; d <= daysInMonth; d++) {
+      cells.push(new Date(year, month, d));
+    }
+    while (cells.length % 7 !== 0) cells.push(null);
+
+    return { label, cells };
+  }, [calendarMonthOffset]);
   const [receiptBooking, setReceiptBooking] = useState(null);
   const [tripsTab, setTripsTab] = useState(() => {
     const t = (searchParams.get('tripsTab') || '').toLowerCase();
