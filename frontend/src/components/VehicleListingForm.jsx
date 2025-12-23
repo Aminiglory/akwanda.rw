@@ -496,6 +496,14 @@ const VehicleListingForm = forwardRef(({ onCreated, onSuccess }, ref) => {
         return false;
       }
     }
+    if (step === 6) {
+      if (category !== 'bicycle') {
+        if (!documentFiles?.registrationCertificate || !documentFiles?.insurancePolicy || !documentFiles?.proofOfOwnership) {
+          toast.error(t?.('vehicleListing.docs.requiredError') || 'Please upload the required documents');
+          return false;
+        }
+      }
+    }
     if (step === 7) {
       if (!createImages.length) {
         toast.error('Please add at least one image.');
