@@ -53,7 +53,8 @@ router.get('/', async (req, res) => {
     const cars = await CarRental.find(filter).sort({ createdAt: -1 });
     res.json({ cars });
   } catch (e) {
-    res.status(500).json({ message: 'Failed to list cars' });
+    console.error('Error listing cars:', e);
+    res.status(500).json({ message: 'Failed to list cars', error: e.message });
   }
 });
 
@@ -64,7 +65,8 @@ router.get('/mine', requireAuth, async (req, res) => {
     const cars = await CarRental.find({ owner: req.user.id }).sort({ createdAt: -1 });
     res.json({ cars });
   } catch (e) {
-    res.status(500).json({ message: 'Failed to load my cars' });
+    console.error('Error listing my cars:', e);
+    res.status(500).json({ message: 'Failed to load my cars', error: e.message });
   }
 });
 
