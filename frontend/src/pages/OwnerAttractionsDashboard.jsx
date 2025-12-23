@@ -49,6 +49,22 @@ export default function OwnerAttractionsDashboard() {
   const [activeAttraction, setActiveAttraction] = useState(null);
   const [activeAttractionLoading, setActiveAttractionLoading] = useState(false);
 
+  const [attractionExpensesLoading, setAttractionExpensesLoading] = useState(false);
+  const [attractionExpenses, setAttractionExpenses] = useState([]);
+  const [attractionExpensesTotal, setAttractionExpensesTotal] = useState(0);
+  const [attractionExpenseFilters, setAttractionExpenseFilters] = useState({ from: '', to: '' });
+  const [attractionExpenseForm, setAttractionExpenseForm] = useState({ date: '', amount: '', category: '', note: '' });
+  const [attractionExpenseSaving, setAttractionExpenseSaving] = useState(false);
+  const [editingAttractionExpenseId, setEditingAttractionExpenseId] = useState(null);
+
+  const [attractionExpenseCategoriesLoading, setAttractionExpenseCategoriesLoading] = useState(false);
+  const [attractionExpenseCategories, setAttractionExpenseCategories] = useState([]);
+
+  const [attractionReportsLoading, setAttractionReportsLoading] = useState(false);
+  const [attractionReportRange, setAttractionReportRange] = useState('monthly');
+  const [attractionReportDate, setAttractionReportDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [attractionReportSummary, setAttractionReportSummary] = useState(null);
+
   const [detailsDraft, setDetailsDraft] = useState(null);
   const [detailsSaving, setDetailsSaving] = useState(false);
 
@@ -541,6 +557,171 @@ export default function OwnerAttractionsDashboard() {
     } finally { setLoading(false); }
   }
 
+  const fetchAttractionExpenses = async () => {
+    try {
+      setAttractionExpensesLoading(true);
+      const q = new URLSearchParams();
+      if (selectedAttractionId && selectedAttractionId !== 'all') q.set('attraction', String(selectedAttractionId));
+      if (attractionExpenseFilters.from) q.set('from', attractionExpenseFilters.from);
+      if (attractionExpenseFilters.to) q.set('to', attractionExpenseFilters.to);
+      const res = await fetch(`${API_URL}/api/attraction-finance/expenses?${q.toString()}`, { credentials: 'include' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || 'Failed to load expenses');
+      setAttractionExpenses(Array.isArray(data.expenses) ? data.expenses : []);
+      setAttractionExpensesTotal(Number(data.total || 0));
+    } catch (e) {
+      toast.error(e.message || 'Failed to load expenses');
+      setAttractionExpenses([]);
+      setAttractionExpensesTotal(0);
+    } finally {
+      setAttractionExpensesLoading(false);
+    }
+  };
+
+  const fetchAttractionExpenseCategories = async () => {
+    try {
+      setAttractionExpenseCategoriesLoading(true);
+      const q = new URLSearchParams();
+      if (selectedAttractionId && selectedAttractionId !== 'all') q.set('attraction', String(selectedAttractionId));
+      if (attractionExpenseFilters.from) q.set('from', attractionExpenseFilters.from);
+      if (attractionExpenseFilters.to) q.set('to', attractionExpenseFilters.to);
+      const res = await fetch(`${API_URL}/api/attraction-finance/categories?${q.toString()}`, { credentials: 'include' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || 'Failed to load categories');
+      setAttractionExpenseCategories(Array.isArray(data.categories) ? data.categories : []);
+    } catch (e) {
+      toast.error(e.message || 'Failed to load categories');
+      setAttractionExpenseCategories([]);
+    } finally {
+      setAttractionExpenseCategoriesLoading(false);
+    }
+  };
+
+  const fetchAttractionReportSummary = async () => {
+    try {
+      setAttractionReportsLoading(true);
+      const q = new URLSearchParams();
+      if (selectedAttractionId && selectedAttractionId !== 'all') q.set('attraction', String(selectedAttractionId));
+      q.set('range', attractionReportRange || 'monthly');
+      if (attractionReportDate) q.set('date', attractionReportDate);
+      const res = await fetch(`${API_URL}/api/attraction-finance/summary?${q.toString()}`, { credentials: 'include' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || 'Failed to load report');
+      setAttractionReportSummary(data);
+    } catch (e) {
+      toast.error(e.message || 'Failed to load report');
+      setAttractionReportSummary(null);
+    } finally {
+      setAttractionReportsLoading(false);
+    }
+  };
+
+  const resetAttractionExpenseEditor = () => {
+    setEditingAttractionExpenseId(null);
+    setAttractionExpenseForm({ date: '', amount: '', category: '', note: '' });
+  };
+
+  const submitAttractionExpense = async (e) => {
+    e?.preventDefault?.();
+    try {
+      const amountNumber = Number(attractionExpenseForm.amount || 0);
+      if (!amountNumber || !Number.isFinite(amountNumber) || amountNumber <= 0) {
+        toast.error(labelOr('ownerAttractions.expenses.errors.amount', 'Enter a valid amount'));
+        return;
+      }
+      const date = attractionExpenseForm.date || new Date().toISOString().slice(0, 10);
+      const payload = {
+        attraction: (selectedAttractionId && selectedAttractionId !== 'all') ? selectedAttractionId : undefined,
+        date,
+        amount: amountNumber,
+        category: attractionExpenseForm.category || 'general',
+        note: attractionExpenseForm.note || ''
+      };
+
+      if (!payload.attraction) {
+        toast.error(labelOr('ownerAttractions.expenses.errors.attractionRequired', 'Select an attraction in the scope selector to add an expense.'));
+        return;
+      }
+
+      setAttractionExpenseSaving(true);
+      const isEditing = !!editingAttractionExpenseId;
+      const url = isEditing
+        ? `${API_URL}/api/attraction-finance/expenses/${editingAttractionExpenseId}`
+        : `${API_URL}/api/attraction-finance/expenses`;
+      const method = isEditing ? 'PATCH' : 'POST';
+
+      const res = await fetch(url, {
+        method,
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || (isEditing ? 'Failed to update expense' : 'Failed to record expense'));
+
+      toast.success(isEditing
+        ? labelOr('ownerAttractions.expenses.updated', 'Expense updated')
+        : labelOr('ownerAttractions.expenses.created', 'Expense recorded'));
+
+      resetAttractionExpenseEditor();
+      await fetchAttractionExpenses();
+      if (expensesSection === 'categories') await fetchAttractionExpenseCategories();
+      if (expensesSection === 'reports') await fetchAttractionReportSummary();
+
+      if (expensesSection === 'add') {
+        try {
+          const next = new URLSearchParams(searchParams.toString());
+          next.set('view', 'expenses');
+          next.set('section', 'all');
+          setSearchParams(next, { replace: true });
+        } catch (_) {}
+      }
+    } catch (err) {
+      toast.error(err.message || 'Failed to save expense');
+    } finally {
+      setAttractionExpenseSaving(false);
+    }
+  };
+
+  const startEditAttractionExpense = (exp) => {
+    setEditingAttractionExpenseId(exp?._id || null);
+    setAttractionExpenseForm({
+      date: exp?.date ? new Date(exp.date).toISOString().slice(0, 10) : '',
+      amount: exp?.amount != null ? String(exp.amount) : '',
+      category: exp?.category || '',
+      note: exp?.note || ''
+    });
+    try {
+      const next = new URLSearchParams(searchParams.toString());
+      next.set('view', 'expenses');
+      next.set('section', 'add');
+      setSearchParams(next, { replace: true });
+    } catch (_) {}
+  };
+
+  const deleteAttractionExpense = async (id) => {
+    if (!id) return;
+    try {
+      const ok = confirm(labelOr('ownerAttractions.expenses.confirmDelete', 'Delete this expense?'));
+      if (!ok) return;
+      const res = await fetch(`${API_URL}/api/attraction-finance/expenses/${id}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || 'Failed to delete expense');
+      toast.success(labelOr('ownerAttractions.expenses.deleted', 'Expense deleted'));
+      if (String(editingAttractionExpenseId || '') === String(id)) {
+        resetAttractionExpenseEditor();
+      }
+      await fetchAttractionExpenses();
+      if (expensesSection === 'categories') await fetchAttractionExpenseCategories();
+      if (expensesSection === 'reports') await fetchAttractionReportSummary();
+    } catch (e) {
+      toast.error(e.message || 'Failed to delete expense');
+    }
+  };
+
   async function createDirectAttractionBooking(e) {
     e?.preventDefault?.();
     try {
@@ -608,6 +789,20 @@ export default function OwnerAttractionsDashboard() {
   }
 
   useEffect(() => { loadMine(); }, []);
+
+  useEffect(() => {
+    if (view !== 'expenses') return;
+    if (expensesSection === 'all') {
+      fetchAttractionExpenses();
+    }
+    if (expensesSection === 'categories') {
+      fetchAttractionExpenseCategories();
+    }
+    if (expensesSection === 'reports') {
+      fetchAttractionReportSummary();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, expensesSection, selectedAttractionId, attractionExpenseFilters.from, attractionExpenseFilters.to, attractionReportRange, attractionReportDate]);
 
   // Load human-readable property context label when propertyContextId is present
   useEffect(() => {
@@ -2548,14 +2743,340 @@ export default function OwnerAttractionsDashboard() {
             })()}
           </div>
 
-          <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-4 text-sm text-gray-700">
-            <h2 className="text-lg font-semibold mb-2">
-              {labelOr('nav.expenses', 'Expenses')}
-            </h2>
-            <p className="text-xs text-gray-500 mb-2">
-              {labelOr('ownerAttractions.expensesDescription', 'Detailed expense tracking for your attractions will appear here. For now you can use the Finance tab to view overall payments and revenue.')}
-            </p>
-          </div>
+          {expensesSection === 'all' && (
+            <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-4">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">{labelOr('nav.expenses', 'Expenses')}</h2>
+                  <p className="text-xs text-gray-500">{labelOr('ownerAttractions.expenses.subtitle', 'Track costs per attraction and understand your profit.')}</p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2 text-[11px]">
+                  <input
+                    type="date"
+                    value={attractionExpenseFilters.from}
+                    onChange={(e) => setAttractionExpenseFilters(p => ({ ...p, from: e.target.value }))}
+                    className="px-2 py-1.5 border border-gray-200 rounded-lg"
+                  />
+                  <span className="text-gray-400">to</span>
+                  <input
+                    type="date"
+                    value={attractionExpenseFilters.to}
+                    onChange={(e) => setAttractionExpenseFilters(p => ({ ...p, to: e.target.value }))}
+                    className="px-2 py-1.5 border border-gray-200 rounded-lg"
+                  />
+                  <button
+                    type="button"
+                    onClick={fetchAttractionExpenses}
+                    className="px-3 py-1.5 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50"
+                  >
+                    {labelOr('common.apply', 'Apply')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      try {
+                        const next = new URLSearchParams(searchParams.toString());
+                        next.set('view', 'expenses');
+                        next.set('section', 'add');
+                        setSearchParams(next, { replace: true });
+                      } catch (_) {}
+                    }}
+                    className="px-3 py-1.5 rounded-lg bg-[#a06b42] text-white hover:bg-[#8f5a32]"
+                  >
+                    {labelOr('nav.addExpense', 'Add expense')}
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-4 flex items-center justify-between">
+                <div className="text-xs text-gray-600">
+                  {labelOr('ownerAttractions.expenses.total', 'Total')}: <span className="font-semibold">{formatAmount(attractionExpensesTotal)}</span>
+                </div>
+                {attractionExpensesLoading && (
+                  <div className="text-xs text-gray-500">{labelOr('common.loading', 'Loading...')}</div>
+                )}
+              </div>
+
+              <div className="mt-3 overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">{labelOr('common.date', 'Date')}</th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">{labelOr('nav.attractions', 'Attraction')}</th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">{labelOr('ownerAttractions.expenses.category', 'Category')}</th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">{labelOr('ownerAttractions.expenses.note', 'Note')}</th>
+                      <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">{labelOr('ownerAttractions.expenses.amount', 'Amount')}</th>
+                      <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">{labelOr('common.actions', 'Actions')}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {(Array.isArray(attractionExpenses) ? attractionExpenses : []).map(exp => (
+                      <tr key={String(exp._id)} className="hover:bg-gray-50">
+                        <td className="px-3 py-2 text-xs text-gray-700">{exp.date ? new Date(exp.date).toLocaleDateString() : ''}</td>
+                        <td className="px-3 py-2 text-xs text-gray-800">{exp.attraction?.name || '-'}</td>
+                        <td className="px-3 py-2 text-xs text-gray-700">{exp.category || 'general'}</td>
+                        <td className="px-3 py-2 text-xs text-gray-600">{exp.note || '-'}</td>
+                        <td className="px-3 py-2 text-xs text-right font-semibold text-gray-900">{formatAmount(exp.amount)}</td>
+                        <td className="px-3 py-2 text-right">
+                          <div className="inline-flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => startEditAttractionExpense(exp)}
+                              className="px-2 py-1 border rounded text-[11px] text-gray-700 hover:bg-gray-50"
+                            >
+                              {labelOr('common.edit', 'Edit')}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => deleteAttractionExpense(exp._id)}
+                              className="px-2 py-1 border rounded text-[11px] text-red-700 border-red-200 hover:bg-red-50"
+                            >
+                              {labelOr('common.delete', 'Delete')}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {(!attractionExpensesLoading && (!attractionExpenses || attractionExpenses.length === 0)) && (
+                <div className="mt-3 text-xs text-gray-500">
+                  {labelOr('ownerAttractions.expenses.empty', 'No expenses recorded for the selected period.')}
+                </div>
+              )}
+            </div>
+          )}
+
+          {expensesSection === 'add' && (
+            <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">{labelOr('nav.addExpense', 'Add expense')}</h2>
+                  <p className="text-xs text-gray-500">{labelOr('ownerAttractions.expenses.addHint', 'Expenses are attached to a specific attraction. Use the scope selector above to choose the attraction.')}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    try {
+                      const next = new URLSearchParams(searchParams.toString());
+                      next.set('view', 'expenses');
+                      next.set('section', 'all');
+                      setSearchParams(next, { replace: true });
+                    } catch (_) {}
+                  }}
+                  className="px-3 py-1.5 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 text-xs"
+                >
+                  {labelOr('common.back', 'Back')}
+                </button>
+              </div>
+
+              <form onSubmit={submitAttractionExpense} className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] text-gray-600 mb-1">{labelOr('common.date', 'Date')}</label>
+                  <input
+                    type="date"
+                    value={attractionExpenseForm.date}
+                    onChange={(e) => setAttractionExpenseForm(p => ({ ...p, date: e.target.value }))}
+                    className="w-full px-3 py-2 border border-[#d4c4b0] rounded-lg text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] text-gray-600 mb-1">{labelOr('ownerAttractions.expenses.amount', 'Amount (RWF)')}</label>
+                  <input
+                    type="number"
+                    min={0}
+                    step="any"
+                    value={attractionExpenseForm.amount}
+                    onChange={(e) => setAttractionExpenseForm(p => ({ ...p, amount: e.target.value }))}
+                    className="w-full px-3 py-2 border border-[#d4c4b0] rounded-lg text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] text-gray-600 mb-1">{labelOr('ownerAttractions.expenses.category', 'Category')}</label>
+                  <input
+                    value={attractionExpenseForm.category}
+                    onChange={(e) => setAttractionExpenseForm(p => ({ ...p, category: e.target.value }))}
+                    className="w-full px-3 py-2 border border-[#d4c4b0] rounded-lg text-sm"
+                    placeholder={labelOr('ownerAttractions.expenses.categoryPlaceholder', 'e.g. Staff, Utilities, Maintenance')}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] text-gray-600 mb-1">{labelOr('ownerAttractions.expenses.note', 'Note')}</label>
+                  <input
+                    value={attractionExpenseForm.note}
+                    onChange={(e) => setAttractionExpenseForm(p => ({ ...p, note: e.target.value }))}
+                    className="w-full px-3 py-2 border border-[#d4c4b0] rounded-lg text-sm"
+                    placeholder={labelOr('ownerAttractions.expenses.notePlaceholder', 'Optional note')}
+                  />
+                </div>
+
+                <div className="md:col-span-2 flex flex-wrap gap-2 pt-1">
+                  <button
+                    type="submit"
+                    disabled={attractionExpenseSaving}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium text-white ${attractionExpenseSaving ? 'bg-[#c39a73]' : 'bg-[#a06b42] hover:bg-[#8f5a32]'}`}
+                  >
+                    {attractionExpenseSaving
+                      ? labelOr('common.saving', 'Saving...')
+                      : (editingAttractionExpenseId ? labelOr('ownerAttractions.expenses.update', 'Update expense') : labelOr('ownerAttractions.expenses.save', 'Save expense'))}
+                  </button>
+                  {editingAttractionExpenseId && (
+                    <button
+                      type="button"
+                      onClick={resetAttractionExpenseEditor}
+                      className="px-4 py-2 rounded-lg text-sm font-medium border border-gray-200 text-gray-700 hover:bg-gray-50"
+                    >
+                      {labelOr('common.cancel', 'Cancel')}
+                    </button>
+                  )}
+                </div>
+              </form>
+
+              <div className="mt-4 text-xs text-gray-600">
+                <span className="font-semibold">{labelOr('ownerAttractions.manageScopeLabel', 'Manage')}:</span> {selectedAttraction ? (selectedAttraction.name || labelOr('nav.attractions', 'Attraction')) : labelOr('ownerAttractions.expenses.scopeNone', 'No attraction selected')}
+              </div>
+            </div>
+          )}
+
+          {expensesSection === 'categories' && (
+            <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-4">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">{labelOr('nav.expenseCategories', 'Expense categories')}</h2>
+                  <p className="text-xs text-gray-500">{labelOr('ownerAttractions.expenses.categoriesHint', 'See where your costs are going.')}</p>
+                </div>
+                <div className="flex items-center gap-2 text-[11px]">
+                  <button
+                    type="button"
+                    onClick={fetchAttractionExpenseCategories}
+                    className="px-3 py-1.5 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50"
+                  >
+                    {labelOr('common.refresh', 'Refresh')}
+                  </button>
+                </div>
+              </div>
+
+              {attractionExpenseCategoriesLoading ? (
+                <div className="mt-4 text-xs text-gray-500">{labelOr('common.loading', 'Loading...')}</div>
+              ) : (
+                <div className="mt-4 overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">{labelOr('ownerAttractions.expenses.category', 'Category')}</th>
+                        <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">{labelOr('ownerAttractions.expenses.amount', 'Total')}</th>
+                        <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">{labelOr('ownerAttractions.expenses.count', 'Count')}</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {(Array.isArray(attractionExpenseCategories) ? attractionExpenseCategories : []).map((row, idx) => (
+                        <tr key={`${row.category || 'general'}-${idx}`}>
+                          <td className="px-3 py-2 text-xs text-gray-800">{row.category || 'general'}</td>
+                          <td className="px-3 py-2 text-xs text-right font-semibold text-gray-900">{formatAmount(row.total)}</td>
+                          <td className="px-3 py-2 text-xs text-right text-gray-700">{Number(row.count || 0)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+
+                  {(!attractionExpenseCategories || attractionExpenseCategories.length === 0) && (
+                    <div className="mt-3 text-xs text-gray-500">{labelOr('ownerAttractions.expenses.categoriesEmpty', 'No expense categories yet.')}</div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {expensesSection === 'reports' && (
+            <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-4">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">{labelOr('nav.expenseReports', 'Expense reports')}</h2>
+                  <p className="text-xs text-gray-500">{labelOr('ownerAttractions.expenses.reportsHint', 'Profit & loss based on your bookings and recorded expenses.')}</p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2 text-[11px]">
+                  <div className="inline-flex rounded-lg border border-gray-200 overflow-hidden">
+                    {[{ id: 'weekly', label: labelOr('nav.weekly', 'Weekly') }, { id: 'monthly', label: labelOr('nav.monthToDate', 'Monthly') }, { id: 'annual', label: labelOr('nav.yearToDate', 'Annual') }].map(opt => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setAttractionReportRange(opt.id)}
+                        className={`px-3 py-1.5 ${attractionReportRange === opt.id ? 'bg-[#a06b42] text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                  <input
+                    type="date"
+                    value={attractionReportDate}
+                    onChange={(e) => setAttractionReportDate(e.target.value)}
+                    className="px-2 py-1.5 border border-gray-200 rounded-lg"
+                  />
+                  <button
+                    type="button"
+                    onClick={fetchAttractionReportSummary}
+                    className="px-3 py-1.5 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50"
+                  >
+                    {labelOr('common.refresh', 'Refresh')}
+                  </button>
+                </div>
+              </div>
+
+              {attractionReportsLoading ? (
+                <div className="mt-4 text-xs text-gray-500">{labelOr('common.loading', 'Loading...')}</div>
+              ) : (
+                <>
+                  <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div className="bg-white border border-gray-200 rounded-lg px-4 py-3">
+                      <div className="text-xs text-gray-500 mb-1">{labelOr('ownerAttractions.expenses.reportRevenue', 'Revenue')}</div>
+                      <div className="text-lg font-semibold text-gray-900">{formatAmount(attractionReportSummary?.revenueTotal || 0)}</div>
+                    </div>
+                    <div className="bg-white border border-gray-200 rounded-lg px-4 py-3">
+                      <div className="text-xs text-gray-500 mb-1">{labelOr('ownerAttractions.expenses.reportExpenses', 'Expenses')}</div>
+                      <div className="text-lg font-semibold text-gray-900">{formatAmount(attractionReportSummary?.expenseTotal || 0)}</div>
+                    </div>
+                    <div className="bg-white border border-gray-200 rounded-lg px-4 py-3">
+                      <div className="text-xs text-gray-500 mb-1">{labelOr('ownerAttractions.expenses.reportProfit', 'Profit')}</div>
+                      <div className={`text-lg font-semibold ${(Number(attractionReportSummary?.profit || 0) >= 0) ? 'text-green-700' : 'text-red-700'}`}
+                      >
+                        {formatAmount(attractionReportSummary?.profit || 0)}
+                      </div>
+                      <div className="text-[11px] text-gray-500 mt-1">
+                        {labelOr('ownerAttractions.expenses.reportCounts', 'Bookings')}: {Number(attractionReportSummary?.counts?.bookings || 0)} | {labelOr('nav.expenses', 'Expenses')}: {Number(attractionReportSummary?.counts?.expenses || 0)}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-4">
+                    <div className="text-sm font-semibold text-gray-900 mb-2">{labelOr('ownerAttractions.expenses.byCategory', 'Expenses by category')}</div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">{labelOr('ownerAttractions.expenses.category', 'Category')}</th>
+                            <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">{labelOr('ownerAttractions.expenses.amount', 'Total')}</th>
+                            <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">{labelOr('ownerAttractions.expenses.count', 'Count')}</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200">
+                          {(Array.isArray(attractionReportSummary?.byCategory) ? attractionReportSummary.byCategory : []).map((row, idx) => (
+                            <tr key={`${row.category || 'general'}-${idx}`}>
+                              <td className="px-3 py-2 text-xs text-gray-800">{row.category || 'general'}</td>
+                              <td className="px-3 py-2 text-xs text-right font-semibold text-gray-900">{formatAmount(row.total)}</td>
+                              <td className="px-3 py-2 text-xs text-right text-gray-700">{Number(row.count || 0)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
         </>
       )}
 
