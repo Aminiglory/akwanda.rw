@@ -212,6 +212,55 @@ router.get('/expenses', requireAuth, async (req, res) => {
   }
 });
 
+router.put('/expenses/:id', requireAuth, async (req, res) => {
+  try {
+    const exp = await Expense.findById(req.params.id).populate('property', 'host title');
+    if (!exp) return res.status(404).json({ message: 'Expense not found' });
+
+    const property = exp.property;
+    if (!property) return res.status(404).json({ message: 'Property not found' });
+
+    const isOwner = String(property.host) === String(req.user.id);
+    const isAdmin = req.user.userType === 'admin';
+    if (!isOwner && !isAdmin) return res.status(403).json({ message: 'Forbidden' });
+
+    const { date, amount, category, note } = req.body || {};
+    if (date !== undefined) exp.date = new Date(date);
+    if (amount !== undefined) exp.amount = Number(amount);
+    if (category !== undefined) exp.category = category || 'general';
+    if (note !== undefined) exp.note = note || '';
+
+    await exp.save();
+    return res.json({ expense: exp });
+  } catch (e) {
+    console.error('Expense update error', e);
+    if (e && (e.name === 'ValidationError' || e.name === 'CastError')) {
+      return res.status(400).json({ message: 'Failed to update expense', error: e.message });
+    }
+    return res.status(500).json({ message: 'Failed to update expense' });
+  }
+});
+
+router.delete('/expenses/:id', requireAuth, async (req, res) => {
+  try {
+    const exp = await Expense.findById(req.params.id).populate('property', 'host');
+    if (!exp) return res.status(404).json({ message: 'Expense not found' });
+
+    const property = exp.property;
+    if (!property) return res.status(404).json({ message: 'Property not found' });
+
+    const isOwner = String(property.host) === String(req.user.id);
+    const isAdmin = req.user.userType === 'admin';
+    if (!isOwner && !isAdmin) return res.status(403).json({ message: 'Forbidden' });
+
+    await exp.deleteOne();
+    return res.json({ success: true });
+  } catch (e) {
+    console.error('Expense delete error', e);
+    return res.status(500).json({ message: 'Failed to delete expense' });
+  }
+});
+
 // GET /api/finance/summary?property=<id>&range=weekly|monthly|annual&date=YYYY-MM-DD
 router.get('/summary', requireAuth, async (req, res) => {
   try {
