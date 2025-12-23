@@ -99,16 +99,17 @@ export default function OwnerAttractionsDashboard() {
 
   const normalizeBookingStatus = (b) => String(b?.status || '').toLowerCase();
 
-  const goToDashboardView = (nextView, extraParams = {}) => {
+  const goToDashboardView = (nextView, updateParams) => {
     setView(nextView);
     try {
       const next = new URLSearchParams(searchParams.toString());
-      next.set('view', nextView);
+      if (!nextView || nextView === 'overview') {
+        next.delete('view');
+      } else {
+        next.set('view', String(nextView));
+      }
       next.delete('section');
-      Object.entries(extraParams || {}).forEach(([k, v]) => {
-        if (v === undefined || v === null || v === '') next.delete(k);
-        else next.set(k, String(v));
-      });
+      if (typeof updateParams === 'function') updateParams(next);
       setSearchParams(next, { replace: true });
     } catch (_) {}
   };
@@ -377,7 +378,7 @@ export default function OwnerAttractionsDashboard() {
   }, [filteredBookings, bookingStatusParam, bookingPaymentParam, bookingFilters.from, bookingFilters.to]);
 
   const overviewFinanceStats = useMemo(() => {
-    const baseList = Array.isArray(bookings) ? bookings : [];
+    const baseList = Array.isArray(filteredBookings) ? filteredBookings : [];
     const now = new Date();
     const start30 = new Date(now);
     start30.setDate(start30.getDate() - 30);
@@ -389,8 +390,7 @@ export default function OwnerAttractionsDashboard() {
     let bookingsYtd = 0;
 
     baseList.forEach(b => {
-      const pay = normalizePaymentStatus(b);
-      if (pay !== 'paid') return;
+      if (normalizeBookingStatus(b) === 'cancelled') return;
       const amount = Number(b.totalAmount || 0);
       const visit = b.visitDate ? new Date(b.visitDate) : null;
       if (!visit || Number.isNaN(visit.getTime())) return;
@@ -407,7 +407,53 @@ export default function OwnerAttractionsDashboard() {
 
     const avg30 = bookings30 > 0 ? rev30 / bookings30 : 0;
     return { rev30, revYtd, bookings30, bookingsYtd, avg30 };
-  }, [bookings]);
+  }, [filteredBookings]);
+
+  const overviewKpis = useMemo(() => {
+    const now = new Date();
+    const upcoming7 = new Date(now);
+    upcoming7.setDate(upcoming7.getDate() + 7);
+
+    const listA = Array.isArray(filteredItems) ? filteredItems : [];
+    const listB = Array.isArray(filteredBookings) ? filteredBookings : [];
+
+    let activeAttractions = 0;
+    listA.forEach(a => { if (a?.isActive) activeAttractions += 1; });
+
+    let upcomingVisits7d = 0;
+    let pendingBookings = 0;
+    let paidBookings = 0;
+    let unpaidBookings = 0;
+
+    listB.forEach(b => {
+      const st = normalizeBookingStatus(b);
+      const pay = normalizePaymentStatus(b);
+      const visit = b?.visitDate ? new Date(b.visitDate) : null;
+
+      if (st === 'pending') pendingBookings += 1;
+      if (pay === 'paid') paidBookings += 1;
+      if (pay === 'unpaid') unpaidBookings += 1;
+
+      if (visit && !Number.isNaN(visit.getTime())) {
+        if (visit >= now && visit <= upcoming7 && st !== 'cancelled') upcomingVisits7d += 1;
+      }
+    });
+
+    return {
+      attractionsTotal: listA.length,
+      attractionsActive: activeAttractions,
+      bookingsTotal: listB.length,
+      upcomingVisits7d,
+      pendingBookings,
+      paidBookings,
+      unpaidBookings
+    };
+  }, [filteredItems, filteredBookings]);
+
+  const recentBookings = useMemo(() => {
+    const list = Array.isArray(filteredBookings) ? filteredBookings : [];
+    return list.slice(0, 5);
+  }, [filteredBookings]);
 
   const empty = useMemo(() => ({
     name: '',
@@ -691,7 +737,7 @@ export default function OwnerAttractionsDashboard() {
             className="inline-flex items-center px-3 py-1.5 rounded-full bg-white/70 hover:bg-white text-xs font-medium text-[#4b2a00] border border-[#e0d5c7] shadow-sm transition-colors"
           >
             <span className="mr-1">←</span>
-            {labelOr('ownerAttractions.backToListingOptions', 'Back to listing options')}
+            Back to listing options
           </button>
         </div>
         <div className="mb-4 flex items-center justify-end gap-2">
@@ -701,7 +747,7 @@ export default function OwnerAttractionsDashboard() {
               onClick={() => window.location.assign('/upload-property?type=attraction')}
               className="px-4 py-2 rounded-lg bg-[#a06b42] hover:bg-[#8f5a32] text-white text-sm font-medium shadow-sm"
             >
-              {labelOr('ownerAttractions.listYourAttraction', 'List Your Attraction')}
+              List Your Attraction
             </button>
             <div className="inline-flex rounded-lg overflow-hidden border">
               <button
@@ -709,14 +755,14 @@ export default function OwnerAttractionsDashboard() {
                 onClick={() => setViewMode('cards')}
                 className={`px-3 py-2 text-sm ${viewMode==='cards' ? 'bg-[#a06b42] text-white' : 'bg-white text-gray-700'}`}
               >
-                {labelOr('ownerAttractions.viewMode.cards', 'Cards')}
+                Cards
               </button>
               <button
                 type="button"
                 onClick={() => setViewMode('table')}
                 className={`px-3 py-2 text-sm ${viewMode==='table' ? 'bg-[#a06b42] text-white' : 'bg-white text-gray-700'}`}
               >
-                {labelOr('ownerAttractions.viewMode.table', 'Table')}
+                Table
               </button>
             </div>
           </div>
@@ -724,13 +770,12 @@ export default function OwnerAttractionsDashboard() {
 
       {propertyContextId && (
         <div className="mb-2 text-xs text-gray-600">
-          {labelOr('ownerAttractions.propertyContextLabel', 'You are managing property context:')}{' '}
-          <span className="font-semibold">{propertyContextLabel || propertyContextId}</span>
+          You are managing property context: <span className="font-semibold">{propertyContextLabel || propertyContextId}</span>
         </div>
       )}
 
       <div className="mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-        <h1 className="text-2xl font-bold text-gray-900">{labelOr('ownerAttractions.title', 'My Attractions')}</h1>
+        <h1 className="text-2xl font-bold text-gray-900">My Attractions</h1>
         {items.length > 0 && (
           <div className="flex items-center gap-2">
             <span className="text-xs text-gray-600 hidden sm:inline">
@@ -771,157 +816,241 @@ export default function OwnerAttractionsDashboard() {
       {/* View selector similar to Property/Car dashboards */}
       <div className="mb-4 -mx-1 px-1 overflow-x-auto scrollbar-hide">
         <div className="flex flex-nowrap gap-2 text-sm min-w-max">
+        <button
+          type="button"
+          onClick={() => {
+            setView('overview');
+            try {
+              const next = new URLSearchParams(searchParams.toString());
+              next.delete('view');
+              next.delete('section');
+              setSearchParams(next, { replace: true });
+            } catch (_) {}
+          }}
+          className={`px-3 py-1.5 rounded-full border ${view === 'overview' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+        >
+          Overview
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setView('attractions');
+            try {
+              const next = new URLSearchParams(searchParams.toString());
+              next.set('view', 'attractions');
+              next.delete('section');
+              setSearchParams(next, { replace: true });
+            } catch (_) {}
+          }}
+          className={`px-3 py-1.5 rounded-full border ${view === 'attractions' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+        >
+          Attractions
+        </button>
+        <div className="relative">
           <button
             type="button"
             onClick={() => {
-              goToDashboardView('overview');
+              setView('bookings');
+              try {
+                const next = new URLSearchParams(searchParams.toString());
+                next.set('view', 'bookings');
+                next.delete('section');
+                setSearchParams(next, { replace: true });
+              } catch (_) {}
             }}
-            className={`px-3 py-1.5 rounded-full border ${view === 'overview' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+            className={`px-3 py-1.5 rounded-full border ${view === 'bookings' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
           >
-            {labelOr('ownerAttractions.nav.overview', 'Overview')}
+            Bookings
           </button>
           <button
             type="button"
-            onClick={() => goToDashboardView('attractions')}
-            className={`px-3 py-1.5 rounded-full border ${view === 'attractions' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+            onClick={() => setBookingsMenuOpen(v => !v)}
+            className="absolute -right-2 top-0 h-full px-2 text-[10px] text-gray-600"
+            title={labelOr('ownerAttractions.bookings.filters', 'Booking filters')}
           >
-            {labelOr('ownerAttractions.nav.attractions', 'Attractions')}
+            ▾
           </button>
-
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => goToDashboardView('bookings')}
-              className={`px-3 py-1.5 rounded-full border ${view === 'bookings' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+          {bookingsMenuOpen && (
+            <div
+              className="absolute z-20 mt-2 w-64 rounded-xl border border-[#e0d5c7] bg-white shadow-lg p-2"
+              onMouseLeave={() => setBookingsMenuOpen(false)}
             >
-              {labelOr('ownerAttractions.nav.bookings', 'Bookings')}
-            </button>
-            <button
-              type="button"
-              onClick={() => setBookingsMenuOpen(v => !v)}
-              className="absolute -right-2 top-0 h-full px-2 text-[10px] text-gray-600"
-              title={labelOr('ownerAttractions.bookings.filters', 'Booking filters')}
-            >
-              ▾
-            </button>
-            {bookingsMenuOpen && (
-              <div
-                className="absolute z-20 mt-2 w-64 rounded-xl border border-[#e0d5c7] bg-white shadow-lg p-2"
-                onMouseLeave={() => setBookingsMenuOpen(false)}
-              >
-                <div className="px-2 py-1 text-[11px] text-gray-500">{labelOr('ownerAttractions.bookings.status', 'Booking status')}</div>
-                <div className="flex flex-wrap gap-1 px-2 pb-2">
-                  {['all','pending','confirmed','completed','cancelled'].map(s => (
-                    <button
-                      key={s}
-                      type="button"
-                      onClick={() => {
-                        const next = new URLSearchParams(searchParams.toString());
-                        next.set('view','bookings');
-                        if (s === 'all') next.delete('bstatus'); else next.set('bstatus', s);
-                        setSearchParams(next, { replace: true });
-                        setBookingsMenuOpen(false);
-                      }}
-                      className={`px-2 py-1 rounded-full border text-[11px] ${bookingStatusParam === s ? 'bg-[#f5e6d5] text-[#4b2a00] border-[#a06b42] font-semibold' : 'bg-white text-[#6b5744] border-[#e0d5c7] hover:bg-[#f9f1e7]'}`}
-                    >
-                      {s}
-                    </button>
-                  ))}
-                </div>
-                <div className="px-2 py-1 text-[11px] text-gray-500">{labelOr('ownerAttractions.bookings.payment', 'Payment status')}</div>
-                <div className="flex flex-wrap gap-1 px-2 pb-2">
-                  {['all','paid','pending','unpaid'].map(s => (
-                    <button
-                      key={s}
-                      type="button"
-                      onClick={() => {
-                        const next = new URLSearchParams(searchParams.toString());
-                        next.set('view','bookings');
-                        if (s === 'all') next.delete('pstatus'); else next.set('pstatus', s);
-                        setSearchParams(next, { replace: true });
-                        setBookingsMenuOpen(false);
-                      }}
-                      className={`px-2 py-1 rounded-full border text-[11px] ${bookingPaymentParam === s ? 'bg-[#f5e6d5] text-[#4b2a00] border-[#a06b42] font-semibold' : 'bg-white text-[#6b5744] border-[#e0d5c7] hover:bg-[#f9f1e7]'}`}
-                    >
-                      {s}
-                    </button>
-                  ))}
-                </div>
+              <div className="px-2 py-1 text-[11px] text-gray-500">{labelOr('ownerAttractions.bookings.status', 'Booking status')}</div>
+              <div className="flex flex-wrap gap-1 px-2 pb-2">
+                {['all','pending','confirmed','completed','cancelled'].map(s => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => {
+                      const next = new URLSearchParams(searchParams.toString());
+                      next.set('view','bookings');
+                      if (s === 'all') next.delete('bstatus'); else next.set('bstatus', s);
+                      setSearchParams(next, { replace: true });
+                      setBookingsMenuOpen(false);
+                    }}
+                    className={`px-2 py-1 rounded-full border text-[11px] ${bookingStatusParam === s ? 'bg-[#f5e6d5] text-[#4b2a00] border-[#a06b42] font-semibold' : 'bg-white text-[#6b5744] border-[#e0d5c7] hover:bg-[#f9f1e7]'}`}
+                  >
+                    {s}
+                  </button>
+                ))}
               </div>
-            )}
-          </div>
-
-          <button
-            type="button"
-            onClick={() => goToDashboardView('finance')}
-            className={`px-3 py-1.5 rounded-full border ${view === 'finance' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
-          >
-            {labelOr('ownerAttractions.nav.finance', 'Finance')}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => goToDashboardView('expenses')}
-            className={`px-3 py-1.5 rounded-full border ${view === 'expenses' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
-          >
-            {labelOr('nav.expenses', 'Expenses')}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => goToDashboardView('income-revenue')}
-            className={`px-3 py-1.5 rounded-full border ${view === 'income-revenue' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
-          >
-            {labelOr('nav.incomeRevenue', 'Income & revenue')}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => goToDashboardView('clients-contracts')}
-            className={`px-3 py-1.5 rounded-full border ${view === 'clients-contracts' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
-          >
-            {labelOr('nav.clientsContracts', 'Clients & contracts')}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => goToDashboardView('analytics')}
-            className={`px-3 py-1.5 rounded-full border ${view === 'analytics' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
-          >
-            {labelOr('ownerAttractions.nav.analytics', 'Reports & analytics')}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => goToDashboardView('reviews')}
-            className={`px-3 py-1.5 rounded-full border ${view === 'reviews' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
-          >
-            {labelOr('ownerAttractions.nav.reviews', 'Reviews')}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => goToDashboardView('messages')}
-            className={`px-3 py-1.5 rounded-full border ${view === 'messages' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
-          >
-            {labelOr('ownerAttractions.nav.messages', 'Messages')}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => goToDashboardView('settings')}
-            className={`px-3 py-1.5 rounded-full border ${view === 'settings' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
-          >
-            {labelOr('ownerAttractions.nav.settings', 'Settings')}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => goToDashboardView('notifications')}
-            className={`px-3 py-1.5 rounded-full border ${view === 'notifications' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
-          >
-            {labelOr('nav.notificationsAlerts', 'Notifications')}
-          </button>
+              <div className="px-2 py-1 text-[11px] text-gray-500">{labelOr('ownerAttractions.bookings.payment', 'Payment status')}</div>
+              <div className="flex flex-wrap gap-1 px-2 pb-2">
+                {['all','paid','pending','unpaid'].map(s => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => {
+                      const next = new URLSearchParams(searchParams.toString());
+                      next.set('view','bookings');
+                      if (s === 'all') next.delete('pstatus'); else next.set('pstatus', s);
+                      setSearchParams(next, { replace: true });
+                      setBookingsMenuOpen(false);
+                    }}
+                    className={`px-2 py-1 rounded-full border text-[11px] ${bookingPaymentParam === s ? 'bg-[#f5e6d5] text-[#4b2a00] border-[#a06b42] font-semibold' : 'bg-white text-[#6b5744] border-[#e0d5c7] hover:bg-[#f9f1e7]'}`}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            setView('finance');
+            try {
+              const next = new URLSearchParams(searchParams.toString());
+              next.set('view', 'finance');
+              next.delete('section');
+              setSearchParams(next, { replace: true });
+            } catch (_) {}
+          }}
+          className={`px-3 py-1.5 rounded-full border ${view === 'finance' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+        >
+          Finance
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setView('expenses');
+            try {
+              const next = new URLSearchParams(searchParams.toString());
+              next.set('view', 'expenses');
+              next.delete('section');
+              setSearchParams(next, { replace: true });
+            } catch (_) {}
+          }}
+          className={`px-3 py-1.5 rounded-full border ${view === 'expenses' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+        >
+          {labelOr('nav.expenses', 'Expenses')}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setView('income-revenue');
+            try {
+              const next = new URLSearchParams(searchParams.toString());
+              next.set('view', 'income-revenue');
+              next.delete('section');
+              setSearchParams(next, { replace: true });
+            } catch (_) {}
+          }}
+          className={`px-3 py-1.5 rounded-full border ${view === 'income-revenue' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+        >
+          {labelOr('nav.incomeRevenue', 'Income & revenue')}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setView('clients-contracts');
+            try {
+              const next = new URLSearchParams(searchParams.toString());
+              next.set('view', 'clients-contracts');
+              next.delete('section');
+              setSearchParams(next, { replace: true });
+            } catch (_) {}
+          }}
+          className={`px-3 py-1.5 rounded-full border ${view === 'clients-contracts' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+        >
+          {labelOr('nav.clientsContracts', 'Clients & contracts')}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setView('analytics');
+            try {
+              const next = new URLSearchParams(searchParams.toString());
+              next.set('view', 'analytics');
+              next.delete('section');
+              setSearchParams(next, { replace: true });
+            } catch (_) {}
+          }}
+          className={`px-3 py-1.5 rounded-full border ${view === 'analytics' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+        >
+          Analytics
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setView('reviews');
+            try {
+              const next = new URLSearchParams(searchParams.toString());
+              next.set('view', 'reviews');
+              next.delete('section');
+              setSearchParams(next, { replace: true });
+            } catch (_) {}
+          }}
+          className={`px-3 py-1.5 rounded-full border ${view === 'reviews' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+        >
+          Reviews
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setView('messages');
+            try {
+              const next = new URLSearchParams(searchParams.toString());
+              next.set('view', 'messages');
+              next.delete('section');
+              setSearchParams(next, { replace: true });
+            } catch (_) {}
+          }}
+          className={`px-3 py-1.5 rounded-full border ${view === 'messages' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+        >
+          Messages
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setView('settings');
+            try {
+              const next = new URLSearchParams(searchParams.toString());
+              next.set('view', 'settings');
+              next.delete('section');
+              setSearchParams(next, { replace: true });
+            } catch (_) {}
+          }}
+          className={`px-3 py-1.5 rounded-full border ${view === 'settings' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+        >
+          Settings
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setView('notifications');
+            try {
+              const next = new URLSearchParams(searchParams.toString());
+              next.set('view', 'notifications');
+              next.delete('section');
+              setSearchParams(next, { replace: true });
+            } catch (_) {}
+          }}
+          className={`px-3 py-1.5 rounded-full border ${view === 'notifications' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+        >
+          {labelOr('nav.notificationsAlerts', 'Notifications')}
+        </button>
         </div>
       </div>
 
@@ -1010,70 +1139,109 @@ export default function OwnerAttractionsDashboard() {
       {/* Overview: basic stats + quick links */}
       {view === 'overview' && (
         <>
-          <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            <div className="rounded-xl bg-white shadow-sm border border-[#e0d5c7] px-3 py-2">
-              <div className="text-[11px] text-gray-500">
-                {labelOr('ownerAttractions.overview.totalAttractions', 'Total attractions')}
+          {filteredItems.length === 0 ? (
+            <div className="mb-6 rounded-2xl bg-white shadow-sm border border-[#e0d5c7] p-5">
+              <div className="text-sm font-semibold text-gray-900">
+                {labelOr('ownerAttractions.overview.emptyTitle', 'Start by listing your first attraction')}
               </div>
-              <div className="text-lg font-semibold text-gray-900">{Array.isArray(items) ? items.length : 0}</div>
+              <div className="mt-1 text-xs text-gray-600">
+                {labelOr('ownerAttractions.overview.emptyBody', 'Your overview will show bookings and revenue once you have at least one active attraction.')}
+              </div>
+              <div className="mt-4">
+                <button
+                  type="button"
+                  onClick={openCreateEditor}
+                  className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-[#a06b42] hover:bg-[#8f5a32] text-white text-sm font-medium shadow-sm"
+                >
+                  {labelOr('ownerAttractions.addNewAttraction', 'Add new attraction')}
+                </button>
+              </div>
             </div>
-            <div className="rounded-xl bg-white shadow-sm border border-[#e0d5c7] px-3 py-2">
-              <div className="text-[11px] text-gray-500">
-                {labelOr('ownerAttractions.overview.totalBookings', 'Total bookings')}
+          ) : null}
+
+          <div className="mb-4 grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5">
+              <div className="text-[11px] text-gray-500">{labelOr('ownerAttractions.overview.totalAttractions', 'Total attractions')}</div>
+              <div className="text-lg font-semibold text-gray-900">{overviewKpis.attractionsTotal}</div>
+              <div className="mt-0.5 text-[11px] text-gray-500">
+                {overviewKpis.attractionsActive}{' '}{labelOr('ownerAttractions.overview.activeLabel', 'active')}
               </div>
-              <div className="text-lg font-semibold text-gray-900">{Array.isArray(bookings) ? bookings.length : 0}</div>
             </div>
-            <div className="rounded-xl bg-white shadow-sm border border-[#e0d5c7] px-3 py-2">
-              <div className="text-[11px] text-gray-500">
-                {labelOr('ownerAttractions.overview.activeAttractions', 'Active attractions')}
+            <div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5">
+              <div className="text-[11px] text-gray-500">{labelOr('ownerAttractions.overview.totalBookings', 'Total bookings')}</div>
+              <div className="text-lg font-semibold text-gray-900">{overviewKpis.bookingsTotal}</div>
+              <div className="mt-0.5 text-[11px] text-gray-500">
+                {overviewKpis.upcomingVisits7d}{' '}{labelOr('ownerAttractions.overview.upcoming7d', 'upcoming (7d)')}
               </div>
-              <div className="text-lg font-semibold text-emerald-700">
-                {(Array.isArray(items) ? items : []).filter(a => a?.isActive).length}
+            </div>
+            <div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5">
+              <div className="text-[11px] text-gray-500">{labelOr('ownerAttractions.overview.pendingBookings', 'Pending bookings')}</div>
+              <div className="text-lg font-semibold text-yellow-700">{overviewKpis.pendingBookings}</div>
+              <button
+                type="button"
+                onClick={() => goToDashboardView('bookings', (next) => {
+                  next.set('bstatus', 'pending');
+                  next.delete('pstatus');
+                })}
+                className="mt-1 text-[11px] text-[#a06b42] hover:underline"
+              >
+                {labelOr('ownerAttractions.overview.viewPending', 'View pending')}
+              </button>
+            </div>
+            <div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5">
+              <div className="text-[11px] text-gray-500">{labelOr('ownerAttractions.overview.paidUnpaid', 'Paid / unpaid (derived)')}</div>
+              <div className="text-lg font-semibold text-gray-900">
+                <span className="text-emerald-700">{overviewKpis.paidBookings}</span>
+                <span className="text-gray-400"> / </span>
+                <span className="text-red-700">{overviewKpis.unpaidBookings}</span>
+              </div>
+              <div className="mt-0.5 text-[11px] text-gray-500">
+                {labelOr('ownerAttractions.overview.paymentDerivedHint', 'Based on booking status')}
               </div>
             </div>
           </div>
 
-          <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="mb-6 grid grid-cols-2 md:grid-cols-4 gap-3">
             <button
               type="button"
               onClick={() => goToDashboardView('attractions')}
-              className="text-left rounded-xl bg-white shadow-sm border border-[#e0d5c7] px-3 py-2 hover:border-[#a06b42] hover:shadow-md transition"
+              className="text-left rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2 hover:border-[#a06b42] hover:shadow-md transition"
             >
-              <div className="text-[11px] text-gray-500">{labelOr('ownerAttractions.overview.card.attractions.title', 'Attractions')}</div>
-              <div className="text-sm font-semibold text-gray-900">{labelOr('ownerAttractions.overview.card.attractions.heading', 'Manage experiences')}</div>
-              <div className="mt-0.5 text-[11px] text-gray-500">{labelOr('ownerAttractions.overview.card.attractions.hint', 'Create and update your attractions')}</div>
+              <div className="text-[11px] text-gray-500">{labelOr('ownerAttractions.overview.quick.attractions', 'Attractions')}</div>
+              <div className="text-sm font-semibold text-gray-900">{labelOr('ownerAttractions.overview.quick.manageExperiences', 'Manage experiences')}</div>
+              <div className="mt-0.5 text-[11px] text-gray-500">{labelOr('ownerAttractions.overview.quick.manageExperiencesHint', 'Create and update your attractions')}</div>
             </button>
             <button
               type="button"
               onClick={() => goToDashboardView('bookings')}
-              className="text-left rounded-xl bg-white shadow-sm border border-[#e0d5c7] px-3 py-2 hover:border-[#a06b42] hover:shadow-md transition"
+              className="text-left rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2 hover:border-[#a06b42] hover:shadow-md transition"
             >
-              <div className="text-[11px] text-gray-500">{labelOr('ownerAttractions.overview.card.bookings.title', 'Bookings')}</div>
-              <div className="text-sm font-semibold text-gray-900">{labelOr('ownerAttractions.overview.card.bookings.heading', 'Reservations')}</div>
-              <div className="mt-0.5 text-[11px] text-gray-500">{labelOr('ownerAttractions.overview.card.bookings.hint', 'View and manage all attraction bookings')}</div>
+              <div className="text-[11px] text-gray-500">{labelOr('ownerAttractions.overview.quick.bookings', 'Bookings')}</div>
+              <div className="text-sm font-semibold text-gray-900">{labelOr('ownerAttractions.overview.quick.reservations', 'Reservations')}</div>
+              <div className="mt-0.5 text-[11px] text-gray-500">{labelOr('ownerAttractions.overview.quick.reservationsHint', 'View and manage all attraction bookings')}</div>
             </button>
             <button
               type="button"
               onClick={() => goToDashboardView('finance')}
-              className="text-left rounded-xl bg-white shadow-sm border border-[#e0d5c7] px-3 py-2 hover:border-[#a06b42] hover:shadow-md transition"
+              className="text-left rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2 hover:border-[#a06b42] hover:shadow-md transition"
             >
-              <div className="text-[11px] text-gray-500">{labelOr('ownerAttractions.overview.card.finance.title', 'Finance')}</div>
-              <div className="text-sm font-semibold text-gray-900">{labelOr('ownerAttractions.overview.card.finance.heading', 'Payments & transactions')}</div>
-              <div className="mt-0.5 text-[11px] text-gray-500">{labelOr('ownerAttractions.overview.card.finance.hint', 'Track payouts and charges')}</div>
+              <div className="text-[11px] text-gray-500">{labelOr('ownerAttractions.overview.quick.finance', 'Finance')}</div>
+              <div className="text-sm font-semibold text-gray-900">{labelOr('ownerAttractions.overview.quick.payments', 'Payments overview')}</div>
+              <div className="mt-0.5 text-[11px] text-gray-500">{labelOr('ownerAttractions.overview.quick.paymentsHint', 'See revenue totals and payment filters')}</div>
             </button>
             <button
               type="button"
               onClick={() => goToDashboardView('analytics')}
-              className="text-left rounded-xl bg-white shadow-sm border border-[#e0d5c7] px-3 py-2 hover:border-[#a06b42] hover:shadow-md transition"
+              className="text-left rounded-xl bg-white shadow-sm border border-gray-100 px-3 py-2 hover:border-[#a06b42] hover:shadow-md transition"
             >
-              <div className="text-[11px] text-gray-500">{labelOr('ownerAttractions.overview.card.analytics.title', 'Analytics')}</div>
-              <div className="text-sm font-semibold text-gray-900">{labelOr('ownerAttractions.overview.card.analytics.heading', 'Performance overview')}</div>
-              <div className="mt-0.5 text-[11px] text-gray-500">{labelOr('ownerAttractions.overview.card.analytics.hint', 'See trends across your listings')}</div>
+              <div className="text-[11px] text-gray-500">{labelOr('ownerAttractions.overview.quick.analytics', 'Analytics')}</div>
+              <div className="text-sm font-semibold text-gray-900">{labelOr('ownerAttractions.overview.quick.performanceOverview', 'Performance overview')}</div>
+              <div className="mt-0.5 text-[11px] text-gray-500">{labelOr('ownerAttractions.overview.quick.performanceHint', 'See trends across your listings')}</div>
             </button>
           </div>
 
-          <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            <div className="rounded-2xl bg-white shadow-sm border border-[#e0d5c7] px-3 py-2.5">
+          <div className="mb-4 grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5">
               <div className="text-[11px] text-gray-500">
                 {labelOr('ownerAttractions.overview.last30Revenue', 'Last 30 days revenue')}
               </div>
@@ -1085,7 +1253,7 @@ export default function OwnerAttractionsDashboard() {
                 {labelOr('ownerAttractions.overview.bookingsLabel', 'bookings')}
               </div>
             </div>
-            <div className="rounded-2xl bg-white shadow-sm border border-[#e0d5c7] px-3 py-2.5">
+            <div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5">
               <div className="text-[11px] text-gray-500">
                 {labelOr('ownerAttractions.overview.ytdRevenue', 'Year-to-date revenue')}
               </div>
@@ -1097,7 +1265,7 @@ export default function OwnerAttractionsDashboard() {
                 {labelOr('ownerAttractions.overview.bookingsLabel', 'bookings')}
               </div>
             </div>
-            <div className="rounded-2xl bg-white shadow-sm border border-[#e0d5c7] px-3 py-2.5">
+            <div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5">
               <div className="text-[11px] text-gray-500">
                 {labelOr('ownerAttractions.overview.avgRevenuePerBooking', 'Avg revenue / booking (30d)')}
               </div>
@@ -1110,6 +1278,70 @@ export default function OwnerAttractionsDashboard() {
                   'Based on last 30 days'
                 )}
               </div>
+            </div>
+          </div>
+
+          <div className="rounded-2xl bg-white shadow-sm border border-[#e0d5c7] overflow-hidden">
+            <div className="px-4 py-3 bg-[#f7efe4] flex items-center justify-between">
+              <div>
+                <div className="text-sm font-semibold text-gray-900">{labelOr('ownerAttractions.overview.recentBookings', 'Recent bookings')}</div>
+                <div className="text-[11px] text-gray-600">{labelOr('ownerAttractions.overview.recentBookingsHint', 'Latest activity from your attractions')}</div>
+              </div>
+              <button
+                type="button"
+                onClick={() => goToDashboardView('bookings')}
+                className="text-xs font-medium text-[#a06b42] hover:underline"
+              >
+                {labelOr('ownerAttractions.overview.viewAllBookings', 'View all')}
+              </button>
+            </div>
+            <div className="divide-y divide-[#f0e6d9]">
+              {recentBookings.length === 0 ? (
+                <div className="px-4 py-4 text-xs text-gray-600">
+                  {labelOr('ownerAttractions.overview.noBookingsYet', 'No bookings yet for this scope.')}
+                </div>
+              ) : (
+                recentBookings.map(b => (
+                  <div key={b._id} className="px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium text-[#3b2a18] truncate">{b.attraction?.name || labelOr('ownerAttractions.overview.attractionFallback', 'Attraction')}</div>
+                      <div className="text-[11px] text-gray-600 truncate">
+                        {(b.guest?.firstName || '')} {(b.guest?.lastName || '')} • {new Date(b.visitDate).toLocaleDateString()} • {formatAmount(b.totalAmount)}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {(() => {
+                        const pay = normalizePaymentStatus(b);
+                        const cls = pay === 'paid'
+                          ? 'bg-emerald-100 text-emerald-800'
+                          : pay === 'pending'
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : 'bg-red-100 text-red-800';
+                        return (
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${cls}`}>{pay}</span>
+                        );
+                      })()}
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${
+                        b.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                        b.status === 'confirmed' ? 'bg-blue-100 text-blue-800' :
+                        b.status === 'completed' ? 'bg-gray-100 text-gray-800' :
+                        'bg-red-100 text-red-800'
+                      }`}>
+                        {b.status}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => goToDashboardView('bookings', (next) => {
+                          next.set('bstatus', String(b.status || 'all'));
+                        })}
+                        className="text-xs font-medium text-[#a06b42] hover:underline"
+                      >
+                        {labelOr('ownerAttractions.overview.openBookings', 'Open')}
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </>
@@ -2664,7 +2896,6 @@ export default function OwnerAttractionsDashboard() {
         onClose={() => setSuccessOpen(false)}
       />
       </div>
-    </div>
     </div>
   );
 
