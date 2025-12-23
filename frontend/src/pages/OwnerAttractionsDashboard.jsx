@@ -2665,7 +2665,6 @@ export default function OwnerAttractionsDashboard() {
       />
       </div>
     </div>
-    </div>
   );
 
 }
