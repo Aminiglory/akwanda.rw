@@ -21,6 +21,7 @@ const carRentalSchema = new mongoose.Schema(
     currency: { type: String, default: 'RWF' },
     isAvailable: { type: Boolean, default: true },
     location: { type: String, required: true },
+    pickupInstructions: { type: String },
     images: [{ type: String }],
     documents: {
       registrationCertificateUrl: { type: String },

@@ -75,6 +75,7 @@ const emptyCarState = {
   currency: 'RWF',
   isAvailable: true,
   location: '',
+  pickupInstructions: '',
   features: [],
   fuelType: 'petrol',
   transmission: 'automatic',
@@ -91,17 +92,15 @@ const emptyCarState = {
   fuelPolicy: policyDefaults.fuelPolicy,
   mileageLimitPerDayKm: policyDefaults.mileageLimit,
   cancellationPolicy: policyDefaults.cancellationPolicy,
-  depositInfo: policyDefaults.depositInfo,
-  vehicleNumber: '',
+  depositInfo: presetDepositOptions[0],
   // Rental pricing & conditions
   depositRequired: false,
   depositAmount: '',
-  refundPolicyType: 'refundable',
   // Availability
   withDriver: false,
   selfDrive: true,
-  pickupLat: DEFAULT_MAP_CENTER.lat,
-  pickupLng: DEFAULT_MAP_CENTER.lng,
+  pickupLat: null,
+  pickupLng: null,
   // Usage & luggage
   luggageSize: '',
   // Rental conditions
@@ -110,14 +109,6 @@ const emptyCarState = {
   idRequired: true,
   insuranceIncluded: false,
   extraInsuranceAvailable: false,
-  maxDrivers: '',
-  noSmoking: false,
-  noPets: false,
-  // Documents flags
-  hasRegistrationPaper: false,
-  hasInsuranceDocument: false,
-  hasNumberPlatePhoto: false,
-  hasInspectionCertificate: false,
   // Owner / company info
   ownerName: '',
   ownerPhone: '',
@@ -390,6 +381,7 @@ const VehicleListingForm = forwardRef(({ onCreated, onSuccess }, ref) => {
         currency: form.currency,
         isAvailable: !!form.isAvailable,
         location: form.location,
+        pickupInstructions: form.pickupInstructions || undefined,
         fuelType: form.fuelType,
         transmission: form.transmission,
         luggageCapacity: Number(form.luggageCapacity || 0) || undefined,
@@ -410,7 +402,6 @@ const VehicleListingForm = forwardRef(({ onCreated, onSuccess }, ref) => {
         // New rental pricing
         depositRequired: !!form.depositRequired,
         depositAmount: form.depositAmount ? Number(form.depositAmount) : undefined,
-        refundPolicyType: form.refundPolicyType,
         // Availability & pickup
         withDriver: !!form.withDriver,
         selfDrive: !!form.selfDrive,
@@ -423,14 +414,6 @@ const VehicleListingForm = forwardRef(({ onCreated, onSuccess }, ref) => {
         idRequired: !!form.idRequired,
         insuranceIncluded: !!form.insuranceIncluded,
         extraInsuranceAvailable: !!form.extraInsuranceAvailable,
-        maxDrivers: form.maxDrivers ? Number(form.maxDrivers) : undefined,
-        noSmoking: !!form.noSmoking,
-        noPets: !!form.noPets,
-        // Documents
-        hasRegistrationPaper: !!form.hasRegistrationPaper,
-        hasInsuranceDocument: !!form.hasInsuranceDocument,
-        hasNumberPlatePhoto: !!form.hasNumberPlatePhoto,
-        hasInspectionCertificate: !!form.hasInspectionCertificate,
         // Features as array
         features: Array.isArray(form.features) ? form.features : [],
         // Owner / company info
@@ -470,29 +453,33 @@ const VehicleListingForm = forwardRef(({ onCreated, onSuccess }, ref) => {
   const validateVehicleStep = (step) => {
     if (step === 1) {
       if (!form.vehicleName || !form.brand || !form.model) {
-        toast.error('Add vehicle name, brand and model.');
+        toast.error(t?.('msg.fillRequiredFields') || 'Please fill all required fields');
         return false;
       }
       if (!form.vehicleType) {
-        toast.error('Choose a vehicle category/type.');
+        toast.error(t?.('msg.fillRequiredFields') || 'Please fill all required fields');
+        return false;
+      }
+      if (category !== 'bicycle' && !form.licensePlate) {
+        toast.error(t?.('msg.fillRequiredFields') || 'Please fill all required fields');
         return false;
       }
     }
     if (step === 2) {
       if (!form.pricePerDay) {
-        toast.error('Add price per day.');
+        toast.error(t?.('msg.fillRequiredFields') || 'Please fill all required fields');
         return false;
       }
     }
     if (step === 3) {
       if (!form.location) {
-        toast.error('Add main pickup / drop-off location.');
+        toast.error(t?.('msg.fillRequiredFields') || 'Please fill all required fields');
         return false;
       }
     }
     if (step === 4) {
       if (!form.capacity) {
-        toast.error('Add number of seats.');
+        toast.error(t?.('msg.fillRequiredFields') || 'Please fill all required fields');
         return false;
       }
     }
@@ -506,13 +493,13 @@ const VehicleListingForm = forwardRef(({ onCreated, onSuccess }, ref) => {
     }
     if (step === 7) {
       if (!createImages.length) {
-        toast.error('Please add at least one image.');
+        toast.error(t?.('vehicleListing.form.imagesRequired') || 'Please add at least one image.');
         return false;
       }
     }
     if (step === 8) {
       if (!form.ownerName || !form.ownerPhone) {
-        toast.error('Add owner/company name and main contact phone.');
+        toast.error(t?.('msg.fillRequiredFields') || 'Please fill all required fields');
         return false;
       }
     }
@@ -695,22 +682,6 @@ const VehicleListingForm = forwardRef(({ onCreated, onSuccess }, ref) => {
                 />
               </div>
             )}
-            <div className="md:col-span-3">
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Refund Policy</label>
-              <div className="flex flex-wrap gap-3 mb-3">
-                {['refundable', 'non-refundable'].map(type => (
-                  <button
-                    key={type}
-                    type="button"
-                    onClick={() => setForm(prev => ({ ...prev, refundPolicyType: type }))}
-                    className={`px-3 py-2 rounded-lg text-sm border ${form.refundPolicyType === type ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-300'}`}
-                  >
-                    {type === 'refundable' ? 'Refundable' : 'Non-refundable'}
-                  </button>
-                ))}
-              </div>
-              <label className="block text-xs text-gray-500">You can add detailed rules later in Rental Conditions.</label>
-            </div>
           </div>
         </div>
       )}
@@ -784,6 +755,17 @@ const VehicleListingForm = forwardRef(({ onCreated, onSuccess }, ref) => {
               </MapContainer>
             </div>
             <p className="text-xs text-gray-500 mt-1">Click on the map to set an approximate pickup/drop-off point.</p>
+
+            <div className="mt-4">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">{t?.('vehicleListing.form.pickupInstructions') || 'Pickup instructions (optional)'}</label>
+              <textarea
+                rows={3}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl"
+                value={form.pickupInstructions}
+                onChange={e => setForm({ ...form, pickupInstructions: e.target.value })}
+                placeholder={t?.('vehicleListing.form.pickupInstructionsPlaceholder') || 'Meeting point, landmarks, ID check, delivery notes, etc.'}
+              />
+            </div>
           </div>
         </div>
       )}
@@ -896,23 +878,6 @@ const VehicleListingForm = forwardRef(({ onCreated, onSuccess }, ref) => {
                 {featureCards('Insurance included', 'insuranceIncluded', form, setForm)}
                 {featureCards('Extra insurance (optional)', 'extraInsuranceAvailable', form, setForm)}
               </div>
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Maximum allowed drivers</label>
-              <input
-                type="number"
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl"
-                value={form.maxDrivers}
-                onChange={e => setForm({ ...form, maxDrivers: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">No smoking</label>
-              {featureCards('No smoking', 'noSmoking', form, setForm)}
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">No pets (optional)</label>
-              {featureCards('No pets', 'noPets', form, setForm)}
             </div>
             <div className="md:col-span-3">
               <label className="block text-sm font-semibold text-gray-700 mb-2">Additional rental rules / cancellation policy</label>

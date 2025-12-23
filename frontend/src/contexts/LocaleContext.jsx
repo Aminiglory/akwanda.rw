@@ -197,6 +197,11 @@ const dictionaries = {
       view: 'View'
     },
     vehicleListing: {
+      form: {
+        pickupInstructions: 'Pickup instructions (optional)',
+        pickupInstructionsPlaceholder: 'Meeting point, landmarks, ID check, delivery notes, etc.',
+        imagesRequired: 'Please add at least one image.'
+      },
       docs: {
         title: '6. Required Documents',
         subtitle: 'Upload clear photos or PDFs of the required documents. They will be stored securely with this vehicle listing.',
@@ -520,6 +525,11 @@ const dictionaries = {
       view: 'Voir'
     },
     vehicleListing: {
+      form: {
+        pickupInstructions: 'Instructions de prise en charge (facultatif)',
+        pickupInstructionsPlaceholder: 'Point de rendez-vous, repères, vérification d’identité, notes de livraison, etc.',
+        imagesRequired: 'Veuillez ajouter au moins une image.'
+      },
       docs: {
         title: '6. Documents requis',
         subtitle: "Téléchargez des photos claires ou des PDF des documents requis. Ils seront stockés en toute sécurité avec cette annonce.",
