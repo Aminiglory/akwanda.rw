@@ -204,6 +204,7 @@ const Navbar = () => {
       href: '/owner/attractions?view=bookings',
       children: [
         { label: labelOr('nav.allReservations', 'All reservations'), href: '/owner/attractions?view=bookings', icon: FaCalendarAlt },
+        { label: labelOr('nav.directBooking', 'Direct booking'), href: '/owner/attractions?view=bookings&section=direct', icon: FaCalendarCheck },
       ]
     },
     {

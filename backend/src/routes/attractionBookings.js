@@ -1,9 +1,11 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
 
 const Attraction = require('../tables/attraction');
 const AttractionBooking = require('../tables/attractionBooking');
+const User = require('../tables/user');
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
@@ -23,7 +25,17 @@ function requireAuth(req, res, next) {
 // Create attraction booking
 router.post('/', requireAuth, async (req, res) => {
   try {
-    const { attractionId, visitDate, tickets = 1, notes, contactPhone, paymentMethod } = req.body || {};
+    const {
+      attractionId,
+      visitDate,
+      tickets = 1,
+      notes,
+      contactPhone,
+      paymentMethod,
+      guestInfo,
+      directBooking,
+      paymentStatus
+    } = req.body || {};
     if (!attractionId || !visitDate) return res.status(400).json({ message: 'Missing required fields' });
     const a = await Attraction.findById(attractionId);
     if (!a || !a.isActive) return res.status(404).json({ message: 'Attraction not found' });
@@ -35,16 +47,51 @@ router.post('/', requireAuth, async (req, res) => {
     const unit = Number(a.price || 0);
     const total = unit * qty;
 
+    const isOwner = String(a.owner) === String(req.user.id);
+    const isAdmin = req.user.userType === 'admin';
+    const wantsDirect = !!directBooking;
+
+    let guestId = req.user.id;
+    if (guestInfo && (isOwner || isAdmin)) {
+      const emailLower = (guestInfo.email || '').toLowerCase();
+      let guestUser = emailLower ? await User.findOne({ email: emailLower }) : null;
+      if (!guestUser) {
+        const pwd = Math.random().toString(36).slice(2, 10);
+        const passwordHash = await bcrypt.hash(pwd, 10);
+        guestUser = await User.create({
+          firstName: guestInfo.firstName || 'Guest',
+          lastName: guestInfo.lastName || 'User',
+          email: emailLower || `guest_${Date.now()}@example.com`,
+          phone: guestInfo.phone || 'N/A',
+          passwordHash,
+          userType: 'guest'
+        });
+      }
+      guestId = guestUser._id;
+    }
+
+    const validPaymentStatus = ['pending', 'paid', 'failed', 'refunded', 'unpaid'];
+    const ps = validPaymentStatus.includes(String(paymentStatus || '').toLowerCase())
+      ? String(paymentStatus).toLowerCase()
+      : (wantsDirect ? 'paid' : 'pending');
+
+    const pmRaw = String(paymentMethod || '').toLowerCase();
+    const pm = pmRaw === 'mtn_mobile_money' ? 'mobile_money' : pmRaw;
+    const validPaymentMethods = ['cash', 'card', 'mobile_money', 'bank_transfer'];
+    const finalPaymentMethod = validPaymentMethods.includes(pm) ? pm : 'cash';
+
     const booking = await AttractionBooking.create({
       attraction: a._id,
-      guest: req.user.id,
+      guest: guestId,
       visitDate: when,
       numberOfPeople: qty,
       totalAmount: total,
       status: 'pending',
+      isDirect: wantsDirect && (isOwner || isAdmin),
       contactPhone: contactPhone || '',
       specialRequests: notes || '',
-      paymentMethod: paymentMethod === 'mtn_mobile_money' ? 'mobile_money' : 'cash'
+      paymentMethod: finalPaymentMethod,
+      paymentStatus: ps
     });
 
     res.status(201).json({ booking });

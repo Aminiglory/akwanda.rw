@@ -35,6 +35,17 @@ export default function OwnerAttractionsDashboard() {
   const [view, setView] = useState('overview'); // 'overview' | 'attractions' | 'bookings' | 'finance' | 'analytics' | 'reviews' | 'messages' | 'settings'
   const createFormRef = useRef(null);
   const [bookingsMenuOpen, setBookingsMenuOpen] = useState(false);
+  const [directBookingDraft, setDirectBookingDraft] = useState({
+    attractionId: '',
+    visitDate: '',
+    tickets: 1,
+    paymentMethod: 'cash',
+    paymentStatus: 'paid',
+    contactPhone: '',
+    notes: '',
+    guestInfo: { firstName: '', lastName: '', email: '', phone: '' }
+  });
+  const [directBookingSaving, setDirectBookingSaving] = useState(false);
   const [activeAttraction, setActiveAttraction] = useState(null);
   const [activeAttractionLoading, setActiveAttractionLoading] = useState(false);
 
@@ -67,6 +78,7 @@ export default function OwnerAttractionsDashboard() {
   const currentViewParam = (searchParams.get('view') || 'overview').toLowerCase();
   const sectionParam = (searchParams.get('section') || '').toLowerCase();
   const attractionsSection = currentViewParam === 'attractions' ? (sectionParam || 'list') : 'list';
+  const bookingsSection = currentViewParam === 'bookings' ? (sectionParam || 'list') : 'list';
   const expensesSection = currentViewParam === 'expenses' ? (sectionParam || 'all') : 'all';
   const incomeRevenueSection = currentViewParam === 'income-revenue' ? (sectionParam || 'transactions') : 'transactions';
   const clientsContractsSection = currentViewParam === 'clients-contracts' ? (sectionParam || 'clients') : 'clients';
@@ -527,6 +539,54 @@ export default function OwnerAttractionsDashboard() {
       setItems([]);
       setBookings([]);
     } finally { setLoading(false); }
+  }
+
+  async function createDirectAttractionBooking(e) {
+    e?.preventDefault?.();
+    try {
+      if (!directBookingDraft.attractionId || !directBookingDraft.visitDate) {
+        toast.error(labelOr('ownerAttractions.bookings.direct.missing', 'Please select an attraction and visit date.'));
+        return;
+      }
+      setDirectBookingSaving(true);
+      const payload = {
+        attractionId: directBookingDraft.attractionId,
+        visitDate: directBookingDraft.visitDate,
+        tickets: Number(directBookingDraft.tickets || 1) || 1,
+        notes: directBookingDraft.notes,
+        contactPhone: directBookingDraft.contactPhone,
+        paymentMethod: directBookingDraft.paymentMethod,
+        directBooking: true,
+        paymentStatus: directBookingDraft.paymentStatus,
+        guestInfo: {
+          firstName: directBookingDraft.guestInfo?.firstName,
+          lastName: directBookingDraft.guestInfo?.lastName,
+          email: directBookingDraft.guestInfo?.email,
+          phone: directBookingDraft.guestInfo?.phone
+        }
+      };
+      const res = await fetch(`${API_URL}/api/attraction-bookings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.message || 'Failed to create booking');
+      toast.success(labelOr('ownerAttractions.bookings.direct.created', 'Direct booking created'));
+      await loadMine();
+      try {
+        const next = new URLSearchParams(searchParams.toString());
+        next.set('view', 'bookings');
+        next.set('section', 'list');
+        setSearchParams(next, { replace: true });
+        setView('bookings');
+      } catch (_) {}
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setDirectBookingSaving(false);
+    }
   }
 
   function exportBookingsCsv() {
@@ -2552,6 +2612,196 @@ export default function OwnerAttractionsDashboard() {
       {/* Bookings: only in Bookings view */}
       {view === 'bookings' && (
       <div className="mt-8">
+        <div className="mb-3 flex flex-wrap gap-2 text-[11px] sm:text-xs">
+          <button
+            type="button"
+            onClick={() => {
+              try {
+                const next = new URLSearchParams(searchParams.toString());
+                next.set('view', 'bookings');
+                next.set('section', 'list');
+                setSearchParams(next, { replace: true });
+              } catch (_) {}
+            }}
+            className={`px-2.5 py-1 rounded-full border ${
+              bookingsSection === 'list'
+                ? 'bg-[#f5e6d5] text-[#4b2a00] border-[#a06b42] font-semibold'
+                : 'bg-white text-[#6b5744] border-[#e0d5c7] hover:bg-[#f9f1e7]'
+            }`}
+          >
+            {labelOr('ownerAttractions.bookings.subtab.list', 'Bookings list')}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              try {
+                const next = new URLSearchParams(searchParams.toString());
+                next.set('view', 'bookings');
+                next.set('section', 'direct');
+                setSearchParams(next, { replace: true });
+              } catch (_) {}
+            }}
+            className={`px-2.5 py-1 rounded-full border ${
+              bookingsSection === 'direct'
+                ? 'bg-[#f5e6d5] text-[#4b2a00] border-[#a06b42] font-semibold'
+                : 'bg-white text-[#6b5744] border-[#e0d5c7] hover:bg-[#f9f1e7]'
+            }`}
+          >
+            {labelOr('ownerAttractions.bookings.subtab.direct', 'Direct booking')}
+          </button>
+        </div>
+
+        {bookingsSection === 'direct' ? (
+          <div className="bg-white rounded-2xl shadow-sm border border-[#e0d5c7] p-4">
+            <div className="mb-3">
+              <h2 className="text-xl font-semibold text-gray-900">{labelOr('ownerAttractions.bookings.direct.title', 'Direct attraction booking')}</h2>
+              <p className="text-xs text-gray-500 mt-0.5">{labelOr('ownerAttractions.bookings.direct.subtitle', 'Create a booking for a walk-in guest. This will be saved in reservations.')}</p>
+            </div>
+
+            <form onSubmit={createDirectAttractionBooking} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] text-gray-600 mb-1">{labelOr('ownerAttractions.bookings.direct.attraction', 'Attraction')}</label>
+                  <select
+                    value={directBookingDraft.attractionId}
+                    onChange={(e) => setDirectBookingDraft(prev => ({ ...prev, attractionId: e.target.value }))}
+                    className="w-full px-3 py-2 border border-[#d4c4b0] rounded-lg text-sm"
+                    required
+                  >
+                    <option value="">{labelOr('ownerAttractions.bookings.direct.selectAttraction', 'Select attraction...')}</option>
+                    {(Array.isArray(items) ? items : []).map(a => (
+                      <option key={String(a._id)} value={String(a._id)}>{a.name || 'Attraction'}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] text-gray-600 mb-1">{labelOr('ownerAttractions.bookings.direct.visitDate', 'Visit date')}</label>
+                    <input
+                      type="date"
+                      value={directBookingDraft.visitDate}
+                      onChange={(e) => setDirectBookingDraft(prev => ({ ...prev, visitDate: e.target.value }))}
+                      className="w-full px-3 py-2 border border-[#d4c4b0] rounded-lg text-sm"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] text-gray-600 mb-1">{labelOr('ownerAttractions.bookings.direct.tickets', 'Tickets')}</label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={directBookingDraft.tickets}
+                      onChange={(e) => setDirectBookingDraft(prev => ({ ...prev, tickets: e.target.value }))}
+                      className="w-full px-3 py-2 border border-[#d4c4b0] rounded-lg text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] text-gray-600 mb-1">{labelOr('ownerAttractions.bookings.direct.paymentMethod', 'Payment method')}</label>
+                  <select
+                    value={directBookingDraft.paymentMethod}
+                    onChange={(e) => setDirectBookingDraft(prev => ({ ...prev, paymentMethod: e.target.value }))}
+                    className="w-full px-3 py-2 border border-[#d4c4b0] rounded-lg text-sm"
+                  >
+                    <option value="cash">{labelOr('ownerAttractions.bookings.direct.cash', 'Cash')}</option>
+                    <option value="mtn_mobile_money">{labelOr('ownerAttractions.bookings.direct.mobileMoney', 'Mobile money')}</option>
+                    <option value="card">{labelOr('ownerAttractions.bookings.direct.card', 'Card')}</option>
+                    <option value="bank_transfer">{labelOr('ownerAttractions.bookings.direct.bankTransfer', 'Bank transfer')}</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[11px] text-gray-600 mb-1">{labelOr('ownerAttractions.bookings.direct.paymentStatus', 'Payment status')}</label>
+                  <select
+                    value={directBookingDraft.paymentStatus}
+                    onChange={(e) => setDirectBookingDraft(prev => ({ ...prev, paymentStatus: e.target.value }))}
+                    className="w-full px-3 py-2 border border-[#d4c4b0] rounded-lg text-sm"
+                  >
+                    <option value="paid">{labelOr('ownerAttractions.finance.paid', 'Paid')}</option>
+                    <option value="pending">{labelOr('ownerAttractions.finance.pending', 'Pending')}</option>
+                    <option value="unpaid">{labelOr('ownerAttractions.finance.unpaid', 'Unpaid')}</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] text-gray-600 mb-1">{labelOr('ownerAttractions.bookings.direct.guestFirstName', 'Guest first name')}</label>
+                  <input
+                    value={directBookingDraft.guestInfo.firstName}
+                    onChange={(e) => setDirectBookingDraft(prev => ({ ...prev, guestInfo: { ...prev.guestInfo, firstName: e.target.value } }))}
+                    className="w-full px-3 py-2 border border-[#d4c4b0] rounded-lg text-sm"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] text-gray-600 mb-1">{labelOr('ownerAttractions.bookings.direct.guestLastName', 'Guest last name')}</label>
+                  <input
+                    value={directBookingDraft.guestInfo.lastName}
+                    onChange={(e) => setDirectBookingDraft(prev => ({ ...prev, guestInfo: { ...prev.guestInfo, lastName: e.target.value } }))}
+                    className="w-full px-3 py-2 border border-[#d4c4b0] rounded-lg text-sm"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] text-gray-600 mb-1">{labelOr('ownerAttractions.bookings.direct.guestEmail', 'Guest email (optional)')}</label>
+                  <input
+                    type="email"
+                    value={directBookingDraft.guestInfo.email}
+                    onChange={(e) => setDirectBookingDraft(prev => ({ ...prev, guestInfo: { ...prev.guestInfo, email: e.target.value } }))}
+                    className="w-full px-3 py-2 border border-[#d4c4b0] rounded-lg text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] text-gray-600 mb-1">{labelOr('ownerAttractions.bookings.direct.guestPhone', 'Guest phone')}</label>
+                  <input
+                    value={directBookingDraft.guestInfo.phone}
+                    onChange={(e) => setDirectBookingDraft(prev => ({ ...prev, guestInfo: { ...prev.guestInfo, phone: e.target.value } }))}
+                    className="w-full px-3 py-2 border border-[#d4c4b0] rounded-lg text-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] text-gray-600 mb-1">{labelOr('ownerAttractions.bookings.direct.contactPhone', 'Contact phone (booking record)')}</label>
+                  <input
+                    value={directBookingDraft.contactPhone}
+                    onChange={(e) => setDirectBookingDraft(prev => ({ ...prev, contactPhone: e.target.value }))}
+                    className="w-full px-3 py-2 border border-[#d4c4b0] rounded-lg text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] text-gray-600 mb-1">{labelOr('ownerAttractions.bookings.direct.notes', 'Notes')}</label>
+                  <input
+                    value={directBookingDraft.notes}
+                    onChange={(e) => setDirectBookingDraft(prev => ({ ...prev, notes: e.target.value }))}
+                    className="w-full px-3 py-2 border border-[#d4c4b0] rounded-lg text-sm"
+                    placeholder={labelOr('ownerAttractions.bookings.direct.notesPlaceholder', 'Special requests or internal note')}
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#f0e6d9]">
+                <button
+                  type="submit"
+                  disabled={directBookingSaving}
+                  className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-[#a06b42] hover:bg-[#8f5a32] text-white text-sm font-medium shadow-sm disabled:opacity-50"
+                >
+                  {directBookingSaving
+                    ? labelOr('ownerAttractions.bookings.direct.creating', 'Creating...')
+                    : labelOr('ownerAttractions.bookings.direct.create', 'Create booking')}
+                </button>
+              </div>
+            </form>
+          </div>
+        ) : (
+        <>
         <div className="mb-2 flex flex-wrap gap-2 text-[11px] sm:text-xs">
           {['all','pending','confirmed','completed','cancelled'].map(s => (
             <button
@@ -2678,6 +2928,8 @@ export default function OwnerAttractionsDashboard() {
             </tbody>
           </table>
         </div>
+        </>
+        )}
       </div>
       )}
 
