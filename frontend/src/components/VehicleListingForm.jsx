@@ -667,6 +667,17 @@ const VehicleListingForm = forwardRef(({ onCreated, onSuccess }, ref) => {
                 <option value="electric">Electric</option>
               </select>
             </div>
+            <div className="lg:col-span-3">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                {t?.('vehicleListing.form.fields.licensePlate') || 'License plate number'}
+                {category !== 'bicycle' ? ' *' : ''}
+              </label>
+              <input
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl"
+                value={form.licensePlate}
+                onChange={e => setForm({ ...form, licensePlate: e.target.value })}
+              />
+            </div>
           </div>
         </div>
       )}
