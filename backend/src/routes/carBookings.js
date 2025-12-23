@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const router = express.Router();
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
+const CommissionSettings = require('../tables/commissionSettings');
 
 function requireAuth(req, res, next) {
   const token = req.cookies.akw_token || (req.headers.authorization || '').replace('Bearer ', '');
@@ -16,7 +17,7 @@ function requireAuth(req, res, next) {
   }
 }
 
-// Create car booking
+// Create car booking (online flow)
 router.post('/', requireAuth, async (req, res) => {
   try {
     const CarRental = require('../tables/carRental');
@@ -76,6 +77,7 @@ router.post('/', requireAuth, async (req, res) => {
       numberOfDays,
       totalAmount: total,
       status: 'pending',
+      channel: 'online',
       withDriver: !!withDriver,
       driverAge: driverAge || undefined,
       contactPhone: contactPhone || '',
@@ -86,6 +88,114 @@ router.post('/', requireAuth, async (req, res) => {
     res.status(201).json({ booking });
   } catch (e) {
     res.status(500).json({ message: 'Failed to create booking', error: e.message });
+  }
+});
+
+// Create direct car booking (host-side, with final agreed price)
+router.post('/direct', requireAuth, async (req, res) => {
+  try {
+    if (!req.user || (req.user.userType !== 'host' && req.user.userType !== 'admin')) {
+      return res.status(403).json({ message: 'Only hosts can create direct car bookings' });
+    }
+
+    const CarRental = require('../tables/carRental');
+    const CarRentalBooking = require('../tables/carRentalBooking');
+
+    const {
+      carId,
+      pickupDate,
+      returnDate,
+      pickupLocation,
+      returnLocation,
+      guestName,
+      guestEmail,
+      guestPhone,
+      paymentMethod,
+      finalPrice,
+      withDriver,
+      contactPhone,
+      specialRequests,
+      driverAge,
+    } = req.body || {};
+
+    if (!carId || !pickupDate || !returnDate || !pickupLocation) {
+      return res.status(400).json({ message: 'Missing required fields' });
+    }
+    const car = await CarRental.findById(carId).select('owner pricePerDay pricePerWeek pricePerMonth');
+    if (!car) return res.status(404).json({ message: 'Car not found' });
+    if (String(car.owner) !== String(req.user.id) && req.user.userType !== 'admin') {
+      return res.status(403).json({ message: 'You can only create direct bookings for your own vehicles' });
+    }
+
+    const start = new Date(pickupDate);
+    const end = new Date(returnDate);
+    if (!(start instanceof Date) || !(end instanceof Date) || isNaN(start) || isNaN(end) || end <= start) {
+      return res.status(400).json({ message: 'Invalid date range' });
+    }
+
+    const MS_PER_DAY = 24 * 60 * 60 * 1000;
+    const numberOfDays = Math.ceil((end - start) / MS_PER_DAY);
+
+    const normalizedPaymentMethod = (() => {
+      if (!paymentMethod) return undefined;
+      const m = String(paymentMethod).toLowerCase();
+      if (m === 'mtn_mobile_money' || m === 'mtn-momo' || m === 'mtnmomo' || m === 'mobile_money' || m === 'momo') return 'mobile_money';
+      if (['cash', 'card', 'bank_transfer'].includes(m)) return m;
+      return undefined;
+    })();
+
+    const price = Number(finalPrice);
+    if (!price || !Number.isFinite(price) || price <= 0) {
+      return res.status(400).json({ message: 'Final agreed price is required for direct bookings' });
+    }
+
+    // Load commission rate from global settings (use baseRate for now)
+    let commissionRate = 0;
+    try {
+      const settings = await CommissionSettings.getSingleton();
+      commissionRate = Number(settings.baseRate || 0);
+    } catch (_) {
+      commissionRate = 0;
+    }
+    const commissionAmount = commissionRate > 0 ? Math.round(price * (commissionRate / 100)) : 0;
+
+    // Overlap check (same as online flow)
+    const overlapping = await CarRentalBooking.find({
+      car: car._id,
+      status: { $in: ['pending', 'confirmed', 'active'] },
+      $or: [{ pickupDate: { $lt: end }, returnDate: { $gt: start } }],
+    }).countDocuments();
+    if (overlapping > 0) return res.status(409).json({ message: 'Car not available for these dates' });
+
+    const booking = await CarRentalBooking.create({
+      car: car._id,
+      guest: req.user.id, // host user recorded as creator; guestName/phone/email stored separately
+      pickupDate: start,
+      returnDate: end,
+      pickupLocation,
+      returnLocation: returnLocation || pickupLocation,
+      numberOfDays,
+      totalAmount: price,
+      finalAgreedAmount: price,
+      status: 'pending',
+      channel: 'direct',
+      paymentMethod: normalizedPaymentMethod || undefined,
+      withDriver: !!withDriver,
+      driverAge: driverAge || undefined,
+      contactPhone: contactPhone || guestPhone || '',
+      specialRequests: specialRequests || '',
+      commissionRate: commissionRate || undefined,
+      commissionAmount,
+      commissionPaid: false,
+      guestName: guestName || '',
+      guestEmail: guestEmail || '',
+      guestPhone: guestPhone || '',
+    });
+
+    return res.status(201).json({ booking });
+  } catch (e) {
+    console.error('[CarBookings][direct] error', e);
+    return res.status(500).json({ message: 'Failed to create direct car booking', error: e.message });
   }
 });
 
