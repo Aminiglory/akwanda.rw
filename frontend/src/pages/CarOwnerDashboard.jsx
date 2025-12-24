@@ -677,9 +677,10 @@ export default function CarOwnerDashboard() {
           </>
         )}
 
-        {/* Overview dashboard: business overview, revenue summary, recent activities */}
+        {/* Overview dashboard: grouped homepage for vehicles */}
         {view === 'overview' && (
         <>
+          {/* Top summary tiles */}
           <div className="mb-6 grid grid-cols-2 md:grid-cols-4 gap-3">
             <div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5">
               <div className="text-[11px] text-gray-500">Total vehicles</div>
@@ -710,6 +711,74 @@ export default function CarOwnerDashboard() {
             </div>
           </div>
 
+          {/* Fleet grouped by category & availability */}
+          <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-4 py-4">
+              <h2 className="text-sm font-semibold text-[#4b2a00] mb-1">Your fleet by category</h2>
+              <p className="text-[11px] text-gray-600 mb-2">Quick view of vehicles grouped by type.</p>
+              {(() => {
+                const list = Array.isArray(cars) ? cars : [];
+                const categories = ['car', 'motorcycle', 'bicycle'];
+                const counts = categories.map(cat => ({
+                  key: cat,
+                  label: cat.charAt(0).toUpperCase() + cat.slice(1),
+                  count: list.filter(c => String(c.category || 'car') === cat).length
+                }));
+                const total = list.length;
+                if (!total) {
+                  return (
+                    <div className="text-[11px] text-gray-600 mt-1">
+                      No vehicles listed yet. Use the Vehicles tab to create your first listing.
+                    </div>
+                  );
+                }
+                return (
+                  <div className="mt-2 space-y-2 text-xs">
+                    {counts.map(c => (
+                      <div key={c.key} className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="inline-block w-2 h-2 rounded-full bg-[#a06b42]"></span>
+                          <span className="text-gray-800">{c.label}</span>
+                        </div>
+                        <span className="font-semibold text-gray-900">{c.count}</span>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+            </div>
+
+            <div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-4 py-4">
+              <h2 className="text-sm font-semibold text-[#4b2a00] mb-1">Availability status</h2>
+              <p className="text-[11px] text-gray-600 mb-2">How many vehicles are currently bookable.</p>
+              {(() => {
+                const list = Array.isArray(cars) ? cars : [];
+                const available = list.filter(c => c.isAvailable).length;
+                const unavailable = list.length - available;
+                if (!list.length) {
+                  return (
+                    <div className="text-[11px] text-gray-600 mt-1">
+                      No vehicles yet to track availability.
+                    </div>
+                  );
+                }
+                return (
+                  <div className="mt-2 space-y-1 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-700">Available</span>
+                      <span className="font-semibold text-emerald-700">{available}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-700">Unavailable</span>
+                      <span className="font-semibold text-gray-700">{unavailable}</span>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+
+          {/* Revenue summary */}
           <div className="mb-6 rounded-2xl bg-white shadow-sm border border-gray-100 px-4 py-4">
             <h2 className="text-sm font-semibold text-[#4b2a00] mb-1">Revenue summary</h2>
             <p className="text-[11px] text-gray-600 mb-1">
@@ -739,29 +808,30 @@ export default function CarOwnerDashboard() {
             </div>
           </div>
 
+          {/* Upcoming bookings / recent activity */}
           <div className="mb-6 rounded-2xl bg-white shadow-sm border border-gray-100 px-4 py-4">
-            <h2 className="text-sm font-semibold text-[#4b2a00] mb-1">Recent activities</h2>
+            <h2 className="text-sm font-semibold text-[#4b2a00] mb-1">Upcoming & recent bookings</h2>
             <p className="text-[11px] text-gray-600 mb-3">
-              Latest booking activity across your vehicles.
+              Snapshot of bookings across your vehicles.
             </p>
             <ul className="divide-y divide-[#f1e4d4] text-xs">
               {(() => {
                 const list = Array.isArray(bookings) ? [...bookings] : [];
                 list.sort((a, b) => {
-                  const da = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-                  const db = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-                  return db - da;
+                  const da = a.pickupDate ? new Date(a.pickupDate).getTime() : 0;
+                  const db = b.pickupDate ? new Date(b.pickupDate).getTime() : 0;
+                  return da - db;
                 });
                 const top = list.slice(0, 5);
                 if (top.length === 0) {
                   return (
                     <li className="py-2 text-[11px] text-gray-600">
-                      No recent booking activity yet.
+                      No bookings yet. When you receive reservations, they will appear here.
                     </li>
                   );
                 }
                 return top.map(b => {
-                  const created = b.createdAt ? new Date(b.createdAt) : null;
+                  const pickup = b.pickupDate ? new Date(b.pickupDate) : null;
                   const status = String(b.status || '').toLowerCase();
                   const vehicleLabel = (b.car?.vehicleName || `${b.car?.brand || ''} ${b.car?.model || ''}`.trim() || 'Vehicle').replace(/,/g, ' ');
                   return (
@@ -780,10 +850,9 @@ export default function CarOwnerDashboard() {
                           <div className="font-semibold text-[#4b2a00] truncate text-[11px]">
                             {vehicleLabel}
                           </div>
-                          {created && (
+                          {pickup && (
                             <span className="text-[10px] text-gray-500 whitespace-nowrap">
-                              {created.toLocaleDateString()}{' '}
-                              {created.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              {pickup.toLocaleDateString()}
                             </span>
                           )}
                         </div>
