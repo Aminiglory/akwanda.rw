@@ -334,6 +334,211 @@ const dictionaries = {
     settings: {
       title: 'Settings',
       subtitle: 'Manage your account settings and preferences'
+    },
+    attractionWizard: {
+      listingType: {
+        title: 'What would you like to list?',
+        subtitle: 'Choose the type of listing you want to create. Stays, rentals, attractions and flights each have their own flow.',
+        stay: 'Stay',
+        stayDesc: 'Apartments, hotels, homes',
+        rental: 'Rental',
+        rentalDesc: 'Cars & vehicles',
+        attraction: 'Attraction',
+        attractionDesc: 'Tours & activities',
+        flight: 'Flight',
+        flightDesc: 'Flight services'
+      },
+      stepLabel: 'Step',
+      stepOf: 'of',
+      common: {
+        selectPlaceholder: 'Select an option',
+        yes: 'Yes',
+        no: 'No'
+      },
+      categories: {
+        cultural: 'Culture & Museums',
+        nature: 'Nature & Parks',
+        adventure: 'Adventure & Outdoor',
+        historical: 'Historical & Landmarks',
+        religious: 'Religious Sites',
+        entertainment: 'Entertainment & Shows'
+      },
+      actions: {
+        uploadCover: 'Upload cover photo',
+        uploadGallery: 'Upload gallery images',
+        back: 'Back',
+        next: 'Next',
+        save: 'Save attraction info'
+      },
+      toasts: {
+        saved: 'Attraction saved and will appear on the attractions page once active.'
+      },
+      errors: {
+        step1: 'Add attraction name, category and a short description.',
+        step2: 'Add country, city and exact address.',
+        step3: 'Upload a cover photo and at least one gallery image.',
+        step5: 'Add adult ticket price and currency.',
+        step9: 'Add contact phone and email.',
+        missingCore: 'Name, category, country, and city are required.',
+        saveFailed: 'Could not save attraction',
+        uploadImagesFailed: 'Could not upload images'
+      },
+      steps: {
+        basic: {
+          title: '1. Basic information',
+          helper: 'Required to identify the attraction.'
+        },
+        location: {
+          title: '2. Location details',
+          helper: 'Precision helps guests arrive smoothly.'
+        },
+        media: {
+          title: '3. Photos & Media',
+          helper: 'Visuals bring the experience to life.'
+        },
+        operating: {
+          title: '4. Operating details',
+          helper: 'Opening days, hours and typical visit length.'
+        },
+        pricing: {
+          title: '5. Pricing',
+          helper: 'Set the per-person price guests will pay.'
+        },
+        capacity: {
+          title: '6. Capacity & requirements',
+          helper: 'Help guests understand group limits and requirements.'
+        },
+        amenities: {
+          title: '7. Facilities & experience details',
+          helper: 'What is included and what guests should expect.'
+        },
+        rules: {
+          title: '8. Rules & important information',
+          helper: 'Clarify expectations for guests.'
+        },
+        contact: {
+          title: '9. Contact information',
+          helper: 'How guests reach you.'
+        }
+      },
+      locationMap: {
+        title: 'Location Map',
+        helper: 'Click or drag the marker to auto-fill GPS.'
+      },
+      fields: {
+        name: 'Attraction Name *',
+        category: 'Category / Type *',
+        shortDescription: 'Short Description *',
+        fullDescription: 'Full Description',
+        highlights: 'Highlights / Key Features',
+        country: 'Country *',
+        city: 'City / Town / District *',
+        address: 'Meeting point / Address *',
+        landmarks: 'Landmarks Nearby',
+        directions: 'Directions / How to get there',
+        coverPhoto: 'Cover photo *',
+        galleryPhotos: 'Gallery images *',
+        video: 'Video URL (optional)',
+        openingDays: 'Opening Days',
+        openingStart: 'Opening Hour Start',
+        openingEnd: 'Opening Hour End',
+        duration: 'Duration',
+        minAge: 'Minimum age requirement',
+        timeSlot1: 'Start time 1 (optional)',
+        timeSlot2: 'Start time 2 (optional)',
+        timeSlot3: 'Start time 3 (optional)',
+        priceAdult: 'Price per adult *',
+        priceChild: 'Price per child (optional)',
+        currency: 'Currency *',
+        refundPolicy: 'Refund & cancellation policy',
+        capacity: 'Maximum group size (optional)',
+        minGuests: 'Minimum guests (optional)',
+        bookingRequired: 'Booking required?',
+        amenities: 'Amenities & facilities',
+        guideAvailable: 'Guide available?',
+        languages: 'Main language of the experience',
+        safetyEquipment: 'Safety equipment provided',
+        rules: 'Important info / rules',
+        dressCode: 'Dress code (optional)',
+        safetyInstructions: 'Safety instructions (optional)',
+        contactName: 'Owner / manager name',
+        contactPhone: 'Phone number *',
+        contactEmail: 'Email address *',
+        contactWebsite: 'Website (optional)',
+        paymentMethods: 'Preferred payment method'
+      },
+      placeholders: {
+        name: 'Kigali Cultural Walk',
+        category: 'Select a category',
+        shortDescription: '1–2 sentence summary',
+        fullDescription: 'Describe the experience in detail',
+        country: 'Rwanda',
+        city: 'Kigali',
+        address: 'Street, building name...',
+        landmarks: 'Hotel, park, landmark (optional)',
+        directions: 'Public transport, parking, pickup point (optional)',
+        video: 'YouTube / Vimeo link',
+        openingDays: 'Select opening days',
+        duration: 'e.g., 2 hours',
+        minAge: 'e.g., 12+',
+        price: 'Amount',
+        currency: 'Select currency',
+        capacity: 'Guests per session',
+        minGuests: 'Minimum booking size',
+        languages: 'Select language',
+        rules: 'Meeting instructions, what to bring, restrictions...',
+        dressCode: 'Modest clothing, swimwear...',
+        safetyInstructions: 'Safety requirements and instructions...',
+        contactName: 'John Doe',
+        contactPhone: '+250 78...',
+        contactEmail: 'owner@example.com',
+        contactWebsite: 'https://...'
+      },
+      helpers: {
+        coverPhoto: 'Upload a hero photo.',
+        galleryPhotos: 'Upload 3–20 images.',
+        highlights: 'Select all that apply. These help guests understand what makes this attraction special.',
+        amenities: 'Select all amenities that apply to this attraction.',
+        safetyEquipment: 'Select all safety items you provide to guests.',
+        refundPolicy: 'Choose the statement that best describes how refunds and cancellations are handled.'
+      },
+      openingDays: {
+        weekend: 'Weekend',
+        weekdays: 'Monday–Friday',
+        wholeWeek: 'Whole week'
+      },
+      paymentMethods: {
+        momo: 'Mobile money (MoMoPay)',
+        cash: 'Cash on arrival',
+        card: 'Card payment (POS / online)',
+        bank: 'Bank transfer'
+      },
+      refundPolicies: {
+        noEarlyRefund: 'No refund for early cancellation (unless stated otherwise).',
+        fullWithinWindow: 'Full refund for cancellations within a defined window before the visit (for example 48 hours or 7 days).',
+        latePartial: 'Late cancellations may result in partial or no refund.',
+        noShow: 'No refund for no-shows.',
+        closedOnly: 'Refunds offered only if the attraction is closed or unavailable due to unforeseen circumstances.',
+        unusedTickets: 'Refunds are not provided for unused tickets.',
+        groupDifferent: 'Group bookings may have different cancellation terms and conditions.'
+      },
+      languages: {
+        kinyarwanda: 'Kinyarwanda',
+        english: 'English',
+        french: 'French',
+        kiswahili: 'Kiswahili',
+        other: 'Other'
+      }
+    },
+    ownerAttractions: {
+      ui: {
+        backToListingOptions: 'Back to listing options',
+        listYourAttraction: 'List Your Attraction',
+        cards: 'Cards',
+        table: 'Table',
+        myAttractions: 'My Attractions',
+        overview: 'Overview'
+      }
     }
   },
   // Common messages (toasts, inline notices)
@@ -671,6 +876,211 @@ const dictionaries = {
     settings: {
       title: 'Paramètres',
       subtitle: 'Gérez les paramètres et préférences de votre compte'
+    },
+    attractionWizard: {
+      listingType: {
+        title: 'Que souhaitez-vous publier ?',
+        subtitle: 'Choisissez le type d’annonce que vous souhaitez créer. Les séjours, locations, attractions et vols ont chacun leur propre parcours.',
+        stay: 'Séjour',
+        stayDesc: 'Appartements, hôtels, maisons',
+        rental: 'Location',
+        rentalDesc: 'Voitures et véhicules',
+        attraction: 'Attraction',
+        attractionDesc: 'Visites et activités',
+        flight: 'Vol',
+        flightDesc: 'Services de vols'
+      },
+      stepLabel: 'Étape',
+      stepOf: 'sur',
+      common: {
+        selectPlaceholder: 'Sélectionnez une option',
+        yes: 'Oui',
+        no: 'Non'
+      },
+      categories: {
+        cultural: 'Culture & musées',
+        nature: 'Nature & parcs',
+        adventure: 'Aventure & plein air',
+        historical: 'Histoire & monuments',
+        religious: 'Sites religieux',
+        entertainment: 'Divertissement & spectacles'
+      },
+      actions: {
+        uploadCover: 'Télécharger la photo de couverture',
+        uploadGallery: 'Télécharger les photos de la galerie',
+        back: 'Retour',
+        next: 'Suivant',
+        save: 'Enregistrer l’attraction'
+      },
+      toasts: {
+        saved: 'Attraction enregistrée et affichée sur la page des attractions une fois active.'
+      },
+      errors: {
+        step1: 'Ajoutez le nom, la catégorie et une courte description.',
+        step2: 'Ajoutez le pays, la ville et l’adresse exacte.',
+        step3: 'Téléchargez une photo de couverture et au moins une image de galerie.',
+        step5: 'Ajoutez le prix adulte et la devise.',
+        step9: 'Ajoutez le téléphone et l’e-mail de contact.',
+        missingCore: 'Le nom, la catégorie, le pays et la ville sont obligatoires.',
+        saveFailed: 'Impossible d’enregistrer l’attraction',
+        uploadImagesFailed: 'Impossible de télécharger les images'
+      },
+      steps: {
+        basic: {
+          title: '1. Informations de base',
+          helper: 'Nécessaire pour identifier l’attraction.'
+        },
+        location: {
+          title: '2. Détails de localisation',
+          helper: 'La précision aide les clients à arriver facilement.'
+        },
+        media: {
+          title: '3. Photos & média',
+          helper: 'Les visuels donnent vie à l’expérience.'
+        },
+        operating: {
+          title: '4. Horaires & fonctionnement',
+          helper: 'Jours d’ouverture, heures et durée de visite.'
+        },
+        pricing: {
+          title: '5. Prix',
+          helper: 'Définissez le prix par personne.'
+        },
+        capacity: {
+          title: '6. Capacité & conditions',
+          helper: 'Aidez les clients à comprendre les limites et exigences.'
+        },
+        amenities: {
+          title: '7. Services & détails de l’expérience',
+          helper: 'Ce qui est inclus et ce que les clients doivent prévoir.'
+        },
+        rules: {
+          title: '8. Règles & informations importantes',
+          helper: 'Clarifiez les attentes pour les clients.'
+        },
+        contact: {
+          title: '9. Informations de contact',
+          helper: 'Comment les clients peuvent vous joindre.'
+        }
+      },
+      locationMap: {
+        title: 'Carte de localisation',
+        helper: 'Cliquez ou déplacez le marqueur pour renseigner le GPS.'
+      },
+      fields: {
+        name: 'Nom de l’attraction *',
+        category: 'Catégorie / Type *',
+        shortDescription: 'Courte description *',
+        fullDescription: 'Description complète',
+        highlights: 'Points forts',
+        country: 'Pays *',
+        city: 'Ville / district *',
+        address: 'Point de rendez-vous / adresse *',
+        landmarks: 'Repères à proximité',
+        directions: 'Directions / comment s’y rendre',
+        coverPhoto: 'Photo de couverture *',
+        galleryPhotos: 'Images de la galerie *',
+        video: 'Lien vidéo (facultatif)',
+        openingDays: 'Jours d’ouverture',
+        openingStart: 'Heure d’ouverture',
+        openingEnd: 'Heure de fermeture',
+        duration: 'Durée',
+        minAge: 'Âge minimum',
+        timeSlot1: 'Heure de départ 1 (facultatif)',
+        timeSlot2: 'Heure de départ 2 (facultatif)',
+        timeSlot3: 'Heure de départ 3 (facultatif)',
+        priceAdult: 'Prix adulte *',
+        priceChild: 'Prix enfant (facultatif)',
+        currency: 'Devise *',
+        refundPolicy: 'Politique d’annulation et de remboursement',
+        capacity: 'Taille maximale du groupe (facultatif)',
+        minGuests: 'Nombre minimum de clients (facultatif)',
+        bookingRequired: 'Réservation obligatoire ?',
+        amenities: 'Équipements & services',
+        guideAvailable: 'Guide disponible ?',
+        languages: 'Langue principale de l’expérience',
+        safetyEquipment: 'Équipement de sécurité fourni',
+        rules: 'Infos / règles importantes',
+        dressCode: 'Code vestimentaire (facultatif)',
+        safetyInstructions: 'Consignes de sécurité (facultatif)',
+        contactName: 'Nom du responsable',
+        contactPhone: 'Numéro de téléphone *',
+        contactEmail: 'Adresse e-mail *',
+        contactWebsite: 'Site web (facultatif)',
+        paymentMethods: 'Méthode de paiement préférée'
+      },
+      placeholders: {
+        name: 'Balade culturelle à Kigali',
+        category: 'Sélectionnez une catégorie',
+        shortDescription: 'Résumé en 1–2 phrases',
+        fullDescription: 'Décrivez l’expérience en détail',
+        country: 'Rwanda',
+        city: 'Kigali',
+        address: 'Rue, bâtiment...',
+        landmarks: 'Hôtel, parc, repère (facultatif)',
+        directions: 'Transports, parking, point de rendez-vous (facultatif)',
+        video: 'Lien YouTube / Vimeo',
+        openingDays: 'Choisissez les jours d’ouverture',
+        duration: 'ex. 2 heures',
+        minAge: 'ex. 12+',
+        price: 'Montant',
+        currency: 'Choisissez une devise',
+        capacity: 'Clients par session',
+        minGuests: 'Taille minimale de réservation',
+        languages: 'Sélectionnez une langue',
+        rules: 'Point de rendez-vous, quoi apporter, restrictions...',
+        dressCode: 'Tenue correcte, maillot...',
+        safetyInstructions: 'Exigences et consignes de sécurité...',
+        contactName: 'Jean Dupont',
+        contactPhone: '+250 78...',
+        contactEmail: 'proprietaire@example.com',
+        contactWebsite: 'https://...'
+      },
+      helpers: {
+        coverPhoto: 'Téléchargez une photo principale.',
+        galleryPhotos: 'Téléchargez 3 à 20 images.',
+        highlights: 'Sélectionnez tout ce qui s’applique. Ces éléments aident les clients à comprendre ce qui rend l’attraction unique.',
+        amenities: 'Sélectionnez les équipements disponibles.',
+        safetyEquipment: 'Sélectionnez les équipements de sécurité fournis.',
+        refundPolicy: 'Choisissez la phrase qui décrit le mieux la politique de remboursement et d’annulation.'
+      },
+      openingDays: {
+        weekend: 'Week-end',
+        weekdays: 'Lundi–Vendredi',
+        wholeWeek: 'Toute la semaine'
+      },
+      paymentMethods: {
+        momo: 'Mobile money (MoMoPay)',
+        cash: 'Paiement en espèces à l’arrivée',
+        card: 'Paiement par carte (TPE / en ligne)',
+        bank: 'Virement bancaire'
+      },
+      refundPolicies: {
+        noEarlyRefund: 'Aucun remboursement en cas d’annulation anticipée (sauf indication contraire).',
+        fullWithinWindow: 'Remboursement intégral si l’annulation intervient dans un délai défini avant la visite (par exemple 48 heures ou 7 jours).',
+        latePartial: 'Les annulations tardives peuvent entraîner un remboursement partiel ou nul.',
+        noShow: 'Aucun remboursement en cas de non-présentation.',
+        closedOnly: 'Remboursement uniquement si l’attraction est fermée ou indisponible en raison de circonstances imprévues.',
+        unusedTickets: 'Aucun remboursement pour les billets non utilisés.',
+        groupDifferent: 'Les réservations de groupe peuvent avoir des conditions d’annulation différentes.'
+      },
+      languages: {
+        kinyarwanda: 'Kinyarwanda',
+        english: 'Anglais',
+        french: 'Français',
+        kiswahili: 'Kiswahili',
+        other: 'Autre'
+      }
+    },
+    ownerAttractions: {
+      ui: {
+        backToListingOptions: 'Retour aux options de publication',
+        listYourAttraction: 'Publier une attraction',
+        cards: 'Cartes',
+        table: 'Tableau',
+        myAttractions: 'Mes attractions',
+        overview: 'Aperçu'
+      }
     }
   },
 };

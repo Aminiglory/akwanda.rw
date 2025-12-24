@@ -992,7 +992,7 @@ export default function OwnerAttractionsDashboard() {
             className="inline-flex items-center px-3 py-1.5 rounded-full bg-white/70 hover:bg-white text-xs font-medium text-[#4b2a00] border border-[#e0d5c7] shadow-sm transition-colors"
           >
             <span className="mr-1">←</span>
-            Back to listing options
+            {labelOr('ownerAttractions.ui.backToListingOptions', 'Back to listing options')}
           </button>
         </div>
         <div className="mb-4 flex items-center justify-end gap-2">
@@ -1002,7 +1002,7 @@ export default function OwnerAttractionsDashboard() {
               onClick={() => window.location.assign('/upload-property?type=attraction')}
               className="px-4 py-2 rounded-lg bg-[#a06b42] hover:bg-[#8f5a32] text-white text-sm font-medium shadow-sm"
             >
-              List Your Attraction
+              {labelOr('ownerAttractions.ui.listYourAttraction', 'List Your Attraction')}
             </button>
             <div className="inline-flex rounded-lg overflow-hidden border">
               <button
@@ -1010,14 +1010,14 @@ export default function OwnerAttractionsDashboard() {
                 onClick={() => setViewMode('cards')}
                 className={`px-3 py-2 text-sm ${viewMode==='cards' ? 'bg-[#a06b42] text-white' : 'bg-white text-gray-700'}`}
               >
-                Cards
+                {labelOr('ownerAttractions.ui.cards', 'Cards')}
               </button>
               <button
                 type="button"
                 onClick={() => setViewMode('table')}
                 className={`px-3 py-2 text-sm ${viewMode==='table' ? 'bg-[#a06b42] text-white' : 'bg-white text-gray-700'}`}
               >
-                Table
+                {labelOr('ownerAttractions.ui.table', 'Table')}
               </button>
             </div>
           </div>
@@ -1030,7 +1030,7 @@ export default function OwnerAttractionsDashboard() {
       )}
 
       <div className="mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-        <h1 className="text-2xl font-bold text-gray-900">My Attractions</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{labelOr('ownerAttractions.ui.myAttractions', 'My Attractions')}</h1>
         {items.length > 0 && (
           <div className="flex items-center gap-2">
             <span className="text-xs text-gray-600 hidden sm:inline">
@@ -1084,7 +1084,7 @@ export default function OwnerAttractionsDashboard() {
           }}
           className={`px-3 py-1.5 rounded-full border ${view === 'overview' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
         >
-          Overview
+          {labelOr('ownerAttractions.ui.overview', 'Overview')}
         </button>
         <button
           type="button"
