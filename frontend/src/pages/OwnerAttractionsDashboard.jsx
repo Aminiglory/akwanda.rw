@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import ReceiptPreview from '../components/ReceiptPreview';
+import Messages from './Messages';
 import toast from 'react-hot-toast';
 import SuccessModal from '../components/SuccessModal';
 import { useLocale } from '../contexts/LocaleContext';
@@ -2011,12 +2012,8 @@ export default function OwnerAttractionsDashboard() {
       )}
 
       {view === 'messages' && (
-        <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-3 text-sm text-gray-700">
-          <h2 className="text-lg font-semibold mb-1">Messages</h2>
-          <p>
-            Attraction reservation messages are handled in your main inbox. Use the Messages link in the
-            top navigation to open the full messaging interface with reservation filters.
-          </p>
+        <div className="mb-6">
+          <Messages embedded defaultCategory="reservations" />
         </div>
       )}
 

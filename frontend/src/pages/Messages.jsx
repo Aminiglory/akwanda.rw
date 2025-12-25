@@ -13,7 +13,7 @@ import { ListItemSkeleton, ChatBubbleSkeleton } from '../components/Skeletons';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-export default function Messages() {
+export default function Messages({ embedded = false, defaultCategory = 'all' } = {}) {
   const [searchParams] = useSearchParams();
   const { socket } = useSocket();
   const { user } = useAuth();
@@ -50,7 +50,7 @@ export default function Messages() {
   const longPressTimerRef = useRef(null);
 
   // Derived from query params; must be inside component to access searchParams
-  const category = (searchParams.get('category') || 'all').toLowerCase();
+  const category = (searchParams.get('category') || defaultCategory || 'all').toLowerCase();
   const categoryLabel = category === 'platform' ? 'Akwanda.rw messages' : category === 'reservations' ? 'Reservation messages' : category === 'qna' ? 'Guest Q&A' : 'All messages';
 
   const filteredThreads = useMemo(() => {
@@ -335,6 +335,7 @@ export default function Messages() {
   // Lock body scroll on mobile when chat overlay is open
   useEffect(() => {
     try {
+      if (embedded) return;
       const isMobile = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(max-width: 1023.5px)').matches;
       if (activeThread) {
         if (isMobile) {
@@ -1045,7 +1046,7 @@ export default function Messages() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className={embedded ? 'relative' : 'min-h-screen bg-gray-50'}>
       {contextMenu.visible && contextMenu.message && (
         <div className="fixed inset-0 z-50" onClick={() => setContextMenu({ visible: false, x: 0, y: 0, message: null })}>
           <div
@@ -1069,9 +1070,9 @@ export default function Messages() {
           </div>
         </div>
       )}
-      <div className="max-w-7xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <div className={`${embedded ? '' : 'max-w-7xl mx-auto px-4 py-6'} grid grid-cols-1 lg:grid-cols-4 gap-6`}>
         {/* Threads Sidebar */}
-        <div className={`lg:col-span-1 modern-card-elevated p-6 flex flex-col h-[calc(100vh-6rem)] md:h-[70vh] lg:h-[78vh] ${activeThread ? 'hidden lg:flex' : 'flex'}`}>
+        <div className={`lg:col-span-1 modern-card-elevated p-6 flex flex-col ${embedded ? 'h-[70vh]' : 'h-[calc(100vh-6rem)] md:h-[70vh] lg:h-[78vh]'} ${activeThread ? 'hidden lg:flex' : 'flex'}`}>
           <div className="mb-4">
             <h2 className="text-xl font-bold text-gray-900 mb-1">AKWANDA Chat</h2>
             <p className="text-sm text-gray-500 mb-1 animate-pulse">Fast, simple and reliable messaging</p>
@@ -1112,7 +1113,7 @@ export default function Messages() {
               if (filtered.length === 0) {
                 return (
                   <div className="flex flex-col items-center justify-center text-center text-gray-600 py-10">
-                    <FaComments className="text-4xl text-gray-300 mb-2" />
+                    <FaComments className="text-4xl text-gray-300 mx-auto mb-4" />
                     <div className="mb-3">No conversations yet</div>
                     <button
                       onClick={() => setShowUserSearch(true)}
@@ -1130,10 +1131,10 @@ export default function Messages() {
         <div
           className={`lg:col-span-3 modern-card-elevated flex flex-col 
             ${!activeThread ? 'hidden lg:flex' : 'flex'}
-            ${activeThread ? 'fixed inset-0 z-40 lg:relative lg:inset-auto lg:z-auto lg:bg-transparent' : ''}
+            ${activeThread ? (embedded ? 'lg:relative lg:inset-auto lg:z-auto lg:bg-transparent' : 'fixed inset-0 z-40 lg:relative lg:inset-auto lg:z-auto lg:bg-transparent') : ''}
             ${activeThread ? (overlayReady ? 'opacity-100' : 'opacity-0 lg:opacity-100') : ''}
             transition-opacity duration-200 ease-out
-            h-[100vh] md:h-[80vh] lg:h-[78vh]
+            ${embedded ? 'h-[70vh]' : 'h-[100vh] md:h-[80vh] lg:h-[78vh]'}
           `}
           role="region"
           aria-label="Chat Area"
@@ -1327,35 +1328,36 @@ export default function Messages() {
         </div>
       </div>
 
-      {/* Mobile floating actions: new chat and open thread list */}
-      <div className="lg:hidden fixed bottom-5 right-5 z-50 flex flex-col items-end gap-3">
-        {/* Show 'New chat' button only when NOT in a conversation (like WhatsApp) */}
-        {!activeThread && (
-          <button
-            onClick={() => setShowUserSearch(true)}
-            className="btn-primary text-white rounded-full w-12 h-12 shadow-lg flex items-center justify-center"
-            title="New chat"
-            aria-label="New chat"
-          >
-            <FaUser />
-          </button>
-        )}
-        {/* Show 'All chats' button only when IN a conversation */}
-        {activeThread && (
-          <button
-            onClick={() => setActiveThread(null)}
-            className="bg-white text-primary rounded-full w-12 h-12 shadow-lg flex items-center justify-center border border-subtle"
-            title="All chats"
-            aria-label="All chats"
-          >
-            <FaComments />
-          </button>
-        )}
-      </div>
+      {!embedded && (
+        <div className="lg:hidden fixed bottom-5 right-5 z-50 flex flex-col items-end gap-3">
+          {/* Show 'New chat' button only when NOT in a conversation (like WhatsApp) */}
+          {!activeThread && (
+            <button
+              onClick={() => setShowUserSearch(true)}
+              className="btn-primary text-white rounded-full w-12 h-12 shadow-lg flex items-center justify-center"
+              title="New chat"
+              aria-label="New chat"
+            >
+              <FaUser />
+            </button>
+          )}
+          {/* Show 'All chats' button only when IN a conversation */}
+          {activeThread && (
+            <button
+              onClick={() => setActiveThread(null)}
+              className="bg-white text-primary rounded-full w-12 h-12 shadow-lg flex items-center justify-center border border-subtle"
+              title="All chats"
+              aria-label="All chats"
+            >
+              <FaComments />
+            </button>
+          )}
+        </div>
+      )}
 
       {/* User Search Modal */}
       {showUserSearch && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className={`${embedded ? 'absolute' : 'fixed'} inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50`}>
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 max-h-[80vh] overflow-hidden">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold text-gray-900">Start New Conversation</h2>
