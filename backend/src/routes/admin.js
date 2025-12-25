@@ -144,7 +144,12 @@ router.post('/commission', requireAdmin, async (req, res) => {
 // Commission levels management (admin-defined tiers for direct/online rates)
 router.get('/commission-levels', requireAdmin, async (req, res) => {
   try {
-    const levels = await CommissionLevel.find({}).sort({ sortOrder: 1, createdAt: 1 });
+    const { scope } = req.query || {};
+    const filter = {};
+    if (scope && (scope === 'property' || scope === 'vehicle')) {
+      filter.scope = scope;
+    }
+    const levels = await CommissionLevel.find(filter).sort({ sortOrder: 1, createdAt: 1 });
     return res.json({ levels });
   } catch (e) {
     console.error('List commission levels error:', e);
@@ -154,7 +159,7 @@ router.get('/commission-levels', requireAdmin, async (req, res) => {
 
 router.post('/commission-levels', requireAdmin, async (req, res) => {
   try {
-    const { name, key, description, directRate, onlineRate, isPremium, isDefault, sortOrder } = req.body || {};
+    const { name, key, description, directRate, onlineRate, isPremium, isDefault, sortOrder, scope } = req.body || {};
     if (!name || !key) {
       return res.status(400).json({ message: 'name and key are required' });
     }
@@ -163,6 +168,11 @@ router.post('/commission-levels', requireAdmin, async (req, res) => {
     const online = Number(onlineRate);
     if (isNaN(direct) || direct < 0 || direct > 100 || isNaN(online) || online < 0 || online > 100) {
       return res.status(400).json({ message: 'Invalid direct or online rate' });
+    }
+
+    let levelScope = 'property';
+    if (scope === 'vehicle' || scope === 'property') {
+      levelScope = scope;
     }
 
     const update = {
@@ -175,6 +185,7 @@ router.post('/commission-levels', requireAdmin, async (req, res) => {
       isDefault: !!isDefault,
       active: true,
       sortOrder: typeof sortOrder === 'number' ? sortOrder : 0,
+      scope: levelScope,
     };
 
     if (update.isDefault) {
@@ -201,7 +212,7 @@ router.put('/commission-levels/:id', requireAdmin, async (req, res) => {
     const level = await CommissionLevel.findById(id);
     if (!level) return res.status(404).json({ message: 'Commission level not found' });
 
-    const { name, key, description, directRate, onlineRate, isPremium, isDefault, active, sortOrder } = req.body || {};
+    const { name, key, description, directRate, onlineRate, isPremium, isDefault, active, sortOrder, scope } = req.body || {};
 
     if (name != null) level.name = String(name).trim();
     if (key != null) level.key = String(key).trim();
@@ -220,6 +231,9 @@ router.put('/commission-levels/:id', requireAdmin, async (req, res) => {
     if (typeof isDefault === 'boolean') level.isDefault = isDefault;
     if (typeof active === 'boolean') level.active = active;
     if (sortOrder != null) level.sortOrder = Number(sortOrder) || 0;
+    if (scope === 'property' || scope === 'vehicle') {
+      level.scope = scope;
+    }
 
     if (level.isDefault) {
       await CommissionLevel.updateMany({ _id: { $ne: level._id }, isDefault: true }, { $set: { isDefault: false } });
@@ -244,10 +258,18 @@ router.delete('/commission-levels/:id', requireAdmin, async (req, res) => {
     const { id } = req.params;
     const level = await CommissionLevel.findById(id);
     if (!level) return res.status(404).json({ message: 'Commission level not found' });
-
-    const inUse = await Property.exists({ commissionLevel: id });
-    if (inUse) {
-      return res.status(400).json({ message: 'Cannot delete a commission level that is assigned to properties' });
+    // Prevent deleting levels that are in use
+    if (level.scope === 'vehicle') {
+      const CarRental = require('../tables/carRental');
+      const inUseVehicle = await CarRental.exists({ commissionLevel: id });
+      if (inUseVehicle) {
+        return res.status(400).json({ message: 'Cannot delete a commission level that is assigned to vehicles' });
+      }
+    } else {
+      const inUseProperty = await Property.exists({ commissionLevel: id });
+      if (inUseProperty) {
+        return res.status(400).json({ message: 'Cannot delete a commission level that is assigned to properties' });
+      }
     }
 
     await level.deleteOne();
@@ -600,62 +622,79 @@ router.post('/users/:id/fines/:fineId/pay', requireAdmin, async (req, res) => {
   }
 });
 
-// Get users with unpaid commissions (MUST BE BEFORE /users/:id)
+// Get users with unpaid commissions (properties + vehicles) (MUST BE BEFORE /users/:id)
 router.get('/users/unpaid-commissions', requireAdmin, async (req, res) => {
-    try {
-        // Find all bookings with unpaid commissions
-        const unpaidBookings = await Booking.find({ 
-            paymentStatus: 'paid',
-            commissionPaid: false 
-        }).populate('property').populate('guest', 'firstName lastName email');
+  try {
+    // PROPERTY BOOKINGS
+    const unpaidBookings = await Booking.find({
+      paymentStatus: 'paid',
+      commissionPaid: false,
+    })
+      .populate('property')
+      .populate('guest', 'firstName lastName email');
 
-        // Group by property owner
-        const ownerCommissions = {};
-        
-        for (const booking of unpaidBookings) {
-            if (!booking.property || !booking.property.host) continue;
-            
-            const ownerId = booking.property.host.toString();
-            
-            if (!ownerCommissions[ownerId]) {
-                ownerCommissions[ownerId] = {
-                    ownerId,
-                    totalCommission: 0,
-                    bookings: []
-                };
-            }
-            
-            ownerCommissions[ownerId].totalCommission += booking.commissionAmount || 0;
-            ownerCommissions[ownerId].bookings.push(booking);
+    const ownerCommissions = {};
+
+    for (const booking of unpaidBookings) {
+      if (!booking.property || !booking.property.host) continue;
+      const ownerId = booking.property.host.toString();
+
+      if (!ownerCommissions[ownerId]) {
+        ownerCommissions[ownerId] = {
+          ownerId,
+          totalCommission: 0,
+          bookings: [],
+        };
+      }
+
+      ownerCommissions[ownerId].totalCommission += booking.commissionAmount || 0;
+      ownerCommissions[ownerId].bookings.push(booking);
+    }
+
+    // VEHICLE BOOKINGS (car rentals)
+    try {
+      const CarRental = require('../tables/carRental');
+      const CarRentalBooking = require('../tables/carRentalBooking');
+
+      const unpaidCarBookings = await CarRentalBooking.find({
+        commissionPaid: false,
+        status: { $in: ['confirmed', 'active', 'completed'] },
+      }).populate('car');
+
+      for (const cb of unpaidCarBookings) {
+        if (!cb.car || !cb.car.owner) continue;
+        const ownerId = cb.car.owner.toString();
+
+        if (!ownerCommissions[ownerId]) {
+          ownerCommissions[ownerId] = {
+            ownerId,
+            totalCommission: 0,
+            bookings: [],
+          };
         }
 
-        // Get owner details
-        const ownerIds = Object.keys(ownerCommissions);
-        const owners = await User.find({ _id: { $in: ownerIds } }).select('firstName lastName email isBlocked');
-
-        const result = owners.map(owner => ({
-            ...owner.toObject(),
-            ...ownerCommissions[owner._id.toString()]
-        }));
-
-        res.json({ users: result });
-    } catch (error) {
-        console.error('Get unpaid commissions error:', error);
-        res.status(500).json({ message: 'Failed to fetch unpaid commissions', error: error.message });
+        ownerCommissions[ownerId].totalCommission += cb.commissionAmount || 0;
+        ownerCommissions[ownerId].bookings.push(cb);
+      }
+    } catch (e) {
+      console.error('Unpaid vehicle commissions aggregation failed (non-fatal):', e && e.message);
     }
-});
 
-// Get user details with fines and block status
-router.get('/users/:id', requireAdmin, async (req, res) => {
-    try {
-        const User = require('../tables/user');
-        const user = await User.findById(req.params.id).select('-passwordHash');
-        if (!user) return res.status(404).json({ message: 'User not found' });
-        res.json({ user });
-    } catch (error) {
-        console.error('Get user error:', error);
-        res.status(500).json({ message: 'Failed to fetch user', error: error.message });
-    }
+    const ownerIds = Object.keys(ownerCommissions);
+    const owners = ownerIds.length
+      ? await User.find({ _id: { $in: ownerIds } }).select('firstName lastName email isBlocked')
+      : [];
+
+    const result = owners.map((owner) => ({
+      ...owner.toObject(),
+      ...ownerCommissions[owner._id.toString()],
+    }));
+
+    return res.json({ users: result });
+  } catch (error) {
+    console.error('Get unpaid commissions error:', error);
+    return res.status(500).json({ message: 'Failed to fetch unpaid commissions', error: error.message });
+  }
 });
 
 // Deactivate user account (for unpaid commission)

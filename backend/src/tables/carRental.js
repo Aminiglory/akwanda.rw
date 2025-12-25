@@ -87,7 +87,9 @@ const carRentalSchema = new mongoose.Schema(
     ownerWhatsapp: { type: String },
     ownerEmail: { type: String },
     ownerAddress: { type: String },
-    ownerEmergency: { type: String }
+    ownerEmergency: { type: String },
+    // Per-vehicle commission level (links to CommissionLevel with scope="vehicle")
+    commissionLevel: { type: mongoose.Schema.Types.ObjectId, ref: 'CommissionLevel' }
   },
   { timestamps: true }
 );

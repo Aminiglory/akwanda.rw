@@ -1,9 +1,11 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
+const PDFDocument = require('pdfkit');
 const router = express.Router();
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
 const CommissionSettings = require('../tables/commissionSettings');
+const CommissionLevel = require('../tables/commissionLevel');
 
 function requireAuth(req, res, next) {
   const token = req.cookies.akw_token || (req.headers.authorization || '').replace('Bearer ', '');
@@ -26,7 +28,7 @@ router.post('/', requireAuth, async (req, res) => {
     if (!carId || !pickupDate || !returnDate || !pickupLocation) {
       return res.status(400).json({ message: 'Missing required fields' });
     }
-    const car = await CarRental.findById(carId);
+    const car = await CarRental.findById(carId).select('owner pricePerDay pricePerWeek pricePerMonth commissionLevel');
     if (!car) return res.status(404).json({ message: 'Car not found' });
 
     const start = new Date(pickupDate);
@@ -67,6 +69,28 @@ router.post('/', requireAuth, async (req, res) => {
       return undefined;
     })();
 
+    // Determine commission for online car bookings
+    let commissionRate = 0;
+    try {
+      if (car && car.commissionLevel) {
+        const level = await CommissionLevel.findById(car.commissionLevel).lean();
+        if (level) {
+          commissionRate = Number(level.onlineRate || 0);
+        }
+      }
+    } catch (_) {}
+
+    if (!commissionRate || commissionRate <= 0 || commissionRate > 100) {
+      try {
+        const settings = await CommissionSettings.getSingleton();
+        commissionRate = Number(settings.premiumRate || settings.baseRate || 0);
+      } catch (_) {
+        commissionRate = 0;
+      }
+    }
+
+    const commissionAmount = commissionRate > 0 ? Math.round(total * (commissionRate / 100)) : 0;
+
     const booking = await CarRentalBooking.create({
       car: car._id,
       guest: req.user.id,
@@ -82,7 +106,10 @@ router.post('/', requireAuth, async (req, res) => {
       driverAge: driverAge || undefined,
       contactPhone: contactPhone || '',
       specialRequests: specialRequests || '',
-      paymentMethod: normalizedPaymentMethod || undefined
+      paymentMethod: normalizedPaymentMethod || undefined,
+      commissionRate: commissionRate || undefined,
+      commissionAmount,
+      commissionPaid: false,
     });
 
     res.status(201).json({ booking });
@@ -121,7 +148,7 @@ router.post('/direct', requireAuth, async (req, res) => {
     if (!carId || !pickupDate || !returnDate || !pickupLocation) {
       return res.status(400).json({ message: 'Missing required fields' });
     }
-    const car = await CarRental.findById(carId).select('owner pricePerDay pricePerWeek pricePerMonth');
+    const car = await CarRental.findById(carId).select('owner pricePerDay pricePerWeek pricePerMonth commissionLevel');
     if (!car) return res.status(404).json({ message: 'Car not found' });
     if (String(car.owner) !== String(req.user.id) && req.user.userType !== 'admin') {
       return res.status(403).json({ message: 'You can only create direct bookings for your own vehicles' });
@@ -149,13 +176,24 @@ router.post('/direct', requireAuth, async (req, res) => {
       return res.status(400).json({ message: 'Final agreed price is required for direct bookings' });
     }
 
-    // Load commission rate from global settings (use baseRate for now)
+    // Load commission rate: prefer per-vehicle level (directRate), fall back to global baseRate
     let commissionRate = 0;
     try {
-      const settings = await CommissionSettings.getSingleton();
-      commissionRate = Number(settings.baseRate || 0);
-    } catch (_) {
-      commissionRate = 0;
+      if (car && car.commissionLevel) {
+        const level = await CommissionLevel.findById(car.commissionLevel).lean();
+        if (level) {
+          commissionRate = Number(level.directRate || 0);
+        }
+      }
+    } catch (_) {}
+
+    if (!commissionRate || commissionRate <= 0 || commissionRate > 100) {
+      try {
+        const settings = await CommissionSettings.getSingleton();
+        commissionRate = Number(settings.baseRate || 0);
+      } catch (_) {
+        commissionRate = 0;
+      }
     }
     const commissionAmount = commissionRate > 0 ? Math.round(price * (commissionRate / 100)) : 0;
 
@@ -247,6 +285,93 @@ router.patch('/:id/status', requireAuth, async (req, res) => {
     res.json({ booking: b });
   } catch (e) {
     res.status(500).json({ message: 'Failed to update status' });
+  }
+});
+
+// Simple invoice PDF for car bookings (owner / guest / admin)
+router.get('/:id/invoice', requireAuth, async (req, res) => {
+  try {
+    const CarRental = require('../tables/carRental');
+    const CarRentalBooking = require('../tables/carRentalBooking');
+
+    const b = await CarRentalBooking.findById(req.params.id).populate('car').populate('guest');
+    if (!b) return res.status(404).json({ message: 'Booking not found' });
+
+    const car = b.car;
+    if (!car) return res.status(404).json({ message: 'Vehicle not found for this booking' });
+
+    const isOwner = String(car.owner) === String(req.user.id);
+    const isGuest = b.guest && String(b.guest._id || b.guest) === String(req.user.id);
+    const isAdmin = req.user.userType === 'admin';
+    if (!isOwner && !isGuest && !isAdmin) {
+      return res.status(403).json({ message: 'Unauthorized' });
+    }
+
+    const doc = new PDFDocument({ margin: 50 });
+    const code = String(b._id).slice(-8);
+    const filename = `car-invoice-${code}.pdf`;
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+
+    doc.pipe(res);
+
+    // Header
+    doc.fontSize(18).text('AKWANDA.rw', { align: 'left' });
+    doc.moveDown(0.2);
+    doc.fontSize(14).text('Vehicle Booking Invoice', { align: 'left' });
+    doc.moveDown();
+
+    const createdAt = b.createdAt ? new Date(b.createdAt) : new Date();
+    doc.fontSize(10);
+    doc.text(`Invoice #: ${code}`);
+    doc.text(`Date: ${createdAt.toLocaleDateString()}`);
+    doc.moveDown();
+
+    // Vehicle details
+    const vehicleName = car.vehicleName || `${car.brand || ''} ${car.model || ''}`.trim() || 'Vehicle';
+    doc.text(`Vehicle: ${vehicleName}`);
+    doc.text(`Category: ${car.category || 'car'}`);
+    if (car.registrationNumber) doc.text(`Registration: ${car.registrationNumber}`);
+    doc.moveDown();
+
+    // Guest / renter details (prefer linked guest user, fallback to direct fields)
+    const guestName = b.guest
+      ? `${b.guest.firstName || ''} ${b.guest.lastName || ''}`.trim() || 'Guest'
+      : (b.guestName || 'Guest');
+    const guestEmail = (b.guest && b.guest.email) || b.guestEmail || '';
+    const guestPhone = (b.guest && b.guest.phone) || b.guestPhone || b.contactPhone || '';
+
+    doc.text(`Renter: ${guestName}`);
+    if (guestEmail) doc.text(`Email: ${guestEmail}`);
+    if (guestPhone) doc.text(`Phone: ${guestPhone}`);
+    doc.moveDown();
+
+    // Booking details
+    const pickup = b.pickupDate ? new Date(b.pickupDate) : null;
+    const ret = b.returnDate ? new Date(b.returnDate) : null;
+    doc.text(`Pickup date: ${pickup ? pickup.toLocaleDateString() : '-'}`);
+    doc.text(`Return date: ${ret ? ret.toLocaleDateString() : '-'}`);
+    doc.text(`Days: ${b.numberOfDays || ''}`);
+    doc.moveDown();
+
+    // Amounts
+    const totalAmount = Number(b.totalAmount || 0);
+    const commissionAmount = Number(b.commissionAmount || 0);
+    doc.text(`Total amount: RWF ${totalAmount.toLocaleString()}`);
+    doc.text(`Commission amount: RWF ${commissionAmount.toLocaleString()}`);
+    if (typeof b.commissionRate === 'number') {
+      doc.text(`Commission rate: ${b.commissionRate}%`);
+    }
+    doc.moveDown();
+
+    doc.text(`Status: ${b.status || 'pending'}`);
+    doc.text(`Channel: ${b.channel || 'online'}`);
+
+    doc.end();
+  } catch (e) {
+    console.error('Car booking invoice error:', e && e.message);
+    return res.status(500).json({ message: 'Failed to generate invoice' });
   }
 });
 

@@ -26,6 +26,7 @@ const AdminCommissionManager = () => {
   const [levelsLoading, setLevelsLoading] = useState(false);
   const [levelForm, setLevelForm] = useState({ name: '', key: '', description: '', directRate: 2, onlineRate: 10, isDefault: false, isPremium: false, sortOrder: 0 });
   const [editingLevelId, setEditingLevelId] = useState(null);
+  const [levelScope, setLevelScope] = useState('property'); // 'property' | 'vehicle'
 
   const getAuthHeaders = () => {
     let token = null;
@@ -46,7 +47,7 @@ const AdminCommissionManager = () => {
     fetchUsersWithUnpaidCommissions();
     fetchCommissionSettings();
     fetchCommissionLevels();
-  }, [isAuthenticated, user?.userType]);
+  }, [isAuthenticated, user?.userType, levelScope]);
 
   const safeParseJson = async (res) => {
     const ct = (res.headers && res.headers.get ? res.headers.get('content-type') : '') || '';
@@ -108,7 +109,8 @@ const AdminCommissionManager = () => {
   const fetchCommissionLevels = async () => {
     try {
       setLevelsLoading(true);
-      const res = await fetch(`${API_URL}/api/admin/commission-levels`, {
+      const scopeParam = levelScope === 'vehicle' ? '?scope=vehicle' : '?scope=property';
+      const res = await fetch(`${API_URL}/api/admin/commission-levels${scopeParam}`, {
         credentials: 'include',
         headers: getAuthHeaders(),
       });
@@ -131,6 +133,7 @@ const AdminCommissionManager = () => {
         directRate: Number(levelForm.directRate),
         onlineRate: Number(levelForm.onlineRate),
         sortOrder: Number(levelForm.sortOrder) || 0,
+        scope: levelScope,
       };
       const method = editingLevelId ? 'PUT' : 'POST';
       const url = editingLevelId
@@ -234,7 +237,7 @@ const AdminCommissionManager = () => {
         body: JSON.stringify(payload)
       });
       const data = await safeParseJson(res);
-      if (!res.ok) throw new Error(data.message || (data && data.__raw ? data.__raw.slice(0,200) : 'Failed to add fine'));
+      if (!res.ok) throw new Error(data.message || (data && data.__raw ? data.__raw.slice(0, 200) : 'Failed to add fine'));
       toast.success('Fine added');
       setShowFineModal(false);
       setSuccessTitle('Fine Added');
@@ -269,7 +272,7 @@ const AdminCommissionManager = () => {
 
       const data = await safeParseJson(res);
 
-      if (!res.ok) throw new Error(data.message || (data && data.__raw ? data.__raw.slice(0,200) : 'Failed to deactivate user'));
+      if (!res.ok) throw new Error(data.message || (data && data.__raw ? data.__raw.slice(0, 200) : 'Failed to deactivate user'));
 
       toast.success('User account deactivated successfully');
       setSuccessTitle('User Deactivated');
@@ -298,7 +301,7 @@ const AdminCommissionManager = () => {
       });
       const data = await safeParseJson(res);
 
-      if (!res.ok) throw new Error(data.message || (data && data.__raw ? data.__raw.slice(0,200) : 'Failed to reactivate user'));
+      if (!res.ok) throw new Error(data.message || (data && data.__raw ? data.__raw.slice(0, 200) : 'Failed to reactivate user'));
 
       toast.success('Owner temporarily unlocked while dues remain');
       setSuccessTitle('Owner Unlocked');
@@ -346,6 +349,22 @@ const AdminCommissionManager = () => {
           <p className="text-gray-600 text-xs sm:text-sm">Manage users with unpaid commissions and set global commission rates</p>
         </div>
         <div className="flex items-center gap-2">
+          <div className="hidden sm:inline-flex rounded-lg overflow-hidden border mr-2">
+            <button
+              type="button"
+              onClick={() => setLevelScope('property')}
+              className={`px-3 py-1.5 text-xs sm:text-sm ${levelScope === 'property' ? 'bg-[#a06b42] text-white' : 'bg-white text-gray-700'}`}
+            >
+              Property levels
+            </button>
+            <button
+              type="button"
+              onClick={() => setLevelScope('vehicle')}
+              className={`px-3 py-1.5 text-xs sm:text-sm ${levelScope === 'vehicle' ? 'bg-[#a06b42] text-white' : 'bg-white text-gray-700'}`}
+            >
+              Vehicle levels
+            </button>
+          </div>
           <div className="inline-flex rounded-lg overflow-hidden border">
             <button className={`px-3 py-1.5 text-xs sm:text-sm ${viewMode==='cards' ? 'bg-[#a06b42] text-white' : 'bg-white text-gray-700'}`} onClick={()=>setViewMode('cards')}>Cards</button>
             <button className={`px-3 py-1.5 text-xs sm:text-sm ${viewMode==='table' ? 'bg-[#a06b42] text-white' : 'bg-white text-gray-700'}`} onClick={()=>setViewMode('table')}>Table</button>

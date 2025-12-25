@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
 const { uploadBuffer } = require('../utils/cloudinary');
+const CommissionLevel = require('../tables/commissionLevel');
 const router = express.Router();
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
@@ -11,6 +12,20 @@ const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
 function requireAuth(req, res, next) {
   const token = req.cookies.akw_token || (req.headers.authorization || '').replace('Bearer ', '');
   if (!token) return res.status(401).json({ message: 'Unauthorized' });
+
+// Vehicle commission levels available to owners (scope='vehicle')
+// GET /api/cars/commission-levels
+router.get('/commission-levels', requireAuth, async (req, res) => {
+  try {
+    const levels = await CommissionLevel.find({ scope: 'vehicle', active: true })
+      .sort({ sortOrder: 1, createdAt: 1 })
+      .select('name description directRate onlineRate isPremium isDefault');
+    return res.json({ levels });
+  } catch (e) {
+    console.error('List vehicle commission levels error:', e);
+    return res.status(500).json({ message: 'Failed to load vehicle commission levels', error: e?.message || String(e) });
+  }
+});
   try {
     const user = jwt.verify(token, JWT_SECRET);
     req.user = user;
