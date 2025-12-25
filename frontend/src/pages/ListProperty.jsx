@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useLocale } from '../contexts/LocaleContext';
 import toast from 'react-hot-toast';
 import EnhancedUploadProperty from './EnhancedUploadProperty';
 import VehicleListingForm from '../components/VehicleListingForm';
@@ -49,30 +50,12 @@ const LocationMapPicker = ({ position, onPositionChange }) => {
 };
 
 const categoryOptions = [
-  'National Park',
-  'Hiking Trail',
-  'Mountain / Volcano',
-  'Lake Experience',
-  'Waterfall',
-  'Cultural Village',
-  'Historical Site',
-  'Genocide Memorial',
-  'Museum',
-  'Adventure Activity',
-  'Wildlife Experience',
-  'Eco-tour / Nature Walk',
-  'City Tour',
-  'Food & Drink Experience',
-  'Art & Craft Experience',
-  'Religious / Pilgrimage Site',
-  'Farm / Plantation Tour',
-  'Guided Tour',
-  'Boat Activity',
-  'Community Tourism',
-  'Festival / Event Experience',
-  'Camping Site',
-  'Beach / Lakeside',
-  'Educational Tour'
+  { value: 'cultural', label: 'Culture & Museums', labelKey: 'attractionWizard.categories.cultural' },
+  { value: 'nature', label: 'Nature & Parks', labelKey: 'attractionWizard.categories.nature' },
+  { value: 'adventure', label: 'Adventure & Outdoor', labelKey: 'attractionWizard.categories.adventure' },
+  { value: 'historical', label: 'Historical & Landmarks', labelKey: 'attractionWizard.categories.historical' },
+  { value: 'religious', label: 'Religious Sites', labelKey: 'attractionWizard.categories.religious' },
+  { value: 'entertainment', label: 'Entertainment & Shows', labelKey: 'attractionWizard.categories.entertainment' }
 ];
 
 const yesNoOptions = [
@@ -80,25 +63,29 @@ const yesNoOptions = [
   { label: 'No', value: 'no' }
 ];
 
-const openingDayOptions = ['Weekend', 'Monday–Friday', 'Whole week'];
+const openingDayOptions = [
+  { value: 'Weekend', label: 'Weekend', labelKey: 'attractionWizard.openingDays.weekend' },
+  { value: 'Monday–Friday', label: 'Monday–Friday', labelKey: 'attractionWizard.openingDays.weekdays' },
+  { value: 'Whole week', label: 'Whole week', labelKey: 'attractionWizard.openingDays.wholeWeek' }
+];
 
 const attractionCurrencyOptions = ['RWF', 'USD', 'EUR', 'KES', 'UGX', 'TZS'];
 
 const paymentMethodOptions = [
-  'Mobile money (MoMoPay)',
-  'Cash on arrival',
-  'Card payment (POS / online)',
-  'Bank transfer'
+  { value: 'Mobile money (MoMoPay)', label: 'Mobile money (MoMoPay)', labelKey: 'attractionWizard.paymentMethods.momo' },
+  { value: 'Cash on arrival', label: 'Cash on arrival', labelKey: 'attractionWizard.paymentMethods.cash' },
+  { value: 'Card payment (POS / online)', label: 'Card payment (POS / online)', labelKey: 'attractionWizard.paymentMethods.card' },
+  { value: 'Bank transfer', label: 'Bank transfer', labelKey: 'attractionWizard.paymentMethods.bank' }
 ];
 
 const refundPolicyOptions = [
-  'No refund for early cancellation (unless stated otherwise).',
-  'Full refund for cancellations within a defined window before the visit (for example 48 hours or 7 days).',
-  'Late cancellations may result in partial or no refund.',
-  'No refund for no-shows.',
-  'Refunds offered only if the attraction is closed or unavailable due to unforeseen circumstances.',
-  'Refunds are not provided for unused tickets.',
-  'Group bookings may have different cancellation terms and conditions.'
+  { value: 'No refund for early cancellation (unless stated otherwise).', label: 'No refund for early cancellation (unless stated otherwise).', labelKey: 'attractionWizard.refundPolicies.noEarlyRefund' },
+  { value: 'Full refund for cancellations within a defined window before the visit (for example 48 hours or 7 days).', label: 'Full refund for cancellations within a defined window before the visit (for example 48 hours or 7 days).', labelKey: 'attractionWizard.refundPolicies.fullWithinWindow' },
+  { value: 'Late cancellations may result in partial or no refund.', label: 'Late cancellations may result in partial or no refund.', labelKey: 'attractionWizard.refundPolicies.latePartial' },
+  { value: 'No refund for no-shows.', label: 'No refund for no-shows.', labelKey: 'attractionWizard.refundPolicies.noShow' },
+  { value: 'Refunds offered only if the attraction is closed or unavailable due to unforeseen circumstances.', label: 'Refunds offered only if the attraction is closed or unavailable due to unforeseen circumstances.', labelKey: 'attractionWizard.refundPolicies.closedOnly' },
+  { value: 'Refunds are not provided for unused tickets.', label: 'Refunds are not provided for unused tickets.', labelKey: 'attractionWizard.refundPolicies.unusedTickets' },
+  { value: 'Group bookings may have different cancellation terms and conditions.', label: 'Group bookings may have different cancellation terms and conditions.', labelKey: 'attractionWizard.refundPolicies.groupDifferent' }
 ];
 
 const meetingPointOptions = [
@@ -133,10 +120,17 @@ const safetyEquipmentOptions = [
   'Rescue boat or vehicle available'
 ];
 
-const languageOptions = ['Kinyarwanda', 'English', 'French', 'Kiswahili', 'Other'];
+const languageOptions = [
+  { value: 'Kinyarwanda', label: 'Kinyarwanda', labelKey: 'attractionWizard.languages.kinyarwanda' },
+  { value: 'English', label: 'English', labelKey: 'attractionWizard.languages.english' },
+  { value: 'French', label: 'French', labelKey: 'attractionWizard.languages.french' },
+  { value: 'Kiswahili', label: 'Kiswahili', labelKey: 'attractionWizard.languages.kiswahili' },
+  { value: 'Other', label: 'Other', labelKey: 'attractionWizard.languages.other' }
+];
 
 const highlightGroups = [
   {
+    key: 'adventure',
     label: 'Adventure & Activity Highlights',
     options: [
       'Hiking',
@@ -161,6 +155,7 @@ const highlightGroups = [
     ],
   },
   {
+    key: 'nature',
     label: 'Nature Highlights',
     options: [
       'Scenic Viewpoint',
@@ -176,6 +171,7 @@ const highlightGroups = [
     ],
   },
   {
+    key: 'culture',
     label: 'Cultural & Historical Highlights',
     options: [
       'Cultural Dance',
@@ -196,6 +192,7 @@ const highlightGroups = [
     ],
   },
   {
+    key: 'safety',
     label: 'Safety & Professional Highlights',
     options: [
       'Certified Guides',
@@ -210,6 +207,7 @@ const highlightGroups = [
     ],
   },
   {
+    key: 'convenience',
     label: 'Convenience Highlights',
     options: [
       'Quick Experience (<1 hour)',
@@ -227,6 +225,7 @@ const highlightGroups = [
     ],
   },
   {
+    key: 'other',
     label: 'Other Useful Highlights',
     options: [
       'Quiet Environment',
@@ -251,16 +250,20 @@ const initialAttraction = {
   gps: '',
   landmarks: '',
   directions: '',
+  openingDays: '',
+  openingHoursStart: '',
+  openingHoursEnd: '',
   latitude: DEFAULT_MAP_CENTER.lat,
   longitude: DEFAULT_MAP_CENTER.lng,
   locationMap: '',
   coverPhotoFiles: [],
   galleryFiles: [],
   video: '',
-  openingDays: 'Whole week',
-  openingHoursStart: '',
-  openingHoursEnd: '',
-  seasonality: '',
+  operatingHours: {
+    days: [],
+    start: '',
+    end: '',
+  },
   duration: '',
   minAge: '',
   accessibility: '',
@@ -431,6 +434,7 @@ const initialFlightData = {
 
 const ListProperty = () => {
   const { user } = useAuth();
+  const { t } = useLocale() || {};
   const navigate = useNavigate();
   const location = useLocation();
   const [listingType, setListingType] = useState('stay');
@@ -438,6 +442,31 @@ const ListProperty = () => {
   const [attractionForm, setAttractionForm] = useState(initialAttraction);
   const [flightStep, setFlightStep] = useState(1);
   const [flightData, setFlightData] = useState(initialFlightData);
+
+  const labelOr = (key, fallback) => {
+    if (!t) return fallback;
+    try {
+      const v = t(key);
+      if (!v) return fallback;
+      const last = String(key || '').split('.').pop();
+      if (v === key || (last && v === last)) return fallback;
+      return v;
+    } catch (_) {
+      return fallback;
+    }
+  };
+
+  const toKey = (text) => String(text || '')
+    .toLowerCase()
+    .replace(/&/g, 'and')
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .slice(0, 80);
+
+  const optionLabel = (prefix, optionText) => {
+    const k = `${prefix}.${toKey(optionText)}`;
+    return labelOr(k, optionText);
+  };
 
   // If a specific listing type is provided in the URL, preselect its tile
   useEffect(() => {
@@ -493,16 +522,16 @@ const ListProperty = () => {
 
   const renderListingTypeSelector = () => (
     <div className="mb-6">
-      <h2 className="text-xl font-semibold text-gray-900 mb-2">What would you like to list?</h2>
+      <h2 className="text-xl font-semibold text-gray-900 mb-2">{labelOr('attractionWizard.listingType.title', 'What would you like to list?')}</h2>
       <p className="text-sm text-gray-600 mb-4">
-        Choose the type of listing you want to create. Stays, rentals, attractions and flights each have their own flow.
+        {labelOr('attractionWizard.listingType.subtitle', 'Choose the type of listing you want to create. Stays, rentals, attractions and flights each have their own flow.')}
       </p>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { id: 'stay', label: 'Stay', desc: 'Apartments, hotels, homes', color: 'from-blue-500 to-blue-600' },
-          { id: 'rental', label: 'Rental', desc: 'Cars & vehicles', color: 'from-green-500 to-green-600' },
-          { id: 'attraction', label: 'Attraction', desc: 'Tours & activities', color: 'from-purple-500 to-purple-600' },
-          { id: 'flight', label: 'Flight', desc: 'Flight services', color: 'from-indigo-500 to-indigo-600' }
+          { id: 'stay', label: labelOr('attractionWizard.listingType.stay', 'Stay'), desc: labelOr('attractionWizard.listingType.stayDesc', 'Apartments, hotels, homes'), color: 'from-blue-500 to-blue-600' },
+          { id: 'rental', label: labelOr('attractionWizard.listingType.rental', 'Rental'), desc: labelOr('attractionWizard.listingType.rentalDesc', 'Cars & vehicles'), color: 'from-green-500 to-green-600' },
+          { id: 'attraction', label: labelOr('attractionWizard.listingType.attraction', 'Attraction'), desc: labelOr('attractionWizard.listingType.attractionDesc', 'Tours & activities'), color: 'from-purple-500 to-purple-600' },
+          { id: 'flight', label: labelOr('attractionWizard.listingType.flight', 'Flight'), desc: labelOr('attractionWizard.listingType.flightDesc', 'Flight services'), color: 'from-indigo-500 to-indigo-600' }
         ].map((type) => (
           <button
             key={type.id}
@@ -551,8 +580,8 @@ const ListProperty = () => {
 
     return (
       <div className="space-y-2 md:col-span-2">
-        <p className="text-sm font-medium text-gray-700">Amenities & facilities</p>
-        <p className="text-xs text-gray-500">Select all amenities that apply to this attraction.</p>
+        <p className="text-sm font-medium text-gray-700">{labelOr('attractionWizard.fields.amenities', 'Amenities & facilities')}</p>
+        <p className="text-xs text-gray-500">{labelOr('attractionWizard.helpers.amenities', 'Select all amenities that apply to this attraction.')}</p>
         <div className="flex flex-wrap gap-2">
           {amenityOptions.map(option => {
             const active = current.includes(option);
@@ -567,7 +596,7 @@ const ListProperty = () => {
                     : 'border-gray-300 text-gray-700 hover:border-[#a06b42] hover:text-[#a06b42]'
                 }`}
               >
-                {option}
+                {optionLabel('attractionWizard.amenities', option)}
               </button>
             );
           })}
@@ -600,8 +629,8 @@ const ListProperty = () => {
 
     return (
       <div className="space-y-2 md:col-span-2">
-        <p className="text-sm font-medium text-gray-700">Safety equipment provided</p>
-        <p className="text-xs text-gray-500">Select all safety items you provide to guests.</p>
+        <p className="text-sm font-medium text-gray-700">{labelOr('attractionWizard.fields.safetyEquipment', 'Safety equipment provided')}</p>
+        <p className="text-xs text-gray-500">{labelOr('attractionWizard.helpers.safetyEquipment', 'Select all safety items you provide to guests.')}</p>
         <div className="flex flex-wrap gap-2">
           {safetyEquipmentOptions.map(option => {
             const active = current.includes(option);
@@ -616,7 +645,7 @@ const ListProperty = () => {
                     : 'border-gray-300 text-gray-700 hover:border-[#a06b42] hover:text-[#a06b42]'
                 }`}
               >
-                {option}
+                {optionLabel('attractionWizard.safetyEquipment', option)}
               </button>
             );
           })}
@@ -627,19 +656,19 @@ const ListProperty = () => {
 
   const renderPaymentMethodsField = () => (
     <div className="space-y-1 md:col-span-2">
-      <p className="text-sm font-medium text-gray-700">Preferred payment method</p>
+      <p className="text-sm font-medium text-gray-700">{labelOr('attractionWizard.fields.paymentMethods', 'Preferred payment method')}</p>
       <div className="flex flex-col gap-2">
         {paymentMethodOptions.map(option => (
-          <label key={option} className="inline-flex items-center gap-2 text-sm text-gray-700">
+          <label key={option.value} className="inline-flex items-center gap-2 text-sm text-gray-700">
             <input
               type="radio"
               name="paymentMethods"
-              value={option}
-              checked={attractionForm.paymentMethods === option}
-              onChange={() => setAttractionForm(prev => ({ ...prev, paymentMethods: option }))}
+              value={option.value}
+              checked={attractionForm.paymentMethods === option.value}
+              onChange={() => setAttractionForm(prev => ({ ...prev, paymentMethods: option.value }))}
               className="form-radio text-[#a06b42] h-4 w-4"
             />
-            {option}
+            {option.labelKey ? labelOr(option.labelKey, option.label) : option.label}
           </label>
         ))}
       </div>
@@ -648,24 +677,23 @@ const ListProperty = () => {
 
   const renderRefundPolicyField = () => (
     <div className="space-y-1 md:col-span-2">
-      <p className="text-sm font-medium text-gray-700">Refund & cancellation policy</p>
-      <p className="text-xs text-gray-500">Choose the statement that best describes how refunds and cancellations are handled.</p>
+      <p className="text-sm font-medium text-gray-700">{labelOr('attractionWizard.fields.refundPolicy', 'Refund & cancellation policy')}</p>
+      <p className="text-xs text-gray-500">{labelOr('attractionWizard.helpers.refundPolicy', 'Choose the statement that best describes how refunds and cancellations are handled.')}</p>
       <div className="flex flex-col gap-2">
         {refundPolicyOptions.map(option => (
-          <label key={option} className="inline-flex items-start gap-2 text-sm text-gray-700">
+          <label key={option.value} className="inline-flex items-start gap-2 text-sm text-gray-700">
             <input
               type="radio"
               name="refundPolicy"
-              value={option}
-              checked={attractionForm.refundPolicy === option}
+              value={option.value}
+              checked={attractionForm.refundPolicy === option.value}
               onChange={() => setAttractionForm(prev => ({
                 ...prev,
-                refundPolicy: option,
-                cancellationPolicy: option
+                refundPolicy: option.value
               }))}
-              className="mt-1 form-radio text-[#a06b42] h-4 w-4"
+              className="form-radio text-[#a06b42] mt-1"
             />
-            <span>{option}</span>
+            <span>{option.labelKey ? labelOr(option.labelKey, option.label) : option.label}</span>
           </label>
         ))}
       </div>
@@ -709,12 +737,14 @@ const ListProperty = () => {
 
     return (
       <div className="space-y-2 md:col-span-2">
-        <p className="text-sm font-medium text-gray-700">Highlights / Key Features</p>
-        <p className="text-xs text-gray-500 mb-1">Select all that apply. These help guests understand what makes this attraction special.</p>
+        <p className="text-sm font-medium text-gray-700">{labelOr('attractionWizard.fields.highlights', 'Highlights / Key Features')}</p>
+        <p className="text-xs text-gray-500 mb-1">{labelOr('attractionWizard.helpers.highlights', 'Select all that apply. These help guests understand what makes this attraction special.')}</p>
         <div className="space-y-4 max-h-72 overflow-y-auto pr-1">
           {highlightGroups.map(group => (
             <div key={group.label} className="space-y-2">
-              <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">{group.label}</p>
+              <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                {labelOr(`attractionWizard.highlightGroups.${group.key}`, group.label)}
+              </p>
               <div className="flex flex-wrap gap-2">
                 {group.options.map(option => {
                   const checked = current.includes(option);
@@ -729,7 +759,7 @@ const ListProperty = () => {
                           : 'border-gray-300 text-gray-700 hover:border-[#a06b42] hover:text-[#a06b42]'
                       }`}
                     >
-                      {option}
+                      {optionLabel('attractionWizard.highlightTags', option)}
                     </button>
                   );
                 })}
@@ -782,7 +812,7 @@ const ListProperty = () => {
       if (!res.ok) throw new Error(data.message || 'Failed to upload images');
     } catch (error) {
       console.error('[AttractionWizard][uploadImages] error', error);
-      toast.error(error.message || 'Could not upload images');
+      toast.error(error.message || labelOr('attractionWizard.errors.uploadImagesFailed', 'Could not upload images'));
     }
   };
 
@@ -825,8 +855,14 @@ const ListProperty = () => {
             onChange={(e) => setAttractionForm(prev => ({ ...prev, [name]: e.target.value }))}
             className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-[#a06b42] bg-white"
           >
-            <option value="">Select {label}</option>
-            {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+            <option value="">{placeholder || labelOr('attractionWizard.common.selectPlaceholder', 'Select an option')}</option>
+            {options.map(opt => {
+              const value = (opt && typeof opt === 'object') ? opt.value : opt;
+              const text = (opt && typeof opt === 'object')
+                ? (opt.labelKey ? labelOr(opt.labelKey, opt.label) : opt.label)
+                : opt;
+              return <option key={String(value)} value={value}>{text}</option>;
+            })}
           </select>
           {description && <p className="text-xs text-gray-500">{description}</p>}
         </div>
@@ -862,7 +898,9 @@ const ListProperty = () => {
               onChange={() => setAttractionForm(prev => ({ ...prev, [name]: option.value }))}
               className="form-radio text-[#a06b42] h-4 w-4"
             />
-            {option.label}
+            {option.value === 'yes'
+              ? labelOr('attractionWizard.common.yes', option.label)
+              : labelOr('attractionWizard.common.no', option.label)}
           </label>
         ))}
       </div>
@@ -875,31 +913,31 @@ const ListProperty = () => {
   const validateAttractionStep = (step) => {
     if (step === 1) {
       if (!attractionForm.name || !attractionForm.category || !attractionForm.shortDescription) {
-        toast.error('Add attraction name, category and a short description.');
+        toast.error(labelOr('attractionWizard.errors.step1', 'Add attraction name, category and a short description.'));
         return false;
       }
     }
     if (step === 2) {
       if (!attractionForm.country || !attractionForm.city || !attractionForm.address) {
-        toast.error('Add country, city and exact address.');
+        toast.error(labelOr('attractionWizard.errors.step2', 'Add country, city and exact address.'));
         return false;
       }
     }
     if (step === 3) {
       if (!attractionForm.coverPhotoFiles?.length || !attractionForm.galleryFiles?.length) {
-        toast.error('Upload a cover photo and at least one gallery image.');
+        toast.error(labelOr('attractionWizard.errors.step3', 'Upload a cover photo and at least one gallery image.'));
         return false;
       }
     }
     if (step === 5) {
       if (!attractionForm.ticketAdult || !attractionForm.currency) {
-        toast.error('Add adult ticket price and currency.');
+        toast.error(labelOr('attractionWizard.errors.step5', 'Add adult ticket price and currency.'));
         return false;
       }
     }
     if (step === 9) {
       if (!attractionForm.contactPhone || !attractionForm.contactEmail) {
-        toast.error('Add contact phone and email.');
+        toast.error(labelOr('attractionWizard.errors.step9', 'Add contact phone and email.'));
         return false;
       }
     }
@@ -914,7 +952,7 @@ const ListProperty = () => {
   const handleAttractionSubmit = async (e) => {
     e.preventDefault();
     if (!attractionForm.name || !attractionForm.category || !attractionForm.city || !attractionForm.country) {
-      toast.error('Name, category, country, and city are required.');
+      toast.error(labelOr('attractionWizard.errors.missingCore', 'Name, category, country, and city are required.'));
       return;
     }
 
@@ -931,6 +969,13 @@ const ListProperty = () => {
             .split(',')
             .map((s) => s.trim())
             .filter(Boolean);
+      const operatingDays = (() => {
+        const v = String(attractionForm.openingDays || '').toLowerCase();
+        if (v.includes('weekend')) return ['saturday', 'sunday'];
+        if (v.includes('monday') || v.includes('friday')) return ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+        return ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+      })();
+
       const payload = {
         ...attractionForm,
         // Map to Attraction model core fields so it behaves like OwnerAttractionsDashboard.createItem
@@ -945,19 +990,17 @@ const ListProperty = () => {
         currency: attractionForm.currency || 'RWF',
         duration: attractionForm.duration || '',
         capacity: Number(attractionForm.capacity || 0) || undefined,
-        // Normalize highlights and amenities into arrays
-        highlights: Array.isArray(attractionForm.highlights)
-          ? attractionForm.highlights
-          : String(attractionForm.highlights || '')
-              .split(',')
-              .map((s) => s.trim())
-              .filter(Boolean),
-        amenities: amenitiesArray,
-        safetyEquipment: safetyEquipmentArray,
+        // Normalize highlights/amenities into the Attraction.amenities array
+        amenities: [
+          ...(Array.isArray(attractionForm.highlights) ? attractionForm.highlights : []),
+          ...amenitiesArray
+        ].map(s => String(s).trim()).filter(Boolean),
+        safetyEquipment: safetyEquipmentArray.join(', '),
         // Operating hours structure expected by model
         operatingHours: {
           open: attractionForm.openingHoursStart || undefined,
           close: attractionForm.openingHoursEnd || undefined,
+          days: operatingDays
         },
         // New attractions from this wizard should be visible by default
         isActive: true,
@@ -984,9 +1027,9 @@ const ListProperty = () => {
         await uploadAttractionImages(created._id, imageFiles);
       }
 
-      toast.success('Attraction saved and will appear on the attractions page once active.');
+      toast.success(labelOr('attractionWizard.toasts.saved', 'Attraction saved and will appear on the attractions page once active.'));
     } catch (error) {
-      toast.error(error.message || 'Could not save attraction');
+      toast.error(error.message || labelOr('attractionWizard.errors.saveFailed', 'Could not save attraction'));
     }
   };
 
@@ -1028,7 +1071,7 @@ const ListProperty = () => {
     <form className="space-y-6" onSubmit={handleAttractionSubmit}>
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <div className="text-sm text-gray-500">Step {attractionStep} of {totalAttractionSteps}</div>
+          <div className="text-sm text-gray-500">{labelOr('attractionWizard.stepLabel', 'Step')} {attractionStep} {labelOr('attractionWizard.stepOf', 'of')} {totalAttractionSteps}</div>
         </div>
         <div className="w-full h-1 bg-gray-200 rounded-full overflow-hidden">
           <div
@@ -1038,30 +1081,29 @@ const ListProperty = () => {
         </div>
       </div>
 
-      {attractionStep === 1 && section('1. Basic information', 'Required to identify the attraction.',
+      {attractionStep === 1 && section(labelOr('attractionWizard.steps.basic.title', '1. Basic information'), labelOr('attractionWizard.steps.basic.helper', 'Required to identify the attraction.'),
         <>
-          {renderField({ label: 'Attraction Name *', name: 'name', placeholder: 'Kigali Cultural Walk' })}
-          {renderField({ label: 'Category / Type *', name: 'category', type: 'select', options: categoryOptions })}
-          {renderField({ label: 'Short Description *', name: 'shortDescription', type: 'textarea', placeholder: '1–2 sentence summary' })}
-          {renderField({ label: 'Full Description', name: 'fullDescription', type: 'textarea', placeholder: 'Detailed highlight narrative' })}
+          {renderField({ label: labelOr('attractionWizard.fields.name', 'Attraction Name *'), name: 'name', placeholder: labelOr('attractionWizard.placeholders.name', 'Kigali Cultural Walk') })}
+          {renderField({ label: labelOr('attractionWizard.fields.category', 'Category / Type *'), name: 'category', type: 'select', options: categoryOptions, placeholder: labelOr('attractionWizard.placeholders.category', 'Select a category') })}
+          {renderField({ label: labelOr('attractionWizard.fields.shortDescription', 'Short Description *'), name: 'shortDescription', type: 'textarea', placeholder: labelOr('attractionWizard.placeholders.shortDescription', '1–2 sentence summary') })}
+          {renderField({ label: labelOr('attractionWizard.fields.fullDescription', 'Full Description'), name: 'fullDescription', type: 'textarea', placeholder: labelOr('attractionWizard.placeholders.fullDescription', 'Describe the experience in detail') })}
           {renderHighlightsSelector()}
         </>
       )}
 
       {attractionStep === 2 && (
         <>
-          {section('2. Location details', 'Precision helps guests arrive smoothly.',
+          {section(labelOr('attractionWizard.steps.location.title', '2. Location details'), labelOr('attractionWizard.steps.location.helper', 'Precision helps guests arrive smoothly.'),
             <>
-              {renderField({ label: 'Country *', name: 'country', placeholder: 'Rwanda' })}
-              {renderField({ label: 'City / Town / District *', name: 'city', placeholder: 'Kigali' })}
-              {renderField({ label: 'Exact Address *', name: 'address', placeholder: 'Street, building name...' })}
-              {renderField({ label: 'GPS Coordinates', name: 'gps', placeholder: 'Latitude, Longitude' })}
-              {renderField({ label: 'Landmarks Nearby', name: 'landmarks', placeholder: 'University, hotel, park (optional)' })}
-              {renderField({ label: 'Directions / How to get there', name: 'directions', type: 'textarea', placeholder: 'Describe transport options (optional)' })}
+              {renderField({ label: labelOr('attractionWizard.fields.country', 'Country *'), name: 'country', placeholder: labelOr('attractionWizard.placeholders.country', 'Rwanda') })}
+              {renderField({ label: labelOr('attractionWizard.fields.city', 'City / Town / District *'), name: 'city', placeholder: labelOr('attractionWizard.placeholders.city', 'Kigali') })}
+              {renderField({ label: labelOr('attractionWizard.fields.address', 'Meeting point / Address *'), name: 'address', placeholder: labelOr('attractionWizard.placeholders.address', 'Street, building name...') })}
+              {renderField({ label: labelOr('attractionWizard.fields.landmarks', 'Landmarks Nearby'), name: 'landmarks', placeholder: labelOr('attractionWizard.placeholders.landmarks', 'Hotel, park, landmark (optional)') })}
+              {renderField({ label: labelOr('attractionWizard.fields.directions', 'Directions / How to get there'), name: 'directions', type: 'textarea', placeholder: labelOr('attractionWizard.placeholders.directions', 'Public transport, parking, pickup point (optional)') })}
             </>
           )}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-3">
-            <p className="text-sm font-semibold text-gray-700">Location Map</p>
+            <p className="text-sm font-semibold text-gray-700">{labelOr('attractionWizard.locationMap.title', 'Location Map')}</p>
             <MapContainer
               center={[attractionForm.latitude, attractionForm.longitude]}
               zoom={13}
@@ -1078,17 +1120,17 @@ const ListProperty = () => {
               />
             </MapContainer>
             <div className="flex flex-col gap-1">
-              <p className="text-xs text-gray-500">Click or drag the marker to auto-fill GPS.</p>
+              <p className="text-xs text-gray-500">{labelOr('attractionWizard.locationMap.helper', 'Click or drag the marker to auto-fill GPS.')}</p>
               <div className="text-sm text-gray-500">Lat: {attractionForm.latitude.toFixed(5)}, Lng: {attractionForm.longitude.toFixed(5)}</div>
             </div>
           </div>
         </>
       )}
 
-      {attractionStep === 3 && section('3. Photos & Media', 'Visuals bring the experience to life.',
+      {attractionStep === 3 && section(labelOr('attractionWizard.steps.media.title', '3. Photos & Media'), labelOr('attractionWizard.steps.media.helper', 'Visuals bring the experience to life.'),
         <>
           <div className="space-y-1">
-            <label className="text-sm font-medium text-gray-700">Cover photo *</label>
+            <label className="text-sm font-medium text-gray-700">{labelOr('attractionWizard.fields.coverPhoto', 'Cover photo *')}</label>
             <div className="border-2 border-dashed border-gray-300 rounded-2xl p-6 flex items-center justify-center text-center bg-gray-50/50">
               <input
                 id="attraction-cover-upload"
@@ -1105,14 +1147,14 @@ const ListProperty = () => {
                 <span>
                   {attractionForm.coverPhotoFiles.length
                     ? `${attractionForm.coverPhotoFiles.length} file(s) selected`
-                    : 'Upload cover photo'}
+                    : labelOr('attractionWizard.actions.uploadCover', 'Upload cover photo')}
                 </span>
-                <span className="text-xs text-gray-500">Upload a hero photo.</span>
+                <span className="text-xs text-gray-500">{labelOr('attractionWizard.helpers.coverPhoto', 'Upload a hero photo.')}</span>
               </label>
             </div>
           </div>
           <div className="space-y-1">
-            <label className="text-sm font-medium text-gray-700">Gallery images *</label>
+            <label className="text-sm font-medium text-gray-700">{labelOr('attractionWizard.fields.galleryPhotos', 'Gallery images *')}</label>
             <div className="border-2 border-dashed border-gray-300 rounded-2xl p-6 flex items-center justify-center text-center bg-gray-50/50">
               <input
                 id="attraction-gallery-upload"
@@ -1130,75 +1172,69 @@ const ListProperty = () => {
                 <span>
                   {attractionForm.galleryFiles.length
                     ? `${attractionForm.galleryFiles.length} file(s) selected`
-                    : 'Upload gallery images'}
+                    : labelOr('attractionWizard.actions.uploadGallery', 'Upload gallery images')}
                 </span>
-                <span className="text-xs text-gray-500">Upload 3–20 images.</span>
+                <span className="text-xs text-gray-500">{labelOr('attractionWizard.helpers.galleryPhotos', 'Upload 3–20 images.')}</span>
               </label>
             </div>
           </div>
-          {renderField({ label: 'Video URL (optional)', name: 'video', placeholder: 'YouTube / Vimeo link' })}
+          {renderField({ label: labelOr('attractionWizard.fields.video', 'Video URL (optional)'), name: 'video', placeholder: labelOr('attractionWizard.placeholders.video', 'YouTube / Vimeo link') })}
         </>
       )}
 
-      {attractionStep === 4 && section('4. Operating details', 'Opening days, hours and typical visit length.',
+      {attractionStep === 4 && section(labelOr('attractionWizard.steps.operating.title', '4. Operating details'), labelOr('attractionWizard.steps.operating.helper', 'Opening days, hours and typical visit length.'),
         <>
-          {renderField({ label: 'Opening Days', name: 'openingDays', type: 'select', options: openingDayOptions })}
-          {renderField({ label: 'Opening Hour Start', name: 'openingHoursStart', type: 'time' })}
-          {renderField({ label: 'Opening Hour End', name: 'openingHoursEnd', type: 'time' })}
-          {renderField({ label: 'Duration (auto-calculated)', name: 'duration', placeholder: 'Will update based on opening and closing hours' })}
-          {renderField({ label: 'Minimum age requirement', name: 'minAge', placeholder: 'e.g., 12+' })}
-          {renderField({ label: 'Available time slot 1', name: 'timeSlot1', type: 'time' })}
-          {renderField({ label: 'Available time slot 2', name: 'timeSlot2', type: 'time' })}
-          {renderField({ label: 'Available time slot 3', name: 'timeSlot3', type: 'time' })}
+          {renderField({ label: labelOr('attractionWizard.fields.openingDays', 'Opening Days'), name: 'openingDays', type: 'select', options: openingDayOptions, placeholder: labelOr('attractionWizard.placeholders.openingDays', 'Select opening days') })}
+          {renderField({ label: labelOr('attractionWizard.fields.openingStart', 'Opening Hour Start'), name: 'openingHoursStart', type: 'time' })}
+          {renderField({ label: labelOr('attractionWizard.fields.openingEnd', 'Opening Hour End'), name: 'openingHoursEnd', type: 'time' })}
+          {renderField({ label: labelOr('attractionWizard.fields.duration', 'Duration'), name: 'duration', placeholder: labelOr('attractionWizard.placeholders.duration', 'e.g., 2 hours') })}
+          {renderField({ label: labelOr('attractionWizard.fields.minAge', 'Minimum age requirement'), name: 'minAge', placeholder: labelOr('attractionWizard.placeholders.minAge', 'e.g., 12+') })}
+          {renderField({ label: labelOr('attractionWizard.fields.timeSlot1', 'Start time 1 (optional)'), name: 'timeSlot1', type: 'time' })}
+          {renderField({ label: labelOr('attractionWizard.fields.timeSlot2', 'Start time 2 (optional)'), name: 'timeSlot2', type: 'time' })}
+          {renderField({ label: labelOr('attractionWizard.fields.timeSlot3', 'Start time 3 (optional)'), name: 'timeSlot3', type: 'time' })}
         </>
       )}
 
-      {attractionStep === 5 && section('5. Pricing & ticketing', 'Cover every financial expectation.',
+      {attractionStep === 5 && section(labelOr('attractionWizard.steps.pricing.title', '5. Pricing'), labelOr('attractionWizard.steps.pricing.helper', 'Set the per-person price guests will pay.'),
         <>
-          {renderField({ label: 'Ticket price (adult) *', name: 'ticketAdult', type: 'number', placeholder: 'RWF' })}
-          {renderField({ label: 'Ticket price (child)', name: 'ticketChild', type: 'number', placeholder: 'RWF' })}
-          {renderField({ label: 'Ticket price (student)', name: 'ticketStudent', type: 'number', placeholder: 'RWF' })}
-          {renderField({ label: 'Ticket price (group)', name: 'ticketGroup', type: 'number', placeholder: 'RWF' })}
-          {renderField({ label: 'Currency *', name: 'currency', type: 'select', options: attractionCurrencyOptions })}
-          {renderPaymentMethodsField()}
+          {renderField({ label: labelOr('attractionWizard.fields.priceAdult', 'Price per adult *'), name: 'ticketAdult', type: 'number', placeholder: labelOr('attractionWizard.placeholders.price', 'Amount') })}
+          {renderField({ label: labelOr('attractionWizard.fields.priceChild', 'Price per child (optional)'), name: 'ticketChild', type: 'number', placeholder: labelOr('attractionWizard.placeholders.price', 'Amount') })}
+          {renderField({ label: labelOr('attractionWizard.fields.currency', 'Currency *'), name: 'currency', type: 'select', options: attractionCurrencyOptions, placeholder: labelOr('attractionWizard.placeholders.currency', 'Select currency') })}
           {renderRefundPolicyField()}
         </>
       )}
 
-      {attractionStep === 6 && section('6. Capacity & requirements', 'Understand group limits.',
+      {attractionStep === 6 && section(labelOr('attractionWizard.steps.capacity.title', '6. Capacity & requirements'), labelOr('attractionWizard.steps.capacity.helper', 'Help guests understand group limits and requirements.'),
         <>
-          {renderField({ label: 'Maximum capacity', name: 'capacity', type: 'number', placeholder: 'Guests per session' })}
-          {renderField({ label: 'Minimum number of guests', name: 'minGuests', type: 'number', placeholder: 'Minimum booking size' })}
-          {renderRadioGroup('Booking required?', 'bookingRequired')}
-          {renderField({ label: 'Meeting point / check-in location', name: 'checkinInstructions', type: 'select', options: meetingPointOptions })}
+          {renderField({ label: labelOr('attractionWizard.fields.capacity', 'Maximum group size (optional)'), name: 'capacity', type: 'number', placeholder: labelOr('attractionWizard.placeholders.capacity', 'Guests per session') })}
+          {renderField({ label: labelOr('attractionWizard.fields.minGuests', 'Minimum guests (optional)'), name: 'minGuests', type: 'number', placeholder: labelOr('attractionWizard.placeholders.minGuests', 'Minimum booking size') })}
+          {renderRadioGroup(labelOr('attractionWizard.fields.bookingRequired', 'Booking required?'), 'bookingRequired')}
         </>
       )}
 
-      {attractionStep === 7 && section('7. Amenities & facilities', 'Showcase comforts and safety.',
+      {attractionStep === 7 && section(labelOr('attractionWizard.steps.amenities.title', '7. Facilities & experience details'), labelOr('attractionWizard.steps.amenities.helper', 'What is included and what guests should expect.'),
         <>
           {renderAmenitySelector()}
-          {renderRadioGroup('Guide available?', 'guideAvailable')}
-          {renderField({ label: 'Main language of the experience', name: 'audioGuideLanguages', type: 'select', options: languageOptions })}
+          {renderRadioGroup(labelOr('attractionWizard.fields.guideAvailable', 'Guide available?'), 'guideAvailable')}
+          {renderField({ label: labelOr('attractionWizard.fields.languages', 'Main language of the experience'), name: 'audioGuideLanguages', type: 'select', options: languageOptions, placeholder: labelOr('attractionWizard.placeholders.languages', 'Select language') })}
           {renderSafetyEquipmentSelector()}
         </>
       )}
 
-      {attractionStep === 8 && section('8. Rules & restrictions', 'Clarify expectations.',
+      {attractionStep === 8 && section(labelOr('attractionWizard.steps.rules.title', '8. Rules & important information'), labelOr('attractionWizard.steps.rules.helper', 'Clarify expectations for guests.'),
         <>
-          {renderField({ label: 'Allowed / not allowed', name: 'rules', type: 'textarea', placeholder: 'Pets, smoking, photography...' })}
-          {renderField({ label: 'Dress code', name: 'dressCode', placeholder: 'Modest clothing, swimwear...' })}
-          {renderField({ label: 'Safety instructions', name: 'safetyInstructions', type: 'textarea', placeholder: 'Stay behind rope barriers...' })}
-          {renderField({ label: 'Liability / waiver requirements', name: 'liability', type: 'textarea', placeholder: 'Guests must sign release...' })}
+          {renderField({ label: labelOr('attractionWizard.fields.rules', 'Important info / rules'), name: 'rules', type: 'textarea', placeholder: labelOr('attractionWizard.placeholders.rules', 'Meeting instructions, what to bring, restrictions...') })}
+          {renderField({ label: labelOr('attractionWizard.fields.dressCode', 'Dress code (optional)'), name: 'dressCode', placeholder: labelOr('attractionWizard.placeholders.dressCode', 'Modest clothing, swimwear...') })}
+          {renderField({ label: labelOr('attractionWizard.fields.safetyInstructions', 'Safety instructions (optional)'), name: 'safetyInstructions', type: 'textarea', placeholder: labelOr('attractionWizard.placeholders.safetyInstructions', 'Safety requirements and instructions...') })}
         </>
       )}
 
-      {attractionStep === 9 && section('9. Contact information', 'How guests reach you.',
+      {attractionStep === 9 && section(labelOr('attractionWizard.steps.contact.title', '9. Contact information'), labelOr('attractionWizard.steps.contact.helper', 'How guests reach you.'),
         <>
-          {renderField({ label: 'Owner / manager name', name: 'contactName', placeholder: 'John Doe' })}
-          {renderField({ label: 'Phone number *', name: 'contactPhone', placeholder: '+250 78...' })}
-          {renderField({ label: 'Email address *', name: 'contactEmail', type: 'email', placeholder: 'owner@example.com' })}
-          {renderField({ label: 'Website (optional)', name: 'contactWebsite', placeholder: 'https://...' })}
-          {renderField({ label: 'Emergency contact (optional)', name: 'contactEmergency', placeholder: '+250 7...' })}
+          {renderField({ label: labelOr('attractionWizard.fields.contactName', 'Owner / manager name'), name: 'contactName', placeholder: labelOr('attractionWizard.placeholders.contactName', 'John Doe') })}
+          {renderField({ label: labelOr('attractionWizard.fields.contactPhone', 'Phone number *'), name: 'contactPhone', placeholder: labelOr('attractionWizard.placeholders.contactPhone', '+250 78...') })}
+          {renderField({ label: labelOr('attractionWizard.fields.contactEmail', 'Email address *'), name: 'contactEmail', type: 'email', placeholder: labelOr('attractionWizard.placeholders.contactEmail', 'owner@example.com') })}
+          {renderField({ label: labelOr('attractionWizard.fields.contactWebsite', 'Website (optional)'), name: 'contactWebsite', placeholder: labelOr('attractionWizard.placeholders.contactWebsite', 'https://...') })}
         </>
       )}
 
@@ -1209,7 +1245,7 @@ const ListProperty = () => {
           disabled={attractionStep === 1}
           className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Back
+          {labelOr('attractionWizard.actions.back', 'Back')}
         </button>
         <div className="ml-auto flex items-center gap-3">
           {attractionStep < totalAttractionSteps && (
@@ -1218,7 +1254,7 @@ const ListProperty = () => {
               onClick={handleAttractionNext}
               className="px-5 py-2.5 bg-[#a06b42] text-white rounded-lg hover:bg-[#8f5a32]"
             >
-              Next
+              {labelOr('attractionWizard.actions.next', 'Next')}
             </button>
           )}
           {attractionStep === totalAttractionSteps && (
@@ -1226,7 +1262,7 @@ const ListProperty = () => {
               type="submit"
               className="px-5 py-2.5 bg-[#a06b42] text-white rounded-lg hover:bg-[#8f5a32]"
             >
-              Save attraction info
+              {labelOr('attractionWizard.actions.save', 'Save attraction info')}
             </button>
           )}
         </div>

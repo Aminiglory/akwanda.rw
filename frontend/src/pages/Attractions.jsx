@@ -14,8 +14,8 @@ const Attractions = () => {
   const [favIds, setFavIds] = useState([]);
   const { isAuthenticated } = useAuth();
   const [pageContent, setPageContent] = useState({
-    pageTitle: 'Local Amenities Near Your Apartment',
-    introText: 'Discover what is around your apartment in Rwanda',
+    pageTitle: 'Find Your Next Experience',
+    introText: 'Discover amazing attractions across Rwanda',
     heroImages: [],
     published: true,
   });
@@ -81,8 +81,8 @@ const Attractions = () => {
         const content = contentData?.content || {};
         if (contentRes.ok) {
           setPageContent({
-            pageTitle: content.pageTitle || 'Local Amenities Near Your Apartment',
-            introText: content.introText || 'Discover what is around your apartment in Rwanda',
+            pageTitle: content.pageTitle || 'Find Your Next Experience',
+            introText: content.introText || 'Discover amazing attractions across Rwanda',
             heroImages: Array.isArray(content.heroImages) ? content.heroImages : [],
             published: !!content.published,
           });

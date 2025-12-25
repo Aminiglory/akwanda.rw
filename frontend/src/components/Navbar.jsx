@@ -166,7 +166,6 @@ const Navbar = () => {
       href: "/attractions",
       children: [
         { label: t ? t('nav.tours') : "Tours & Activities", href: "/attractions", icon: FaUmbrellaBeach },
-        { label: t ? t('nav.restaurants') : "Restaurants", href: "/restaurants", icon: FaUtensils },
         { label: labelOr('nav.deals', 'Deals'), href: "/deals", icon: FaShoppingBag },
       ]
     }
@@ -224,68 +223,8 @@ const Navbar = () => {
       ],
     },
     {
-      // Expense Management (mirrors vehicle Expenses)
-      label: labelOr('nav.expenses', 'Expenses'),
-      icon: FaMoneyBillWave,
-      href: '/owner/attractions?view=expenses&section=all',
-      children: [
-        { label: labelOr('nav.allExpenses', 'All expenses'), href: '/owner/attractions?view=expenses&section=all', icon: FaMoneyBillWave },
-        { label: labelOr('nav.addExpense', 'Add expense'), href: '/owner/attractions?view=expenses&section=add', icon: FaPlus },
-        { label: labelOr('nav.expenseCategories', 'Expense categories'), href: '/owner/attractions?view=expenses&section=categories', icon: FaFileAlt },
-        { label: labelOr('nav.expenseReports', 'Expense reports'), href: '/owner/attractions?view=expenses&section=reports', icon: FaChartLine },
-      ],
-    },
-    {
-      // Income / Revenue Management
-      label: labelOr('nav.incomeRevenue', 'Income & revenue'),
-      icon: FaDollarSign,
-      href: '/owner/attractions?view=income-revenue&section=transactions',
-      children: [
-        { label: labelOr('nav.allTransactions', 'All transactions'), href: '/owner/attractions?view=income-revenue&section=transactions', icon: FaDollarSign },
-        { label: labelOr('nav.addIncome', 'Add income'), href: '/owner/attractions?view=income-revenue&section=add', icon: FaPlus },
-        { label: labelOr('nav.clientPayments', 'Client payments'), href: '/owner/attractions?view=income-revenue&section=payments', icon: FaMoneyBillWave },
-        { label: labelOr('nav.invoicesReceipts', 'Invoices & receipts'), href: '/owner/attractions?view=income-revenue&section=invoices', icon: FaFileAlt },
-        { label: labelOr('nav.revenueReports', 'Revenue reports'), href: '/owner/attractions?view=income-revenue&section=reports', icon: FaChartLine },
-      ],
-    },
-    {
-      // Clients & Contracts
-      label: labelOr('nav.clientsContracts', 'Clients & contracts'),
-      icon: FaUsers,
-      href: '/owner/attractions?view=clients-contracts&section=clients',
-      children: [
-        { label: labelOr('nav.allClients', 'All clients'), href: '/owner/attractions?view=clients-contracts&section=clients', icon: FaUsers },
-        { label: labelOr('nav.addClient', 'Add client'), href: '/owner/attractions?view=clients-contracts&section=add-client', icon: FaPlus },
-        { label: labelOr('nav.allContracts', 'All contracts'), href: '/owner/attractions?view=clients-contracts&section=contracts', icon: FaFileAlt },
-        { label: labelOr('nav.addContract', 'Add contract'), href: '/owner/attractions?view=clients-contracts&section=add-contract', icon: FaPlus },
-        { label: labelOr('nav.clientReports', 'Client reports'), href: '/owner/attractions?view=clients-contracts&section=reports', icon: FaChartLine },
-      ],
-    },
-    {
-      // Reports & Analytics (mirrors vehicle Reports & analytics)
-      label: labelOr('nav.reportsAnalytics', 'Reports & analytics'),
-      icon: FaChartLine,
-      href: '/owner/attractions?view=analytics',
-      children: [
-        { label: labelOr('nav.analyticsOverview', 'Overview dashboard'), href: '/owner/attractions?view=analytics', icon: FaChartLine },
-        { label: labelOr('nav.analyticsAttractionPerformance', 'Attraction performance'), href: '/owner/attractions?view=analytics&segment=attractions', icon: FaUmbrellaBeach },
-        { label: labelOr('nav.analyticsBookingTrends', 'Booking trends'), href: '/owner/attractions?view=analytics&segment=bookings', icon: FaCalendarAlt },
-        { label: labelOr('nav.analyticsRevenueReports', 'Revenue reports'), href: '/owner/attractions?view=analytics&segment=revenue', icon: FaDollarSign },
-        { label: labelOr('nav.last30Days', 'Last 30 days'), href: '/owner/attractions?view=analytics&range=30', icon: FaChartLine },
-        { label: labelOr('nav.last90Days', 'Last 90 days'), href: '/owner/attractions?view=analytics&range=90', icon: FaChartLine },
-        { label: labelOr('nav.yearToDate', 'Year to date'), href: '/owner/attractions?view=analytics&range=ytd', icon: FaChartLine },
-        { label: labelOr('nav.customRange', 'Custom range'), href: '/owner/attractions?view=analytics&range=custom', icon: FaChartLine },
-      ],
-    },
-    {
-      // Mirrors "Guest reviews" entry
-      label: labelOr('nav.guestReviews', 'Guest reviews'),
-      icon: FaStar,
-      href: '/owner/attractions?view=reviews',
-    },
-    {
-      // Mirrors "Inbox" / Messages
-      label: labelOr('nav.inbox', 'Inbox'),
+      // Messaging
+      label: labelOr('nav.inbox', 'Messages'),
       icon: FaEnvelope,
       href: '/owner/attractions?view=messages',
     },
@@ -294,18 +233,6 @@ const Navbar = () => {
       label: labelOr('nav.settings', 'Settings'),
       icon: FaSettings,
       href: '/owner/attractions?view=settings',
-    },
-    {
-      // Notifications & Alerts
-      label: labelOr('nav.notificationsAlerts', 'Notifications & alerts'),
-      icon: FaBell,
-      href: '/owner/attractions?view=notifications&section=maintenance',
-      children: [
-        { label: labelOr('nav.maintenanceReminders', 'Maintenance reminders'), href: '/owner/attractions?view=notifications&section=maintenance', icon: FaBell },
-        { label: labelOr('nav.policyAlerts', 'Policy & safety alerts'), href: '/owner/attractions?view=notifications&section=policy', icon: FaBell },
-        { label: labelOr('nav.expiryAlerts', 'Expiry alerts'), href: '/owner/attractions?view=notifications&section=expiry', icon: FaBell },
-        { label: labelOr('nav.activityAlerts', 'Guest activity alerts'), href: '/owner/attractions?view=notifications&section=activity', icon: FaBell },
-      ],
     },
   ];
 

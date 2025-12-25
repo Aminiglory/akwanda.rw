@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { FaMapMarkerAlt, FaCalendarAlt } from 'react-icons/fa';
+import { useLocale } from '../contexts/LocaleContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 const makeAbsolute = (u) => {
@@ -15,6 +16,7 @@ const makeAbsolute = (u) => {
 export default function AttractionDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { formatCurrencyRWF } = useLocale() || {};
   const [item, setItem] = useState(null);
   const [loading, setLoading] = useState(false);
   const [booking, setBooking] = useState(false);
@@ -22,10 +24,18 @@ export default function AttractionDetail() {
   const [available, setAvailable] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState('cash'); // 'cash' | 'mtn_mobile_money'
   const today = useMemo(() => new Date().toISOString().split('T')[0], []);
+  const [step, setStep] = useState(1);
   const [form, setForm] = useState({
     visitDate: '',
     tickets: 1,
     notes: ''
+  });
+
+  const [contact, setContact] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: ''
   });
 
   useEffect(() => {
@@ -39,6 +49,27 @@ export default function AttractionDetail() {
       } catch (e) { setItem(null); } finally { setLoading(false); }
     })();
   }, [id]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/auth/me`, { credentials: 'include' });
+        if (!res.ok) return;
+        const data = await res.json().catch(() => ({}));
+        const u = data?.user;
+        if (!u) return;
+        setContact(prev => ({
+          ...prev,
+          firstName: u.firstName || prev.firstName,
+          lastName: u.lastName || prev.lastName,
+          email: u.email || prev.email,
+          phone: u.phone || prev.phone,
+        }));
+      } catch (_) {
+        // ignore
+      }
+    })();
+  }, []);
 
   async function checkAvailability() {
     if (!form.visitDate) return toast.error('Select visit date');
@@ -61,7 +92,14 @@ export default function AttractionDetail() {
       setBooking(true);
       const res = await fetch(`${API_URL}/api/attraction-bookings`, {
         method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ attractionId: id, ...form, tickets: Number(form.tickets || 1), paymentMethod })
+        body: JSON.stringify({
+          attractionId: id,
+          visitDate: form.visitDate,
+          tickets: Number(form.tickets || 1),
+          notes: form.notes,
+          contactPhone: contact.phone,
+          paymentMethod,
+        })
       });
       if (res.status === 401) { toast.error('Please login'); navigate('/login'); return; }
       const data = await res.json();
@@ -73,9 +111,9 @@ export default function AttractionDetail() {
             bookingId: data.booking._id,
             amount: Number(data.booking.totalAmount || 0),
             description: `Attraction booking for ${item?.name || 'your trip'}`,
-            customerName: data.booking?.guestName || '',
-            customerEmail: data.booking?.guestEmail || '',
-            phoneNumber: data.booking?.guestPhone || ''
+            customerName: `${contact.firstName || ''} ${contact.lastName || ''}`.trim(),
+            customerEmail: contact.email || '',
+            phoneNumber: contact.phone || ''
           }
         });
         return;
@@ -93,6 +131,22 @@ export default function AttractionDetail() {
   if (!item) return <div className="max-w-6xl mx-auto px-4 py-6">Not found</div>;
 
   const imgUrl = (u) => makeAbsolute(u) || '';
+
+  const unitPrice = Number(item.price || 0);
+  const qty = Math.max(1, Number(form.tickets || 1));
+  const total = unitPrice * qty;
+  const totalLabel = formatCurrencyRWF ? formatCurrencyRWF(total) : `RWF ${Number(total || 0).toLocaleString()}`;
+
+  const nextFromStep1 = () => {
+    if (!form.visitDate) { toast.error('Select visit date'); return; }
+    if (Number(form.tickets || 1) < 1) { toast.error('Tickets must be at least 1'); return; }
+    setStep(2);
+  };
+
+  const nextFromStep2 = () => {
+    if (!String(contact.phone || '').trim()) { toast.error('Enter phone number'); return; }
+    setStep(3);
+  };
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-6">
@@ -126,37 +180,196 @@ export default function AttractionDetail() {
         <div>
           <div className="bg-white rounded-lg shadow p-4">
             {item.price != null && (
-              <div className="text-xl font-semibold">RWF {Number(item.price || 0).toLocaleString()}</div>
+              <div className="text-xl font-semibold">{formatCurrencyRWF ? formatCurrencyRWF(unitPrice) : `RWF ${unitPrice.toLocaleString()}`}</div>
             )}
-            <div className="grid grid-cols-1 gap-3 mt-3">
-              <div>
-                <label className="text-sm text-gray-700">Visit date</label>
-                <div className="relative">
-                  <FaCalendarAlt className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <input type="date" min={today} value={form.visitDate} onChange={e=>setForm({...form, visitDate: e.target.value})} className="w-full pl-10 px-3 py-2 border rounded" />
+
+            <div className="mt-3 flex items-center justify-between">
+              <div className="text-xs text-gray-600">Step {step} of 3</div>
+              <div className="text-sm font-semibold text-gray-900">Total: {totalLabel}</div>
+            </div>
+
+            {step === 1 && (
+              <div className="grid grid-cols-1 gap-3 mt-3">
+                <div>
+                  <label className="text-sm text-gray-700">Visit date</label>
+                  <div className="relative">
+                    <FaCalendarAlt className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input
+                      type="date"
+                      min={today}
+                      value={form.visitDate}
+                      onChange={e => setForm({ ...form, visitDate: e.target.value })}
+                      className="w-full pl-10 px-3 py-2 border rounded"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm text-gray-700">Tickets</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={form.tickets}
+                    onChange={e => setForm({ ...form, tickets: Number(e.target.value) || 1 })}
+                    className="w-full px-3 py-2 border rounded"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={checkAvailability}
+                    disabled={checking}
+                    className="px-3 py-2 bg-[#a06b42] hover:bg-[#8f5a32] text-white rounded"
+                  >
+                    {checking ? 'Checking...' : 'Check availability'}
+                  </button>
+                  {available !== null && (
+                    <span className={`text-sm ${available ? 'text-green-600' : 'text-red-600'}`}>
+                      {available ? 'Available' : 'Not available'}
+                    </span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={nextFromStep1}
+                  className="px-4 py-2 bg-[#a06b42] hover:bg-[#8f5a32] text-white rounded"
+                >
+                  Continue
+                </button>
+              </div>
+            )}
+
+            {step === 2 && (
+              <div className="grid grid-cols-1 gap-3 mt-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-sm text-gray-700">First name</label>
+                    <input
+                      value={contact.firstName}
+                      onChange={e => setContact({ ...contact, firstName: e.target.value })}
+                      className="w-full px-3 py-2 border rounded"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm text-gray-700">Last name</label>
+                    <input
+                      value={contact.lastName}
+                      onChange={e => setContact({ ...contact, lastName: e.target.value })}
+                      className="w-full px-3 py-2 border rounded"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm text-gray-700">Email</label>
+                  <input
+                    type="email"
+                    value={contact.email}
+                    onChange={e => setContact({ ...contact, email: e.target.value })}
+                    className="w-full px-3 py-2 border rounded"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm text-gray-700">Phone number *</label>
+                  <input
+                    value={contact.phone}
+                    onChange={e => setContact({ ...contact, phone: e.target.value })}
+                    className="w-full px-3 py-2 border rounded"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm text-gray-700">Notes (optional)</label>
+                  <textarea
+                    value={form.notes}
+                    onChange={e => setForm({ ...form, notes: e.target.value })}
+                    className="w-full px-3 py-2 border rounded"
+                    rows={3}
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setStep(1)}
+                    className="px-4 py-2 bg-gray-100 text-gray-800 rounded border"
+                  >
+                    Back
+                  </button>
+                  <button
+                    type="button"
+                    onClick={nextFromStep2}
+                    className="px-4 py-2 bg-[#a06b42] hover:bg-[#8f5a32] text-white rounded"
+                  >
+                    Continue
+                  </button>
                 </div>
               </div>
-              <div>
-                <label className="text-sm text-gray-700">Tickets</label>
-                <input type="number" min={1} value={form.tickets} onChange={e=>setForm({...form, tickets: Number(e.target.value)||1})} className="w-full px-3 py-2 border rounded" />
+            )}
+
+            {step === 3 && (
+              <div className="grid grid-cols-1 gap-3 mt-3">
+                <div className="text-sm text-gray-700">
+                  <div className="flex items-center justify-between">
+                    <span>Visit date</span>
+                    <span className="font-semibold text-gray-900">{form.visitDate}</span>
+                  </div>
+                  <div className="flex items-center justify-between mt-1">
+                    <span>Tickets</span>
+                    <span className="font-semibold text-gray-900">{qty}</span>
+                  </div>
+                  <div className="flex items-center justify-between mt-1">
+                    <span>Total</span>
+                    <span className="font-semibold text-gray-900">{totalLabel}</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod('cash')}
+                    className={`px-3 py-2 rounded border ${paymentMethod === 'cash'
+                      ? 'bg-[#a06b42] text-white border-[#a06b42]'
+                      : 'bg-[#f6e9d8] text-[#4b2a00] border-[#d4c4b0] hover:bg-[#e8dcc8]'}`}
+                  >
+                    Pay on Arrival
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod('mtn_mobile_money')}
+                    className={`px-3 py-2 rounded border ${paymentMethod === 'mtn_mobile_money'
+                      ? 'bg-[#a06b42] text-white border-[#a06b42]'
+                      : 'bg-[#f6e9d8] text-[#4b2a00] border-[#d4c4b0] hover:bg-[#e8dcc8]'}`}
+                  >
+                    MTN Mobile Money
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setStep(2)}
+                    className="px-4 py-2 bg-gray-100 text-gray-800 rounded border"
+                  >
+                    Back
+                  </button>
+                  <button
+                    type="button"
+                    onClick={createBooking}
+                    disabled={booking}
+                    className="px-4 py-2 bg-[#a06b42] hover:bg-[#8f5a32] text-white rounded"
+                  >
+                    {booking ? 'Booking...' : 'Confirm & book'}
+                  </button>
+                </div>
+
+                {item?.owner && (
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/messages?to=${item.owner}`)}
+                    className="px-4 py-2 bg-gray-100 text-gray-800 rounded border"
+                  >
+                    Message host
+                  </button>
+                )}
               </div>
-              <div>
-                <label className="text-sm text-gray-700">Notes (optional)</label>
-                <textarea value={form.notes} onChange={e=>setForm({...form, notes: e.target.value})} className="w-full px-3 py-2 border rounded" rows={3} />
-              </div>
-              <div className="flex items-center gap-2">
-                <button type="button" onClick={checkAvailability} disabled={checking} className="px-3 py-2 bg-[#a06b42] hover:bg-[#8f5a32] text-white rounded">{checking?'Checking...':'Check availability'}</button>
-                {available !== null && (<span className={`text-sm ${available ? 'text-green-600':'text-red-600'}`}>{available ? 'Available':'Not available'}</span>)}
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <button type="button" onClick={()=>setPaymentMethod('cash')} className={`px-3 py-2 rounded border ${paymentMethod==='cash' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-[#f6e9d8] text-[#4b2a00] border-[#d4c4b0] hover:bg-[#e8dcc8]'}`}>Pay on Arrival</button>
-                <button type="button" onClick={()=>setPaymentMethod('mtn_mobile_money')} className={`px-3 py-2 rounded border ${paymentMethod==='mtn_mobile_money' ? 'bg-[#a06b42] text-white border-[#a06b42]' : 'bg-[#f6e9d8] text-[#4b2a00] border-[#d4c4b0] hover:bg-[#e8dcc8]'}`}>MTN Mobile Money</button>
-              </div>
-              <button onClick={createBooking} disabled={booking} className="px-4 py-2 bg-[#a06b42] hover:bg-[#8f5a32] text-white rounded">{booking?'Booking...':'Book now'}</button>
-              {item?.owner && (
-                <button type="button" onClick={() => navigate(`/messages?to=${item.owner}`)} className="px-4 py-2 bg-gray-100 text-gray-800 rounded border">Message host</button>
-              )}
-            </div>
+            )}
           </div>
         </div>
       </div>

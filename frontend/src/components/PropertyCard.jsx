@@ -88,6 +88,14 @@ const PropertyCard = ({
   const isWishlisted = !!(listing && listing.wishlisted);
   const isCompact = variant === 'compact';
 
+  const handleWishlistToggle = (e) => {
+    e?.stopPropagation?.();
+    e?.preventDefault?.();
+    if (typeof onToggleWishlist === 'function') {
+      onToggleWishlist();
+    }
+  };
+
   const [isReviewsOpen, setIsReviewsOpen] = useState(false);
   const [isLoadingReviews, setIsLoadingReviews] = useState(false);
   const [reviewsList, setReviewsList] = useState(() => {
