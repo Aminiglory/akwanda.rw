@@ -1229,13 +1229,20 @@ const Navbar = () => {
                           try {
                             const params = new URLSearchParams(location.search || '');
                             if (!id) {
+                              // Reset to all vehicles in the CURRENT tab
                               params.delete('car');
-                            } else {
-                              params.set('car', String(id));
+                              const qs = params.toString();
+                              const url = qs ? `${location.pathname}?${qs}` : location.pathname;
+                              navigate(url, { replace: true });
+                              return;
                             }
+                            // Open the chosen vehicle in a NEW TAB on the same route with ?car=<id>
+                            params.set('car', String(id));
                             const qs = params.toString();
                             const url = qs ? `${location.pathname}?${qs}` : location.pathname;
-                            navigate(url, { replace: true });
+                            if (typeof window !== 'undefined') {
+                              window.open(url, '_blank', 'noopener,noreferrer');
+                            }
                           } catch (_) {}
                         }}
                       >

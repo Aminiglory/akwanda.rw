@@ -808,6 +808,97 @@ export default function CarOwnerDashboard() {
             </div>
           </div>
 
+          {/* Vehicles group home - list all vehicles with quick manage actions */}
+          <div className="mb-6 rounded-2xl bg-white shadow-sm border border-gray-100 px-4 py-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
+              <div>
+                <h2 className="text-sm font-semibold text-[#4b2a00] mb-0.5">Your vehicles</h2>
+                <p className="text-[11px] text-gray-600">
+                  Start from this list to choose which vehicle you want to manage. Each vehicle opens in its own tab.
+                </p>
+              </div>
+              {Array.isArray(cars) && cars.length > 0 && (
+                <div className="text-[11px] text-gray-500">
+                  {cars.length} vehicle{cars.length === 1 ? '' : 's'}
+                </div>
+              )}
+            </div>
+
+            {(!Array.isArray(cars) || cars.length === 0) ? (
+              <div className="py-3 text-[11px] text-gray-600">
+                You don't have any vehicles listed yet. Use the Vehicles tab or the upload wizard to create your first listing.
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-[11px]">
+                  <thead className="bg-[#f5ebe0] text-gray-600 uppercase tracking-wide">
+                    <tr>
+                      <th className="px-3 py-2 text-left">Vehicle</th>
+                      <th className="px-3 py-2 text-left">Category</th>
+                      <th className="px-3 py-2 text-left">Status</th>
+                      <th className="px-3 py-2 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#f1e4d4] bg-white">
+                    {cars.map((c) => {
+                      const id = String(c._id || '');
+                      const name = c.vehicleName || `${c.brand || ''} ${c.model || ''}`.trim() || 'Untitled vehicle';
+                      const cat = String(c.category || 'car');
+                      const isAvailable = !!c.isAvailable;
+                      const handleManage = () => {
+                        try {
+                          const basePath = '/owner/cars';
+                          const params = new URLSearchParams();
+                          params.set('view', 'vehicles');
+                          params.set('section', 'details');
+                          params.set('car', id);
+                          const url = `${basePath}?${params.toString()}`;
+                          if (typeof window !== 'undefined') {
+                            window.open(url, '_blank', 'noopener,noreferrer');
+                          }
+                        } catch (_) {}
+                      };
+                      return (
+                        <tr key={id} className="hover:bg-[#fdf7ee] transition-colors">
+                          <td className="px-3 py-2 align-top">
+                            <button
+                              type="button"
+                              onClick={handleManage}
+                              className="text-left text-[#4b2a00] font-semibold hover:underline"
+                            >
+                              {name}
+                            </button>
+                          </td>
+                          <td className="px-3 py-2 align-top text-gray-700 capitalize">{cat}</td>
+                          <td className="px-3 py-2 align-top">
+                            <span
+                              className={`inline-flex items-center px-2 py-0.5 rounded-full border text-[10px] ${
+                                isAvailable
+                                  ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                                  : 'bg-gray-50 border-gray-200 text-gray-700'
+                              }`}
+                            >
+                              {isAvailable ? 'Available' : 'Unavailable'}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2 align-top text-right">
+                            <button
+                              type="button"
+                              onClick={handleManage}
+                              className="inline-flex items-center px-2 py-1 rounded-md bg-[#a06b42] hover:bg-[#8f5a32] text-white text-[10px] font-medium"
+                            >
+                              Manage
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
           {/* Upcoming bookings / recent activity */}
           <div className="mb-6 rounded-2xl bg-white shadow-sm border border-gray-100 px-4 py-4">
             <h2 className="text-sm font-semibold text-[#4b2a00] mb-1">Upcoming & recent bookings</h2>
@@ -2668,6 +2759,18 @@ export default function CarOwnerDashboard() {
                           toast.success('Status updated');
                         }} className="px-2 py-1 rounded-full border border-[#d4c4b0] bg-white text-[11px] text-[#4b2a00] hover:bg-[#f5e6d5]">{s}</button>
                       ))}
+                      <button
+                        onClick={() => {
+                          try {
+                            if (typeof window !== 'undefined') {
+                              window.open(`${API_URL}/api/car-bookings/${b._id}/invoice`, '_blank', 'noopener,noreferrer');
+                            }
+                          } catch (_) {}
+                        }}
+                        className="px-2 py-1 rounded-full border border-blue-200 bg-white text-[11px] text-blue-700 hover:bg-blue-50"
+                      >
+                        Invoice
+                      </button>
                       <button onClick={() => setReceiptBooking(b)} className="px-2 py-1 rounded-full bg-emerald-600 text-white text-[11px] hover:bg-emerald-700">Receipt</button>
                       <Link
                         to={`/messages?to=${b.guest?._id || ''}&booking=${b._id}`}
@@ -2808,6 +2911,22 @@ export default function CarOwnerDashboard() {
                 <p className="text-xs text-gray-600 mt-0.5">
                   Record an offline/negotiated reservation for one of your vehicles. The final agreed price will be used for commission.
                 </p>
+                {(() => {
+                  try {
+                    if (!directCarForm.carId || !Array.isArray(cars) || cars.length === 0) return null;
+                    const selected = cars.find(c => String(c._id) === String(directCarForm.carId));
+                    if (!selected) return null;
+                    const name = selected.vehicleName || `${selected.brand || ''} ${selected.model || ''}`.trim() || 'Untitled vehicle';
+                    return (
+                      <p className="mt-1 inline-flex items-center px-2 py-0.5 rounded-full bg-[#fdf7ee] border border-[#e0d5c7] text-[11px] text-[#4b2a00] font-medium">
+                        Selected vehicle:&nbsp;
+                        <span className="font-semibold">{name}</span>
+                      </p>
+                    );
+                  } catch (_) {
+                    return null;
+                  }
+                })()}
               </div>
               <button
                 type="button"
