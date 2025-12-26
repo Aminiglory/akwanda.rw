@@ -16,9 +16,11 @@ const MTNMobileMoneyPayment = () => {
     currency: 'RWF',
     description: bookingDetails.description || '',
     bookingId: bookingDetails.bookingId || '',
+    attractionBookingId: bookingDetails.attractionBookingId || '',
     customerName: bookingDetails.customerName || '',
     customerEmail: bookingDetails.customerEmail || '',
-    settleFines: Boolean(bookingDetails.settleFines)
+    settleFines: Boolean(bookingDetails.settleFines),
+    redirectPath: bookingDetails.redirectPath || ''
   });
 
   const [paymentStatus, setPaymentStatus] = useState('idle'); // idle, processing, success, failed
@@ -105,10 +107,18 @@ const MTNMobileMoneyPayment = () => {
       toast.success('Payment processed successfully! Redirecting...');
 
       // Wait a bit longer to ensure backend is updated, then redirect
-      if (paymentData.bookingId) {
+      if (paymentData.redirectPath) {
+        setTimeout(() => {
+          window.location.href = paymentData.redirectPath;
+        }, 4000);
+      } else if (paymentData.bookingId) {
         setTimeout(() => {
           // Use window.location for a clean redirect
           window.location.href = `/booking-confirmation/${paymentData.bookingId}`;
+        }, 4000);
+      } else if (paymentData.attractionBookingId) {
+        setTimeout(() => {
+          window.location.href = `/attraction-booking-confirmation/${paymentData.attractionBookingId}`;
         }, 4000);
       }
 
@@ -127,9 +137,11 @@ const MTNMobileMoneyPayment = () => {
       currency: 'RWF',
       description: '',
       bookingId: '',
+      attractionBookingId: '',
       customerName: '',
       customerEmail: '',
-      settleFines: false
+      settleFines: false,
+      redirectPath: ''
     });
     setPaymentStatus('idle');
     setTransactionId('');

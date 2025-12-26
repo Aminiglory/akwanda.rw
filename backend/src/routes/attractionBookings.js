@@ -10,6 +10,42 @@ const User = require('../tables/user');
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
 
+async function computeAvailability({ attractionId, visitDate, tickets }) {
+  const a = await Attraction.findById(attractionId).select('isActive capacity operatingHours owner');
+  if (!a || !a.isActive) return { ok: false, status: 404, message: 'Attraction not found' };
+
+  const when = new Date(visitDate);
+  if (Number.isNaN(when.getTime())) return { ok: false, status: 400, message: 'Invalid visit date' };
+
+  const day = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'][when.getDay()];
+  const allowedDays = Array.isArray(a.operatingHours?.days) ? a.operatingHours.days : [];
+  if (allowedDays.length > 0 && !allowedDays.includes(day)) {
+    return { ok: false, status: 400, message: 'Attraction is closed on selected date' };
+  }
+
+  const qty = Math.max(1, Number(tickets || 1));
+  const capacity = Math.max(1, Number(a.capacity || 0) || 50);
+
+  const start = new Date(when);
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(when);
+  end.setHours(23, 59, 59, 999);
+
+  const booked = await AttractionBooking.find({
+    attraction: a._id,
+    visitDate: { $gte: start, $lte: end },
+    status: { $ne: 'cancelled' }
+  }).select('numberOfPeople').lean();
+
+  const alreadyBooked = (booked || []).reduce((sum, b) => sum + Number(b.numberOfPeople || 0), 0);
+  const remaining = Math.max(0, capacity - alreadyBooked);
+  const available = remaining >= qty;
+  if (!available) {
+    return { ok: false, status: 409, message: 'Not enough remaining capacity', remaining, capacity };
+  }
+  return { ok: true, attraction: a, when, qty, remaining, capacity };
+}
+
 function requireAuth(req, res, next) {
   const token = req.cookies.akw_token || (req.headers.authorization || '').replace('Bearer ', '');
   if (!token) return res.status(401).json({ message: 'Unauthorized' });
@@ -37,13 +73,14 @@ router.post('/', requireAuth, async (req, res) => {
       paymentStatus
     } = req.body || {};
     if (!attractionId || !visitDate) return res.status(400).json({ message: 'Missing required fields' });
-    const a = await Attraction.findById(attractionId);
-    if (!a || !a.isActive) return res.status(404).json({ message: 'Attraction not found' });
+    const availability = await computeAvailability({ attractionId, visitDate, tickets });
+    if (!availability.ok) {
+      return res.status(availability.status).json({ message: availability.message, remaining: availability.remaining, capacity: availability.capacity });
+    }
 
-    const when = new Date(visitDate);
-    if (isNaN(when)) return res.status(400).json({ message: 'Invalid visit date' });
-
-    const qty = Math.max(1, Number(tickets || 1));
+    const a = availability.attraction;
+    const when = availability.when;
+    const qty = availability.qty;
     const unit = Number(a.price || 0);
     const total = unit * qty;
 
@@ -86,7 +123,7 @@ router.post('/', requireAuth, async (req, res) => {
       visitDate: when,
       numberOfPeople: qty,
       totalAmount: total,
-      status: 'pending',
+      status: (wantsDirect && (isOwner || isAdmin)) ? 'confirmed' : 'pending',
       isDirect: wantsDirect && (isOwner || isAdmin),
       contactPhone: contactPhone || '',
       specialRequests: notes || '',
@@ -143,6 +180,26 @@ router.patch('/:id/status', requireAuth, async (req, res) => {
     res.json({ booking: b });
   } catch (e) {
     res.status(500).json({ message: 'Failed to update status' });
+  }
+});
+
+// Booking details (guest, owner, or admin)
+router.get('/:id', requireAuth, async (req, res) => {
+  try {
+    const b = await AttractionBooking.findById(req.params.id)
+      .populate('attraction')
+      .populate('guest', 'firstName lastName email phone userType')
+      .lean();
+    if (!b) return res.status(404).json({ message: 'Booking not found' });
+
+    const ownerId = b?.attraction?.owner;
+    const isGuest = String(b.guest?._id || b.guest) === String(req.user.id);
+    const isOwner = ownerId && String(ownerId) === String(req.user.id);
+    const isAdmin = req.user.userType === 'admin';
+    if (!isGuest && !isOwner && !isAdmin) return res.status(403).json({ message: 'Forbidden' });
+    return res.json({ booking: b });
+  } catch (e) {
+    return res.status(500).json({ message: 'Failed to load booking' });
   }
 });
 

@@ -51,6 +51,7 @@ const PayCommission = lazyWithRetry(() => import('./pages/PayCommission'));
 const RRAEBMIntegration = lazyWithRetry(() => import('./pages/RRAEBMIntegration'));
 const BookingProcess = lazyWithRetry(() => import('./pages/BookingProcess'));
 const BookingConfirmation = lazyWithRetry(() => import('./pages/BookingConfirmation'));
+const AttractionBookingConfirmation = lazyWithRetry(() => import('./pages/AttractionBookingConfirmation'));
 const CustomerSupport = lazyWithRetry(() => import('./pages/CustomerSupport'));
 const PropertyOwnerBookings = lazyWithRetry(() => import('./pages/PropertyOwnerBookings'));
 const MyBookings = lazyWithRetry(() => import('./pages/MyBookings'));
@@ -219,6 +220,7 @@ function App() {
             <Route path="/receipt/:id" element={<ProtectedRoute><Receipt /></ProtectedRoute>} />
             <Route path="/test-upload" element={<TestUpload />} />
             <Route path="/quick-login" element={<QuickLogin />} />
+            <Route path="/attraction-booking-confirmation/:id" element={<AttractionBookingConfirmation />} />
             </Routes>
             </Suspense>
             
