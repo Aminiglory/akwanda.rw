@@ -6,6 +6,7 @@ const attractionBookingSchema = new mongoose.Schema(
     guest: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     confirmationCode: { type: String, index: true },
     visitDate: { type: Date, required: true },
+    timeSlot: { type: String },
     numberOfPeople: { type: Number, required: true, min: 1 },
     totalAmount: { type: Number, required: true },
     status: { type: String, enum: ['pending', 'confirmed', 'cancelled', 'completed'], default: 'pending' },

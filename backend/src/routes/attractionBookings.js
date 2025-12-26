@@ -10,31 +10,83 @@ const User = require('../tables/user');
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
 
-async function computeAvailability({ attractionId, visitDate, tickets }) {
-  const a = await Attraction.findById(attractionId).select('isActive capacity operatingHours owner');
+function normalizeDay(v) {
+  return String(v || '').trim().toLowerCase();
+}
+
+function parseTimeSlots(a) {
+  const raw = (a && a.timeSlots != null) ? String(a.timeSlots) : '';
+  const s = raw.trim();
+  if (!s) {
+    const open = String(a?.operatingHours?.open || '').trim();
+    const close = String(a?.operatingHours?.close || '').trim();
+    if (open && close) return [`${open}-${close}`];
+    return [];
+  }
+
+  if (s.startsWith('[') && s.endsWith(']')) {
+    try {
+      const arr = JSON.parse(s);
+      if (Array.isArray(arr)) {
+        return arr.map(x => String(x || '').trim()).filter(Boolean);
+      }
+    } catch (_) {
+      // ignore
+    }
+  }
+
+  return s
+    .split(/[\n,;]+/)
+    .map(x => String(x || '').trim())
+    .filter(Boolean);
+}
+
+async function computeAvailability({ attractionId, visitDate, tickets, timeSlot }) {
+  const a = await Attraction.findById(attractionId).select('isActive capacity operatingHours owner price timeSlots');
   if (!a || !a.isActive) return { ok: false, status: 404, message: 'Attraction not found' };
 
-  const when = new Date(visitDate);
+  let when;
+  const vd = String(visitDate || '').trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(vd)) {
+    const [y, m, d] = vd.split('-').map(n => Number(n));
+    when = new Date(Date.UTC(y, (m || 1) - 1, d || 1));
+  } else {
+    when = new Date(visitDate);
+  }
   if (Number.isNaN(when.getTime())) return { ok: false, status: 400, message: 'Invalid visit date' };
 
-  const day = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'][when.getDay()];
-  const allowedDays = Array.isArray(a.operatingHours?.days) ? a.operatingHours.days : [];
-  if (allowedDays.length > 0 && !allowedDays.includes(day)) {
+  const day = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'][when.getUTCDay()];
+  const allowedDays = Array.isArray(a.operatingHours?.days) ? a.operatingHours.days.map(normalizeDay) : [];
+  if (allowedDays.length > 0 && !allowedDays.includes(normalizeDay(day))) {
     return { ok: false, status: 400, message: 'Attraction is closed on selected date' };
+  }
+
+  const slots = parseTimeSlots(a);
+  const requestedSlot = String(timeSlot || '').trim();
+  if (slots.length > 0 && !requestedSlot) {
+    return { ok: false, status: 400, message: 'Time slot required', reason: 'slot_required', slots };
+  }
+  if (slots.length > 0 && requestedSlot && !slots.includes(requestedSlot)) {
+    return { ok: false, status: 400, message: 'Invalid time slot', reason: 'invalid_slot', slots };
   }
 
   const qty = Math.max(1, Number(tickets || 1));
   const capacity = Math.max(1, Number(a.capacity || 0) || 50);
 
   const start = new Date(when);
-  start.setHours(0, 0, 0, 0);
+  start.setUTCHours(0, 0, 0, 0);
   const end = new Date(when);
-  end.setHours(23, 59, 59, 999);
+  end.setUTCHours(23, 59, 59, 999);
+
+  const slotFilter = requestedSlot
+    ? { $or: [{ timeSlot: requestedSlot }, { timeSlot: { $exists: false } }, { timeSlot: null }, { timeSlot: '' }] }
+    : {};
 
   const booked = await AttractionBooking.find({
     attraction: a._id,
     visitDate: { $gte: start, $lte: end },
-    status: { $ne: 'cancelled' }
+    status: { $ne: 'cancelled' },
+    ...slotFilter
   }).select('numberOfPeople').lean();
 
   const alreadyBooked = (booked || []).reduce((sum, b) => sum + Number(b.numberOfPeople || 0), 0);
@@ -43,7 +95,7 @@ async function computeAvailability({ attractionId, visitDate, tickets }) {
   if (!available) {
     return { ok: false, status: 409, message: 'Not enough remaining capacity', remaining, capacity };
   }
-  return { ok: true, attraction: a, when, qty, remaining, capacity };
+  return { ok: true, attraction: a, when, qty, remaining, capacity, requestedSlot, slots };
 }
 
 function requireAuth(req, res, next) {
@@ -65,6 +117,7 @@ router.post('/', requireAuth, async (req, res) => {
       attractionId,
       visitDate,
       tickets = 1,
+      timeSlot,
       notes,
       contactPhone,
       paymentMethod,
@@ -73,14 +126,21 @@ router.post('/', requireAuth, async (req, res) => {
       paymentStatus
     } = req.body || {};
     if (!attractionId || !visitDate) return res.status(400).json({ message: 'Missing required fields' });
-    const availability = await computeAvailability({ attractionId, visitDate, tickets });
+    const availability = await computeAvailability({ attractionId, visitDate, tickets, timeSlot });
     if (!availability.ok) {
-      return res.status(availability.status).json({ message: availability.message, remaining: availability.remaining, capacity: availability.capacity });
+      return res.status(availability.status).json({
+        message: availability.message,
+        remaining: availability.remaining,
+        capacity: availability.capacity,
+        reason: availability.reason,
+        slots: availability.slots
+      });
     }
 
     const a = availability.attraction;
     const when = availability.when;
     const qty = availability.qty;
+    const requestedSlot = availability.requestedSlot;
     const unit = Number(a.price || 0);
     const total = unit * qty;
 
@@ -107,6 +167,10 @@ router.post('/', requireAuth, async (req, res) => {
       guestId = guestUser._id;
     }
 
+    if (String(guestId) === String(a.owner) && !isAdmin) {
+      return res.status(403).json({ message: 'Owners cannot book their own attraction' });
+    }
+
     const validPaymentStatus = ['pending', 'paid', 'failed', 'refunded', 'unpaid'];
     const ps = validPaymentStatus.includes(String(paymentStatus || '').toLowerCase())
       ? String(paymentStatus).toLowerCase()
@@ -121,6 +185,7 @@ router.post('/', requireAuth, async (req, res) => {
       attraction: a._id,
       guest: guestId,
       visitDate: when,
+      timeSlot: requestedSlot || '',
       numberOfPeople: qty,
       totalAmount: total,
       status: (wantsDirect && (isOwner || isAdmin)) ? 'confirmed' : 'pending',

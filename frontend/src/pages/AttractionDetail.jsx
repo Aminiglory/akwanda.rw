@@ -66,11 +66,14 @@ export default function AttractionDetail() {
   const [booking, setBooking] = useState(false);
   const [checking, setChecking] = useState(false);
   const [available, setAvailable] = useState(null);
+  const [availabilityInfo, setAvailabilityInfo] = useState(null);
+  const [viewerId, setViewerId] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('cash'); // 'cash' | 'mtn_mobile_money'
   const today = useMemo(() => new Date().toISOString().split('T')[0], []);
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({
     visitDate: '',
+    timeSlot: '',
     tickets: 1,
     notes: ''
   });
@@ -102,6 +105,7 @@ export default function AttractionDetail() {
         const data = await res.json().catch(() => ({}));
         const u = data?.user;
         if (!u) return;
+        if (u._id) setViewerId(String(u._id));
         setContact(prev => ({
           ...prev,
           firstName: u.firstName || prev.firstName,
@@ -121,12 +125,22 @@ export default function AttractionDetail() {
       setChecking(true);
       const res = await fetch(`${API_URL}/api/attractions/${id}/availability`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ visitDate: form.visitDate, tickets: Number(form.tickets || 1) })
+        body: JSON.stringify({
+          visitDate: form.visitDate,
+          tickets: Number(form.tickets || 1),
+          timeSlot: String(form.timeSlot || '').trim()
+        })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Could not check availability');
-      setAvailable(!!data.available);
-      toast[data.available ? 'success' : 'error'](data.available ? 'Available' : 'Not available');
+      setAvailabilityInfo(data);
+      if (data?.reason === 'slot_required') {
+        setAvailable(null);
+        toast.error('Select a time slot');
+      } else {
+        setAvailable(!!data.available);
+        toast[data.available ? 'success' : 'error'](data.available ? 'Available' : 'Not available');
+      }
     } catch (e) { toast.error(e.message); } finally { setChecking(false); }
   }
 
@@ -139,6 +153,7 @@ export default function AttractionDetail() {
         body: JSON.stringify({
           attractionId: id,
           visitDate: form.visitDate,
+          timeSlot: String(form.timeSlot || '').trim(),
           tickets: Number(form.tickets || 1),
           notes: form.notes,
           contactPhone: contact.phone,
@@ -187,8 +202,15 @@ export default function AttractionDetail() {
   const lng = Number(item?.longitude);
   const hasCoords = Number.isFinite(lat) && Number.isFinite(lng);
 
+  const ownerId = item?.owner ? String(item.owner) : '';
+  const isOwnerViewing = viewerId && ownerId && viewerId === ownerId;
+
   const nextFromStep1 = () => {
     if (!form.visitDate) { toast.error('Select visit date'); return; }
+    if (Array.isArray(availabilityInfo?.slots) && availabilityInfo.slots.length > 0 && !String(form.timeSlot || '').trim()) {
+      toast.error('Select a time slot');
+      return;
+    }
     if (Number(form.tickets || 1) < 1) { toast.error('Tickets must be at least 1'); return; }
     setStep(2);
   };
@@ -285,6 +307,25 @@ export default function AttractionDetail() {
                   </div>
                 </div>
                 <div>
+                  <label className="text-sm text-gray-700">Time slot</label>
+                  <select
+                    value={form.timeSlot}
+                    onChange={e => {
+                      setAvailable(null);
+                      setAvailabilityInfo(null);
+                      setForm({ ...form, timeSlot: e.target.value });
+                    }}
+                    className="w-full px-3 py-2 border rounded"
+                  >
+                    <option value="">Select a slot</option>
+                    {Array.isArray(availabilityInfo?.slots) ? availabilityInfo.slots.map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    )) : null}
+                  </select>
+                  <div className="text-xs text-gray-500 mt-1">Click "Check availability" to load slots for the selected date.</div>
+                </div>
+
+                <div>
                   <label className="text-sm text-gray-700">Tickets</label>
                   <input
                     type="number"
@@ -309,6 +350,10 @@ export default function AttractionDetail() {
                     </span>
                   )}
                 </div>
+
+                {availabilityInfo?.reason === 'slot_required' && (
+                  <div className="text-xs text-red-600">Please select a time slot.</div>
+                )}
                 <button
                   type="button"
                   onClick={nextFromStep1}
@@ -391,6 +436,12 @@ export default function AttractionDetail() {
                     <span>Visit date</span>
                     <span className="font-semibold text-gray-900">{form.visitDate}</span>
                   </div>
+                  {form.timeSlot ? (
+                    <div className="flex items-center justify-between mt-1">
+                      <span>Time slot</span>
+                      <span className="font-semibold text-gray-900">{form.timeSlot}</span>
+                    </div>
+                  ) : null}
                   <div className="flex items-center justify-between mt-1">
                     <span>Tickets</span>
                     <span className="font-semibold text-gray-900">{qty}</span>
@@ -433,12 +484,16 @@ export default function AttractionDetail() {
                   <button
                     type="button"
                     onClick={createBooking}
-                    disabled={booking}
+                    disabled={booking || isOwnerViewing}
                     className="px-4 py-2 bg-[#a06b42] hover:bg-[#8f5a32] text-white rounded"
                   >
                     {booking ? 'Booking...' : 'Confirm & book'}
                   </button>
                 </div>
+
+                {isOwnerViewing && (
+                  <div className="text-xs text-red-600">You can’t book your own attraction.</div>
+                )}
 
                 {item?.owner && (
                   <button
