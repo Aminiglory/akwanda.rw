@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import ReceiptPreview from '../components/ReceiptPreview';
 import Messages from './Messages';
+import ListProperty from './ListProperty';
 import toast from 'react-hot-toast';
 import SuccessModal from '../components/SuccessModal';
 import { useLocale } from '../contexts/LocaleContext';
@@ -504,13 +505,19 @@ export default function OwnerAttractionsDashboard() {
   const [editingId, setEditingId] = useState(null);
 
   const openCreateEditor = () => {
-    window.location.assign('/upload-property?type=attraction');
+    goToDashboardView('attractions', (next) => {
+      next.set('section', 'edit');
+      next.delete('edit');
+    });
   };
 
   const openEditEditor = (item) => {
     const id = item?._id;
     if (!id) return;
-    window.location.assign(`/upload-property?type=attraction&edit=${encodeURIComponent(String(id))}`);
+    goToDashboardView('attractions', (next) => {
+      next.set('section', 'edit');
+      next.set('edit', String(id));
+    });
   };
 
   const closeEditor = () => {
@@ -981,20 +988,19 @@ export default function OwnerAttractionsDashboard() {
     <div className="min-h-screen bg-[#f9f5ef] py-6">
       <div className="max-w-6xl mx-auto px-4">
         <div className="mb-4 flex justify-between items-center">
-          <button
-            type="button"
-            onClick={() => window.location.assign('/choose-listing-type')}
+          <Link
+            to="/choose-listing-type"
             className="inline-flex items-center px-3 py-1.5 rounded-full bg-white/70 hover:bg-white text-xs font-medium text-[#4b2a00] border border-[#e0d5c7] shadow-sm transition-colors"
           >
             <span className="mr-1">←</span>
             {labelOr('ownerAttractions.ui.backToListingOptions', 'Back to listing options')}
-          </button>
+          </Link>
         </div>
         <div className="mb-4 flex items-center justify-end gap-2">
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => window.location.assign('/upload-property?type=attraction')}
+              onClick={openCreateEditor}
               className="px-4 py-2 rounded-lg bg-[#a06b42] hover:bg-[#8f5a32] text-white text-sm font-medium shadow-sm"
             >
               {labelOr('ownerAttractions.ui.listYourAttraction', 'List Your Attraction')}
@@ -2252,7 +2258,48 @@ export default function OwnerAttractionsDashboard() {
         </>
       )}
 
-      {view === 'attractions' && attractionsSection !== 'list' && (
+      {view === 'attractions' && attractionsSection === 'edit' && (
+        <>
+          <div className="mb-3 flex items-center justify-between">
+            <div>
+              <div className="text-sm font-semibold text-[#3b2a18]">
+                {searchParams.get('edit')
+                  ? labelOr('ownerAttractions.editor.editTitle', 'Edit attraction')
+                  : labelOr('ownerAttractions.editor.createTitle', 'Create attraction')}
+              </div>
+              <div className="text-[11px] text-gray-500">
+                {labelOr('ownerAttractions.editor.subtitle', 'Complete the steps below to save your attraction.')}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                try {
+                  const next = new URLSearchParams(searchParams.toString());
+                  next.set('view', 'attractions');
+                  next.set('section', 'list');
+                  next.delete('edit');
+                  setSearchParams(next, { replace: true });
+                } catch (_) {}
+              }}
+              className="px-3 py-2 rounded-lg bg-white border border-[#d4c4b0] text-[#4b2a00] text-xs font-medium hover:bg-[#f9f1e7]"
+            >
+              {labelOr('common.back', 'Back')}
+            </button>
+          </div>
+
+          <div className="rounded-xl bg-white border border-gray-200 p-4">
+            <ListProperty
+              embedded
+              forceType="attraction"
+              editId={searchParams.get('edit') || ''}
+              hideListingTypeSelector
+            />
+          </div>
+        </>
+      )}
+
+      {view === 'attractions' && attractionsSection !== 'list' && attractionsSection !== 'edit' && (
         <>
           {(() => {
             const state = ensureHasAttractions();
@@ -2275,7 +2322,7 @@ export default function OwnerAttractionsDashboard() {
                   <div className="mt-4 flex justify-center">
                     <button
                       type="button"
-                      onClick={() => window.location.assign('/upload-property?type=attraction')}
+                      onClick={openCreateEditor}
                       className="px-4 py-2 rounded-lg bg-[#a06b42] hover:bg-[#8f5a32] text-white text-sm font-medium shadow-sm"
                     >
                       {labelOr('ownerAttractions.addNewAttraction', 'Add new attraction')}

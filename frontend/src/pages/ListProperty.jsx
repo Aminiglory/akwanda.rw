@@ -432,15 +432,37 @@ const initialFlightData = {
   seatsRemaining: ''
 };
 
-const ListProperty = () => {
+const ListProperty = ({ embedded = false, forceType = '', editId: editIdProp = '', hideListingTypeSelector = false } = {}) => {
   const { user } = useAuth();
   const { t } = useLocale() || {};
   const navigate = useNavigate();
   const location = useLocation();
-  const [listingType, setListingType] = useState('stay');
+  const [listingType, setListingType] = useState(() => {
+    try {
+      const params = new URLSearchParams(location.search || '');
+      const rawType = (params.get('type') || '').toLowerCase();
+      const editId = String(editIdProp || params.get('edit') || '').trim();
+      const allowed = ['stay', 'rental', 'attraction', 'flight'];
+      const forced = String(forceType || '').toLowerCase();
+      if (forced && allowed.includes(forced)) return forced;
+      if (editId) return 'attraction';
+      if (rawType && allowed.includes(rawType)) return rawType;
+    } catch (_) {
+      // best-effort only
+    }
+    return 'stay';
+  });
   const [attractionStep, setAttractionStep] = useState(1);
   const [attractionForm, setAttractionForm] = useState(initialAttraction);
-  const [editingAttractionId, setEditingAttractionId] = useState(null);
+  const [editingAttractionId, setEditingAttractionId] = useState(() => {
+    try {
+      const params = new URLSearchParams(location.search || '');
+      const editId = String(editIdProp || params.get('edit') || '').trim();
+      return editId || null;
+    } catch (_) {
+      return String(editIdProp || '').trim() || null;
+    }
+  });
   const [existingAttractionImageCount, setExistingAttractionImageCount] = useState(0);
   const [flightStep, setFlightStep] = useState(1);
   const [flightData, setFlightData] = useState(initialFlightData);
@@ -475,8 +497,20 @@ const ListProperty = () => {
     try {
       const params = new URLSearchParams(location.search || '');
       const rawType = (params.get('type') || '').toLowerCase();
-      const editId = (params.get('edit') || '').trim();
+      const editId = String(editIdProp || params.get('edit') || '').trim();
       const allowed = ['stay', 'rental', 'attraction', 'flight'];
+      const forced = String(forceType || '').toLowerCase();
+
+      if (forced && allowed.includes(forced)) {
+        setListingType(forced);
+        if (forced === 'attraction') setAttractionStep(1);
+        if (forced === 'flight') setFlightStep(1);
+        if (forced !== 'attraction') {
+          setEditingAttractionId(null);
+          setExistingAttractionImageCount(0);
+        }
+        return;
+      }
 
       if (editId) {
         setListingType('attraction');
@@ -485,8 +519,12 @@ const ListProperty = () => {
         return;
       }
 
-      if (!rawType || !allowed.includes(rawType)) return;
+      if (editingAttractionId) {
+        setEditingAttractionId(null);
+        setExistingAttractionImageCount(0);
+      }
 
+      if (!rawType || !allowed.includes(rawType)) return;
       setListingType(rawType);
       if (rawType === 'attraction') {
         setAttractionStep(1);
@@ -497,7 +535,7 @@ const ListProperty = () => {
     } catch (_) {
       // best-effort only
     }
-  }, [location.search]);
+  }, [location.search, forceType, editIdProp]);
 
   useEffect(() => {
     async function loadAttractionForEdit() {
@@ -2189,17 +2227,33 @@ const ListProperty = () => {
     return null;
   };
 
+  const shouldShowListingSelector = (() => {
+    if (hideListingTypeSelector) return false;
+    if (String(forceType || '').trim()) return false;
+    if (editingAttractionId) return false;
+    try {
+      const params = new URLSearchParams(location.search || '');
+      // If a type is explicitly provided, don't show the multi-listing selector.
+      if (params.get('type')) return false;
+    } catch (_) {
+      // best-effort only
+    }
+    return true;
+  })();
+
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">List your property</h1>
-          <p className="text-gray-600">Choose what you want to list, then follow the steps to publish it on AKWANDA.rw.</p>
-        </div>
+    <div className={embedded ? '' : 'min-h-screen bg-gray-50 py-8'}>
+      <div className={embedded ? '' : 'max-w-4xl mx-auto px-4'}>
+        {!embedded && (
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">List your property</h1>
+            <p className="text-gray-600">Choose what you want to list, then follow the steps to publish it on AKWANDA.rw.</p>
+          </div>
+        )}
 
-        {renderListingTypeSelector()}
+        {shouldShowListingSelector ? renderListingTypeSelector() : null}
 
-        {listingType === 'stay' ? (
+        {listingType === 'stay' && !editingAttractionId && !String(forceType || '').trim() ? (
           <EnhancedUploadProperty />
         ) : (
           renderNonStayContent()
