@@ -134,12 +134,28 @@ export default function AttractionDetail() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Could not check availability');
       setAvailabilityInfo(data);
-      if (data?.reason === 'slot_required') {
-        setAvailable(null);
-        toast.error('Select a time slot');
+      if (!data?.available) {
+        setAvailable(false);
+        const reason = String(data?.reason || '').toLowerCase();
+        if (reason === 'closed') {
+          toast.error('Not available: closed on selected date');
+        } else if (reason === 'slot_required') {
+          toast.error('Not available: please select a time slot');
+        } else if (reason === 'invalid_slot') {
+          toast.error('Not available: selected time slot is not valid');
+        } else if (reason === 'capacity') {
+          const remaining = Number(data?.remaining);
+          if (Number.isFinite(remaining)) {
+            toast.error(`Not available: only ${Math.max(0, remaining)} tickets remaining for this slot`);
+          } else {
+            toast.error('Not available: not enough remaining capacity');
+          }
+        } else {
+          toast.error('Not available');
+        }
       } else {
-        setAvailable(!!data.available);
-        toast[data.available ? 'success' : 'error'](data.available ? 'Available' : 'Not available');
+        setAvailable(true);
+        toast.success('Available');
       }
     } catch (e) { toast.error(e.message); } finally { setChecking(false); }
   }
@@ -351,8 +367,19 @@ export default function AttractionDetail() {
                   )}
                 </div>
 
+                {availabilityInfo?.reason === 'closed' && (
+                  <div className="text-xs text-red-600">This attraction is closed on the selected date.</div>
+                )}
                 {availabilityInfo?.reason === 'slot_required' && (
                   <div className="text-xs text-red-600">Please select a time slot.</div>
+                )}
+                {availabilityInfo?.reason === 'invalid_slot' && (
+                  <div className="text-xs text-red-600">Selected time slot is not valid for this attraction.</div>
+                )}
+                {availabilityInfo?.reason === 'capacity' && (
+                  <div className="text-xs text-red-600">
+                    Not enough remaining capacity{Number.isFinite(Number(availabilityInfo?.remaining)) ? ` (remaining: ${Math.max(0, Number(availabilityInfo?.remaining))})` : ''}.
+                  </div>
                 )}
                 <button
                   type="button"

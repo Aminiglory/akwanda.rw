@@ -122,7 +122,16 @@ router.post('/:id/availability', async (req, res) => {
     const alreadyBooked = (booked || []).reduce((sum, b) => sum + Number(b.numberOfPeople || 0), 0);
     const remaining = Math.max(0, capacity - alreadyBooked);
     const available = remaining >= qty;
-    return res.json({ available, remaining, capacity, slots: slots.length > 0 ? slots : undefined });
+    if (!available) {
+      return res.json({
+        available: false,
+        remaining,
+        capacity,
+        reason: 'capacity',
+        slots: slots.length > 0 ? slots : undefined
+      });
+    }
+    return res.json({ available: true, remaining, capacity, slots: slots.length > 0 ? slots : undefined });
   } catch (e) {
     return res.status(500).json({ message: 'Failed to check availability' });
   }

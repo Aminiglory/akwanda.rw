@@ -510,22 +510,7 @@ export default function OwnerAttractionsDashboard() {
   const openEditEditor = (item) => {
     const id = item?._id;
     if (!id) return;
-    setEditorMode('edit');
-    setEditingId(String(id));
-    setCreateImages([]);
-    setForm({
-      name: item?.name || '',
-      description: item?.description || '',
-      category: item?.category || 'cultural',
-      location: item?.location || '',
-      city: item?.city || '',
-      country: item?.country || 'Rwanda',
-      price: Number(item?.price || 0),
-      currency: item?.currency || 'RWF',
-      isActive: Boolean(item?.isActive),
-      highlights: Array.isArray(item?.amenities) ? item.amenities.join(', ') : (item?.amenities || '')
-    });
-    setEditorOpen(true);
+    window.location.assign(`/upload-property?type=attraction&edit=${encodeURIComponent(String(id))}`);
   };
 
   const closeEditor = () => {
