@@ -1054,6 +1054,28 @@ const AdminDashboard = () => {
                     </div>
                     <p className="text-xs sm:text-sm text-gray-600">Manage attractions content, images, and publish the page.</p>
                   </Link>
+
+                  <Link
+                    to="/admin/rentals"
+                    className="group block bg-white rounded-xl shadow-lg p-5 sm:p-6 hover:shadow-xl transition-shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                  >
+                    <div className="flex items-center gap-3 sm:gap-4 mb-2 sm:mb-3">
+                      <FaCar className="text-indigo-600 text-lg sm:text-xl" />
+                      <div className="font-semibold text-gray-900 text-sm sm:text-base">Rentals Page CMS</div>
+                    </div>
+                    <p className="text-xs sm:text-sm text-gray-600">Manage rentals page hero content (title, intro, images) and publish changes.</p>
+                  </Link>
+
+                  <Link
+                    to="/admin/flights"
+                    className="group block bg-white rounded-xl shadow-lg p-5 sm:p-6 hover:shadow-xl transition-shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                  >
+                    <div className="flex items-center gap-3 sm:gap-4 mb-2 sm:mb-3">
+                      <FaPlane className="text-amber-600 text-lg sm:text-xl" />
+                      <div className="font-semibold text-gray-900 text-sm sm:text-base">Flights Page CMS</div>
+                    </div>
+                    <p className="text-xs sm:text-sm text-gray-600">Manage flights page hero content (title, intro, images) and publish changes.</p>
+                  </Link>
                   <Link
                     to="/messages"
                     className="group block bg-white rounded-xl shadow-lg p-5 sm:p-6 hover:shadow-xl transition-shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
