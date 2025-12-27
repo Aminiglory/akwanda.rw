@@ -1,18 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaStar } from 'react-icons/fa';
-import PropertyCard from '../components/PropertyCard';
+import { FaMapMarkerAlt, FaUsers, FaClock, FaCalendarAlt } from 'react-icons/fa';
 import FeaturedDestinationsSection from '../components/FeaturedDestinationsSection';
-import { useAuth } from '../contexts/AuthContext';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const Attractions = () => {
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const [favIds, setFavIds] = useState([]);
-  const { isAuthenticated } = useAuth();
   const [pageContent, setPageContent] = useState({
     pageTitle: 'Find Your Next Experience',
     introText: 'Discover amazing attractions across Rwanda',
@@ -20,56 +14,14 @@ const Attractions = () => {
     published: true,
   });
   const [landingFeatured, setLandingFeatured] = useState(null);
+  const [destinations, setDestinations] = useState([]);
 
-  const makeAbsolute = (u) => {
-    if (!u) return null;
-    let s = String(u).trim().replace(/\\+/g, '/');
-    if (/^https?:\/\//i.test(s)) return s;
-    if (!s.startsWith('/')) s = `/${s}`;
-    return `${API_URL}${s}`;
-  };
-
-  // Load favorites from server if authenticated, else localStorage
-  useEffect(() => {
-    (async () => {
-      try {
-        if (isAuthenticated) {
-          const res = await fetch(`${API_URL}/api/user/wishlist-attractions`, { credentials: 'include' });
-          const data = await res.json();
-          if (res.ok) { setFavIds((data.wishlist || []).map(String)); return; }
-        }
-        const raw = localStorage.getItem('attraction-favorites');
-        const list = raw ? JSON.parse(raw) : [];
-        setFavIds(Array.isArray(list) ? list : []);
-      } catch { setFavIds([]); }
-    })();
-  }, [isAuthenticated]);
-
-  const toggleWishlist = async (id) => {
-    const sid = String(id);
-    const set = new Set(favIds.map(String));
-    const exists = set.has(sid);
-    // optimistic
-    if (exists) set.delete(sid); else set.add(sid);
-    const next = Array.from(set);
-    setFavIds(next);
-    try {
-      if (isAuthenticated) {
-        const res = await fetch(`${API_URL}/api/user/wishlist-attractions/${encodeURIComponent(sid)}`, {
-          method: exists ? 'DELETE' : 'POST',
-          credentials: 'include'
-        });
-        if (!res.ok) throw new Error('Wishlist update failed');
-      } else {
-        localStorage.setItem('attraction-favorites', JSON.stringify(next));
-      }
-    } catch (_) {
-      // revert
-      const revert = new Set(next);
-      if (exists) revert.add(sid); else revert.delete(sid);
-      setFavIds(Array.from(revert));
-    }
-  };
+  const [search, setSearch] = useState({
+    location: '',
+    visitDate: '',
+    timeSlot: '',
+    tickets: 1,
+  });
 
   useEffect(() => {
     (async () => {
@@ -96,54 +48,22 @@ const Attractions = () => {
           const featured = sections.find((s) => s?.key === 'featuredDestinations');
           setLandingFeatured(featured || null);
         }
-        
-        // Load actual attractions from API
-        const attractionsRes = await fetch(`${API_URL}/api/attractions`, { credentials: 'include' });
-        const attractionsData = await attractionsRes.json();
-        if (attractionsRes.ok) {
-          // Use API attractions if available, otherwise fall back to CMS content
-          const apiAttractions = Array.isArray(attractionsData?.attractions) ? attractionsData.attractions : [];
-          const cmsAttractions = Array.isArray(content.attractions) ? content.attractions : [];
-          setItems(apiAttractions.length > 0 ? apiAttractions : cmsAttractions);
+
+        // Load destinations based on real attractions
+        const dRes = await fetch(`${API_URL}/api/attractions/destinations`);
+        if (dRes.ok) {
+          const dData = await dRes.json().catch(() => ({}));
+          setDestinations(Array.isArray(dData?.destinations) ? dData.destinations : []);
         } else {
-          // Fallback to CMS content if API fails
-          setItems(Array.isArray(content.attractions) ? content.attractions : []);
+          setDestinations([]);
         }
       } catch (_) { 
-        setItems([]); 
+        setDestinations([]);
       } finally { 
         setLoading(false); 
       }
     })();
   }, []);
-
-  const categories = useMemo(() => {
-    const all = new Map();
-    for (const a of items) {
-      const id = (a.category || 'other').toLowerCase();
-      if (!all.has(id)) all.set(id, { id, name: id.charAt(0).toUpperCase()+id.slice(1), icon: '📍' });
-    }
-    const arr = Array.from(all.values());
-    return [{ id: 'all', name: 'All', icon: '🏷️' }, ...arr];
-  }, [items]);
-
-  const attractions = items;
-
-  const filteredAttractions = selectedCategory === 'all' 
-    ? attractions 
-    : attractions.filter(attraction => {
-        const cat = (attraction.category || '').toLowerCase();
-        return cat === selectedCategory.toLowerCase();
-      });
-
-  const renderStars = (rating) => {
-    return Array.from({ length: 5 }, (_, i) => (
-      <FaStar
-        key={i}
-        className={`${i < Math.floor(rating) ? 'text-yellow-400' : 'text-gray-300'}`}
-      />
-    ));
-  };
 
   const heroImage = useMemo(() => {
     const imgs = Array.isArray(pageContent.heroImages) ? pageContent.heroImages : [];
@@ -153,6 +73,23 @@ const Attractions = () => {
     if (/^https?:\/\//i.test(img)) return img;
     return `${API_URL}${img.startsWith('/') ? img : `/${img}`}`;
   }, [pageContent.heroImages]);
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    const params = new URLSearchParams();
+    if (search.location) params.set('q', search.location);
+    if (search.visitDate) params.set('visitDate', search.visitDate);
+    if (search.timeSlot) params.set('timeSlot', search.timeSlot);
+    if (search.tickets) params.set('tickets', String(search.tickets));
+    navigate(`/attractions/search${params.toString() ? `?${params.toString()}` : ''}`);
+  };
+
+  const buildDestinationUrl = (d) => {
+    const params = new URLSearchParams();
+    if (d?.city) params.set('city', d.city);
+    if (d?.country) params.set('country', d.country);
+    return `/attractions/search${params.toString() ? `?${params.toString()}` : ''}`;
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
@@ -186,87 +123,77 @@ const Attractions = () => {
                 {pageContent.introText}
               </p>
           </div>
+
+          <div className="relative max-w-4xl mx-auto mt-8">
+            <form onSubmit={handleSearch} className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl border border-white/50 p-4 md:p-5">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                <div className="relative">
+                  <FaMapMarkerAlt className="absolute left-3 top-1/2 -translate-y-1/2 text-[#a06b42]" />
+                  <input
+                    value={search.location}
+                    onChange={(e) => setSearch((p) => ({ ...p, location: e.target.value }))}
+                    placeholder="Where do you want to go?"
+                    className="w-full h-12 pl-10 pr-3 rounded-xl border border-gray-200 focus:border-[#a06b42] outline-none"
+                  />
+                </div>
+
+                <div className="relative">
+                  <FaCalendarAlt className="absolute left-3 top-1/2 -translate-y-1/2 text-[#a06b42]" />
+                  <input
+                    type="date"
+                    value={search.visitDate}
+                    onChange={(e) => setSearch((p) => ({ ...p, visitDate: e.target.value }))}
+                    className="w-full h-12 pl-10 pr-3 rounded-xl border border-gray-200 focus:border-[#a06b42] outline-none"
+                  />
+                </div>
+
+                <div className="relative">
+                  <FaClock className="absolute left-3 top-1/2 -translate-y-1/2 text-[#a06b42]" />
+                  <input
+                    type="time"
+                    value={search.timeSlot}
+                    onChange={(e) => setSearch((p) => ({ ...p, timeSlot: e.target.value }))}
+                    className="w-full h-12 pl-10 pr-3 rounded-xl border border-gray-200 focus:border-[#a06b42] outline-none"
+                  />
+                </div>
+
+                <div className="relative">
+                  <FaUsers className="absolute left-3 top-1/2 -translate-y-1/2 text-[#a06b42]" />
+                  <input
+                    type="number"
+                    min={1}
+                    value={search.tickets}
+                    onChange={(e) => setSearch((p) => ({ ...p, tickets: Math.max(1, Number(e.target.value) || 1) }))}
+                    className="w-full h-12 pl-10 pr-3 rounded-xl border border-gray-200 focus:border-[#a06b42] outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-3 flex justify-center">
+                <button
+                  type="submit"
+                  className="px-8 py-3 rounded-xl bg-[#a06b42] hover:bg-[#8f5a32] text-white font-semibold shadow-md"
+                >
+                  Search attractions
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-10 md:py-12">
-        {/* Category Filter */}
-        <div className="mb-10">
-          <div className="flex flex-wrap gap-3 md:gap-4 justify-center">
-            {categories.map((category) => (
-              <button
-                key={category.id}
-                onClick={() => setSelectedCategory(category.id)}
-                className={`flex items-center space-x-2 px-4 md:px-6 py-2.5 md:py-3 rounded-full text-sm md:text-base transition-all duration-300 shadow-sm hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#a06b42] ${
-                  selectedCategory === category.id
-                    ? 'bg-[#a06b42] text-white ring-0 scale-[1.03]'
-                    : 'bg-white/90 text-[#4b2a00] border border-[#e0d2c0] hover:bg-[#f7ede1]'
-                }`}
-              >
-                <span className="text-lg">{category.icon}</span>
-                <span className="font-semibold tracking-wide">{category.name}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
         {/* Featured landing destinations */}
-        <FeaturedDestinationsSection section={landingFeatured} showExploreLink />
+        <FeaturedDestinationsSection
+          section={landingFeatured}
+          showExploreLink
+          ctaUrl="/attractions/search"
+          destinations={destinations}
+          buildCtaUrl={buildDestinationUrl}
+        />
 
-        {/* Attractions Grid */}
-        {loading ? (
-          <div className="text-center text-gray-600 py-16 text-lg">Loading attractions…</div>
-        ) : filteredAttractions.length === 0 ? (
-          <div className="text-center text-gray-600 py-16 text-lg">
-            No attractions available yet.
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-            {filteredAttractions.map((a, index) => {
-              const id = a.id || a._id || index;
-              // Handle images - can be single image string or array
-              let image = null;
-              if (a.images && Array.isArray(a.images) && a.images.length > 0) {
-                image = makeAbsolute(a.images[0]);
-              } else if (a.image) {
-                image = makeAbsolute(a.image);
-              }
-              const wishlisted = favIds.some(x => String(x) === String(id));
-              return (
-                <div
-                  key={id}
-                  className="group transform transition-all duration-500 hover:-translate-y-1 hover:shadow-xl rounded-2xl bg-white/90 backdrop-blur-sm border border-[#ecd9c4] overflow-hidden"
-                  style={{ boxShadow: '0 18px 45px rgba(82, 45, 13, 0.08)' }}
-                >
-                  <PropertyCard
-                    listing={{
-                      id,
-                      title: a.title || a.name || 'Attraction',
-                      location: a.location || a.city || '',
-                      image,
-                      price: a.price || 0,
-                      bedrooms: null,
-                      bathrooms: null,
-                      area: a.category || '',
-                      status: a.isActive !== false ? 'active' : 'inactive',
-                      bookings: 0,
-                      host: '',
-                      description: a.description || a.shortDesc || '',
-                      wishlisted
-                    }}
-                    onView={() => {
-                      if (a.linkUrl) {
-                        window.open(a.linkUrl, '_blank');
-                      } else {
-                        navigate(`/attractions/${id}`);
-                      }
-                    }}
-                    onToggleWishlist={() => toggleWishlist(id)}
-                  />
-                </div>
-              );
-            })}
-          </div>
+        {loading && (
+          <div className="text-center text-gray-600 py-8 text-sm">Loading destinations…</div>
         )}
 
         {/* Call to Action */}
@@ -275,18 +202,18 @@ const Attractions = () => {
             <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_top,_#ffffff_0,_transparent_55%)] pointer-events-none" />
             <div className="relative max-w-xl">
               <h3 className="text-2xl md:text-3xl font-bold tracking-tight mb-3">
-                Find your stay near the attractions you love
+                Ready to explore?
               </h3>
               <p className="text-sm md:text-base lg:text-lg text-white/90 leading-relaxed">
-                Browse apartments and stays located close to museums, nature, nightlife, and more across Rwanda.
+                Search and book attractions by destination, date, time, and group size.
               </p>
             </div>
             <div className="relative flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch sm:items-center">
               <button
                 className="inline-flex items-center justify-center px-6 py-3 rounded-xl bg-white text-[#a06b42] font-semibold text-sm md:text-base shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300"
-                onClick={() => { window.location.href = '/apartments'; }}
+                onClick={() => { window.location.href = '/attractions/search'; }}
               >
-                Browse apartments
+                Browse attractions
                 <span className="ml-2 translate-x-0 group-hover:translate-x-0.5 transition-transform">→</span>
               </button>
             </div>

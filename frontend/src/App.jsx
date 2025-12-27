@@ -19,6 +19,7 @@ const RentalsListing = lazyWithRetry(() => import('./pages/RentalsListing'));
 const SettingsSection = lazyWithRetry(() => import('./pages/SettingsSection'));
 const Flights = lazyWithRetry(() => import('./pages/Flights'));
 const Attractions = lazyWithRetry(() => import('./pages/Attractions'));
+const AttractionsSearch = lazyWithRetry(() => import('./pages/AttractionsSearch'));
 const AttractionDetail = lazyWithRetry(() => import('./pages/AttractionDetail'));
 const AirportTaxis = lazyWithRetry(() => import('./pages/AirportTaxis'));
 const ApartmentDetails = lazyWithRetry(() => import('./pages/ApartmentDetails'));
@@ -151,6 +152,7 @@ function App() {
             <Route path="/map-view" element={<PropertyMapView />} />
             <Route path="/flights" element={<Flights />} />
             <Route path="/attractions" element={<Attractions />} />
+            <Route path="/attractions/search" element={<AttractionsSearch />} />
             <Route path="/attractions/:id" element={<AttractionDetail />} />
             <Route path="/cars" element={<CarsList />} />
             <Route path="/cars/:id" element={<CarDetail />} />

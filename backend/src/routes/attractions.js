@@ -16,9 +16,6 @@ function parseTimeSlots(a) {
   const raw = (a && a.timeSlots != null) ? String(a.timeSlots) : '';
   const s = raw.trim();
   if (!s) {
-    const open = String(a?.operatingHours?.open || '').trim();
-    const close = String(a?.operatingHours?.close || '').trim();
-    if (open && close) return [`${open}-${close}`];
     return [];
   }
 
@@ -154,6 +151,50 @@ router.get('/', async (req, res) => {
     res.json({ attractions: list });
   } catch (e) {
     res.status(500).json({ message: 'Failed to list attractions' });
+  }
+});
+
+// Public: featured destinations derived from attractions (top cities)
+router.get('/destinations', async (req, res) => {
+  try {
+    const country = String(req.query.country || 'Rwanda');
+    const limit = Math.min(16, Math.max(1, Number(req.query.limit || 8)));
+
+    const rows = await Attraction.aggregate([
+      { $match: { isActive: true, country, city: { $ne: null, $ne: '' } } },
+      { $addFields: { firstImage: { $arrayElemAt: ['$images', 0] } } },
+      {
+        $group: {
+          _id: { city: '$city', country: '$country' },
+          count: { $sum: 1 },
+          image: { $first: '$firstImage' }
+        }
+      },
+      { $sort: { count: -1, '_id.city': 1 } },
+      { $limit: limit },
+      {
+        $project: {
+          _id: 0,
+          city: '$_id.city',
+          country: '$_id.country',
+          count: 1,
+          image: 1
+        }
+      }
+    ]);
+
+    const destinations = (rows || []).map(r => ({
+      name: r.city,
+      tagline: `${Number(r.count || 0)} attraction${Number(r.count || 0) === 1 ? '' : 's'}`,
+      img: r.image || null,
+      city: r.city,
+      country: r.country,
+      count: r.count
+    }));
+
+    return res.json({ destinations });
+  } catch (e) {
+    return res.status(500).json({ message: 'Failed to load destinations' });
   }
 });
 
