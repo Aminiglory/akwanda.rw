@@ -118,6 +118,21 @@ const dictionaries = {
       accountSettings: 'Account settings',
       logout: 'Log out'
     },
+    admin: {
+      content: {
+        siteContent: 'Site Content',
+        landingCmsTitle: 'Landing Page CMS',
+        landingCmsDesc: 'Edit hero title/subtitle, manage slideshow images and captions, and publish changes.',
+        attractionsCmsTitle: 'Attractions Page CMS',
+        attractionsCmsDesc: 'Manage attractions content, images, and publish the page.',
+        rentalsCmsTitle: 'Rentals Page CMS',
+        rentalsCmsDesc: 'Manage rentals content, images, and publish the page.',
+        flightsCmsTitle: 'Flights Page CMS',
+        flightsCmsDesc: 'Manage flights content, images, and publish the page.',
+        messagesTitle: 'Messages',
+        messagesDesc: 'Open conversations with users and property/car owners.',
+      }
+    },
     footer: {
       forGuests: 'For Guests',
       forHosts: 'For Hosts',
@@ -681,6 +696,21 @@ const dictionaries = {
       profile: 'Profil',
       accountSettings: 'Paramètres du compte',
       logout: 'Se déconnecter'
+    },
+    admin: {
+      content: {
+        siteContent: 'Contenu du site',
+        landingCmsTitle: 'CMS de la page d’accueil',
+        landingCmsDesc: 'Modifiez le titre/sous-titre, gérez les images du diaporama et les légendes, puis publiez les changements.',
+        attractionsCmsTitle: 'CMS de la page Attractions',
+        attractionsCmsDesc: 'Gérez le contenu des attractions, les images et publiez la page.',
+        rentalsCmsTitle: 'CMS de la page Locations',
+        rentalsCmsDesc: 'Gérez le contenu des locations, les images et publiez la page.',
+        flightsCmsTitle: 'CMS de la page Vols',
+        flightsCmsDesc: 'Gérez le contenu des vols, les images et publiez la page.',
+        messagesTitle: 'Messages',
+        messagesDesc: 'Ouvrez des conversations avec les utilisateurs et les propriétaires de biens/voitures.',
+      }
     },
     // Navbar banners/messages
     banner: {
