@@ -2469,9 +2469,122 @@ export default function CarOwnerDashboard() {
             {financeMode === 'income-all' && (
               <div className="mb-4 rounded-2xl bg-white border border-[#e0d5c7] px-4 py-4 text-sm text-gray-700 shadow-sm">
                 <h3 className="text-sm font-semibold text-[#4b2a00] mb-1">All income</h3>
-                <p className="text-xs text-gray-600 mb-2">
-                  A detailed income ledger (payments received, pending and refunded) will be implemented here.
+                <p className="text-xs text-gray-600 mb-3">
+                  Detailed ledger of income from your bookings, including payment status and method.
                 </p>
+                {financeBookingsTable.length === 0 ? (
+                  <div className="py-4 text-xs text-gray-600">
+                    No income records found for the current filters.
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    {(() => {
+                      const rows = Array.isArray(financeBookingsTable) ? financeBookingsTable : [];
+                      const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+                      const safePage = Math.min(pageRevenueSummary, totalPages);
+                      const start = (safePage - 1) * PAGE_SIZE;
+                      const end = start + PAGE_SIZE;
+                      const pageRows = rows.slice(start, end);
+                      return (
+                        <>
+                          <table className="min-w-full text-xs">
+                            <thead className="bg-[#f5ebe0] text-[11px] uppercase tracking-wide text-gray-600">
+                              <tr>
+                                <th className="px-3 py-2 text-left">Booking</th>
+                                <th className="px-3 py-2 text-left">Vehicle</th>
+                                <th className="px-3 py-2 text-left">Dates</th>
+                                <th className="px-3 py-2 text-right">Amount (RWF)</th>
+                                <th className="px-3 py-2 text-right">Payment status</th>
+                                <th className="px-3 py-2 text-right">Payment method</th>
+                                <th className="px-3 py-2 text-right">Channel</th>
+                                <th className="px-3 py-2 text-right">Created</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-[#f1e4d4] bg-white">
+                              {pageRows.map(b => {
+                                const vehicleLabel = (b.car?.vehicleName || `${b.car?.brand || ''} ${b.car?.model || ''}`.trim() || 'Vehicle').replace(/,/g, ' ');
+                                const pickup = b.pickupDate ? new Date(b.pickupDate) : null;
+                                const ret = b.returnDate ? new Date(b.returnDate) : null;
+                                const created = b.createdAt ? new Date(b.createdAt) : null;
+                                const status = String(b.status || '').toLowerCase();
+                                const amount = Number(b.totalAmount || 0);
+                                const paymentStatus = String(b.paymentStatus || status || '').toLowerCase();
+                                const methodLabel = (b.paymentMethod || '').toString() || '—';
+                                const channelLabel = (b.channel || 'online').toString();
+                                return (
+                                  <tr key={b._id} className="hover:bg-[#fdf7ee] transition-colors">
+                                    <td className="px-3 py-2 align-top max-w-[160px]">
+                                      <div className="text-[11px] font-medium text-gray-900 truncate">{String(b._id || '').slice(-8)}</div>
+                                      <div className="text-[10px] text-gray-500 truncate">{status || 'n/a'}</div>
+                                    </td>
+                                    <td className="px-3 py-2 align-top text-[11px] text-gray-800 max-w-[180px] truncate">{vehicleLabel}</td>
+                                    <td className="px-3 py-2 align-top text-[11px] text-gray-700">
+                                      {pickup ? pickup.toLocaleDateString() : '-'}
+                                      <span className="mx-1 text-gray-400">→</span>
+                                      {ret ? ret.toLocaleDateString() : '-'}
+                                    </td>
+                                    <td className="px-3 py-2 align-top text-right text-[11px] font-semibold text-gray-900">
+                                      {formatCurrencyRWF
+                                        ? formatCurrencyRWF(amount)
+                                        : `RWF ${amount.toLocaleString()}`}
+                                    </td>
+                                    <td className="px-3 py-2 align-top text-right text-[11px]">
+                                      <span
+                                        className={`inline-flex items-center px-2 py-0.5 rounded-full border text-[10px] ${
+                                          paymentStatus === 'paid' || paymentStatus === 'completed'
+                                            ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                                            : paymentStatus === 'pending'
+                                              ? 'bg-amber-50 border-amber-200 text-amber-700'
+                                              : paymentStatus === 'refunded'
+                                                ? 'bg-blue-50 border-blue-200 text-blue-700'
+                                                : 'bg-gray-50 border-gray-200 text-gray-700'
+                                        }`}
+                                      >
+                                        {paymentStatus || 'n/a'}
+                                      </span>
+                                    </td>
+                                    <td className="px-3 py-2 align-top text-right text-[11px] text-gray-700">
+                                      {methodLabel}
+                                    </td>
+                                    <td className="px-3 py-2 align-top text-right text-[11px] text-gray-700">
+                                      {channelLabel}
+                                    </td>
+                                    <td className="px-3 py-2 align-top text-right text-[11px] text-gray-600">
+                                      {created ? created.toLocaleDateString() : ''}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                          <div className="flex items-center justify-between px-3 py-2 text-[11px] text-gray-600">
+                            <div>
+                              Page {safePage} of {totalPages}
+                            </div>
+                            <div className="space-x-2">
+                              <button
+                                type="button"
+                                onClick={() => setPageRevenueSummary(p => Math.max(1, p - 1))}
+                                disabled={safePage <= 1}
+                                className="px-2 py-0.5 border border-[#d4c4b0] rounded disabled:opacity-50"
+                              >
+                                Previous
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setPageRevenueSummary(p => Math.min(totalPages, p + 1))}
+                                disabled={safePage >= totalPages}
+                                className="px-2 py-0.5 border border-[#d4c4b0] rounded disabled:opacity-50"
+                              >
+                                Next
+                              </button>
+                            </div>
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
+                )}
               </div>
             )}
 
