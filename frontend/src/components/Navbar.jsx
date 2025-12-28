@@ -333,7 +333,7 @@ const Navbar = () => {
         { label: 'Vehicle performance', href: '/owner/cars?view=analytics&section=analytics-vehicles', icon: FaCar },
         { label: 'Driver performance', href: '/owner/cars?view=analytics&section=analytics-drivers', icon: FaUsers },
         { label: 'Fuel efficiency', href: '/owner/cars?view=analytics&section=fuel-report', icon: FaGasPump },
-        { label: 'Profit & loss', href: '/owner/cars?view=finance&mode=expenses', icon: FaDollarSign },
+        { label: 'Profit & loss', href: '/owner/cars?view=finance&mode=profit-loss', icon: FaDollarSign },
       ],
     },
     {

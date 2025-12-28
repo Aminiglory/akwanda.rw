@@ -40,7 +40,9 @@ export default function CarOwnerDashboard() {
 
   const financeModeLabel = financeMode === 'income'
     ? 'Income & revenue'
-    : 'Expenses';
+    : financeMode === 'profit-loss'
+      ? 'Profit & loss'
+      : 'Expenses';
 
   const financeFilterLabel =
     financeFilter === 'paid' ? 'Paid'
@@ -179,6 +181,15 @@ export default function CarOwnerDashboard() {
   const [carExpensesTotal, setCarExpensesTotal] = useState(0);
   const [carFinanceSummary, setCarFinanceSummary] = useState(null);
   const [carFinanceLoading, setCarFinanceLoading] = useState(false);
+  const [profitLossPeriodType, setProfitLossPeriodType] = useState('monthly');
+  const [profitLossYear, setProfitLossYear] = useState(() => new Date().getFullYear());
+  const [profitLossMonth, setProfitLossMonth] = useState(() => new Date().getMonth());
+  const [savedProfitLossReports, setSavedProfitLossReports] = useState([]);
+  const [pageExpensesAll, setPageExpensesAll] = useState(1);
+  const [pageExpenseCategories, setPageExpenseCategories] = useState(1);
+  const [pageExpenseReports, setPageExpenseReports] = useState(1);
+  const [pageRevenueSummary, setPageRevenueSummary] = useState(1);
+  const [pageProfitLossSaved, setPageProfitLossSaved] = useState(1);
   const [insuranceForm, setInsuranceForm] = useState({
     insuranceProvider: '',
     insurancePolicyNumber: '',
@@ -255,6 +266,7 @@ export default function CarOwnerDashboard() {
   });
 
   const financeBookingsTable = Array.isArray(bookings) ? bookings : [];
+  const PAGE_SIZE = 10;
 
   // Aggregate stats and financeStats from bookings whenever bookings or filters change
   useEffect(() => {
@@ -332,6 +344,27 @@ export default function CarOwnerDashboard() {
       bookingsYtd,
     });
   }, [bookings, selectedCarId]);
+
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem('carProfitLossReports');
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        setSavedProfitLossReports(parsed);
+      }
+    } catch (_) {
+      // ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem('carProfitLossReports', JSON.stringify(savedProfitLossReports || []));
+    } catch (_) {
+      // ignore
+    }
+  }, [savedProfitLossReports]);
 
   async function loadData() {
     try {
@@ -1180,6 +1213,32 @@ export default function CarOwnerDashboard() {
                     })}
                   </tbody>
                 </table>
+                      <div className="flex items-center justify-between px-3 py-2 text-[11px] text-gray-600">
+                        <div>
+                          Page {safePage} of {totalPages}
+                        </div>
+                        <div className="space-x-2">
+                          <button
+                            type="button"
+                            onClick={() => setPageRevenueSummary(p => Math.max(1, p - 1))}
+                            disabled={safePage <= 1}
+                            className="px-2 py-0.5 border border-[#d4c4b0] rounded disabled:opacity-50"
+                          >
+                            Previous
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setPageRevenueSummary(p => Math.min(totalPages, p + 1))}
+                            disabled={safePage >= totalPages}
+                            className="px-2 py-0.5 border border-[#d4c4b0] rounded disabled:opacity-50"
+                          >
+                            Next
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
             )}
           </div>
@@ -1511,7 +1570,16 @@ export default function CarOwnerDashboard() {
             </div>
             ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-full text-[11px]">
+              {(() => {
+                const rows = Array.isArray(carExpenses) ? carExpenses : [];
+                const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+                const safePage = Math.min(pageExpensesAll, totalPages);
+                const start = (safePage - 1) * PAGE_SIZE;
+                const end = start + PAGE_SIZE;
+                const pageRows = rows.slice(start, end);
+                return (
+                  <>
+                    <table className="min-w-full text-[11px]">
                 <thead className="bg-[#f5ebe0] uppercase tracking-wide text-gray-600">
                   <tr>
                     <th className="px-3 py-2 text-left">Date</th>
@@ -1523,7 +1591,7 @@ export default function CarOwnerDashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#f1e4d4] bg-white">
-                  {carExpenses.map(exp => {
+                  {pageRows.map(exp => {
                     const d = exp.date ? new Date(exp.date) : null;
                     const vehicleLabel = (exp.car?.vehicleName || `${exp.car?.brand || ''} ${exp.car?.model || ''}`.trim() || 'Vehicle').replace(/,/g, ' ');
                     const isEditing = editingExpenseId === exp._id;
@@ -1650,8 +1718,396 @@ export default function CarOwnerDashboard() {
                   })}
                 </tbody>
               </table>
+                    <div className="flex items-center justify-between px-3 py-2 text-[11px] text-gray-600">
+                      <div>
+                        Page {safePage} of {totalPages}
+                      </div>
+                      <div className="space-x-2">
+                        <button
+                          type="button"
+                          onClick={() => setPageExpensesAll(p => Math.max(1, p - 1))}
+                          disabled={safePage <= 1}
+                          className="px-2 py-0.5 border border-[#d4c4b0] rounded disabled:opacity-50"
+                        >
+                          Previous
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPageExpensesAll(p => Math.min(totalPages, p + 1))}
+                          disabled={safePage >= totalPages}
+                          className="px-2 py-0.5 border border-[#d4c4b0] rounded disabled:opacity-50"
+                        >
+                          Next
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                );
+              })()}
             </div>
             )}
+          </div>
+          )}
+
+          {financeMode === 'profit-loss' && (
+          <div className="mb-4 rounded-2xl bg-white border border-[#e0d5c7] px-4 py-4 text-sm text-gray-700 shadow-sm print:border-0 print:shadow-none">
+            <h3 className="text-sm font-semibold text-[#4b2a00] mb-1">Profit &amp; loss</h3>
+            <p className="text-xs text-gray-600 mb-3">
+              Compare revenue from bookings with your recorded vehicle expenses for a selected month or year. Use the
+              controls below to change the period and optionally scope to a specific vehicle.
+            </p>
+
+            {(() => {
+              const scopedBookings = Array.isArray(bookings)
+                ? (selectedCarId
+                  ? bookings.filter(b => String(b.car?._id) === String(selectedCarId))
+                  : bookings)
+                : [];
+              const scopedExpenses = Array.isArray(carExpenses)
+                ? (selectedCarId
+                  ? carExpenses.filter(exp => String(exp.car?._id) === String(selectedCarId))
+                  : carExpenses)
+                : [];
+
+              const year = Number(profitLossYear) || new Date().getFullYear();
+              const monthIndex = Number(profitLossMonth) || 0;
+
+              let revenue = 0;
+              let expensesTotal = 0;
+              let commissionTotal = 0;
+
+              scopedBookings.forEach(b => {
+                if (!b.pickupDate) return;
+                const d = new Date(b.pickupDate);
+                if (Number.isNaN(d.getTime())) return;
+                if (profitLossPeriodType === 'annual') {
+                  if (d.getFullYear() !== year) return;
+                } else {
+                  if (d.getFullYear() !== year || d.getMonth() !== monthIndex) return;
+                }
+                revenue += Number(b.totalAmount || 0);
+                commissionTotal += Number(b.commissionAmount || 0);
+              });
+
+              scopedExpenses.forEach(exp => {
+                if (!exp.date) return;
+                const d = new Date(exp.date);
+                if (Number.isNaN(d.getTime())) return;
+                if (profitLossPeriodType === 'annual') {
+                  if (d.getFullYear() !== year) return;
+                } else {
+                  if (d.getFullYear() !== year || d.getMonth() !== monthIndex) return;
+                }
+                expensesTotal += Number(exp.amount || 0);
+              });
+
+              const profit = revenue - expensesTotal;
+              const netAfterCommission = profit - commissionTotal;
+              const periodLabel = profitLossPeriodType === 'annual'
+                ? `${year}`
+                : new Date(year, monthIndex, 1).toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
+
+              const handleSaveReport = () => {
+                const vehicleLabel = selectedCarId
+                  ? (() => {
+                      const car = Array.isArray(cars)
+                        ? cars.find(c => String(c._id) === String(selectedCarId))
+                        : null;
+                      return (car?.vehicleName || `${car?.brand || ''} ${car?.model || ''}`.trim() || 'Vehicle').replace(/,/g, ' ');
+                    })()
+                  : 'All vehicles';
+                const now = new Date();
+                const entry = {
+                  id: `${profitLossPeriodType}-${year}-${profitLossPeriodType === 'annual' ? 'all' : monthIndex}-${selectedCarId || 'all'}-${now.getTime()}`,
+                  periodType: profitLossPeriodType,
+                  year,
+                  monthIndex: profitLossPeriodType === 'annual' ? null : monthIndex,
+                  periodLabel,
+                  vehicleScope: vehicleLabel,
+                  selectedCarId: selectedCarId || '',
+                  revenue,
+                  expenses: expensesTotal,
+                  profit,
+                  commissionTotal,
+                  netAfterCommission,
+                  createdAt: now.toISOString(),
+                };
+                setSavedProfitLossReports(prev => [entry, ...prev]);
+                toast.success('Profit & loss report saved');
+              };
+
+              return (
+                <>
+                  <div className="flex flex-wrap items-end gap-3 mb-4 text-xs">
+                    <div>
+                      <label className="block mb-1 text-[11px] text-gray-600">Period type</label>
+                      <select
+                        className="px-2 py-1.5 border border-[#d4c4b0] rounded-lg bg-white"
+                        value={profitLossPeriodType}
+                        onChange={e => setProfitLossPeriodType(e.target.value)}
+                      >
+                        <option value="monthly">Monthly</option>
+                        <option value="annual">Annual</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block mb-1 text-[11px] text-gray-600">Year</label>
+                      <input
+                        type="number"
+                        className="w-24 px-2 py-1.5 border border-[#d4c4b0] rounded-lg"
+                        value={profitLossYear}
+                        onChange={e => setProfitLossYear(e.target.value)}
+                      />
+                    </div>
+                    {profitLossPeriodType === 'monthly' && (
+                    <div>
+                      <label className="block mb-1 text-[11px] text-gray-600">Month</label>
+                      <select
+                        className="px-2 py-1.5 border border-[#d4c4b0] rounded-lg bg-white"
+                        value={profitLossMonth}
+                        onChange={e => setProfitLossMonth(Number(e.target.value))}
+                      >
+                        {Array.from({ length: 12 }).map((_, idx) => (
+                          <option key={idx} value={idx}>{new Date(2000, idx, 1).toLocaleDateString(undefined, { month: 'long' })}</option>
+                        ))}
+                      </select>
+                    </div>
+                    )}
+                    <div className="ml-auto flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={handleSaveReport}
+                        className="inline-flex items-center px-3 py-1.5 rounded-lg bg-[#a06b42] hover:bg-[#8f5a32] text-white text-xs font-medium"
+                      >
+                        Save this report
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => window.print()}
+                        className="inline-flex items-center px-3 py-1.5 rounded-lg border border-[#d4c4b0] text-[#4b2a00] text-xs font-medium hover:bg-[#f5ebe0]"
+                      >
+                        Print
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="mb-4 grid grid-cols-1 md:grid-cols-4 gap-3 text-xs">
+                    <div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5">
+                      <div className="text-[11px] text-gray-500">Period</div>
+                      <div className="text-sm font-semibold text-gray-900">{periodLabel}</div>
+                    </div>
+                    <div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5">
+                      <div className="text-[11px] text-gray-500">Revenue</div>
+                      <div className="text-sm font-semibold text-emerald-700">
+                        {formatCurrencyRWF
+                          ? formatCurrencyRWF(revenue)
+                          : `RWF ${Number(revenue || 0).toLocaleString()}`}
+                      </div>
+                    </div>
+                    <div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5">
+                      <div className="text-[11px] text-gray-500">Expenses</div>
+                      <div className="text-sm font-semibold text-red-700">
+                        {formatCurrencyRWF
+                          ? formatCurrencyRWF(expensesTotal)
+                          : `RWF ${Number(expensesTotal || 0).toLocaleString()}`}
+                      </div>
+                    </div>
+                    <div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5">
+                      <div className="text-[11px] text-gray-500">Commission</div>
+                      <div className="text-sm font-semibold text-amber-700">
+                        {formatCurrencyRWF
+                          ? formatCurrencyRWF(commissionTotal)
+                          : `RWF ${Number(commissionTotal || 0).toLocaleString()}`}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mb-6 rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-[11px] text-gray-500">Net profit</div>
+                        <div className={`text-base font-semibold ${profit >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>
+                          {formatCurrencyRWF
+                            ? formatCurrencyRWF(profit)
+                            : `RWF ${Number(profit || 0).toLocaleString()}`}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-[11px] text-gray-500">Net after commission</div>
+                        <div className={`text-base font-semibold ${netAfterCommission >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>
+                          {formatCurrencyRWF
+                            ? formatCurrencyRWF(netAfterCommission)
+                            : `RWF ${Number(netAfterCommission || 0).toLocaleString()}`}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 border-t border-[#f1e4d4] pt-4">
+                    <h4 className="text-xs font-semibold text-[#4b2a00] mb-2">Saved profit &amp; loss reports</h4>
+                    {(!Array.isArray(savedProfitLossReports) || savedProfitLossReports.length === 0) ? (
+                      <div className="text-[11px] text-gray-600">
+                        You have not saved any P&amp;L reports yet. Use the <span className="font-semibold">Save this report</span> button
+                        to keep a snapshot that you can compare later.
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        {(() => {
+                          const rows = Array.isArray(savedProfitLossReports) ? savedProfitLossReports : [];
+                          const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+                          const safePage = Math.min(pageProfitLossSaved, totalPages);
+                          const start = (safePage - 1) * PAGE_SIZE;
+                          const end = start + PAGE_SIZE;
+                          const pageRows = rows.slice(start, end);
+                          return (
+                            <>
+                              <table className="min-w-full text-[11px]">
+                          <thead className="bg-[#f5ebe0] text-gray-700 uppercase tracking-wide">
+                            <tr>
+                              <th className="px-3 py-2 text-left">Period</th>
+                              <th className="px-3 py-2 text-left">Type</th>
+                              <th className="px-3 py-2 text-left">Vehicle scope</th>
+                              <th className="px-3 py-2 text-right">Revenue</th>
+                              <th className="px-3 py-2 text-right">Expenses</th>
+                              <th className="px-3 py-2 text-right">Commission</th>
+                              <th className="px-3 py-2 text-right">Net after commission</th>
+                              <th className="px-3 py-2 text-right">Saved on</th>
+                              <th className="px-3 py-2 text-right">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-[#f1e4d4] bg-white">
+                            {pageRows.map(r => {
+                              const created = r.createdAt ? new Date(r.createdAt) : null;
+                              return (
+                                <tr key={r.id} className="hover:bg-[#fdf7ee]">
+                                  <td className="px-3 py-2 text-gray-800">{r.periodLabel}</td>
+                                  <td className="px-3 py-2 text-gray-700 capitalize">{r.periodType}</td>
+                                  <td className="px-3 py-2 text-gray-700">{r.vehicleScope || 'All vehicles'}</td>
+                                  <td className="px-3 py-2 text-right text-gray-900 font-semibold">
+                                    {formatCurrencyRWF
+                                      ? formatCurrencyRWF(r.revenue || 0)
+                                      : `RWF ${Number(r.revenue || 0).toLocaleString()}`}
+                                  </td>
+                                  <td className="px-3 py-2 text-right text-gray-900 font-semibold">
+                                    {formatCurrencyRWF
+                                      ? formatCurrencyRWF(r.expenses || 0)
+                                      : `RWF ${Number(r.expenses || 0).toLocaleString()}`}
+                                  </td>
+                                  <td className="px-3 py-2 text-right text-gray-900 font-semibold">
+                                    {formatCurrencyRWF
+                                      ? formatCurrencyRWF(r.commissionTotal || 0)
+                                      : `RWF ${Number(r.commissionTotal || 0).toLocaleString()}`}
+                                  </td>
+                                  <td
+                                    className={`px-3 py-2 text-right font-semibold ${Number((r.netAfterCommission ?? r.profit) || 0) >= 0 ? 'text-emerald-700' : 'text-red-700'}`}
+                                  >
+                                    {formatCurrencyRWF
+                                      ? formatCurrencyRWF((r.netAfterCommission ?? r.profit) || 0)
+                                      : `RWF ${Number((r.netAfterCommission ?? r.profit) || 0).toLocaleString()}`}
+                                  </td>
+                                  <td className="px-3 py-2 text-right text-gray-700">
+                                    {created ? created.toLocaleDateString() : ''}
+                                  </td>
+                                  <td className="px-3 py-2 text-right">
+                                    <button
+                                      type="button"
+                                      onClick={() => setSavedProfitLossReports(list => list.filter(x => x.id !== r.id))}
+                                      className="inline-flex items-center px-2 py-0.5 rounded border border-red-200 text-[10px] text-red-700 hover:bg-red-50"
+                                    >
+                                      Delete
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                              <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-[11px] text-gray-600">
+                                <div>
+                                  Page {safePage} of {totalPages}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => setPageProfitLossSaved(p => Math.max(1, p - 1))}
+                                    disabled={safePage <= 1}
+                                    className="px-2 py-0.5 border border-[#d4c4b0] rounded disabled:opacity-50"
+                                  >
+                                    Previous
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setPageProfitLossSaved(p => Math.min(totalPages, p + 1))}
+                                    disabled={safePage >= totalPages}
+                                    className="px-2 py-0.5 border border-[#d4c4b0] rounded disabled:opacity-50"
+                                  >
+                                    Next
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      if (!window.confirm('Clear all saved profit & loss reports?')) return;
+                                      setSavedProfitLossReports([]);
+                                    }}
+                                    className="px-2 py-0.5 border border-red-200 text-red-700 rounded hover:bg-red-50"
+                                  >
+                                    Clear all
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      try {
+                                        const rowsForCsv = rows && rows.length ? rows : [];
+                                        if (!rowsForCsv.length) {
+                                          toast.error('No saved reports to export');
+                                          return;
+                                        }
+                                        const header = ['period','type','vehicleScope','revenue','expenses','commission','netAfterCommission','savedOn'];
+                                        const lines = [header.join(',')];
+                                        rowsForCsv.forEach(r => {
+                                          const createdDate = r.createdAt ? new Date(r.createdAt) : null;
+                                          const savedOn = createdDate ? createdDate.toISOString() : '';
+                                          const line = [
+                                            JSON.stringify(r.periodLabel || ''),
+                                            JSON.stringify(r.periodType || ''),
+                                            JSON.stringify(r.vehicleScope || 'All vehicles'),
+                                            String(r.revenue || 0),
+                                            String(r.expenses || 0),
+                                            String(r.commissionTotal || 0),
+                                            String((r.netAfterCommission ?? r.profit) || 0),
+                                            JSON.stringify(savedOn),
+                                          ].join(',');
+                                          lines.push(line);
+                                        });
+                                        const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+                                        const url = URL.createObjectURL(blob);
+                                        const a = document.createElement('a');
+                                        a.href = url;
+                                        a.download = 'car-profit-loss-reports.csv';
+                                        document.body.appendChild(a);
+                                        a.click();
+                                        document.body.removeChild(a);
+                                        URL.revokeObjectURL(url);
+                                      } catch (err) {
+                                        console.error('Export P&L CSV failed', err);
+                                        toast.error('Failed to export reports');
+                                      }
+                                    }}
+                                    className="px-2 py-0.5 border border-[#d4c4b0] text-[#4b2a00] rounded hover:bg-[#f5ebe0]"
+                                  >
+                                    Export CSV
+                                  </button>
+                                </div>
+                              </div>
+                            </>
+                          );
+                        })()}
+                      </div>
+                    )}
+                  </div>
+                </>
+              );
+            })()}
           </div>
           )}
 
@@ -1737,7 +2193,25 @@ export default function CarOwnerDashboard() {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="min-w-full text-[11px]">
+                {(() => {
+                  const map = new Map();
+                  carExpenses.forEach(exp => {
+                    const key = String(exp.category || 'general');
+                    const prev = map.get(key) || { count: 0, total: 0 };
+                    map.set(key, {
+                      count: prev.count + 1,
+                      total: prev.total + Number(exp.amount || 0),
+                    });
+                  });
+                  const entries = Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+                  const totalPages = Math.max(1, Math.ceil(entries.length / PAGE_SIZE));
+                  const safePage = Math.min(pageExpenseCategories, totalPages);
+                  const start = (safePage - 1) * PAGE_SIZE;
+                  const end = start + PAGE_SIZE;
+                  const pageEntries = entries.slice(start, end);
+                  return (
+                    <>
+                      <table className="min-w-full text-[11px]">
                   <thead className="bg-[#f5ebe0] text-gray-700 uppercase tracking-wide">
                     <tr>
                       <th className="px-3 py-2 text-left">Category</th>
@@ -1746,18 +2220,7 @@ export default function CarOwnerDashboard() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#f1e4d4] bg-white">
-                    {(() => {
-                      const map = new Map();
-                      carExpenses.forEach(exp => {
-                        const key = String(exp.category || 'general');
-                        const prev = map.get(key) || { count: 0, total: 0 };
-                        map.set(key, {
-                          count: prev.count + 1,
-                          total: prev.total + Number(exp.amount || 0),
-                        });
-                      });
-                      const entries = Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]));
-                      return entries.map(([cat, info]) => (
+                    {pageEntries.map(([cat, info]) => (
                         <tr key={cat} className="hover:bg-[#fdf7ee]">
                           <td className="px-3 py-2 text-gray-800 capitalize">{cat}</td>
                           <td className="px-3 py-2 text-right text-gray-700">{info.count}</td>
@@ -1767,10 +2230,35 @@ export default function CarOwnerDashboard() {
                               : `RWF ${Number(info.total || 0).toLocaleString()}`}
                           </td>
                         </tr>
-                      ));
-                    })()}
+                      ))}
                   </tbody>
                 </table>
+                      <div className="flex items-center justify-between px-3 py-2 text-[11px] text-gray-600">
+                        <div>
+                          Page {safePage} of {totalPages}
+                        </div>
+                        <div className="space-x-2">
+                          <button
+                            type="button"
+                            onClick={() => setPageExpenseCategories(p => Math.max(1, p - 1))}
+                            disabled={safePage <= 1}
+                            className="px-2 py-0.5 border border-[#d4c4b0] rounded disabled:opacity-50"
+                          >
+                            Previous
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setPageExpenseCategories(p => Math.min(totalPages, p + 1))}
+                            disabled={safePage >= totalPages}
+                            className="px-2 py-0.5 border border-[#d4c4b0] rounded disabled:opacity-50"
+                          >
+                            Next
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
             )}
           </div>
@@ -1840,7 +2328,33 @@ export default function CarOwnerDashboard() {
                 </div>
 
                 <div className="overflow-x-auto mt-2">
-                  <table className="min-w-full text-[11px]">
+                  {(() => {
+                    const map = new Map();
+                    carExpenses.forEach(exp => {
+                      const vehicleLabel = (exp.car?.vehicleName || `${exp.car?.brand || ''} ${exp.car?.model || ''}`.trim() || 'Vehicle').replace(/,/g, ' ');
+                      const cat = String(exp.category || 'general');
+                      const key = `${vehicleLabel}__${cat}`;
+                      const prev = map.get(key) || { vehicleLabel, category: cat, count: 0, total: 0 };
+                      map.set(key, {
+                        vehicleLabel,
+                        category: cat,
+                        count: prev.count + 1,
+                        total: prev.total + Number(exp.amount || 0),
+                      });
+                    });
+                    const rows = Array.from(map.values()).sort((a, b) => {
+                      const v = a.vehicleLabel.localeCompare(b.vehicleLabel);
+                      if (v !== 0) return v;
+                      return a.category.localeCompare(b.category);
+                    });
+                    const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+                    const safePage = Math.min(pageExpenseReports, totalPages);
+                    const start = (safePage - 1) * PAGE_SIZE;
+                    const end = start + PAGE_SIZE;
+                    const pageRows = rows.slice(start, end);
+                    return (
+                      <>
+                        <table className="min-w-full text-[11px]">
                     <thead className="bg-[#f5ebe0] text-gray-700 uppercase tracking-wide">
                       <tr>
                         <th className="px-3 py-2 text-left">Vehicle</th>
@@ -1850,26 +2364,7 @@ export default function CarOwnerDashboard() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[#f1e4d4] bg-white">
-                      {(() => {
-                        const map = new Map();
-                        carExpenses.forEach(exp => {
-                          const vehicleLabel = (exp.car?.vehicleName || `${exp.car?.brand || ''} ${exp.car?.model || ''}`.trim() || 'Vehicle').replace(/,/g, ' ');
-                          const cat = String(exp.category || 'general');
-                          const key = `${vehicleLabel}__${cat}`;
-                          const prev = map.get(key) || { vehicleLabel, category: cat, count: 0, total: 0 };
-                          map.set(key, {
-                            vehicleLabel,
-                            category: cat,
-                            count: prev.count + 1,
-                            total: prev.total + Number(exp.amount || 0),
-                          });
-                        });
-                        const rows = Array.from(map.values()).sort((a, b) => {
-                          const v = a.vehicleLabel.localeCompare(b.vehicleLabel);
-                          if (v !== 0) return v;
-                          return a.category.localeCompare(b.category);
-                        });
-                        return rows.map(row => (
+                      {pageRows.map(row => (
                           <tr key={`${row.vehicleLabel}__${row.category}`} className="hover:bg-[#fdf7ee]">
                             <td className="px-3 py-2 text-gray-800">{row.vehicleLabel}</td>
                             <td className="px-3 py-2 text-gray-700 capitalize">{row.category}</td>
@@ -1880,10 +2375,35 @@ export default function CarOwnerDashboard() {
                                 : `RWF ${Number(row.total || 0).toLocaleString()}`}
                             </td>
                           </tr>
-                        ));
-                      })()}
+                        ))}
                     </tbody>
                   </table>
+                        <div className="flex items-center justify-between px-3 py-2 text-[11px] text-gray-600">
+                          <div>
+                            Page {safePage} of {totalPages}
+                          </div>
+                          <div className="space-x-2">
+                            <button
+                              type="button"
+                              onClick={() => setPageExpenseReports(p => Math.max(1, p - 1))}
+                              disabled={safePage <= 1}
+                              className="px-2 py-0.5 border border-[#d4c4b0] rounded disabled:opacity-50"
+                            >
+                              Previous
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setPageExpenseReports(p => Math.min(totalPages, p + 1))}
+                              disabled={safePage >= totalPages}
+                              className="px-2 py-0.5 border border-[#d4c4b0] rounded disabled:opacity-50"
+                            >
+                              Next
+                            </button>
+                          </div>
+                        </div>
+                      </>
+                    );
+                  })()}
                 </div>
               </>
             )}
@@ -1937,7 +2457,16 @@ export default function CarOwnerDashboard() {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="min-w-full text-xs">
+                {(() => {
+                  const rows = Array.isArray(financeBookingsTable) ? financeBookingsTable : [];
+                  const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+                  const safePage = Math.min(pageRevenueSummary, totalPages);
+                  const start = (safePage - 1) * PAGE_SIZE;
+                  const end = start + PAGE_SIZE;
+                  const pageRows = rows.slice(start, end);
+                  return (
+                    <>
+                      <table className="min-w-full text-xs">
                   <thead className="bg-[#f5ebe0] text-[11px] uppercase tracking-wide text-gray-600">
                     <tr>
                       <th className="px-3 py-2 text-left">Vehicle</th>
@@ -1949,7 +2478,7 @@ export default function CarOwnerDashboard() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#f1e4d4] bg-white">
-                    {financeBookingsTable.map(b => {
+                    {pageRows.map(b => {
                       const vehicleLabel = (b.car?.vehicleName || `${b.car?.brand || ''} ${b.car?.model || ''}`.trim() || 'Vehicle').replace(/,/g, ' ');
                       const pickup = b.pickupDate ? new Date(b.pickupDate) : null;
                       const ret = b.returnDate ? new Date(b.returnDate) : null;

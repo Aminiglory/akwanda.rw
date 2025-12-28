@@ -712,6 +712,16 @@ export default function PropertyManagement() {
                       {propertyData.commissionLevel && propertyData.commissionLevel.isPremium ? 'Premium badge visible to guests' : 'Standard visibility'}
                     </span>
                   </div>
+                  {propertyData && (
+                    <div className="mt-3">
+                      <a
+                        href={`/group-home?property=${encodeURIComponent(propertyData._id)}`}
+                        className="inline-flex items-center px-4 py-2 rounded-lg bg-[#a06b42] text-white text-xs font-semibold hover:bg-[#8f5a32] transition-colors"
+                      >
+                        Upgrade commission level / Premium
+                      </a>
+                    </div>
+                  )}
                 </div>
 
                 {/* Location Details */}
