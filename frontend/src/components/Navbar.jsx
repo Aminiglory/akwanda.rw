@@ -1224,6 +1224,14 @@ const Navbar = () => {
                       <select
                         className="px-2 py-1.5 border border-[#d4c4b0] rounded-lg bg-white text-xs font-medium text-[#4b2a00] focus:outline-none focus:ring-1 focus:ring-[#a06b42] focus:border-[#a06b42] transition-all"
                         title={t ? t('banner.chooseVehicleToManage') : 'Choose vehicle to manage'}
+                        value={(() => {
+                          try {
+                            const params = new URLSearchParams(location.search || '');
+                            return params.get('car') || '';
+                          } catch (_) {
+                            return '';
+                          }
+                        })()}
                         onChange={(e) => {
                           const id = e.target.value;
                           try {
@@ -1235,6 +1243,10 @@ const Navbar = () => {
                               const url = qs ? `${location.pathname}?${qs}` : location.pathname;
                               navigate(url, { replace: true });
                               return;
+                            }
+                            // Store selected vehicle in localStorage
+                            if (typeof window !== 'undefined' && window.localStorage) {
+                              window.localStorage.setItem('owner:lastVehicleId', String(id));
                             }
                             // Open the chosen vehicle in a NEW TAB on the same route with ?car=<id>
                             params.set('car', String(id));

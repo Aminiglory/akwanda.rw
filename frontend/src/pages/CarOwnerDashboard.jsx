@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useLocation, useSearchParams, Link } from 'react-router-dom';
+import { useLocation, useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { useLocale } from '../contexts/LocaleContext';
 import ReceiptPreview from '../components/ReceiptPreview';
 import toast from 'react-hot-toast';
@@ -27,6 +27,7 @@ const makeAbsolute = (u) => {
 export default function CarOwnerDashboard() {
   const { user } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { formatCurrencyRWF } = useLocale() || {};
   const view = (searchParams.get('view') || 'overview').toLowerCase();
@@ -355,8 +356,31 @@ export default function CarOwnerDashboard() {
       console.log('[Vehicles][loadData] responses', { carsStatus: carsRes.status, bookingsStatus: bookingsRes.status, carsCount: (carsData?.cars||[]).length, bookingsCount: (bookingsData?.bookings||[]).length });
       if (!carsRes.ok) throw new Error(carsData.message || '');
       if (!bookingsRes.ok) throw new Error(bookingsData.message || '');
-      setCars(carsData.cars || []);
+      const vehiclesList = carsData.cars || [];
+      setCars(vehiclesList);
       setBookings(bookingsData.bookings || []);
+      
+      // Check if we need to redirect to vehicles group homepage
+      const carParam = searchParams.get('car');
+      if (vehiclesList.length === 0) {
+        // No vehicles - redirect to first vehicle listing
+        navigate('/upload-property?type=vehicle', { replace: true });
+        return;
+      } else if (!carParam) {
+        // Has vehicles but no car selected - redirect to vehicles group homepage
+        navigate('/vehicles-group-home', { replace: true });
+        return;
+      } else {
+        // Has car param - set it as selected
+        const carExists = vehiclesList.find(c => String(c._id) === String(carParam));
+        if (carExists) {
+          setSelectedCarId(String(carParam));
+        } else {
+          // Car doesn't exist - redirect to group homepage
+          navigate('/vehicles-group-home', { replace: true });
+          return;
+        }
+      }
     } catch (e) {
       console.error('[Vehicles][loadData] error', e);
       // Show empty state silently
@@ -364,6 +388,11 @@ export default function CarOwnerDashboard() {
       setBookings([]);
     } finally { setLoading(false); }
   }
+
+  // Load data on mount and when search params change
+  useEffect(() => {
+    loadData();
+  }, [location.search]);
 
   async function loadOwnerNotifications() {
     try {

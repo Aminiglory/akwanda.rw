@@ -1,20 +1,26 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const DirectBooking = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [properties, setProperties] = useState([]);
+  const [vehicles, setVehicles] = useState([]);
   const [rooms, setRooms] = useState([]);
+  const bookingType = searchParams.get('type') || 'property'; // 'property' or 'vehicle'
 
   const [form, setForm] = useState({
     propertyId: '',
+    vehicleId: '',
     roomId: '',
     checkIn: '',
     checkOut: '',
+    pickupDate: '',
+    returnDate: '',
     numberOfGuests: 1,
     paymentMethod: 'cash',
     markPaid: true,
@@ -25,6 +31,8 @@ const DirectBooking = () => {
     // Manual direct booking add-ons: [{ label, amount }]
     directAddOns: [],
     finalAgreedAmount: '',
+    pickupLocation: '',
+    returnLocation: '',
   });
 
   // Fetch properties owned by current host for selection (includes per-property add-on services)
@@ -50,6 +58,38 @@ const DirectBooking = () => {
       }
     })();
   }, []);
+
+  // Fetch vehicles owned by current host for selection
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/cars/mine`, { credentials: 'include' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Failed to load vehicles');
+        const list = (data.cars || []).map(v => ({
+          id: String(v._id || v.id || ''),
+          name: v.vehicleName || `${v.brand || ''} ${v.model || ''}`.trim() || 'Vehicle',
+          location: v.location,
+          pricePerDay: v.pricePerDay,
+        }));
+        setVehicles(list);
+        
+        // If there's a selected vehicle from group homepage (stored in localStorage), use it
+        if (bookingType === 'vehicle') {
+          try {
+            const lastVehicleId = localStorage.getItem('owner:lastVehicleId');
+            if (lastVehicleId && list.find(v => v.id === lastVehicleId)) {
+              setForm(prev => ({ ...prev, vehicleId: lastVehicleId }));
+            } else if (list.length > 0) {
+              setForm(prev => ({ ...prev, vehicleId: list[0].id }));
+            }
+          } catch (_) {}
+        }
+      } catch (e) {
+        toast.error(e.message);
+      }
+    })();
+  }, [bookingType]);
 
   // Set rooms when property changes
   useEffect(() => {
@@ -118,6 +158,60 @@ const DirectBooking = () => {
 
   const submit = async (e) => {
     e.preventDefault();
+    if (bookingType === 'vehicle') {
+      if (!form.vehicleId || !form.pickupDate || !form.returnDate) {
+        toast.error('Please select vehicle and dates');
+        return;
+      }
+      try {
+        setLoading(true);
+        const priceNum = Number(form.finalAgreedAmount);
+        if (!priceNum || !Number.isFinite(priceNum) || priceNum <= 0) {
+          toast.error('Enter the final agreed price');
+          return;
+        }
+        const payload = {
+          carId: form.vehicleId,
+          pickupDate: form.pickupDate,
+          returnDate: form.returnDate,
+          pickupLocation: form.pickupLocation || '',
+          returnLocation: form.returnLocation || form.pickupLocation || '',
+          guestName: form.guestInfo.firstName && form.guestInfo.lastName 
+            ? `${form.guestInfo.firstName} ${form.guestInfo.lastName}`.trim() 
+            : undefined,
+          guestEmail: form.guestInfo.email || undefined,
+          guestPhone: form.guestInfo.phone || undefined,
+          paymentMethod: form.paymentMethod || 'cash',
+          finalPrice: priceNum,
+        };
+        const res = await fetch(`${API_URL}/api/car-bookings/direct`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Failed to create booking');
+        toast.success('Direct vehicle booking created');
+        const bookingId = data.booking && data.booking._id;
+        if (bookingId) {
+          const confirmPrint = window.confirm('Booking has been saved. Do you want to open the receipt now?');
+          if (confirmPrint) {
+            window.open(`/receipt/${bookingId}?direct=true`, '_blank', 'noopener,noreferrer');
+          } else {
+            navigate(`/booking-confirmation/${bookingId}`);
+          }
+        }
+        return;
+      } catch (err) {
+        toast.error(err.message);
+        return;
+      } finally {
+        setLoading(false);
+      }
+    }
+    
+    // Property booking (existing logic)
     if (!form.propertyId || !form.checkIn || !form.checkOut) {
       toast.error('Please select property and dates');
       return;
@@ -189,9 +283,12 @@ const DirectBooking = () => {
   const clearForm = () => {
     setForm({
       propertyId: '',
+      vehicleId: '',
       roomId: '',
       checkIn: '',
       checkOut: '',
+      pickupDate: '',
+      returnDate: '',
       numberOfGuests: 1,
       paymentMethod: 'cash',
       markPaid: true,
@@ -201,6 +298,8 @@ const DirectBooking = () => {
       paymentStatusSelection: 'paid',
       directAddOns: [],
       finalAgreedAmount: '',
+      pickupLocation: '',
+      returnLocation: '',
     });
   };
 
@@ -212,52 +311,96 @@ const DirectBooking = () => {
           <p className="text-gray-600 mb-6">Create a booking on behalf of a guest. Receipts are generated automatically.</p>
 
           <form onSubmit={submit} className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Property</label>
-              <select
-                value={form.propertyId}
-                onChange={(e) => update('propertyId', e.target.value)}
-                className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                required
-              >
-                <option value="">Select property…</option>
-                {properties.map(p => (
-                  <option key={p.id} value={p.id}>{p.title} — {p.city}</option>
-                ))}
-              </select>
-            </div>
+            {bookingType === 'vehicle' ? (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Vehicle</label>
+                  <select
+                    value={form.vehicleId}
+                    onChange={(e) => update('vehicleId', e.target.value)}
+                    className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  >
+                    <option value="">Select vehicle…</option>
+                    {vehicles.map(v => (
+                      <option key={v.id} value={v.id}>{v.name} — {v.location}</option>
+                    ))}
+                  </select>
+                </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Room (optional)</label>
-                <select
-                  value={form.roomId}
-                  onChange={(e) => update('roomId', e.target.value)}
-                  className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="">Any room</option>
-                  {rooms.map(r => (
-                    <option key={r._id} value={r._id}>
-                      {[r.roomNumber || r.name || 'Room', r.roomType].filter(Boolean).join('  ')}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Check-in</label>
-                <input type="date" value={form.checkIn} onChange={e => update('checkIn', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" required />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Check-out</label>
-                <input type="date" value={form.checkOut} onChange={e => update('checkOut', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" required />
-              </div>
-            </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Pickup Date</label>
+                    <input type="date" value={form.pickupDate} onChange={e => update('pickupDate', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" required />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Return Date</label>
+                    <input type="date" value={form.returnDate} onChange={e => update('returnDate', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" required />
+                  </div>
+                </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Guests</label>
-                <input type="number" min={1} value={form.numberOfGuests} onChange={e => update('numberOfGuests', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-              </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Pickup Location</label>
+                    <input type="text" value={form.pickupLocation} onChange={e => update('pickupLocation', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" required />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Return Location</label>
+                    <input type="text" value={form.returnLocation} onChange={e => update('returnLocation', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Defaults to pickup location" />
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Property</label>
+                  <select
+                    value={form.propertyId}
+                    onChange={(e) => update('propertyId', e.target.value)}
+                    className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  >
+                    <option value="">Select property…</option>
+                    {properties.map(p => (
+                      <option key={p.id} value={p.id}>{p.title} — {p.city}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Room (optional)</label>
+                    <select
+                      value={form.roomId}
+                      onChange={(e) => update('roomId', e.target.value)}
+                      className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="">Any room</option>
+                      {rooms.map(r => (
+                        <option key={r._id} value={r._id}>
+                          {[r.roomNumber || r.name || 'Room', r.roomType].filter(Boolean).join('  ')}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Check-in</label>
+                    <input type="date" value={form.checkIn} onChange={e => update('checkIn', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" required />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Check-out</label>
+                    <input type="date" value={form.checkOut} onChange={e => update('checkOut', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" required />
+                  </div>
+                </div>
+              </>
+            )}
+
+            {bookingType !== 'vehicle' && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Guests</label>
+                  <input type="number" min={1} value={form.numberOfGuests} onChange={e => update('numberOfGuests', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
                 <select value={form.paymentMethod} onChange={e => update('paymentMethod', e.target.value)} className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
@@ -276,17 +419,19 @@ const DirectBooking = () => {
                 </div>
               </div>
             </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Final agreed price (RWF)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Final agreed price (RWF) {bookingType === 'vehicle' && '*'}</label>
                 <input
                   type="number"
                   min={0}
                   value={form.finalAgreedAmount}
                   onChange={e => update('finalAgreedAmount', e.target.value)}
                   className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Leave blank to use calculated total"
+                  placeholder={bookingType === 'vehicle' ? 'Enter final agreed total' : 'Leave blank to use calculated total'}
+                  required={bookingType === 'vehicle'}
                 />
               </div>
             </div>
