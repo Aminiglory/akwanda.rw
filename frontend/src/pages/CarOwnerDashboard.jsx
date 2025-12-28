@@ -1848,7 +1848,7 @@ export default function CarOwnerDashboard() {
                   });
 
                   const profit = revenue - expensesTotal;
-                  const netAfterCommission = profit - commissionTotal;
+                  const netAfterCommission = revenue - commissionTotal;
                   const periodLabel = profitLossPeriodType === 'annual'
                     ? `${year}`
                     : new Date(year, monthIndex, 1).toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
