@@ -19,6 +19,7 @@ const RentalsListing = lazyWithRetry(() => import('./pages/RentalsListing'));
 const SettingsSection = lazyWithRetry(() => import('./pages/SettingsSection'));
 const Flights = lazyWithRetry(() => import('./pages/Flights'));
 const Attractions = lazyWithRetry(() => import('./pages/Attractions'));
+const AttractionsSearch = lazyWithRetry(() => import('./pages/AttractionsSearch'));
 const AttractionDetail = lazyWithRetry(() => import('./pages/AttractionDetail'));
 const AirportTaxis = lazyWithRetry(() => import('./pages/AirportTaxis'));
 const ApartmentDetails = lazyWithRetry(() => import('./pages/ApartmentDetails'));
@@ -35,6 +36,8 @@ const ListProperty = lazyWithRetry(() => import('./pages/ListProperty'));
 const AdminDashboard = lazyWithRetry(() => import('./pages/AdminDashboard'));
 const AdminLanding = lazyWithRetry(() => import('./pages/AdminLanding'));
 const AdminAttractions = lazyWithRetry(() => import('./pages/AdminAttractions'));
+const AdminRentals = lazyWithRetry(() => import('./pages/AdminRentals'));
+const AdminFlights = lazyWithRetry(() => import('./pages/AdminFlights'));
 const AdminAmenities = lazyWithRetry(() => import('./pages/AdminAmenities'));
 const AdminAddOns = lazyWithRetry(() => import('./pages/AdminAddOns'));
 const AdminRoomTypes = lazyWithRetry(() => import('./pages/AdminRoomTypes'));
@@ -51,6 +54,7 @@ const PayCommission = lazyWithRetry(() => import('./pages/PayCommission'));
 const RRAEBMIntegration = lazyWithRetry(() => import('./pages/RRAEBMIntegration'));
 const BookingProcess = lazyWithRetry(() => import('./pages/BookingProcess'));
 const BookingConfirmation = lazyWithRetry(() => import('./pages/BookingConfirmation'));
+const AttractionBookingConfirmation = lazyWithRetry(() => import('./pages/AttractionBookingConfirmation'));
 const CustomerSupport = lazyWithRetry(() => import('./pages/CustomerSupport'));
 const PropertyOwnerBookings = lazyWithRetry(() => import('./pages/PropertyOwnerBookings'));
 const MyBookings = lazyWithRetry(() => import('./pages/MyBookings'));
@@ -151,6 +155,7 @@ function App() {
             <Route path="/map-view" element={<PropertyMapView />} />
             <Route path="/flights" element={<Flights />} />
             <Route path="/attractions" element={<Attractions />} />
+            <Route path="/attractions/search" element={<AttractionsSearch />} />
             <Route path="/attractions/:id" element={<AttractionDetail />} />
             <Route path="/cars" element={<CarsList />} />
             <Route path="/cars/:id" element={<CarDetail />} />
@@ -191,6 +196,8 @@ function App() {
             <Route path="/admin/profile" element={<AdminRoute><div className="dashboard"><AdminProfile /></div></AdminRoute>} />
             <Route path="/admin/landing" element={<AdminRoute><div className="dashboard"><AdminLanding /></div></AdminRoute>} />
             <Route path="/admin/attractions" element={<AdminRoute><div className="dashboard"><AdminAttractions /></div></AdminRoute>} />
+            <Route path="/admin/rentals" element={<AdminRoute><div className="dashboard"><AdminRentals /></div></AdminRoute>} />
+            <Route path="/admin/flights" element={<AdminRoute><div className="dashboard"><AdminFlights /></div></AdminRoute>} />
             <Route path="/admin/users" element={<AdminRoute><div className="dashboard"><AdminUserManagement /></div></AdminRoute>} />
             <Route path="/admin/amenities" element={<AdminRoute><div className="dashboard"><AdminAmenities /></div></AdminRoute>} />
             <Route path="/admin/room-types" element={<AdminRoute><div className="dashboard"><AdminRoomTypes /></div></AdminRoute>} />
@@ -221,6 +228,7 @@ function App() {
             <Route path="/receipt/:id" element={<ProtectedRoute><Receipt /></ProtectedRoute>} />
             <Route path="/test-upload" element={<TestUpload />} />
             <Route path="/quick-login" element={<QuickLogin />} />
+            <Route path="/attraction-booking-confirmation/:id" element={<AttractionBookingConfirmation />} />
             </Routes>
             </Suspense>
             

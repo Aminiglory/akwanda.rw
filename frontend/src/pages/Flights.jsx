@@ -1,9 +1,16 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaPlane, FaCalendarAlt, FaUser, FaSearch, FaArrowRight, FaClock, FaMapMarkerAlt } from 'react-icons/fa';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 const Flights = () => {
   const navigate = useNavigate();
+  const [pageContent, setPageContent] = useState({
+    pageTitle: 'Flights for Your Apartment Stay',
+    introText: 'Book flights to reach your apartment destination in Rwanda',
+    heroImages: [],
+  });
   const [searchData, setSearchData] = useState({
     from: '',
     to: '',
@@ -24,6 +31,22 @@ const Flights = () => {
       [field]: value
     }));
   };
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/content/flights`);
+        if (!res.ok) return;
+        const data = await res.json().catch(() => ({}));
+        const c = data?.content || {};
+        setPageContent({
+          pageTitle: c.pageTitle || 'Flights for Your Apartment Stay',
+          introText: c.introText || 'Book flights to reach your apartment destination in Rwanda',
+          heroImages: Array.isArray(c.heroImages) ? c.heroImages : [],
+        });
+      } catch (_) {}
+    })();
+  }, []);
 
   const popularDestinations = [
     { city: 'Nairobi', country: 'Kenya', price: '450,000', image: 'https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?w=400&h=300&fit=crop' },
@@ -70,11 +93,22 @@ const Flights = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <div className="bg-[#a06b42] text-white py-12 md:py-16">
-        <div className="max-w-7xl mx-auto px-4">
+      <div className="relative bg-[#a06b42] text-white py-12 md:py-16 overflow-hidden">
+        {(() => {
+          const img = Array.isArray(pageContent.heroImages) && pageContent.heroImages.length ? pageContent.heroImages[0] : '';
+          const resolved = img
+            ? /^https?:\/\//i.test(img)
+              ? img
+              : `${API_URL}${String(img).startsWith('/') ? img : `/${img}`}`
+            : '';
+          return resolved ? (
+            <img src={resolved} alt={pageContent.pageTitle} className="absolute inset-0 w-full h-full object-cover opacity-30" />
+          ) : null;
+        })()}
+        <div className="relative max-w-7xl mx-auto px-4">
           <div className="text-center mb-8">
-            <h1 className="text-2xl md:text-4xl font-bold mb-2 md:mb-4">Flights for Your Apartment Stay</h1>
-            <p className="text-base md:text-xl text-white/90">Book flights to reach your apartment destination in Rwanda</p>
+            <h1 className="text-2xl md:text-4xl font-bold mb-2 md:mb-4">{pageContent.pageTitle}</h1>
+            <p className="text-base md:text-xl text-white/90">{pageContent.introText}</p>
           </div>
         </div>
       </div>

@@ -3,6 +3,11 @@ import { useParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { FaMapMarkerAlt, FaCalendarAlt } from 'react-icons/fa';
 import { useLocale } from '../contexts/LocaleContext';
+import { MapContainer, TileLayer, Marker } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import markerIcon from 'leaflet/dist/images/marker-icon.png';
+import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 const makeAbsolute = (u) => {
@@ -11,6 +16,45 @@ const makeAbsolute = (u) => {
   if (/^https?:\/\//i.test(s)) return s;
   if (!s.startsWith('/')) s = `/${s}`;
   return `${API_URL}${s}`;
+};
+
+const defaultMarkerIcon = L.icon({
+  iconUrl: markerIcon,
+  shadowUrl: markerShadow,
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+});
+
+const getVideoEmbedUrl = (raw) => {
+  if (!raw) return null;
+  const s = String(raw).trim();
+  if (!s) return null;
+  if (/^https?:\/\//i.test(s) === false) return null;
+
+  try {
+    const u = new URL(s);
+    const host = u.hostname.replace(/^www\./, '');
+
+    if (host === 'youtu.be') {
+      const id = u.pathname.replace('/', '').trim();
+      return id ? `https://www.youtube.com/embed/${id}` : null;
+    }
+
+    if (host === 'youtube.com' || host === 'm.youtube.com') {
+      if (u.pathname.startsWith('/embed/')) return s;
+      const id = u.searchParams.get('v');
+      return id ? `https://www.youtube.com/embed/${id}` : null;
+    }
+
+    if (host === 'vimeo.com') {
+      const id = u.pathname.split('/').filter(Boolean)[0];
+      return id ? `https://player.vimeo.com/video/${id}` : null;
+    }
+  } catch (_) {
+    return null;
+  }
+
+  return s;
 };
 
 export default function AttractionDetail() {
@@ -22,11 +66,14 @@ export default function AttractionDetail() {
   const [booking, setBooking] = useState(false);
   const [checking, setChecking] = useState(false);
   const [available, setAvailable] = useState(null);
+  const [availabilityInfo, setAvailabilityInfo] = useState(null);
+  const [viewerId, setViewerId] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('cash'); // 'cash' | 'mtn_mobile_money'
   const today = useMemo(() => new Date().toISOString().split('T')[0], []);
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({
     visitDate: '',
+    timeSlot: '',
     tickets: 1,
     notes: ''
   });
@@ -58,6 +105,7 @@ export default function AttractionDetail() {
         const data = await res.json().catch(() => ({}));
         const u = data?.user;
         if (!u) return;
+        if (u._id) setViewerId(String(u._id));
         setContact(prev => ({
           ...prev,
           firstName: u.firstName || prev.firstName,
@@ -77,12 +125,38 @@ export default function AttractionDetail() {
       setChecking(true);
       const res = await fetch(`${API_URL}/api/attractions/${id}/availability`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ visitDate: form.visitDate, tickets: Number(form.tickets || 1) })
+        body: JSON.stringify({
+          visitDate: form.visitDate,
+          tickets: Number(form.tickets || 1),
+          timeSlot: String(form.timeSlot || '').trim()
+        })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Could not check availability');
-      setAvailable(!!data.available);
-      toast[data.available ? 'success' : 'error'](data.available ? 'Available' : 'Not available');
+      setAvailabilityInfo(data);
+      if (!data?.available) {
+        setAvailable(false);
+        const reason = String(data?.reason || '').toLowerCase();
+        if (reason === 'closed') {
+          toast.error('Not available: closed on selected date');
+        } else if (reason === 'slot_required') {
+          toast.error('Not available: please select a time slot');
+        } else if (reason === 'invalid_slot') {
+          toast.error('Not available: selected time slot is not valid');
+        } else if (reason === 'capacity') {
+          const remaining = Number(data?.remaining);
+          if (Number.isFinite(remaining)) {
+            toast.error(`Not available: only ${Math.max(0, remaining)} tickets remaining for this slot`);
+          } else {
+            toast.error('Not available: not enough remaining capacity');
+          }
+        } else {
+          toast.error('Not available');
+        }
+      } else {
+        setAvailable(true);
+        toast.success('Available');
+      }
     } catch (e) { toast.error(e.message); } finally { setChecking(false); }
   }
 
@@ -95,6 +169,7 @@ export default function AttractionDetail() {
         body: JSON.stringify({
           attractionId: id,
           visitDate: form.visitDate,
+          timeSlot: String(form.timeSlot || '').trim(),
           tickets: Number(form.tickets || 1),
           notes: form.notes,
           contactPhone: contact.phone,
@@ -108,21 +183,22 @@ export default function AttractionDetail() {
         toast.success('Redirecting to payment...');
         navigate('/mtn-payment', {
           state: {
-            bookingId: data.booking._id,
+            attractionBookingId: data.booking._id,
             amount: Number(data.booking.totalAmount || 0),
             description: `Attraction booking for ${item?.name || 'your trip'}`,
             customerName: `${contact.firstName || ''} ${contact.lastName || ''}`.trim(),
             customerEmail: contact.email || '',
-            phoneNumber: contact.phone || ''
+            phoneNumber: contact.phone || '',
+            redirectPath: `/attraction-booking-confirmation/${data.booking._id}`
           }
         });
         return;
       }
       toast.success('Booking created');
-      if (item?.owner && data?.booking?._id) {
-        navigate(`/messages?to=${item.owner}&bookingId=${data.booking._id}`);
+      if (data?.booking?._id) {
+        navigate(`/attraction-booking-confirmation/${data.booking._id}`);
       } else {
-        navigate('/user-dashboard');
+        navigate('/attractions');
       }
     } catch (e) { toast.error(e.message); } finally { setBooking(false); }
   }
@@ -137,8 +213,20 @@ export default function AttractionDetail() {
   const total = unitPrice * qty;
   const totalLabel = formatCurrencyRWF ? formatCurrencyRWF(total) : `RWF ${Number(total || 0).toLocaleString()}`;
 
+  const videoUrl = getVideoEmbedUrl(item?.video);
+  const lat = Number(item?.latitude);
+  const lng = Number(item?.longitude);
+  const hasCoords = Number.isFinite(lat) && Number.isFinite(lng);
+
+  const ownerId = item?.owner ? String(item.owner) : '';
+  const isOwnerViewing = viewerId && ownerId && viewerId === ownerId;
+
   const nextFromStep1 = () => {
     if (!form.visitDate) { toast.error('Select visit date'); return; }
+    if (Array.isArray(availabilityInfo?.slots) && availabilityInfo.slots.length > 0 && !String(form.timeSlot || '').trim()) {
+      toast.error('Select a time slot');
+      return;
+    }
     if (Number(form.tickets || 1) < 1) { toast.error('Tickets must be at least 1'); return; }
     setStep(2);
   };
@@ -175,6 +263,37 @@ export default function AttractionDetail() {
               <p className="mt-3 text-gray-700 text-sm leading-relaxed">{item.description}</p>
             )}
           </div>
+
+          {videoUrl && (
+            <div className="mt-4 bg-white rounded-lg shadow p-4">
+              <div className="text-sm font-semibold text-gray-900">Video</div>
+              <div className="mt-3 w-full aspect-video bg-gray-100 rounded overflow-hidden">
+                <iframe
+                  src={videoUrl}
+                  title="Attraction video"
+                  className="w-full h-full"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                />
+              </div>
+            </div>
+          )}
+
+          {hasCoords && (
+            <div className="mt-4 bg-white rounded-lg shadow p-4">
+              <div className="text-sm font-semibold text-gray-900">Location map</div>
+              <div className="mt-3 w-full h-64 rounded overflow-hidden">
+                <MapContainer center={[lat, lng]} zoom={13} style={{ height: '100%', width: '100%' }} scrollWheelZoom={false}>
+                  <TileLayer
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                  />
+                  <Marker position={[lat, lng]} icon={defaultMarkerIcon} />
+                </MapContainer>
+              </div>
+            </div>
+          )}
         </div>
 
         <div>
@@ -204,6 +323,25 @@ export default function AttractionDetail() {
                   </div>
                 </div>
                 <div>
+                  <label className="text-sm text-gray-700">Time slot</label>
+                  <select
+                    value={form.timeSlot}
+                    onChange={e => {
+                      setAvailable(null);
+                      setAvailabilityInfo(null);
+                      setForm({ ...form, timeSlot: e.target.value });
+                    }}
+                    className="w-full px-3 py-2 border rounded"
+                  >
+                    <option value="">Select a slot</option>
+                    {Array.isArray(availabilityInfo?.slots) ? availabilityInfo.slots.map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    )) : null}
+                  </select>
+                  <div className="text-xs text-gray-500 mt-1">Click "Check availability" to load slots for the selected date.</div>
+                </div>
+
+                <div>
                   <label className="text-sm text-gray-700">Tickets</label>
                   <input
                     type="number"
@@ -228,6 +366,21 @@ export default function AttractionDetail() {
                     </span>
                   )}
                 </div>
+
+                {availabilityInfo?.reason === 'closed' && (
+                  <div className="text-xs text-red-600">This attraction is closed on the selected date.</div>
+                )}
+                {availabilityInfo?.reason === 'slot_required' && (
+                  <div className="text-xs text-red-600">Please select a time slot.</div>
+                )}
+                {availabilityInfo?.reason === 'invalid_slot' && (
+                  <div className="text-xs text-red-600">Selected time slot is not valid for this attraction.</div>
+                )}
+                {availabilityInfo?.reason === 'capacity' && (
+                  <div className="text-xs text-red-600">
+                    Not enough remaining capacity{Number.isFinite(Number(availabilityInfo?.remaining)) ? ` (remaining: ${Math.max(0, Number(availabilityInfo?.remaining))})` : ''}.
+                  </div>
+                )}
                 <button
                   type="button"
                   onClick={nextFromStep1}
@@ -310,6 +463,12 @@ export default function AttractionDetail() {
                     <span>Visit date</span>
                     <span className="font-semibold text-gray-900">{form.visitDate}</span>
                   </div>
+                  {form.timeSlot ? (
+                    <div className="flex items-center justify-between mt-1">
+                      <span>Time slot</span>
+                      <span className="font-semibold text-gray-900">{form.timeSlot}</span>
+                    </div>
+                  ) : null}
                   <div className="flex items-center justify-between mt-1">
                     <span>Tickets</span>
                     <span className="font-semibold text-gray-900">{qty}</span>
@@ -352,12 +511,16 @@ export default function AttractionDetail() {
                   <button
                     type="button"
                     onClick={createBooking}
-                    disabled={booking}
+                    disabled={booking || isOwnerViewing}
                     className="px-4 py-2 bg-[#a06b42] hover:bg-[#8f5a32] text-white rounded"
                   >
                     {booking ? 'Booking...' : 'Confirm & book'}
                   </button>
                 </div>
+
+                {isOwnerViewing && (
+                  <div className="text-xs text-red-600">You can’t book your own attraction.</div>
+                )}
 
                 {item?.owner && (
                   <button

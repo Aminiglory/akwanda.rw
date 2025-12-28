@@ -30,7 +30,8 @@ const makeAbsolute = (u) => {
 
 const AdminDashboard = () => {
   const { user, isAuthenticated } = useAuth() || {};
-  const { formatCurrencyRWF } = useLocale() || {};
+  const { formatCurrencyRWF, t } = useLocale() || {};
+  const tt = typeof t === 'function' ? t : (x) => x;
   const [activeTab, setActiveTab] = useState('overview');
   const [metrics, setMetrics] = useState({
     totalProperties: 0,
@@ -1032,37 +1033,59 @@ const AdminDashboard = () => {
             {/* Content Tab */}
             {activeTab === 'content' && (
               <div className="space-y-6">
-                <h3 className="text-lg font-semibold text-gray-900">Site Content</h3>
+                <h3 className="text-lg font-semibold text-[#4b2a00]">{tt('admin.content.siteContent')}</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                   <Link
                     to="/admin/landing"
-                    className="group block bg-white rounded-xl shadow-lg p-5 sm:p-6 hover:shadow-xl transition-shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                    className="group block bg-white rounded-xl shadow-lg p-5 sm:p-6 hover:shadow-xl transition-shadow border border-[#f6e9d8] hover:border-[#a06b42] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#a06b42]"
                   >
                     <div className="flex items-center gap-3 sm:gap-4 mb-2 sm:mb-3">
-                      <FaCamera className="text-blue-600 text-lg sm:text-xl" />
-                      <div className="font-semibold text-gray-900 text-sm sm:text-base">Landing Page CMS</div>
+                      <FaCamera className="text-[#a06b42] text-lg sm:text-xl" />
+                      <div className="font-semibold text-[#4b2a00] text-sm sm:text-base">{tt('admin.content.landingCmsTitle')}</div>
                     </div>
-                    <p className="text-xs sm:text-sm text-gray-600">Edit hero title/subtitle, manage slideshow images and captions, and publish changes.</p>
+                    <p className="text-xs sm:text-sm text-gray-700">{tt('admin.content.landingCmsDesc')}</p>
                   </Link>
                   <Link
                     to="/admin/attractions"
-                    className="group block bg-white rounded-xl shadow-lg p-5 sm:p-6 hover:shadow-xl transition-shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                    className="group block bg-white rounded-xl shadow-lg p-5 sm:p-6 hover:shadow-xl transition-shadow border border-[#f6e9d8] hover:border-[#a06b42] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#a06b42]"
                   >
                     <div className="flex items-center gap-3 sm:gap-4 mb-2 sm:mb-3">
-                      <FaCamera className="text-purple-600 text-lg sm:text-xl" />
-                      <div className="font-semibold text-gray-900 text-sm sm:text-base">Attractions Page CMS</div>
+                      <FaCamera className="text-[#a06b42] text-lg sm:text-xl" />
+                      <div className="font-semibold text-[#4b2a00] text-sm sm:text-base">{tt('admin.content.attractionsCmsTitle')}</div>
                     </div>
-                    <p className="text-xs sm:text-sm text-gray-600">Manage attractions content, images, and publish the page.</p>
+                    <p className="text-xs sm:text-sm text-gray-700">{tt('admin.content.attractionsCmsDesc')}</p>
+                  </Link>
+
+                  <Link
+                    to="/admin/rentals"
+                    className="group block bg-white rounded-xl shadow-lg p-5 sm:p-6 hover:shadow-xl transition-shadow border border-[#f6e9d8] hover:border-[#a06b42] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#a06b42]"
+                  >
+                    <div className="flex items-center gap-3 sm:gap-4 mb-2 sm:mb-3">
+                      <FaCar className="text-[#a06b42] text-lg sm:text-xl" />
+                      <div className="font-semibold text-[#4b2a00] text-sm sm:text-base">{tt('admin.content.rentalsCmsTitle')}</div>
+                    </div>
+                    <p className="text-xs sm:text-sm text-gray-700">{tt('admin.content.rentalsCmsDesc')}</p>
+                  </Link>
+
+                  <Link
+                    to="/admin/flights"
+                    className="group block bg-white rounded-xl shadow-lg p-5 sm:p-6 hover:shadow-xl transition-shadow border border-[#f6e9d8] hover:border-[#a06b42] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#a06b42]"
+                  >
+                    <div className="flex items-center gap-3 sm:gap-4 mb-2 sm:mb-3">
+                      <FaPlane className="text-[#a06b42] text-lg sm:text-xl" />
+                      <div className="font-semibold text-[#4b2a00] text-sm sm:text-base">{tt('admin.content.flightsCmsTitle')}</div>
+                    </div>
+                    <p className="text-xs sm:text-sm text-gray-700">{tt('admin.content.flightsCmsDesc')}</p>
                   </Link>
                   <Link
                     to="/messages"
-                    className="group block bg-white rounded-xl shadow-lg p-5 sm:p-6 hover:shadow-xl transition-shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                    className="group block bg-white rounded-xl shadow-lg p-5 sm:p-6 hover:shadow-xl transition-shadow border border-[#f6e9d8] hover:border-[#a06b42] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#a06b42]"
                   >
                     <div className="flex items-center gap-3 sm:gap-4 mb-2 sm:mb-3">
-                      <FaComments className="text-green-600 text-lg sm:text-xl" />
-                      <div className="font-semibold text-gray-900 text-sm sm:text-base">Messages</div>
+                      <FaComments className="text-[#a06b42] text-lg sm:text-xl" />
+                      <div className="font-semibold text-[#4b2a00] text-sm sm:text-base">{tt('admin.content.messagesTitle')}</div>
                     </div>
-                    <p className="text-xs sm:text-sm text-gray-600">Open conversations with users and property/car owners.</p>
+                    <p className="text-xs sm:text-sm text-gray-700">{tt('admin.content.messagesDesc')}</p>
                   </Link>
                 </div>
               </div>

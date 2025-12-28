@@ -34,9 +34,26 @@ const FeaturedDestinationsSection = ({
   sectionTitle,
   ctaUrl = '/apartments',
   showExploreLink = true,
+  destinations,
+  buildCtaUrl,
 }) => {
   const { t } = useLocale() || {};
-  const cards = useMemo(() => buildCards(section), [section]);
+  const cards = useMemo(() => {
+    if (Array.isArray(destinations) && destinations.length > 0) {
+      return destinations
+        .map((d) => {
+          const img = resolveImageUrl(d?.img || d?.image);
+          return {
+            name: d?.name || d?.city || 'Destination',
+            tagline: d?.tagline || '',
+            img,
+            raw: d,
+          };
+        })
+        .filter((c) => c.img);
+    }
+    return buildCards(section).map((c) => ({ ...c, raw: null }));
+  }, [section, destinations]);
   if (!cards.length) return null;
 
   const heading = sectionTitle || (t ? t('home.featuredDestinations') : 'Featured destinations');
@@ -59,7 +76,7 @@ const FeaturedDestinationsSection = ({
         {cards.map((destination, index) => (
           <a
             key={index}
-            href={ctaUrl}
+            href={typeof buildCtaUrl === 'function' ? buildCtaUrl(destination.raw || destination) : ctaUrl}
             className="group relative rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 bg-gray-900/80"
           >
             <div className="relative aspect-[4/5] sm:aspect-[4/5] overflow-hidden">

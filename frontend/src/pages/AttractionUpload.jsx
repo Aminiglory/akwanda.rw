@@ -31,6 +31,7 @@ const AttractionUpload = () => {
       close: '18:00',
       days: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
     },
+    timeSlots: '',
     mediaLinks: '',
     deals: '',
     specialOffers: '',
@@ -423,6 +424,19 @@ const AttractionUpload = () => {
                   </label>
                 ))}
               </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Time Slots</label>
+              <textarea
+                name="timeSlots"
+                value={formData.timeSlots}
+                onChange={handleInputChange}
+                rows={3}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Example: 08:00-10:00, 10:00-12:00 or one per line"
+              />
+              <p className="text-xs text-gray-500 mt-1">If set, guests must pick a slot when booking.</p>
             </div>
           </div>
         );

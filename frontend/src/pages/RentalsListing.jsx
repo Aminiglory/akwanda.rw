@@ -16,6 +16,11 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 const RentalsListing = () => {
   const { formatCurrencyRWF } = useLocale() || {};
+  const [pageContent, setPageContent] = useState({
+    pageTitle: 'Find Your Perfect Ride',
+    introText: 'Choose a car that matches your journey',
+    heroImages: [],
+  });
   const PRICE_STEP = 5000;
   const snapToStep = (v) => Math.max(0, Math.round(Number(v || 0) / PRICE_STEP) * PRICE_STEP);
 
@@ -65,6 +70,30 @@ const RentalsListing = () => {
     if (!s.startsWith("/")) s = `/${s}`;
     return `${API_URL}${s}`;
   };
+
+  const heroImage = useRef(null);
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/content/rentals`);
+        if (!res.ok) return;
+        const data = await res.json().catch(() => ({}));
+        const c = data?.content || {};
+        setPageContent({
+          pageTitle: c.pageTitle || 'Find Your Perfect Ride',
+          introText: c.introText || 'Choose a car that matches your journey',
+          heroImages: Array.isArray(c.heroImages) ? c.heroImages : [],
+        });
+      } catch (_) {}
+    })();
+  }, []);
+
+  const resolvedHero = (() => {
+    const imgs = Array.isArray(pageContent.heroImages) ? pageContent.heroImages : [];
+    const img = imgs[0];
+    if (!img) return null;
+    return /^https?:\/\//i.test(img) ? img : `${API_URL}${String(img).startsWith('/') ? img : `/${img}`}`;
+  })();
 
   const fetchVehicles = async (signal) => {
     try {
@@ -209,21 +238,66 @@ const RentalsListing = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            <div>
-              <h1 className="text-4xl font-bold text-gray-900 uppercase tracking-wide">
-                Find Your Perfect Ride
-              </h1>
-              <p className="text-gray-600 mt-2 text-lg font-medium">
-                Discover vehicle rentals across Rwanda
-              </p>
-            </div>
+  <div className="min-h-screen bg-gray-50">
+    <div className="relative bg-[#a06b42] text-white shadow-sm overflow-hidden">
+      {resolvedHero && (
+        <img src={resolvedHero} alt={pageContent.pageTitle} className="absolute inset-0 w-full h-full object-cover opacity-30" />
+      )}
+      <div className="relative max-w-7xl mx-auto px-4 py-6">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div>
+            <h1 className="text-4xl font-bold text-white uppercase tracking-wide">
+              {pageContent.pageTitle || 'Find Your Perfect Ride'}
+            </h1>
+            <p className="text-white/90 mt-2 text-lg font-medium">
+              {pageContent.introText || 'Choose a car that matches your journey'}
+            </p>
+          </div>
 
-            <div className="flex items-center w-full lg:w-auto space-x-2">
-              <div className="search-input-with-icon relative flex-1">
+          <div className="flex items-center w-full lg:w-auto space-x-2">
+            <div className="search-input-with-icon relative flex-1">
+              <FaMapMarkerAlt className="input-icon text-primary pointer-events-none" />
+              <input
+                type="text"
+                placeholder="Search by pick-up location..."
+                className="w-full h-10 pr-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                value={filters.location}
+                onChange={(e) => handleFilterChange("location", e.target.value)}
+              />
+            </div>
+            <button
+              onClick={() => setFilters({ ...filters, location: filters.location })}
+              className="flex items-center btn-primary px-4 py-2 rounded-lg transition-colors"
+            >
+              <FaSearch className="mr-2" />
+              Search
+            </button>
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className="flex items-center space-x-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors"
+            >
+              <FaFilter />
+              <span>Filters</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        <div className="lg:col-span-1">
+          <div
+            className={`modern-card p-6 ${showFilters ? "block" : "hidden lg:block"}`}
+          >
+            <h3 className="text-lg font-semibold text-gray-800 mb-6">Filters</h3>
+
+            <div className="mb-6">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Pick-up Location
+              </label>
+              <div className="search-input-with-icon relative">
+                <FaMapMarkerAlt className="input-icon text-blue-600 pointer-events-none" />
                 <FaMapMarkerAlt className="input-icon text-primary pointer-events-none" />
                 <input
                   type="text"

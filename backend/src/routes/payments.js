@@ -1,6 +1,7 @@
 const { Router } = require('express');
 const jwt = require('jsonwebtoken');
 const Booking = require('../tables/booking');
+const AttractionBooking = require('../tables/attractionBooking');
 const Notification = require('../tables/notification');
 const User = require('../tables/user');
 
@@ -21,7 +22,7 @@ function requireAuth(req, res, next) {
 // MTN Mobile Money Payment
 router.post('/mtn-mobile-money', requireAuth, async (req, res) => {
     try {
-        const { phoneNumber, amount, description, bookingId, customerName, customerEmail, settleFines } = req.body;
+        const { phoneNumber, amount, description, bookingId, attractionBookingId, customerName, customerEmail, settleFines } = req.body;
 
         // Validate required fields
         if (!phoneNumber || !amount || !description) {
@@ -47,6 +48,7 @@ router.post('/mtn-mobile-money', requireAuth, async (req, res) => {
         await new Promise(resolve => setTimeout(resolve, 1000));
 
         let booking;
+        let attractionBooking;
         if (bookingId) {
             booking = await Booking.findById(bookingId).populate('property');
             if (!booking) return res.status(404).json({ message: 'Booking not found' });
@@ -97,6 +99,20 @@ router.post('/mtn-mobile-money', requireAuth, async (req, res) => {
                     });
                 }
             } catch (_) { /* ignore */ }
+        } else if (attractionBookingId) {
+            attractionBooking = await AttractionBooking.findById(attractionBookingId).populate('attraction');
+            if (!attractionBooking) return res.status(404).json({ message: 'Attraction booking not found' });
+            if (String(attractionBooking.guest) !== String(req.user.id) && req.user.userType !== 'admin') {
+                return res.status(403).json({ message: 'Forbidden' });
+            }
+
+            attractionBooking.paymentMethod = 'mobile_money';
+            attractionBooking.paymentStatus = 'paid';
+            attractionBooking.transactionId = transactionId;
+            if (attractionBooking.status !== 'cancelled' && attractionBooking.status !== 'completed') {
+                attractionBooking.status = 'confirmed';
+            }
+            await attractionBooking.save();
         }
 
         // Optional: settle outstanding fines for the authenticated user
@@ -161,12 +177,13 @@ router.post('/mtn-mobile-money', requireAuth, async (req, res) => {
                 amount: Number(amount),
                 description,
                 bookingId,
+                attractionBookingId,
                 customerName,
                 customerEmail,
                 timestamp: new Date().toISOString(),
                 status: 'completed'
             },
-            booking: booking || null
+            booking: booking || attractionBooking || null
         });
 
     } catch (error) {
