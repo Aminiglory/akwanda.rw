@@ -365,25 +365,35 @@ export default function CarOwnerDashboard() {
       setCars(vehiclesList);
       setBookings(bookingsData.bookings || []);
       
-      // Check if we need to redirect to vehicles group homepage
+      // Ensure a selected car without redirecting away from the dashboard
       const carParam = searchParams.get('car');
       if (vehiclesList.length === 0) {
-        // No vehicles - redirect to first vehicle listing
+        // No vehicles - send host to vehicle upload flow
         navigate('/upload-property?type=vehicle', { replace: true });
         return;
-      } else if (!carParam) {
-        // Has vehicles but no car selected - redirect to vehicles group homepage
-        navigate('/vehicles-group-home', { replace: true });
-        return;
+      }
+
+      const firstCarId = String(vehiclesList[0]._id || vehiclesList[0].id || '');
+
+      if (!carParam) {
+        // Has vehicles but no specific car selected - default to the first one
+        if (firstCarId) {
+          setSelectedCarId(firstCarId);
+          const params = new URLSearchParams(location.search || '');
+          params.set('car', firstCarId);
+          navigate(`/owner/cars?${params.toString()}`, { replace: true });
+        }
       } else {
-        // Has car param - set it as selected
+        // Has car param - validate it against loaded vehicles
         const carExists = vehiclesList.find(c => String(c._id) === String(carParam));
         if (carExists) {
           setSelectedCarId(String(carParam));
-        } else {
-          // Car doesn't exist - redirect to group homepage
-          navigate('/vehicles-group-home', { replace: true });
-          return;
+        } else if (firstCarId) {
+          // Fallback to first car if the one in the URL no longer exists
+          setSelectedCarId(firstCarId);
+          const params = new URLSearchParams(location.search || '');
+          params.set('car', firstCarId);
+          navigate(`/owner/cars?${params.toString()}`, { replace: true });
         }
       }
     } catch (e) {
