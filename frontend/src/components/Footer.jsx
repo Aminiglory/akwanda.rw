@@ -76,7 +76,7 @@ const Footer = () => {
     ...(user?.userType === 'host'
       ? [
           { icon: FaBed, name: t ? t('footer.manageStays') : 'Manage Stays', href: '/dashboard' },
-          { icon: FaCar, name: 'Vehicles', href: '/owner/cars' },
+          { icon: FaCar, name: 'Vehicles', href: '/vehicles-group-home' },
           { icon: FaMountain, name: 'Attractions', href: '/owner/attractions' }
         ]
       : [])

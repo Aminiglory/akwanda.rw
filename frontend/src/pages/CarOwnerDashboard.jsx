@@ -207,6 +207,52 @@ export default function CarOwnerDashboard() {
   const [ownerNotificationsLoading, setOwnerNotificationsLoading] = useState(false);
   const [ownerNotifShowUnreadOnly, setOwnerNotifShowUnreadOnly] = useState(false);
   const [ownerNotifTypeFilter, setOwnerNotifTypeFilter] = useState('all');
+  const [carClients, setCarClients] = useState([]);
+  const [carClientsLoading, setCarClientsLoading] = useState(false);
+  const [carClientsSaving, setCarClientsSaving] = useState(false);
+  const [carClientsError, setCarClientsError] = useState('');
+  const [clientForm, setClientForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    type: 'individual',
+    companyName: '',
+    notes: '',
+  });
+  const [carContracts, setCarContracts] = useState([]);
+  const [carContractsLoading, setCarContractsLoading] = useState(false);
+  const [carContractsSaving, setCarContractsSaving] = useState(false);
+  const [carContractsError, setCarContractsError] = useState('');
+  const [contractForm, setContractForm] = useState({
+    clientId: '',
+    carId: '',
+    startDate: '',
+    endDate: '',
+    amount: '',
+    status: 'draft',
+    fileUrl: '',
+    notes: '',
+  });
+  const [contractSummary, setContractSummary] = useState(null);
+  const [contractSummaryLoading, setContractSummaryLoading] = useState(false);
+  const [editingClientId, setEditingClientId] = useState(null);
+  const [editingClientForm, setEditingClientForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    type: 'individual',
+    companyName: '',
+    notes: '',
+  });
+  const [editingContractId, setEditingContractId] = useState(null);
+  const [editingContractForm, setEditingContractForm] = useState({
+    startDate: '',
+    endDate: '',
+    amount: '',
+    status: 'draft',
+    fileUrl: '',
+    notes: '',
+  });
 
   const financeBookingsTable = Array.isArray(bookings) ? bookings : [];
 
@@ -287,144 +333,6 @@ export default function CarOwnerDashboard() {
     });
   }, [bookings, selectedCarId]);
 
-  const suggestDirectPrice = () => {
-    try {
-      if (!directCarForm.carId || !directCarForm.pickupDate || !directCarForm.returnDate) return null;
-      const car = Array.isArray(cars) ? cars.find(c => String(c._id) === String(directCarForm.carId)) : null;
-      if (!car) return null;
-      const start = new Date(directCarForm.pickupDate);
-      const end = new Date(directCarForm.returnDate);
-      if (!(start instanceof Date) || !(end instanceof Date) || Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end <= start) return null;
-      const MS_PER_DAY = 24 * 60 * 60 * 1000;
-      const numberOfDays = Math.ceil((end - start) / MS_PER_DAY);
-      let total = (car.pricePerDay || 0) * numberOfDays;
-      if (car.pricePerWeek && numberOfDays >= 7) {
-        const weeks = Math.floor(numberOfDays / 7);
-        const remainder = numberOfDays % 7;
-        total = weeks * car.pricePerWeek + remainder * (car.pricePerDay || 0);
-      }
-      if (car.pricePerMonth && numberOfDays >= 30) {
-        const months = Math.floor(numberOfDays / 30);
-        const rem = numberOfDays % 30;
-        total = months * car.pricePerMonth + rem * ((car.pricePerWeek || (car.pricePerDay || 0) * 7) / 7);
-      }
-      return total;
-    } catch (_) {
-      return null;
-    }
-  };
-
-  async function submitDirectCarBooking(e) {
-    e?.preventDefault?.();
-    try {
-      if (!directCarForm.carId || !directCarForm.pickupDate || !directCarForm.returnDate || !directCarForm.pickupLocation) {
-        toast.error('Please fill vehicle, dates and pickup location');
-        return;
-      }
-      const priceNum = Number(directCarForm.finalPrice);
-      if (!priceNum || !Number.isFinite(priceNum) || priceNum <= 0) {
-        toast.error('Enter the final agreed price');
-        return;
-      }
-      setDirectCarBookingSaving(true);
-      const payload = {
-        carId: directCarForm.carId,
-        pickupDate: directCarForm.pickupDate,
-        returnDate: directCarForm.returnDate,
-        pickupLocation: directCarForm.pickupLocation,
-        returnLocation: directCarForm.returnLocation || directCarForm.pickupLocation,
-        guestName: directCarForm.guestName || undefined,
-        guestEmail: directCarForm.guestEmail || undefined,
-        guestPhone: directCarForm.guestPhone || undefined,
-        paymentMethod: directCarForm.paymentMethod || undefined,
-        finalPrice: priceNum,
-      };
-      const res = await fetch(`${API_URL}/api/car-bookings/direct`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(data.message || 'Failed to create direct booking');
-      }
-      const booking = data.booking || data;
-      setBookings(prev => Array.isArray(prev) ? [booking, ...prev] : [booking]);
-      toast.success('Direct booking recorded');
-      setShowDirectCarBooking(false);
-      setDirectCarForm({
-        carId: '',
-        pickupDate: '',
-        returnDate: '',
-        pickupLocation: '',
-        returnLocation: '',
-        guestName: '',
-        guestEmail: '',
-        guestPhone: '',
-        paymentMethod: 'cash',
-        finalPrice: '',
-      });
-    } catch (err) {
-      console.error('[CarOwner][directBooking] error', err);
-      toast.error(err.message || 'Failed to create direct booking');
-    } finally {
-      setDirectCarBookingSaving(false);
-    }
-  }
-
-  function exportBookingsCsv() {
-    try {
-      const rows = Array.isArray(bookings) ? bookings : [];
-      const header = [
-        'Booking ID',
-        'Vehicle',
-        'Pickup date',
-        'Return date',
-        'Days',
-        'Status',
-        'Payment status',
-        'Total amount (RWF)'
-      ];
-
-      const lines = [header.join(',')];
-      rows.forEach(b => {
-        const vehicleLabel = (b.car?.vehicleName || `${b.car?.brand || ''} ${b.car?.model || ''}`.trim() || 'Vehicle').replace(/,/g, ' ');
-        const pickup = b.pickupDate ? new Date(b.pickupDate).toISOString().slice(0, 10) : '';
-        const ret = b.returnDate ? new Date(b.returnDate).toISOString().slice(0, 10) : '';
-        const days = b.numberOfDays || '';
-        const status = String(b.status || '').toLowerCase();
-        const payStatus = String(b.paymentStatus || '').toLowerCase();
-        const amount = Number(b.totalAmount || 0);
-
-        lines.push([
-          b._id || '',
-          vehicleLabel,
-          pickup,
-          ret,
-          days,
-          status,
-          payStatus,
-          amount
-        ].join(','));
-      });
-
-      const csv = lines.join('\n');
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'vehicle-bookings.csv';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error('[Vehicles][bookings][exportCsv] error', err);
-      toast.error(err.message || 'Failed to export bookings CSV');
-    }
-  }
-
   async function loadData() {
     try {
       setLoading(true);
@@ -441,7 +349,7 @@ export default function CarOwnerDashboard() {
       const vehiclesList = carsData.cars || [];
       setCars(vehiclesList);
       setBookings(bookingsData.bookings || []);
-      
+
       // Ensure a selected car without redirecting away from the dashboard
       const carParam = searchParams.get('car');
       if (vehiclesList.length === 0) {
@@ -485,6 +393,23 @@ export default function CarOwnerDashboard() {
   useEffect(() => {
     loadData();
   }, [location.search]);
+
+  // Load car clients and contracts lazily when their views are opened
+  useEffect(() => {
+    if (view === 'clients') {
+      if (!carClientsLoading && carClients.length === 0 && !carClientsError) {
+        loadCarClients();
+      }
+    }
+    if (view === 'contracts') {
+      if (!carContractsLoading && carContracts.length === 0 && !carContractsError) {
+        loadCarContracts();
+      }
+      if (clientsContractsMode === 'reports' && !contractSummary && !contractSummaryLoading) {
+        loadContractSummary();
+      }
+    }
+  }, [view, clientsContractsMode]);
 
   async function loadOwnerNotifications() {
     try {
@@ -772,7 +697,246 @@ export default function CarOwnerDashboard() {
     }
   }
 
-  // ... rest of the code remains the same ...
+  async function loadCarClients() {
+    try {
+      setCarClientsLoading(true);
+      setCarClientsError('');
+      const res = await fetch(`${API_URL}/api/car-clients`, {
+        credentials: 'include',
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.message || 'Failed to load clients');
+      }
+      const list = Array.isArray(data.clients) ? data.clients : [];
+      setCarClients(list);
+    } catch (err) {
+      console.error('[Vehicles][clients][load]', err);
+      setCarClientsError(err.message || 'Failed to load clients');
+      setCarClients([]);
+      toast.error(err.message || 'Failed to load clients');
+    } finally {
+      setCarClientsLoading(false);
+    }
+  }
+
+  async function saveClient(e) {
+    e?.preventDefault?.();
+    if (!clientForm.name.trim()) {
+      toast.error('Client name is required');
+      return;
+    }
+    try {
+      setCarClientsSaving(true);
+      const payload = {
+        name: clientForm.name,
+        email: clientForm.email || undefined,
+        phone: clientForm.phone || undefined,
+        type: clientForm.type || undefined,
+        companyName: clientForm.companyName || undefined,
+        notes: clientForm.notes || undefined,
+      };
+      const res = await fetch(`${API_URL}/api/car-clients`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.message || 'Failed to create client');
+      }
+      const created = data.client || data;
+      setCarClients(list => [created, ...list]);
+      setClientForm({ name: '', email: '', phone: '', type: 'individual', companyName: '', notes: '' });
+      toast.success('Client saved');
+    } catch (err) {
+      console.error('[Vehicles][clients][save]', err);
+      toast.error(err.message || 'Failed to save client');
+    } finally {
+      setCarClientsSaving(false);
+    }
+  }
+
+  async function updateClient(id, patch) {
+    if (!id) return;
+    try {
+      const res = await fetch(`${API_URL}/api/car-clients/${id}`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patch || {}),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.message || 'Failed to update client');
+      }
+      const updated = data.client || data;
+      setCarClients(list => list.map(c => c._id === updated._id ? updated : c));
+      toast.success('Client updated');
+    } catch (err) {
+      console.error('[Vehicles][clients][update]', err);
+      toast.error(err.message || 'Failed to update client');
+    }
+  }
+
+  async function deleteClient(id) {
+    if (!id) return;
+    if (!confirm('Delete this client?')) return;
+    try {
+      const res = await fetch(`${API_URL}/api/car-clients/${id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.message || 'Failed to delete client');
+      }
+      setCarClients(list => list.filter(c => c._id !== id));
+      toast.success('Client deleted');
+    } catch (err) {
+      console.error('[Vehicles][clients][delete]', err);
+      toast.error(err.message || 'Failed to delete client');
+    }
+  }
+
+  async function loadCarContracts() {
+    try {
+      setCarContractsLoading(true);
+      setCarContractsError('');
+      const params = new URLSearchParams();
+      if (selectedCarId) params.set('car', selectedCarId);
+      const qs = params.toString();
+      const url = qs ? `${API_URL}/api/car-contracts?${qs}` : `${API_URL}/api/car-contracts`;
+      const res = await fetch(url, { credentials: 'include' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.message || 'Failed to load contracts');
+      }
+      const list = Array.isArray(data.contracts) ? data.contracts : [];
+      setCarContracts(list);
+    } catch (err) {
+      console.error('[Vehicles][contracts][load]', err);
+      setCarContractsError(err.message || 'Failed to load contracts');
+      setCarContracts([]);
+      toast.error(err.message || 'Failed to load contracts');
+    } finally {
+      setCarContractsLoading(false);
+    }
+  }
+
+  async function loadContractSummary() {
+    try {
+      setContractSummaryLoading(true);
+      const params = new URLSearchParams();
+      if (selectedCarId) params.set('car', selectedCarId);
+      const qs = params.toString();
+      const url = qs ? `${API_URL}/api/car-contracts/summary?${qs}` : `${API_URL}/api/car-contracts/summary`;
+      const res = await fetch(url, { credentials: 'include' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.message || 'Failed to load contract summary');
+      }
+      setContractSummary(data);
+    } catch (err) {
+      console.error('[Vehicles][contracts][summary]', err);
+      toast.error(err.message || 'Failed to load contract summary');
+      setContractSummary(null);
+    } finally {
+      setContractSummaryLoading(false);
+    }
+  }
+
+  async function saveContract(e) {
+    e?.preventDefault?.();
+    if (!contractForm.clientId || !contractForm.startDate || !contractForm.endDate || contractForm.amount === '') {
+      toast.error('Client, start date, end date and amount are required');
+      return;
+    }
+    try {
+      setCarContractsSaving(true);
+      const payload = {
+        client: contractForm.clientId,
+        car: contractForm.carId || undefined,
+        startDate: contractForm.startDate,
+        endDate: contractForm.endDate,
+        amount: Number(contractForm.amount),
+        status: contractForm.status || undefined,
+        fileUrl: contractForm.fileUrl || undefined,
+        notes: contractForm.notes || undefined,
+      };
+      const res = await fetch(`${API_URL}/api/car-contracts`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.message || 'Failed to create contract');
+      }
+      const created = data.contract || data;
+      setCarContracts(list => [created, ...list]);
+      setContractForm({
+        clientId: '',
+        carId: '',
+        startDate: '',
+        endDate: '',
+        amount: '',
+        status: 'draft',
+        fileUrl: '',
+        notes: '',
+      });
+      toast.success('Contract saved');
+    } catch (err) {
+      console.error('[Vehicles][contracts][save]', err);
+      toast.error(err.message || 'Failed to save contract');
+    } finally {
+      setCarContractsSaving(false);
+    }
+  }
+
+  async function updateContract(id, patch) {
+    if (!id) return;
+    try {
+      const res = await fetch(`${API_URL}/api/car-contracts/${id}`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patch || {}),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.message || 'Failed to update contract');
+      }
+      const updated = data.contract || data;
+      setCarContracts(list => list.map(ct => ct._id === updated._id ? updated : ct));
+      toast.success('Contract updated');
+    } catch (err) {
+      console.error('[Vehicles][contracts][update]', err);
+      toast.error(err.message || 'Failed to update contract');
+    }
+  }
+
+  async function deleteContract(id) {
+    if (!id) return;
+    if (!confirm('Delete this contract?')) return;
+    try {
+      const res = await fetch(`${API_URL}/api/car-contracts/${id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.message || 'Failed to delete contract');
+      }
+      setCarContracts(list => list.filter(ct => ct._id !== id));
+      toast.success('Contract deleted');
+    } catch (err) {
+      console.error('[Vehicles][contracts][delete]', err);
+      toast.error(err.message || 'Failed to delete contract');
+    }
+  }
 
   return (
     <div className="min-h-screen bg-[#f9f5ef] py-4">
@@ -1562,20 +1726,167 @@ export default function CarOwnerDashboard() {
           {financeMode === 'expenses-categories' && (
           <div className="mb-4 rounded-2xl bg-white border border-[#e0d5c7] px-4 py-4 text-sm text-gray-700 shadow-sm">
             <h3 className="text-sm font-semibold text-[#4b2a00] mb-1">Expense categories</h3>
-            <p className="text-xs text-gray-600 mb-2">
-              Category management for your vehicle expenses (fuel, maintenance, insurance, etc.) will be
-              configured here. For now this panel simply confirms the navigation works.
+            <p className="text-xs text-gray-600 mb-3">
+              Overview of the categories used in your vehicle expenses, with total amounts for each.
             </p>
+
+            {(!Array.isArray(carExpenses) || carExpenses.length === 0) ? (
+              <div className="py-2 text-[11px] text-gray-600">
+                No expenses recorded yet. Once you start logging fuel, maintenance and other costs, they will
+                appear here grouped by category.
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-[11px]">
+                  <thead className="bg-[#f5ebe0] text-gray-700 uppercase tracking-wide">
+                    <tr>
+                      <th className="px-3 py-2 text-left">Category</th>
+                      <th className="px-3 py-2 text-right">Number of expenses</th>
+                      <th className="px-3 py-2 text-right">Total amount (RWF)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#f1e4d4] bg-white">
+                    {(() => {
+                      const map = new Map();
+                      carExpenses.forEach(exp => {
+                        const key = String(exp.category || 'general');
+                        const prev = map.get(key) || { count: 0, total: 0 };
+                        map.set(key, {
+                          count: prev.count + 1,
+                          total: prev.total + Number(exp.amount || 0),
+                        });
+                      });
+                      const entries = Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+                      return entries.map(([cat, info]) => (
+                        <tr key={cat} className="hover:bg-[#fdf7ee]">
+                          <td className="px-3 py-2 text-gray-800 capitalize">{cat}</td>
+                          <td className="px-3 py-2 text-right text-gray-700">{info.count}</td>
+                          <td className="px-3 py-2 text-right font-semibold text-gray-900">
+                            {formatCurrencyRWF
+                              ? formatCurrencyRWF(info.total)
+                              : `RWF ${Number(info.total || 0).toLocaleString()}`}
+                          </td>
+                        </tr>
+                      ));
+                    })()}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
           )}
 
           {financeMode === 'expenses-reports' && (
           <div className="mb-4 rounded-2xl bg-white border border-[#e0d5c7] px-4 py-4 text-sm text-gray-700 shadow-sm">
             <h3 className="text-sm font-semibold text-[#4b2a00] mb-1">Expense reports</h3>
-            <p className="text-xs text-gray-600 mb-2">
-              Expense breakdowns by vehicle, category and period will be implemented here. At the moment this
-              is a placeholder so that the "Expense reports" link has its own dedicated view.
+            <p className="text-xs text-gray-600 mb-3">
+              Breakdown of expenses by vehicle and recent period based on your recorded expense data.
             </p>
+
+            {(!Array.isArray(carExpenses) || carExpenses.length === 0) ? (
+              <div className="py-2 text-[11px] text-gray-600">
+                No expenses recorded yet for your vehicles, so there is nothing to report.
+              </div>
+            ) : (
+              <>
+                <div className="mb-3 grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+                  {(() => {
+                    const now = new Date();
+                    const start30 = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 30);
+                    const startYtd = new Date(now.getFullYear(), 0, 1);
+
+                    let totalAll = 0;
+                    let total30 = 0;
+                    let totalYtd = 0;
+
+                    carExpenses.forEach(exp => {
+                      const amt = Number(exp.amount || 0);
+                      totalAll += amt;
+                      const d = exp.date ? new Date(exp.date) : null;
+                      if (!d) return;
+                      if (d >= start30) total30 += amt;
+                      if (d >= startYtd) totalYtd += amt;
+                    });
+
+                    return (
+                      <>
+                        <div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5">
+                          <div className="text-[11px] text-gray-500">Total expenses (all time)</div>
+                          <div className="text-sm font-semibold text-gray-900">
+                            {formatCurrencyRWF
+                              ? formatCurrencyRWF(totalAll)
+                              : `RWF ${Number(totalAll || 0).toLocaleString()}`}
+                          </div>
+                        </div>
+                        <div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5">
+                          <div className="text-[11px] text-gray-500">Last 30 days expenses</div>
+                          <div className="text-sm font-semibold text-gray-900">
+                            {formatCurrencyRWF
+                              ? formatCurrencyRWF(total30)
+                              : `RWF ${Number(total30 || 0).toLocaleString()}`}
+                          </div>
+                        </div>
+                        <div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-3 py-2.5">
+                          <div className="text-[11px] text-gray-500">Year-to-date expenses</div>
+                          <div className="text-sm font-semibold text-gray-900">
+                            {formatCurrencyRWF
+                              ? formatCurrencyRWF(totalYtd)
+                              : `RWF ${Number(totalYtd || 0).toLocaleString()}`}
+                          </div>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+
+                <div className="overflow-x-auto mt-2">
+                  <table className="min-w-full text-[11px]">
+                    <thead className="bg-[#f5ebe0] text-gray-700 uppercase tracking-wide">
+                      <tr>
+                        <th className="px-3 py-2 text-left">Vehicle</th>
+                        <th className="px-3 py-2 text-left">Category</th>
+                        <th className="px-3 py-2 text-right">Number of expenses</th>
+                        <th className="px-3 py-2 text-right">Total amount (RWF)</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#f1e4d4] bg-white">
+                      {(() => {
+                        const map = new Map();
+                        carExpenses.forEach(exp => {
+                          const vehicleLabel = (exp.car?.vehicleName || `${exp.car?.brand || ''} ${exp.car?.model || ''}`.trim() || 'Vehicle').replace(/,/g, ' ');
+                          const cat = String(exp.category || 'general');
+                          const key = `${vehicleLabel}__${cat}`;
+                          const prev = map.get(key) || { vehicleLabel, category: cat, count: 0, total: 0 };
+                          map.set(key, {
+                            vehicleLabel,
+                            category: cat,
+                            count: prev.count + 1,
+                            total: prev.total + Number(exp.amount || 0),
+                          });
+                        });
+                        const rows = Array.from(map.values()).sort((a, b) => {
+                          const v = a.vehicleLabel.localeCompare(b.vehicleLabel);
+                          if (v !== 0) return v;
+                          return a.category.localeCompare(b.category);
+                        });
+                        return rows.map(row => (
+                          <tr key={`${row.vehicleLabel}__${row.category}`} className="hover:bg-[#fdf7ee]">
+                            <td className="px-3 py-2 text-gray-800">{row.vehicleLabel}</td>
+                            <td className="px-3 py-2 text-gray-700 capitalize">{row.category}</td>
+                            <td className="px-3 py-2 text-right text-gray-700">{row.count}</td>
+                            <td className="px-3 py-2 text-right font-semibold text-gray-900">
+                              {formatCurrencyRWF
+                                ? formatCurrencyRWF(row.total)
+                                : `RWF ${Number(row.total || 0).toLocaleString()}`}
+                            </td>
+                          </tr>
+                        ));
+                      })()}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
           </div>
           )}
 
@@ -2174,11 +2485,160 @@ export default function CarOwnerDashboard() {
           <h2 className="text-lg font-semibold mb-1 text-[#4b2a00]">
             {clientsContractsMode === 'add' ? 'Add client' : 'Clients'}
           </h2>
-          <p className="text-xs text-gray-600">
-            The dedicated Clients management tables and forms will appear here. For now this panel confirms
-            that the navigation link is working for
-            {clientsContractsMode === 'add' ? ' adding a new client.' : ' viewing your client list.'}
-          </p>
+
+          {clientsContractsMode === 'add' ? (
+            <form onSubmit={saveClient} className="mt-2 space-y-3 max-w-xl text-xs">
+              <p className="text-[11px] text-gray-600">
+                Save repeat clients here to quickly reuse their details when creating direct bookings or contracts.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
+                <div>
+                  <label className="block text-[11px] font-medium text-gray-700 mb-1">Name *</label>
+                  <input
+                    className="w-full px-3 py-2 border border-[#d4c4b0] rounded-lg text-xs"
+                    value={clientForm.name}
+                    onChange={e => setClientForm(f => ({ ...f, name: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium text-gray-700 mb-1">Type</label>
+                  <select
+                    className="w-full px-3 py-2 border border-[#d4c4b0] rounded-lg text-xs bg-white"
+                    value={clientForm.type}
+                    onChange={e => setClientForm(f => ({ ...f, type: e.target.value }))}
+                  >
+                    <option value="individual">Individual</option>
+                    <option value="company">Company</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium text-gray-700 mb-1">Email</label>
+                  <input
+                    type="email"
+                    className="w-full px-3 py-2 border border-[#d4c4b0] rounded-lg text-xs"
+                    value={clientForm.email}
+                    onChange={e => setClientForm(f => ({ ...f, email: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium text-gray-700 mb-1">Phone</label>
+                  <input
+                    className="w-full px-3 py-2 border border-[#d4c4b0] rounded-lg text-xs"
+                    value={clientForm.phone}
+                    onChange={e => setClientForm(f => ({ ...f, phone: e.target.value }))}
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-[11px] font-medium text-gray-700 mb-1">Company name (for corporate clients)</label>
+                  <input
+                    className="w-full px-3 py-2 border border-[#d4c4b0] rounded-lg text-xs"
+                    value={clientForm.companyName}
+                    onChange={e => setClientForm(f => ({ ...f, companyName: e.target.value }))}
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-[11px] font-medium text-gray-700 mb-1">Notes</label>
+                  <textarea
+                    rows={2}
+                    className="w-full px-3 py-2 border border-[#d4c4b0] rounded-lg text-xs resize-none"
+                    value={clientForm.notes}
+                    onChange={e => setClientForm(f => ({ ...f, notes: e.target.value }))}
+                  />
+                </div>
+              </div>
+              <div className="pt-1 flex justify-end">
+                <button
+                  type="submit"
+                  disabled={carClientsSaving}
+                  className="inline-flex items-center px-4 py-1.5 rounded-lg bg-[#a06b42] hover:bg-[#8f5a32] text-white text-xs font-medium disabled:opacity-60"
+                >
+                  {carClientsSaving ? 'Saving...' : 'Save client'}
+                </button>
+              </div>
+            </form>
+          ) : (
+            <>
+              <p className="text-xs text-gray-600 mb-3">
+                These clients are stored in your account and can be linked to contracts and direct bookings.
+              </p>
+
+              {carClientsLoading ? (
+                <div className="py-2 text-[11px] text-gray-600">Loading clients...</div>
+              ) : (!Array.isArray(carClients) || carClients.length === 0) ? (
+                <div className="py-2 text-[11px] text-gray-600">
+                  You have not added any dedicated clients yet. Use the <span className="font-semibold">Add client</span>
+                  {' '}mode to create your first record.
+                </div>
+              ) : (
+                <div className="overflow-x-auto mt-2">
+                  <table className="min-w-full text-[11px]">
+                    <thead className="bg-[#f5ebe0] text-gray-700 uppercase tracking-wide">
+                      <tr>
+                        <th className="px-3 py-2 text-left">Client</th>
+                        <th className="px-3 py-2 text-left">Type</th>
+                        <th className="px-3 py-2 text-left">Contact</th>
+                        <th className="px-3 py-2 text-left">Company</th>
+                        <th className="px-3 py-2 text-right">Created</th>
+                        <th className="px-3 py-2 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#f1e4d4] bg-white">
+                      {carClients.map(c => {
+                        const created = c.createdAt ? new Date(c.createdAt) : null;
+                        const handleEdit = () => {
+                          const name = window.prompt('Client name', c.name || '');
+                          if (name == null || !name.trim()) return;
+                          const email = window.prompt('Email (optional)', c.email || '');
+                          if (email == null) return;
+                          const phone = window.prompt('Phone (optional)', c.phone || '');
+                          if (phone == null) return;
+                          updateClient(c._id, {
+                            name: name.trim(),
+                            email: email || undefined,
+                            phone: phone || undefined,
+                          });
+                        };
+                        return (
+                          <tr key={c._id} className="hover:bg-[#fdf7ee]">
+                            <td className="px-3 py-2 text-gray-800">
+                              <div className="font-semibold text-[12px] truncate">{c.name}</div>
+                            </td>
+                            <td className="px-3 py-2 text-gray-700 capitalize">{c.type || 'individual'}</td>
+                            <td className="px-3 py-2 text-gray-700">
+                              <div className="text-[11px] truncate">{c.email || '—'}</div>
+                              <div className="text-[11px] text-gray-500 truncate">{c.phone || ''}</div>
+                            </td>
+                            <td className="px-3 py-2 text-gray-700">
+                              <div className="text-[11px] truncate">{c.companyName || '—'}</div>
+                            </td>
+                            <td className="px-3 py-2 text-right text-gray-700">
+                              {created ? created.toLocaleDateString() : '—'}
+                            </td>
+                            <td className="px-3 py-2 text-right text-gray-700">
+                              <button
+                                type="button"
+                                onClick={handleEdit}
+                                className="inline-flex items-center px-2 py-0.5 mr-1 rounded border border-[#d4c4b0] text-[10px] text-[#4b2a00] hover:bg-[#f5ebe0]"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => deleteClient(c._id)}
+                                className="inline-flex items-center px-2 py-0.5 rounded border border-red-200 text-[10px] text-red-700 hover:bg-red-50"
+                              >
+                                Delete
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </>
+          )}
         </div>
       )}
 
@@ -2191,11 +2651,259 @@ export default function CarOwnerDashboard() {
                 ? 'Contract reports'
                 : 'Contracts'}
           </h2>
-          <p className="text-xs text-gray-600">
-            The full Contracts tables, forms and reports will be implemented here. At the moment this
-            placeholder ensures the Clients & contracts dashboard links open a visible panel instead of
-            a blank screen.
-          </p>
+
+          {clientsContractsMode === 'add' && (
+            <form onSubmit={saveContract} className="mt-2 space-y-3 max-w-xl text-xs">
+              <p className="text-[11px] text-gray-600">
+                Record long-term or corporate contracts linked to your vehicles and saved clients.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
+                <div>
+                  <label className="block text-[11px] font-medium text-gray-700 mb-1">Client *</label>
+                  <select
+                    className="w-full px-3 py-2 border border-[#d4c4b0] rounded-lg text-xs bg-white"
+                    value={contractForm.clientId}
+                    onChange={e => setContractForm(f => ({ ...f, clientId: e.target.value }))}
+                  >
+                    <option value="">Select client</option>
+                    {carClients.map(c => (
+                      <option key={c._id} value={c._id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium text-gray-700 mb-1">Vehicle</label>
+                  <select
+                    className="w-full px-3 py-2 border border-[#d4c4b0] rounded-lg text-xs bg-white"
+                    value={contractForm.carId || selectedCarId || ''}
+                    onChange={e => setContractForm(f => ({ ...f, carId: e.target.value }))}
+                  >
+                    <option value="">Optional vehicle</option>
+                    {cars.map(c => (
+                      <option key={c._id} value={c._id}>
+                        {c.vehicleName || `${c.brand || ''} ${c.model || ''}`.trim() || 'Untitled vehicle'}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium text-gray-700 mb-1">Start date *</label>
+                  <input
+                    type="date"
+                    className="w-full px-3 py-2 border border-[#d4c4b0] rounded-lg text-xs"
+                    value={contractForm.startDate}
+                    onChange={e => setContractForm(f => ({ ...f, startDate: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium text-gray-700 mb-1">End date *</label>
+                  <input
+                    type="date"
+                    className="w-full px-3 py-2 border border-[#d4c4b0] rounded-lg text-xs"
+                    value={contractForm.endDate}
+                    onChange={e => setContractForm(f => ({ ...f, endDate: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium text-gray-700 mb-1">Amount (RWF) *</label>
+                  <input
+                    type="number"
+                    className="w-full px-3 py-2 border border-[#d4c4b0] rounded-lg text-xs"
+                    value={contractForm.amount}
+                    onChange={e => setContractForm(f => ({ ...f, amount: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium text-gray-700 mb-1">Status</label>
+                  <select
+                    className="w-full px-3 py-2 border border-[#d4c4b0] rounded-lg text-xs bg-white"
+                    value={contractForm.status}
+                    onChange={e => setContractForm(f => ({ ...f, status: e.target.value }))}
+                  >
+                    <option value="draft">Draft</option>
+                    <option value="active">Active</option>
+                    <option value="completed">Completed</option>
+                    <option value="cancelled">Cancelled</option>
+                  </select>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-[11px] font-medium text-gray-700 mb-1">File URL (optional)</label>
+                  <input
+                    className="w-full px-3 py-2 border border-[#d4c4b0] rounded-lg text-xs"
+                    value={contractForm.fileUrl}
+                    onChange={e => setContractForm(f => ({ ...f, fileUrl: e.target.value }))}
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-[11px] font-medium text-gray-700 mb-1">Notes</label>
+                  <textarea
+                    rows={2}
+                    className="w-full px-3 py-2 border border-[#d4c4b0] rounded-lg text-xs resize-none"
+                    value={contractForm.notes}
+                    onChange={e => setContractForm(f => ({ ...f, notes: e.target.value }))}
+                  />
+                </div>
+              </div>
+              <div className="pt-1 flex justify-end">
+                <button
+                  type="submit"
+                  disabled={carContractsSaving}
+                  className="inline-flex items-center px-4 py-1.5 rounded-lg bg-[#a06b42] hover:bg-[#8f5a32] text-white text-xs font-medium disabled:opacity-60"
+                >
+                  {carContractsSaving ? 'Saving...' : 'Save contract'}
+                </button>
+              </div>
+            </form>
+          )}
+
+          {clientsContractsMode === 'reports' && (
+            <div className="mt-4 text-xs">
+              <p className="text-[11px] text-gray-600 mb-3">
+                High-level summary of your contracts by status and total amount.
+              </p>
+              {contractSummaryLoading ? (
+                <div className="text-[11px] text-gray-600">Loading contract summary...</div>
+              ) : !contractSummary ? (
+                <div className="text-[11px] text-gray-600">No contract summary is available yet.</div>
+              ) : (
+                <>
+                  <div className="mb-3 grid grid-cols-2 md:grid-cols-4 gap-2">
+                    <div className="rounded-xl border border-[#e0d5c7] bg-[#fdf7ee] px-3 py-2">
+                      <div className="text-[10px] text-gray-500">Total contracts</div>
+                      <div className="text-sm font-semibold text-gray-900">{contractSummary.totalContracts || 0}</div>
+                    </div>
+                    <div className="rounded-xl border border-[#e0d5c7] bg-[#fdf7ee] px-3 py-2">
+                      <div className="text-[10px] text-gray-500">Total amount</div>
+                      <div className="text-sm font-semibold text-gray-900">
+                        {formatCurrencyRWF
+                          ? formatCurrencyRWF(contractSummary.totalAmount || 0)
+                          : `RWF ${Number(contractSummary.totalAmount || 0).toLocaleString()}`}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full text-[11px]">
+                      <thead className="bg-[#f5ebe0] text-gray-700 uppercase tracking-wide">
+                        <tr>
+                          <th className="px-3 py-2 text-left">Status</th>
+                          <th className="px-3 py-2 text-right">Contracts</th>
+                          <th className="px-3 py-2 text-right">Total amount (RWF)</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#f1e4d4] bg-white">
+                        {Object.entries(contractSummary.byStatus || {}).map(([statusKey, row]) => (
+                          <tr key={statusKey} className="hover:bg-[#fdf7ee]">
+                            <td className="px-3 py-2 capitalize text-gray-800">{statusKey}</td>
+                            <td className="px-3 py-2 text-right text-gray-700">{row.count || 0}</td>
+                            <td className="px-3 py-2 text-right text-gray-900 font-semibold">
+                              {formatCurrencyRWF
+                                ? formatCurrencyRWF(row.totalAmount || 0)
+                                : `RWF ${Number(row.totalAmount || 0).toLocaleString()}`}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {clientsContractsMode === 'list' && (
+            <div className="mt-4">
+              <p className="text-[11px] text-gray-600 mb-3">
+                List of your saved contracts. Newest contracts appear first.
+              </p>
+              {carContractsLoading ? (
+                <div className="text-[11px] text-gray-600">Loading contracts...</div>
+              ) : (!Array.isArray(carContracts) || carContracts.length === 0) ? (
+                <div className="text-[11px] text-gray-600">
+                  You have not recorded any contracts yet. Use the <span className="font-semibold">Add contract</span> mode
+                  to create your first one.
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-[11px]">
+                    <thead className="bg-[#f5ebe0] text-gray-700 uppercase tracking-wide">
+                      <tr>
+                        <th className="px-3 py-2 text-left">Client</th>
+                        <th className="px-3 py-2 text-left">Vehicle</th>
+                        <th className="px-3 py-2 text-left">Period</th>
+                        <th className="px-3 py-2 text-right">Amount (RWF)</th>
+                        <th className="px-3 py-2 text-right">Status</th>
+                        <th className="px-3 py-2 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#f1e4d4] bg-white">
+                      {carContracts.map(ct => {
+                        const start = ct.startDate ? new Date(ct.startDate) : null;
+                        const end = ct.endDate ? new Date(ct.endDate) : null;
+                        const amount = Number(ct.amount || 0);
+                        const handleEdit = () => {
+                          const status = window.prompt('Status (draft, active, completed, cancelled)', ct.status || 'draft');
+                          if (status == null || !status.trim()) return;
+                          const amountStr = window.prompt('Amount (RWF)', String(ct.amount || ''));
+                          if (amountStr == null) return;
+                          const nextAmount = Number(amountStr);
+                          if (!Number.isFinite(nextAmount) || nextAmount <= 0) {
+                            toast.error('Enter a valid amount');
+                            return;
+                          }
+                          updateContract(ct._id, {
+                            status: status.trim(),
+                            amount: nextAmount,
+                          });
+                        };
+                        return (
+                          <tr key={ct._id} className="hover:bg-[#fdf7ee]">
+                            <td className="px-3 py-2 text-gray-800">
+                              <div className="font-semibold text-[12px] truncate">{ct.client?.name || 'Client'}</div>
+                              <div className="text-[10px] text-gray-500 truncate">{ct.client?.email || ''}</div>
+                            </td>
+                            <td className="px-3 py-2 text-gray-700">
+                              <div className="text-[11px] truncate">
+                                {ct.car
+                                  ? (ct.car.vehicleName || `${ct.car.brand || ''} ${ct.car.model || ''}`.trim() || 'Vehicle')
+                                  : '—'}
+                              </div>
+                            </td>
+                            <td className="px-3 py-2 text-gray-700">
+                              <div className="text-[11px]">
+                                {start ? start.toLocaleDateString() : '—'} - {end ? end.toLocaleDateString() : '—'}
+                              </div>
+                            </td>
+                            <td className="px-3 py-2 text-right text-gray-900 font-semibold">
+                              {formatCurrencyRWF
+                                ? formatCurrencyRWF(amount)
+                                : `RWF ${amount.toLocaleString()}`}
+                            </td>
+                            <td className="px-3 py-2 text-right text-gray-700 capitalize">{ct.status || 'draft'}</td>
+                            <td className="px-3 py-2 text-right text-gray-700">
+                              <button
+                                type="button"
+                                onClick={handleEdit}
+                                className="inline-flex items-center px-2 py-0.5 mr-1 rounded border border-[#d4c4b0] text-[10px] text-[#4b2a00] hover:bg-[#f5ebe0]"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => deleteContract(ct._id)}
+                                className="inline-flex items-center px-2 py-0.5 rounded border border-red-200 text-[10px] text-red-700 hover:bg-red-50"
+                              >
+                                Delete
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
