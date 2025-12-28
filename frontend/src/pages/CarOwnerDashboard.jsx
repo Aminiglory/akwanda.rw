@@ -54,13 +54,13 @@ export default function CarOwnerDashboard() {
     : financeRange === '90' ? 'Last 90 days'
     : 'Last 30 days';
   const clientsContractsMode = (searchParams.get('mode') || 'list').toLowerCase();
-  const financeStats = {
+  const [financeStats, setFinanceStats] = useState({
     rev30: 0,
     revYtd: 0,
     avg30: 0,
     bookings30: 0,
     bookingsYtd: 0,
-  };
+  });
   // Single URL param `section` is used for several views (analytics, vehicles, bookings)
   const analyticsSection = (searchParams.get('section') || '').toLowerCase();
   const vehiclesSection = analyticsSection || 'list';
@@ -209,6 +209,83 @@ export default function CarOwnerDashboard() {
   const [ownerNotifTypeFilter, setOwnerNotifTypeFilter] = useState('all');
 
   const financeBookingsTable = Array.isArray(bookings) ? bookings : [];
+
+  // Aggregate stats and financeStats from bookings whenever bookings or filters change
+  useEffect(() => {
+    const list = Array.isArray(bookings) ? bookings : [];
+
+    // Optionally scope by selectedCarId when viewing finance
+    const scoped = selectedCarId
+      ? list.filter(b => String(b.car?._id) === String(selectedCarId))
+      : list;
+
+    // --- General stats ---
+    let totalRevenue = 0;
+    let totalDays = 0;
+    let totalBookings = scoped.length;
+    let pending = 0;
+    let active = 0;
+    let completed = 0;
+    let cancelled = 0;
+
+    scoped.forEach(b => {
+      const amount = Number(b.totalAmount || 0);
+      const days = Number(b.numberOfDays || 0);
+      const status = String(b.status || '').toLowerCase();
+
+      totalRevenue += amount;
+      totalDays += days;
+
+      if (status === 'completed') completed++;
+      else if (status === 'active' || status === 'confirmed') active++;
+      else if (status === 'pending') pending++;
+      else if (status === 'cancelled') cancelled++;
+    });
+
+    setStats({
+      totalBookings,
+      pending,
+      active,
+      completed,
+      cancelled,
+      totalRevenue,
+      daysRented: totalDays,
+      avgRentalLength: totalBookings ? totalDays / totalBookings : 0,
+    });
+
+    // --- Finance stats (last 30 days, year-to-date) ---
+    const now = new Date();
+    const start30 = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 30);
+    const startYtd = new Date(now.getFullYear(), 0, 1);
+
+    let rev30 = 0;
+    let revYtd = 0;
+    let bookings30 = 0;
+    let bookingsYtd = 0;
+
+    scoped.forEach(b => {
+      const amount = Number(b.totalAmount || 0);
+      const pickup = b.pickupDate ? new Date(b.pickupDate) : null;
+      if (!pickup) return;
+
+      if (pickup >= start30) {
+        rev30 += amount;
+        bookings30++;
+      }
+      if (pickup >= startYtd) {
+        revYtd += amount;
+        bookingsYtd++;
+      }
+    });
+
+    setFinanceStats({
+      rev30,
+      revYtd,
+      avg30: bookings30 ? rev30 / bookings30 : 0,
+      bookings30,
+      bookingsYtd,
+    });
+  }, [bookings, selectedCarId]);
 
   const suggestDirectPrice = () => {
     try {
@@ -1285,25 +1362,124 @@ export default function CarOwnerDashboard() {
                   {carExpenses.map(exp => {
                     const d = exp.date ? new Date(exp.date) : null;
                     const vehicleLabel = (exp.car?.vehicleName || `${exp.car?.brand || ''} ${exp.car?.model || ''}`.trim() || 'Vehicle').replace(/,/g, ' ');
+                    const isEditing = editingExpenseId === exp._id;
+
+                    const handleStartEdit = () => {
+                      setEditingExpenseId(exp._id);
+                      setEditingExpenseForm({
+                        date: exp.date ? new Date(exp.date).toISOString().slice(0, 10) : '',
+                        amount: String(exp.amount || ''),
+                        category: exp.category || '',
+                        note: exp.note || '',
+                      });
+                    };
+
+                    const handleSaveEdit = () => {
+                      if (!editingExpenseId) return;
+                      const patch = {
+                        date: editingExpenseForm.date || undefined,
+                        amount: editingExpenseForm.amount !== '' ? Number(editingExpenseForm.amount) : undefined,
+                        category: editingExpenseForm.category || undefined,
+                        note: editingExpenseForm.note || undefined,
+                      };
+                      updateExpense(editingExpenseId, patch);
+                    };
+
+                    const handleCancelEdit = () => {
+                      setEditingExpenseId(null);
+                      setEditingExpenseForm({ date: '', amount: '', category: '', note: '' });
+                    };
+
                     return (
                       <tr key={exp._id} className="hover:bg-[#fdf7ee]">
-                        <td className="px-3 py-2 text-gray-700">{d ? d.toLocaleDateString() : '-'}</td>
-                        <td className="px-3 py-2 text-gray-700">{vehicleLabel}</td>
-                        <td className="px-3 py-2 text-gray-700">{exp.category || 'general'}</td>
-                        <td className="px-3 py-2 text-gray-700 max-w-[200px] truncate">{exp.note || ''}</td>
-                        <td className="px-3 py-2 text-right font-semibold text-gray-900">
-                          {formatCurrencyRWF
-                            ? formatCurrencyRWF(Number(exp.amount || 0))
-                            : `RWF ${Number(exp.amount || 0).toLocaleString()}`}
+                        <td className="px-3 py-2 text-gray-700">
+                          {isEditing ? (
+                            <input
+                              type="date"
+                              className="w-full border border-[#e0d5c7] rounded px-2 py-1 bg-white"
+                              value={editingExpenseForm.date}
+                              onChange={e => setEditingExpenseForm(f => ({ ...f, date: e.target.value }))}
+                            />
+                          ) : (
+                            d ? d.toLocaleDateString() : '-'
+                          )}
                         </td>
-                        <td className="px-3 py-2 text-right">
-                          <button
-                            type="button"
-                            onClick={() => deleteExpense(exp._id)}
-                            className="inline-flex items-center px-2 py-0.5 rounded border border-red-200 text-[10px] text-red-700 hover:bg-red-50"
-                          >
-                            Delete
-                          </button>
+                        <td className="px-3 py-2 text-gray-700">{vehicleLabel}</td>
+                        <td className="px-3 py-2 text-gray-700">
+                          {isEditing ? (
+                            <input
+                              type="text"
+                              className="w-full border border-[#e0d5c7] rounded px-2 py-1 bg-white"
+                              value={editingExpenseForm.category}
+                              onChange={e => setEditingExpenseForm(f => ({ ...f, category: e.target.value }))}
+                            />
+                          ) : (
+                            exp.category || 'general'
+                          )}
+                        </td>
+                        <td className="px-3 py-2 text-gray-700 max-w-[200px]">
+                          {isEditing ? (
+                            <input
+                              type="text"
+                              className="w-full border border-[#e0d5c7] rounded px-2 py-1 bg-white"
+                              value={editingExpenseForm.note}
+                              onChange={e => setEditingExpenseForm(f => ({ ...f, note: e.target.value }))}
+                            />
+                          ) : (
+                            <span className="truncate block">{exp.note || ''}</span>
+                          )}
+                        </td>
+                        <td className="px-3 py-2 text-right font-semibold text-gray-900">
+                          {isEditing ? (
+                            <input
+                              type="number"
+                              step="1"
+                              className="w-full border border-[#e0d5c7] rounded px-2 py-1 bg-white text-right"
+                              value={editingExpenseForm.amount}
+                              onChange={e => setEditingExpenseForm(f => ({ ...f, amount: e.target.value }))}
+                            />
+                          ) : (
+                            formatCurrencyRWF
+                              ? formatCurrencyRWF(Number(exp.amount || 0))
+                              : `RWF ${Number(exp.amount || 0).toLocaleString()}`
+                          )}
+                        </td>
+                        <td className="px-3 py-2 text-right space-x-1">
+                          {isEditing ? (
+                            <>
+                              <button
+                                type="button"
+                                onClick={handleSaveEdit}
+                                className="inline-flex items-center px-2 py-0.5 rounded border border-emerald-200 text-[10px] text-emerald-700 hover:bg-emerald-50"
+                              >
+                                Save
+                              </button>
+                              <button
+                                type="button"
+                                onClick={handleCancelEdit}
+                                className="inline-flex items-center px-2 py-0.5 rounded border border-gray-200 text-[10px] text-gray-700 hover:bg-gray-50"
+                              >
+                                Cancel
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                type="button"
+                                onClick={handleStartEdit}
+                                className="inline-flex items-center px-2 py-0.5 rounded border border-[#d4c4b0] text-[10px] text-[#4b2a00] hover:bg-[#f5ebe0]"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => deleteExpense(exp._id)}
+                                className="inline-flex items-center px-2 py-0.5 rounded border border-red-200 text-[10px] text-red-700 hover:bg-red-50"
+                              >
+                                Delete
+                              </button>
+                            </>
+                          )}
                         </td>
                       </tr>
                     );
