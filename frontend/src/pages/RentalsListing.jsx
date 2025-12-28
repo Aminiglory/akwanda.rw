@@ -238,7 +238,7 @@ const RentalsListing = () => {
   };
 
   return (
-  <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50">
     <div className="relative bg-[#a06b42] text-white shadow-sm overflow-hidden">
       {resolvedHero && (
         <img src={resolvedHero} alt={pageContent.pageTitle} className="absolute inset-0 w-full h-full object-cover opacity-30" />

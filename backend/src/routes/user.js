@@ -410,27 +410,34 @@ router.put('/me', requireAuth, async (req, res) => {
 });
 
 // User notifications (host)
+// This endpoint is ONLY for owner/host dashboard context
+// It excludes guest notifications (only shows host/both audience)
 router.get('/notifications', requireAuth, async (req, res) => {
     const Notification = require('../tables/notification');
     const Property = require('../tables/property');
-    // Fetch recent notifications for this user
+    const CarRental = require('../tables/carRental');
+    
+    // Fetch recent notifications for this user - ONLY host/owner notifications
+    // Explicitly exclude guest-only notifications
     const raw = await Notification.find({
         recipientUser: req.user.id,
         $or: [
-            { audience: { $exists: false } },
-            { audience: { $in: ['host','both'] } }
-        ]
+            { audience: 'host' },
+            { audience: 'both' }
+        ],
+        // Exclude guest-only notification types
+        type: { $nin: ['booking_confirmed', 'booking_created', 'review_reply'] }
     })
         .sort({ createdAt: -1 })
         .limit(50)
         .populate({ path: 'booking', populate: { path: 'guest', select: 'firstName lastName email phone' } })
         .populate('property');
 
-    // Filter to ensure property exists and is still owned by this user when property is attached
+    // Filter to ensure property/vehicle exists and is still owned by this user when attached
     const filtered = [];
     for (const n of raw) {
         if (!n.property) {
-            // Allow non-property notifications (e.g., account messages)
+            // Allow non-property notifications (e.g., account messages, commission level changes)
             filtered.push(n);
             continue;
         }
@@ -447,6 +454,8 @@ router.get('/notifications', requireAuth, async (req, res) => {
 });
 
 // Unread count for host/owner notifications
+// This endpoint is ONLY for owner/host dashboard context
+// It excludes guest notifications
 router.get('/notifications/unread-count', requireAuth, async (req, res) => {
     try {
         const Notification = require('../tables/notification');
@@ -455,9 +464,11 @@ router.get('/notifications/unread-count', requireAuth, async (req, res) => {
             recipientUser: req.user.id,
             isRead: false,
             $or: [
-                { audience: { $exists: false } },
-                { audience: { $in: ['host', 'both'] } }
-            ]
+                { audience: 'host' },
+                { audience: 'both' }
+            ],
+            // Exclude guest-only notification types
+            type: { $nin: ['booking_confirmed', 'booking_created', 'review_reply'] }
         });
 
         res.json({ count });

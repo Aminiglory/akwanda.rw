@@ -3,10 +3,11 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import {
   FaCar, FaCalendarAlt, FaCheckCircle, FaTimes, FaStar,
   FaExclamationTriangle, FaMapMarkerAlt, FaEye, FaComments,
-  FaFilter, FaDownload, FaCog, FaMotorcycle, FaBicycle
+  FaFilter, FaDownload, FaCog, FaMotorcycle, FaBicycle, FaCrown
 } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { useLocale } from '../contexts/LocaleContext';
+import CommissionUpgradeModal from '../components/CommissionUpgradeModal';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -19,6 +20,8 @@ const VehiclesGroupHomePage = () => {
   const [bookings, setBookings] = useState([]);
   const [filterStatus, setFilterStatus] = useState('all'); // all, active, inactive
   const [searchTerm, setSearchTerm] = useState('');
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [selectedVehicle, setSelectedVehicle] = useState(null);
 
   // Summary stats
   const [summaryStats, setSummaryStats] = useState({
@@ -37,13 +40,15 @@ const VehiclesGroupHomePage = () => {
     try {
       const token = localStorage.getItem('token');
       const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
-      const [vehiclesRes, bookingsRes] = await Promise.allSettled([
+      const [vehiclesRes, bookingsRes, commissionRes] = await Promise.allSettled([
         fetch(`${API_URL}/api/cars/mine`, { credentials: 'include', headers: authHeaders }),
         fetch(`${API_URL}/api/car-bookings/for-my-cars`, { credentials: 'include', headers: authHeaders }),
+        fetch(`${API_URL}/api/cars/my-vehicles`, { credentials: 'include', headers: authHeaders }),
       ]);
 
       let vehiclesList = [];
       let bookingsList = [];
+      let vehiclesWithCommission = [];
 
       if (vehiclesRes.status === 'fulfilled') {
         try {
@@ -61,16 +66,37 @@ const VehiclesGroupHomePage = () => {
           if (!res.ok) {
             console.error('Failed to fetch vehicles:', res.status, res.statusText, vehiclesData?.message);
           }
-
-          setVehicles(vehiclesList);
         } catch (e) {
           console.error('Failed to parse vehicles response:', e);
-          setVehicles([]);
+          vehiclesList = [];
         }
       } else {
         console.error('Failed to fetch vehicles:', vehiclesRes.reason);
-        setVehicles([]);
+        vehiclesList = [];
       }
+
+      // Try to get vehicles with commission info
+      if (commissionRes.status === 'fulfilled') {
+        try {
+          const res = commissionRes.value;
+          const commissionData = await res.json().catch(() => ({ vehicles: [] }));
+          if (res.ok && Array.isArray(commissionData.vehicles)) {
+            vehiclesWithCommission = commissionData.vehicles;
+          }
+        } catch (e) {
+          console.error('Failed to parse commission data:', e);
+        }
+      }
+
+      // Merge commission info into vehicles list
+      if (vehiclesWithCommission.length > 0) {
+        vehiclesList = vehiclesList.map(v => {
+          const withCommission = vehiclesWithCommission.find(vc => String(vc._id) === String(v._id));
+          return withCommission ? { ...v, unpaidCommission: withCommission.unpaidCommission } : v;
+        });
+      }
+
+      setVehicles(vehiclesList);
 
       if (bookingsRes.status === 'fulfilled') {
         try {
@@ -306,12 +332,18 @@ const VehiclesGroupHomePage = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Revenue
                   </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Commission
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredVehicles.length === 0 ? (
                   <tr>
-                    <td colSpan="6" className="px-6 py-12 text-center text-gray-500">
+                    <td colSpan="8" className="px-6 py-12 text-center text-gray-500">
                       No vehicles found
                     </td>
                   </tr>
@@ -341,12 +373,41 @@ const VehiclesGroupHomePage = () => {
                           <div className="flex items-center">
                             <VehicleIcon className="text-gray-400 mr-2" />
                             <div>
-                              <div className="text-sm font-medium text-gray-900">
-                                {vehicleName}
+                              <div className="flex items-center gap-2">
+                                <div className="text-sm font-medium text-gray-900">
+                                  {vehicleName}
+                                </div>
+                                {/* Premium badge - only show if commissionLevel exists and isPremium is true */}
+                                {vehicle.commissionLevel?.isPremium && (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-yellow-100 text-yellow-800">
+                                    Premium
+                                  </span>
+                                )}
                               </div>
                               <div className="text-sm text-gray-500">
                                 {vehicle.location || 'Location not specified'}
                               </div>
+                              {/* Commission level summary, when available */}
+                              {(vehicle.commissionLevel || typeof vehicle.commissionRate === 'number') && (
+                                <div className="mt-1 text-xs text-gray-500 flex flex-wrap items-center gap-1">
+                                  {vehicle.commissionLevel?.name && (
+                                    <span className="font-medium">
+                                      Level: {vehicle.commissionLevel.name}
+                                    </span>
+                                  )}
+                                  {typeof vehicle.commissionLevel?.onlineRate === 'number' && typeof vehicle.commissionLevel?.directRate === 'number' && (
+                                    <span>
+                                      • Online {vehicle.commissionLevel.onlineRate}% / Direct {vehicle.commissionLevel.directRate}%
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                              {/* Unpaid commission warning */}
+                              {vehicle.unpaidCommission && vehicle.unpaidCommission.amount > 0 && (
+                                <div className="mt-1 text-xs text-red-600 font-medium">
+                                  Unpaid commission: RWF {Number(vehicle.unpaidCommission.amount || 0).toLocaleString()}
+                                </div>
+                              )}
                             </div>
                           </div>
                         </td>
@@ -382,6 +443,29 @@ const VehiclesGroupHomePage = () => {
                             ? formatCurrencyRWF(stats.totalRevenue)
                             : `RWF ${Number(stats.totalRevenue || 0).toLocaleString()}`}
                         </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          {vehicle.unpaidCommission && vehicle.unpaidCommission.amount > 0 ? (
+                            <span className="text-red-600 font-medium">
+                              RWF {Number(vehicle.unpaidCommission.amount || 0).toLocaleString()}
+                            </span>
+                          ) : (
+                            <span className="text-gray-500">-</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedVehicle(vehicle);
+                              setShowUpgradeModal(true);
+                            }}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+                            title="Upgrade commission level"
+                          >
+                            <FaCrown className="w-3 h-3" />
+                            Upgrade
+                          </button>
+                        </td>
                       </tr>
                     );
                   })
@@ -406,6 +490,29 @@ const VehiclesGroupHomePage = () => {
           </div>
         )}
       </div>
+
+      {/* Commission Upgrade Modal */}
+      {selectedVehicle && (
+        <CommissionUpgradeModal
+          isOpen={showUpgradeModal}
+          onClose={() => {
+            setShowUpgradeModal(false);
+            setSelectedVehicle(null);
+          }}
+          itemId={selectedVehicle._id}
+          itemType="vehicle"
+          currentLevel={selectedVehicle.commissionLevel}
+          onUpgradeSuccess={(updatedVehicle) => {
+            // Refresh vehicles list
+            setVehicles(prev => prev.map(v => 
+              String(v._id) === String(updatedVehicle._id) 
+                ? { ...v, commissionLevel: updatedVehicle.commissionLevel }
+                : v
+            ));
+            toast.success('Commission level upgraded successfully!');
+          }}
+        />
+      )}
     </div>
   );
 };

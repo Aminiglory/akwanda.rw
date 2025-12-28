@@ -5,6 +5,8 @@ import ReceiptPreview from '../components/ReceiptPreview';
 import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
 import SuccessModal from '../components/SuccessModal';
+import CommissionUpgradeModal from '../components/CommissionUpgradeModal';
+import CommissionLevelChangeNotification from '../components/CommissionLevelChangeNotification';
 import {
   FaCar,
   FaCalendarAlt,
@@ -13,6 +15,7 @@ import {
   FaStar,
   FaEnvelope,
   FaCog,
+  FaCrown,
 } from 'react-icons/fa';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -160,6 +163,8 @@ export default function CarOwnerDashboard() {
   const [successMsg, setSuccessMsg] = useState('Action completed successfully.');
   const [selectedCarId, setSelectedCarId] = useState('');
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [selectedVehicle, setSelectedVehicle] = useState(null);
   const [stats, setStats] = useState({
     totalBookings: 0,
     pending: 0,
@@ -1825,6 +1830,11 @@ export default function CarOwnerDashboard() {
                     'account_reactivated',
                     'fine_added',
                     'new_message',
+                    'commission_level_changed',
+                    'property_locked',
+                    'property_unlocked',
+                    'vehicle_locked',
+                    'vehicle_unlocked',
                   ]);
 
                   const filtered = ownerNotifications.filter(n => {
@@ -2589,9 +2599,21 @@ export default function CarOwnerDashboard() {
                     </div>
                   </div>
 
-                  <div className="mt-3 flex items-center gap-2">
+                  <div className="mt-3 flex items-center gap-2 flex-wrap">
                     <label className="text-sm">Upload Images:</label>
                     <input type="file" multiple disabled={uploadingId === car._id} onChange={e => uploadImages(car._id, e.target.files)} />
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedVehicle(car);
+                        setShowUpgradeModal(true);
+                      }}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-[#a06b42] hover:bg-[#8f5a32] rounded text-sm transition-colors"
+                      title="Upgrade commission level"
+                    >
+                      <FaCrown className="w-3 h-3" />
+                      Upgrade Commission
+                    </button>
                     <button onClick={() => deleteCar(car._id)} className="ml-auto px-3 py-1 bg-red-600 text-white rounded text-sm">Delete</button>
                   </div>
 
@@ -2642,7 +2664,21 @@ export default function CarOwnerDashboard() {
                         <button onClick={() => updateCar(car._id, { isAvailable: !car.isAvailable })} className={`px-2 py-1 rounded text-xs ${car.isAvailable ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-700'}`}>{car.isAvailable ? 'Available' : 'Unavailable'}</button>
                       </td>
                       <td className="p-3">
-                        <button onClick={() => deleteCar(car._id)} className="px-3 py-1 bg-red-600 text-white rounded text-xs">Delete</button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedVehicle(car);
+                              setShowUpgradeModal(true);
+                            }}
+                            className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-white bg-[#a06b42] hover:bg-[#8f5a32] rounded transition-colors"
+                            title="Upgrade commission level"
+                          >
+                            <FaCrown className="w-3 h-3" />
+                            Upgrade
+                          </button>
+                          <button onClick={(e) => { e.stopPropagation(); deleteCar(car._id); }} className="px-3 py-1 bg-red-600 text-white rounded text-xs">Delete</button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -3109,6 +3145,29 @@ export default function CarOwnerDashboard() {
         </div>
       )}
       <SuccessModal open={successOpen} title={successTitle} message={successMsg} onClose={() => setSuccessOpen(false)} />
+      
+      {/* Commission Upgrade Modal */}
+      {selectedVehicle && (
+        <CommissionUpgradeModal
+          isOpen={showUpgradeModal}
+          onClose={() => {
+            setShowUpgradeModal(false);
+            setSelectedVehicle(null);
+          }}
+          itemId={selectedVehicle._id}
+          itemType="vehicle"
+          currentLevel={selectedVehicle.commissionLevel}
+          onUpgradeSuccess={(updatedVehicle) => {
+            // Refresh vehicles list
+            setCars(prev => prev.map(c => 
+              String(c._id) === String(updatedVehicle._id) 
+                ? { ...c, commissionLevel: updatedVehicle.commissionLevel }
+                : c
+            ));
+            toast.success('Commission level upgraded successfully!');
+          }}
+        />
+      )}
       </div>
     </div>
   );
