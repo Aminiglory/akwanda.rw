@@ -971,6 +971,91 @@ export default function CarOwnerDashboard() {
     }
   }
 
+  const exportBookingsCsv = () => {
+    try {
+      // Filter bookings the same way as in the bookings view
+      const filteredBookings = bookings.filter(b => {
+        if (selectedCarId && String(b.car?._id) !== String(selectedCarId)) return false;
+        if (bookingFilters.status && b.status !== bookingFilters.status) return false;
+        if (bookingFilters.from) {
+          const from = new Date(bookingFilters.from);
+          if (new Date(b.pickupDate) < from) return false;
+        }
+        if (bookingFilters.to) {
+          const to = new Date(bookingFilters.to);
+          if (new Date(b.returnDate) > to) return false;
+        }
+        return true;
+      });
+
+      if (!filteredBookings.length) {
+        toast.error('No bookings to export');
+        return;
+      }
+
+      const header = [
+        'Booking ID',
+        'Vehicle',
+        'Renter Name',
+        'Renter Email',
+        'Renter Phone',
+        'Pickup Date',
+        'Return Date',
+        'Days',
+        'Amount (RWF)',
+        'Status',
+        'Channel',
+        'Payment Method',
+        'Pickup Location',
+        'Return Location',
+        'Created At'
+      ];
+
+      const lines = [header.join(',')];
+
+      filteredBookings.forEach(b => {
+        const vehicleName = (b.car?.vehicleName || `${b.car?.brand || ''} ${b.car?.model || ''}`.trim() || 'Vehicle').replace(/,/g, ' ');
+        const renterName = `${b.guest?.firstName || ''} ${b.guest?.lastName || ''}`.trim();
+        const pickupDate = b.pickupDate ? new Date(b.pickupDate).toISOString().slice(0, 10) : '';
+        const returnDate = b.returnDate ? new Date(b.returnDate).toISOString().slice(0, 10) : '';
+        const createdAt = b.createdAt ? new Date(b.createdAt).toISOString() : '';
+
+        const line = [
+          JSON.stringify(String(b._id || '')),
+          JSON.stringify(vehicleName),
+          JSON.stringify(renterName),
+          JSON.stringify(b.guest?.email || ''),
+          JSON.stringify(b.guest?.phone || ''),
+          JSON.stringify(pickupDate),
+          JSON.stringify(returnDate),
+          String(b.numberOfDays || 0),
+          String(b.totalAmount || 0),
+          JSON.stringify(b.status || ''),
+          JSON.stringify(b.channel || 'online'),
+          JSON.stringify(b.paymentMethod || ''),
+          JSON.stringify(b.pickupLocation || ''),
+          JSON.stringify(b.returnLocation || ''),
+          JSON.stringify(createdAt)
+        ].join(',');
+        lines.push(line);
+      });
+
+      const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `car-bookings-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success('Bookings exported successfully');
+    } catch (err) {
+      console.error('Export bookings CSV failed', err);
+      toast.error('Failed to export bookings');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#f9f5ef] py-4">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
