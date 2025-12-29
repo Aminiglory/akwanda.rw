@@ -212,6 +212,14 @@ router.put('/commission-levels/:id', requireAdmin, async (req, res) => {
     const level = await CommissionLevel.findById(id);
     if (!level) return res.status(404).json({ message: 'Commission level not found' });
 
+    // Store old values for comparison
+    const oldLevel = {
+      name: level.name,
+      directRate: level.directRate,
+      onlineRate: level.onlineRate,
+      isPremium: level.isPremium,
+    };
+
     const { name, key, description, directRate, onlineRate, isPremium, isDefault, active, sortOrder, scope } = req.body || {};
 
     if (name != null) level.name = String(name).trim();
@@ -243,7 +251,52 @@ router.put('/commission-levels/:id', requireAdmin, async (req, res) => {
     }
 
     await level.save();
-    return res.json({ level });
+
+    // Check if rates changed and notify affected owners
+    const ratesChanged = oldLevel.directRate !== level.directRate || oldLevel.onlineRate !== level.onlineRate;
+    const nameChanged = oldLevel.name !== level.name;
+    
+    if (ratesChanged || nameChanged) {
+      try {
+        const Property = require('../tables/property');
+        const CarRental = require('../tables/carRental');
+        
+        // Find all properties/vehicles using this level
+        const properties = await Property.find({ commissionLevel: id }).select('host title');
+        const vehicles = await CarRental.find({ commissionLevel: id }).select('owner vehicleName');
+        
+        const affectedOwners = new Set();
+        properties.forEach(p => {
+          if (p.host) affectedOwners.add(String(p.host));
+        });
+        vehicles.forEach(v => {
+          if (v.owner) affectedOwners.add(String(v.owner));
+        });
+
+        // Create notifications for affected owners
+        for (const ownerId of affectedOwners) {
+          await Notification.create({
+            type: 'commission_level_changed',
+            title: 'Commission Level Updated',
+            message: `The commission level "${level.name}" has been updated. Online rate: ${level.onlineRate}%, Direct rate: ${level.directRate}%. Please review and confirm if you want to keep this level or change to another.`,
+            recipientUser: ownerId,
+            audience: 'host',
+            metadata: {
+              commissionLevelId: String(level._id),
+              oldDirectRate: oldLevel.directRate,
+              newDirectRate: level.directRate,
+              oldOnlineRate: oldLevel.onlineRate,
+              newOnlineRate: level.onlineRate,
+            }
+          });
+        }
+      } catch (notifError) {
+        console.error('Failed to notify owners of commission level change:', notifError);
+        // Don't fail the request if notification fails
+      }
+    }
+
+    return res.json({ level, notifiedOwners: ratesChanged || nameChanged });
   } catch (e) {
     console.error('Update commission level error:', e);
     if (e.code === 11000) {
@@ -670,11 +723,25 @@ router.get('/users/unpaid-commissions', requireAdmin, async (req, res) => {
             ownerId,
             totalCommission: 0,
             bookings: [],
+            propertyBookings: [],
+            vehicleBookings: [],
           };
         }
 
-        ownerCommissions[ownerId].totalCommission += cb.commissionAmount || 0;
+        const commissionAmount = cb.commissionAmount || 0;
+        const commissionRate = cb.commissionRate || 0;
+        ownerCommissions[ownerId].totalCommission += commissionAmount;
         ownerCommissions[ownerId].bookings.push(cb);
+        ownerCommissions[ownerId].vehicleBookings.push({
+          bookingId: cb._id,
+          vehicleId: cb.car._id,
+          vehicleName: cb.car.vehicleName || `${cb.car.brand || ''} ${cb.car.model || ''}`.trim(),
+          amount: commissionAmount,
+          rate: commissionRate,
+          pickupDate: cb.pickupDate,
+          returnDate: cb.returnDate,
+          createdAt: cb.createdAt,
+        });
       }
     } catch (e) {
       console.error('Unpaid vehicle commissions aggregation failed (non-fatal):', e && e.message);
@@ -745,6 +812,120 @@ router.post('/users/:id/deactivate', requireAdmin, async (req, res) => {
         console.error('Deactivate user error:', error);
         res.status(500).json({ message: 'Failed to deactivate user', error: error.message });
     }
+});
+
+// Lock property due to unpaid commission (admin only)
+router.post('/properties/:id/lock', requireAdmin, async (req, res) => {
+  try {
+    const Property = require('../tables/property');
+    const property = await Property.findById(req.params.id);
+    if (!property) return res.status(404).json({ message: 'Property not found' });
+    
+    property.isActive = false;
+    await property.save();
+    
+    // Notify owner
+    try {
+      await Notification.create({
+        type: 'property_locked',
+        title: 'Property Locked',
+        message: `Your property "${property.title}" has been locked due to unpaid commissions. Please settle your dues to unlock it.`,
+        recipientUser: property.host,
+        property: property._id,
+        audience: 'host'
+      });
+    } catch (_) {}
+    
+    res.json({ success: true, property });
+  } catch (error) {
+    console.error('Lock property error:', error);
+    res.status(500).json({ message: 'Failed to lock property', error: error.message });
+  }
+});
+
+// Unlock property (admin only)
+router.post('/properties/:id/unlock', requireAdmin, async (req, res) => {
+  try {
+    const Property = require('../tables/property');
+    const property = await Property.findById(req.params.id);
+    if (!property) return res.status(404).json({ message: 'Property not found' });
+    
+    property.isActive = true;
+    await property.save();
+    
+    // Notify owner
+    try {
+      await Notification.create({
+        type: 'property_unlocked',
+        title: 'Property Unlocked',
+        message: `Your property "${property.title}" has been unlocked and is now available for bookings.`,
+        recipientUser: property.host,
+        property: property._id,
+        audience: 'host'
+      });
+    } catch (_) {}
+    
+    res.json({ success: true, property });
+  } catch (error) {
+    console.error('Unlock property error:', error);
+    res.status(500).json({ message: 'Failed to unlock property', error: error.message });
+  }
+});
+
+// Lock vehicle due to unpaid commission (admin only)
+router.post('/vehicles/:id/lock', requireAdmin, async (req, res) => {
+  try {
+    const CarRental = require('../tables/carRental');
+    const vehicle = await CarRental.findById(req.params.id);
+    if (!vehicle) return res.status(404).json({ message: 'Vehicle not found' });
+    
+    vehicle.isAvailable = false;
+    await vehicle.save();
+    
+    // Notify owner
+    try {
+      await Notification.create({
+        type: 'vehicle_locked',
+        title: 'Vehicle Locked',
+        message: `Your vehicle "${vehicle.vehicleName || `${vehicle.brand} ${vehicle.model}`}" has been locked due to unpaid commissions. Please settle your dues to unlock it.`,
+        recipientUser: vehicle.owner,
+        audience: 'host'
+      });
+    } catch (_) {}
+    
+    res.json({ success: true, vehicle });
+  } catch (error) {
+    console.error('Lock vehicle error:', error);
+    res.status(500).json({ message: 'Failed to lock vehicle', error: error.message });
+  }
+});
+
+// Unlock vehicle (admin only)
+router.post('/vehicles/:id/unlock', requireAdmin, async (req, res) => {
+  try {
+    const CarRental = require('../tables/carRental');
+    const vehicle = await CarRental.findById(req.params.id);
+    if (!vehicle) return res.status(404).json({ message: 'Vehicle not found' });
+    
+    vehicle.isAvailable = true;
+    await vehicle.save();
+    
+    // Notify owner
+    try {
+      await Notification.create({
+        type: 'vehicle_unlocked',
+        title: 'Vehicle Unlocked',
+        message: `Your vehicle "${vehicle.vehicleName || `${vehicle.brand} ${vehicle.model}`}" has been unlocked and is now available for bookings.`,
+        recipientUser: vehicle.owner,
+        audience: 'host'
+      });
+    } catch (_) {}
+    
+    res.json({ success: true, vehicle });
+  } catch (error) {
+    console.error('Unlock vehicle error:', error);
+    res.status(500).json({ message: 'Failed to unlock vehicle', error: error.message });
+  }
 });
 
 // Reactivate user account

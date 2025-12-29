@@ -90,6 +90,7 @@ const RateStay = lazyWithRetry(() => import('./pages/RateStay'));
 const PaymentSuccess = lazyWithRetry(() => import('./pages/PaymentSuccess'));
 const Transactions = lazyWithRetry(() => import('./pages/Transactions'));
 const GroupHomePage = lazyWithRetry(() => import('./pages/GroupHomePage'));
+const VehiclesGroupHomePage = lazyWithRetry(() => import('./pages/VehiclesGroupHomePage'));
 const ResetPassword = lazyWithRetry(() => import('./pages/ResetPassword'));
 
 function App() {
@@ -178,6 +179,7 @@ function App() {
             <Route path="/choose-listing-type" element={<ProtectedRoute><ChooseListingType /></ProtectedRoute>} />
             <Route path="/become-host" element={<ProtectedRoute><BecomeHost /></ProtectedRoute>} />
             <Route path="/group-home" element={<HostRoute><div className="dashboard"><GroupHomePage /></div></HostRoute>} />
+            <Route path="/vehicles-group-home" element={<HostRoute><div className="dashboard"><VehiclesGroupHomePage /></div></HostRoute>} />
             <Route path="/dashboard" element={<HostRoute><div className="dashboard"><PropertyOwnerBookings /></div></HostRoute>} />
             <Route path="/user-dashboard" element={<HostRoute><div className="dashboard"><PropertyOwnerBookings /></div></HostRoute>} />
             {/* Traveler/guest profile page */}

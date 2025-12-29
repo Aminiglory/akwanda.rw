@@ -49,7 +49,7 @@ const Notifications = () => {
   // Routes that represent the property/owner dashboards. The generic
   // /notifications page is intentionally NOT included here so that even
   // host users see guest-facing notifications when browsing in traveler mode.
-  const ownerRoutes = ['/group-home', '/dashboard', '/user-dashboard', '/owner', '/messages'];
+  const ownerRoutes = ['/group-home', '/dashboard', '/user-dashboard', '/owner', '/messages', '/owner/cars', '/owner/cars/group-home'];
 
   const isOwnerContext = () => {
     if (!isAuthenticated || user?.userType !== 'host') return false;

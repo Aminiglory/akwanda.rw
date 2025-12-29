@@ -31,9 +31,9 @@ const FeaturedApartments = () => {
             ? (ratingsArr.reduce((sum, r) => sum + r.rating, 0) / ratingsArr.length)
             : 0;
           
-          // Commission-based premium logic: 10%+ is considered premium (mid & higher tiers)
+          // Premium flag: only treat as premium if explicitly marked on the property/commission level
           const commissionRate = Number(p.commissionRate || 0);
-          const isPremium = commissionRate >= 10;
+          const isPremium = !!(p.isPremium || (p.commissionLevel && p.commissionLevel.isPremium));
 
           // Process images with optimized utilities
           const primaryImage = p.images && p.images.length ? processImageUrl(p.images[0]) : null;

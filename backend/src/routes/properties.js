@@ -750,6 +750,19 @@ router.get('/:id/commission', requireAuth, async (req, res) => {
     }
 });
 
+// Get available commission levels for properties (owner/admin)
+router.get('/commission-levels', requireAuth, async (req, res) => {
+  try {
+    const levels = await CommissionLevel.find({ scope: 'property', active: true })
+      .sort({ sortOrder: 1, createdAt: 1 })
+      .select('name description directRate onlineRate isPremium isDefault');
+    return res.json({ levels });
+  } catch (e) {
+    console.error('List property commission levels error:', e);
+    return res.status(500).json({ message: 'Failed to load property commission levels', error: e?.message || String(e) });
+  }
+});
+
 // Update a property commission level (owner/admin)
 // Body: { levelId } - ObjectId of CommissionLevel
 router.put('/:id/commission', requireAuth, async (req, res) => {

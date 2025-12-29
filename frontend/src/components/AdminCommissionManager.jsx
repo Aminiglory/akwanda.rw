@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaExclamationTriangle, FaCheckCircle, FaToggleOn, FaToggleOff, FaMoneyBillWave, FaSave, FaTimes, FaEdit, FaTrash } from 'react-icons/fa';
+import { FaExclamationTriangle, FaCheckCircle, FaToggleOn, FaToggleOff, FaMoneyBillWave, FaSave, FaTimes, FaEdit, FaTrash, FaLock } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import SuccessModal from './SuccessModal';
 import { useAuth } from '../contexts/AuthContext';
@@ -471,32 +471,131 @@ const AdminCommissionManager = () => {
                     <th className="p-3">Email</th>
                     <th className="p-3">Unpaid Commission</th>
                     <th className="p-3">Unpaid Count</th>
+                    <th className="p-3">Avg Rate</th>
                     <th className="p-3">Status</th>
                     <th className="p-3">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {users.slice((page-1)*pageSize, (page-1)*pageSize + pageSize).map(user => (
-                    <tr key={user._id} className="border-t">
-                      <td className="p-3 font-medium">{user.firstName} {user.lastName}</td>
-                      <td className="p-3">{user.email}</td>
-                      <td className="p-3 text-red-700 font-semibold">{formatCurrency(user.totalCommission)}</td>
-                      <td className="p-3">{user.bookings?.length || 0}</td>
-                      <td className="p-3">
-                        <span className={`px-2 py-1 rounded-full text-xs ${user.isBlocked ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>{user.isBlocked ? 'Deactivated' : 'Active'}</span>
-                      </td>
-                      <td className="p-3">
-                        <div className="flex items-center gap-2">
-                          {user.isBlocked ? (
-                            <button onClick={() => handleReactivateUser(user._id)} disabled={processingId===user._id} className={`px-3 py-1 rounded text-white text-xs ${processingId===user._id?'bg-green-400':'bg-green-600 hover:bg-green-700'}`}>Reactivate</button>
-                          ) : (
-                            <button onClick={() => handleDeactivateUser(user._id, user.totalCommission)} disabled={processingId===user._id} className={`px-3 py-1 rounded text-white text-xs ${processingId===user._id?'bg-red-400':'bg-red-600 hover:bg-red-700'}`}>Deactivate</button>
-                          )}
-                          <button onClick={() => openFineModal(user._id)} className="px-3 py-1 rounded border text-xs hover:bg-gray-50">Add Fine</button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                  {users.slice((page-1)*pageSize, (page-1)*pageSize + pageSize).map(user => {
+                    const propertyBookings = user.propertyBookings || [];
+                    const vehicleBookings = user.vehicleBookings || [];
+                    const allBookings = [...propertyBookings, ...vehicleBookings];
+                    const avgRate = allBookings.length > 0
+                      ? (allBookings.reduce((sum, b) => sum + (b.rate || 0), 0) / allBookings.length).toFixed(2)
+                      : '0.00';
+                    return (
+                      <React.Fragment key={user._id}>
+                        <tr className="border-t hover:bg-gray-50">
+                          <td className="p-3 font-medium">{user.firstName} {user.lastName}</td>
+                          <td className="p-3">{user.email}</td>
+                          <td className="p-3 text-red-700 font-semibold">{formatCurrency(user.totalCommission)}</td>
+                          <td className="p-3">{user.bookings?.length || 0}</td>
+                          <td className="p-3 text-sm text-gray-700">{avgRate}%</td>
+                          <td className="p-3">
+                            <span className={`px-2 py-1 rounded-full text-xs ${user.isBlocked ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>{user.isBlocked ? 'Deactivated' : 'Active'}</span>
+                          </td>
+                          <td className="p-3">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {user.isBlocked ? (
+                                <button onClick={() => handleReactivateUser(user._id)} disabled={processingId===user._id} className={`px-3 py-1 rounded text-white text-xs ${processingId===user._id?'bg-green-400':'bg-green-600 hover:bg-green-700'}`}>Reactivate</button>
+                              ) : (
+                                <button onClick={() => handleDeactivateUser(user._id, user.totalCommission)} disabled={processingId===user._id} className={`px-3 py-1 rounded text-white text-xs ${processingId===user._id?'bg-red-400':'bg-red-600 hover:bg-red-700'}`}>Deactivate</button>
+                              )}
+                              <button onClick={() => openFineModal(user._id)} className="px-3 py-1 rounded border text-xs hover:bg-gray-50">Add Fine</button>
+                            </div>
+                          </td>
+                        </tr>
+                        {/* Expandable booking details row */}
+                        {(propertyBookings.length > 0 || vehicleBookings.length > 0) && (
+                          <tr className="bg-gray-50">
+                            <td colSpan="7" className="p-3">
+                              <div className="space-y-3">
+                                {propertyBookings.length > 0 && (
+                                  <div>
+                                    <div className="font-semibold text-xs text-gray-700 mb-2">Property Bookings:</div>
+                                    <div className="text-xs space-y-1">
+                                      {propertyBookings.map((b, idx) => (
+                                        <div key={idx} className="flex items-center justify-between bg-white p-2 rounded border">
+                                          <div className="flex-1">
+                                            <span className="font-medium">{b.propertyTitle}</span>
+                                            <span className="text-gray-500 ml-2">- {b.bookingNumber || 'N/A'}</span>
+                                          </div>
+                                          <div className="flex items-center gap-3">
+                                            <span className="font-medium">RWF {Number(b.amount || 0).toLocaleString()} ({b.rate || 0}%)</span>
+                                            <button
+                                              onClick={async () => {
+                                                try {
+                                                  const res = await fetch(`${API_URL}/api/admin/properties/${b.propertyId}/lock`, {
+                                                    method: 'POST',
+                                                    credentials: 'include',
+                                                    headers: getAuthHeaders(),
+                                                  });
+                                                  const data = await res.json();
+                                                  if (!res.ok) throw new Error(data.message || 'Failed to lock property');
+                                                  toast.success('Property locked');
+                                                  fetchUsersWithUnpaidCommissions();
+                                                } catch (e) {
+                                                  toast.error(e.message || 'Failed to lock property');
+                                                }
+                                              }}
+                                              className="px-2 py-1 text-red-600 hover:bg-red-50 rounded text-xs"
+                                              title="Lock property"
+                                            >
+                                              <FaLock />
+                                            </button>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                                {vehicleBookings.length > 0 && (
+                                  <div>
+                                    <div className="font-semibold text-xs text-gray-700 mb-2">Vehicle Bookings:</div>
+                                    <div className="text-xs space-y-1">
+                                      {vehicleBookings.map((b, idx) => (
+                                        <div key={idx} className="flex items-center justify-between bg-white p-2 rounded border">
+                                          <div className="flex-1">
+                                            <span className="font-medium">{b.vehicleName}</span>
+                                            <span className="text-gray-500 ml-2">- {new Date(b.pickupDate).toLocaleDateString()}</span>
+                                          </div>
+                                          <div className="flex items-center gap-3">
+                                            <span className="font-medium">RWF {Number(b.amount || 0).toLocaleString()} ({b.rate || 0}%)</span>
+                                            <button
+                                              onClick={async () => {
+                                                try {
+                                                  const res = await fetch(`${API_URL}/api/admin/vehicles/${b.vehicleId}/lock`, {
+                                                    method: 'POST',
+                                                    credentials: 'include',
+                                                    headers: getAuthHeaders(),
+                                                  });
+                                                  const data = await res.json();
+                                                  if (!res.ok) throw new Error(data.message || 'Failed to lock vehicle');
+                                                  toast.success('Vehicle locked');
+                                                  fetchUsersWithUnpaidCommissions();
+                                                } catch (e) {
+                                                  toast.error(e.message || 'Failed to lock vehicle');
+                                                }
+                                              }}
+                                              className="px-2 py-1 text-red-600 hover:bg-red-50 rounded text-xs"
+                                              title="Lock vehicle"
+                                            >
+                                              <FaLock />
+                                            </button>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -544,6 +643,229 @@ const AdminCommissionManager = () => {
         </>
       )}
 
+      {/* Commission Levels Management Section */}
+      <div className="mt-8 border-t pt-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="text-lg font-bold text-gray-900">Commission Levels ({levelScope === 'vehicle' ? 'Vehicles' : 'Properties'})</h3>
+            <p className="text-sm text-gray-600">Manage commission levels that owners can upgrade to</p>
+          </div>
+          <button
+            onClick={() => {
+              setEditingLevelId(null);
+              setLevelForm({ name: '', key: '', description: '', directRate: 2, onlineRate: 10, isDefault: false, isPremium: false, sortOrder: 0 });
+            }}
+            className="px-4 py-2 bg-[#a06b42] text-white rounded-lg hover:bg-[#8f5a32] text-sm font-medium"
+          >
+            + Add Level
+          </button>
+        </div>
+
+        {/* Commission Levels Table */}
+        {levelsLoading ? (
+          <div className="text-center py-8">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <p className="mt-2 text-gray-600">Loading commission levels...</p>
+          </div>
+        ) : (
+          <div className="bg-white rounded-xl border overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50 text-left">
+                  <th className="p-3">Name</th>
+                  <th className="p-3">Key</th>
+                  <th className="p-3">Online Rate</th>
+                  <th className="p-3">Direct Rate</th>
+                  <th className="p-3">Premium</th>
+                  <th className="p-3">Default</th>
+                  <th className="p-3">Active</th>
+                  <th className="p-3">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {commissionLevels.length === 0 ? (
+                  <tr>
+                    <td colSpan="8" className="p-6 text-center text-gray-500">
+                      No commission levels found. Create one to get started.
+                    </td>
+                  </tr>
+                ) : (
+                  commissionLevels.map((level) => (
+                    <tr key={level._id} className="border-t hover:bg-gray-50">
+                      <td className="p-3 font-medium">{level.name}</td>
+                      <td className="p-3 text-gray-600">{level.key}</td>
+                      <td className="p-3">{level.onlineRate}%</td>
+                      <td className="p-3">{level.directRate}%</td>
+                      <td className="p-3">
+                        {level.isPremium ? (
+                          <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-semibold">Yes</span>
+                        ) : (
+                          <span className="text-gray-400">No</span>
+                        )}
+                      </td>
+                      <td className="p-3">
+                        {level.isDefault ? (
+                          <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-semibold">Yes</span>
+                        ) : (
+                          <span className="text-gray-400">No</span>
+                        )}
+                      </td>
+                      <td className="p-3">
+                        {level.active !== false ? (
+                          <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold">Active</span>
+                        ) : (
+                          <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-xs font-semibold">Inactive</span>
+                        )}
+                      </td>
+                      <td className="p-3">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => startEditLevel(level)}
+                            className="px-2 py-1 text-blue-600 hover:bg-blue-50 rounded text-xs"
+                            title="Edit level"
+                          >
+                            <FaEdit />
+                          </button>
+                          <button
+                            onClick={() => deleteLevel(level._id)}
+                            className="px-2 py-1 text-red-600 hover:bg-red-50 rounded text-xs"
+                            title="Delete level"
+                          >
+                            <FaTrash />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Commission Level Form */}
+        <div className="mt-6 bg-gray-50 rounded-lg border border-gray-200 p-4">
+          <h4 className="font-semibold text-gray-900 mb-3">
+            {editingLevelId ? 'Edit Commission Level' : 'Create New Commission Level'}
+          </h4>
+          <form onSubmit={saveCommissionLevel} className="space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+                <input
+                  type="text"
+                  className="w-full border rounded-lg px-3 py-2 text-sm"
+                  value={levelForm.name}
+                  onChange={(e) => setLevelForm({ ...levelForm, name: e.target.value })}
+                  required
+                  placeholder="e.g., Premium"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Key *</label>
+                <input
+                  type="text"
+                  className="w-full border rounded-lg px-3 py-2 text-sm"
+                  value={levelForm.key}
+                  onChange={(e) => setLevelForm({ ...levelForm, key: e.target.value })}
+                  required
+                  placeholder="e.g., premium"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+              <textarea
+                className="w-full border rounded-lg px-3 py-2 text-sm"
+                rows={2}
+                value={levelForm.description}
+                onChange={(e) => setLevelForm({ ...levelForm, description: e.target.value })}
+                placeholder="Description of this commission level"
+              />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Online Rate (%) *</label>
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  step={0.1}
+                  className="w-full border rounded-lg px-3 py-2 text-sm"
+                  value={levelForm.onlineRate}
+                  onChange={(e) => setLevelForm({ ...levelForm, onlineRate: e.target.value })}
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Direct Rate (%) *</label>
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  step={0.1}
+                  className="w-full border rounded-lg px-3 py-2 text-sm"
+                  value={levelForm.directRate}
+                  onChange={(e) => setLevelForm({ ...levelForm, directRate: e.target.value })}
+                  required
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="isPremium"
+                  className="h-4 w-4"
+                  checked={levelForm.isPremium}
+                  onChange={(e) => setLevelForm({ ...levelForm, isPremium: e.target.checked })}
+                />
+                <label htmlFor="isPremium" className="text-sm text-gray-700">Premium Level</label>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="isDefault"
+                  className="h-4 w-4"
+                  checked={levelForm.isDefault}
+                  onChange={(e) => setLevelForm({ ...levelForm, isDefault: e.target.checked })}
+                />
+                <label htmlFor="isDefault" className="text-sm text-gray-700">Default Level</label>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Sort Order</label>
+                <input
+                  type="number"
+                  className="w-full border rounded-lg px-3 py-2 text-sm"
+                  value={levelForm.sortOrder}
+                  onChange={(e) => setLevelForm({ ...levelForm, sortOrder: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2">
+              {editingLevelId && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingLevelId(null);
+                    setLevelForm({ name: '', key: '', description: '', directRate: 2, onlineRate: 10, isDefault: false, isPremium: false, sortOrder: 0 });
+                  }}
+                  className="px-4 py-2 border rounded-lg text-sm"
+                >
+                  Cancel
+                </button>
+              )}
+              <button
+                type="submit"
+                className="px-4 py-2 bg-[#a06b42] text-white rounded-lg hover:bg-[#8f5a32] text-sm font-medium"
+              >
+                {editingLevelId ? 'Update Level' : 'Create Level'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
       <div className="mt-5 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
         <div className="flex items-start space-x-3">
           <FaExclamationTriangle className="text-yellow-600 text-lg sm:text-xl mt-0.5" />
@@ -554,6 +876,7 @@ const AdminCommissionManager = () => {
               <li>Deactivated users cannot create new bookings or list new properties</li>
               <li>Reactivate users once they have paid their outstanding commissions</li>
               <li>All commission payments should be tracked and recorded</li>
+              <li>When you edit a commission level, affected owners will be notified to confirm or change their level</li>
             </ul>
           </div>
         </div>

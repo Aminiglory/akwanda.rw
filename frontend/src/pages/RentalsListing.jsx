@@ -238,7 +238,7 @@ const RentalsListing = () => {
   };
 
   return (
-  <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50">
     <div className="relative bg-[#a06b42] text-white shadow-sm overflow-hidden">
       {resolvedHero && (
         <img src={resolvedHero} alt={pageContent.pageTitle} className="absolute inset-0 w-full h-full object-cover opacity-30" />
@@ -516,125 +516,128 @@ const RentalsListing = () => {
               )
                 .filter(([_, list]) => list.length > 0)
                 .sort(([a], [b]) => a.localeCompare(b))
-                .map(([category, list]) => (
-                  <div key={category} className="mb-10">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-4">
-                      {category.charAt(0).toUpperCase() + category.slice(1)}
-                    </h2>
-                    {viewMode === "table" ? (
-                      <div className="hidden lg:block overflow-x-auto rounded-xl border border-gray-200">
-                        <table className="min-w-full text-sm">
-                          <thead className="bg-[var(--ak-secondary-200)] text-gray-700">
-                            <tr>
-                              <th className="text-left px-4 py-3">Vehicle</th>
-                              <th className="text-left px-4 py-3">Location</th>
-                              <th className="text-left px-4 py-3">Type</th>
-                              <th className="text-left px-4 py-3">Price/day</th>
-                              <th className="text-left px-4 py-3">Rating</th>
-                              <th className="text-left px-4 py-3">Capacity</th>
-                              <th className="text-left px-4 py-3">Status</th>
-                              <th className="text-left px-4 py-3">Action</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-gray-100">
-                            {list.map((v) => (
-                              <tr key={v.id} className="bg-white hover:bg-gray-50">
-                                <td className="px-4 py-3">
-                                  <div className="flex items-center gap-3">
-                                    <img
-                                      src={v.image}
-                                      alt={v.title}
-                                      className="w-14 h-14 rounded-lg object-cover"
-                                    />
-                                    <div>
-                                      <Link
-                                        to={v.href || `/cars/${v.id}`}
-                                        className="font-semibold text-gray-900 hover:underline line-clamp-1"
-                                      >
-                                        {v.title}
-                                      </Link>
-                                      <div className="text-xs text-gray-500">
-                                        {v.host && `Hosted by ${v.host}`}
+                .map(([category, list]) => {
+                  return (
+                    <div key={category} className="mb-10">
+                      <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                        {category.charAt(0).toUpperCase() + category.slice(1)}
+                      </h2>
+                      {viewMode === "table" ? (
+                        <div className="hidden lg:block overflow-x-auto rounded-xl border border-gray-200">
+                          <table className="min-w-full text-sm">
+                            <thead className="bg-[var(--ak-secondary-200)] text-gray-700">
+                              <tr>
+                                <th className="text-left px-4 py-3">Vehicle</th>
+                                <th className="text-left px-4 py-3">Location</th>
+                                <th className="text-left px-4 py-3">Type</th>
+                                <th className="text-left px-4 py-3">Price/day</th>
+                                <th className="text-left px-4 py-3">Rating</th>
+                                <th className="text-left px-4 py-3">Capacity</th>
+                                <th className="text-left px-4 py-3">Status</th>
+                                <th className="text-left px-4 py-3">Action</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                              {list.map((v) => (
+                                <tr key={v.id} className="bg-white hover:bg-gray-50">
+                                  <td className="px-4 py-3">
+                                    <div className="flex items-center gap-3">
+                                      <img
+                                        src={v.image}
+                                        alt={v.title}
+                                        className="w-14 h-14 rounded-lg object-cover"
+                                      />
+                                      <div>
+                                        <Link
+                                          to={v.href || `/cars/${v.id}`}
+                                          className="font-semibold text-gray-900 hover:underline line-clamp-1"
+                                        >
+                                          {v.title}
+                                        </Link>
+                                        <div className="text-xs text-gray-500">
+                                          {v.host && `Hosted by ${v.host}`}
+                                        </div>
                                       </div>
                                     </div>
-                                  </div>
-                                </td>
-                                <td className="px-4 py-3 text-gray-700">{v.location}</td>
-                                <td className="px-4 py-3 capitalize text-gray-700">{v.category}</td>
-                                <td className="px-4 py-3 font-semibold text-primary-700">
-                                  {formatCurrencyRWF
-                                    ? formatCurrencyRWF(v.price || 0)
-                                    : `RWF ${Number(v.price || 0).toLocaleString()}`}
-                                </td>
-                                <td className="px-4 py-3 text-gray-700">
-                                  {Number(v.rating || 0).toFixed(1)} ({v.reviews})
-                                </td>
-                                <td className="px-4 py-3 text-gray-700">{v.bedrooms}</td>
-                                <td className="px-4 py-3">
-                                  <span
-                                    className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                      v.isAvailable
-                                        ? "bg-green-100 text-green-700"
-                                        : "bg-red-100 text-red-700"
-                                    }`}
-                                  >
-                                    {v.isAvailable ? "Available" : "Unavailable"}
-                                  </span>
-                                </td>
-                                <td className="px-4 py-3">
-                                  <Link
-                                    to={v.href || `/cars/${v.id}`}
-                                    className="btn-primary text-white px-3 py-1.5 rounded-lg"
-                                  >
-                                    View
-                                  </Link>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                        {list.map((vehicle, index) => (
-                          <div
-                            key={vehicle.id}
-                            className="h-full"
-                            style={{ animationDelay: `${index * 0.1}s` }}
-                          >
-                            <PropertyCard
-                              listing={{
-                                id: vehicle.id,
-                                title: vehicle.title,
-                                location: vehicle.location,
-                                image:
-                                  vehicle.images && vehicle.images.length
-                                    ? vehicle.images[0]
-                                    : vehicle.image,
-                                price: vehicle.pricePerNight || vehicle.price,
-                                bedrooms: vehicle.bedrooms,
-                                bathrooms: vehicle.bathrooms,
-                                area: vehicle.size,
-                                status: vehicle.isAvailable ? "active" : "inactive",
-                                bookings: vehicle.reviews,
-                                host: vehicle.host,
-                              }}
-                              highlight={searchHighlight}
-                              onView={() =>
-                                navigate(vehicle.href || `/cars/${vehicle.id}`)
-                              }
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))
+                                  </td>
+                                  <td className="px-4 py-3 text-gray-700">{v.location}</td>
+                                  <td className="px-4 py-3 capitalize text-gray-700">{v.category}</td>
+                                  <td className="px-4 py-3 font-semibold text-primary-700">
+                                    {formatCurrencyRWF
+                                      ? formatCurrencyRWF(v.price || 0)
+                                      : `RWF ${Number(v.price || 0).toLocaleString()}`}
+                                  </td>
+                                  <td className="px-4 py-3 text-gray-700">
+                                    {Number(v.rating || 0).toFixed(1)} ({v.reviews})
+                                  </td>
+                                  <td className="px-4 py-3 text-gray-700">{v.bedrooms}</td>
+                                  <td className="px-4 py-3">
+                                    <span
+                                      className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                        v.isAvailable
+                                          ? "bg-green-100 text-green-700"
+                                          : "bg-red-100 text-red-700"
+                                      }`}
+                                    >
+                                      {v.isAvailable ? "Available" : "Unavailable"}
+                                    </span>
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <Link
+                                      to={v.href || `/cars/${v.id}`}
+                                      className="btn-primary text-white px-3 py-1.5 rounded-lg"
+                                    >
+                                      View
+                                    </Link>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                          {list.map((vehicle, index) => (
+                            <div
+                              key={vehicle.id}
+                              className="h-full"
+                              style={{ animationDelay: `${index * 0.1}s` }}
+                            >
+                              <PropertyCard
+                                listing={{
+                                  id: vehicle.id,
+                                  title: vehicle.title,
+                                  location: vehicle.location,
+                                  image:
+                                    vehicle.images && vehicle.images.length
+                                      ? vehicle.images[0]
+                                      : vehicle.image,
+                                  price: vehicle.pricePerNight || vehicle.price,
+                                  bedrooms: vehicle.bedrooms,
+                                  bathrooms: vehicle.bathrooms,
+                                  area: vehicle.size,
+                                  status: vehicle.isAvailable ? "active" : "inactive",
+                                  bookings: vehicle.reviews,
+                                  host: vehicle.host,
+                                }}
+                                highlight={searchHighlight}
+                                onView={() =>
+                                  navigate(vehicle.href || `/cars/${vehicle.id}`)
+                                }
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
             )}
           </div>
         </div>
       </div>
     </div>
+  </div>
   );
 };
 

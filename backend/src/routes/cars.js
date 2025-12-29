@@ -12,6 +12,14 @@ const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
 function requireAuth(req, res, next) {
   const token = req.cookies.akw_token || (req.headers.authorization || '').replace('Bearer ', '');
   if (!token) return res.status(401).json({ message: 'Unauthorized' });
+  try {
+    const user = jwt.verify(token, JWT_SECRET);
+    req.user = user;
+    return next();
+  } catch (e) {
+    return res.status(401).json({ message: 'Invalid token' });
+  }
+}
 
 // Vehicle commission levels available to owners (scope='vehicle')
 // GET /api/cars/commission-levels
@@ -26,14 +34,6 @@ router.get('/commission-levels', requireAuth, async (req, res) => {
     return res.status(500).json({ message: 'Failed to load vehicle commission levels', error: e?.message || String(e) });
   }
 });
-  try {
-    const user = jwt.verify(token, JWT_SECRET);
-    req.user = user;
-    return next();
-  } catch (e) {
-    return res.status(401).json({ message: 'Invalid token' });
-  }
-}
 
 function requireOwnerOrAdmin(getOwnerId) {
   return async (req, res, next) => {
@@ -77,11 +77,83 @@ router.get('/', async (req, res) => {
 router.get('/mine', requireAuth, async (req, res) => {
   try {
     const CarRental = require('../tables/carRental');
-    const cars = await CarRental.find({ owner: req.user.id }).sort({ createdAt: -1 });
+    const cars = await CarRental.find({ owner: req.user.id }).sort({ createdAt: -1 }).populate('commissionLevel');
     res.json({ cars });
   } catch (e) {
     console.error('Error listing my cars:', e);
     res.status(500).json({ message: 'Failed to load my cars', error: e.message });
+  }
+});
+
+// Owner: list my vehicles with commission tracking (similar to /api/properties/my-properties)
+router.get('/my-vehicles', requireAuth, async (req, res) => {
+  try {
+    const CarRental = require('../tables/carRental');
+    const CarRentalBooking = require('../tables/carRentalBooking');
+    const mongoose = require('mongoose');
+    
+    const vehicles = await CarRental.find({ owner: req.user.id }).sort({ createdAt: -1 }).populate('commissionLevel');
+    
+    // Get commission status for this vehicle owner
+    const unpaidCommissions = await CarRentalBooking.aggregate([
+      {
+        $match: {
+          paymentStatus: 'paid',
+          commissionPaid: false,
+          status: { $in: ['confirmed', 'completed', 'active'] }
+        }
+      },
+      {
+        $lookup: {
+          from: 'carrentals',
+          localField: 'car',
+          foreignField: '_id',
+          as: 'vehicleInfo'
+        }
+      },
+      {
+        $unwind: '$vehicleInfo'
+      },
+      {
+        $match: {
+          'vehicleInfo.owner': new mongoose.Types.ObjectId(req.user.id)
+        }
+      },
+      {
+        $group: {
+          _id: '$car',
+          unpaidAmount: { $sum: '$commissionAmount' },
+          count: { $sum: 1 },
+          bookings: { $push: { _id: '$_id', amount: '$commissionAmount', createdAt: '$createdAt' } }
+        }
+      }
+    ]);
+    
+    // Add commission info to each vehicle
+    const vehiclesWithCommission = vehicles.map(v => {
+      const unpaidInfo = unpaidCommissions.find(uc => String(uc._id) === String(v._id));
+      return {
+        ...v.toObject(),
+        unpaidCommission: unpaidInfo ? {
+          amount: unpaidInfo.unpaidAmount,
+          count: unpaidInfo.count,
+          bookings: unpaidInfo.bookings
+        } : null
+      };
+    });
+    
+    const totalUnpaidCommission = unpaidCommissions.reduce((sum, uc) => sum + uc.unpaidAmount, 0);
+    
+    res.json({ 
+      vehicles: vehiclesWithCommission,
+      commissionSummary: {
+        totalUnpaid: totalUnpaidCommission,
+        vehiclesWithUnpaid: unpaidCommissions.length
+      }
+    });
+  } catch (error) {
+    console.error('Get my vehicles error:', error);
+    res.status(500).json({ message: 'Failed to fetch vehicles', error: error.message });
   }
 });
 
@@ -144,13 +216,53 @@ router.patch('/:id', requireAuth, requireOwnerOrAdmin(async (req) => {
 }), async (req, res) => {
   try {
     const CarRental = require('../tables/carRental');
-    const car = await CarRental.findById(req.params.id);
+    const car = await CarRental.findById(req.params.id).populate('commissionLevel');
     if (!car) return res.status(404).json({ message: 'Car not found' });
     Object.assign(car, req.body || {});
     await car.save();
+    await car.populate('commissionLevel');
     res.json({ car });
   } catch (e) {
     res.status(500).json({ message: 'Failed to update car', error: e.message });
+  }
+});
+
+// Owner: upgrade vehicle commission level
+router.post('/:id/upgrade-commission-level', requireAuth, requireOwnerOrAdmin(async (req) => {
+  const CarRental = require('../tables/carRental');
+  const c = await CarRental.findById(req.params.id).select('owner');
+  return c?.owner;
+}), async (req, res) => {
+  try {
+    const CarRental = require('../tables/carRental');
+    const { commissionLevelId } = req.body || {};
+    if (!commissionLevelId) {
+      return res.status(400).json({ message: 'commissionLevelId is required' });
+    }
+    
+    // Verify the commission level exists and is for vehicles
+    const level = await CommissionLevel.findById(commissionLevelId);
+    if (!level) {
+      return res.status(404).json({ message: 'Commission level not found' });
+    }
+    if (level.scope !== 'vehicle') {
+      return res.status(400).json({ message: 'This commission level is not for vehicles' });
+    }
+    if (!level.active) {
+      return res.status(400).json({ message: 'This commission level is not active' });
+    }
+    
+    const car = await CarRental.findById(req.params.id);
+    if (!car) return res.status(404).json({ message: 'Vehicle not found' });
+    
+    car.commissionLevel = commissionLevelId;
+    await car.save();
+    await car.populate('commissionLevel');
+    
+    res.json({ car, message: 'Commission level upgraded successfully' });
+  } catch (e) {
+    console.error('Upgrade vehicle commission level error:', e);
+    res.status(500).json({ message: 'Failed to upgrade commission level', error: e.message });
   }
 });
 

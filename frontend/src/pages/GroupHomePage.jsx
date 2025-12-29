@@ -3,10 +3,11 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import {
   FaCalendarAlt, FaUsers, FaCheckCircle, FaTimes, FaStar,
   FaExclamationTriangle, FaMapMarkerAlt, FaEye, FaComments,
-  FaFilter, FaDownload, FaCog
+  FaFilter, FaDownload, FaCog, FaCrown
 } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { useLocale } from '../contexts/LocaleContext';
+import CommissionUpgradeModal from '../components/CommissionUpgradeModal';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -21,6 +22,8 @@ const GroupHomePage = () => {
   const [filterStatus, setFilterStatus] = useState('all'); // all, open, closed
   const [searchTerm, setSearchTerm] = useState('');
   const [enforcementPaused, setEnforcementPaused] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [selectedProperty, setSelectedProperty] = useState(null);
 
   // Summary stats
   const [summaryStats, setSummaryStats] = useState({
@@ -368,6 +371,9 @@ const GroupHomePage = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Akwanda.rw messages
                   </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Commission
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -405,8 +411,8 @@ const GroupHomePage = () => {
                                 <div className="text-sm font-medium text-gray-900">
                                   {property.title || property.name || 'Unnamed property'}
                                 </div>
-                                {/* Premium badge based on commission level */}
-                                {(property.commissionLevel?.isPremium || property.isPremium) && (
+                                {/* Premium badge - only show if commissionLevel exists and isPremium is true */}
+                                {property.commissionLevel?.isPremium && (
                                   <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-yellow-100 text-yellow-800">
                                     Premium
                                   </span>
@@ -510,6 +516,29 @@ const GroupHomePage = () => {
           </div>
         )}
       </div>
+
+      {/* Commission Upgrade Modal */}
+      {selectedProperty && (
+        <CommissionUpgradeModal
+          isOpen={showUpgradeModal}
+          onClose={() => {
+            setShowUpgradeModal(false);
+            setSelectedProperty(null);
+          }}
+          itemId={selectedProperty._id}
+          itemType="property"
+          currentLevel={selectedProperty.commissionLevel}
+          onUpgradeSuccess={(updatedProperty) => {
+            // Refresh properties list
+            setProperties(prev => prev.map(p => 
+              String(p._id) === String(updatedProperty._id) 
+                ? { ...p, commissionLevel: updatedProperty.commissionLevel }
+                : p
+            ));
+            toast.success('Commission level upgraded successfully!');
+          }}
+        />
+      )}
     </div>
   );
 };
