@@ -60,7 +60,7 @@ const getVideoEmbedUrl = (raw) => {
 export default function AttractionDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { formatCurrencyRWF } = useLocale() || {};
+  const { formatCurrencyRWF, t } = useLocale() || {};
   const [item, setItem] = useState(null);
   const [loading, setLoading] = useState(false);
   const [booking, setBooking] = useState(false);
@@ -84,6 +84,43 @@ export default function AttractionDetail() {
     email: '',
     phone: ''
   });
+
+  const tSafe = (key, fallback) => {
+    if (typeof t !== 'function') return fallback;
+    const v = t(key);
+    if (!v || v === key) return fallback;
+    return v;
+  };
+
+  const yesNo = (v) => {
+    if (String(v).toLowerCase() === 'yes') return tSafe('attractionWizard.common.yes', 'Yes');
+    if (String(v).toLowerCase() === 'no') return tSafe('attractionWizard.common.no', 'No');
+    return v;
+  };
+
+  const formatDay = (d) => {
+    const key = String(d || '').toLowerCase();
+    if (!key) return '';
+    return tSafe(`attractionDetail.days.${key}`, key);
+  };
+
+  const timeSlots = useMemo(() => {
+    const raw = item?.timeSlots;
+    if (!raw) return [];
+    if (Array.isArray(raw)) return raw.map(String).map(s => s.trim()).filter(Boolean);
+    const s = String(raw).trim();
+    if (!s) return [];
+    try {
+      const parsed = JSON.parse(s);
+      if (Array.isArray(parsed)) return parsed.map(String).map(x => x.trim()).filter(Boolean);
+    } catch (_) {
+      // ignore
+    }
+    return s
+      .split(/\r?\n|,|\|/)
+      .map(x => String(x).trim())
+      .filter(Boolean);
+  }, [item?.timeSlots]);
 
   useEffect(() => {
     (async () => {
@@ -120,7 +157,7 @@ export default function AttractionDetail() {
   }, []);
 
   async function checkAvailability() {
-    if (!form.visitDate) return toast.error('Select visit date');
+    if (!form.visitDate) return toast.error(tSafe('attractionDetail.toasts.selectVisitDate', 'Select visit date'));
     try {
       setChecking(true);
       const res = await fetch(`${API_URL}/api/attractions/${id}/availability`, {
@@ -138,30 +175,35 @@ export default function AttractionDetail() {
         setAvailable(false);
         const reason = String(data?.reason || '').toLowerCase();
         if (reason === 'closed') {
-          toast.error('Not available: closed on selected date');
+          toast.error(tSafe('attractionDetail.toasts.closedOnSelectedDate', 'Not available: closed on selected date'));
         } else if (reason === 'slot_required') {
-          toast.error('Not available: please select a time slot');
+          toast.error(tSafe('attractionDetail.toasts.slotRequired', 'Not available: please select a time slot'));
         } else if (reason === 'invalid_slot') {
-          toast.error('Not available: selected time slot is not valid');
+          toast.error(tSafe('attractionDetail.toasts.invalidSlot', 'Not available: selected time slot is not valid'));
         } else if (reason === 'capacity') {
           const remaining = Number(data?.remaining);
           if (Number.isFinite(remaining)) {
-            toast.error(`Not available: only ${Math.max(0, remaining)} tickets remaining for this slot`);
+            toast.error(
+              tSafe(
+                'attractionDetail.toasts.capacityRemaining',
+                `Not available: only ${Math.max(0, remaining)} tickets remaining for this slot`
+              )
+            );
           } else {
-            toast.error('Not available: not enough remaining capacity');
+            toast.error(tSafe('attractionDetail.toasts.notEnoughCapacity', 'Not available: not enough remaining capacity'));
           }
         } else {
-          toast.error('Not available');
+          toast.error(tSafe('attractionDetail.toasts.notAvailable', 'Not available'));
         }
       } else {
         setAvailable(true);
-        toast.success('Available');
+        toast.success(tSafe('attractionDetail.toasts.available', 'Available'));
       }
     } catch (e) { toast.error(e.message); } finally { setChecking(false); }
   }
 
   async function createBooking() {
-    if (!form.visitDate) return toast.error('Select visit date');
+    if (!form.visitDate) return toast.error(tSafe('attractionDetail.toasts.selectVisitDate', 'Select visit date'));
     try {
       setBooking(true);
       const res = await fetch(`${API_URL}/api/attraction-bookings`, {
@@ -176,11 +218,11 @@ export default function AttractionDetail() {
           paymentMethod,
         })
       });
-      if (res.status === 401) { toast.error('Please login'); navigate('/login'); return; }
+      if (res.status === 401) { toast.error(tSafe('attractionDetail.toasts.pleaseLogin', 'Please login')); navigate('/login'); return; }
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Booking failed');
+      if (!res.ok) throw new Error(data.message || tSafe('attractionDetail.toasts.bookingFailed', 'Booking failed'));
       if (paymentMethod === 'mtn_mobile_money' && data?.booking?._id) {
-        toast.success('Redirecting to payment...');
+        toast.success(tSafe('attractionDetail.toasts.redirectingToPayment', 'Redirecting to payment...'));
         navigate('/mtn-payment', {
           state: {
             attractionBookingId: data.booking._id,
@@ -194,7 +236,7 @@ export default function AttractionDetail() {
         });
         return;
       }
-      toast.success('Booking created');
+      toast.success(tSafe('attractionDetail.toasts.bookingCreated', 'Booking created'));
       if (data?.booking?._id) {
         navigate(`/attraction-booking-confirmation/${data.booking._id}`);
       } else {
@@ -203,8 +245,8 @@ export default function AttractionDetail() {
     } catch (e) { toast.error(e.message); } finally { setBooking(false); }
   }
 
-  if (loading) return <div className="max-w-6xl mx-auto px-4 py-6">Loading...</div>;
-  if (!item) return <div className="max-w-6xl mx-auto px-4 py-6">Not found</div>;
+  if (loading) return <div className="max-w-6xl mx-auto px-4 py-6">{tSafe('attractionDetail.loading', 'Loading...')}</div>;
+  if (!item) return <div className="max-w-6xl mx-auto px-4 py-6">{tSafe('attractionDetail.notFound', 'Not found')}</div>;
 
   const imgUrl = (u) => makeAbsolute(u) || '';
 
@@ -221,18 +263,73 @@ export default function AttractionDetail() {
   const ownerId = item?.owner ? String(item.owner) : '';
   const isOwnerViewing = viewerId && ownerId && viewerId === ownerId;
 
+  const categoryLabel = item?.category
+    ? (typeof t === 'function'
+      ? tSafe(`attractionWizard.categories.${item.category}`, String(item.category))
+      : String(item.category))
+    : '';
+
+  const operatingDays = Array.isArray(item?.operatingHours?.days)
+    ? item.operatingHours.days.map(formatDay).filter(Boolean)
+    : [];
+
+  const quickFacts = [
+    { label: tSafe('attractionDetail.labels.category', 'Category'), value: categoryLabel },
+    { label: tSafe('attractionDetail.labels.city', 'City'), value: item?.city },
+    { label: tSafe('attractionDetail.labels.country', 'Country'), value: item?.country },
+    { label: tSafe('attractionDetail.labels.duration', 'Duration'), value: item?.duration },
+    { label: tSafe('attractionDetail.labels.capacity', 'Capacity'), value: item?.capacity },
+    { label: tSafe('attractionDetail.labels.minGuests', 'Minimum guests'), value: item?.minGuests },
+    { label: tSafe('attractionDetail.labels.minAge', 'Minimum age'), value: item?.minAge },
+    { label: tSafe('attractionDetail.labels.bookingRequired', 'Booking required'), value: yesNo(item?.bookingRequired) },
+    { label: tSafe('attractionDetail.labels.guideAvailable', 'Guide available'), value: yesNo(item?.guideAvailable) },
+    { label: tSafe('attractionDetail.labels.audioGuideLanguages', 'Audio guide languages'), value: item?.audioGuideLanguages },
+    { label: tSafe('attractionDetail.labels.safetyEquipment', 'Safety equipment'), value: item?.safetyEquipment },
+    { label: tSafe('attractionDetail.labels.seasonality', 'Seasonality'), value: item?.seasonality },
+  ].filter(({ value }) => value != null && String(value).trim() !== '');
+
+  const locationDetails = [
+    { label: tSafe('attractionDetail.labels.address', 'Address / meeting point'), value: item?.location },
+    { label: tSafe('attractionDetail.labels.gps', 'GPS'), value: item?.gps },
+    { label: tSafe('attractionDetail.labels.landmarks', 'Landmarks'), value: item?.landmarks },
+    { label: tSafe('attractionDetail.labels.directions', 'Directions'), value: item?.directions },
+    { label: tSafe('attractionDetail.labels.latitude', 'Latitude'), value: Number.isFinite(lat) ? String(lat) : '' },
+    { label: tSafe('attractionDetail.labels.longitude', 'Longitude'), value: Number.isFinite(lng) ? String(lng) : '' },
+  ].filter(({ value }) => value != null && String(value).trim() !== '');
+
+  const policies = [
+    { label: tSafe('attractionDetail.labels.paymentMethods', 'Payment methods'), value: item?.paymentMethods },
+    { label: tSafe('attractionDetail.labels.cancellationPolicy', 'Cancellation policy'), value: item?.cancellationPolicy },
+    { label: tSafe('attractionDetail.labels.refundPolicy', 'Refund policy'), value: item?.refundPolicy },
+  ].filter(({ value }) => value != null && String(value).trim() !== '');
+
+  const rulesInfo = [
+    { label: tSafe('attractionDetail.labels.rules', 'Rules'), value: item?.rules },
+    { label: tSafe('attractionDetail.labels.dressCode', 'Dress code'), value: item?.dressCode },
+    { label: tSafe('attractionDetail.labels.safetyInstructions', 'Safety instructions'), value: item?.safetyInstructions },
+    { label: tSafe('attractionDetail.labels.liability', 'Liability'), value: item?.liability },
+  ].filter(({ value }) => value != null && String(value).trim() !== '');
+
+  const contactDetails = [
+    { label: tSafe('attractionDetail.labels.contactName', 'Contact name'), value: item?.contactName },
+    { label: tSafe('attractionDetail.labels.contactPhone', 'Contact phone'), value: item?.contactPhone, type: 'phone' },
+    { label: tSafe('attractionDetail.labels.contactEmail', 'Contact email'), value: item?.contactEmail, type: 'email' },
+    { label: tSafe('attractionDetail.labels.contactWebsite', 'Website'), value: item?.contactWebsite, type: 'url' },
+    { label: tSafe('attractionDetail.labels.contactEmergency', 'Emergency contact'), value: item?.contactEmergency },
+  ].filter(({ value }) => value != null && String(value).trim() !== '');
+
   const nextFromStep1 = () => {
-    if (!form.visitDate) { toast.error('Select visit date'); return; }
+    if (!form.visitDate) { toast.error(tSafe('attractionDetail.toasts.selectVisitDate', 'Select visit date')); return; }
     if (Array.isArray(availabilityInfo?.slots) && availabilityInfo.slots.length > 0 && !String(form.timeSlot || '').trim()) {
-      toast.error('Select a time slot');
+      toast.error(tSafe('attractionDetail.toasts.selectTimeSlot', 'Select a time slot'));
       return;
     }
-    if (Number(form.tickets || 1) < 1) { toast.error('Tickets must be at least 1'); return; }
+    if (Number(form.tickets || 1) < 1) { toast.error(tSafe('attractionDetail.toasts.ticketsMin1', 'Tickets must be at least 1')); return; }
     setStep(2);
   };
 
   const nextFromStep2 = () => {
-    if (!String(contact.phone || '').trim()) { toast.error('Enter phone number'); return; }
+    if (!String(contact.phone || '').trim()) { toast.error(tSafe('attractionDetail.toasts.enterPhoneNumber', 'Enter phone number')); return; }
     setStep(3);
   };
 
@@ -253,8 +350,8 @@ export default function AttractionDetail() {
             ))}
           </div>
 
-          <div className="mt-4 bg-white rounded-lg shadow p-4">
-            <h1 className="text-2xl font-bold text-gray-900">{item.name}</h1>
+          <div className="mt-4 bg-white rounded-lg shadow p-4 border border-[#f6e9d8]">
+            <h1 className="text-2xl font-bold text-[#4b2a00]">{item.name}</h1>
             <div className="mt-1 text-gray-600 flex items-center gap-2">
               <FaMapMarkerAlt className="text-[#a06b42]" />
               <span>{item.location}</span>
@@ -264,13 +361,101 @@ export default function AttractionDetail() {
             )}
           </div>
 
+          {(quickFacts.length > 0 || (item?.amenities && item.amenities.length > 0)) && (
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+              {quickFacts.length > 0 && (
+                <div className="bg-white rounded-lg shadow p-4 border border-[#f6e9d8]">
+                  <div className="text-sm font-semibold text-[#4b2a00]">{tSafe('attractionDetail.sections.quickInfo', 'Quick info')}</div>
+                  <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                    {quickFacts.map((f) => (
+                      <div key={f.label} className="flex items-start justify-between gap-3">
+                        <span className="text-gray-600">{f.label}</span>
+                        <span className="text-[#4b2a00] font-medium text-right">{String(f.value)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {Array.isArray(item?.amenities) && item.amenities.length > 0 && (
+                <div className="bg-white rounded-lg shadow p-4 border border-[#f6e9d8]">
+                  <div className="text-sm font-semibold text-[#4b2a00]">{tSafe('attractionDetail.sections.amenities', 'Amenities')}</div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {item.amenities.map((a, idx) => (
+                      <span
+                        key={`${a}-${idx}`}
+                        className="px-2 py-1 rounded-full text-xs bg-[#f6e9d8] text-[#4b2a00] border border-[#d4c4b0]"
+                      >
+                        {a}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {(item?.operatingHours?.open || item?.operatingHours?.close || operatingDays.length > 0 || (timeSlots && timeSlots.length > 0) || item?.openingDays) && (
+            <div className="mt-4 bg-white rounded-lg shadow p-4 border border-[#f6e9d8]">
+              <div className="text-sm font-semibold text-[#4b2a00]">{tSafe('attractionDetail.sections.operatingHours', 'Operating hours')}</div>
+              <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                {item?.operatingHours?.open && (
+                  <div className="flex items-start justify-between gap-3">
+                    <span className="text-gray-600">{tSafe('attractionDetail.labels.open', 'Opens')}</span>
+                    <span className="text-[#4b2a00] font-medium text-right">{item.operatingHours.open}</span>
+                  </div>
+                )}
+                {item?.operatingHours?.close && (
+                  <div className="flex items-start justify-between gap-3">
+                    <span className="text-gray-600">{tSafe('attractionDetail.labels.close', 'Closes')}</span>
+                    <span className="text-[#4b2a00] font-medium text-right">{item.operatingHours.close}</span>
+                  </div>
+                )}
+                {operatingDays.length > 0 && (
+                  <div className="sm:col-span-2 flex items-start justify-between gap-3">
+                    <span className="text-gray-600">{tSafe('attractionDetail.labels.days', 'Days')}</span>
+                    <span className="text-[#4b2a00] font-medium text-right">{operatingDays.join(', ')}</span>
+                  </div>
+                )}
+                {item?.openingDays && (
+                  <div className="sm:col-span-2 flex items-start justify-between gap-3">
+                    <span className="text-gray-600">{tSafe('attractionDetail.labels.openingDays', 'Opening days')}</span>
+                    <span className="text-[#4b2a00] font-medium text-right">{item.openingDays}</span>
+                  </div>
+                )}
+                {timeSlots && timeSlots.length > 0 && (
+                  <div className="sm:col-span-2">
+                    <div className="flex items-start justify-between gap-3">
+                      <span className="text-gray-600">{tSafe('attractionDetail.labels.timeSlots', 'Suggested time slots')}</span>
+                      <span className="text-[#4b2a00] font-medium text-right">{timeSlots.join(', ')}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {(locationDetails.length > 0) && (
+            <div className="mt-4 bg-white rounded-lg shadow p-4 border border-[#f6e9d8]">
+              <div className="text-sm font-semibold text-[#4b2a00]">{tSafe('attractionDetail.sections.locationDetails', 'Location details')}</div>
+              <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                {locationDetails.map((f) => (
+                  <div key={f.label} className="flex items-start justify-between gap-3">
+                    <span className="text-gray-600">{f.label}</span>
+                    <span className="text-[#4b2a00] font-medium text-right">{String(f.value)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {videoUrl && (
-            <div className="mt-4 bg-white rounded-lg shadow p-4">
-              <div className="text-sm font-semibold text-gray-900">Video</div>
+            <div className="mt-4 bg-white rounded-lg shadow p-4 border border-[#f6e9d8]">
+              <div className="text-sm font-semibold text-[#4b2a00]">{tSafe('attractionDetail.video', 'Video')}</div>
               <div className="mt-3 w-full aspect-video bg-gray-100 rounded overflow-hidden">
                 <iframe
                   src={videoUrl}
-                  title="Attraction video"
+                  title={tSafe('attractionDetail.videoTitle', 'Attraction video')}
                   className="w-full h-full"
                   frameBorder="0"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
@@ -280,9 +465,71 @@ export default function AttractionDetail() {
             </div>
           )}
 
+          {(policies.length > 0) && (
+            <div className="mt-4 bg-white rounded-lg shadow p-4 border border-[#f6e9d8]">
+              <div className="text-sm font-semibold text-[#4b2a00]">{tSafe('attractionDetail.sections.policies', 'Policies')}</div>
+              <div className="mt-3 space-y-3 text-sm">
+                {policies.map((p) => (
+                  <div key={p.label} className="bg-[#fff7ed] border border-[#f6e9d8] rounded p-3">
+                    <div className="text-xs font-semibold text-[#4b2a00]">{p.label}</div>
+                    <div className="mt-1 text-gray-700 whitespace-pre-line">{String(p.value)}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {(rulesInfo.length > 0) && (
+            <div className="mt-4 bg-white rounded-lg shadow p-4 border border-[#f6e9d8]">
+              <div className="text-sm font-semibold text-[#4b2a00]">{tSafe('attractionDetail.sections.rules', 'Rules & important info')}</div>
+              <div className="mt-3 space-y-3 text-sm">
+                {rulesInfo.map((p) => (
+                  <div key={p.label} className="bg-[#fff7ed] border border-[#f6e9d8] rounded p-3">
+                    <div className="text-xs font-semibold text-[#4b2a00]">{p.label}</div>
+                    <div className="mt-1 text-gray-700 whitespace-pre-line">{String(p.value)}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {(contactDetails.length > 0) && (
+            <div className="mt-4 bg-white rounded-lg shadow p-4 border border-[#f6e9d8]">
+              <div className="text-sm font-semibold text-[#4b2a00]">{tSafe('attractionDetail.sections.contact', 'Contact')}</div>
+              <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                {contactDetails.map((f) => {
+                  let href = null;
+                  if (f.type === 'phone') href = `tel:${String(f.value).trim()}`;
+                  if (f.type === 'email') href = `mailto:${String(f.value).trim()}`;
+                  if (f.type === 'url') {
+                    const raw = String(f.value).trim();
+                    href = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+                  }
+                  return (
+                    <div key={f.label} className="flex items-start justify-between gap-3">
+                      <span className="text-gray-600">{f.label}</span>
+                      {href ? (
+                        <a
+                          href={href}
+                          target={f.type === 'url' ? '_blank' : undefined}
+                          rel={f.type === 'url' ? 'noreferrer' : undefined}
+                          className="text-[#a06b42] font-medium text-right hover:underline break-all"
+                        >
+                          {String(f.value)}
+                        </a>
+                      ) : (
+                        <span className="text-[#4b2a00] font-medium text-right break-all">{String(f.value)}</span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {hasCoords && (
-            <div className="mt-4 bg-white rounded-lg shadow p-4">
-              <div className="text-sm font-semibold text-gray-900">Location map</div>
+            <div className="mt-4 bg-white rounded-lg shadow p-4 border border-[#f6e9d8]">
+              <div className="text-sm font-semibold text-[#4b2a00]">{tSafe('attractionDetail.locationMap', 'Location map')}</div>
               <div className="mt-3 w-full h-64 rounded overflow-hidden">
                 <MapContainer center={[lat, lng]} zoom={13} style={{ height: '100%', width: '100%' }} scrollWheelZoom={false}>
                   <TileLayer
@@ -297,20 +544,20 @@ export default function AttractionDetail() {
         </div>
 
         <div>
-          <div className="bg-white rounded-lg shadow p-4">
+          <div className="bg-white rounded-lg shadow p-4 border border-[#f6e9d8]">
             {item.price != null && (
               <div className="text-xl font-semibold">{formatCurrencyRWF ? formatCurrencyRWF(unitPrice) : `RWF ${unitPrice.toLocaleString()}`}</div>
             )}
 
             <div className="mt-3 flex items-center justify-between">
-              <div className="text-xs text-gray-600">Step {step} of 3</div>
-              <div className="text-sm font-semibold text-gray-900">Total: {totalLabel}</div>
+              <div className="text-xs text-gray-600">{tSafe('attractionDetail.stepOf', 'Step {step} of {totalSteps}').replace('{step}', String(step)).replace('{totalSteps}', '3')}</div>
+              <div className="text-sm font-semibold text-[#4b2a00]">{tSafe('attractionDetail.total', 'Total')}: {totalLabel}</div>
             </div>
 
             {step === 1 && (
               <div className="grid grid-cols-1 gap-3 mt-3">
                 <div>
-                  <label className="text-sm text-gray-700">Visit date</label>
+                  <label className="text-sm text-gray-700">{tSafe('attractionDetail.visitDate', 'Visit date')}</label>
                   <div className="relative">
                     <FaCalendarAlt className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                     <input
@@ -323,7 +570,7 @@ export default function AttractionDetail() {
                   </div>
                 </div>
                 <div>
-                  <label className="text-sm text-gray-700">Time slot</label>
+                  <label className="text-sm text-gray-700">{tSafe('attractionDetail.timeSlot', 'Time slot')}</label>
                   <select
                     value={form.timeSlot}
                     onChange={e => {
@@ -333,16 +580,16 @@ export default function AttractionDetail() {
                     }}
                     className="w-full px-3 py-2 border rounded"
                   >
-                    <option value="">Select a slot</option>
+                    <option value="">{tSafe('attractionDetail.selectSlot', 'Select a slot')}</option>
                     {Array.isArray(availabilityInfo?.slots) ? availabilityInfo.slots.map((s) => (
                       <option key={s} value={s}>{s}</option>
                     )) : null}
                   </select>
-                  <div className="text-xs text-gray-500 mt-1">Click "Check availability" to load slots for the selected date.</div>
+                  <div className="text-xs text-gray-500 mt-1">{tSafe('attractionDetail.slotsHint', 'Click "Check availability" to load slots for the selected date.')}</div>
                 </div>
 
                 <div>
-                  <label className="text-sm text-gray-700">Tickets</label>
+                  <label className="text-sm text-gray-700">{tSafe('attractionDetail.tickets', 'Tickets')}</label>
                   <input
                     type="number"
                     min={1}
@@ -358,27 +605,27 @@ export default function AttractionDetail() {
                     disabled={checking}
                     className="px-3 py-2 bg-[#a06b42] hover:bg-[#8f5a32] text-white rounded"
                   >
-                    {checking ? 'Checking...' : 'Check availability'}
+                    {checking ? tSafe('attractionDetail.checking', 'Checking...') : tSafe('attractionDetail.checkAvailability', 'Check availability')}
                   </button>
                   {available !== null && (
                     <span className={`text-sm ${available ? 'text-green-600' : 'text-red-600'}`}>
-                      {available ? 'Available' : 'Not available'}
+                      {available ? tSafe('attractionDetail.available', 'Available') : tSafe('attractionDetail.notAvailable', 'Not available')}
                     </span>
                   )}
                 </div>
 
                 {availabilityInfo?.reason === 'closed' && (
-                  <div className="text-xs text-red-600">This attraction is closed on the selected date.</div>
+                  <div className="text-xs text-red-600">{tSafe('attractionDetail.closedOnDate', 'This attraction is closed on the selected date.')}</div>
                 )}
                 {availabilityInfo?.reason === 'slot_required' && (
-                  <div className="text-xs text-red-600">Please select a time slot.</div>
+                  <div className="text-xs text-red-600">{tSafe('attractionDetail.slotRequired', 'Please select a time slot.')}</div>
                 )}
                 {availabilityInfo?.reason === 'invalid_slot' && (
-                  <div className="text-xs text-red-600">Selected time slot is not valid for this attraction.</div>
+                  <div className="text-xs text-red-600">{tSafe('attractionDetail.invalidSlot', 'Selected time slot is not valid for this attraction.')}</div>
                 )}
                 {availabilityInfo?.reason === 'capacity' && (
                   <div className="text-xs text-red-600">
-                    Not enough remaining capacity{Number.isFinite(Number(availabilityInfo?.remaining)) ? ` (remaining: ${Math.max(0, Number(availabilityInfo?.remaining))})` : ''}.
+                    {tSafe('attractionDetail.notEnoughCapacityInline', 'Not enough remaining capacity')}{Number.isFinite(Number(availabilityInfo?.remaining)) ? ` (${tSafe('attractionDetail.remaining', 'remaining')}: ${Math.max(0, Number(availabilityInfo?.remaining))})` : ''}.
                   </div>
                 )}
                 <button
@@ -386,7 +633,7 @@ export default function AttractionDetail() {
                   onClick={nextFromStep1}
                   className="px-4 py-2 bg-[#a06b42] hover:bg-[#8f5a32] text-white rounded"
                 >
-                  Continue
+                  {tSafe('attractionDetail.continue', 'Continue')}
                 </button>
               </div>
             )}
@@ -395,7 +642,7 @@ export default function AttractionDetail() {
               <div className="grid grid-cols-1 gap-3 mt-3">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="text-sm text-gray-700">First name</label>
+                    <label className="text-sm text-gray-700">{tSafe('attractionDetail.firstName', 'First name')}</label>
                     <input
                       value={contact.firstName}
                       onChange={e => setContact({ ...contact, firstName: e.target.value })}
@@ -403,7 +650,7 @@ export default function AttractionDetail() {
                     />
                   </div>
                   <div>
-                    <label className="text-sm text-gray-700">Last name</label>
+                    <label className="text-sm text-gray-700">{tSafe('attractionDetail.lastName', 'Last name')}</label>
                     <input
                       value={contact.lastName}
                       onChange={e => setContact({ ...contact, lastName: e.target.value })}
@@ -412,7 +659,7 @@ export default function AttractionDetail() {
                   </div>
                 </div>
                 <div>
-                  <label className="text-sm text-gray-700">Email</label>
+                  <label className="text-sm text-gray-700">{tSafe('attractionDetail.email', 'Email')}</label>
                   <input
                     type="email"
                     value={contact.email}
@@ -421,7 +668,7 @@ export default function AttractionDetail() {
                   />
                 </div>
                 <div>
-                  <label className="text-sm text-gray-700">Phone number *</label>
+                  <label className="text-sm text-gray-700">{tSafe('attractionDetail.phoneNumber', 'Phone number *')}</label>
                   <input
                     value={contact.phone}
                     onChange={e => setContact({ ...contact, phone: e.target.value })}
@@ -429,7 +676,7 @@ export default function AttractionDetail() {
                   />
                 </div>
                 <div>
-                  <label className="text-sm text-gray-700">Notes (optional)</label>
+                  <label className="text-sm text-gray-700">{tSafe('attractionDetail.notesOptional', 'Notes (optional)')}</label>
                   <textarea
                     value={form.notes}
                     onChange={e => setForm({ ...form, notes: e.target.value })}
@@ -443,14 +690,14 @@ export default function AttractionDetail() {
                     onClick={() => setStep(1)}
                     className="px-4 py-2 bg-gray-100 text-gray-800 rounded border"
                   >
-                    Back
+                    {tSafe('attractionDetail.back', 'Back')}
                   </button>
                   <button
                     type="button"
                     onClick={nextFromStep2}
                     className="px-4 py-2 bg-[#a06b42] hover:bg-[#8f5a32] text-white rounded"
                   >
-                    Continue
+                    {tSafe('attractionDetail.continue', 'Continue')}
                   </button>
                 </div>
               </div>
@@ -460,21 +707,21 @@ export default function AttractionDetail() {
               <div className="grid grid-cols-1 gap-3 mt-3">
                 <div className="text-sm text-gray-700">
                   <div className="flex items-center justify-between">
-                    <span>Visit date</span>
+                    <span>{tSafe('attractionDetail.visitDate', 'Visit date')}</span>
                     <span className="font-semibold text-gray-900">{form.visitDate}</span>
                   </div>
                   {form.timeSlot ? (
                     <div className="flex items-center justify-between mt-1">
-                      <span>Time slot</span>
+                      <span>{tSafe('attractionDetail.timeSlot', 'Time slot')}</span>
                       <span className="font-semibold text-gray-900">{form.timeSlot}</span>
                     </div>
                   ) : null}
                   <div className="flex items-center justify-between mt-1">
-                    <span>Tickets</span>
+                    <span>{tSafe('attractionDetail.tickets', 'Tickets')}</span>
                     <span className="font-semibold text-gray-900">{qty}</span>
                   </div>
                   <div className="flex items-center justify-between mt-1">
-                    <span>Total</span>
+                    <span>{tSafe('attractionDetail.total', 'Total')}</span>
                     <span className="font-semibold text-gray-900">{totalLabel}</span>
                   </div>
                 </div>
@@ -487,7 +734,7 @@ export default function AttractionDetail() {
                       ? 'bg-[#a06b42] text-white border-[#a06b42]'
                       : 'bg-[#f6e9d8] text-[#4b2a00] border-[#d4c4b0] hover:bg-[#e8dcc8]'}`}
                   >
-                    Pay on Arrival
+                    {tSafe('attractionDetail.payOnArrival', 'Pay on Arrival')}
                   </button>
                   <button
                     type="button"
@@ -496,7 +743,7 @@ export default function AttractionDetail() {
                       ? 'bg-[#a06b42] text-white border-[#a06b42]'
                       : 'bg-[#f6e9d8] text-[#4b2a00] border-[#d4c4b0] hover:bg-[#e8dcc8]'}`}
                   >
-                    MTN Mobile Money
+                    {tSafe('attractionDetail.mtnMobileMoney', 'MTN Mobile Money')}
                   </button>
                 </div>
 
@@ -506,7 +753,7 @@ export default function AttractionDetail() {
                     onClick={() => setStep(2)}
                     className="px-4 py-2 bg-gray-100 text-gray-800 rounded border"
                   >
-                    Back
+                    {tSafe('attractionDetail.back', 'Back')}
                   </button>
                   <button
                     type="button"
@@ -514,12 +761,12 @@ export default function AttractionDetail() {
                     disabled={booking || isOwnerViewing}
                     className="px-4 py-2 bg-[#a06b42] hover:bg-[#8f5a32] text-white rounded"
                   >
-                    {booking ? 'Booking...' : 'Confirm & book'}
+                    {booking ? tSafe('attractionDetail.booking', 'Booking...') : tSafe('attractionDetail.confirmBook', 'Confirm & book')}
                   </button>
                 </div>
 
                 {isOwnerViewing && (
-                  <div className="text-xs text-red-600">You can’t book your own attraction.</div>
+                  <div className="text-xs text-red-600">{tSafe('attractionDetail.cantBookOwn', 'You can’t book your own attraction.')}</div>
                 )}
 
                 {item?.owner && (
@@ -528,7 +775,7 @@ export default function AttractionDetail() {
                     onClick={() => navigate(`/messages?to=${item.owner}`)}
                     className="px-4 py-2 bg-gray-100 text-gray-800 rounded border"
                   >
-                    Message host
+                    {tSafe('attractionDetail.messageHost', 'Message host')}
                   </button>
                 )}
               </div>
