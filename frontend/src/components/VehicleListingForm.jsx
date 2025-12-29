@@ -1,35 +1,13 @@
 import React, { forwardRef, useEffect, useMemo, useState } from 'react';
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
-import L from 'leaflet';
 import { useLocale } from '../contexts/LocaleContext';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 import { FaUpload } from 'react-icons/fa';
+import MapboxLocationPicker from './MapboxLocationPicker';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const DEFAULT_MAP_CENTER = { lat: -1.9536, lng: 30.0606 };
-
-const redPinSvg = encodeURIComponent(
-  '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="48" viewBox="0 0 32 48" fill="none"><path d="M16 2C10 2 5 7 5 13c0 8 11 18 11 18s11-10 11-18C27 7 22 2 16 2z" fill="#FF5A5F"/><circle cx="16" cy="13" r="4" fill="white"/></svg>'
-);
-
-const redPinIcon = new L.Icon({
-  iconUrl: `data:image/svg+xml,${redPinSvg}`,
-  iconSize: [32, 48],
-  iconAnchor: [16, 48]
-});
-
-const VehicleLocationMarker = ({ position, onChange }) => {
-  useMapEvents({
-    click(e) {
-      onChange(e.latlng);
-    }
-  });
-
-  if (!position) return null;
-  return <Marker position={position} icon={redPinIcon} />;
-};
 
 const policyDefaults = {
   fuelPolicy: 'Full to full',
@@ -781,21 +759,14 @@ const VehicleListingForm = forwardRef(({ onCreated, onSuccess }, ref) => {
               onChange={e => setForm({ ...form, location: e.target.value })}
             />
             <div className="h-64 rounded-2xl overflow-hidden border border-gray-200">
-              <MapContainer
-                center={pickupPosition}
+              <MapboxLocationPicker
+                latitude={pickupPosition.lat}
+                longitude={pickupPosition.lng}
                 zoom={13}
-                scrollWheelZoom={false}
+                scrollZoom={false}
+                onChange={({ lat, lng }) => updateLocationFromMap({ lat, lng })}
                 className="h-full w-full"
-              >
-                <TileLayer
-                  attribution="&copy; <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a> contributors"
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                />
-                <VehicleLocationMarker
-                  position={pickupPosition}
-                  onChange={updateLocationFromMap}
-                />
-              </MapContainer>
+              />
             </div>
             <p className="text-xs text-gray-500 mt-1">Click on the map to set an approximate pickup/drop-off point.</p>
 

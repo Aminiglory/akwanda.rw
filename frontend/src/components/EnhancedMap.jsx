@@ -1,28 +1,8 @@
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
-import { useEffect, useState } from 'react';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
-import 'leaflet.markercluster/dist/MarkerCluster.css';
-import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
-import MarkerClusterGroup from 'react-leaflet-cluster';
-
-// Fix for default marker icons in Next.js
-const createClusterCustomIcon = (cluster) => {
-  return L.divIcon({
-    html: `<span class="cluster-badge">${cluster.getChildCount()}</span>`,
-    className: 'custom-marker-cluster',
-    iconSize: L.point(40, 40, true),
-  });
-};
-const customIcon = L.icon({
-  iconUrl: '/marker-icon.png', // Add your custom marker icon
-  iconSize: [32, 32],
-  iconAnchor: [16, 32],
-  popupAnchor: [0, -32]
-});
+import { useEffect, useMemo, useRef, useState } from 'react';
+import Map, { Marker, NavigationControl } from 'react-map-gl';
 
 export default function EnhancedMap({ properties, selectedProperty, onPropertySelect }) {
-  const [map, setMap] = useState(null);
+  const mapRef = useRef(null);
   const [activeFilter, setActiveFilter] = useState('all');
   
   // Filter properties based on active filter
@@ -31,15 +11,44 @@ export default function EnhancedMap({ properties, selectedProperty, onPropertySe
     return property.type === activeFilter;
   });
 
+  const mapboxAccessToken =
+    import.meta.env.VITE_MAPBOX_ACCESS_TOKEN ||
+    'pk.eyJ1IjoiYW5zd2Vyam9obnNvbjYiLCJhIjoiY21qbnlkOXRlMnpwZTNlcXp0dDlpemNueCJ9.aa3QMnrPR9XxsI9tXFhq4Qpk.eyJ1IjoiYW5zd2Vyam9obnNvbjYiLCJhIjoiY21qbnlkOXRlMnpwZTNlcXp0dDlpemNueCJ9.aa3QMnrPR9XxsI9tXFhq4Q';
+
+  const bounds = useMemo(() => {
+    const points = (filteredProperties || [])
+      .map((p) => ({
+        lat: Number(p.lat),
+        lng: Number(p.lng),
+      }))
+      .filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng));
+
+    if (!points.length) return null;
+
+    let minLng = points[0].lng;
+    let maxLng = points[0].lng;
+    let minLat = points[0].lat;
+    let maxLat = points[0].lat;
+
+    for (const p of points) {
+      minLng = Math.min(minLng, p.lng);
+      maxLng = Math.max(maxLng, p.lng);
+      minLat = Math.min(minLat, p.lat);
+      maxLat = Math.max(maxLat, p.lat);
+    }
+
+    return [
+      [minLng, minLat],
+      [maxLng, maxLat],
+    ];
+  }, [filteredProperties]);
+
   // Fit bounds when filtered properties change
   useEffect(() => {
-    if (map && filteredProperties.length > 0) {
-      const bounds = L.latLngBounds(
-        filteredProperties.map(prop => [prop.lat, prop.lng])
-      );
-      map.fitBounds(bounds, { padding: [50, 50] });
-    }
-  }, [map, filteredProperties]);
+    const map = mapRef.current?.getMap?.();
+    if (!map || !bounds) return;
+    map.fitBounds(bounds, { padding: 50, duration: 600 });
+  }, [bounds]);
 
   return (
     <div className="relative h-full w-full">
@@ -60,56 +69,43 @@ export default function EnhancedMap({ properties, selectedProperty, onPropertySe
         ))}
       </div>
 
-      <MapContainer
-        center={[-1.9403, 29.8739]} // Default to Rwanda center
-        zoom={12}
+      <Map
+        ref={mapRef}
+        initialViewState={{ latitude: -1.9403, longitude: 29.8739, zoom: 12 }}
+        mapboxAccessToken={mapboxAccessToken}
+        mapStyle="mapbox://styles/mapbox/navigation-day-v1"
+        attributionControl={false}
+        reuseMaps
         style={{ height: '100%', width: '100%' }}
-        whenCreated={setMap}
       >
-        <TileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        />
-        
-        <MarkerClusterGroup
-          chunkedLoading
-          iconCreateFunction={createClusterCustomIcon}
-          maxClusterRadius={40}
-          spiderfyOnMaxZoom={true}
-          showCoverageOnHover={false}
-        >
-          {filteredProperties.map(property => (
-            <Marker
-              key={property.id}
-              position={[property.lat, property.lng]}
-              icon={customIcon}
-              eventHandlers={{
-                click: () => onPropertySelect(property),
-              }}
-            >
-              <Popup>
-                <div className="w-48">
-                  <img 
-                    src={property.images?.[0] || '/placeholder.jpg'} 
-                    alt={property.name}
-                    className="w-full h-24 object-cover rounded-t-lg"
+        <NavigationControl position="bottom-right" showCompass={false} />
+
+        {filteredProperties.map((property) => {
+          const lat = Number(property.lat);
+          const lng = Number(property.lng);
+          if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+          const isSelected = selectedProperty && ((selectedProperty.id || selectedProperty._id) === (property.id || property._id));
+
+          return (
+            <Marker key={property.id} longitude={lng} latitude={lat} anchor="bottom">
+              <button
+                type="button"
+                onClick={() => onPropertySelect?.(property)}
+                className="cursor-pointer"
+                style={{ transform: 'translateY(-6px)' }}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="26" height="38" viewBox="0 0 32 48" fill="none">
+                  <path
+                    d="M16 2C10 2 5 7 5 13c0 8 11 18 11 18s11-10 11-18C27 7 22 2 16 2z"
+                    fill={isSelected ? '#b91c1c' : '#FF5A5F'}
                   />
-                  <div className="p-2">
-                    <h3 className="font-bold text-sm">{property.name}</h3>
-                    <p className="text-xs text-gray-600">${property.price} / night</p>
-                    <div className="flex items-center mt-1">
-                      <span className="text-yellow-500">★</span>
-                      <span className="text-xs ml-1">
-                        {property.rating || 'N/A'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </Popup>
+                  <circle cx="16" cy="13" r="4" fill="white" />
+                </svg>
+              </button>
             </Marker>
-          ))}
-        </MarkerClusterGroup>
-      </MapContainer>
+          );
+        })}
+      </Map>
     </div>
   );
 }

@@ -3,71 +3,13 @@ import { FaPlus, FaTrash, FaUpload, FaBed, FaBath, FaMapMarkerAlt, FaDollarSign,
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
-import 'leaflet/dist/leaflet.css';
-import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
-import L from 'leaflet';
 import { useLocale } from '../contexts/LocaleContext';
+import MapboxLocationPicker from '../components/MapboxLocationPicker';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-// Simple red pin SVG (clean location pin similar to booking-style pins)
-const redPinSvg = encodeURIComponent(
-  '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="48" viewBox="0 0 32 48" fill="none"><path d="M16 2C10 2 5 7 5 13c0 8 11 18 11 18s11-10 11-18C27 7 22 2 16 2z" fill="#FF5A5F"/><circle cx="16" cy="13" r="4" fill="white"/></svg>'
-);
-
-// Red pin icon for map marker using the inline SVG above
-const redPinIcon = new L.Icon({
-  iconUrl: `data:image/svg+xml;charset=UTF-8,${redPinSvg}`,
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-  iconSize: [32, 48],
-  // Anchor at the bottom center so the tip of the pin matches the map location
-  iconAnchor: [16, 48],
-  shadowSize: [41, 41],
-});
-
 // Fallback center (Kigali) when no coordinates are set yet
 const KigaliFallbackCenter = { lat: -1.9536, lng: 30.0606 };
-
-const DraggableLocationMarker = ({ position, onPositionChange }) => {
-  const [markerPos, setMarkerPos] = useState(position);
-
-  useEffect(() => {
-    setMarkerPos(position);
-  }, [position.lat, position.lng]);
-
-  useMapEvents({
-    click(e) {
-      setMarkerPos(e.latlng);
-      onPositionChange(e.latlng);
-    },
-  });
-
-  return (
-    <Marker
-      position={markerPos}
-      draggable
-      icon={redPinIcon}
-      eventHandlers={{
-        dragend(event) {
-          const latlng = event.target.getLatLng();
-          setMarkerPos(latlng);
-          onPositionChange(latlng);
-        },
-      }}
-    />
-  );
-};
-
-const RecenterOnChange = ({ center }) => {
-  const map = useMap();
-
-  useEffect(() => {
-    if (!center || typeof center[0] !== 'number' || typeof center[1] !== 'number') return;
-    map.setView(center);
-  }, [center?.[0], center?.[1]]);
-
-  return null;
-};
 
 const EnhancedUploadProperty = () => {
   const navigate = useNavigate();
@@ -1071,33 +1013,13 @@ const EnhancedUploadProperty = () => {
                   {/* Interactive map with draggable pin */}
                   <div className="mt-1">
                     <div className="w-full h-64 md:h-72 bg-gray-200 rounded-lg relative overflow-hidden border border-gray-200">
-                      <MapContainer
-                        center={[
-                          formData.latitude ?? KigaliFallbackCenter.lat,
-                          formData.longitude ?? KigaliFallbackCenter.lng,
-                        ]}
+                      <MapboxLocationPicker
+                        latitude={formData.latitude ?? KigaliFallbackCenter.lat}
+                        longitude={formData.longitude ?? KigaliFallbackCenter.lng}
                         zoom={15}
-                        scrollWheelZoom
+                        onChange={({ lat, lng }) => updateLocationFromMap(lat, lng)}
                         className="w-full h-full"
-                      >
-                        <RecenterOnChange
-                          center={[
-                            formData.latitude ?? KigaliFallbackCenter.lat,
-                            formData.longitude ?? KigaliFallbackCenter.lng,
-                          ]}
-                        />
-                        <TileLayer
-                          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                          attribution="&copy; OpenStreetMap contributors"
-                        />
-                        <DraggableLocationMarker
-                          position={{
-                            lat: formData.latitude ?? KigaliFallbackCenter.lat,
-                            lng: formData.longitude ?? KigaliFallbackCenter.lng,
-                          }}
-                          onPositionChange={(latlng) => updateLocationFromMap(latlng.lat, latlng.lng)}
-                        />
-                      </MapContainer>
+                      />
                     </div>
                     <div className="mt-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs text-gray-600">
                       <span>

@@ -13,13 +13,17 @@ export function useDirections() {
   }, []);
 
   const getDirections = useCallback((destination) => {
-    if (!window.google || !window.google.maps) {
-      setDirectionsErrorKey('map.directions.unavailable');
+    if (!destination || destination.lat == null || destination.lng == null) {
+      setDirectionsErrorKey('map.directions.invalidDestination');
       return;
     }
 
-    if (!destination || destination.lat == null || destination.lng == null) {
-      setDirectionsErrorKey('map.directions.invalidDestination');
+    const accessToken =
+      import.meta.env.VITE_MAPBOX_ACCESS_TOKEN ||
+      'pk.eyJ1IjoiYW5zd2Vyam9obnNvbjYiLCJhIjoiY21qbnlkOXRlMnpwZTNlcXp0dDlpemNueCJ9.aa3QMnrPR9XxsI9tXFhq4Qpk.eyJ1IjoiYW5zd2Vyam9obnNvbjYiLCJhIjoiY21qbnlkOXRlMnpwZTNlcXp0dDlpemNueCJ9.aa3QMnrPR9XxsI9tXFhq4Q';
+
+    if (!accessToken) {
+      setDirectionsErrorKey('map.directions.unavailable');
       return;
     }
 
@@ -32,29 +36,44 @@ export function useDirections() {
     setDirectionsErrorKey(null);
 
     navigator.geolocation.getCurrentPosition(
-      (position) => {
+      async (position) => {
         const origin = {
           lat: position.coords.latitude,
           lng: position.coords.longitude,
         };
 
-        const service = new window.google.maps.DirectionsService();
+        try {
+          const url =
+            `https://api.mapbox.com/directions/v5/mapbox/driving/` +
+            `${origin.lng},${origin.lat};${destination.lng},${destination.lat}` +
+            `?geometries=geojson&overview=full&access_token=${encodeURIComponent(accessToken)}`;
 
-        service.route(
-          {
-            origin,
-            destination,
-            travelMode: window.google.maps.TravelMode.DRIVING,
-          },
-          (result, status) => {
-            if (status === window.google.maps.DirectionsStatus.OK && result) {
-              setDirections(result);
-            } else {
-              setDirectionsErrorKey('map.directions.failed');
-            }
-            setLoadingDirections(false);
+          const res = await fetch(url);
+          const data = await res.json().catch(() => null);
+
+          const coords = data?.routes?.[0]?.geometry?.coordinates;
+          if (!res.ok || !Array.isArray(coords) || coords.length < 2) {
+            setDirectionsErrorKey('map.directions.failed');
+            setDirections(null);
+          } else {
+            setDirections({
+              type: 'Feature',
+              geometry: {
+                type: 'LineString',
+                coordinates: coords,
+              },
+              properties: {
+                distance: data?.routes?.[0]?.distance,
+                duration: data?.routes?.[0]?.duration,
+              },
+            });
           }
-        );
+        } catch (_) {
+          setDirectionsErrorKey('map.directions.failed');
+          setDirections(null);
+        } finally {
+          setLoadingDirections(false);
+        }
       },
       () => {
         setLoadingDirections(false);

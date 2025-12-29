@@ -3,11 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { FaMapMarkerAlt, FaCalendarAlt } from 'react-icons/fa';
 import { useLocale } from '../contexts/LocaleContext';
-import { MapContainer, TileLayer, Marker } from 'react-leaflet';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
-import markerIcon from 'leaflet/dist/images/marker-icon.png';
-import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+import Map, { Marker } from 'react-map-gl';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 const makeAbsolute = (u) => {
@@ -17,13 +13,6 @@ const makeAbsolute = (u) => {
   if (!s.startsWith('/')) s = `/${s}`;
   return `${API_URL}${s}`;
 };
-
-const defaultMarkerIcon = L.icon({
-  iconUrl: markerIcon,
-  shadowUrl: markerShadow,
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-});
 
 const getVideoEmbedUrl = (raw) => {
   if (!raw) return null;
@@ -70,6 +59,10 @@ export default function AttractionDetail() {
   const [viewerId, setViewerId] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('cash'); // 'cash' | 'mtn_mobile_money'
   const today = useMemo(() => new Date().toISOString().split('T')[0], []);
+
+  const mapboxAccessToken =
+    import.meta.env.VITE_MAPBOX_ACCESS_TOKEN ||
+    'pk.eyJ1IjoiYW5zd2Vyam9obnNvbjYiLCJhIjoiY21qbnlkOXRlMnpwZTNlcXp0dDlpemNueCJ9.aa3QMnrPR9XxsI9tXFhq4Qpk.eyJ1IjoiYW5zd2Vyam9obnNvbjYiLCJhIjoiY21qbnlkOXRlMnpwZTNlcXp0dDlpemNueCJ9.aa3QMnrPR9XxsI9tXFhq4Q';
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({
     visitDate: '',
@@ -531,13 +524,29 @@ export default function AttractionDetail() {
             <div className="mt-4 bg-white rounded-lg shadow p-4 border border-[#f6e9d8]">
               <div className="text-sm font-semibold text-[#4b2a00]">{tSafe('attractionDetail.locationMap', 'Location map')}</div>
               <div className="mt-3 w-full h-64 rounded overflow-hidden">
-                <MapContainer center={[lat, lng]} zoom={13} style={{ height: '100%', width: '100%' }} scrollWheelZoom={false}>
-                  <TileLayer
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                  />
-                  <Marker position={[lat, lng]} icon={defaultMarkerIcon} />
-                </MapContainer>
+                <Map
+                  initialViewState={{ latitude: lat, longitude: lng, zoom: 13 }}
+                  mapboxAccessToken={mapboxAccessToken}
+                  mapStyle="mapbox://styles/mapbox/streets-v12"
+                  attributionControl={false}
+                  scrollZoom={false}
+                  dragPan={false}
+                  dragRotate={false}
+                  doubleClickZoom={false}
+                  touchZoomRotate={false}
+                  keyboard={false}
+                  style={{ height: '100%', width: '100%' }}
+                  reuseMaps
+                >
+                  <Marker longitude={lng} latitude={lat} anchor="bottom">
+                    <div style={{ transform: 'translateY(-6px)' }}>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="36" viewBox="0 0 32 48" fill="none">
+                        <path d="M16 2C10 2 5 7 5 13c0 8 11 18 11 18s11-10 11-18C27 7 22 2 16 2z" fill="#FF5A5F"/>
+                        <circle cx="16" cy="13" r="4" fill="white"/>
+                      </svg>
+                    </div>
+                  </Marker>
+                </Map>
               </div>
             </div>
           )}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
-import { GoogleMap, OverlayView, DirectionsRenderer, useLoadScript } from '@react-google-maps/api';
+import Map, { Marker, NavigationControl, Source, Layer } from 'react-map-gl';
 import { FaBed, FaBath, FaMapMarkerAlt, FaArrowLeft, FaStar } from 'react-icons/fa';
 import { useLocale } from '../contexts/LocaleContext';
 import { useDirections } from '../hooks/useDirections';
@@ -32,14 +32,12 @@ const PropertyMapView = () => {
   const { formatCurrencyRWF, t } = useLocale() || {};
   const location = useLocation();
   const navigate = useNavigate();
-  const { isLoaded, loadError } = useLoadScript({
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
-  });
   const initialFocused = location.state?.focusedProperty || null;
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedProperty, setSelectedProperty] = useState(initialFocused);
   const [mapCenter, setMapCenter] = useState(null);
+  const [viewState, setViewState] = useState(null);
   const [autoRequestedDirections, setAutoRequestedDirections] = useState(false);
   const [activeFilters, setActiveFilters] = useState({
     type: 'all',
@@ -66,6 +64,21 @@ const PropertyMapView = () => {
     getDirections,
     clearDirections,
   } = useDirections();
+
+  const mapboxAccessToken =
+    import.meta.env.VITE_MAPBOX_ACCESS_TOKEN ||
+    'pk.eyJ1IjoiYW5zd2Vyam9obnNvbjYiLCJhIjoiY21qbnlkOXRlMnpwZTNlcXp0dDlpemNueCJ9.aa3QMnrPR9XxsI9tXFhq4Qpk.eyJ1IjoiYW5zd2Vyam9obnNvbjYiLCJhIjoiY21qbnlkOXRlMnpwZTNlcXp0dDlpemNueCJ9.aa3QMnrPR9XxsI9tXFhq4Q';
+
+  useEffect(() => {
+    if (!mapCenter || mapCenter.lat == null || mapCenter.lng == null) return;
+    setViewState((prev) => ({
+      longitude: Number(mapCenter.lng),
+      latitude: Number(mapCenter.lat),
+      zoom: prev?.zoom ?? 13,
+      bearing: prev?.bearing ?? 0,
+      pitch: prev?.pitch ?? 0,
+    }));
+  }, [mapCenter?.lat, mapCenter?.lng]);
 
   // Auto-request directions when coming from a card with requestDirections flag
   useEffect(() => {
@@ -192,7 +205,7 @@ const PropertyMapView = () => {
     }
   }
 
-  if (loading || !isLoaded) {
+  if (loading || !mapCenter || !viewState) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
@@ -233,73 +246,72 @@ const PropertyMapView = () => {
 
       {/* Map Container (Google Maps) */}
       <div className="h-full w-full pt-16">
-        {mapCenter && (
-          <GoogleMap
-            center={mapCenter}
-            zoom={13}
-            mapContainerStyle={{ height: '100%', width: '100%' }}
-            options={{
-              disableDefaultUI: false,
-              clickableIcons: false,
-            }}
-          >
-            {filteredProperties.map((property) => {
-              if (property.latitude == null || property.longitude == null) return null;
-              const isSelected = selectedProperty && ((selectedProperty.id || selectedProperty._id) === (property.id || property._id));
-              const label = getMarkerLabel(property);
-              return (
-                <OverlayView
-                  key={property.id}
-                  position={{ lat: Number(property.latitude), lng: Number(property.longitude) }}
-                  mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
+        <Map
+          {...viewState}
+          onMove={(evt) => setViewState(evt.viewState)}
+          mapboxAccessToken={mapboxAccessToken}
+          mapStyle="mapbox://styles/mapbox/light-v11"
+          attributionControl={false}
+          reuseMaps
+        >
+          <NavigationControl position="bottom-right" showCompass={false} />
+
+          {filteredProperties.map((property) => {
+            if (property.latitude == null || property.longitude == null) return null;
+            const isSelected = selectedProperty && ((selectedProperty.id || selectedProperty._id) === (property.id || property._id));
+            const label = getMarkerLabel(property);
+
+            return (
+              <Marker
+                key={property.id}
+                longitude={Number(property.longitude)}
+                latitude={Number(property.latitude)}
+                anchor="bottom"
+              >
+                <div
+                  onMouseEnter={() => handleMarkerHover(property)}
+                  onMouseLeave={handleMarkerLeave}
+                  onClick={() => handleMarkerClick(property)}
+                  className="cursor-pointer"
                 >
                   <div
-                    onMouseEnter={() => handleMarkerHover(property)}
-                    onMouseLeave={handleMarkerLeave}
-                    onClick={() => handleMarkerClick(property)}
-                    className="cursor-pointer"
                     style={{
-                      transform: 'translate(-50%, -100%)',
+                      backgroundColor: isSelected ? '#b91c1c' : '#1d4ed8',
+                      color: '#ffffff',
+                      padding: isSelected ? '7px 22px' : '5px 20px',
+                      borderRadius: 9999,
+                      fontWeight: 700,
+                      fontSize: isSelected ? 12 : 11,
+                      lineHeight: 1.1,
+                      boxShadow: '0 10px 25px rgba(15,23,42,0.55)',
+                      whiteSpace: 'nowrap',
+                      border: '1px solid rgba(255,255,255,0.85)',
+                      textAlign: 'center',
+                      display: 'inline-block',
+                      transform: 'translateY(-10px)',
                     }}
                   >
-                    <div
-                      style={{
-                        backgroundColor: isSelected ? '#b91c1c' : '#1d4ed8',
-                        color: '#ffffff',
-                        padding: isSelected ? '7px 22px' : '5px 20px',
-                        borderRadius: 9999,
-                        fontWeight: 700,
-                        fontSize: isSelected ? 12 : 11,
-                        lineHeight: 1.1,
-                        boxShadow: '0 10px 25px rgba(15,23,42,0.55)',
-                        whiteSpace: 'nowrap',
-                        border: '1px solid rgba(255,255,255,0.85)',
-                        textAlign: 'center',
-                        display: 'inline-block',
-                      }}
-                    >
-                      {label}
-                    </div>
+                    {label}
                   </div>
-                </OverlayView>
-              );
-            })}
+                </div>
+              </Marker>
+            );
+          })}
 
-            {directions && (
-              <DirectionsRenderer
-                directions={directions}
-                options={{
-                  suppressMarkers: true,
-                  polylineOptions: {
-                    strokeColor: '#8b5a2b',
-                    strokeOpacity: 0.9,
-                    strokeWeight: 5,
-                  },
+          {directions && (
+            <Source id="route" type="geojson" data={directions}>
+              <Layer
+                id="route-line"
+                type="line"
+                paint={{
+                  'line-color': '#8b5a2b',
+                  'line-width': 5,
+                  'line-opacity': 0.9,
                 }}
               />
-            )}
-          </GoogleMap>
-        )}
+            </Source>
+          )}
+        </Map>
       </div>
 
       {/* Property Details Panel */}

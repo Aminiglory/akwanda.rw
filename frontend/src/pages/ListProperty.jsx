@@ -1,6 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
-import L from 'leaflet';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useLocale } from '../contexts/LocaleContext';
@@ -8,46 +6,11 @@ import toast from 'react-hot-toast';
 import EnhancedUploadProperty from './EnhancedUploadProperty';
 import VehicleListingForm from '../components/VehicleListingForm';
 import { FaUpload } from 'react-icons/fa';
+import MapboxLocationPicker from '../components/MapboxLocationPicker';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const DEFAULT_MAP_CENTER = { lat: -1.9536, lng: 30.0606 };
-
-const redPinSvg = encodeURIComponent(
-  '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="48" viewBox="0 0 32 48" fill="none"><path d="M16 2C10 2 5 7 5 13c0 8 11 18 11 18s11-10 11-18C27 7 22 2 16 2z" fill="#FF5A5F"/><circle cx="16" cy="13" r="4" fill="white"/></svg>'
-);
-
-const redPinIcon = new L.Icon({
-  iconUrl: `data:image/svg+xml;charset=UTF-8,${redPinSvg}`,
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-  iconSize: [32, 48],
-  iconAnchor: [16, 48],
-  shadowSize: [41, 41]
-});
-
-const LocationMapPicker = ({ position, onPositionChange }) => {
-  const map = useMapEvents({ click(e) { onPositionChange(e.latlng); } });
-
-  useEffect(() => {
-    if (position) {
-      map.setView(position);
-    }
-  }, [position, map]);
-
-  if (!position) return null;
-  return (
-    <Marker
-      position={position}
-      icon={redPinIcon}
-      draggable
-      eventHandlers={{
-        dragend(event) {
-          onPositionChange(event.target.getLatLng());
-        }
-      }}
-    />
-  );
-};
 
 const categoryOptions = [
   { value: 'cultural', label: 'Culture & Museums', labelKey: 'attractionWizard.categories.cultural' },
@@ -1249,21 +1212,15 @@ const ListProperty = ({ embedded = false, forceType = '', editId: editIdProp = '
           )}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-3">
             <p className="text-sm font-semibold text-gray-700">{labelOr('attractionWizard.locationMap.title', 'Location Map')}</p>
-            <MapContainer
-              center={[attractionForm.latitude, attractionForm.longitude]}
-              zoom={13}
-              scrollWheelZoom={true}
-              className="h-64 rounded-2xl"
-            >
-              <TileLayer
-                attribution='&copy; OpenStreetMap contributors'
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            <div className="h-64 rounded-2xl overflow-hidden">
+              <MapboxLocationPicker
+                latitude={attractionForm.latitude}
+                longitude={attractionForm.longitude}
+                zoom={13}
+                onChange={({ lat, lng }) => handleLocationSelected({ lat, lng })}
+                className="h-full w-full"
               />
-              <LocationMapPicker
-                position={[attractionForm.latitude, attractionForm.longitude]}
-                onPositionChange={handleLocationSelected}
-              />
-            </MapContainer>
+            </div>
             <div className="flex flex-col gap-1">
               <p className="text-xs text-gray-500">{labelOr('attractionWizard.locationMap.helper', 'Click or drag the marker to auto-fill GPS.')}</p>
               <div className="text-sm text-gray-500">Lat: {attractionForm.latitude.toFixed(5)}, Lng: {attractionForm.longitude.toFixed(5)}</div>
