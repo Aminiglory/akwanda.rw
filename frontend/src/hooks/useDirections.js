@@ -18,9 +18,10 @@ export function useDirections() {
       return;
     }
 
-    const accessToken =
+    const accessToken = String(
       import.meta.env.VITE_MAPBOX_ACCESS_TOKEN ||
-      'pk.eyJ1IjoiYW5zd2Vyam9obnNvbjYiLCJhIjoiY21qbnlkOXRlMnpwZTNlcXp0dDlpemNueCJ9.aa3QMnrPR9XxsI9tFhq4Qpk.eyJ1IjoiYW5zd2Vyam9obnNvbjYiLCJhIjoiY21qbnlkOXRlMnpwZTNlcXp0dDlpemNueCJ9.aa3QMnrPR9XxsI9tFhq4Q';
+        'pk.eyJ1IjoiYW5zd2Vyam9obnNvbjYiLCJhIjoiY21qbnlkOXRlMnpwZTNlcXp0dDlpemNueCJ9.aa3QMnrPR9XxsI9tFhq4Q'
+    ).trim();
 
     if (!accessToken) {
       setDirectionsErrorKey('map.directions.unavailable');

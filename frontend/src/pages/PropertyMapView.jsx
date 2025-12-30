@@ -65,9 +65,10 @@ const PropertyMapView = () => {
     clearDirections,
   } = useDirections();
 
-  const mapboxAccessToken =
+  const mapboxAccessToken = String(
     import.meta.env.VITE_MAPBOX_ACCESS_TOKEN ||
-    'pk.eyJ1IjoiYW5zd2Vyam9obnNvbjYiLCJhIjoiY21qbnlkOXRlMnpwZTNlcXp0dDlpemNueCJ9.aa3QMnrPR9XxsI9tFhq4Qpk.eyJ1IjoiYW5zd2Vyam9obnNvbjYiLCJhIjoiY21qbnlkOXRlMnpwZTNlcXp0dDlpemNueCJ9.aa3QMnrPR9XxsI9tFhq4Q';
+      'pk.eyJ1IjoiYW5zd2Vyam9obnNvbjYiLCJhIjoiY21qbnlkOXRlMnpwZTNlcXp0dDlpemNueCJ9.aa3QMnrPR9XxsI9tFhq4Q'
+  ).trim();
 
   useEffect(() => {
     if (!mapCenter || mapCenter.lat == null || mapCenter.lng == null) return;
