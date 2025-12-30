@@ -614,6 +614,7 @@ const dictionaries = {
         selectTimeSlot: 'Sélectionnez un créneau horaire',
         ticketsMin1: 'Le nombre de billets doit être au moins 1',
         enterPhoneNumber: 'Entrez le numéro de téléphone'
+      },
       helpers: {
         coverPhoto: 'Téléchargez une photo principale.',
         galleryPhotos: 'Téléchargez 3 à 20 images.',
