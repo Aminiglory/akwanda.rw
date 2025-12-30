@@ -242,13 +242,13 @@ const PropertyMapView = () => {
         <div className="w-8"></div> {/* For balance */}
       </header>
 
-      {/* Map Container (Google Maps) */}
+      {/* Map Container (Mapbox, Google-like light style) */}
       <div className="h-full w-full pt-16">
         <Map
           {...viewState}
           onMove={(evt) => setViewState(evt.viewState)}
           mapboxAccessToken={mapboxAccessToken}
-          mapStyle="mapbox://styles/mapbox/light-v11"
+          mapStyle="mapbox://styles/mapbox/navigation-day-v1"
           attributionControl={false}
           reuseMaps
         >
