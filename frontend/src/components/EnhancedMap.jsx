@@ -11,10 +11,7 @@ export default function EnhancedMap({ properties, selectedProperty, onPropertySe
     return property.type === activeFilter;
   });
 
-  const mapboxAccessToken = String(
-    import.meta.env.VITE_MAPBOX_ACCESS_TOKEN ||
-    'pk.eyJ1IjoiYW5zd2Vyam9obnNvbjYiLCJhIjoiY21qbnlkOXRlMnpwZTNlcXp0dDlpemNueCJ9.aa3QMnrPR9XxsI9tFhq4Q'
-  ).trim();
+  const mapboxAccessToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN?.trim() || 'pk.eyJ1IjoiYW5zd2Vyam9obnNvbjYiLCJhIjoiY21qbnlkOXRlMnpwZTNlcXp0dDlpemNueCJ9.aa3QMnrPR9XxsI9tFhq4Q';
 
   const bounds = useMemo(() => {
     const points = (filteredProperties || [])

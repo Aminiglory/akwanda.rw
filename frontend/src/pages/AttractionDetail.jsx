@@ -60,10 +60,7 @@ export default function AttractionDetail() {
   const [paymentMethod, setPaymentMethod] = useState('cash'); // 'cash' | 'mtn_mobile_money'
   const today = useMemo(() => new Date().toISOString().split('T')[0], []);
 
-  const mapboxAccessToken = String(
-    import.meta.env.VITE_MAPBOX_ACCESS_TOKEN ||
-      'pk.eyJ1IjoiYW5zd2Vyam9obnNvbjYiLCJhIjoiY21qbnlkOXRlMnpwZTNlcXp0dDlpemNueCJ9.aa3QMnrPR9XxsI9tFhq4Q'
-  ).trim();
+  const mapboxAccessToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN?.trim() || 'pk.eyJ1IjoiYW5zd2Vyam9obnNvbjYiLCJhIjoiY21qbnlkOXRlMnpwZTNlcXp0dDlpemNueCJ9.aa3QMnrPR9XxsI9tFhq4Q';
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({
     visitDate: '',

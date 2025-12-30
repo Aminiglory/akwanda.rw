@@ -11,10 +11,7 @@ export default function MapboxLocationPicker({
   className,
   mapStyle = 'mapbox://styles/mapbox/navigation-day-v1',
 }) {
-  const accessToken = String(
-    import.meta.env.VITE_MAPBOX_ACCESS_TOKEN ||
-      'pk.eyJ1IjoiYW5zd2Vyam9obnNvbjYiLCJhIjoiY21qbnlkOXRlMnpwZTNlcXp0dDlpemNueCJ9.aa3QMnrPR9XxsI9tFhq4Q'
-  ).trim();
+  const accessToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN?.trim() || 'pk.eyJ1IjoiYW5zd2Vyam9obnNvbjYiLCJhIjoiY21qbnlkOXRlMnpwZTNlcXp0dDlpemNueCJ9.aa3QMnrPR9XxsI9tFhq4Q';
 
   const safeLat = typeof latitude === 'number' ? latitude : -1.9536;
   const safeLng = typeof longitude === 'number' ? longitude : 30.0606;
