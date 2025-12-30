@@ -129,6 +129,14 @@ function App() {
 
   const AppShell = () => {
     const { user, isAuthenticated } = useAuth();
+    const suspenseFallback = (
+      <div className="w-full min-h-[60vh] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-blue-600/30 border-t-blue-600 rounded-full animate-spin mx-auto mb-3"></div>
+          <p className="text-gray-600">Loading…</p>
+        </div>
+      </div>
+    );
     return (
       <SocketProvider user={user} isAuthenticated={isAuthenticated}>
         <Router>
@@ -137,12 +145,12 @@ function App() {
             <div className="min-h-screen bg-gray-50">
             <Toaster position="top-right" />
             {/* Header */}
-            <Suspense fallback={null}>
+            <Suspense fallback={suspenseFallback}>
               <Navbar />
             </Suspense>
             {/* commit routes */}
             {/* Main Content */}
-            <Suspense fallback={null}>
+            <Suspense fallback={suspenseFallback}>
             <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/apartments" element={<ApartmentsListing />} />
@@ -233,7 +241,7 @@ function App() {
             </Suspense>
             
             {/* Footer - Hidden on messages, profile, auth pages */}
-            <Suspense fallback={null}>
+            <Suspense fallback={suspenseFallback}>
             <Routes>
               <Route path="/messages" element={null} />
               <Route path="/profile" element={null} />

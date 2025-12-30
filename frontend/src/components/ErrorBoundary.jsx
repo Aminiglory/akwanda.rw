@@ -33,7 +33,7 @@ class ErrorBoundary extends React.Component {
               <button onClick={this.handleReload} className="px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg">Reload</button>
               <a href="/" className="px-5 py-3 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg">Go Home</a>
             </div>
-            {process.env.NODE_ENV === 'development' && this.state.error && (
+            {import.meta.env.DEV && this.state.error && (
               <pre className="text-left text-xs bg-gray-50 mt-4 p-3 rounded overflow-auto max-h-48">{String(this.state.error?.stack || this.state.error)}</pre>
             )}
           </div>

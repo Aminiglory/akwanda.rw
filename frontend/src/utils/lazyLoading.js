@@ -8,9 +8,6 @@ const lazyDebugEnabled = (() => {
   if (typeof import.meta !== 'undefined' && import.meta.env) {
     return !!import.meta.env.DEV;
   }
-  if (typeof process !== 'undefined' && process.env) {
-    return process.env.NODE_ENV !== 'production';
-  }
   return false;
 })();
 
