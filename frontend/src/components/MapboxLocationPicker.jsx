@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Map, { Marker, NavigationControl } from 'react-map-gl';
+import { applyGoogleLikeStyle } from '../utils/mapboxGoogleLikeStyle';
 
 export default function MapboxLocationPicker({
   latitude,
@@ -56,6 +57,7 @@ export default function MapboxLocationPicker({
       }}
       mapboxAccessToken={accessToken}
       mapStyle={mapStyle}
+      onLoad={(evt) => applyGoogleLikeStyle(evt.target)}
       attributionControl={false}
       scrollZoom={scrollZoom}
       reuseMaps

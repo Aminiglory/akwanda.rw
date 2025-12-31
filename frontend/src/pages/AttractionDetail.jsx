@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import { FaMapMarkerAlt, FaCalendarAlt } from 'react-icons/fa';
 import { useLocale } from '../contexts/LocaleContext';
 import Map, { Marker } from 'react-map-gl';
+import { applyGoogleLikeStyle } from '../utils/mapboxGoogleLikeStyle';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 const makeAbsolute = (u) => {
@@ -525,7 +526,8 @@ export default function AttractionDetail() {
                 <Map
                   initialViewState={{ latitude: lat, longitude: lng, zoom: 13 }}
                   mapboxAccessToken={mapboxAccessToken}
-                  mapStyle="mapbox://styles/mapbox/streets-v12"
+                  mapStyle="mapbox://styles/mapbox/navigation-day-v1"
+                  onLoad={(evt) => applyGoogleLikeStyle(evt.target)}
                   attributionControl={false}
                   scrollZoom={false}
                   dragPan={false}

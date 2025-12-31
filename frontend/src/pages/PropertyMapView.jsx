@@ -4,6 +4,7 @@ import Map, { Marker, NavigationControl, Source, Layer } from 'react-map-gl';
 import { FaBed, FaBath, FaMapMarkerAlt, FaArrowLeft, FaStar } from 'react-icons/fa';
 import { useLocale } from '../contexts/LocaleContext';
 import { useDirections } from '../hooks/useDirections';
+import { applyGoogleLikeStyle } from '../utils/mapboxGoogleLikeStyle';
 
 const toRad = (value) => (value * Math.PI) / 180;
 
@@ -247,6 +248,7 @@ const PropertyMapView = () => {
         <Map
           {...viewState}
           onMove={(evt) => setViewState(evt.viewState)}
+          onLoad={(evt) => applyGoogleLikeStyle(evt.target)}
           mapboxAccessToken={mapboxAccessToken}
           mapStyle="mapbox://styles/mapbox/navigation-day-v1"
           attributionControl={false}
