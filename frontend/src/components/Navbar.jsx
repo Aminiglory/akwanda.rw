@@ -350,6 +350,54 @@ const Navbar = () => {
     },
   ];
 
+  const flightsOwnerNavItems = [
+    {
+      // Flights dashboard home
+      label: 'Dashboard',
+      icon: FaHome,
+      href: '/owner/flights?tab=overview',
+      children: [
+        { label: 'Overview', href: '/owner/flights?tab=overview', icon: FaHome },
+      ],
+    },
+    {
+      // Flight bookings list
+      label: 'Flight bookings',
+      icon: FaPlane,
+      href: '/owner/flights?tab=bookings',
+      children: [
+        { label: 'All flight bookings', href: '/owner/flights?tab=bookings', icon: FaPlane },
+      ],
+    },
+    {
+      // Analytics
+      label: 'Analytics',
+      icon: FaChartLine,
+      href: '/owner/flights?tab=analytics',
+      children: [
+        { label: 'Performance overview', href: '/owner/flights?tab=analytics', icon: FaChartLine },
+      ],
+    },
+    {
+      // Expenses & commissions
+      label: 'Expenses',
+      icon: FaDollarSign,
+      href: '/owner/flights?tab=expenses',
+      children: [
+        { label: 'Commissions & fees', href: '/owner/flights?tab=expenses', icon: FaDollarSign },
+      ],
+    },
+    {
+      // Notifications section
+      label: 'Notifications',
+      icon: FaBell,
+      href: '/owner/flights?tab=notifications',
+      children: [
+        { label: 'All notifications', href: '/owner/flights?tab=notifications', icon: FaBell },
+      ],
+    },
+  ];
+
   // Booking.com-style navigation for property owners (matches original dashboard nav structure)
   const bookingComNavItems = [
     {
@@ -842,14 +890,24 @@ const Navbar = () => {
     return location.pathname.startsWith('/owner/cars');
   };
 
+  // Flights owner dashboard context
+  const isInFlightsOwnerDashboard = () => {
+    return location.pathname.startsWith('/owner/flights');
+  };
+
   // Attractions owner dashboard context
   const isInAttractionOwnerDashboard = () => {
     return location.pathname.startsWith('/owner/attractions');
   };
 
-  // Any owner dashboard (properties, vehicles, or attractions)
+  // Any owner dashboard (properties, vehicles, flights, or attractions)
   const isInAnyOwnerDashboard = () => {
-    return isInPropertyOwnerDashboard() || isInCarOwnerDashboard() || isInAttractionOwnerDashboard();
+    return (
+      isInPropertyOwnerDashboard() ||
+      isInCarOwnerDashboard() ||
+      isInFlightsOwnerDashboard() ||
+      isInAttractionOwnerDashboard()
+    );
   };
 
   const toggleMenu = () => {
@@ -1594,9 +1652,11 @@ const Navbar = () => {
               <div className="w-full flex flex-wrap items-center gap-1 pt-1 mt-1">
                 {(isInCarOwnerDashboard()
                   ? carOwnerNavItems
-                  : isInAttractionOwnerDashboard()
-                    ? attractionOwnerNavItems
-                    : bookingComNavItems
+                  : isInFlightsOwnerDashboard()
+                    ? flightsOwnerNavItems
+                    : isInAttractionOwnerDashboard()
+                      ? attractionOwnerNavItems
+                      : bookingComNavItems
                 ).map((item, idx) => {
                   const Icon = item.icon;
                   const isOpen = activeDropdown === item.label;
@@ -1710,14 +1770,16 @@ const Navbar = () => {
             <div className="px-2 pb-2">
               {(isInCarOwnerDashboard()
                 ? carOwnerNavItems
-                : isInAttractionOwnerDashboard()
-                  ? attractionOwnerNavItems
-                  : bookingComNavItems
-              ).map((item, idx) => {
+                : isInFlightsOwnerDashboard()
+                  ? flightsOwnerNavItems
+                  : isInAttractionOwnerDashboard()
+                    ? attractionOwnerNavItems
+                    : bookingComNavItems
+              ).map((item) => {
                 const Icon = item.icon;
                 const open = !!expandedMobileItems[item.label];
                 return (
-                  <div key={idx} className="mb-2">
+                  <div key={item.label} className="mb-2">
                     <button
                       type="button"
                       onClick={() => setExpandedMobileItems((s) => ({ ...s, [item.label]: !open }))}
