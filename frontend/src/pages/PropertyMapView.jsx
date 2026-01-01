@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import Map, { Marker, NavigationControl, Source, Layer } from 'react-map-gl';
 import { FaBed, FaBath, FaMapMarkerAlt, FaArrowLeft, FaStar } from 'react-icons/fa';
 import { useLocale } from '../contexts/LocaleContext';
 import { useDirections } from '../hooks/useDirections';
+import { applyGoogleLikeStyle } from '../utils/mapboxGoogleLikeStyle';
 
 const toRad = (value) => (value * Math.PI) / 180;
 
@@ -35,6 +36,7 @@ const PropertyMapView = () => {
   const initialFocused = location.state?.focusedProperty || null;
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [mapLoaded, setMapLoaded] = useState(false);
   const [selectedProperty, setSelectedProperty] = useState(initialFocused);
   const [mapCenter, setMapCenter] = useState(null);
   const [viewState, setViewState] = useState(null);
@@ -44,6 +46,8 @@ const PropertyMapView = () => {
     minPrice: 0,
     maxPrice: 1000000,
   });
+
+  const mapRef = useRef(null);
 
   const safeT = (key, fallback) => {
     if (!t) return fallback;
@@ -203,6 +207,48 @@ const PropertyMapView = () => {
     }
   }
 
+  const originCoords =
+    directions?.geometry?.coordinates &&
+    Array.isArray(directions.geometry.coordinates) &&
+    directions.geometry.coordinates.length > 0
+      ? directions.geometry.coordinates[0]
+      : null;
+
+  useEffect(() => {
+    if (!mapLoaded) return;
+    if (!directions || !directions.geometry || !Array.isArray(directions.geometry.coordinates)) return;
+
+    const coords = directions.geometry.coordinates;
+    if (coords.length < 2) return;
+
+    const map = mapRef.current;
+    if (!map || typeof map.fitBounds !== 'function') return;
+
+    let minLng = coords[0][0];
+    let minLat = coords[0][1];
+    let maxLng = coords[0][0];
+    let maxLat = coords[0][1];
+
+    for (let i = 1; i < coords.length; i += 1) {
+      const [lng, lat] = coords[i];
+      if (lng < minLng) minLng = lng;
+      if (lng > maxLng) maxLng = lng;
+      if (lat < minLat) minLat = lat;
+      if (lat > maxLat) maxLat = lat;
+    }
+
+    map.fitBounds(
+      [
+        [minLng, minLat],
+        [maxLng, maxLat],
+      ],
+      {
+        padding: { top: 80, bottom: 260, left: 80, right: 80 },
+        duration: 600,
+      }
+    );
+  }, [directions, mapLoaded]);
+
   if (loading || !mapCenter || !viewState) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -242,17 +288,28 @@ const PropertyMapView = () => {
         <div className="w-8"></div> {/* For balance */}
       </header>
 
-      {/* Map Container (Google Maps) */}
+      {/* Map Container (Mapbox, Google-like light style) */}
       <div className="h-full w-full pt-16">
         <Map
           {...viewState}
           onMove={(evt) => setViewState(evt.viewState)}
+          onLoad={(evt) => {
+            mapRef.current = evt.target;
+            setMapLoaded(true);
+            applyGoogleLikeStyle(evt.target);
+          }}
           mapboxAccessToken={mapboxAccessToken}
-          mapStyle="mapbox://styles/mapbox/light-v11"
+          mapStyle="mapbox://styles/mapbox/navigation-day-v1"
           attributionControl={false}
           reuseMaps
         >
           <NavigationControl position="bottom-right" showCompass={false} />
+
+          {originCoords && (
+            <Marker longitude={originCoords[0]} latitude={originCoords[1]} anchor="center">
+              <div className="w-3 h-3 rounded-full bg-blue-600 border-2 border-white shadow-md" />
+            </Marker>
+          )}
 
           {filteredProperties.map((property) => {
             if (property.latitude == null || property.longitude == null) return null;

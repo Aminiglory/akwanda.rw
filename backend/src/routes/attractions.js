@@ -239,10 +239,32 @@ router.post('/', requireAuth, async (req, res) => {
     if (!(req.user?.userType === 'host' || req.user?.userType === 'admin')) {
       return res.status(403).json({ message: 'Host or admin required' });
     }
-    const payload = { ...(req.body || {}), country: req.body?.country || 'Rwanda', owner: req.user.id };
+    const body = req.body || {};
+    const payload = { ...body, country: body?.country || 'Rwanda', owner: req.user.id };
+    payload.bookingRequired = 'yes';
+    if (payload.category) payload.category = String(payload.category).toLowerCase();
+    if (!['yes', 'no'].includes(String(payload.guideAvailable || '').toLowerCase())) {
+      payload.guideAvailable = 'no';
+    } else {
+      payload.guideAvailable = String(payload.guideAvailable).toLowerCase();
+    }
+    if (Array.isArray(payload.languages)) {
+      payload.languages = payload.languages.map(v => String(v || '').trim()).filter(Boolean);
+    } else if (typeof payload.languages === 'string') {
+      payload.languages = payload.languages
+        .split(',')
+        .map(v => String(v || '').trim())
+        .filter(Boolean);
+    }
     const created = await Attraction.create(payload);
     res.status(201).json({ attraction: created });
   } catch (e) {
+    if (e?.name === 'ValidationError') {
+      return res.status(400).json({ message: e.message, error: e.message });
+    }
+    if (e?.code === 11000) {
+      return res.status(409).json({ message: 'Duplicate attraction code. Please try again.', error: e.message });
+    }
     res.status(500).json({ message: 'Failed to create attraction', error: e.message });
   }
 });

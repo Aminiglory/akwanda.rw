@@ -49,6 +49,7 @@ const attractionSchema = new mongoose.Schema(
     video: { type: String },
     // Additional amenities and safety details
     guideAvailable: { type: String, enum: ['yes', 'no'], default: 'no' },
+    languages: [{ type: String }],
     audioGuideLanguages: { type: String },
     safetyEquipment: { type: String },
     // Rules, restrictions and policies
@@ -92,6 +93,7 @@ attractionSchema.pre('save', async function(next) {
     if (!this.attractionCode) {
       this.attractionCode = await generateUniqueAttractionCode(this.constructor);
     }
+    this.bookingRequired = 'yes';
     if (!this.country) this.country = 'Rwanda';
     next();
   } catch (e) { next(e); }

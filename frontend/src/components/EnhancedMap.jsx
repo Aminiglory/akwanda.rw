@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Map, { Marker, NavigationControl } from 'react-map-gl';
+import { applyGoogleLikeStyle } from '../utils/mapboxGoogleLikeStyle';
 
 export default function EnhancedMap({ properties, selectedProperty, onPropertySelect }) {
   const mapRef = useRef(null);
@@ -72,6 +73,7 @@ export default function EnhancedMap({ properties, selectedProperty, onPropertySe
         initialViewState={{ latitude: -1.9403, longitude: 29.8739, zoom: 12 }}
         mapboxAccessToken={mapboxAccessToken}
         mapStyle="mapbox://styles/mapbox/navigation-day-v1"
+        onLoad={(evt) => applyGoogleLikeStyle(evt.target)}
         attributionControl={false}
         reuseMaps
         style={{ height: '100%', width: '100%' }}
