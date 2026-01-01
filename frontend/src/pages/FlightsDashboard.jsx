@@ -10,6 +10,9 @@ function FlightsDashboard() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [notifications, setNotifications] = useState([]);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
+  const [loadingBookings, setLoadingBookings] = useState(false);
+  const [loadingAnalytics, setLoadingAnalytics] = useState(false);
+  const [loadingExpenses, setLoadingExpenses] = useState(false);
 
   const tab = (searchParams.get('tab') || 'overview').toLowerCase();
   const range = (searchParams.get('range') || '').toLowerCase();
@@ -19,44 +22,11 @@ function FlightsDashboard() {
   const analyticsView = (searchParams.get('view') || '').toLowerCase();
   const typeFilter = (searchParams.get('type') || '').toLowerCase();
 
-  const [bookings, setBookings] = useState([
-    {
-      id: 'F001',
-      airline: 'RwandAir',
-      flightNumber: 'WB 101',
-      from: 'Kigali (KGL)',
-      to: 'Nairobi (NBO)',
-      departure: '2025-01-10T08:30:00Z',
-      arrival: '2025-01-10T10:00:00Z',
-      duration: '1h 30m',
-      price: 450000,
-      status: 'upcoming',
-    },
-    {
-      id: 'F002',
-      airline: 'Kenya Airways',
-      flightNumber: 'KQ 230',
-      from: 'Kigali (KGL)',
-      to: 'Kampala (EBB)',
-      departure: '2025-01-15T11:15:00Z',
-      arrival: '2025-01-15T13:00:00Z',
-      duration: '1h 45m',
-      price: 380000,
-      status: 'upcoming',
-    },
-    {
-      id: 'F003',
-      airline: 'Ethiopian Airlines',
-      flightNumber: 'ET 346',
-      from: 'Kigali (KGL)',
-      to: 'Addis Ababa (ADD)',
-      departure: '2024-12-01T14:20:00Z',
-      arrival: '2024-12-01T16:35:00Z',
-      duration: '2h 15m',
-      price: 520000,
-      status: 'completed',
-    },
-  ]);
+  const [bookings, setBookings] = useState([]);
+  const [analytics, setAnalytics] = useState(null);
+  const [expensesSummary, setExpensesSummary] = useState(null);
+  const [dailyPage, setDailyPage] = useState(1);
+  const [monthlyPage, setMonthlyPage] = useState(1);
 
   const filteredBookings = useMemo(() => {
     let list = [...bookings];
@@ -149,6 +119,82 @@ function FlightsDashboard() {
 
   useEffect(() => {
     if (!user) return;
+
+    const loadBookings = async () => {
+      try {
+        setLoadingBookings(true);
+        const url = new URL(`${API_URL}/api/flights/owner/bookings`);
+        const params = url.searchParams;
+        if (statusFilter) params.set('status', statusFilter);
+        if (bookingFilter) params.set('filter', bookingFilter);
+        const res = await fetch(url.toString(), { credentials: 'include' });
+        if (!res.ok) throw new Error('Failed to load bookings');
+        const data = await res.json();
+        const list = (data.bookings || []).map((b) => ({
+          id: String(b._id || b.id),
+          airline: b.airline,
+          flightNumber: b.flightNumber,
+          from: b.from,
+          to: b.to,
+          departure: b.departure,
+          arrival: b.arrival,
+          duration: b.duration,
+          price: b.price,
+          status: b.status || 'upcoming',
+        }));
+        setBookings(list);
+      } catch (_) {
+        // Keep existing state on error
+      } finally {
+        setLoadingBookings(false);
+      }
+    };
+
+    const loadAnalytics = async () => {
+      try {
+        setLoadingAnalytics(true);
+        const url = new URL(`${API_URL}/api/flights/owner/analytics`);
+        if (range === 'today') url.searchParams.set('range', 'day');
+        else if (range === 'ytd') url.searchParams.set('range', 'year');
+        else if (range === '30') url.searchParams.set('range', 'month');
+        const res = await fetch(url.toString(), { credentials: 'include' });
+        if (!res.ok) throw new Error('Failed to load analytics');
+        const data = await res.json();
+        setAnalytics(data || null);
+      } catch (_) {
+        setAnalytics(null);
+      } finally {
+        setLoadingAnalytics(false);
+      }
+    };
+
+    const loadExpenses = async () => {
+      try {
+        setLoadingExpenses(true);
+        const url = new URL(`${API_URL}/api/flights/owner/expenses`);
+        if (range === 'today') url.searchParams.set('range', 'day');
+        else if (range === 'ytd') url.searchParams.set('range', 'year');
+        else if (range === '30') url.searchParams.set('range', 'month');
+        const res = await fetch(url.toString(), { credentials: 'include' });
+        if (!res.ok) throw new Error('Failed to load expenses');
+        const data = await res.json();
+        setExpensesSummary(data.summary || null);
+      } catch (_) {
+        setExpensesSummary(null);
+      } finally {
+        setLoadingExpenses(false);
+      }
+    };
+
+    loadBookings();
+    loadAnalytics();
+    loadExpenses();
+    setDailyPage(1);
+    setMonthlyPage(1);
+  }, [user?.id, statusFilter, bookingFilter, range]);
+
+  useEffect(() => {
+    if (!user) return;
     setLoadingNotifications(true);
     fetch(`${API_URL}/api/user/notifications`, { credentials: 'include' })
       .then((res) => res.json())
@@ -183,6 +229,8 @@ function FlightsDashboard() {
     }
   };
 
+  const hasAnyFlights = bookings && bookings.length > 0;
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="bg-white shadow-sm">
@@ -197,6 +245,16 @@ function FlightsDashboard() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
+        {!loadingBookings && !hasAnyFlights && (
+          <div className="bg-white border border-dashed border-blue-200 rounded-2xl p-6 text-center space-y-3">
+            <h2 className="text-lg md:text-xl font-semibold text-gray-900">No flights listed yet</h2>
+            <p className="text-gray-600 text-sm md:text-base max-w-2xl mx-auto">
+              To start using the Flights dashboard, you must first list at least one flight booking for your account.
+              You can do this via the backend endpoint <code>POST /api/flights/owner/bookings</code> (as a host), then
+              refresh this page.
+            </p>
+          </div>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div className="rounded-2xl p-5 bg-gradient-to-b from-blue-50 to-white border border-blue-100 shadow-sm flex items-center gap-4">
             <div className="p-3 bg-blue-100 rounded-xl">
@@ -236,7 +294,8 @@ function FlightsDashboard() {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-lg">
+        {hasAnyFlights && (
+          <div className="bg-white rounded-2xl shadow-lg">
           <div className="border-b border-gray-200">
             <nav className="flex flex-wrap gap-4 px-6">
               <button
@@ -308,8 +367,8 @@ function FlightsDashboard() {
                   ) : null}
                 </h2>
                 <p className="text-gray-600 text-sm md:text-base">
-                  This section summarizes your recent flight activity. In a future iteration, this will connect to live
-                  airline APIs and your own flight booking data.
+                  This section summarizes your recent flight activity based on your stored flight bookings in the
+                  backend.
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="border border-gray-100 rounded-xl p-4 bg-gray-50">
@@ -378,6 +437,9 @@ function FlightsDashboard() {
             {tab === 'bookings' && (
               <div className="space-y-4">
                 <h2 className="text-lg md:text-xl font-semibold text-gray-900">Flight bookings</h2>
+                {loadingBookings && (
+                  <p className="text-gray-500 text-sm mb-2">Loading bookings…</p>
+                )}
                 <div className="overflow-x-auto border border-gray-100 rounded-xl">
                   <table className="min-w-full text-sm">
                     <thead className="bg-gray-50">
@@ -431,17 +493,20 @@ function FlightsDashboard() {
               <div className="space-y-4">
                 <h2 className="text-lg md:text-xl font-semibold text-gray-900">Analytics</h2>
                 <p className="text-gray-600 text-sm md:text-base">
-                  High-level analytics based on your current mock flight bookings. Different views (routes, airlines,
-                  booking window, completion) are controlled by the links in the Flights navigation.
+                  High-level analytics based on your stored flight bookings. Different views (routes, airlines, booking
+                  window, completion) are controlled by the links in the Flights navigation.
                 </p>
+                {loadingAnalytics && (
+                  <p className="text-gray-500 text-sm">Loading analytics…</p>
+                )}
                 {(!analyticsView || analyticsView === '') && (
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="border border-gray-100 rounded-xl p-4 bg-gray-50">
                       <p className="text-sm text-gray-600 mb-1">Average ticket price</p>
                       <p className="text-2xl font-bold text-gray-900">
                         {formatPrice(
-                          bookings.length
-                            ? bookings.reduce((sum, b) => sum + (b.price || 0), 0) / Math.max(bookings.length, 1)
+                          analytics?.totals && analytics.totals.completed
+                            ? analytics.totals.revenueTotal / Math.max(analytics.totals.completed, 1)
                             : 0,
                         )}
                       </p>
@@ -449,16 +514,20 @@ function FlightsDashboard() {
                     <div className="border border-gray-100 rounded-xl p-4 bg-gray-50">
                       <p className="text-sm text-gray-600 mb-1">Completion rate</p>
                       <p className="text-2xl font-bold text-gray-900">
-                        {bookings.length
-                          ? `${Math.round((metrics.completed / Math.max(bookings.length, 1)) * 100)}%`
+                        {analytics?.totals && analytics.totals.totalBookings
+                          ? `${Math.round(
+                              (analytics.totals.completed / Math.max(analytics.totals.totalBookings, 1)) * 100,
+                            )}%`
                           : '0%'}
                       </p>
                     </div>
                     <div className="border border-gray-100 rounded-xl p-4 bg-gray-50">
                       <p className="text-sm text-gray-600 mb-1">Upcoming share</p>
                       <p className="text-2xl font-bold text-gray-900">
-                        {bookings.length
-                          ? `${Math.round((metrics.upcoming / Math.max(bookings.length, 1)) * 100)}%`
+                        {analytics?.totals && analytics.totals.totalBookings
+                          ? `${Math.round(
+                              (analytics.totals.upcoming / Math.max(analytics.totals.totalBookings, 1)) * 100,
+                            )}%`
                           : '0%'}
                       </p>
                     </div>
@@ -469,10 +538,13 @@ function FlightsDashboard() {
                   <div className="border border-gray-100 rounded-xl p-4 bg-gray-50">
                     <h3 className="font-semibold text-gray-900 mb-2 text-sm md:text-base">Revenue by route</h3>
                     <ul className="space-y-2 text-sm">
-                      {bookings.map((b) => (
-                        <li key={b.id} className="flex justify-between">
-                          <span className="text-gray-700">{b.from} → {b.to}</span>
-                          <span className="font-semibold text-gray-900">{formatPrice(b.price)}</span>
+                      {(analytics?.routes || []).map((r) => (
+                        <li key={r.route} className="flex justify-between">
+                          <span className="text-gray-700">{r.route}</span>
+                          <span className="text-gray-600">
+                            {r.count} flights ·{' '}
+                            <span className="font-semibold text-gray-900">{formatPrice(r.revenue)}</span>
+                          </span>
                         </li>
                       ))}
                     </ul>
@@ -483,21 +555,12 @@ function FlightsDashboard() {
                   <div className="border border-gray-100 rounded-xl p-4 bg-gray-50">
                     <h3 className="font-semibold text-gray-900 mb-2 text-sm md:text-base">Airline performance</h3>
                     <ul className="space-y-2 text-sm">
-                      {Array.from(
-                        bookings.reduce((map, b) => {
-                          const key = b.airline;
-                          const prev = map.get(key) || { count: 0, revenue: 0 };
-                          map.set(key, {
-                            count: prev.count + 1,
-                            revenue: prev.revenue + (b.price || 0),
-                          });
-                          return map;
-                        }, new Map()),
-                      ).map(([airline, stats]) => (
-                        <li key={airline} className="flex justify-between">
-                          <span className="text-gray-700">{airline}</span>
+                      {(analytics?.airlines || []).map((a) => (
+                        <li key={a.airline} className="flex justify-between">
+                          <span className="text-gray-700">{a.airline}</span>
                           <span className="text-gray-600">
-                            {stats.count} flights · <span className="font-semibold">{formatPrice(stats.revenue)}</span>
+                            {a.count} flights ·{' '}
+                            <span className="font-semibold">{formatPrice(a.revenue)}</span>
                           </span>
                         </li>
                       ))}
@@ -509,9 +572,17 @@ function FlightsDashboard() {
                   <div className="border border-gray-100 rounded-xl p-4 bg-gray-50">
                     <h3 className="font-semibold text-gray-900 mb-2 text-sm md:text-base">Booking window</h3>
                     <p className="text-gray-600 text-sm">
-                      With mock data we assume an average booking window of 14–30 days. When real flight bookings are
-                      connected, this view will show how many days in advance guests usually book.
+                      Distribution of how many days in advance guests book their flights, based on your stored
+                      bookings.
                     </p>
+                    <ul className="mt-3 space-y-1 text-sm">
+                      {(analytics?.bookingWindow || []).map((b) => (
+                        <li key={b.bucket} className="flex justify-between">
+                          <span className="text-gray-700">{b.bucket} days</span>
+                          <span className="font-semibold text-gray-900">{b.count}</span>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
                 )}
 
@@ -519,11 +590,187 @@ function FlightsDashboard() {
                   <div className="border border-gray-100 rounded-xl p-4 bg-gray-50">
                     <h3 className="font-semibold text-gray-900 mb-2 text-sm md:text-base">Completion vs cancellation</h3>
                     <p className="text-gray-700 text-sm mb-2">
-                      Completed flights: <span className="font-semibold">{metrics.completed}</span>
+                      Completed flights:{' '}
+                      <span className="font-semibold">{analytics?.completion?.completed || 0}</span>
                     </p>
                     <p className="text-gray-700 text-sm">
-                      Cancelled flights: <span className="font-semibold">{bookings.filter((b) => b.status === 'cancelled').length}</span>
+                      Cancelled flights:{' '}
+                      <span className="font-semibold">{analytics?.completion?.cancelled || 0}</span>
                     </p>
+                  </div>
+                )}
+
+                {analyticsView === 'reports' && (
+                  <div className="space-y-6">
+                    <div className="border border-gray-100 rounded-xl p-4 bg-gray-50 overflow-x-auto">
+                      <h3 className="font-semibold text-gray-900 mb-3 text-sm md:text-base">Daily report</h3>
+                      <table className="min-w-full text-xs md:text-sm">
+                        <thead className="bg-gray-100">
+                          <tr>
+                            <th className="px-3 py-2 text-left font-medium text-gray-700">Date</th>
+                            <th className="px-3 py-2 text-left font-medium text-gray-700">Bookings</th>
+                            <th className="px-3 py-2 text-left font-medium text-gray-700">Completed</th>
+                            <th className="px-3 py-2 text-left font-medium text-gray-700">Cancelled</th>
+                            <th className="px-3 py-2 text-left font-medium text-gray-700">Revenue</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100 bg-white">
+                          {(analytics?.daily || [])
+                            .slice((dailyPage - 1) * 10, dailyPage * 10)
+                            .map((row) => (
+                            <tr key={row.date}>
+                              <td className="px-3 py-2 whitespace-nowrap text-gray-800">{row.date}</td>
+                              <td className="px-3 py-2 text-gray-800">{row.bookings}</td>
+                              <td className="px-3 py-2 text-gray-800">{row.completed}</td>
+                              <td className="px-3 py-2 text-gray-800">{row.cancelled}</td>
+                              <td className="px-3 py-2 whitespace-nowrap font-semibold text-gray-900">
+                                {formatPrice(row.revenue)}
+                              </td>
+                            </tr>
+                          ))}
+                          {!analytics?.daily?.length && (
+                            <tr>
+                              <td className="px-3 py-3 text-center text-gray-500 text-sm" colSpan={5}>
+                                No data for this period yet.
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                      <div className="mt-3 flex items-center justify-between text-xs md:text-sm text-gray-600">
+                        <span>
+                          Page {dailyPage} of {Math.max(1, Math.ceil((analytics?.daily?.length || 0) / 10))}
+                        </span>
+                        <div className="space-x-2">
+                          <button
+                            type="button"
+                            className="px-2 py-1 border rounded disabled:opacity-50"
+                            disabled={dailyPage <= 1}
+                            onClick={() => setDailyPage(1)}
+                          >
+                            First
+                          </button>
+                          <button
+                            type="button"
+                            className="px-2 py-1 border rounded disabled:opacity-50"
+                            disabled={dailyPage <= 1}
+                            onClick={() => setDailyPage((p) => Math.max(1, p - 1))}
+                          >
+                            Previous
+                          </button>
+                          <button
+                            type="button"
+                            className="px-2 py-1 border rounded disabled:opacity-50"
+                            disabled={dailyPage >= Math.max(1, Math.ceil((analytics?.daily?.length || 0) / 10))}
+                            onClick={() =>
+                              setDailyPage((p) =>
+                                Math.min(p + 1, Math.max(1, Math.ceil((analytics?.daily?.length || 0) / 10))),
+                              )
+                            }
+                          >
+                            Next
+                          </button>
+                          <button
+                            type="button"
+                            className="px-2 py-1 border rounded disabled:opacity-50"
+                            disabled={
+                              dailyPage >= Math.max(1, Math.ceil((analytics?.daily?.length || 0) / 10))
+                            }
+                            onClick={() =>
+                              setDailyPage(Math.max(1, Math.ceil((analytics?.daily?.length || 0) / 10)))
+                            }
+                          >
+                            Last
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="border border-gray-100 rounded-xl p-4 bg-gray-50 overflow-x-auto">
+                      <h3 className="font-semibold text-gray-900 mb-3 text-sm md:text-base">Monthly summary</h3>
+                      <table className="min-w-full text-xs md:text-sm">
+                        <thead className="bg-gray-100">
+                          <tr>
+                            <th className="px-3 py-2 text-left font-medium text-gray-700">Month</th>
+                            <th className="px-3 py-2 text-left font-medium text-gray-700">Bookings</th>
+                            <th className="px-3 py-2 text-left font-medium text-gray-700">Completed</th>
+                            <th className="px-3 py-2 text-left font-medium text-gray-700">Cancelled</th>
+                            <th className="px-3 py-2 text-left font-medium text-gray-700">Revenue</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100 bg-white">
+                          {(analytics?.monthly || [])
+                            .slice((monthlyPage - 1) * 10, monthlyPage * 10)
+                            .map((row) => (
+                            <tr key={row.month}>
+                              <td className="px-3 py-2 whitespace-nowrap text-gray-800">{row.month}</td>
+                              <td className="px-3 py-2 text-gray-800">{row.bookings}</td>
+                              <td className="px-3 py-2 text-gray-800">{row.completed}</td>
+                              <td className="px-3 py-2 text-gray-800">{row.cancelled}</td>
+                              <td className="px-3 py-2 whitespace-nowrap font-semibold text-gray-900">
+                                {formatPrice(row.revenue)}
+                              </td>
+                            </tr>
+                          ))}
+                          {!analytics?.monthly?.length && (
+                            <tr>
+                              <td className="px-3 py-3 text-center text-gray-500 text-sm" colSpan={5}>
+                                No monthly data summarised for this period yet.
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                      <div className="mt-3 flex items-center justify-between text-xs md:text-sm text-gray-600">
+                        <span>
+                          Page {monthlyPage} of {Math.max(1, Math.ceil((analytics?.monthly?.length || 0) / 10))}
+                        </span>
+                        <div className="space-x-2">
+                          <button
+                            type="button"
+                            className="px-2 py-1 border rounded disabled:opacity-50"
+                            disabled={monthlyPage <= 1}
+                            onClick={() => setMonthlyPage(1)}
+                          >
+                            First
+                          </button>
+                          <button
+                            type="button"
+                            className="px-2 py-1 border rounded disabled:opacity-50"
+                            disabled={monthlyPage <= 1}
+                            onClick={() => setMonthlyPage((p) => Math.max(1, p - 1))}
+                          >
+                            Previous
+                          </button>
+                          <button
+                            type="button"
+                            className="px-2 py-1 border rounded disabled:opacity-50"
+                            disabled={
+                              monthlyPage >= Math.max(1, Math.ceil((analytics?.monthly?.length || 0) / 10))
+                            }
+                            onClick={() =>
+                              setMonthlyPage((p) =>
+                                Math.min(p + 1, Math.max(1, Math.ceil((analytics?.monthly?.length || 0) / 10))),
+                              )
+                            }
+                          >
+                            Next
+                          </button>
+                          <button
+                            type="button"
+                            className="px-2 py-1 border rounded disabled:opacity-50"
+                            disabled={
+                              monthlyPage >= Math.max(1, Math.ceil((analytics?.monthly?.length || 0) / 10))
+                            }
+                            onClick={() =>
+                              setMonthlyPage(Math.max(1, Math.ceil((analytics?.monthly?.length || 0) / 10)))
+                            }
+                          >
+                            Last
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
@@ -533,9 +780,12 @@ function FlightsDashboard() {
               <div className="space-y-4">
                 <h2 className="text-lg md:text-xl font-semibold text-gray-900">Expenses</h2>
                 <p className="text-gray-600 text-sm md:text-base">
-                  This is a simple placeholder for flight-related expenses (commissions, service fees). You can align this
-                  later with your car and property finance modules.
+                  Simple derived overview of flight-related expenses (commissions, service fees, marketing) based on your
+                  completed flight bookings.
                 </p>
+                {loadingExpenses && (
+                  <p className="text-gray-500 text-sm">Loading expenses…</p>
+                )}
                 <div className="border border-gray-100 rounded-xl overflow-hidden">
                   <table className="min-w-full text-sm">
                     <thead className="bg-gray-50">
@@ -550,21 +800,27 @@ function FlightsDashboard() {
                         <tr>
                           <td className="px-4 py-3 whitespace-nowrap">Airline commission</td>
                           <td className="px-4 py-3">Estimated commission for completed bookings.</td>
-                          <td className="px-4 py-3 whitespace-nowrap">{formatPrice(metrics.revenue * 0.15)}</td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {formatPrice(expensesSummary?.commission || 0)}
+                          </td>
                         </tr>
                       )}
                       {(!typeFilter || typeFilter === 'processing') && (
                         <tr>
                           <td className="px-4 py-3 whitespace-nowrap">Service fees</td>
                           <td className="px-4 py-3">Platform fees and payment processing.</td>
-                          <td className="px-4 py-3 whitespace-nowrap">{formatPrice(metrics.revenue * 0.05)}</td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {formatPrice(expensesSummary?.processing || 0)}
+                          </td>
                         </tr>
                       )}
                       {(!typeFilter || typeFilter === 'marketing') && (
                         <tr>
                           <td className="px-4 py-3 whitespace-nowrap">Marketing & promos</td>
                           <td className="px-4 py-3">Discounts, vouchers, and promotional campaigns.</td>
-                          <td className="px-4 py-3 whitespace-nowrap">{formatPrice(metrics.revenue * 0.03)}</td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {formatPrice(expensesSummary?.marketing || 0)}
+                          </td>
                         </tr>
                       )}
                     </tbody>
@@ -623,6 +879,7 @@ function FlightsDashboard() {
             )}
           </div>
         </div>
+        )}
       </div>
     </div>
   );

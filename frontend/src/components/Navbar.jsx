@@ -388,6 +388,9 @@ const Navbar = () => {
         { label: 'Airline performance', href: '/owner/flights?tab=analytics&view=airlines', icon: FaPlane },
         { label: 'Booking window', href: '/owner/flights?tab=analytics&view=bookwindow', icon: FaCalendarAlt },
         { label: 'Completion vs cancellation', href: '/owner/flights?tab=analytics&view=completion', icon: FaChartLine },
+        { label: 'Daily report', href: '/owner/flights?tab=analytics&range=today', icon: FaCalendarAlt },
+        { label: 'Monthly report', href: '/owner/flights?tab=analytics&range=30', icon: FaCalendarAlt },
+        { label: 'Annual report', href: '/owner/flights?tab=analytics&range=ytd', icon: FaCalendarAlt },
       ],
     },
     {
