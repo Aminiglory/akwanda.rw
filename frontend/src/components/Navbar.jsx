@@ -1053,8 +1053,8 @@ const Navbar = () => {
 
   return (
     <> 
-      {/* Top Bar - First Level (hidden on listing wizard and inside any owner dashboard) */}
-      {!isOnListingWizard && !isInAnyOwnerDashboard() && (
+      {/* Top Bar - First Level (hidden on listing wizard, inside any owner dashboard, or first flight listing) */}
+      {!isOnListingWizard && !isInAnyOwnerDashboard() && !isFirstFlightListing() && (
       <div className="w-full bg-[#8b5a35] text-white py-2 px-4 border-b border-[#7a4d2c] relative z-[1000] shadow-sm">
         <div className="max-w-7xl mx-auto flex justify-between items-center text-xs">
           <div className="flex items-center space-x-4 lg:space-x-6">
@@ -1351,7 +1351,7 @@ const Navbar = () => {
                 )}
 
                 {/* Main navigation (Stays / Flights / Rentals / Attractions) - desktop, non-owner dashboards */}
-                {!isInAnyOwnerDashboard() && (
+                {!isInAnyOwnerDashboard() && !isFirstFlightListing() && (
                   <div className="hidden lg:flex items-center space-x-1 ml-2">
                     {mainNavItems.map((item, index) => {
                       const Icon = item.icon;
@@ -1399,7 +1399,7 @@ const Navbar = () => {
               {/* Right Side - Booking.com Style */}
               <div className="flex flex-nowrap items-center gap-1 lg:gap-2">
               {/* Modern Global search in main navbar (public / non-owner dashboard context) */}
-              {(!isAuthenticated || !isInAnyOwnerDashboard()) && (
+              {(!isAuthenticated || !isInAnyOwnerDashboard()) && !isFirstFlightListing() && (
                 <form
                   onSubmit={handleGlobalSearch}
                   className="hidden lg:flex items-center bg-white border border-gray-200 rounded-lg px-2 py-1.5 mr-2 max-w-xs shadow-sm hover:border-[#a06b42] focus-within:border-[#a06b42] transition-all duration-300"
@@ -1437,7 +1437,7 @@ const Navbar = () => {
               )}
 
               {/* Favorites */}
-              {isAuthenticated && !isInAnyOwnerDashboard() && (
+              {isAuthenticated && !isInAnyOwnerDashboard() && !isFirstFlightListing() && (
                 <Link
                   to="/favorites"
                   className="hidden lg:flex items-center px-2 py-1.5 rounded-md text-[#6b5744] hover:text-[#4b2a00] hover:bg-[#e8dcc8] transition-colors"

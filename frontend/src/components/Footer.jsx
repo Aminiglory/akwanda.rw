@@ -113,7 +113,7 @@ const Footer = () => {
           { 
             icon: FaPlane, 
             name: 'Flights', 
-            href: hasFlights ? '/owner/flights?action=list' : '/upload-property?type=flight'
+            href: '/owner/flights'
           }
         ]
       : [])

@@ -25,6 +25,7 @@ function FlightsDashboard() {
   const bookingGroup = (searchParams.get('group') || '').toLowerCase();
   const analyticsView = (searchParams.get('view') || '').toLowerCase();
   const typeFilter = (searchParams.get('type') || '').toLowerCase();
+  const action = searchParams.get('action');
 
   const [bookings, setBookings] = useState([]);
   const [analytics, setAnalytics] = useState(null);
