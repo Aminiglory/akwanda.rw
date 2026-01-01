@@ -299,7 +299,7 @@ const initialAttraction = {
   bookingRequired: 'yes',
   checkinInstructions: '',
   amenities: [],
-  guideAvailable: '',
+  guideAvailable: 'no',
   audioGuideLanguages: '',
   languages: [],
   safetyEquipment: [],
