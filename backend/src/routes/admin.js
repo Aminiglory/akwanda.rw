@@ -6,6 +6,7 @@ const Booking = require('../tables/booking');
 const Notification = require('../tables/notification');
 const Commission = require('../tables/commission');
 const CommissionLevel = require('../tables/commissionLevel');
+const CommissionUpgradeLog = require('../tables/commissionUpgradeLog');
 const jwt = require('jsonwebtoken');
 const path = require('path');
 const fs = require('fs');
@@ -925,7 +926,7 @@ router.post('/vehicles/:id/unlock', requireAdmin, async (req, res) => {
   } catch (error) {
     console.error('Unlock vehicle error:', error);
     res.status(500).json({ message: 'Failed to unlock vehicle', error: error.message });
-  }
+    }
 });
 
 // Reactivate user account
@@ -963,6 +964,122 @@ router.post('/users/:id/reactivate', requireAdmin, async (req, res) => {
         console.error('Reactivate user error:', error);
         return res.status(500).json({ message: 'Failed to reactivate user', error: error.message });
     }
+});
+
+// GET /api/admin/commission-upgrade-logs
+// Get all commission upgrade logs with filtering options
+router.get('/commission-upgrade-logs', requireAdmin, async (req, res) => {
+  try {
+    const { 
+      itemType, 
+      itemId, 
+      performedBy, 
+      startDate, 
+      endDate,
+      page = 1,
+      limit = 50 
+    } = req.query;
+
+    const query = {};
+    
+    if (itemType) {
+      query.itemType = itemType;
+    }
+    
+    if (itemId) {
+      query.itemId = itemId;
+    }
+    
+    if (performedBy) {
+      query.performedBy = performedBy;
+    }
+    
+    if (startDate || endDate) {
+      query.createdAt = {};
+      if (startDate) {
+        query.createdAt.$gte = new Date(startDate);
+      }
+      if (endDate) {
+        query.createdAt.$lte = new Date(endDate);
+      }
+    }
+
+    const skip = (Number(page) - 1) * Number(limit);
+    
+    const logs = await CommissionUpgradeLog.find(query)
+      .populate('performedBy', 'firstName lastName email')
+      .populate('oldCommissionLevel', 'name')
+      .populate('newCommissionLevel', 'name directRate onlineRate isPremium')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(Number(limit))
+      .lean();
+
+    const total = await CommissionUpgradeLog.countDocuments(query);
+
+    return res.json({
+      logs,
+      pagination: {
+        page: Number(page),
+        limit: Number(limit),
+        total,
+        totalPages: Math.ceil(total / Number(limit))
+      }
+    });
+  } catch (e) {
+    console.error('Get commission upgrade logs error:', e);
+    return res.status(500).json({ message: 'Failed to fetch commission upgrade logs', error: e?.message || String(e) });
+  }
+});
+
+// GET /api/admin/commission-upgrade-logs/stats
+// Get statistics about commission upgrades
+router.get('/commission-upgrade-logs/stats', requireAdmin, async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    
+    const dateQuery = {};
+    if (startDate || endDate) {
+      dateQuery.createdAt = {};
+      if (startDate) dateQuery.createdAt.$gte = new Date(startDate);
+      if (endDate) dateQuery.createdAt.$lte = new Date(endDate);
+    }
+
+    const totalUpgrades = await CommissionUpgradeLog.countDocuments(dateQuery);
+    
+    const upgradesByType = await CommissionUpgradeLog.aggregate([
+      { $match: dateQuery },
+      { $group: { _id: '$itemType', count: { $sum: 1 } } }
+    ]);
+
+    const upgradesByLevel = await CommissionUpgradeLog.aggregate([
+      { $match: dateQuery },
+      { $group: { _id: '$newCommissionLevel', count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 10 }
+    ]);
+
+    const recentUpgrades = await CommissionUpgradeLog.find(dateQuery)
+      .populate('performedBy', 'firstName lastName email')
+      .populate('newCommissionLevel', 'name')
+      .sort({ createdAt: -1 })
+      .limit(10)
+      .select('itemType itemName newCommissionLevelName performedBy createdAt')
+      .lean();
+
+    return res.json({
+      totalUpgrades,
+      upgradesByType: upgradesByType.reduce((acc, item) => {
+        acc[item._id] = item.count;
+        return acc;
+      }, {}),
+      topLevels: upgradesByLevel,
+      recentUpgrades
+    });
+  } catch (e) {
+    console.error('Get commission upgrade stats error:', e);
+    return res.status(500).json({ message: 'Failed to fetch commission upgrade stats', error: e?.message || String(e) });
+  }
 });
 
 module.exports = router;

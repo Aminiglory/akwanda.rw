@@ -487,25 +487,25 @@ const AdminCommissionManager = () => {
                     return (
                       <React.Fragment key={user._id}>
                         <tr className="border-t hover:bg-gray-50">
-                          <td className="p-3 font-medium">{user.firstName} {user.lastName}</td>
-                          <td className="p-3">{user.email}</td>
-                          <td className="p-3 text-red-700 font-semibold">{formatCurrency(user.totalCommission)}</td>
-                          <td className="p-3">{user.bookings?.length || 0}</td>
+                      <td className="p-3 font-medium">{user.firstName} {user.lastName}</td>
+                      <td className="p-3">{user.email}</td>
+                      <td className="p-3 text-red-700 font-semibold">{formatCurrency(user.totalCommission)}</td>
+                      <td className="p-3">{user.bookings?.length || 0}</td>
                           <td className="p-3 text-sm text-gray-700">{avgRate}%</td>
-                          <td className="p-3">
-                            <span className={`px-2 py-1 rounded-full text-xs ${user.isBlocked ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>{user.isBlocked ? 'Deactivated' : 'Active'}</span>
-                          </td>
-                          <td className="p-3">
+                      <td className="p-3">
+                        <span className={`px-2 py-1 rounded-full text-xs ${user.isBlocked ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>{user.isBlocked ? 'Deactivated' : 'Active'}</span>
+                      </td>
+                      <td className="p-3">
                             <div className="flex items-center gap-2 flex-wrap">
-                              {user.isBlocked ? (
-                                <button onClick={() => handleReactivateUser(user._id)} disabled={processingId===user._id} className={`px-3 py-1 rounded text-white text-xs ${processingId===user._id?'bg-green-400':'bg-green-600 hover:bg-green-700'}`}>Reactivate</button>
-                              ) : (
-                                <button onClick={() => handleDeactivateUser(user._id, user.totalCommission)} disabled={processingId===user._id} className={`px-3 py-1 rounded text-white text-xs ${processingId===user._id?'bg-red-400':'bg-red-600 hover:bg-red-700'}`}>Deactivate</button>
-                              )}
-                              <button onClick={() => openFineModal(user._id)} className="px-3 py-1 rounded border text-xs hover:bg-gray-50">Add Fine</button>
-                            </div>
-                          </td>
-                        </tr>
+                          {user.isBlocked ? (
+                            <button onClick={() => handleReactivateUser(user._id)} disabled={processingId===user._id} className={`px-3 py-1 rounded text-white text-xs ${processingId===user._id?'bg-green-400':'bg-green-600 hover:bg-green-700'}`}>Reactivate</button>
+                          ) : (
+                            <button onClick={() => handleDeactivateUser(user._id, user.totalCommission)} disabled={processingId===user._id} className={`px-3 py-1 rounded text-white text-xs ${processingId===user._id?'bg-red-400':'bg-red-600 hover:bg-red-700'}`}>Deactivate</button>
+                          )}
+                          <button onClick={() => openFineModal(user._id)} className="px-3 py-1 rounded border text-xs hover:bg-gray-50">Add Fine</button>
+                        </div>
+                      </td>
+                    </tr>
                         {/* Expandable booking details row */}
                         {(propertyBookings.length > 0 || vehicleBookings.length > 0) && (
                           <tr className="bg-gray-50">

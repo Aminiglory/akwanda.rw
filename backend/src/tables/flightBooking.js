@@ -18,6 +18,11 @@ const flightBookingSchema = new mongoose.Schema(
     channel: { type: String, enum: ['online', 'direct'], default: 'online', index: true },
     groupBooking: { type: Boolean, default: false },
     groupSize: { type: Number },
+    // Commission tracking
+    commissionLevel: { type: mongoose.Schema.Types.ObjectId, ref: 'CommissionLevel' },
+    commissionRate: { type: Number, min: 0, max: 100 },
+    commissionAmount: { type: Number, default: 0 },
+    commissionPaid: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

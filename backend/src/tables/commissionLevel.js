@@ -10,8 +10,8 @@ const commissionLevelSchema = new mongoose.Schema({
   isDefault: { type: Boolean, default: false },
   active: { type: Boolean, default: true },
   sortOrder: { type: Number, default: 0 },
-  // Scope allows separate commission level sets for different products (e.g. properties vs vehicles)
-  scope: { type: String, enum: ['property', 'vehicle'], default: 'property', index: true },
+  // Scope allows separate commission level sets for different products (e.g. properties vs vehicles vs flights)
+  scope: { type: String, enum: ['property', 'vehicle', 'flight'], default: 'property', index: true },
 }, { timestamps: true });
 
 module.exports = mongoose.model('CommissionLevel', commissionLevelSchema);

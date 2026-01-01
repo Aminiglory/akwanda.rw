@@ -2,6 +2,9 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const FlightBooking = require('../tables/flightBooking');
 const FlightExpense = require('../tables/flightExpense');
+const CommissionLevel = require('../tables/commissionLevel');
+const CommissionSettings = require('../tables/commissionSettings');
+const CommissionUpgradeLog = require('../tables/commissionUpgradeLog');
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
@@ -45,6 +48,7 @@ router.post('/bookings', requireAuth, requireHost, async (req, res) => {
       channel,
       groupBooking,
       groupSize,
+      commissionLevelId,
     } = req.body || {};
 
     if (!airline || !flightNumber || !from || !to || !departure || !arrival || !price) {
@@ -57,6 +61,40 @@ router.post('/bookings', requireAuth, requireHost, async (req, res) => {
       return res.status(400).json({ message: 'Invalid departure or arrival date' });
     }
 
+    const bookingChannel = (channel || 'direct').toLowerCase();
+    const bookingPrice = Number(price);
+
+    // Calculate commission based on commission level
+    let commissionRate = 0;
+    let commissionLevel = null;
+    
+    if (commissionLevelId) {
+      try {
+        commissionLevel = await CommissionLevel.findOne({ 
+          _id: commissionLevelId, 
+          scope: 'flight',
+          active: true 
+        }).lean();
+        if (commissionLevel) {
+          commissionRate = bookingChannel === 'online' 
+            ? Number(commissionLevel.onlineRate || 0)
+            : Number(commissionLevel.directRate || 0);
+        }
+      } catch (_) {}
+    }
+
+    // Fallback to default commission settings if no level found
+    if (!commissionRate || commissionRate <= 0 || commissionRate > 100) {
+      try {
+        const settings = await CommissionSettings.getSingleton();
+        commissionRate = Number(settings.premiumRate || settings.baseRate || 10);
+      } catch (_) {
+        commissionRate = 10; // Default 10%
+      }
+    }
+
+    const commissionAmount = commissionRate > 0 ? Math.round(bookingPrice * (commissionRate / 100)) : 0;
+
     const booking = await FlightBooking.create({
       host: req.user.id,
       airline,
@@ -66,18 +104,39 @@ router.post('/bookings', requireAuth, requireHost, async (req, res) => {
       departure: dep,
       arrival: arr,
       duration: duration || '',
-      price: Number(price),
+      price: bookingPrice,
       status: (status || 'upcoming').toLowerCase(),
       cabinClass: cabinClass || undefined,
-      channel: channel || 'direct',
+      channel: bookingChannel,
       groupBooking: !!groupBooking,
       groupSize: groupSize || undefined,
+      commissionLevel: commissionLevelId || undefined,
+      commissionRate: commissionRate || undefined,
+      commissionAmount,
+      commissionPaid: false,
     });
 
     return res.status(201).json({ booking });
   } catch (e) {
     console.error('Owner flights create booking error:', e?.message || e);
     return res.status(500).json({ message: 'Failed to create flight booking' });
+  }
+});
+
+// GET /api/flights/owner/commission-levels
+// Get available commission levels for flights
+router.get('/commission-levels', requireAuth, requireHost, async (req, res) => {
+  try {
+    const levels = await CommissionLevel.find({ 
+      scope: 'flight', 
+      active: true 
+    })
+      .sort({ sortOrder: 1, createdAt: 1 })
+      .lean();
+    return res.json({ commissionLevels: levels });
+  } catch (e) {
+    console.error('Get flight commission levels error:', e?.message || e);
+    return res.status(500).json({ message: 'Failed to load commission levels', commissionLevels: [] });
   }
 });
 
@@ -113,7 +172,10 @@ router.get('/bookings', requireAuth, requireHost, async (req, res) => {
       if (to) q.departure.$lte = new Date(to);
     }
 
-    let bookings = await FlightBooking.find(q).sort({ departure: -1 }).lean();
+    let bookings = await FlightBooking.find(q)
+      .populate('commissionLevel', 'name directRate onlineRate isPremium isDefault')
+      .sort({ departure: -1 })
+      .lean();
 
     if (filter === 'high-value' && bookings.length) {
       const avg =
@@ -425,6 +487,95 @@ router.delete('/expenses-log/:id', requireAuth, requireHost, async (req, res) =>
   }
 });
 
+// POST /api/flights/owner/bookings/:id/upgrade-commission-level
+// Upgrade commission level for a specific flight booking
+router.post('/bookings/:id/upgrade-commission-level', requireAuth, requireHost, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { commissionLevelId } = req.body || {};
+    
+    if (!commissionLevelId) {
+      return res.status(400).json({ message: 'commissionLevelId is required' });
+    }
+    
+    // Verify the commission level exists and is for flights
+    const level = await CommissionLevel.findById(commissionLevelId);
+    if (!level) {
+      return res.status(404).json({ message: 'Commission level not found' });
+    }
+    if (level.scope !== 'flight') {
+      return res.status(400).json({ message: 'This commission level is not for flights' });
+    }
+    if (!level.active) {
+      return res.status(400).json({ message: 'This commission level is not active' });
+    }
+    
+    const booking = await FlightBooking.findOne({ _id: id, host: req.user.id });
+    if (!booking) {
+      return res.status(404).json({ message: 'Flight booking not found' });
+    }
+    
+    // Store old values for logging
+    const oldCommissionLevel = booking.commissionLevel;
+    const oldCommissionLevelName = oldCommissionLevel 
+      ? (await CommissionLevel.findById(oldCommissionLevel).select('name').lean())?.name 
+      : null;
+    const oldCommissionRate = booking.commissionRate;
+    const oldCommissionAmount = booking.commissionAmount;
+    
+    // Update commission level and recalculate commission
+    booking.commissionLevel = commissionLevelId;
+    const bookingChannel = (booking.channel || 'direct').toLowerCase();
+    const commissionRate = bookingChannel === 'online' 
+      ? Number(level.onlineRate || 0)
+      : Number(level.directRate || 0);
+    
+    booking.commissionRate = commissionRate;
+    booking.commissionAmount = commissionRate > 0 
+      ? Math.round(Number(booking.price || 0) * (commissionRate / 100)) 
+      : 0;
+    
+    await booking.save();
+    await booking.populate('commissionLevel', 'name directRate onlineRate isPremium isDefault');
+    
+    // Log the upgrade for admin tracking
+    try {
+      const itemName = `${booking.airline} ${booking.flightNumber} (${booking.from} → ${booking.to})`;
+      await CommissionUpgradeLog.create({
+        performedBy: req.user.id,
+        performedByType: 'owner',
+        itemType: 'flight',
+        itemId: booking._id,
+        itemName,
+        oldCommissionLevel,
+        oldCommissionLevelName,
+        oldCommissionRate,
+        oldCommissionAmount,
+        newCommissionLevel: commissionLevelId,
+        newCommissionLevelName: level.name,
+        newCommissionRate: commissionRate,
+        newCommissionAmount: booking.commissionAmount,
+        bookingPrice: booking.price,
+        channel: bookingChannel,
+        ipAddress: req.ip || req.connection.remoteAddress,
+        userAgent: req.get('user-agent'),
+        description: `Flight owner upgraded commission level from "${oldCommissionLevelName || 'None'}" to "${level.name}"`
+      });
+    } catch (logError) {
+      console.error('Failed to log commission upgrade:', logError);
+      // Don't fail the request if logging fails
+    }
+    
+    return res.json({ 
+      booking, 
+      message: 'Commission level upgraded successfully' 
+    });
+  } catch (e) {
+    console.error('Upgrade flight commission level error:', e);
+    return res.status(500).json({ message: 'Failed to upgrade commission level', error: e.message });
+  }
+});
+
 // DELETE /api/flights/owner/bookings/:id
 router.delete('/bookings/:id', requireAuth, requireHost, async (req, res) => {
   try {
@@ -435,6 +586,180 @@ router.delete('/bookings/:id', requireAuth, requireHost, async (req, res) => {
   } catch (e) {
     console.error('Owner flights delete booking error:', e?.message || e);
     return res.status(500).json({ message: 'Failed to delete flight booking' });
+  }
+});
+
+// POST /api/flights/owner/seed-demo
+// Seed demo flight bookings for testing purposes
+router.post('/seed-demo', requireAuth, requireHost, async (req, res) => {
+  try {
+    const now = new Date();
+    const demoFlights = [
+      {
+        airline: 'RwandAir',
+        flightNumber: 'WB 400',
+        from: 'Kigali',
+        to: 'Nairobi',
+        departure: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
+        arrival: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000 + 1.5 * 60 * 60 * 1000), // 1.5 hours later
+        duration: '1h 30m',
+        price: 450000,
+        status: 'upcoming',
+        cabinClass: 'economy',
+        channel: 'online',
+        groupBooking: false,
+      },
+      {
+        airline: 'Ethiopian Airlines',
+        flightNumber: 'ET 801',
+        from: 'Kigali',
+        to: 'Addis Ababa',
+        departure: new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000), // 14 days from now
+        arrival: new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000 + 2.25 * 60 * 60 * 1000), // 2.25 hours later
+        duration: '2h 15m',
+        price: 520000,
+        status: 'upcoming',
+        cabinClass: 'business',
+        channel: 'direct',
+        groupBooking: true,
+        groupSize: 4,
+      },
+      {
+        airline: 'Kenya Airways',
+        flightNumber: 'KQ 410',
+        from: 'Kigali',
+        to: 'Kampala',
+        departure: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
+        arrival: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000 + 1.75 * 60 * 60 * 1000), // 1.75 hours later
+        duration: '1h 45m',
+        price: 380000,
+        status: 'completed',
+        cabinClass: 'economy',
+        channel: 'online',
+        groupBooking: false,
+      },
+      {
+        airline: 'RwandAir',
+        flightNumber: 'WB 500',
+        from: 'Kigali',
+        to: 'Dubai',
+        departure: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000), // 30 days ago
+        arrival: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000 + 5 * 60 * 60 * 1000), // 5 hours later
+        duration: '5h 0m',
+        price: 1200000,
+        status: 'completed',
+        cabinClass: 'business',
+        channel: 'direct',
+        groupBooking: false,
+      },
+      {
+        airline: 'Turkish Airlines',
+        flightNumber: 'TK 608',
+        from: 'Kigali',
+        to: 'Istanbul',
+        departure: new Date(now.getTime() + 21 * 24 * 60 * 60 * 1000), // 21 days from now
+        arrival: new Date(now.getTime() + 21 * 24 * 60 * 60 * 1000 + 6.5 * 60 * 60 * 1000), // 6.5 hours later
+        duration: '6h 30m',
+        price: 980000,
+        status: 'upcoming',
+        cabinClass: 'premium',
+        channel: 'online',
+        groupBooking: false,
+      },
+      {
+        airline: 'Air France',
+        flightNumber: 'AF 745',
+        from: 'Kigali',
+        to: 'Paris',
+        departure: new Date(now.getTime() - 15 * 24 * 60 * 60 * 1000), // 15 days ago
+        arrival: new Date(now.getTime() - 15 * 24 * 60 * 60 * 1000 + 8 * 60 * 60 * 1000), // 8 hours later
+        duration: '8h 0m',
+        price: 1500000,
+        status: 'completed',
+        cabinClass: 'business',
+        channel: 'direct',
+        groupBooking: true,
+        groupSize: 2,
+      },
+      {
+        airline: 'Qatar Airways',
+        flightNumber: 'QR 842',
+        from: 'Kigali',
+        to: 'Doha',
+        departure: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000), // 3 days from now
+        arrival: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000 + 4.5 * 60 * 60 * 1000), // 4.5 hours later
+        duration: '4h 30m',
+        price: 1100000,
+        status: 'upcoming',
+        cabinClass: 'economy',
+        channel: 'online',
+        groupBooking: false,
+      },
+      {
+        airline: 'Emirates',
+        flightNumber: 'EK 728',
+        from: 'Kigali',
+        to: 'Dubai',
+        departure: new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000), // 10 days ago
+        arrival: new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000 + 5.5 * 60 * 60 * 1000), // 5.5 hours later
+        duration: '5h 30m',
+        price: 1350000,
+        status: 'completed',
+        cabinClass: 'first',
+        channel: 'direct',
+        groupBooking: false,
+      },
+    ];
+
+    const createdFlights = [];
+    for (const flight of demoFlights) {
+      const bookingChannel = (flight.channel || 'direct').toLowerCase();
+      const bookingPrice = Number(flight.price);
+      
+      // Calculate commission
+      let commissionRate = 0;
+      if (flight.commissionLevel) {
+        try {
+          const level = await CommissionLevel.findById(flight.commissionLevel).lean();
+          if (level) {
+            commissionRate = bookingChannel === 'online' 
+              ? Number(level.onlineRate || 0)
+              : Number(level.directRate || 0);
+          }
+        } catch (_) {}
+      }
+      
+      if (!commissionRate || commissionRate <= 0) {
+        try {
+          const settings = await CommissionSettings.getSingleton();
+          commissionRate = Number(settings.premiumRate || settings.baseRate || 10);
+        } catch (_) {
+          commissionRate = 10;
+        }
+      }
+      
+      const commissionAmount = commissionRate > 0 ? Math.round(bookingPrice * (commissionRate / 100)) : 0;
+      
+      const booking = await FlightBooking.create({
+        host: req.user.id,
+        ...flight,
+        commissionLevel: defaultCommissionLevel?._id || undefined,
+        commissionRate,
+        commissionAmount,
+        commissionPaid: false,
+      });
+      createdFlights.push(booking);
+    }
+
+    return res.status(201).json({
+      success: true,
+      message: `Successfully created ${createdFlights.length} demo flight bookings`,
+      bookings: createdFlights,
+      count: createdFlights.length,
+    });
+  } catch (e) {
+    console.error('Owner flights seed demo error:', e?.message || e);
+    return res.status(500).json({ message: 'Failed to seed demo flights', error: e?.message });
   }
 });
 

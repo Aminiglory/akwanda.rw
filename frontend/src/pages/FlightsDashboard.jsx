@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { FaPlane, FaCalendarAlt, FaDollarSign, FaChartLine, FaBell, FaFileExport, FaEdit, FaTrash, FaEye, FaCog, FaFilter } from 'react-icons/fa';
+import { FaPlane, FaCalendarAlt, FaDollarSign, FaChartLine, FaBell, FaFileExport, FaEdit, FaTrash, FaEye, FaCog, FaFilter, FaCrown } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
 import ListProperty from './ListProperty';
 import AddFlightInlineForm from '../components/AddFlightInlineForm';
+import CommissionUpgradeModal from '../components/CommissionUpgradeModal';
 import toast from 'react-hot-toast';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -37,6 +38,8 @@ function FlightsDashboard() {
   const [loadingExpensesLog, setLoadingExpensesLog] = useState(false);
   const [newExpense, setNewExpense] = useState({ date: '', amount: '', category: 'general', note: '' });
   const [savingExpense, setSavingExpense] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState(null);
 
   const filteredBookings = useMemo(() => {
     let list = [...bookings];
@@ -151,6 +154,11 @@ function FlightsDashboard() {
           duration: b.duration,
           price: b.price,
           status: b.status || 'upcoming',
+          channel: b.channel,
+          commissionLevel: b.commissionLevel,
+          commissionRate: b.commissionRate,
+          commissionAmount: b.commissionAmount,
+          commissionPaid: b.commissionPaid,
         }));
         setBookings(list);
       } catch (_) {
@@ -366,18 +374,72 @@ function FlightsDashboard() {
 
       <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
         {!loadingBookings && !hasAnyFlights && (
-          <div className="bg-white border border-dashed border-blue-200 rounded-2xl p-6 text-center space-y-3">
+          <div className="bg-white border border-dashed border-blue-200 rounded-2xl p-6 text-center space-y-4">
             <h2 className="text-lg md:text-xl font-semibold text-gray-900">No flights listed yet</h2>
             <p className="text-gray-600 text-sm md:text-base max-w-2xl mx-auto">
-              To start using the Flights dashboard, you must first list at least one flight. Click the button below to get started.
+              To start using the Flights dashboard, you must first list at least one flight. You can either seed demo data for testing or list a real flight.
             </p>
-            <a
-              href="/upload-property?type=flight"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              <FaPlane />
-              List Your First Flight
-            </a>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!confirm('This will create 8 demo flight bookings for testing. Continue?')) return;
+                  try {
+                    setLoadingBookings(true);
+                    const res = await fetch(`${API_URL}/api/flights/owner/seed-demo`, {
+                      method: 'POST',
+                      credentials: 'include',
+                      headers: { 'Content-Type': 'application/json' },
+                    });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.message || 'Failed to seed demo flights');
+                    toast.success(`Successfully created ${data.count || 8} demo flight bookings!`);
+                    // Reload bookings
+                    const url = new URL(`${API_URL}/api/flights/owner/bookings`);
+                    const res2 = await fetch(url.toString(), { credentials: 'include' });
+                    if (res2.ok) {
+                      const data2 = await res2.json();
+                      const list = (data2.bookings || []).map((b) => ({
+                        id: String(b._id || b.id),
+                        airline: b.airline,
+                        flightNumber: b.flightNumber,
+                        from: b.from,
+                        to: b.to,
+                        departure: b.departure,
+                        arrival: b.arrival,
+                        duration: b.duration,
+                        price: b.price,
+                        status: b.status || 'upcoming',
+                        channel: b.channel,
+                        commissionLevel: b.commissionLevel,
+                        commissionRate: b.commissionRate,
+                        commissionAmount: b.commissionAmount,
+                        commissionPaid: b.commissionPaid,
+                      }));
+                      setBookings(list);
+                    }
+                  } catch (error) {
+                    toast.error(error.message || 'Failed to seed demo flights');
+                  } finally {
+                    setLoadingBookings(false);
+                  }
+                }}
+                className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              >
+                <FaPlane />
+                Seed Demo Flights (Testing)
+              </button>
+              <a
+                href="/upload-property?type=flight"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <FaPlane />
+                List Your First Flight
+              </a>
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              Demo flights include a mix of upcoming and completed bookings with different airlines and routes for testing purposes.
+            </p>
           </div>
         )}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -521,16 +583,16 @@ function FlightsDashboard() {
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-lg md:text-xl font-semibold text-gray-900">
-                      Overview
-                      {metrics.rangeLabel ? (
-                        <span className="ml-2 text-sm font-normal text-gray-600">({metrics.rangeLabel})</span>
-                      ) : null}
-                    </h2>
+                <h2 className="text-lg md:text-xl font-semibold text-gray-900">
+                  Overview
+                  {metrics.rangeLabel ? (
+                    <span className="ml-2 text-sm font-normal text-gray-600">({metrics.rangeLabel})</span>
+                  ) : null}
+                </h2>
                     <p className="text-gray-600 text-sm md:text-base mt-1">
-                      This section summarizes your recent flight activity based on your stored flight bookings in the
-                      backend.
-                    </p>
+                  This section summarizes your recent flight activity based on your stored flight bookings in the
+                  backend.
+                </p>
                   </div>
                   <div className="flex items-center gap-2">
                     <label className="text-sm text-gray-700">Range:</label>
@@ -618,7 +680,7 @@ function FlightsDashboard() {
             {tab === 'bookings' && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-lg md:text-xl font-semibold text-gray-900">Flight bookings</h2>
+                <h2 className="text-lg md:text-xl font-semibold text-gray-900">Flight bookings</h2>
                   <button
                     type="button"
                     onClick={() => {
@@ -725,6 +787,11 @@ function FlightsDashboard() {
                           duration: b.duration,
                           price: b.price,
                           status: b.status || 'upcoming',
+                          channel: b.channel,
+                          commissionLevel: b.commissionLevel,
+                          commissionRate: b.commissionRate,
+                          commissionAmount: b.commissionAmount,
+                          commissionPaid: b.commissionPaid,
                         }));
                         setBookings(list);
                       } catch (_) {
@@ -746,6 +813,7 @@ function FlightsDashboard() {
                         <th className="px-4 py-3 text-left font-medium text-gray-700">Route</th>
                         <th className="px-4 py-3 text-left font-medium text-gray-700">Duration</th>
                         <th className="px-4 py-3 text-left font-medium text-gray-700">Price</th>
+                        <th className="px-4 py-3 text-left font-medium text-gray-700">Commission</th>
                         <th className="px-4 py-3 text-left font-medium text-gray-700">Status</th>
                         <th className="px-4 py-3 text-left font-medium text-gray-700">Actions</th>
                       </tr>
@@ -770,6 +838,27 @@ function FlightsDashboard() {
                             {formatPrice(b.price)}
                           </td>
                           <td className="px-4 py-3 whitespace-nowrap">
+                            <div className="text-sm">
+                              <div className="font-medium text-gray-900">
+                                {formatPrice(b.commissionAmount || 0)}
+                              </div>
+                              {b.commissionRate && (
+                                <div className="text-xs text-gray-500">
+                                  {b.commissionRate}% ({b.channel || 'direct'})
+                                </div>
+                              )}
+                              {b.commissionPaid ? (
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                  Paid
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                                  Unpaid
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
                             <span
                               className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
                                 b.status === 'completed'
@@ -784,6 +873,17 @@ function FlightsDashboard() {
                           </td>
                           <td className="px-4 py-3 whitespace-nowrap">
                             <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedBooking(b);
+                                  setShowUpgradeModal(true);
+                                }}
+                                className="p-1.5 text-yellow-600 hover:bg-yellow-50 rounded"
+                                title="Upgrade commission level"
+                              >
+                                <FaCrown className="text-sm" />
+                              </button>
                               <button
                                 type="button"
                                 onClick={() => {
@@ -846,7 +946,7 @@ function FlightsDashboard() {
                       ))}
                       {filteredBookings.length === 0 && !loadingBookings && (
                         <tr>
-                          <td className="px-4 py-4 text-center text-gray-500 text-sm" colSpan={6}>
+                          <td className="px-4 py-4 text-center text-gray-500 text-sm" colSpan={7}>
                             No flight bookings yet.
                           </td>
                         </tr>
@@ -1488,8 +1588,8 @@ function FlightsDashboard() {
                       <FaFileExport />
                       Export
                     </button>
-                  </div>
-                </div>
+          </div>
+        </div>
                 {loadingAnalytics && (
                   <p className="text-gray-500 text-sm">Loading reports…</p>
                 )}
@@ -1678,16 +1778,72 @@ function FlightsDashboard() {
                       <p className="text-2xl font-bold text-gray-900">{formatPrice(metrics.revenue)}</p>
                     </div>
                     <div className="border border-gray-200 rounded-lg p-4">
-                      <p className="text-sm text-gray-600 mb-1">Total Expenses</p>
-                      <p className="text-2xl font-bold text-gray-900">
-                        {formatPrice((expensesSummary?.commission || 0) + (expensesSummary?.processing || 0) + (expensesSummary?.marketing || 0))}
+                      <p className="text-sm text-gray-600 mb-1">Total Commission</p>
+                      <p className="text-2xl font-bold text-red-600">
+                        {formatPrice(bookings.reduce((sum, b) => sum + (b.commissionAmount || 0), 0))}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {bookings.length > 0 
+                          ? `${((bookings.reduce((sum, b) => sum + (b.commissionAmount || 0), 0) / Math.max(metrics.revenue, 1)) * 100).toFixed(1)}% of revenue`
+                          : 'No bookings yet'}
                       </p>
                     </div>
                     <div className="border border-gray-200 rounded-lg p-4">
-                      <p className="text-sm text-gray-600 mb-1">Net Profit</p>
+                      <p className="text-sm text-gray-600 mb-1">Net After Commission</p>
                       <p className="text-2xl font-bold text-emerald-600">
-                        {formatPrice(metrics.revenue - ((expensesSummary?.commission || 0) + (expensesSummary?.processing || 0) + (expensesSummary?.marketing || 0)))}
+                        {formatPrice(metrics.revenue - bookings.reduce((sum, b) => sum + (b.commissionAmount || 0), 0))}
                       </p>
+                    </div>
+                  </div>
+                  <div className="mt-6 border-t border-gray-200 pt-6">
+                    <h4 className="font-semibold text-gray-900 mb-3">Commission Breakdown</h4>
+                    <div className="overflow-x-auto border border-gray-200 rounded-lg">
+                      <table className="min-w-full text-sm">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-4 py-2 text-left font-medium text-gray-700">Flight</th>
+                            <th className="px-4 py-2 text-left font-medium text-gray-700">Price</th>
+                            <th className="px-4 py-2 text-left font-medium text-gray-700">Channel</th>
+                            <th className="px-4 py-2 text-left font-medium text-gray-700">Commission Rate</th>
+                            <th className="px-4 py-2 text-left font-medium text-gray-700">Commission Amount</th>
+                            <th className="px-4 py-2 text-left font-medium text-gray-700">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100 bg-white">
+                          {bookings.filter(b => b.status === 'completed').slice(0, 10).map((b) => (
+                            <tr key={b.id}>
+                              <td className="px-4 py-2">
+                                <div className="font-medium text-gray-900">{b.airline} {b.flightNumber}</div>
+                                <div className="text-xs text-gray-500">{b.from} → {b.to}</div>
+                              </td>
+                              <td className="px-4 py-2 font-semibold">{formatPrice(b.price)}</td>
+                              <td className="px-4 py-2">
+                                <span className={`px-2 py-1 rounded text-xs ${
+                                  b.channel === 'online' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
+                                }`}>
+                                  {b.channel || 'direct'}
+                                </span>
+                              </td>
+                              <td className="px-4 py-2">{b.commissionRate ? `${b.commissionRate}%` : 'N/A'}</td>
+                              <td className="px-4 py-2 font-semibold text-red-600">{formatPrice(b.commissionAmount || 0)}</td>
+                              <td className="px-4 py-2">
+                                {b.commissionPaid ? (
+                                  <span className="px-2 py-1 rounded text-xs bg-green-100 text-green-800">Paid</span>
+                                ) : (
+                                  <span className="px-2 py-1 rounded text-xs bg-red-100 text-red-800">Unpaid</span>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                          {bookings.filter(b => b.status === 'completed').length === 0 && (
+                            <tr>
+                              <td className="px-4 py-4 text-center text-gray-500 text-sm" colSpan={6}>
+                                No completed bookings yet.
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
                   <div className="mt-6">
@@ -1698,11 +1854,11 @@ function FlightsDashboard() {
                         const csv = [
                           ['Category', 'Amount'].join(','),
                           ['Revenue', metrics.revenue].join(','),
-                          ['Commission', expensesSummary?.commission || 0].join(','),
+                          ['Total Commission', bookings.reduce((sum, b) => sum + (b.commissionAmount || 0), 0)].join(','),
                           ['Processing Fees', expensesSummary?.processing || 0].join(','),
                           ['Marketing', expensesSummary?.marketing || 0].join(','),
-                          ['Total Expenses', (expensesSummary?.commission || 0) + (expensesSummary?.processing || 0) + (expensesSummary?.marketing || 0)].join(','),
-                          ['Net Profit', metrics.revenue - ((expensesSummary?.commission || 0) + (expensesSummary?.processing || 0) + (expensesSummary?.marketing || 0))].join(',')
+                          ['Total Expenses', bookings.reduce((sum, b) => sum + (b.commissionAmount || 0), 0) + (expensesSummary?.processing || 0) + (expensesSummary?.marketing || 0)].join(','),
+                          ['Net After Commission', metrics.revenue - bookings.reduce((sum, b) => sum + (b.commissionAmount || 0), 0)].join(',')
                         ].join('\n');
                         const blob = new Blob([csv], { type: 'text/csv' });
                         const url = window.URL.createObjectURL(blob);
@@ -1784,6 +1940,102 @@ function FlightsDashboard() {
         </div>
         )}
       </div>
+
+      {/* Commission Upgrade Modal */}
+      {selectedBooking && (
+        <CommissionUpgradeModal
+          isOpen={showUpgradeModal}
+          onClose={() => {
+            setShowUpgradeModal(false);
+            setSelectedBooking(null);
+          }}
+          itemId={selectedBooking.id}
+          itemType="flight"
+          currentLevel={selectedBooking.commissionLevel}
+          onUpgradeSuccess={async (updatedBooking) => {
+            // Reload bookings to get updated commission data
+            try {
+              const url = new URL(`${API_URL}/api/flights/owner/bookings`);
+              const params = url.searchParams;
+              if (statusFilter) params.set('status', statusFilter);
+              if (bookingFilter) params.set('filter', bookingFilter);
+              const res = await fetch(url.toString(), { credentials: 'include' });
+              if (res.ok) {
+                const data = await res.json();
+                const list = (data.bookings || []).map((b) => ({
+                  id: String(b._id || b.id),
+                  airline: b.airline,
+                  flightNumber: b.flightNumber,
+                  from: b.from,
+                  to: b.to,
+                  departure: b.departure,
+                  arrival: b.arrival,
+                  duration: b.duration,
+                  price: b.price,
+                  status: b.status || 'upcoming',
+                  channel: b.channel,
+                  commissionLevel: b.commissionLevel,
+                  commissionRate: b.commissionRate,
+                  commissionAmount: b.commissionAmount,
+                  commissionPaid: b.commissionPaid,
+                }));
+                setBookings(list);
+              }
+            } catch (error) {
+              console.error('Failed to reload bookings:', error);
+            }
+            toast.success('Commission level upgraded successfully!');
+          }}
+        />
+      )}
+
+      {/* Commission Upgrade Modal */}
+      {selectedBooking && (
+        <CommissionUpgradeModal
+          isOpen={showUpgradeModal}
+          onClose={() => {
+            setShowUpgradeModal(false);
+            setSelectedBooking(null);
+          }}
+          itemId={selectedBooking.id}
+          itemType="flight"
+          currentLevel={selectedBooking.commissionLevel}
+          onUpgradeSuccess={async (updatedBooking) => {
+            // Reload bookings to get updated commission data
+            try {
+              const url = new URL(`${API_URL}/api/flights/owner/bookings`);
+              const params = url.searchParams;
+              if (statusFilter) params.set('status', statusFilter);
+              if (bookingFilter) params.set('filter', bookingFilter);
+              const res = await fetch(url.toString(), { credentials: 'include' });
+              if (res.ok) {
+                const data = await res.json();
+                const list = (data.bookings || []).map((b) => ({
+                  id: String(b._id || b.id),
+                  airline: b.airline,
+                  flightNumber: b.flightNumber,
+                  from: b.from,
+                  to: b.to,
+                  departure: b.departure,
+                  arrival: b.arrival,
+                  duration: b.duration,
+                  price: b.price,
+                  status: b.status || 'upcoming',
+                  channel: b.channel,
+                  commissionLevel: b.commissionLevel,
+                  commissionRate: b.commissionRate,
+                  commissionAmount: b.commissionAmount,
+                  commissionPaid: b.commissionPaid,
+                }));
+                setBookings(list);
+              }
+            } catch (error) {
+              console.error('Failed to reload bookings:', error);
+            }
+            toast.success('Commission level upgraded successfully!');
+          }}
+        />
+      )}
     </div>
   );
 }

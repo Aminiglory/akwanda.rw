@@ -1,8 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
+
+const formatCurrency = (value) => {
+  try {
+    return new Intl.NumberFormat('en-RW', { style: 'currency', currency: 'RWF', maximumFractionDigits: 0 }).format(value || 0);
+  } catch {
+    return `RWF ${Number(value || 0).toLocaleString()}`;
+  }
+};
 
 const AddFlightInlineForm = ({ apiUrl, onCreated }) => {
   const [saving, setSaving] = useState(false);
+  const [commissionLevels, setCommissionLevels] = useState([]);
+  const [loadingLevels, setLoadingLevels] = useState(false);
   const [form, setForm] = useState({
     airline: '',
     flightNumber: '',
@@ -17,7 +27,29 @@ const AddFlightInlineForm = ({ apiUrl, onCreated }) => {
     channel: 'direct',
     groupBooking: false,
     groupSize: '',
+    commissionLevelId: '',
   });
+
+  useEffect(() => {
+    (async () => {
+      try {
+        setLoadingLevels(true);
+        const res = await fetch(`${apiUrl}/api/flights/owner/commission-levels`, { credentials: 'include' });
+        if (res.ok) {
+          const data = await res.json();
+          setCommissionLevels(data.commissionLevels || []);
+          // Set default commission level if available
+          const defaultLevel = (data.commissionLevels || []).find(l => l.isDefault);
+          if (defaultLevel) {
+            setForm(prev => ({ ...prev, commissionLevelId: defaultLevel._id }));
+          }
+        }
+      } catch (_) {
+      } finally {
+        setLoadingLevels(false);
+      }
+    })();
+  }, [apiUrl]);
 
   const handleChange = (field, value) => {
     setForm(prev => ({ ...prev, [field]: value }));
@@ -50,6 +82,7 @@ const AddFlightInlineForm = ({ apiUrl, onCreated }) => {
           channel: form.channel,
           groupBooking: form.groupBooking,
           groupSize: form.groupSize ? Number(form.groupSize) : undefined,
+          commissionLevelId: form.commissionLevelId || undefined,
         }),
       });
 
@@ -73,6 +106,10 @@ const AddFlightInlineForm = ({ apiUrl, onCreated }) => {
         channel: 'direct',
         groupBooking: false,
         groupSize: '',
+        commissionLevelId: (() => {
+          const defaultLevel = commissionLevels.find(l => l.isDefault);
+          return defaultLevel?._id || '';
+        })(),
       });
       onCreated?.();
     } catch (error) {
@@ -216,6 +253,37 @@ const AddFlightInlineForm = ({ apiUrl, onCreated }) => {
             className="w-full border border-gray-300 rounded-md px-2 py-1 text-sm"
             placeholder="Number of passengers"
           />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-700 mb-1">Commission Level</label>
+          {loadingLevels ? (
+            <p className="text-xs text-gray-500">Loading...</p>
+          ) : (
+            <select
+              value={form.commissionLevelId}
+              onChange={(e) => handleChange('commissionLevelId', e.target.value)}
+              className="w-full border border-gray-300 rounded-md px-2 py-1 text-sm"
+            >
+              <option value="">Default (use system default)</option>
+              {commissionLevels.map((level) => (
+                <option key={level._id} value={level._id}>
+                  {level.name} ({form.channel === 'online' ? level.onlineRate : level.directRate}% {form.channel})
+                  {level.isPremium ? ' ⭐ Premium' : ''}
+                </option>
+              ))}
+            </select>
+          )}
+          {form.commissionLevelId && form.price && (
+            <p className="text-xs text-gray-500 mt-1">
+              Commission: {(() => {
+                const level = commissionLevels.find(l => l._id === form.commissionLevelId);
+                if (!level) return 'Calculating...';
+                const rate = form.channel === 'online' ? level.onlineRate : level.directRate;
+                const amount = Math.round(Number(form.price) * (rate / 100));
+                return `${formatCurrency(amount)} (${rate}%)`;
+              })()}
+            </p>
+          )}
         </div>
       </div>
       <div className="flex items-center gap-2">

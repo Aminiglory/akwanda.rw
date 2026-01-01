@@ -1103,8 +1103,8 @@ const Navbar = () => {
             {/* Universal Links - Show to all users */}
             {/* Customer Support moved to footer */}
 
-            {/* Hide guest-specific links when in property owner dashboard */}
-            {!isInPropertyOwnerDashboard() && (
+            {/* Hide guest-specific links when in property owner dashboard or first flight listing */}
+            {!isInPropertyOwnerDashboard() && !isFirstFlightListing() && (
               <>
                 {isAuthenticated && (
                   <Link
@@ -1837,7 +1837,7 @@ const Navbar = () => {
           )}
 
           {/* Guest/General quick links (mobile dropdown - all links here) */}
-          {!isInPropertyOwnerDashboard() && (
+          {!isInPropertyOwnerDashboard() && !isFirstFlightListing() && (
             <div className="px-2 pb-4">
               {mainNavItems.map((m, i) => {
                 const hasChildren = m.children && m.children.length > 0;
