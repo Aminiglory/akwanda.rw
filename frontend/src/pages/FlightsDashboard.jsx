@@ -27,6 +27,13 @@ function FlightsDashboard() {
   const [expensesSummary, setExpensesSummary] = useState(null);
   const [dailyPage, setDailyPage] = useState(1);
   const [monthlyPage, setMonthlyPage] = useState(1);
+   const [bookingsPage, setBookingsPage] = useState(1);
+  const [expensesLog, setExpensesLog] = useState([]);
+  const [expensesPage, setExpensesPage] = useState(1);
+  const [expensesTotalPages, setExpensesTotalPages] = useState(1);
+  const [loadingExpensesLog, setLoadingExpensesLog] = useState(false);
+  const [newExpense, setNewExpense] = useState({ date: '', amount: '', category: 'general', note: '' });
+  const [savingExpense, setSavingExpense] = useState(false);
 
   const filteredBookings = useMemo(() => {
     let list = [...bookings];
@@ -186,12 +193,108 @@ function FlightsDashboard() {
       }
     };
 
+    const loadExpensesLog = async (page = 1) => {
+      try {
+        setLoadingExpensesLog(true);
+        const url = new URL(`${API_URL}/api/flights/owner/expenses-log`);
+        url.searchParams.set('page', String(page));
+        url.searchParams.set('limit', '10');
+        const res = await fetch(url.toString(), { credentials: 'include' });
+        if (!res.ok) throw new Error('Failed to load expenses log');
+        const data = await res.json();
+        setExpensesLog(data.expenses || []);
+        setExpensesPage(data.page || 1);
+        setExpensesTotalPages(Math.max(1, Number(data.totalPages || 1)));
+      } catch (_) {
+        setExpensesLog([]);
+      } finally {
+        setLoadingExpensesLog(false);
+      }
+    };
+
     loadBookings();
     loadAnalytics();
     loadExpenses();
+    loadExpensesLog(1);
     setDailyPage(1);
     setMonthlyPage(1);
+    setBookingsPage(1);
   }, [user?.id, statusFilter, bookingFilter, range]);
+
+  const handleExpensesPageChange = (nextPage) => {
+    const page = Math.min(Math.max(1, nextPage), expensesTotalPages || 1);
+    if (page === expensesPage) return;
+    (async () => {
+      try {
+        setLoadingExpensesLog(true);
+        const url = new URL(`${API_URL}/api/flights/owner/expenses-log`);
+        url.searchParams.set('page', String(page));
+        url.searchParams.set('limit', '10');
+        const res = await fetch(url.toString(), { credentials: 'include' });
+        if (!res.ok) throw new Error('Failed to load expenses log');
+        const data = await res.json();
+        setExpensesLog(data.expenses || []);
+        setExpensesPage(data.page || page);
+        setExpensesTotalPages(Math.max(1, Number(data.totalPages || 1)));
+      } catch (_) {
+        // keep old data on failure
+      } finally {
+        setLoadingExpensesLog(false);
+      }
+    })();
+  };
+
+  const handleNewExpenseChange = (field, value) => {
+    setNewExpense((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleCreateExpense = async (e) => {
+    e.preventDefault();
+    if (!newExpense.date || !newExpense.amount) return;
+    try {
+      setSavingExpense(true);
+      const res = await fetch(`${API_URL}/api/flights/owner/expenses-log`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          date: newExpense.date,
+          amount: Number(newExpense.amount),
+          category: newExpense.category || 'general',
+          note: newExpense.note || '',
+        }),
+      });
+      if (!res.ok) throw new Error('Failed to create expense');
+      setNewExpense({ date: '', amount: '', category: 'general', note: '' });
+      // reload first page so new item appears
+      handleExpensesPageChange(1);
+    } catch (_) {
+      // keep form values, maybe show toast in future
+    } finally {
+      setSavingExpense(false);
+    }
+  };
+
+  const handleBookingsPageChange = (nextPage) => {
+    const totalPages = Math.max(1, Math.ceil((filteredBookings.length || 0) / 10));
+    const page = Math.min(Math.max(1, nextPage), totalPages);
+    setBookingsPage(page);
+  };
+
+  const handleDeleteExpense = async (id) => {
+    if (!id) return;
+    try {
+      const res = await fetch(`${API_URL}/api/flights/owner/expenses-log/${id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error('Failed to delete expense');
+      // reload current page (may shrink if last item removed)
+      handleExpensesPageChange(expensesPage);
+    } catch (_) {
+      // ignore errors for now
+    }
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -437,6 +540,14 @@ function FlightsDashboard() {
             {tab === 'bookings' && (
               <div className="space-y-4">
                 <h2 className="text-lg md:text-xl font-semibold text-gray-900">Flight bookings</h2>
+                <div className="border border-gray-100 rounded-xl p-4 bg-white">
+                  <h3 className="font-semibold text-gray-900 text-sm md:text-base mb-3">Add flight (owner-side)</h3>
+                  <p className="text-gray-600 text-xs md:text-sm mb-3">
+                    Use this form to record additional flights after your first one has been created via the external
+                    endpoint. These flights will appear in your bookings list and analytics.
+                  </p>
+                  <AddFlightInlineForm apiUrl={API_URL} onCreated={() => loadBookings()} />
+                </div>
                 {loadingBookings && (
                   <p className="text-gray-500 text-sm mb-2">Loading bookings…</p>
                 )}
@@ -452,7 +563,9 @@ function FlightsDashboard() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 bg-white">
-                      {filteredBookings.map((b) => (
+                      {filteredBookings
+                        .slice((bookingsPage - 1) * 10, bookingsPage * 10)
+                        .map((b) => (
                         <tr key={b.id}>
                           <td className="px-4 py-3 whitespace-nowrap">
                             <div className="font-medium text-gray-900">
@@ -483,8 +596,60 @@ function FlightsDashboard() {
                           </td>
                         </tr>
                       ))}
+                      {filteredBookings.length === 0 && !loadingBookings && (
+                        <tr>
+                          <td className="px-4 py-4 text-center text-gray-500 text-sm" colSpan={5}>
+                            No flight bookings yet.
+                          </td>
+                        </tr>
+                      )}
                     </tbody>
                   </table>
+                </div>
+                <div className="flex items-center justify-between text-xs md:text-sm text-gray-600">
+                  <span>
+                    Page {bookingsPage} of {Math.max(1, Math.ceil((filteredBookings.length || 0) / 10))}
+                  </span>
+                  <div className="space-x-2">
+                    <button
+                      type="button"
+                      className="px-2 py-1 border rounded disabled:opacity-50"
+                      disabled={bookingsPage <= 1}
+                      onClick={() => handleBookingsPageChange(1)}
+                    >
+                      First
+                    </button>
+                    <button
+                      type="button"
+                      className="px-2 py-1 border rounded disabled:opacity-50"
+                      disabled={bookingsPage <= 1}
+                      onClick={() => handleBookingsPageChange(bookingsPage - 1)}
+                    >
+                      Previous
+                    </button>
+                    <button
+                      type="button"
+                      className="px-2 py-1 border rounded disabled:opacity-50"
+                      disabled={
+                        bookingsPage >= Math.max(1, Math.ceil((filteredBookings.length || 0) / 10))
+                      }
+                      onClick={() => handleBookingsPageChange(bookingsPage + 1)}
+                    >
+                      Next
+                    </button>
+                    <button
+                      type="button"
+                      className="px-2 py-1 border rounded disabled:opacity-50"
+                      disabled={
+                        bookingsPage >= Math.max(1, Math.ceil((filteredBookings.length || 0) / 10))
+                      }
+                      onClick={() =>
+                        handleBookingsPageChange(Math.max(1, Math.ceil((filteredBookings.length || 0) / 10)))
+                      }
+                    >
+                      Last
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -825,6 +990,152 @@ function FlightsDashboard() {
                       )}
                     </tbody>
                   </table>
+                </div>
+
+                <div className="border border-gray-100 rounded-xl p-4 bg-white space-y-4">
+                  <h3 className="font-semibold text-gray-900 text-sm md:text-base">Recorded expenses</h3>
+                  <form className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end" onSubmit={handleCreateExpense}>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Date</label>
+                      <input
+                        type="date"
+                        value={newExpense.date}
+                        onChange={(e) => handleNewExpenseChange('date', e.target.value)}
+                        className="w-full border border-gray-300 rounded-md px-2 py-1 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Amount</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={newExpense.amount}
+                        onChange={(e) => handleNewExpenseChange('amount', e.target.value)}
+                        className="w-full border border-gray-300 rounded-md px-2 py-1 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Category</label>
+                      <input
+                        type="text"
+                        value={newExpense.category}
+                        onChange={(e) => handleNewExpenseChange('category', e.target.value)}
+                        className="w-full border border-gray-300 rounded-md px-2 py-1 text-sm"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Note</label>
+                      <input
+                        type="text"
+                        value={newExpense.note}
+                        onChange={(e) => handleNewExpenseChange('note', e.target.value)}
+                        className="w-full border border-gray-300 rounded-md px-2 py-1 text-sm"
+                        placeholder="Optional description"
+                      />
+                    </div>
+                    <div className="md:col-span-5 flex justify-end">
+                      <button
+                        type="submit"
+                        disabled={savingExpense || !newExpense.date || !newExpense.amount}
+                        className="inline-flex items-center px-3 py-1.5 rounded-md bg-blue-600 text-white text-xs md:text-sm font-medium disabled:opacity-50"
+                      >
+                        {savingExpense ? 'Saving…' : 'Add expense'}
+                      </button>
+                    </div>
+                  </form>
+
+                  <div className="border border-gray-100 rounded-xl overflow-x-auto">
+                    <table className="min-w-full text-xs md:text-sm">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-3 py-2 text-left font-medium text-gray-700">Date</th>
+                          <th className="px-3 py-2 text-left font-medium text-gray-700">Category</th>
+                          <th className="px-3 py-2 text-left font-medium text-gray-700">Amount</th>
+                          <th className="px-3 py-2 text-left font-medium text-gray-700">Note</th>
+                          <th className="px-3 py-2 text-right font-medium text-gray-700">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100 bg-white">
+                        {loadingExpensesLog ? (
+                          <tr>
+                            <td className="px-3 py-3 text-center text-gray-500 text-sm" colSpan={5}>
+                              Loading expenses…
+                            </td>
+                          </tr>
+                        ) : expensesLog.length === 0 ? (
+                          <tr>
+                            <td className="px-3 py-3 text-center text-gray-500 text-sm" colSpan={5}>
+                              No recorded expenses yet.
+                            </td>
+                          </tr>
+                        ) : (
+                          expensesLog.map((exp) => (
+                            <tr key={exp._id}>
+                              <td className="px-3 py-2 whitespace-nowrap text-gray-800">
+                                {exp.date ? new Date(exp.date).toLocaleDateString() : ''}
+                              </td>
+                              <td className="px-3 py-2 text-gray-800">{exp.category || 'general'}</td>
+                              <td className="px-3 py-2 whitespace-nowrap font-semibold text-gray-900">
+                                {formatPrice(exp.amount)}
+                              </td>
+                              <td className="px-3 py-2 text-gray-700 max-w-xs truncate" title={exp.note || ''}>
+                                {exp.note || ''}
+                              </td>
+                              <td className="px-3 py-2 text-right">
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteExpense(exp._id)}
+                                  className="inline-flex items-center px-2 py-1 rounded border border-red-200 text-red-600 text-xs hover:bg-red-50"
+                                >
+                                  Delete
+                                </button>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="mt-3 flex items-center justify-between text-xs md:text-sm text-gray-600">
+                    <span>
+                      Page {expensesPage} of {expensesTotalPages}
+                    </span>
+                    <div className="space-x-2">
+                      <button
+                        type="button"
+                        className="px-2 py-1 border rounded disabled:opacity-50"
+                        disabled={expensesPage <= 1}
+                        onClick={() => handleExpensesPageChange(1)}
+                      >
+                        First
+                      </button>
+                      <button
+                        type="button"
+                        className="px-2 py-1 border rounded disabled:opacity-50"
+                        disabled={expensesPage <= 1}
+                        onClick={() => handleExpensesPageChange(expensesPage - 1)}
+                      >
+                        Previous
+                      </button>
+                      <button
+                        type="button"
+                        className="px-2 py-1 border rounded disabled:opacity-50"
+                        disabled={expensesPage >= expensesTotalPages}
+                        onClick={() => handleExpensesPageChange(expensesPage + 1)}
+                      >
+                        Next
+                      </button>
+                      <button
+                        type="button"
+                        className="px-2 py-1 border rounded disabled:opacity-50"
+                        disabled={expensesPage >= expensesTotalPages}
+                        onClick={() => handleExpensesPageChange(expensesTotalPages)}
+                      >
+                        Last
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}

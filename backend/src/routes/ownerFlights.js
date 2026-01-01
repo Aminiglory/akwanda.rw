@@ -1,6 +1,7 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const FlightBooking = require('../tables/flightBooking');
+const FlightExpense = require('../tables/flightExpense');
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
@@ -302,6 +303,113 @@ router.get('/expenses', requireAuth, requireHost, async (req, res) => {
   } catch (e) {
     console.error('Owner flights expenses error:', e?.message || e);
     return res.status(500).json({ message: 'Failed to load flight expenses' });
+  }
+});
+
+// CRUD and paginated listing for individual flight expenses
+
+// POST /api/flights/owner/expenses-log
+router.post('/expenses-log', requireAuth, requireHost, async (req, res) => {
+  try {
+    const { date, amount, category, note, flightBookingId } = req.body || {};
+    if (!date || !amount) {
+      return res.status(400).json({ message: 'date and amount are required' });
+    }
+
+    const d = new Date(date);
+    if (Number.isNaN(d.getTime())) {
+      return res.status(400).json({ message: 'Invalid date' });
+    }
+
+    let bookingRef = null;
+    if (flightBookingId) {
+      const fb = await FlightBooking.findOne({ _id: flightBookingId, host: req.user.id }).select('_id');
+      if (fb) bookingRef = fb._id;
+    }
+
+    const exp = await FlightExpense.create({
+      host: req.user.id,
+      flightBooking: bookingRef,
+      date: d,
+      amount: Number(amount),
+      category: category || 'general',
+      note: note || '',
+    });
+
+    return res.status(201).json({ expense: exp });
+  } catch (e) {
+    console.error('Owner flights create expense error:', e?.message || e);
+    return res.status(500).json({ message: 'Failed to create flight expense' });
+  }
+});
+
+// GET /api/flights/owner/expenses-log?page=1&limit=10
+router.get('/expenses-log', requireAuth, requireHost, async (req, res) => {
+  try {
+    const page = Math.max(1, Number(req.query.page || 1));
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit || 10)));
+    const skip = (page - 1) * limit;
+
+    const query = { host: req.user.id };
+
+    const [items, total] = await Promise.all([
+      FlightExpense.find(query)
+        .sort({ date: -1, createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      FlightExpense.countDocuments(query),
+    ]);
+
+    return res.json({
+      expenses: items,
+      page,
+      limit,
+      total,
+      totalPages: Math.max(1, Math.ceil(total / limit)),
+    });
+  } catch (e) {
+    console.error('Owner flights list expenses error:', e?.message || e);
+    return res.status(500).json({ message: 'Failed to list flight expenses' });
+  }
+});
+
+// PATCH /api/flights/owner/expenses-log/:id
+router.patch('/expenses-log/:id', requireAuth, requireHost, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { date, amount, category, note } = req.body || {};
+
+    const exp = await FlightExpense.findOne({ _id: id, host: req.user.id });
+    if (!exp) return res.status(404).json({ message: 'Expense not found' });
+
+    if (date) {
+      const d = new Date(date);
+      if (Number.isNaN(d.getTime())) return res.status(400).json({ message: 'Invalid date' });
+      exp.date = d;
+    }
+    if (amount != null) exp.amount = Number(amount);
+    if (category != null) exp.category = category;
+    if (note != null) exp.note = note;
+
+    await exp.save();
+    return res.json({ expense: exp });
+  } catch (e) {
+    console.error('Owner flights update expense error:', e?.message || e);
+    return res.status(500).json({ message: 'Failed to update flight expense' });
+  }
+});
+
+// DELETE /api/flights/owner/expenses-log/:id
+router.delete('/expenses-log/:id', requireAuth, requireHost, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const exp = await FlightExpense.findOneAndDelete({ _id: id, host: req.user.id });
+    if (!exp) return res.status(404).json({ message: 'Expense not found' });
+    return res.json({ success: true });
+  } catch (e) {
+    console.error('Owner flights delete expense error:', e?.message || e);
+    return res.status(500).json({ message: 'Failed to delete flight expense' });
   }
 });
 
