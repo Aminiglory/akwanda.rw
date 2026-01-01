@@ -12,6 +12,12 @@ function FlightsDashboard() {
   const [loadingNotifications, setLoadingNotifications] = useState(false);
 
   const tab = (searchParams.get('tab') || 'overview').toLowerCase();
+  const range = (searchParams.get('range') || '').toLowerCase();
+  const statusFilter = (searchParams.get('status') || '').toLowerCase();
+  const bookingFilter = (searchParams.get('filter') || '').toLowerCase();
+  const bookingGroup = (searchParams.get('group') || '').toLowerCase();
+  const analyticsView = (searchParams.get('view') || '').toLowerCase();
+  const typeFilter = (searchParams.get('type') || '').toLowerCase();
 
   const [bookings, setBookings] = useState([
     {
@@ -52,8 +58,35 @@ function FlightsDashboard() {
     },
   ]);
 
+  const filteredBookings = useMemo(() => {
+    let list = [...bookings];
+
+    if (statusFilter) {
+      list = list.filter((b) => b.status.toLowerCase() === statusFilter);
+    }
+
+    if (bookingFilter === 'high-value') {
+      const avg = list.length
+        ? list.reduce((sum, b) => sum + (b.price || 0), 0) / Math.max(list.length, 1)
+        : 0;
+      list = list.filter((b) => (b.price || 0) >= avg);
+    }
+
+    // bookingGroup is primarily for future grouped views; for now we just
+    // keep the list as-is so the table still works.
+    return list;
+  }, [bookings, statusFilter, bookingFilter, bookingGroup]);
+
   const metrics = useMemo(() => {
     const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startOfYear = new Date(now.getFullYear(), 0, 1);
+    const daysAgo = (n) => {
+      const d = new Date(now);
+      d.setDate(d.getDate() - n);
+      return d;
+    };
+
     let totalBookings = bookings.length;
     let upcoming = 0;
     let completed = 0;
@@ -67,14 +100,52 @@ function FlightsDashboard() {
       const dep = new Date(b.departure);
       if (dep > now) upcoming += 1;
     });
+    let rangeLabel = 'All time';
+    if (range === 'today') {
+      rangeLabel = 'Today';
+    } else if (range === '30') {
+      rangeLabel = 'Last 30 days';
+    } else if (range === 'ytd') {
+      rangeLabel = 'Year to date';
+    }
+
+    let rangeRevenue = revenue;
+    if (range === 'today') {
+      rangeRevenue = bookings
+        .filter((b) => b.status === 'completed')
+        .filter((b) => {
+          const a = new Date(b.arrival);
+          return a >= startOfToday && a <= now;
+        })
+        .reduce((sum, b) => sum + (b.price || 0), 0);
+    } else if (range === '30') {
+      const from = daysAgo(30);
+      rangeRevenue = bookings
+        .filter((b) => b.status === 'completed')
+        .filter((b) => {
+          const a = new Date(b.arrival);
+          return a >= from && a <= now;
+        })
+        .reduce((sum, b) => sum + (b.price || 0), 0);
+    } else if (range === 'ytd') {
+      rangeRevenue = bookings
+        .filter((b) => b.status === 'completed')
+        .filter((b) => {
+          const a = new Date(b.arrival);
+          return a >= startOfYear && a <= now;
+        })
+        .reduce((sum, b) => sum + (b.price || 0), 0);
+    }
 
     return {
       totalBookings,
       upcoming,
       completed,
       revenue,
+      rangeRevenue,
+      rangeLabel,
     };
-  }, [bookings]);
+  }, [bookings, range]);
 
   useEffect(() => {
     if (!user) return;
@@ -230,7 +301,12 @@ function FlightsDashboard() {
           <div className="p-6">
             {tab === 'overview' && (
               <div className="space-y-6">
-                <h2 className="text-lg md:text-xl font-semibold text-gray-900">Overview</h2>
+                <h2 className="text-lg md:text-xl font-semibold text-gray-900">
+                  Overview
+                  {metrics.rangeLabel ? (
+                    <span className="ml-2 text-sm font-normal text-gray-600">({metrics.rangeLabel})</span>
+                  ) : null}
+                </h2>
                 <p className="text-gray-600 text-sm md:text-base">
                   This section summarizes your recent flight activity. In a future iteration, this will connect to live
                   airline APIs and your own flight booking data.
@@ -314,7 +390,7 @@ function FlightsDashboard() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 bg-white">
-                      {bookings.map((b) => (
+                      {filteredBookings.map((b) => (
                         <tr key={b.id}>
                           <td className="px-4 py-3 whitespace-nowrap">
                             <div className="font-medium text-gray-900">
@@ -355,37 +431,101 @@ function FlightsDashboard() {
               <div className="space-y-4">
                 <h2 className="text-lg md:text-xl font-semibold text-gray-900">Analytics</h2>
                 <p className="text-gray-600 text-sm md:text-base">
-                  High-level analytics based on your current mock flight bookings. When real flight APIs are connected, this
-                  section will use live data.
+                  High-level analytics based on your current mock flight bookings. Different views (routes, airlines,
+                  booking window, completion) are controlled by the links in the Flights navigation.
                 </p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {(!analyticsView || analyticsView === '') && (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="border border-gray-100 rounded-xl p-4 bg-gray-50">
+                      <p className="text-sm text-gray-600 mb-1">Average ticket price</p>
+                      <p className="text-2xl font-bold text-gray-900">
+                        {formatPrice(
+                          bookings.length
+                            ? bookings.reduce((sum, b) => sum + (b.price || 0), 0) / Math.max(bookings.length, 1)
+                            : 0,
+                        )}
+                      </p>
+                    </div>
+                    <div className="border border-gray-100 rounded-xl p-4 bg-gray-50">
+                      <p className="text-sm text-gray-600 mb-1">Completion rate</p>
+                      <p className="text-2xl font-bold text-gray-900">
+                        {bookings.length
+                          ? `${Math.round((metrics.completed / Math.max(bookings.length, 1)) * 100)}%`
+                          : '0%'}
+                      </p>
+                    </div>
+                    <div className="border border-gray-100 rounded-xl p-4 bg-gray-50">
+                      <p className="text-sm text-gray-600 mb-1">Upcoming share</p>
+                      <p className="text-2xl font-bold text-gray-900">
+                        {bookings.length
+                          ? `${Math.round((metrics.upcoming / Math.max(bookings.length, 1)) * 100)}%`
+                          : '0%'}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {analyticsView === 'routes' && (
                   <div className="border border-gray-100 rounded-xl p-4 bg-gray-50">
-                    <p className="text-sm text-gray-600 mb-1">Average ticket price</p>
-                    <p className="text-2xl font-bold text-gray-900">
-                      {formatPrice(
-                        bookings.length
-                          ? bookings.reduce((sum, b) => sum + (b.price || 0), 0) / Math.max(bookings.length, 1)
-                          : 0,
-                      )}
+                    <h3 className="font-semibold text-gray-900 mb-2 text-sm md:text-base">Revenue by route</h3>
+                    <ul className="space-y-2 text-sm">
+                      {bookings.map((b) => (
+                        <li key={b.id} className="flex justify-between">
+                          <span className="text-gray-700">{b.from} → {b.to}</span>
+                          <span className="font-semibold text-gray-900">{formatPrice(b.price)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {analyticsView === 'airlines' && (
+                  <div className="border border-gray-100 rounded-xl p-4 bg-gray-50">
+                    <h3 className="font-semibold text-gray-900 mb-2 text-sm md:text-base">Airline performance</h3>
+                    <ul className="space-y-2 text-sm">
+                      {Array.from(
+                        bookings.reduce((map, b) => {
+                          const key = b.airline;
+                          const prev = map.get(key) || { count: 0, revenue: 0 };
+                          map.set(key, {
+                            count: prev.count + 1,
+                            revenue: prev.revenue + (b.price || 0),
+                          });
+                          return map;
+                        }, new Map()),
+                      ).map(([airline, stats]) => (
+                        <li key={airline} className="flex justify-between">
+                          <span className="text-gray-700">{airline}</span>
+                          <span className="text-gray-600">
+                            {stats.count} flights · <span className="font-semibold">{formatPrice(stats.revenue)}</span>
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {analyticsView === 'bookwindow' && (
+                  <div className="border border-gray-100 rounded-xl p-4 bg-gray-50">
+                    <h3 className="font-semibold text-gray-900 mb-2 text-sm md:text-base">Booking window</h3>
+                    <p className="text-gray-600 text-sm">
+                      With mock data we assume an average booking window of 14–30 days. When real flight bookings are
+                      connected, this view will show how many days in advance guests usually book.
                     </p>
                   </div>
+                )}
+
+                {analyticsView === 'completion' && (
                   <div className="border border-gray-100 rounded-xl p-4 bg-gray-50">
-                    <p className="text-sm text-gray-600 mb-1">Completion rate</p>
-                    <p className="text-2xl font-bold text-gray-900">
-                      {bookings.length
-                        ? `${Math.round((metrics.completed / Math.max(bookings.length, 1)) * 100)}%`
-                        : '0%'}
+                    <h3 className="font-semibold text-gray-900 mb-2 text-sm md:text-base">Completion vs cancellation</h3>
+                    <p className="text-gray-700 text-sm mb-2">
+                      Completed flights: <span className="font-semibold">{metrics.completed}</span>
+                    </p>
+                    <p className="text-gray-700 text-sm">
+                      Cancelled flights: <span className="font-semibold">{bookings.filter((b) => b.status === 'cancelled').length}</span>
                     </p>
                   </div>
-                  <div className="border border-gray-100 rounded-xl p-4 bg-gray-50">
-                    <p className="text-sm text-gray-600 mb-1">Upcoming share</p>
-                    <p className="text-2xl font-bold text-gray-900">
-                      {bookings.length
-                        ? `${Math.round((metrics.upcoming / Math.max(bookings.length, 1)) * 100)}%`
-                        : '0%'}
-                    </p>
-                  </div>
-                </div>
+                )}
               </div>
             )}
 
@@ -406,16 +546,27 @@ function FlightsDashboard() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 bg-white">
-                      <tr>
-                        <td className="px-4 py-3 whitespace-nowrap">Airline commission</td>
-                        <td className="px-4 py-3">Estimated commission for completed bookings.</td>
-                        <td className="px-4 py-3 whitespace-nowrap">{formatPrice(metrics.revenue * 0.15)}</td>
-                      </tr>
-                      <tr>
-                        <td className="px-4 py-3 whitespace-nowrap">Service fees</td>
-                        <td className="px-4 py-3">Platform fees and payment processing.</td>
-                        <td className="px-4 py-3 whitespace-nowrap">{formatPrice(metrics.revenue * 0.05)}</td>
-                      </tr>
+                      {(!typeFilter || typeFilter === 'commission') && (
+                        <tr>
+                          <td className="px-4 py-3 whitespace-nowrap">Airline commission</td>
+                          <td className="px-4 py-3">Estimated commission for completed bookings.</td>
+                          <td className="px-4 py-3 whitespace-nowrap">{formatPrice(metrics.revenue * 0.15)}</td>
+                        </tr>
+                      )}
+                      {(!typeFilter || typeFilter === 'processing') && (
+                        <tr>
+                          <td className="px-4 py-3 whitespace-nowrap">Service fees</td>
+                          <td className="px-4 py-3">Platform fees and payment processing.</td>
+                          <td className="px-4 py-3 whitespace-nowrap">{formatPrice(metrics.revenue * 0.05)}</td>
+                        </tr>
+                      )}
+                      {(!typeFilter || typeFilter === 'marketing') && (
+                        <tr>
+                          <td className="px-4 py-3 whitespace-nowrap">Marketing & promos</td>
+                          <td className="px-4 py-3">Discounts, vouchers, and promotional campaigns.</td>
+                          <td className="px-4 py-3 whitespace-nowrap">{formatPrice(metrics.revenue * 0.03)}</td>
+                        </tr>
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -436,9 +587,15 @@ function FlightsDashboard() {
                   <div className="space-y-3 max-h-96 overflow-y-auto">
                     {notifications
                       .slice()
-                      .sort(
-                        (a, b) => new Date(b.createdAt || b.timestamp) - new Date(a.createdAt || a.timestamp),
-                      )
+                      .filter((n) => {
+                        if (!typeFilter) return true;
+                        const t = String(n.type || '').toLowerCase();
+                        if (typeFilter === 'status') return t.includes('status') || t.includes('flight');
+                        if (typeFilter === 'payments') return t.includes('payment') || t.includes('payout');
+                        if (typeFilter === 'system') return !t || t === 'system';
+                        return true;
+                      })
+                      .sort((a, b) => new Date(b.createdAt || b.timestamp) - new Date(a.createdAt || a.timestamp))
                       .map((n) => (
                         <div
                           key={n._id}

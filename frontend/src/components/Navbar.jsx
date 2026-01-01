@@ -357,7 +357,10 @@ const Navbar = () => {
       icon: FaHome,
       href: '/owner/flights?tab=overview',
       children: [
-        { label: 'Overview', href: '/owner/flights?tab=overview', icon: FaHome },
+        { label: 'Business overview', href: '/owner/flights?tab=overview', icon: FaHome },
+        { label: 'Today\'s performance', href: '/owner/flights?tab=overview&range=today', icon: FaCalendarAlt },
+        { label: 'Last 30 days', href: '/owner/flights?tab=overview&range=30', icon: FaCalendarAlt },
+        { label: 'Year to date', href: '/owner/flights?tab=overview&range=ytd', icon: FaCalendarAlt },
       ],
     },
     {
@@ -366,7 +369,12 @@ const Navbar = () => {
       icon: FaPlane,
       href: '/owner/flights?tab=bookings',
       children: [
-        { label: 'All flight bookings', href: '/owner/flights?tab=bookings', icon: FaPlane },
+        { label: 'All bookings', href: '/owner/flights?tab=bookings', icon: FaPlane },
+        { label: 'Upcoming departures', href: '/owner/flights?tab=bookings&status=upcoming', icon: FaCalendarAlt },
+        { label: 'Completed flights', href: '/owner/flights?tab=bookings&status=completed', icon: FaCalendarCheck },
+        { label: 'Cancelled flights', href: '/owner/flights?tab=bookings&status=cancelled', icon: FaCalendarTimes },
+        { label: 'High value tickets', href: '/owner/flights?tab=bookings&filter=high-value', icon: FaDollarSign },
+        { label: 'By airline', href: '/owner/flights?tab=bookings&group=airline', icon: FaPlane },
       ],
     },
     {
@@ -376,6 +384,10 @@ const Navbar = () => {
       href: '/owner/flights?tab=analytics',
       children: [
         { label: 'Performance overview', href: '/owner/flights?tab=analytics', icon: FaChartLine },
+        { label: 'Revenue by route', href: '/owner/flights?tab=analytics&view=routes', icon: FaMapMarkerAlt },
+        { label: 'Airline performance', href: '/owner/flights?tab=analytics&view=airlines', icon: FaPlane },
+        { label: 'Booking window', href: '/owner/flights?tab=analytics&view=bookwindow', icon: FaCalendarAlt },
+        { label: 'Completion vs cancellation', href: '/owner/flights?tab=analytics&view=completion', icon: FaChartLine },
       ],
     },
     {
@@ -384,7 +396,10 @@ const Navbar = () => {
       icon: FaDollarSign,
       href: '/owner/flights?tab=expenses',
       children: [
-        { label: 'Commissions & fees', href: '/owner/flights?tab=expenses', icon: FaDollarSign },
+        { label: 'All expenses', href: '/owner/flights?tab=expenses', icon: FaDollarSign },
+        { label: 'Airline commissions', href: '/owner/flights?tab=expenses&type=commission', icon: FaDollarSign },
+        { label: 'Payment processing fees', href: '/owner/flights?tab=expenses&type=processing', icon: FaDollarSign },
+        { label: 'Marketing & promos', href: '/owner/flights?tab=expenses&type=marketing', icon: FaDollarSign },
       ],
     },
     {
@@ -394,6 +409,9 @@ const Navbar = () => {
       href: '/owner/flights?tab=notifications',
       children: [
         { label: 'All notifications', href: '/owner/flights?tab=notifications', icon: FaBell },
+        { label: 'Flight status alerts', href: '/owner/flights?tab=notifications&type=status', icon: FaBell },
+        { label: 'Payment & payout alerts', href: '/owner/flights?tab=notifications&type=payments', icon: FaBell },
+        { label: 'System messages', href: '/owner/flights?tab=notifications&type=system', icon: FaBell },
       ],
     },
   ];
