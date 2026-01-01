@@ -175,12 +175,11 @@ export default function AttractionDetail() {
         } else if (reason === 'capacity') {
           const remaining = Number(data?.remaining);
           if (Number.isFinite(remaining)) {
-            toast.error(
-              tSafe(
-                'attractionDetail.toasts.capacityRemaining',
-                `Not available: only ${Math.max(0, remaining)} tickets remaining for this slot`
-              )
+            const msg = tSafe(
+              'attractionDetail.toasts.capacityRemaining',
+              `Not available: only ${Math.max(0, remaining)} tickets remaining for this slot`
             );
+            toast.error(String(msg).replace('{remaining}', String(Math.max(0, remaining))));
           } else {
             toast.error(tSafe('attractionDetail.toasts.notEnoughCapacity', 'Not available: not enough remaining capacity'));
           }
