@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { FaFacebook, FaTwitter, FaInstagram, FaLinkedin, FaPhone, FaEnvelope, FaMapMarkerAlt, FaBed, FaBuffer, FaCar, FaMountain } from 'react-icons/fa';
+import { FaFacebook, FaTwitter, FaInstagram, FaLinkedin, FaPhone, FaEnvelope, FaMapMarkerAlt, FaBed, FaBuffer, FaCar, FaMountain, FaPlane } from 'react-icons/fa';
 import { useLocale } from '../contexts/LocaleContext';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -77,11 +77,12 @@ const Footer = () => {
       ? [
           { icon: FaBed, name: t ? t('footer.manageStays') : 'Manage Stays', href: '/dashboard' },
           { icon: FaCar, name: 'Vehicles', href: '/vehicles-group-home' },
-          { icon: FaMountain, name: 'Attractions', href: '/owner/attractions' }
+          { icon: FaMountain, name: 'Attractions', href: '/owner/attractions' },
+          { icon: FaPlane, name: 'Flights', href: '/owner/flights' }
         ]
       : [])
   ];
-// helper
+
   return (
     <footer className="bg-gray-900 text-white">
       {/* Main Footer Content */}
