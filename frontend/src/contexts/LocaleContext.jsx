@@ -394,6 +394,8 @@ const dictionaries = {
         step3: 'Upload a cover photo and at least one gallery image.',
         step5: 'Add adult ticket price and currency.',
         step9: 'Add contact phone and email.',
+        contactFromProfile: 'Update your profile with phone and email to continue.',
+        languagesMin2: 'Select at least 2 languages.',
         missingCore: 'Name, category, country, and city are required.',
         saveFailed: 'Could not save attraction',
         uploadImagesFailed: 'Could not upload images'
@@ -471,7 +473,7 @@ const dictionaries = {
         bookingRequired: 'Booking required?',
         amenities: 'Amenities & facilities',
         guideAvailable: 'Guide available?',
-        languages: 'Main language of the experience',
+        languages: 'Supported languages',
         safetyEquipment: 'Safety equipment provided',
         rules: 'Important info / rules',
         dressCode: 'Dress code (optional)',
@@ -485,6 +487,7 @@ const dictionaries = {
       placeholders: {
         name: 'Kigali Cultural Walk',
         category: 'Select a category',
+        languagesSearch: 'Search languages'
       },
       toasts: {
         selectVisitDate: 'Select visit date',
@@ -729,7 +732,8 @@ const dictionaries = {
         highlights: 'Sélectionnez tout ce qui s’applique. Ces éléments aident les clients à comprendre ce qui rend l’attraction unique.',
         amenities: 'Sélectionnez les équipements disponibles.',
         safetyEquipment: 'Sélectionnez les équipements de sécurité fournis.',
-        refundPolicy: 'Choisissez la phrase qui décrit le mieux la politique de remboursement et d’annulation.'
+        refundPolicy: 'Choisissez la phrase qui décrit le mieux la politique de remboursement et d’annulation.',
+        languages: 'Sélectionnez au moins 2 langues que les clients peuvent utiliser pendant cette expérience.'
       },
       openingDays: {
         weekend: 'Week-end',

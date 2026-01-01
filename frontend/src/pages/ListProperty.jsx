@@ -84,11 +84,62 @@ const safetyEquipmentOptions = [
 ];
 
 const languageOptions = [
-  { value: 'Kinyarwanda', label: 'Kinyarwanda', labelKey: 'attractionWizard.languages.kinyarwanda' },
-  { value: 'English', label: 'English', labelKey: 'attractionWizard.languages.english' },
-  { value: 'French', label: 'French', labelKey: 'attractionWizard.languages.french' },
-  { value: 'Kiswahili', label: 'Kiswahili', labelKey: 'attractionWizard.languages.kiswahili' },
-  { value: 'Other', label: 'Other', labelKey: 'attractionWizard.languages.other' }
+  'Amharic',
+  'Arabic',
+  'Bengali',
+  'Chinese (Cantonese)',
+  'Chinese (Mandarin)',
+  'Czech',
+  'Danish',
+  'Dutch',
+  'English',
+  'Filipino',
+  'Finnish',
+  'French',
+  'German',
+  'Greek',
+  'Gujarati',
+  'Hausa',
+  'Hebrew',
+  'Hindi',
+  'Hungarian',
+  'Igbo',
+  'Indonesian',
+  'Italian',
+  'Japanese',
+  'Javanese',
+  'Kannada',
+  'Kinyarwanda',
+  'Kirundi',
+  'Korean',
+  'Lingala',
+  'Luganda',
+  'Malay',
+  'Malayalam',
+  'Marathi',
+  'Nepali',
+  'Norwegian',
+  'Persian',
+  'Polish',
+  'Portuguese',
+  'Punjabi',
+  'Romanian',
+  'Russian',
+  'Serbian',
+  'Sinhala',
+  'Somali',
+  'Spanish',
+  'Swahili',
+  'Swedish',
+  'Tamil',
+  'Telugu',
+  'Thai',
+  'Turkish',
+  'Ukrainian',
+  'Urdu',
+  'Vietnamese',
+  'Yoruba',
+  'Zulu'
 ];
 
 const highlightGroups = [
@@ -245,11 +296,12 @@ const initialAttraction = {
   refundPolicy: '',
   capacity: '',
   minGuests: '',
-  bookingRequired: '',
+  bookingRequired: 'yes',
   checkinInstructions: '',
   amenities: [],
   guideAvailable: '',
   audioGuideLanguages: '',
+  languages: [],
   safetyEquipment: [],
   rules: '',
   dressCode: '',
@@ -429,6 +481,7 @@ const ListProperty = ({ embedded = false, forceType = '', editId: editIdProp = '
   const [existingAttractionImageCount, setExistingAttractionImageCount] = useState(0);
   const [flightStep, setFlightStep] = useState(1);
   const [flightData, setFlightData] = useState(initialFlightData);
+  const [languageSearch, setLanguageSearch] = useState('');
 
   const labelOr = (key, fallback) => {
     if (!t) return fallback;
@@ -547,7 +600,7 @@ const ListProperty = ({ embedded = false, forceType = '', editId: editIdProp = '
           openingHoursEnd: a?.operatingHours?.close || '',
           duration: a?.duration || '',
           minAge: a?.minAge || '',
-          bookingRequired: a?.bookingRequired || 'yes',
+          bookingRequired: 'yes',
           capacity: a?.capacity != null ? String(a.capacity) : '',
           timeSlots: a?.timeSlots || '',
           timeSlot1: slotParts[0] || '',
@@ -564,6 +617,9 @@ const ListProperty = ({ embedded = false, forceType = '', editId: editIdProp = '
           liability: a?.liability || '',
           guideAvailable: a?.guideAvailable || 'no',
           audioGuideLanguages: a?.audioGuideLanguages || '',
+          languages: Array.isArray(a?.languages)
+            ? a.languages
+            : (a?.audioGuideLanguages ? [String(a.audioGuideLanguages).trim()].filter(Boolean) : []),
           safetyEquipment: a?.safetyEquipment || '',
           contactName: a?.contactName || '',
           contactPhone: a?.contactPhone || '',
@@ -583,6 +639,22 @@ const ListProperty = ({ embedded = false, forceType = '', editId: editIdProp = '
     }
     loadAttractionForEdit();
   }, [editingAttractionId]);
+
+  useEffect(() => {
+    const firstName = String(user?.firstName || '').trim();
+    const lastName = String(user?.lastName || '').trim();
+    const fullName = `${firstName} ${lastName}`.trim();
+    const email = String(user?.email || '').trim();
+    const phone = String(user?.phone || '').trim();
+
+    setAttractionForm(prev => ({
+      ...prev,
+      bookingRequired: 'yes',
+      contactName: fullName || prev.contactName,
+      contactEmail: email || prev.contactEmail,
+      contactPhone: phone || prev.contactPhone,
+    }));
+  }, [user?.firstName, user?.lastName, user?.email, user?.phone]);
 
   useEffect(() => {
     const { openingHoursStart, openingHoursEnd, duration } = attractionForm;
@@ -697,6 +769,87 @@ const ListProperty = ({ embedded = false, forceType = '', editId: editIdProp = '
             );
           })}
         </div>
+      </div>
+    );
+  };
+
+  const renderLanguagesSelector = () => {
+    const current = Array.isArray(attractionForm.languages)
+      ? attractionForm.languages
+      : String(attractionForm.languages || '')
+          .split(',')
+          .map(s => s.trim())
+          .filter(Boolean);
+
+    const normalizedOptions = Array.isArray(languageOptions)
+      ? languageOptions.map((opt) => String(opt || '').trim()).filter(Boolean)
+      : [];
+
+    const query = String(languageSearch || '').trim().toLowerCase();
+    const filtered = query
+      ? normalizedOptions.filter((l) => String(l).toLowerCase().includes(query))
+      : normalizedOptions;
+
+    const toggle = (value) => {
+      setAttractionForm(prev => {
+        const existing = Array.isArray(prev.languages)
+          ? prev.languages
+          : String(prev.languages || '')
+              .split(',')
+              .map(s => s.trim())
+              .filter(Boolean);
+
+        return existing.includes(value)
+          ? { ...prev, languages: existing.filter(v => v !== value) }
+          : { ...prev, languages: [...existing, value] };
+      });
+    };
+
+    return (
+      <div className="space-y-2 md:col-span-2">
+        <p className="text-sm font-medium text-gray-700">{labelOr('attractionWizard.fields.languages', 'Supported languages')}</p>
+        <input
+          value={languageSearch}
+          onChange={(e) => setLanguageSearch(e.target.value)}
+          placeholder={labelOr('attractionWizard.placeholders.languagesSearch', 'Search languages')}
+          className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-[#a06b42]"
+        />
+        {current.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {current.map((l) => (
+              <button
+                key={l}
+                type="button"
+                onClick={() => toggle(l)}
+                className="px-2.5 py-1 rounded-full border text-xs bg-[#a06b42] border-[#a06b42] text-white"
+              >
+                {l}
+              </button>
+            ))}
+          </div>
+        )}
+        <div className="max-h-56 overflow-y-auto border border-gray-200 rounded-xl bg-white">
+          <div className="p-2 flex flex-wrap gap-2">
+            {filtered.map((l) => {
+              const active = current.includes(l);
+              return (
+                <button
+                  key={l}
+                  type="button"
+                  onClick={() => toggle(l)}
+                  className={`px-2.5 py-1 rounded-full border text-xs transition-colors ${
+                    active
+                      ? 'bg-[#a06b42] border-[#a06b42] text-white'
+                      : 'border-gray-300 text-gray-700 hover:border-[#a06b42] hover:text-[#a06b42]'
+                  }`}
+                >
+                  {l}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        <p className="text-xs text-gray-500">{labelOr('attractionWizard.helpers.languages', 'Select at least 2 languages guests can use during this experience.')}</p>
       </div>
     );
   };
@@ -924,7 +1077,7 @@ const ListProperty = ({ embedded = false, forceType = '', editId: editIdProp = '
     </div>
   );
 
-  const renderField = ({ label, name, type = 'text', placeholder = '', description = '', options = [] }) => {
+  const renderField = ({ label, name, type = 'text', placeholder = '', description = '', options = [], readOnly = false, disabled = false }) => {
     const value = attractionForm[name];
     if (type === 'textarea') {
       return (
@@ -935,7 +1088,9 @@ const ListProperty = ({ embedded = false, forceType = '', editId: editIdProp = '
             value={value}
             onChange={(e) => setAttractionForm(prev => ({ ...prev, [name]: e.target.value }))}
             placeholder={placeholder}
-            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-[#a06b42]"
+            readOnly={readOnly}
+            disabled={disabled}
+            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-[#a06b42] disabled:opacity-60"
           />
           {description && <p className="text-xs text-gray-500">{description}</p>}
         </div>
@@ -949,7 +1104,8 @@ const ListProperty = ({ embedded = false, forceType = '', editId: editIdProp = '
           <select
             value={value}
             onChange={(e) => setAttractionForm(prev => ({ ...prev, [name]: e.target.value }))}
-            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-[#a06b42] bg-white"
+            disabled={disabled}
+            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-[#a06b42] bg-white disabled:opacity-60"
           >
             <option value="">{placeholder || labelOr('attractionWizard.common.selectPlaceholder', 'Select an option')}</option>
             {options.map(opt => {
@@ -973,7 +1129,9 @@ const ListProperty = ({ embedded = false, forceType = '', editId: editIdProp = '
           value={value}
           onChange={(e) => setAttractionForm(prev => ({ ...prev, [name]: e.target.value }))}
           placeholder={placeholder}
-          className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-[#a06b42]"
+          readOnly={readOnly}
+          disabled={disabled}
+          className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-[#a06b42] disabled:opacity-60"
         />
         {description && <p className="text-xs text-gray-500">{description}</p>}
       </div>
@@ -1033,9 +1191,21 @@ const ListProperty = ({ embedded = false, forceType = '', editId: editIdProp = '
         return false;
       }
     }
+    if (step === 7) {
+      const langs = Array.isArray(attractionForm.languages)
+        ? attractionForm.languages
+        : String(attractionForm.languages || '')
+            .split(',')
+            .map(s => s.trim())
+            .filter(Boolean);
+      if (langs.length < 2) {
+        toast.error(labelOr('attractionWizard.errors.languagesMin2', 'Select at least 2 languages.'));
+        return false;
+      }
+    }
     if (step === 9) {
       if (!attractionForm.contactPhone || !attractionForm.contactEmail) {
-        toast.error(labelOr('attractionWizard.errors.step9', 'Add contact phone and email.'));
+        toast.error(labelOr('attractionWizard.errors.contactFromProfile', 'Update your profile with phone and email to continue.'));
         return false;
       }
     }
@@ -1074,8 +1244,26 @@ const ListProperty = ({ embedded = false, forceType = '', editId: editIdProp = '
         return ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
       })();
 
+      const langs = Array.isArray(attractionForm.languages)
+        ? attractionForm.languages
+        : String(attractionForm.languages || '')
+            .split(',')
+            .map(s => s.trim())
+            .filter(Boolean);
+
+      const firstName = String(user?.firstName || '').trim();
+      const lastName = String(user?.lastName || '').trim();
+      const contactName = `${firstName} ${lastName}`.trim();
+      const contactEmail = String(user?.email || '').trim();
+      const contactPhone = String(user?.phone || '').trim();
+
       const payload = {
         ...attractionForm,
+        bookingRequired: 'yes',
+        languages: langs,
+        contactName,
+        contactEmail,
+        contactPhone,
         // Map to Attraction model core fields so it behaves like OwnerAttractionsDashboard.createItem
         name: attractionForm.name,
         description: attractionForm.fullDescription || attractionForm.shortDescription || attractionForm.description || '',
@@ -1310,7 +1498,6 @@ const ListProperty = ({ embedded = false, forceType = '', editId: editIdProp = '
         <>
           {renderField({ label: labelOr('attractionWizard.fields.capacity', 'Maximum group size (optional)'), name: 'capacity', type: 'number', placeholder: labelOr('attractionWizard.placeholders.capacity', 'Guests per session') })}
           {renderField({ label: labelOr('attractionWizard.fields.minGuests', 'Minimum guests (optional)'), name: 'minGuests', type: 'number', placeholder: labelOr('attractionWizard.placeholders.minGuests', 'Minimum booking size') })}
-          {renderRadioGroup(labelOr('attractionWizard.fields.bookingRequired', 'Booking required?'), 'bookingRequired')}
         </>
       )}
 
@@ -1318,7 +1505,7 @@ const ListProperty = ({ embedded = false, forceType = '', editId: editIdProp = '
         <>
           {renderAmenitySelector()}
           {renderRadioGroup(labelOr('attractionWizard.fields.guideAvailable', 'Guide available?'), 'guideAvailable')}
-          {renderField({ label: labelOr('attractionWizard.fields.languages', 'Main language of the experience'), name: 'audioGuideLanguages', type: 'select', options: languageOptions, placeholder: labelOr('attractionWizard.placeholders.languages', 'Select language') })}
+          {renderLanguagesSelector()}
           {renderSafetyEquipmentSelector()}
         </>
       )}
@@ -1333,9 +1520,9 @@ const ListProperty = ({ embedded = false, forceType = '', editId: editIdProp = '
 
       {attractionStep === 9 && section(labelOr('attractionWizard.steps.contact.title', '9. Contact information'), labelOr('attractionWizard.steps.contact.helper', 'How guests reach you.'),
         <>
-          {renderField({ label: labelOr('attractionWizard.fields.contactName', 'Owner / manager name'), name: 'contactName', placeholder: labelOr('attractionWizard.placeholders.contactName', 'John Doe') })}
-          {renderField({ label: labelOr('attractionWizard.fields.contactPhone', 'Phone number *'), name: 'contactPhone', placeholder: labelOr('attractionWizard.placeholders.contactPhone', '+250 78...') })}
-          {renderField({ label: labelOr('attractionWizard.fields.contactEmail', 'Email address *'), name: 'contactEmail', type: 'email', placeholder: labelOr('attractionWizard.placeholders.contactEmail', 'owner@example.com') })}
+          {renderField({ label: labelOr('attractionWizard.fields.contactName', 'Owner / manager name'), name: 'contactName', placeholder: labelOr('attractionWizard.placeholders.contactName', 'John Doe'), readOnly: true, disabled: true })}
+          {renderField({ label: labelOr('attractionWizard.fields.contactPhone', 'Phone number *'), name: 'contactPhone', placeholder: labelOr('attractionWizard.placeholders.contactPhone', '+250 78...'), readOnly: true, disabled: true })}
+          {renderField({ label: labelOr('attractionWizard.fields.contactEmail', 'Email address *'), name: 'contactEmail', type: 'email', placeholder: labelOr('attractionWizard.placeholders.contactEmail', 'owner@example.com'), readOnly: true, disabled: true })}
           {renderField({ label: labelOr('attractionWizard.fields.contactWebsite', 'Website (optional)'), name: 'contactWebsite', placeholder: labelOr('attractionWizard.placeholders.contactWebsite', 'https://...') })}
         </>
       )}
