@@ -425,4 +425,17 @@ router.delete('/expenses-log/:id', requireAuth, requireHost, async (req, res) =>
   }
 });
 
+// DELETE /api/flights/owner/bookings/:id
+router.delete('/bookings/:id', requireAuth, requireHost, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const booking = await FlightBooking.findOneAndDelete({ _id: id, host: req.user.id });
+    if (!booking) return res.status(404).json({ message: 'Flight booking not found' });
+    return res.json({ success: true });
+  } catch (e) {
+    console.error('Owner flights delete booking error:', e?.message || e);
+    return res.status(500).json({ message: 'Failed to delete flight booking' });
+  }
+});
+
 module.exports = router;

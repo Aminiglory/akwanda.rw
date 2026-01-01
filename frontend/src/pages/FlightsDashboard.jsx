@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { FaPlane, FaCalendarAlt, FaDollarSign, FaChartLine, FaBell } from 'react-icons/fa';
+import { FaPlane, FaCalendarAlt, FaDollarSign, FaChartLine, FaBell, FaFileExport, FaEdit, FaTrash, FaEye, FaCog, FaFilter } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
 import ListProperty from './ListProperty';
+import AddFlightInlineForm from '../components/AddFlightInlineForm';
+import toast from 'react-hot-toast';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -477,22 +479,78 @@ function FlightsDashboard() {
                 <FaBell className="text-sm" />
                 Notifications
               </button>
+              <button
+                type="button"
+                onClick={() => setTab('reports')}
+                className={`py-4 px-1 border-b-2 font-medium text-sm md:text-base transition-colors ${
+                  tab === 'reports'
+                    ? 'border-blue-600 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                Reports
+              </button>
+              <button
+                type="button"
+                onClick={() => setTab('finance')}
+                className={`py-4 px-1 border-b-2 font-medium text-sm md:text-base transition-colors ${
+                  tab === 'finance'
+                    ? 'border-blue-600 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                Finance
+              </button>
+              <button
+                type="button"
+                onClick={() => setTab('settings')}
+                className={`py-4 px-1 border-b-2 font-medium text-sm md:text-base transition-colors flex items-center gap-2 ${
+                  tab === 'settings'
+                    ? 'border-blue-600 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <FaCog className="text-sm" />
+                Settings
+              </button>
             </nav>
           </div>
 
           <div className="p-6">
             {tab === 'overview' && (
               <div className="space-y-6">
-                <h2 className="text-lg md:text-xl font-semibold text-gray-900">
-                  Overview
-                  {metrics.rangeLabel ? (
-                    <span className="ml-2 text-sm font-normal text-gray-600">({metrics.rangeLabel})</span>
-                  ) : null}
-                </h2>
-                <p className="text-gray-600 text-sm md:text-base">
-                  This section summarizes your recent flight activity based on your stored flight bookings in the
-                  backend.
-                </p>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-lg md:text-xl font-semibold text-gray-900">
+                      Overview
+                      {metrics.rangeLabel ? (
+                        <span className="ml-2 text-sm font-normal text-gray-600">({metrics.rangeLabel})</span>
+                      ) : null}
+                    </h2>
+                    <p className="text-gray-600 text-sm md:text-base mt-1">
+                      This section summarizes your recent flight activity based on your stored flight bookings in the
+                      backend.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm text-gray-700">Range:</label>
+                    <select
+                      value={range}
+                      onChange={(e) => {
+                        const next = new URLSearchParams(searchParams);
+                        if (e.target.value) next.set('range', e.target.value);
+                        else next.delete('range');
+                        setSearchParams(next, { replace: true });
+                      }}
+                      className="border border-gray-300 rounded-md px-3 py-1 text-sm"
+                    >
+                      <option value="">All time</option>
+                      <option value="today">Today</option>
+                      <option value="30">Last 30 days</option>
+                      <option value="ytd">Year to date</option>
+                    </select>
+                  </div>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="border border-gray-100 rounded-xl p-4 bg-gray-50">
                     <h3 className="font-semibold text-gray-900 mb-2 text-sm md:text-base">Next upcoming flight</h3>
@@ -559,14 +617,123 @@ function FlightsDashboard() {
 
             {tab === 'bookings' && (
               <div className="space-y-4">
-                <h2 className="text-lg md:text-xl font-semibold text-gray-900">Flight bookings</h2>
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg md:text-xl font-semibold text-gray-900">Flight bookings</h2>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const csv = [
+                        ['Flight', 'Route', 'Duration', 'Price', 'Status', 'Departure', 'Arrival'].join(','),
+                        ...filteredBookings.map(b => [
+                          `"${b.airline} ${b.flightNumber}"`,
+                          `"${b.from} → ${b.to}"`,
+                          `"${b.duration || ''}"`,
+                          b.price || 0,
+                          b.status,
+                          b.departure ? new Date(b.departure).toLocaleString() : '',
+                          b.arrival ? new Date(b.arrival).toLocaleString() : ''
+                        ].join(','))
+                      ].join('\n');
+                      const blob = new Blob([csv], { type: 'text/csv' });
+                      const url = window.URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `flight-bookings-${new Date().toISOString().split('T')[0]}.csv`;
+                      a.click();
+                      window.URL.revokeObjectURL(url);
+                      toast.success('Bookings exported to CSV');
+                    }}
+                    className="inline-flex items-center gap-2 px-3 py-1.5 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm"
+                  >
+                    <FaFileExport />
+                    Export CSV
+                  </button>
+                </div>
+                <div className="bg-white border border-gray-200 rounded-xl p-4">
+                  <div className="flex items-center gap-4 mb-4 flex-wrap">
+                    <div className="flex items-center gap-2">
+                      <FaFilter className="text-gray-500" />
+                      <span className="text-sm font-medium text-gray-700">Filters:</span>
+                    </div>
+                    <select
+                      value={statusFilter}
+                      onChange={(e) => {
+                        const next = new URLSearchParams(searchParams);
+                        if (e.target.value) next.set('status', e.target.value);
+                        else next.delete('status');
+                        setSearchParams(next, { replace: true });
+                      }}
+                      className="border border-gray-300 rounded-md px-3 py-1 text-sm"
+                    >
+                      <option value="">All statuses</option>
+                      <option value="upcoming">Upcoming</option>
+                      <option value="completed">Completed</option>
+                      <option value="cancelled">Cancelled</option>
+                    </select>
+                    <select
+                      value={bookingFilter}
+                      onChange={(e) => {
+                        const next = new URLSearchParams(searchParams);
+                        if (e.target.value) next.set('filter', e.target.value);
+                        else next.delete('filter');
+                        setSearchParams(next, { replace: true });
+                      }}
+                      className="border border-gray-300 rounded-md px-3 py-1 text-sm"
+                    >
+                      <option value="">All bookings</option>
+                      <option value="high-value">High value</option>
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const next = new URLSearchParams(searchParams);
+                        next.delete('status');
+                        next.delete('filter');
+                        setSearchParams(next, { replace: true });
+                      }}
+                      className="text-sm text-gray-600 hover:text-gray-900"
+                    >
+                      Clear filters
+                    </button>
+                  </div>
+                </div>
                 <div className="border border-gray-100 rounded-xl p-4 bg-white">
                   <h3 className="font-semibold text-gray-900 text-sm md:text-base mb-3">Add flight (owner-side)</h3>
                   <p className="text-gray-600 text-xs md:text-sm mb-3">
                     Use this form to record additional flights after your first one has been created via the external
                     endpoint. These flights will appear in your bookings list and analytics.
                   </p>
-                  <AddFlightInlineForm apiUrl={API_URL} onCreated={() => loadBookings()} />
+                  <AddFlightInlineForm apiUrl={API_URL} onCreated={() => {
+                    const loadBookings = async () => {
+                      try {
+                        setLoadingBookings(true);
+                        const url = new URL(`${API_URL}/api/flights/owner/bookings`);
+                        const params = url.searchParams;
+                        if (statusFilter) params.set('status', statusFilter);
+                        if (bookingFilter) params.set('filter', bookingFilter);
+                        const res = await fetch(url.toString(), { credentials: 'include' });
+                        if (!res.ok) throw new Error('Failed to load bookings');
+                        const data = await res.json();
+                        const list = (data.bookings || []).map((b) => ({
+                          id: String(b._id || b.id),
+                          airline: b.airline,
+                          flightNumber: b.flightNumber,
+                          from: b.from,
+                          to: b.to,
+                          departure: b.departure,
+                          arrival: b.arrival,
+                          duration: b.duration,
+                          price: b.price,
+                          status: b.status || 'upcoming',
+                        }));
+                        setBookings(list);
+                      } catch (_) {
+                      } finally {
+                        setLoadingBookings(false);
+                      }
+                    };
+                    loadBookings();
+                  }} />
                 </div>
                 {loadingBookings && (
                   <p className="text-gray-500 text-sm mb-2">Loading bookings…</p>
@@ -580,6 +747,7 @@ function FlightsDashboard() {
                         <th className="px-4 py-3 text-left font-medium text-gray-700">Duration</th>
                         <th className="px-4 py-3 text-left font-medium text-gray-700">Price</th>
                         <th className="px-4 py-3 text-left font-medium text-gray-700">Status</th>
+                        <th className="px-4 py-3 text-left font-medium text-gray-700">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 bg-white">
@@ -597,7 +765,7 @@ function FlightsDashboard() {
                               {b.from} → {b.to}
                             </div>
                           </td>
-                          <td className="px-4 py-3 text-gray-700 whitespace-nowrap">{b.duration}</td>
+                          <td className="px-4 py-3 text-gray-700 whitespace-nowrap">{b.duration || 'N/A'}</td>
                           <td className="px-4 py-3 text-gray-900 font-semibold whitespace-nowrap">
                             {formatPrice(b.price)}
                           </td>
@@ -614,11 +782,71 @@ function FlightsDashboard() {
                               {b.status.charAt(0).toUpperCase() + b.status.slice(1)}
                             </span>
                           </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const details = `Flight: ${b.airline} ${b.flightNumber}\nRoute: ${b.from} → ${b.to}\nDeparture: ${b.departure ? new Date(b.departure).toLocaleString() : 'N/A'}\nArrival: ${b.arrival ? new Date(b.arrival).toLocaleString() : 'N/A'}\nPrice: ${formatPrice(b.price)}\nStatus: ${b.status}`;
+                                  alert(details);
+                                }}
+                                className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
+                                title="View details"
+                              >
+                                <FaEye className="text-sm" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  if (!confirm('Are you sure you want to delete this flight booking?')) return;
+                                  try {
+                                    const res = await fetch(`${API_URL}/api/flights/owner/bookings/${b.id}`, {
+                                      method: 'DELETE',
+                                      credentials: 'include',
+                                    });
+                                    if (!res.ok) {
+                                      const data = await res.json();
+                                      throw new Error(data.message || 'Failed to delete');
+                                    }
+                                    toast.success('Flight booking deleted');
+                                    // Reload bookings
+                                    const url = new URL(`${API_URL}/api/flights/owner/bookings`);
+                                    const params = url.searchParams;
+                                    if (statusFilter) params.set('status', statusFilter);
+                                    if (bookingFilter) params.set('filter', bookingFilter);
+                                    const res2 = await fetch(url.toString(), { credentials: 'include' });
+                                    if (res2.ok) {
+                                      const data = await res2.json();
+                                      const list = (data.bookings || []).map((b) => ({
+                                        id: String(b._id || b.id),
+                                        airline: b.airline,
+                                        flightNumber: b.flightNumber,
+                                        from: b.from,
+                                        to: b.to,
+                                        departure: b.departure,
+                                        arrival: b.arrival,
+                                        duration: b.duration,
+                                        price: b.price,
+                                        status: b.status || 'upcoming',
+                                      }));
+                                      setBookings(list);
+                                    }
+                                  } catch (error) {
+                                    toast.error(error.message || 'Failed to delete booking');
+                                  }
+                                }}
+                                className="p-1.5 text-red-600 hover:bg-red-50 rounded"
+                                title="Delete"
+                              >
+                                <FaTrash className="text-sm" />
+                              </button>
+                            </div>
+                          </td>
                         </tr>
                       ))}
                       {filteredBookings.length === 0 && !loadingBookings && (
                         <tr>
-                          <td className="px-4 py-4 text-center text-gray-500 text-sm" colSpan={5}>
+                          <td className="px-4 py-4 text-center text-gray-500 text-sm" colSpan={6}>
                             No flight bookings yet.
                           </td>
                         </tr>
@@ -1206,6 +1434,350 @@ function FlightsDashboard() {
                       ))}
                   </div>
                 )}
+              </div>
+            )}
+
+            {tab === 'reports' && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg md:text-xl font-semibold text-gray-900">Reports & Analytics</h2>
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={analyticsView}
+                      onChange={(e) => {
+                        const next = new URLSearchParams(searchParams);
+                        if (e.target.value) next.set('view', e.target.value);
+                        else next.delete('view');
+                        setSearchParams(next, { replace: true });
+                      }}
+                      className="border border-gray-300 rounded-md px-3 py-1 text-sm"
+                    >
+                      <option value="">Summary</option>
+                      <option value="routes">Revenue by Route</option>
+                      <option value="airlines">Airline Performance</option>
+                      <option value="bookwindow">Booking Window</option>
+                      <option value="completion">Completion vs Cancellation</option>
+                      <option value="reports">Daily & Monthly Reports</option>
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const csv = analytics?.daily ? [
+                          ['Date', 'Bookings', 'Completed', 'Cancelled', 'Revenue'].join(','),
+                          ...analytics.daily.map(r => [
+                            r.date,
+                            r.bookings,
+                            r.completed,
+                            r.cancelled,
+                            r.revenue
+                          ].join(','))
+                        ].join('\n') : '';
+                        if (csv) {
+                          const blob = new Blob([csv], { type: 'text/csv' });
+                          const url = window.URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = `flight-reports-${new Date().toISOString().split('T')[0]}.csv`;
+                          a.click();
+                          window.URL.revokeObjectURL(url);
+                          toast.success('Reports exported to CSV');
+                        }
+                      }}
+                      className="inline-flex items-center gap-2 px-3 py-1.5 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm"
+                    >
+                      <FaFileExport />
+                      Export
+                    </button>
+                  </div>
+                </div>
+                {loadingAnalytics && (
+                  <p className="text-gray-500 text-sm">Loading reports…</p>
+                )}
+                {(!analyticsView || analyticsView === '') && (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="border border-gray-100 rounded-xl p-4 bg-gray-50">
+                      <p className="text-sm text-gray-600 mb-1">Average ticket price</p>
+                      <p className="text-2xl font-bold text-gray-900">
+                        {formatPrice(
+                          analytics?.totals && analytics.totals.completed
+                            ? analytics.totals.revenueTotal / Math.max(analytics.totals.completed, 1)
+                            : 0,
+                        )}
+                      </p>
+                    </div>
+                    <div className="border border-gray-100 rounded-xl p-4 bg-gray-50">
+                      <p className="text-sm text-gray-600 mb-1">Completion rate</p>
+                      <p className="text-2xl font-bold text-gray-900">
+                        {analytics?.totals && analytics.totals.totalBookings
+                          ? `${Math.round(
+                              (analytics.totals.completed / Math.max(analytics.totals.totalBookings, 1)) * 100,
+                            )}%`
+                          : '0%'}
+                      </p>
+                    </div>
+                    <div className="border border-gray-100 rounded-xl p-4 bg-gray-50">
+                      <p className="text-sm text-gray-600 mb-1">Upcoming share</p>
+                      <p className="text-2xl font-bold text-gray-900">
+                        {analytics?.totals && analytics.totals.totalBookings
+                          ? `${Math.round(
+                              (analytics.totals.upcoming / Math.max(analytics.totals.totalBookings, 1)) * 100,
+                            )}%`
+                          : '0%'}
+                      </p>
+                    </div>
+                  </div>
+                )}
+                {analyticsView === 'routes' && (
+                  <div className="border border-gray-100 rounded-xl p-4 bg-gray-50">
+                    <h3 className="font-semibold text-gray-900 mb-2 text-sm md:text-base">Revenue by route</h3>
+                    <ul className="space-y-2 text-sm">
+                      {(analytics?.routes || []).map((r) => (
+                        <li key={r.route} className="flex justify-between">
+                          <span className="text-gray-700">{r.route}</span>
+                          <span className="text-gray-600">
+                            {r.count} flights ·{' '}
+                            <span className="font-semibold text-gray-900">{formatPrice(r.revenue)}</span>
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {analyticsView === 'airlines' && (
+                  <div className="border border-gray-100 rounded-xl p-4 bg-gray-50">
+                    <h3 className="font-semibold text-gray-900 mb-2 text-sm md:text-base">Airline performance</h3>
+                    <ul className="space-y-2 text-sm">
+                      {(analytics?.airlines || []).map((a) => (
+                        <li key={a.airline} className="flex justify-between">
+                          <span className="text-gray-700">{a.airline}</span>
+                          <span className="text-gray-600">
+                            {a.count} flights ·{' '}
+                            <span className="font-semibold">{formatPrice(a.revenue)}</span>
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {analyticsView === 'bookwindow' && (
+                  <div className="border border-gray-100 rounded-xl p-4 bg-gray-50">
+                    <h3 className="font-semibold text-gray-900 mb-2 text-sm md:text-base">Booking window</h3>
+                    <p className="text-gray-600 text-sm mb-3">
+                      Distribution of how many days in advance guests book their flights.
+                    </p>
+                    <ul className="mt-3 space-y-1 text-sm">
+                      {(analytics?.bookingWindow || []).map((b) => (
+                        <li key={b.bucket} className="flex justify-between">
+                          <span className="text-gray-700">{b.bucket} days</span>
+                          <span className="font-semibold text-gray-900">{b.count}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {analyticsView === 'completion' && (
+                  <div className="border border-gray-100 rounded-xl p-4 bg-gray-50">
+                    <h3 className="font-semibold text-gray-900 mb-2 text-sm md:text-base">Completion vs cancellation</h3>
+                    <p className="text-gray-700 text-sm mb-2">
+                      Completed flights:{' '}
+                      <span className="font-semibold">{analytics?.completion?.completed || 0}</span>
+                    </p>
+                    <p className="text-gray-700 text-sm">
+                      Cancelled flights:{' '}
+                      <span className="font-semibold">{analytics?.completion?.cancelled || 0}</span>
+                    </p>
+                  </div>
+                )}
+                {analyticsView === 'reports' && (
+                  <div className="space-y-6">
+                    <div className="border border-gray-100 rounded-xl p-4 bg-gray-50 overflow-x-auto">
+                      <h3 className="font-semibold text-gray-900 mb-3 text-sm md:text-base">Daily report</h3>
+                      <table className="min-w-full text-xs md:text-sm">
+                        <thead className="bg-gray-100">
+                          <tr>
+                            <th className="px-3 py-2 text-left font-medium text-gray-700">Date</th>
+                            <th className="px-3 py-2 text-left font-medium text-gray-700">Bookings</th>
+                            <th className="px-3 py-2 text-left font-medium text-gray-700">Completed</th>
+                            <th className="px-3 py-2 text-left font-medium text-gray-700">Cancelled</th>
+                            <th className="px-3 py-2 text-left font-medium text-gray-700">Revenue</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100 bg-white">
+                          {(analytics?.daily || [])
+                            .slice((dailyPage - 1) * 10, dailyPage * 10)
+                            .map((row) => (
+                            <tr key={row.date}>
+                              <td className="px-3 py-2 whitespace-nowrap text-gray-800">{row.date}</td>
+                              <td className="px-3 py-2 text-gray-800">{row.bookings}</td>
+                              <td className="px-3 py-2 text-gray-800">{row.completed}</td>
+                              <td className="px-3 py-2 text-gray-800">{row.cancelled}</td>
+                              <td className="px-3 py-2 whitespace-nowrap font-semibold text-gray-900">
+                                {formatPrice(row.revenue)}
+                              </td>
+                            </tr>
+                          ))}
+                          {!analytics?.daily?.length && (
+                            <tr>
+                              <td className="px-3 py-3 text-center text-gray-500 text-sm" colSpan={5}>
+                                No data for this period yet.
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                    <div className="border border-gray-100 rounded-xl p-4 bg-gray-50 overflow-x-auto">
+                      <h3 className="font-semibold text-gray-900 mb-3 text-sm md:text-base">Monthly summary</h3>
+                      <table className="min-w-full text-xs md:text-sm">
+                        <thead className="bg-gray-100">
+                          <tr>
+                            <th className="px-3 py-2 text-left font-medium text-gray-700">Month</th>
+                            <th className="px-3 py-2 text-left font-medium text-gray-700">Bookings</th>
+                            <th className="px-3 py-2 text-left font-medium text-gray-700">Completed</th>
+                            <th className="px-3 py-2 text-left font-medium text-gray-700">Cancelled</th>
+                            <th className="px-3 py-2 text-left font-medium text-gray-700">Revenue</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100 bg-white">
+                          {(analytics?.monthly || [])
+                            .slice((monthlyPage - 1) * 10, monthlyPage * 10)
+                            .map((row) => (
+                            <tr key={row.month}>
+                              <td className="px-3 py-2 whitespace-nowrap text-gray-800">{row.month}</td>
+                              <td className="px-3 py-2 text-gray-800">{row.bookings}</td>
+                              <td className="px-3 py-2 text-gray-800">{row.completed}</td>
+                              <td className="px-3 py-2 text-gray-800">{row.cancelled}</td>
+                              <td className="px-3 py-2 whitespace-nowrap font-semibold text-gray-900">
+                                {formatPrice(row.revenue)}
+                              </td>
+                            </tr>
+                          ))}
+                          {!analytics?.monthly?.length && (
+                            <tr>
+                              <td className="px-3 py-3 text-center text-gray-500 text-sm" colSpan={5}>
+                                No monthly data summarised for this period yet.
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {tab === 'finance' && (
+              <div className="space-y-4">
+                <h2 className="text-lg md:text-xl font-semibold text-gray-900">Finance & Profit & Loss</h2>
+                <div className="bg-white border border-gray-200 rounded-xl p-6">
+                  <h3 className="font-semibold text-gray-900 mb-4">Revenue Summary</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="border border-gray-200 rounded-lg p-4">
+                      <p className="text-sm text-gray-600 mb-1">Total Revenue</p>
+                      <p className="text-2xl font-bold text-gray-900">{formatPrice(metrics.revenue)}</p>
+                    </div>
+                    <div className="border border-gray-200 rounded-lg p-4">
+                      <p className="text-sm text-gray-600 mb-1">Total Expenses</p>
+                      <p className="text-2xl font-bold text-gray-900">
+                        {formatPrice((expensesSummary?.commission || 0) + (expensesSummary?.processing || 0) + (expensesSummary?.marketing || 0))}
+                      </p>
+                    </div>
+                    <div className="border border-gray-200 rounded-lg p-4">
+                      <p className="text-sm text-gray-600 mb-1">Net Profit</p>
+                      <p className="text-2xl font-bold text-emerald-600">
+                        {formatPrice(metrics.revenue - ((expensesSummary?.commission || 0) + (expensesSummary?.processing || 0) + (expensesSummary?.marketing || 0)))}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-6">
+                    <p className="text-sm text-gray-600 mb-2">For detailed profit & loss analysis, please use the Expenses tab to track all costs.</p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const csv = [
+                          ['Category', 'Amount'].join(','),
+                          ['Revenue', metrics.revenue].join(','),
+                          ['Commission', expensesSummary?.commission || 0].join(','),
+                          ['Processing Fees', expensesSummary?.processing || 0].join(','),
+                          ['Marketing', expensesSummary?.marketing || 0].join(','),
+                          ['Total Expenses', (expensesSummary?.commission || 0) + (expensesSummary?.processing || 0) + (expensesSummary?.marketing || 0)].join(','),
+                          ['Net Profit', metrics.revenue - ((expensesSummary?.commission || 0) + (expensesSummary?.processing || 0) + (expensesSummary?.marketing || 0))].join(',')
+                        ].join('\n');
+                        const blob = new Blob([csv], { type: 'text/csv' });
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `flight-finance-${new Date().toISOString().split('T')[0]}.csv`;
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                        toast.success('Finance report exported to CSV');
+                      }}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm"
+                    >
+                      <FaFileExport />
+                      Export Finance Report
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {tab === 'settings' && (
+              <div className="space-y-4">
+                <h2 className="text-lg md:text-xl font-semibold text-gray-900 flex items-center gap-2">
+                  <FaCog />
+                  Settings
+                </h2>
+                <div className="bg-white border border-gray-200 rounded-xl p-6 space-y-6">
+                  <div>
+                    <h3 className="font-semibold text-gray-900 mb-2">Flight Management Settings</h3>
+                    <p className="text-sm text-gray-600 mb-4">
+                      Configure your flight booking preferences and notification settings.
+                    </p>
+                    <div className="space-y-3">
+                      <label className="flex items-center gap-2">
+                        <input type="checkbox" className="rounded" defaultChecked />
+                        <span className="text-sm text-gray-700">Email notifications for new bookings</span>
+                      </label>
+                      <label className="flex items-center gap-2">
+                        <input type="checkbox" className="rounded" defaultChecked />
+                        <span className="text-sm text-gray-700">SMS notifications for urgent updates</span>
+                      </label>
+                      <label className="flex items-center gap-2">
+                        <input type="checkbox" className="rounded" />
+                        <span className="text-sm text-gray-700">Auto-approve bookings</span>
+                      </label>
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900 mb-2">Default Settings</h3>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Default Channel</label>
+                        <select className="w-full max-w-xs border border-gray-300 rounded-md px-3 py-2 text-sm">
+                          <option value="direct">Direct</option>
+                          <option value="online">Online</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Default Status</label>
+                        <select className="w-full max-w-xs border border-gray-300 rounded-md px-3 py-2 text-sm">
+                          <option value="upcoming">Upcoming</option>
+                          <option value="completed">Completed</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="pt-4 border-t border-gray-200">
+                    <button
+                      type="button"
+                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
+                    >
+                      Save Settings
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
           </div>
