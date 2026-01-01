@@ -709,6 +709,9 @@ const ListProperty = ({ embedded = false, forceType = '', editId: editIdProp = '
               if (type.id === 'attraction') {
                 setAttractionStep(1);
               }
+              if (type.id === 'flight') {
+                setFlightStep(1);
+              }
             }}
             className={`relative rounded-xl p-3 text-left text-sm border transition-all duration-200 ${listingType === type.id ?
               'border-blue-600 bg-blue-50 shadow-sm' : 'border-gray-200 hover:border-blue-400 hover:bg-gray-50'}`}

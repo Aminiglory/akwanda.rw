@@ -3,6 +3,8 @@ import { FaFacebook, FaTwitter, FaInstagram, FaLinkedin, FaPhone, FaEnvelope, Fa
 import { useLocale } from '../contexts/LocaleContext';
 import { useAuth } from '../contexts/AuthContext';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 const Footer = () => {
   const [site, setSite] = useState(() => {
     try {
@@ -14,6 +16,7 @@ const Footer = () => {
   });
   const { t } = useLocale() || {};
   const { user } = useAuth() || {};
+  const [hasFlights, setHasFlights] = useState(null);
 
   useEffect(() => {
     console.log('[Footer] mount');
@@ -24,6 +27,27 @@ const Footer = () => {
     window.addEventListener('siteSettingsUpdated', handler);
     return () => window.removeEventListener('siteSettingsUpdated', handler);
   }, []);
+
+  // Check if user has flights
+  useEffect(() => {
+    if (!user || user.userType !== 'host') {
+      setHasFlights(false);
+      return;
+    }
+    (async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/flights/owner/has-flights`, { credentials: 'include' });
+        if (res.ok) {
+          const data = await res.json();
+          setHasFlights(data.hasFlights || false);
+        } else {
+          setHasFlights(false);
+        }
+      } catch {
+        setHasFlights(false);
+      }
+    })();
+  }, [user?.id, user?.userType]);
 
   const companyEmail = site?.companyEmail || 'info@akwanda.rw';
   const phone = site?.phone || '0781714167';
@@ -78,7 +102,11 @@ const Footer = () => {
           { icon: FaBed, name: t ? t('footer.manageStays') : 'Manage Stays', href: '/dashboard' },
           { icon: FaCar, name: 'Vehicles', href: '/vehicles-group-home' },
           { icon: FaMountain, name: 'Attractions', href: '/owner/attractions' },
-          { icon: FaPlane, name: 'Flights', href: '/owner/flights' }
+          { 
+            icon: FaPlane, 
+            name: 'Flights', 
+            href: hasFlights ? '/owner/flights?action=list' : '/upload-property?type=flight'
+          }
         ]
       : [])
   ];

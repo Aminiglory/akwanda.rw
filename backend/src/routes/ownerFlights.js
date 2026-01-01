@@ -81,6 +81,18 @@ router.post('/bookings', requireAuth, requireHost, async (req, res) => {
   }
 });
 
+// GET /api/flights/owner/has-flights
+// Check if user has any flight bookings
+router.get('/has-flights', requireAuth, requireHost, async (req, res) => {
+  try {
+    const count = await FlightBooking.countDocuments({ host: req.user.id });
+    return res.json({ hasFlights: count > 0, count });
+  } catch (e) {
+    console.error('Check has flights error:', e?.message || e);
+    return res.status(500).json({ message: 'Failed to check flights', hasFlights: false });
+  }
+});
+
 // GET /api/flights/owner/bookings
 router.get('/bookings', requireAuth, requireHost, async (req, res) => {
   try {

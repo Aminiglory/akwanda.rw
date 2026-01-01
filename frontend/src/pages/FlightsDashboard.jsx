@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { FaPlane, FaCalendarAlt, FaDollarSign, FaChartLine, FaBell } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
+import ListProperty from './ListProperty';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -316,6 +317,11 @@ function FlightsDashboard() {
     );
   }
 
+  // Show listing form if action=list
+  if (action === 'list') {
+    return <ListProperty forceType="flight" hideListingTypeSelector={true} />;
+  }
+
   const setTab = (nextTab) => {
     const next = new URLSearchParams(searchParams);
     next.set('tab', nextTab);
@@ -344,6 +350,15 @@ function FlightsDashboard() {
               Track your flight bookings, revenue, and notifications in one place.
             </p>
           </div>
+          {hasAnyFlights && (
+            <a
+              href="/owner/flights?action=list"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm md:text-base"
+            >
+              <FaPlane />
+              List New Flight
+            </a>
+          )}
         </div>
       </div>
 
@@ -352,10 +367,15 @@ function FlightsDashboard() {
           <div className="bg-white border border-dashed border-blue-200 rounded-2xl p-6 text-center space-y-3">
             <h2 className="text-lg md:text-xl font-semibold text-gray-900">No flights listed yet</h2>
             <p className="text-gray-600 text-sm md:text-base max-w-2xl mx-auto">
-              To start using the Flights dashboard, you must first list at least one flight booking for your account.
-              You can do this via the backend endpoint <code>POST /api/flights/owner/bookings</code> (as a host), then
-              refresh this page.
+              To start using the Flights dashboard, you must first list at least one flight. Click the button below to get started.
             </p>
+            <a
+              href="/upload-property?type=flight"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <FaPlane />
+              List Your First Flight
+            </a>
           </div>
         )}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">

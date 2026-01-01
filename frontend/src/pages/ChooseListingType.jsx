@@ -45,7 +45,7 @@ const ChooseListingType = () => {
       icon: FaPlane,
       color: 'from-indigo-500 to-indigo-600',
       hoverColor: 'hover:from-indigo-600 hover:to-indigo-700',
-      route: '/flights',
+      route: '/upload-property?type=flight',
       available: true
     }
   ];
