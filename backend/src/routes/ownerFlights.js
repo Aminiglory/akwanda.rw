@@ -593,6 +593,24 @@ router.delete('/bookings/:id', requireAuth, requireHost, async (req, res) => {
 // Seed demo flight bookings for testing purposes
 router.post('/seed-demo', requireAuth, requireHost, async (req, res) => {
   try {
+    // Get default commission level for flights
+    let defaultCommissionLevel = null;
+    try {
+      defaultCommissionLevel = await CommissionLevel.findOne({ 
+        scope: 'flight', 
+        isDefault: true, 
+        active: true 
+      }).lean();
+    } catch (_) {
+      // If no default level, try to get any active flight commission level
+      try {
+        defaultCommissionLevel = await CommissionLevel.findOne({ 
+          scope: 'flight', 
+          active: true 
+        }).sort({ sortOrder: 1, createdAt: 1 }).lean();
+      } catch (_) {}
+    }
+
     const now = new Date();
     const demoFlights = [
       {

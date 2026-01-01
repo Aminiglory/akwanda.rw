@@ -392,8 +392,12 @@ function FlightsDashboard() {
                       credentials: 'include',
                       headers: { 'Content-Type': 'application/json' },
                     });
-                    const data = await res.json();
-                    if (!res.ok) throw new Error(data.message || 'Failed to seed demo flights');
+                    const data = await res.json().catch(() => ({ message: 'Failed to parse response' }));
+                    if (!res.ok) {
+                      const errorMsg = data.message || data.error || `HTTP ${res.status}: Failed to seed demo flights`;
+                      console.error('Seed demo flights error:', errorMsg, data);
+                      throw new Error(errorMsg);
+                    }
                     toast.success(`Successfully created ${data.count || 8} demo flight bookings!`);
                     // Reload bookings
                     const url = new URL(`${API_URL}/api/flights/owner/bookings`);
