@@ -95,6 +95,7 @@ const GroupHomePage = lazyWithRetry(() => import('./pages/GroupHomePage'));
 const VehiclesGroupHomePage = lazyWithRetry(() => import('./pages/VehiclesGroupHomePage'));
 const ResetPassword = lazyWithRetry(() => import('./pages/ResetPassword'));
 const SecurityQuestionsSetup = lazyWithRetry(() => import('./pages/SecurityQuestionsSetup'));
+const FlightsDashboard = lazyWithRetry(() => import('./pages/FlightsDashboard'));
 
 const SecurityQuestionsGate = ({ children }) => {
 	const { isAuthenticated, user, isLoading } = useAuth();
@@ -246,6 +247,7 @@ function App() {
             <Route path="/my-bookings" element={<ProtectedRoute><MyBookings /></ProtectedRoute>} />
             {/* All property owner dashboard routes now point to PropertyOwnerBookings */}
             <Route path="/owner/cars" element={<HostRoute><div className="dashboard"><CarOwnerDashboard /></div></HostRoute>} />
+            <Route path="/owner/flights" element={<HostRoute><div className="dashboard"><FlightsDashboard /></div></HostRoute>} />
             <Route path="/owner/attractions" element={<HostRoute><div className="dashboard"><OwnerAttractionsDashboard /></div></HostRoute>} />
             <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
             <Route path="/owner/promotions" element={<HostRoute><div className="dashboard"><OwnerPromotions /></div></HostRoute>} />

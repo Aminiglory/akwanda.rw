@@ -22,10 +22,14 @@ const CommissionUpgradeModal = ({ isOpen, onClose, itemId, itemType, currentLeve
   const fetchCommissionLevels = async () => {
     try {
       setLoading(true);
-      const scope = itemType === 'vehicle' ? 'vehicle' : 'property';
-      const endpoint = itemType === 'vehicle' 
-        ? `${API_URL}/api/cars/commission-levels`
-        : `${API_URL}/api/properties/commission-levels`;
+      let endpoint;
+      if (itemType === 'vehicle') {
+        endpoint = `${API_URL}/api/cars/commission-levels`;
+      } else if (itemType === 'flight') {
+        endpoint = `${API_URL}/api/flights/owner/commission-levels`;
+      } else {
+        endpoint = `${API_URL}/api/properties/commission-levels`;
+      }
       
       const res = await fetch(endpoint, {
         credentials: 'include',
@@ -37,7 +41,12 @@ const CommissionUpgradeModal = ({ isOpen, onClose, itemId, itemType, currentLeve
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to load commission levels');
       
-      setLevels(Array.isArray(data.levels) ? data.levels : []);
+      // Handle different response formats
+      if (itemType === 'flight') {
+        setLevels(Array.isArray(data.commissionLevels) ? data.commissionLevels : []);
+      } else {
+        setLevels(Array.isArray(data.levels) ? data.levels : []);
+      }
     } catch (e) {
       console.error('Failed to fetch commission levels:', e);
       toast.error(e.message || 'Failed to load commission levels');
@@ -54,14 +63,21 @@ const CommissionUpgradeModal = ({ isOpen, onClose, itemId, itemType, currentLeve
 
     try {
       setUpgrading(true);
-      const endpoint = itemType === 'vehicle'
-        ? `${API_URL}/api/cars/${itemId}/upgrade-commission-level`
-        : `${API_URL}/api/properties/${itemId}/commission`;
+      let endpoint, method, body;
       
-      const method = itemType === 'vehicle' ? 'POST' : 'PUT';
-      const body = itemType === 'vehicle'
-        ? { commissionLevelId: selectedLevelId }
-        : { levelId: selectedLevelId };
+      if (itemType === 'vehicle') {
+        endpoint = `${API_URL}/api/cars/${itemId}/upgrade-commission-level`;
+        method = 'POST';
+        body = { commissionLevelId: selectedLevelId };
+      } else if (itemType === 'flight') {
+        endpoint = `${API_URL}/api/flights/owner/bookings/${itemId}/upgrade-commission-level`;
+        method = 'POST';
+        body = { commissionLevelId: selectedLevelId };
+      } else {
+        endpoint = `${API_URL}/api/properties/${itemId}/commission`;
+        method = 'PUT';
+        body = { levelId: selectedLevelId };
+      }
 
       const res = await fetch(endpoint, {
         method,
@@ -77,7 +93,8 @@ const CommissionUpgradeModal = ({ isOpen, onClose, itemId, itemType, currentLeve
 
       toast.success('Commission level upgraded successfully!');
       if (onUpgradeSuccess) {
-        onUpgradeSuccess(data[itemType === 'vehicle' ? 'car' : 'property']);
+        const responseKey = itemType === 'vehicle' ? 'car' : (itemType === 'flight' ? 'booking' : 'property');
+        onUpgradeSuccess(data[responseKey] || data.booking || data);
       }
       onClose();
     } catch (e) {
@@ -212,7 +229,7 @@ const CommissionUpgradeModal = ({ isOpen, onClose, itemId, itemType, currentLeve
                     <span className="text-sm font-medium text-blue-900">Upgrade Summary</span>
                   </div>
                   <p className="text-sm text-blue-800">
-                    Your {itemType === 'vehicle' ? 'vehicle' : 'property'} will be upgraded to{' '}
+                    Your {itemType === 'vehicle' ? 'vehicle' : (itemType === 'flight' ? 'flight' : 'property')} will be upgraded to{' '}
                     <span className="font-semibold">{selectedLevel.name}</span> with commission rates:
                     Online {selectedLevel.onlineRate}% / Direct {selectedLevel.directRate}%
                   </p>

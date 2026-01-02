@@ -1,9 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { FaFacebook, FaTwitter, FaInstagram, FaLinkedin, FaPhone, FaEnvelope, FaMapMarkerAlt, FaBed, FaBuffer, FaCar, FaMountain } from 'react-icons/fa';
+import { useLocation } from 'react-router-dom';
+import { FaFacebook, FaTwitter, FaInstagram, FaLinkedin, FaPhone, FaEnvelope, FaMapMarkerAlt, FaBed, FaBuffer, FaCar, FaMountain, FaPlane } from 'react-icons/fa';
 import { useLocale } from '../contexts/LocaleContext';
 import { useAuth } from '../contexts/AuthContext';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 const Footer = () => {
+  const location = useLocation();
   const [site, setSite] = useState(() => {
     try {
       const raw = localStorage.getItem('siteSettings');
@@ -14,6 +18,13 @@ const Footer = () => {
   });
   const { t } = useLocale() || {};
   const { user } = useAuth() || {};
+  const [hasFlights, setHasFlights] = useState(null);
+
+  // Check if user is on first flight listing page (no flights yet)
+  const isFirstFlightListing = () => {
+    const searchParams = new URLSearchParams(location.search);
+    return location.pathname === '/upload-property' && searchParams.get('type') === 'flight';
+  };
 
   useEffect(() => {
     console.log('[Footer] mount');
@@ -24,6 +35,27 @@ const Footer = () => {
     window.addEventListener('siteSettingsUpdated', handler);
     return () => window.removeEventListener('siteSettingsUpdated', handler);
   }, []);
+
+  // Check if user has flights
+  useEffect(() => {
+    if (!user || user.userType !== 'host') {
+      setHasFlights(false);
+      return;
+    }
+    (async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/flights/owner/has-flights`, { credentials: 'include' });
+        if (res.ok) {
+          const data = await res.json();
+          setHasFlights(data.hasFlights || false);
+        } else {
+          setHasFlights(false);
+        }
+      } catch {
+        setHasFlights(false);
+      }
+    })();
+  }, [user?.id, user?.userType]);
 
   const companyEmail = site?.companyEmail || 'info@akwanda.rw';
   const phone = site?.phone || '0781714167';
@@ -77,11 +109,16 @@ const Footer = () => {
       ? [
           { icon: FaBed, name: t ? t('footer.manageStays') : 'Manage Stays', href: '/dashboard' },
           { icon: FaCar, name: 'Vehicles', href: '/vehicles-group-home' },
-          { icon: FaMountain, name: 'Attractions', href: '/owner/attractions' }
+          { icon: FaMountain, name: 'Attractions', href: '/owner/attractions' },
+          { 
+            icon: FaPlane, 
+            name: 'Flights', 
+            href: '/owner/flights'
+          }
         ]
       : [])
   ];
-// helper
+
   return (
     <footer className="bg-gray-900 text-white">
       {/* Main Footer Content */}
@@ -140,23 +177,29 @@ const Footer = () => {
           {/* Footer Links - wrapped to reduce height on small screens */}
           <div className="lg:col-span-4">
             <div className="grid grid-cols-2 gap-6 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4">
-              {footerSections.map((section, index) => (
-                <div key={index}>
-                  <h3 className="text-lg font-semibold mb-4">{section.title}</h3>
-                  <ul className="space-y-2">
-                    {section.links.map((link, linkIndex) => (
-                      <li key={linkIndex}>
-                        <a
-                          href={link.href}
-                          className="text-gray-300 hover:text-white transition-colors duration-300"
-                        >
-                          {link.name}
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
+              {footerSections.map((section, index) => {
+                // Hide "For Guests" section on first flight listing page
+                if (isFirstFlightListing() && section.title === (t ? t('footer.forGuests') : "For Guests")) {
+                  return null;
+                }
+                return (
+                  <div key={index}>
+                    <h3 className="text-lg font-semibold mb-4">{section.title}</h3>
+                    <ul className="space-y-2">
+                      {section.links.map((link, linkIndex) => (
+                        <li key={linkIndex}>
+                          <a
+                            href={link.href}
+                            className="text-gray-300 hover:text-white transition-colors duration-300"
+                          >
+                            {link.name}
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>

@@ -350,6 +350,75 @@ const Navbar = () => {
     },
   ];
 
+  const flightsOwnerNavItems = [
+    {
+      // Flights dashboard home
+      label: 'Dashboard',
+      icon: FaHome,
+      href: '/owner/flights?tab=overview',
+      children: [
+        { label: 'Business overview', href: '/owner/flights?tab=overview', icon: FaHome },
+        { label: 'Today\'s performance', href: '/owner/flights?tab=overview&range=today', icon: FaCalendarAlt },
+        { label: 'Last 30 days', href: '/owner/flights?tab=overview&range=30', icon: FaCalendarAlt },
+        { label: 'Year to date', href: '/owner/flights?tab=overview&range=ytd', icon: FaCalendarAlt },
+      ],
+    },
+    {
+      // Flight bookings list
+      label: 'Flight bookings',
+      icon: FaPlane,
+      href: '/owner/flights?tab=bookings',
+      children: [
+        { label: 'All bookings', href: '/owner/flights?tab=bookings', icon: FaPlane },
+        { label: 'Upcoming departures', href: '/owner/flights?tab=bookings&status=upcoming', icon: FaCalendarAlt },
+        { label: 'Completed flights', href: '/owner/flights?tab=bookings&status=completed', icon: FaCalendarCheck },
+        { label: 'Cancelled flights', href: '/owner/flights?tab=bookings&status=cancelled', icon: FaCalendarTimes },
+        { label: 'High value tickets', href: '/owner/flights?tab=bookings&filter=high-value', icon: FaDollarSign },
+        { label: 'By airline', href: '/owner/flights?tab=bookings&group=airline', icon: FaPlane },
+      ],
+    },
+    {
+      // Analytics
+      label: 'Analytics',
+      icon: FaChartLine,
+      href: '/owner/flights?tab=analytics',
+      children: [
+        { label: 'Performance overview', href: '/owner/flights?tab=analytics', icon: FaChartLine },
+        { label: 'Revenue by route', href: '/owner/flights?tab=analytics&view=routes', icon: FaMapMarkerAlt },
+        { label: 'Airline performance', href: '/owner/flights?tab=analytics&view=airlines', icon: FaPlane },
+        { label: 'Booking window', href: '/owner/flights?tab=analytics&view=bookwindow', icon: FaCalendarAlt },
+        { label: 'Completion vs cancellation', href: '/owner/flights?tab=analytics&view=completion', icon: FaChartLine },
+        { label: 'Daily report', href: '/owner/flights?tab=analytics&range=today', icon: FaCalendarAlt },
+        { label: 'Monthly report', href: '/owner/flights?tab=analytics&range=30', icon: FaCalendarAlt },
+        { label: 'Annual report', href: '/owner/flights?tab=analytics&range=ytd', icon: FaCalendarAlt },
+      ],
+    },
+    {
+      // Expenses & commissions
+      label: 'Expenses',
+      icon: FaDollarSign,
+      href: '/owner/flights?tab=expenses',
+      children: [
+        { label: 'All expenses', href: '/owner/flights?tab=expenses', icon: FaDollarSign },
+        { label: 'Airline commissions', href: '/owner/flights?tab=expenses&type=commission', icon: FaDollarSign },
+        { label: 'Payment processing fees', href: '/owner/flights?tab=expenses&type=processing', icon: FaDollarSign },
+        { label: 'Marketing & promos', href: '/owner/flights?tab=expenses&type=marketing', icon: FaDollarSign },
+      ],
+    },
+    {
+      // Notifications section
+      label: 'Notifications',
+      icon: FaBell,
+      href: '/owner/flights?tab=notifications',
+      children: [
+        { label: 'All notifications', href: '/owner/flights?tab=notifications', icon: FaBell },
+        { label: 'Flight status alerts', href: '/owner/flights?tab=notifications&type=status', icon: FaBell },
+        { label: 'Payment & payout alerts', href: '/owner/flights?tab=notifications&type=payments', icon: FaBell },
+        { label: 'System messages', href: '/owner/flights?tab=notifications&type=system', icon: FaBell },
+      ],
+    },
+  ];
+
   // Booking.com-style navigation for property owners (matches original dashboard nav structure)
   const bookingComNavItems = [
     {
@@ -842,14 +911,24 @@ const Navbar = () => {
     return location.pathname.startsWith('/owner/cars');
   };
 
+  // Flights owner dashboard context
+  const isInFlightsOwnerDashboard = () => {
+    return location.pathname.startsWith('/owner/flights');
+  };
+
   // Attractions owner dashboard context
   const isInAttractionOwnerDashboard = () => {
     return location.pathname.startsWith('/owner/attractions');
   };
 
-  // Any owner dashboard (properties, vehicles, or attractions)
+  // Any owner dashboard (properties, vehicles, flights, or attractions)
   const isInAnyOwnerDashboard = () => {
-    return isInPropertyOwnerDashboard() || isInCarOwnerDashboard() || isInAttractionOwnerDashboard();
+    return (
+      isInPropertyOwnerDashboard() ||
+      isInCarOwnerDashboard() ||
+      isInFlightsOwnerDashboard() ||
+      isInAttractionOwnerDashboard()
+    );
   };
 
   const toggleMenu = () => {
@@ -974,8 +1053,8 @@ const Navbar = () => {
 
   return (
     <> 
-      {/* Top Bar - First Level (hidden on listing wizard and inside any owner dashboard) */}
-      {!isOnListingWizard && !isInAnyOwnerDashboard() && (
+      {/* Top Bar - First Level (hidden on listing wizard, inside any owner dashboard, or first flight listing) */}
+      {!isOnListingWizard && !isInAnyOwnerDashboard() && !isFirstFlightListing() && (
       <div className="w-full bg-[#8b5a35] text-white py-2 px-4 border-b border-[#7a4d2c] relative z-[1000] shadow-sm">
         <div className="max-w-7xl mx-auto flex justify-between items-center text-xs">
           <div className="flex items-center space-x-4 lg:space-x-6">
@@ -1024,8 +1103,8 @@ const Navbar = () => {
             {/* Universal Links - Show to all users */}
             {/* Customer Support moved to footer */}
 
-            {/* Hide guest-specific links when in property owner dashboard */}
-            {!isInPropertyOwnerDashboard() && (
+            {/* Hide guest-specific links when in property owner dashboard or first flight listing */}
+            {!isInPropertyOwnerDashboard() && !isFirstFlightListing() && (
               <>
                 {isAuthenticated && (
                   <Link
@@ -1272,7 +1351,7 @@ const Navbar = () => {
                 )}
 
                 {/* Main navigation (Stays / Flights / Rentals / Attractions) - desktop, non-owner dashboards */}
-                {!isInAnyOwnerDashboard() && (
+                {!isInAnyOwnerDashboard() && !isFirstFlightListing() && (
                   <div className="hidden lg:flex items-center space-x-1 ml-2">
                     {mainNavItems.map((item, index) => {
                       const Icon = item.icon;
@@ -1320,7 +1399,7 @@ const Navbar = () => {
               {/* Right Side - Booking.com Style */}
               <div className="flex flex-nowrap items-center gap-1 lg:gap-2">
               {/* Modern Global search in main navbar (public / non-owner dashboard context) */}
-              {(!isAuthenticated || !isInAnyOwnerDashboard()) && (
+              {(!isAuthenticated || !isInAnyOwnerDashboard()) && !isFirstFlightListing() && (
                 <form
                   onSubmit={handleGlobalSearch}
                   className="hidden lg:flex items-center bg-white border border-gray-200 rounded-lg px-2 py-1.5 mr-2 max-w-xs shadow-sm hover:border-[#a06b42] focus-within:border-[#a06b42] transition-all duration-300"
@@ -1358,7 +1437,7 @@ const Navbar = () => {
               )}
 
               {/* Favorites */}
-              {isAuthenticated && !isInAnyOwnerDashboard() && (
+              {isAuthenticated && !isInAnyOwnerDashboard() && !isFirstFlightListing() && (
                 <Link
                   to="/favorites"
                   className="hidden lg:flex items-center px-2 py-1.5 rounded-md text-[#6b5744] hover:text-[#4b2a00] hover:bg-[#e8dcc8] transition-colors"
@@ -1594,9 +1673,11 @@ const Navbar = () => {
               <div className="w-full flex flex-wrap items-center gap-1 pt-1 mt-1">
                 {(isInCarOwnerDashboard()
                   ? carOwnerNavItems
-                  : isInAttractionOwnerDashboard()
-                    ? attractionOwnerNavItems
-                    : bookingComNavItems
+                  : isInFlightsOwnerDashboard()
+                    ? flightsOwnerNavItems
+                    : isInAttractionOwnerDashboard()
+                      ? attractionOwnerNavItems
+                      : bookingComNavItems
                 ).map((item, idx) => {
                   const Icon = item.icon;
                   const isOpen = activeDropdown === item.label;
@@ -1710,14 +1791,16 @@ const Navbar = () => {
             <div className="px-2 pb-2">
               {(isInCarOwnerDashboard()
                 ? carOwnerNavItems
-                : isInAttractionOwnerDashboard()
-                  ? attractionOwnerNavItems
-                  : bookingComNavItems
-              ).map((item, idx) => {
+                : isInFlightsOwnerDashboard()
+                  ? flightsOwnerNavItems
+                  : isInAttractionOwnerDashboard()
+                    ? attractionOwnerNavItems
+                    : bookingComNavItems
+              ).map((item) => {
                 const Icon = item.icon;
                 const open = !!expandedMobileItems[item.label];
                 return (
-                  <div key={idx} className="mb-2">
+                  <div key={item.label} className="mb-2">
                     <button
                       type="button"
                       onClick={() => setExpandedMobileItems((s) => ({ ...s, [item.label]: !open }))}
@@ -1754,7 +1837,7 @@ const Navbar = () => {
           )}
 
           {/* Guest/General quick links (mobile dropdown - all links here) */}
-          {!isInPropertyOwnerDashboard() && (
+          {!isInPropertyOwnerDashboard() && !isFirstFlightListing() && (
             <div className="px-2 pb-4">
               {mainNavItems.map((m, i) => {
                 const hasChildren = m.children && m.children.length > 0;
