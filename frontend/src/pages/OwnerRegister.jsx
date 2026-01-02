@@ -10,6 +10,19 @@ import toast from 'react-hot-toast';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
+const SECURITY_QUESTION_BANK = [
+	{ key: 'first_school_name', label: 'First school name' },
+	{ key: 'favorite_childhood_food', label: 'Favorite childhood food' },
+	{ key: 'birth_city', label: 'City you were born in' },
+	{ key: 'first_pet_name', label: 'Name of your first pet' },
+	{ key: 'mothers_maiden_name', label: "Mother’s maiden name" },
+	{ key: 'best_friend_childhood', label: 'Name of your best childhood friend' },
+	{ key: 'first_job_company', label: 'Name of your first job company' },
+	{ key: 'favorite_teacher', label: 'Name of your favorite teacher' },
+	{ key: 'favorite_sport', label: 'Favorite sport' },
+	{ key: 'favorite_movie_childhood', label: 'Favorite childhood movie' }
+];
+
 const OwnerRegister = () => {
   const [currentStep, setCurrentStep] = useState(1);
   
@@ -52,9 +65,9 @@ const OwnerRegister = () => {
     email: '',
     phone: '',
     securityQuestions: [
-      { question: '', answer: '' },
-      { question: '', answer: '' },
-      { question: '', answer: '' }
+      { questionKey: '', answer: '' },
+      { questionKey: '', answer: '' },
+      { questionKey: '', answer: '' }
     ],
     password: '',
     confirmPassword: '',
@@ -116,8 +129,14 @@ const OwnerRegister = () => {
         }
 				{
 					const sq = Array.isArray(formData.securityQuestions) ? formData.securityQuestions : [];
-					if (sq.length !== 3 || sq.some(x => !String(x?.question || '').trim() || !String(x?.answer || '').trim())) {
-						setError('Please set all 3 security questions and answers');
+					if (sq.length !== 3 || sq.some(x => !String(x?.questionKey || '').trim() || !String(x?.answer || '').trim())) {
+						setError('Please select 3 security questions and provide answers');
+						return false;
+					}
+					const keys = sq.map(x => String(x.questionKey));
+					const uniq = new Set(keys);
+					if (uniq.size !== 3) {
+						setError('Security questions must be different');
 						return false;
 					}
 				}
@@ -533,17 +552,26 @@ const OwnerRegister = () => {
 							<div key={idx} className="grid grid-cols-1 gap-3">
 								<div>
 									<label className="block text-sm font-medium text-gray-700 mb-1">Question {idx + 1}</label>
-									<input
-										type="text"
+									<select
 										className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
-										placeholder="Type your question"
-										value={q.question}
+										value={q.questionKey}
 										onChange={(e) => {
 											const next = [...formData.securityQuestions];
-											next[idx] = { ...next[idx], question: e.target.value };
+											next[idx] = { ...next[idx], questionKey: e.target.value };
 											handleInputChange('securityQuestions', next);
 										}}
-									/>
+									>
+										<option value="">Select a question</option>
+										{SECURITY_QUESTION_BANK.map((opt) => (
+											<option
+												key={opt.key}
+												value={opt.key}
+												disabled={formData.securityQuestions.some((x, j) => j !== idx && x.questionKey === opt.key)}
+											>
+												{opt.label}
+											</option>
+										))}
+									</select>
 								</div>
 								<div>
 									<label className="block text-sm font-medium text-gray-700 mb-1">Answer {idx + 1}</label>

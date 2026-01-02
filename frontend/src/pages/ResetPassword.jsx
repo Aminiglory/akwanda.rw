@@ -52,7 +52,9 @@ const ResetPassword = () => {
           body: JSON.stringify({ email: form.email, answers })
         });
         const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.message || 'Security answers are incorrect');
+			if (!res.ok) {
+				throw new Error(data.message || (res.status === 429 ? 'Too many failed attempts. Try again later.' : 'Security answers are incorrect'));
+			}
         setResetToken(String(data.resetToken || ''));
         setStep(3);
         return;
