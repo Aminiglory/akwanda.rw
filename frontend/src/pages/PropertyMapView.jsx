@@ -504,7 +504,7 @@ const PropertyMapView = () => {
       {showOriginPrompt && (
         <form
           onSubmit={handleDirectionsSubmit}
-          className="absolute z-20 left-1/2 top-24 -translate-x-1/2 w-[90%] max-w-md bg-white p-3 rounded-lg shadow-lg space-y-2"
+          className="absolute z-20 top-24 right-4 w-[90%] max-w-md bg-white p-3 rounded-lg shadow-lg space-y-2"
         >
           <h3 className="text-sm font-semibold text-gray-800">
             {safeT('directionsSetOriginTitle', 'Set your current location')}
@@ -616,7 +616,7 @@ const PropertyMapView = () => {
                 }
               }}
             >
-              <div style={{ transform: 'translateY(-6px)' }}>
+              <div>
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="24"
