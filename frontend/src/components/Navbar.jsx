@@ -906,6 +906,12 @@ const Navbar = () => {
   // True when a host is on the listing wizard routes (kept for any host-specific checks)
   const isOnHostListingWizard = isAuthenticated && user?.userType === 'host' && isOnListingWizard;
 
+  // Check if user is on first flight listing page (no flights yet)
+  const isFirstFlightListing = () => {
+    const searchParams = new URLSearchParams(location.search);
+    return location.pathname === '/upload-property' && searchParams.get('type') === 'flight';
+  };
+
   // Vehicles owner dashboard context
   const isInCarOwnerDashboard = () => {
     return location.pathname.startsWith('/owner/cars');
