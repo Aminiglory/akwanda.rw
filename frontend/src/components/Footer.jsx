@@ -103,9 +103,21 @@ const Footer = () => {
     }
   ];
 
+  // Treat owner dashboards as any of the host management routes
+  const isInAnyOwnerDashboard = () => {
+    const path = location.pathname || '';
+    return (
+      path.startsWith('/dashboard') ||
+      path.startsWith('/group-home') ||
+      path.startsWith('/user-dashboard') ||
+      path.startsWith('/owner/') ||
+      path.startsWith('/vehicles-group-home')
+    );
+  };
+
   const quickLinks = [
     { icon: FaBuffer, name: t ? t('footer.listProperty') : "List Property", href: "/upload-property" },
-    ...(user?.userType === 'host'
+    ...(user?.userType === 'host' && isInAnyOwnerDashboard()
       ? [
           { icon: FaBed, name: t ? t('footer.manageStays') : 'Manage Stays', href: '/dashboard' },
           { icon: FaCar, name: 'Vehicles', href: '/vehicles-group-home' },
