@@ -12,7 +12,29 @@ export function useDirections() {
     setDirectionsErrorKey(null);
   }, []);
 
-  const getDirections = useCallback((destination) => {
+  const getDirections = useCallback((input) => {
+    let destination = null;
+    let originOverride = null;
+    let viaPoints = [];
+
+    if (!input) {
+      setDirectionsErrorKey('map.directions.invalidDestination');
+      return;
+    }
+
+    if (
+      typeof input === 'object' &&
+      (Object.prototype.hasOwnProperty.call(input, 'origin') ||
+        Object.prototype.hasOwnProperty.call(input, 'destination') ||
+        Array.isArray(input.via))
+    ) {
+      destination = input.destination;
+      originOverride = input.origin || null;
+      viaPoints = Array.isArray(input.via) ? input.via : [];
+    } else {
+      destination = input;
+    }
+
     if (!destination || destination.lat == null || destination.lng == null) {
       setDirectionsErrorKey('map.directions.invalidDestination');
       return;
@@ -25,6 +47,64 @@ export function useDirections() {
       return;
     }
 
+    const runRequest = async (origin) => {
+      const basePoints = [];
+      if (origin && origin.lat != null && origin.lng != null) {
+        basePoints.push([origin.lng, origin.lat]);
+      }
+
+      const cleanedVia = (Array.isArray(viaPoints) ? viaPoints : []).filter(
+        (p) => p && p.lat != null && p.lng != null
+      );
+      cleanedVia.forEach((p) => {
+        basePoints.push([p.lng, p.lat]);
+      });
+
+      basePoints.push([destination.lng, destination.lat]);
+
+      const coordinatesParam = basePoints.map(([lng, lat]) => `${lng},${lat}`).join(';');
+
+      try {
+        const url =
+          `https://api.mapbox.com/directions/v5/mapbox/driving/` +
+          `${coordinatesParam}` +
+          `?geometries=geojson&overview=full&access_token=${encodeURIComponent(accessToken)}`;
+
+        const res = await fetch(url);
+        const data = await res.json().catch(() => null);
+
+        const coords = data?.routes?.[0]?.geometry?.coordinates;
+        if (!res.ok || !Array.isArray(coords) || coords.length < 2) {
+          setDirectionsErrorKey('map.directions.failed');
+          setDirections(null);
+        } else {
+          setDirections({
+            type: 'Feature',
+            geometry: {
+              type: 'LineString',
+              coordinates: coords,
+            },
+            properties: {
+              distance: data?.routes?.[0]?.distance,
+              duration: data?.routes?.[0]?.duration,
+            },
+          });
+        }
+      } catch (_) {
+        setDirectionsErrorKey('map.directions.failed');
+        setDirections(null);
+      } finally {
+        setLoadingDirections(false);
+      }
+    };
+
+    if (originOverride && originOverride.lat != null && originOverride.lng != null) {
+      setLoadingDirections(true);
+      setDirectionsErrorKey(null);
+      runRequest(originOverride);
+      return;
+    }
+
     if (!navigator.geolocation) {
       setDirectionsErrorKey('map.directions.noGeolocation');
       return;
@@ -34,44 +114,12 @@ export function useDirections() {
     setDirectionsErrorKey(null);
 
     navigator.geolocation.getCurrentPosition(
-      async (position) => {
+      (position) => {
         const origin = {
           lat: position.coords.latitude,
           lng: position.coords.longitude,
         };
-
-        try {
-          const url =
-            `https://api.mapbox.com/directions/v5/mapbox/driving/` +
-            `${origin.lng},${origin.lat};${destination.lng},${destination.lat}` +
-            `?geometries=geojson&overview=full&access_token=${encodeURIComponent(accessToken)}`;
-
-          const res = await fetch(url);
-          const data = await res.json().catch(() => null);
-
-          const coords = data?.routes?.[0]?.geometry?.coordinates;
-          if (!res.ok || !Array.isArray(coords) || coords.length < 2) {
-            setDirectionsErrorKey('map.directions.failed');
-            setDirections(null);
-          } else {
-            setDirections({
-              type: 'Feature',
-              geometry: {
-                type: 'LineString',
-                coordinates: coords,
-              },
-              properties: {
-                distance: data?.routes?.[0]?.distance,
-                duration: data?.routes?.[0]?.duration,
-              },
-            });
-          }
-        } catch (_) {
-          setDirectionsErrorKey('map.directions.failed');
-          setDirections(null);
-        } finally {
-          setLoadingDirections(false);
-        }
+        runRequest(origin);
       },
       () => {
         setLoadingDirections(false);

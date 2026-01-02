@@ -47,6 +47,19 @@ const PropertyMapView = () => {
     maxPrice: 1000000,
   });
 
+  const [originQuery, setOriginQuery] = useState('');
+  const [originSuggestions, setOriginSuggestions] = useState([]);
+  const [originCoordsManual, setOriginCoordsManual] = useState(null);
+  const [originResolving, setOriginResolving] = useState(false);
+
+  const [destinationQuery, setDestinationQuery] = useState('');
+  const [destinationSuggestions, setDestinationSuggestions] = useState([]);
+  const [destinationCoordsManual, setDestinationCoordsManual] = useState(null);
+  const [destinationResolving, setDestinationResolving] = useState(false);
+
+  const [viaPoints, setViaPoints] = useState([]);
+  const [viaAddMode, setViaAddMode] = useState(false);
+
   const mapRef = useRef(null);
 
   const safeT = (key, fallback) => {
@@ -81,6 +94,16 @@ const PropertyMapView = () => {
       pitch: prev?.pitch ?? 0,
     }));
   }, [mapCenter?.lat, mapCenter?.lng]);
+
+  useEffect(() => {
+    if (!selectedProperty) return;
+    const label =
+      selectedProperty.location ||
+      selectedProperty.address ||
+      selectedProperty.title ||
+      '';
+    setDestinationQuery((prev) => (prev ? prev : label));
+  }, [selectedProperty]);
 
   // Auto-request directions when coming from a card with requestDirections flag
   useEffect(() => {
@@ -159,6 +182,68 @@ const PropertyMapView = () => {
     fetchProperties();
   }, [location.state]);
 
+  useEffect(() => {
+    const q = originQuery.trim();
+    if (q.length < 3) {
+      setOriginSuggestions([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        setOriginResolving(true);
+        const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&q=${encodeURIComponent(q + ' ' + (selectedProperty?.country || 'Rwanda'))}`;
+        const res = await fetch(url, {
+          headers: {
+            'Accept-Language': (typeof document !== 'undefined' ? document.documentElement.lang : 'en') || 'en',
+          },
+        });
+        const data = await res.json().catch(() => []);
+        if (!cancelled) {
+          setOriginSuggestions(Array.isArray(data) ? data.slice(0, 5) : []);
+        }
+      } catch (_) {
+        if (!cancelled) setOriginSuggestions([]);
+      } finally {
+        if (!cancelled) setOriginResolving(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [originQuery, selectedProperty?.country]);
+
+  useEffect(() => {
+    const q = destinationQuery.trim();
+    if (q.length < 3) {
+      setDestinationSuggestions([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        setDestinationResolving(true);
+        const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&q=${encodeURIComponent(q + ' ' + (selectedProperty?.country || 'Rwanda'))}`;
+        const res = await fetch(url, {
+          headers: {
+            'Accept-Language': (typeof document !== 'undefined' ? document.documentElement.lang : 'en') || 'en',
+          },
+        });
+        const data = await res.json().catch(() => []);
+        if (!cancelled) {
+          setDestinationSuggestions(Array.isArray(data) ? data.slice(0, 5) : []);
+        }
+      } catch (_) {
+        if (!cancelled) setDestinationSuggestions([]);
+      } finally {
+        if (!cancelled) setDestinationResolving(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [destinationQuery, selectedProperty?.country]);
+
   const handleMarkerClick = (property) => {
     navigate(`/apartment/${property.id}`);
   };
@@ -178,6 +263,127 @@ const PropertyMapView = () => {
 
   const handleBackToListing = () => {
     navigate(-1); // Go back to previous page
+  };
+
+  const handleSelectOriginSuggestion = (suggestion) => {
+    if (!suggestion) return;
+    const lat = Number(suggestion.lat);
+    const lng = Number(suggestion.lon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+    setOriginCoordsManual({ lat, lng });
+    setOriginQuery(suggestion.display_name || originQuery);
+    setOriginSuggestions([]);
+  };
+
+  const handleSelectDestinationSuggestion = (suggestion) => {
+    if (!suggestion) return;
+    const lat = Number(suggestion.lat);
+    const lng = Number(suggestion.lon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+    setDestinationCoordsManual({ lat, lng });
+    setDestinationQuery(suggestion.display_name || destinationQuery);
+    setDestinationSuggestions([]);
+  };
+
+  const handleUseMyLocationAsOrigin = () => {
+    if (!navigator.geolocation) return;
+    setOriginResolving(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        setOriginCoordsManual({ lat, lng });
+        setOriginResolving(false);
+      },
+      () => {
+        setOriginResolving(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 5 * 60 * 1000,
+      }
+    );
+  };
+
+  const getCurrentDestinationCoords = () => {
+    if (
+      destinationCoordsManual &&
+      destinationCoordsManual.lat != null &&
+      destinationCoordsManual.lng != null
+    ) {
+      return destinationCoordsManual;
+    }
+    if (
+      selectedProperty &&
+      selectedProperty.latitude != null &&
+      selectedProperty.longitude != null
+    ) {
+      return {
+        lat: Number(selectedProperty.latitude),
+        lng: Number(selectedProperty.longitude),
+      };
+    }
+    return null;
+  };
+
+  const runDirectionsFromInputs = () => {
+    const destCoords = getCurrentDestinationCoords();
+    if (!destCoords) return;
+    const originOverride =
+      originCoordsManual &&
+      originCoordsManual.lat != null &&
+      originCoordsManual.lng != null
+        ? originCoordsManual
+        : null;
+
+    const via = (viaPoints || []).map((p) => ({ lat: p.lat, lng: p.lng }));
+
+    if (originOverride) {
+      getDirections({ origin: originOverride, destination: destCoords, via });
+    } else {
+      getDirections({ destination: destCoords, via });
+    }
+  };
+
+  const handleDirectionsSubmit = (e) => {
+    e?.preventDefault?.();
+    runDirectionsFromInputs();
+  };
+
+  const handleViaDragEnd = (id, lngLat) => {
+    const { lng, lat } = lngLat;
+    setViaPoints((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, lat, lng } : p))
+    );
+    runDirectionsFromInputs();
+  };
+
+  const handleMapClickForVia = (evt) => {
+    if (!viaAddMode) return;
+    const { lng, lat } = evt.lngLat || {};
+    if (lng == null || lat == null) return;
+    const nextPoint = {
+      id: `via-${Date.now()}-${viaPoints.length}`,
+      lat,
+      lng,
+    };
+    const nextVia = [...viaPoints, nextPoint];
+    setViaPoints(nextVia);
+    setViaAddMode(false);
+    const destCoords = getCurrentDestinationCoords();
+    if (!destCoords) return;
+    const originOverride =
+      originCoordsManual &&
+      originCoordsManual.lat != null &&
+      originCoordsManual.lng != null
+        ? originCoordsManual
+        : null;
+    getDirections({
+      origin: originOverride || undefined,
+      destination: destCoords,
+      via: nextVia.map((p) => ({ lat: p.lat, lng: p.lng })),
+    });
   };
 
   // Filter properties based on active filters
@@ -288,11 +494,134 @@ const PropertyMapView = () => {
         <div className="w-8"></div> {/* For balance */}
       </header>
 
+      {/* Directions panel (manual origin/destination, Google Maps-like) */}
+      <form
+        onSubmit={handleDirectionsSubmit}
+        className="absolute top-20 right-4 z-20 bg-white p-3 rounded-lg shadow-lg w-[90%] max-w-sm space-y-2"
+      >
+        <h3 className="text-sm font-semibold text-gray-800 mb-1">
+          {safeT('directionsPanelTitle', 'Custom directions')}
+        </h3>
+        <div>
+          <label className="block text-[11px] font-medium text-gray-600 mb-1">
+            {safeT('directionsOriginLabel', 'From')}
+          </label>
+          <input
+            type="text"
+            value={originQuery}
+            onChange={(e) => {
+              setOriginQuery(e.target.value);
+              setOriginCoordsManual(null);
+            }}
+            placeholder={safeT('directionsOriginPlaceholder', 'Enter origin or use my location')}
+            className="w-full border border-gray-300 rounded-md px-2 py-1 text-xs"
+          />
+          <div className="flex justify-between items-center mt-1">
+            <button
+              type="button"
+              onClick={handleUseMyLocationAsOrigin}
+              className="text-[11px] text-blue-600 hover:text-blue-800 disabled:text-gray-400"
+              disabled={originResolving}
+            >
+              {originResolving
+                ? safeT('directionsOriginLocating', 'Locating…')
+                : safeT('directionsUseMyLocation', 'Use my location')}
+            </button>
+            {originCoordsManual && (
+              <span className="text-[10px] text-gray-500">
+                {originCoordsManual.lat.toFixed(4)}, {originCoordsManual.lng.toFixed(4)}
+              </span>
+            )}
+          </div>
+          {originSuggestions.length > 0 && (
+            <div className="mt-1 border border-gray-200 rounded-md bg-white max-h-40 overflow-auto text-xs shadow-sm">
+              {originSuggestions.map((s) => (
+                <button
+                  key={s.place_id}
+                  type="button"
+                  onClick={() => handleSelectOriginSuggestion(s)}
+                  className="w-full text-left px-2 py-1 hover:bg-gray-100"
+                >
+                  {s.display_name}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div>
+          <label className="block text-[11px] font-medium text-gray-600 mb-1">
+            {safeT('directionsDestinationLabel', 'To')}
+          </label>
+          <input
+            type="text"
+            value={destinationQuery}
+            onChange={(e) => {
+              setDestinationQuery(e.target.value);
+              setDestinationCoordsManual(null);
+            }}
+            placeholder={safeT('directionsDestinationPlaceholder', 'Enter destination or select a property')}
+            className="w-full border border-gray-300 rounded-md px-2 py-1 text-xs"
+          />
+          {destinationResolving && (
+            <div className="mt-1 text-[10px] text-gray-500">
+              {safeT('directionsDestinationSearching', 'Searching…')}
+            </div>
+          )}
+          {destinationSuggestions.length > 0 && (
+            <div className="mt-1 border border-gray-200 rounded-md bg-white max-h-40 overflow-auto text-xs shadow-sm">
+              {destinationSuggestions.map((s) => (
+                <button
+                  key={s.place_id}
+                  type="button"
+                  onClick={() => handleSelectDestinationSuggestion(s)}
+                  className="w-full text-left px-2 py-1 hover:bg-gray-100"
+                >
+                  {s.display_name}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center justify-between mt-1">
+          <button
+            type="button"
+            onClick={() => setViaAddMode(true)}
+            className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-1 hover:bg-amber-100"
+          >
+            {safeT('directionsAddStop', 'Add stop on map')}
+          </button>
+          <div className="flex items-center gap-2">
+            {viaPoints.length > 0 && (
+              <span className="text-[10px] text-gray-500">
+                {viaPoints.length} {safeT('directionsStops', 'stops')}
+              </span>
+            )}
+            <button
+              type="submit"
+              className="text-[11px] font-semibold px-3 py-1.5 rounded bg-blue-600 text-white hover:bg-blue-700 disabled:bg-blue-300"
+              disabled={loadingDirections}
+            >
+              {loadingDirections
+                ? safeT('directionsUpdating', 'Updating route…')
+                : safeT('directionsUpdateRoute', 'Update route')}
+            </button>
+          </div>
+        </div>
+        {viaAddMode && (
+          <div className="mt-1 text-[10px] text-gray-500">
+            {safeT('directionsClickToAddStop', 'Click on the map to add a stop to this route.')}
+          </div>
+        )}
+      </form>
+
       {/* Map Container (Mapbox, Google-like light style) */}
       <div className="h-full w-full pt-16">
         <Map
           {...viewState}
           onMove={(evt) => setViewState(evt.viewState)}
+          onClick={handleMapClickForVia}
           onLoad={(evt) => {
             mapRef.current = evt.target;
             setMapLoaded(true);
@@ -310,6 +639,19 @@ const PropertyMapView = () => {
               <div className="w-3 h-3 rounded-full bg-blue-600 border-2 border-white shadow-md" />
             </Marker>
           )}
+
+          {viaPoints.map((point, index) => (
+            <Marker
+              key={point.id}
+              longitude={point.lng}
+              latitude={point.lat}
+              anchor="center"
+              draggable
+              onDragEnd={(e) => handleViaDragEnd(point.id, e.lngLat)}
+            >
+              <div className="w-3 h-3 rounded-full bg-white border-2 border-purple-600 shadow-md" title={`Stop ${index + 1}`} />
+            </Marker>
+          ))}
 
           {filteredProperties.map((property) => {
             if (property.latitude == null || property.longitude == null) return null;
