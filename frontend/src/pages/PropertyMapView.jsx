@@ -47,18 +47,15 @@ const PropertyMapView = () => {
     maxPrice: 1000000,
   });
 
+  const [showOriginPrompt, setShowOriginPrompt] = useState(false);
+  const [destinationForDirections, setDestinationForDirections] = useState(null);
+
   const [originQuery, setOriginQuery] = useState('');
   const [originSuggestions, setOriginSuggestions] = useState([]);
-  const [originCoordsManual, setOriginCoordsManual] = useState(null);
+  const [originCoords, setOriginCoords] = useState(null);
   const [originResolving, setOriginResolving] = useState(false);
 
-  const [destinationQuery, setDestinationQuery] = useState('');
-  const [destinationSuggestions, setDestinationSuggestions] = useState([]);
-  const [destinationCoordsManual, setDestinationCoordsManual] = useState(null);
-  const [destinationResolving, setDestinationResolving] = useState(false);
-
   const [viaPoints, setViaPoints] = useState([]);
-  const [viaAddMode, setViaAddMode] = useState(false);
 
   const mapRef = useRef(null);
 
@@ -95,16 +92,6 @@ const PropertyMapView = () => {
     }));
   }, [mapCenter?.lat, mapCenter?.lng]);
 
-  useEffect(() => {
-    if (!selectedProperty) return;
-    const label =
-      selectedProperty.location ||
-      selectedProperty.address ||
-      selectedProperty.title ||
-      '';
-    setDestinationQuery((prev) => (prev ? prev : label));
-  }, [selectedProperty]);
-
   // Auto-request directions when coming from a card with requestDirections flag
   useEffect(() => {
     if (
@@ -114,13 +101,10 @@ const PropertyMapView = () => {
       selectedProperty.latitude != null &&
       selectedProperty.longitude != null
     ) {
-      getDirections({
-        lat: Number(selectedProperty.latitude),
-        lng: Number(selectedProperty.longitude),
-      });
+      startDirectionsForProperty(selectedProperty);
       setAutoRequestedDirections(true);
     }
-  }, [autoRequestedDirections, location.state, selectedProperty, getDirections]);
+  }, [autoRequestedDirections, location.state, selectedProperty]);
 
   // Fetch properties from API or use passed properties
   useEffect(() => {
@@ -183,6 +167,10 @@ const PropertyMapView = () => {
   }, [location.state]);
 
   useEffect(() => {
+    if (!showOriginPrompt) {
+      setOriginSuggestions([]);
+      return;
+    }
     const q = originQuery.trim();
     if (q.length < 3) {
       setOriginSuggestions([]);
@@ -211,38 +199,7 @@ const PropertyMapView = () => {
     return () => {
       cancelled = true;
     };
-  }, [originQuery, selectedProperty?.country]);
-
-  useEffect(() => {
-    const q = destinationQuery.trim();
-    if (q.length < 3) {
-      setDestinationSuggestions([]);
-      return;
-    }
-    let cancelled = false;
-    (async () => {
-      try {
-        setDestinationResolving(true);
-        const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&q=${encodeURIComponent(q + ' ' + (selectedProperty?.country || 'Rwanda'))}`;
-        const res = await fetch(url, {
-          headers: {
-            'Accept-Language': (typeof document !== 'undefined' ? document.documentElement.lang : 'en') || 'en',
-          },
-        });
-        const data = await res.json().catch(() => []);
-        if (!cancelled) {
-          setDestinationSuggestions(Array.isArray(data) ? data.slice(0, 5) : []);
-        }
-      } catch (_) {
-        if (!cancelled) setDestinationSuggestions([]);
-      } finally {
-        if (!cancelled) setDestinationResolving(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [destinationQuery, selectedProperty?.country]);
+  }, [originQuery, selectedProperty?.country, showOriginPrompt]);
 
   const handleMarkerClick = (property) => {
     navigate(`/apartment/${property.id}`);
@@ -270,19 +227,9 @@ const PropertyMapView = () => {
     const lat = Number(suggestion.lat);
     const lng = Number(suggestion.lon);
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
-    setOriginCoordsManual({ lat, lng });
+    setOriginCoords({ lat, lng });
     setOriginQuery(suggestion.display_name || originQuery);
     setOriginSuggestions([]);
-  };
-
-  const handleSelectDestinationSuggestion = (suggestion) => {
-    if (!suggestion) return;
-    const lat = Number(suggestion.lat);
-    const lng = Number(suggestion.lon);
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
-    setDestinationCoordsManual({ lat, lng });
-    setDestinationQuery(suggestion.display_name || destinationQuery);
-    setDestinationSuggestions([]);
   };
 
   const handleUseMyLocationAsOrigin = () => {
@@ -292,7 +239,7 @@ const PropertyMapView = () => {
       (position) => {
         const lat = position.coords.latitude;
         const lng = position.coords.longitude;
-        setOriginCoordsManual({ lat, lng });
+        setOriginCoords({ lat, lng });
         setOriginResolving(false);
       },
       () => {
@@ -306,85 +253,69 @@ const PropertyMapView = () => {
     );
   };
 
-  const getCurrentDestinationCoords = () => {
-    if (
-      destinationCoordsManual &&
-      destinationCoordsManual.lat != null &&
-      destinationCoordsManual.lng != null
-    ) {
-      return destinationCoordsManual;
-    }
-    if (
-      selectedProperty &&
-      selectedProperty.latitude != null &&
-      selectedProperty.longitude != null
-    ) {
-      return {
-        lat: Number(selectedProperty.latitude),
-        lng: Number(selectedProperty.longitude),
-      };
-    }
-    return null;
-  };
+  const runDirections = (customViaPoints, customOrigin) => {
+    const originToUse = customOrigin || originCoords;
+    if (!destinationForDirections || !originToUse) return;
 
-  const runDirectionsFromInputs = () => {
-    const destCoords = getCurrentDestinationCoords();
-    if (!destCoords) return;
-    const originOverride =
-      originCoordsManual &&
-      originCoordsManual.lat != null &&
-      originCoordsManual.lng != null
-        ? originCoordsManual
-        : null;
+    const viaToUse =
+      Array.isArray(customViaPoints) && customViaPoints.length > 0
+        ? customViaPoints
+        : viaPoints;
 
-    const via = (viaPoints || []).map((p) => ({ lat: p.lat, lng: p.lng }));
+    const viaPayload = (viaToUse || [])
+      .filter((p) => p && p.lat != null && p.lng != null)
+      .map((p) => ({ lat: p.lat, lng: p.lng }));
 
-    if (originOverride) {
-      getDirections({ origin: originOverride, destination: destCoords, via });
-    } else {
-      getDirections({ destination: destCoords, via });
-    }
+    getDirections({
+      origin: originToUse,
+      destination: destinationForDirections,
+      via: viaPayload,
+    });
   };
 
   const handleDirectionsSubmit = (e) => {
     e?.preventDefault?.();
-    runDirectionsFromInputs();
+    runDirections();
+    setShowOriginPrompt(false);
   };
 
   const handleViaDragEnd = (id, lngLat) => {
-    const { lng, lat } = lngLat;
-    setViaPoints((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, lat, lng } : p))
-    );
-    runDirectionsFromInputs();
-  };
-
-  const handleMapClickForVia = (evt) => {
-    if (!viaAddMode) return;
-    const { lng, lat } = evt.lngLat || {};
+    const { lng, lat } = lngLat || {};
     if (lng == null || lat == null) return;
-    const nextPoint = {
-      id: `via-${Date.now()}-${viaPoints.length}`,
-      lat,
-      lng,
-    };
-    const nextVia = [...viaPoints, nextPoint];
-    setViaPoints(nextVia);
-    setViaAddMode(false);
-    const destCoords = getCurrentDestinationCoords();
-    if (!destCoords) return;
-    const originOverride =
-      originCoordsManual &&
-      originCoordsManual.lat != null &&
-      originCoordsManual.lng != null
-        ? originCoordsManual
-        : null;
-    getDirections({
-      origin: originOverride || undefined,
-      destination: destCoords,
-      via: nextVia.map((p) => ({ lat: p.lat, lng: p.lng })),
+    setViaPoints((prev) => {
+      const next = prev.map((p) => (p.id === id ? { ...p, lat, lng } : p));
+      runDirections(next);
+      return next;
     });
   };
+
+  const handleMapClick = (evt) => {
+    if (!showOriginPrompt) return;
+    const { lng, lat } = evt.lngLat || {};
+    if (lng == null || lat == null) return;
+    setOriginCoords({ lat, lng });
+  };
+
+  function startDirectionsForProperty(property) {
+    if (!property || property.latitude == null || property.longitude == null) return;
+
+    const dest = {
+      lat: Number(property.latitude),
+      lng: Number(property.longitude),
+    };
+    setDestinationForDirections(dest);
+
+    const initialOrigin =
+      mapCenter && mapCenter.lat != null && mapCenter.lng != null
+        ? { lat: Number(mapCenter.lat), lng: Number(mapCenter.lng) }
+        : dest;
+
+    setOriginCoords(initialOrigin);
+    setShowOriginPrompt(true);
+    setOriginQuery('');
+    setOriginSuggestions([]);
+    setViaPoints([]);
+  }
 
   // Filter properties based on active filters
   const filteredProperties = properties.filter(property => {
@@ -413,12 +344,16 @@ const PropertyMapView = () => {
     }
   }
 
-  const originCoords =
+  const routeStartCoord =
     directions?.geometry?.coordinates &&
     Array.isArray(directions.geometry.coordinates) &&
     directions.geometry.coordinates.length > 0
       ? directions.geometry.coordinates[0]
       : null;
+
+  const effectiveOriginCoords = originCoords
+    ? [originCoords.lng, originCoords.lat]
+    : routeStartCoord;
 
   useEffect(() => {
     if (!mapLoaded) return;
@@ -454,6 +389,41 @@ const PropertyMapView = () => {
       }
     );
   }, [directions, mapLoaded]);
+
+  useEffect(() => {
+    if (!directions || !directions.geometry || !Array.isArray(directions.geometry.coordinates)) {
+      setViaPoints([]);
+      return;
+    }
+
+    const coords = directions.geometry.coordinates;
+    if (!Array.isArray(coords) || coords.length < 6) {
+      setViaPoints([]);
+      return;
+    }
+
+    const maxHandles = 3;
+    const step = Math.floor(coords.length / (maxHandles + 1));
+    if (step <= 0) {
+      setViaPoints([]);
+      return;
+    }
+
+    const handles = [];
+    for (let i = 1; i <= maxHandles; i += 1) {
+      const idx = i * step;
+      if (idx >= 0 && idx < coords.length) {
+        const [lng, lat] = coords[idx];
+        handles.push({
+          id: `via-auto-${i}`,
+          lat,
+          lng,
+        });
+      }
+    }
+
+    setViaPoints(handles);
+  }, [directions]);
 
   if (loading || !mapCenter || !viewState) {
     return (
@@ -494,134 +464,92 @@ const PropertyMapView = () => {
         <div className="w-8"></div> {/* For balance */}
       </header>
 
-      {/* Directions panel (manual origin/destination, Google Maps-like) */}
-      <form
-        onSubmit={handleDirectionsSubmit}
-        className="absolute top-20 right-4 z-20 bg-white p-3 rounded-lg shadow-lg w-[90%] max-w-sm space-y-2"
-      >
-        <h3 className="text-sm font-semibold text-gray-800 mb-1">
-          {safeT('directionsPanelTitle', 'Custom directions')}
-        </h3>
-        <div>
-          <label className="block text-[11px] font-medium text-gray-600 mb-1">
-            {safeT('directionsOriginLabel', 'From')}
-          </label>
-          <input
-            type="text"
-            value={originQuery}
-            onChange={(e) => {
-              setOriginQuery(e.target.value);
-              setOriginCoordsManual(null);
-            }}
-            placeholder={safeT('directionsOriginPlaceholder', 'Enter origin or use my location')}
-            className="w-full border border-gray-300 rounded-md px-2 py-1 text-xs"
-          />
-          <div className="flex justify-between items-center mt-1">
-            <button
-              type="button"
-              onClick={handleUseMyLocationAsOrigin}
-              className="text-[11px] text-blue-600 hover:text-blue-800 disabled:text-gray-400"
-              disabled={originResolving}
-            >
-              {originResolving
-                ? safeT('directionsOriginLocating', 'Locating…')
-                : safeT('directionsUseMyLocation', 'Use my location')}
-            </button>
-            {originCoordsManual && (
-              <span className="text-[10px] text-gray-500">
-                {originCoordsManual.lat.toFixed(4)}, {originCoordsManual.lng.toFixed(4)}
-              </span>
+      {showOriginPrompt && (
+        <form
+          onSubmit={handleDirectionsSubmit}
+          className="absolute z-20 left-1/2 top-24 -translate-x-1/2 w-[90%] max-w-md bg-white p-3 rounded-lg shadow-lg space-y-2"
+        >
+          <h3 className="text-sm font-semibold text-gray-800">
+            {safeT('directionsSetOriginTitle', 'Set your current location')}
+          </h3>
+          <p className="text-[11px] text-gray-500">
+            {safeT('directionsSetOriginHelp', 'Type your location, use your current location, or drag the blue pin on the map.')}
+          </p>
+          <div>
+            <label className="block text-[11px] font-medium text-gray-600 mb-1">
+              {safeT('directionsOriginLabel', 'Your location')}
+            </label>
+            <input
+              type="text"
+              value={originQuery}
+              onChange={(e) => {
+                setOriginQuery(e.target.value);
+              }}
+              placeholder={safeT('directionsOriginPlaceholder', 'Enter your location')}
+              className="w-full border border-gray-300 rounded-md px-2 py-1 text-xs"
+            />
+            <div className="flex justify-between items-center mt-1">
+              <button
+                type="button"
+                onClick={handleUseMyLocationAsOrigin}
+                className="text-[11px] text-blue-600 hover:text-blue-800 disabled:text-gray-400"
+                disabled={originResolving}
+              >
+                {originResolving
+                  ? safeT('directionsOriginLocating', 'Locating…')
+                  : safeT('directionsUseMyLocation', 'Use my location')}
+              </button>
+              {originCoords && (
+                <span className="text-[10px] text-gray-500">
+                  {originCoords.lat.toFixed(4)}, {originCoords.lng.toFixed(4)}
+                </span>
+              )}
+            </div>
+            {originSuggestions.length > 0 && (
+              <div className="mt-1 border border-gray-200 rounded-md bg-white max-h-40 overflow-auto text-xs shadow-sm">
+                {originSuggestions.map((s) => (
+                  <button
+                    key={s.place_id}
+                    type="button"
+                    onClick={() => handleSelectOriginSuggestion(s)}
+                    className="w-full text-left px-2 py-1 hover:bg-gray-100"
+                  >
+                    {s.display_name}
+                  </button>
+                ))}
+              </div>
             )}
           </div>
-          {originSuggestions.length > 0 && (
-            <div className="mt-1 border border-gray-200 rounded-md bg-white max-h-40 overflow-auto text-xs shadow-sm">
-              {originSuggestions.map((s) => (
-                <button
-                  key={s.place_id}
-                  type="button"
-                  onClick={() => handleSelectOriginSuggestion(s)}
-                  className="w-full text-left px-2 py-1 hover:bg-gray-100"
-                >
-                  {s.display_name}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div>
-          <label className="block text-[11px] font-medium text-gray-600 mb-1">
-            {safeT('directionsDestinationLabel', 'To')}
-          </label>
-          <input
-            type="text"
-            value={destinationQuery}
-            onChange={(e) => {
-              setDestinationQuery(e.target.value);
-              setDestinationCoordsManual(null);
-            }}
-            placeholder={safeT('directionsDestinationPlaceholder', 'Enter destination or select a property')}
-            className="w-full border border-gray-300 rounded-md px-2 py-1 text-xs"
-          />
-          {destinationResolving && (
-            <div className="mt-1 text-[10px] text-gray-500">
-              {safeT('directionsDestinationSearching', 'Searching…')}
-            </div>
-          )}
-          {destinationSuggestions.length > 0 && (
-            <div className="mt-1 border border-gray-200 rounded-md bg-white max-h-40 overflow-auto text-xs shadow-sm">
-              {destinationSuggestions.map((s) => (
-                <button
-                  key={s.place_id}
-                  type="button"
-                  onClick={() => handleSelectDestinationSuggestion(s)}
-                  className="w-full text-left px-2 py-1 hover:bg-gray-100"
-                >
-                  {s.display_name}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div className="flex items-center justify-between mt-1">
-          <button
-            type="button"
-            onClick={() => setViaAddMode(true)}
-            className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-1 hover:bg-amber-100"
-          >
-            {safeT('directionsAddStop', 'Add stop on map')}
-          </button>
-          <div className="flex items-center gap-2">
-            {viaPoints.length > 0 && (
-              <span className="text-[10px] text-gray-500">
-                {viaPoints.length} {safeT('directionsStops', 'stops')}
-              </span>
-            )}
+          <div className="flex justify-end gap-2 pt-1">
+            <button
+              type="button"
+              onClick={() => {
+                setShowOriginPrompt(false);
+                setOriginSuggestions([]);
+              }}
+              className="text-[11px] px-3 py-1.5 rounded border border-gray-300 text-gray-600 hover:bg-gray-50"
+            >
+              {safeT('directionsCancel', 'Cancel')}
+            </button>
             <button
               type="submit"
               className="text-[11px] font-semibold px-3 py-1.5 rounded bg-blue-600 text-white hover:bg-blue-700 disabled:bg-blue-300"
-              disabled={loadingDirections}
+              disabled={loading || !originCoords || !destinationForDirections}
             >
               {loadingDirections
                 ? safeT('directionsUpdating', 'Updating route…')
-                : safeT('directionsUpdateRoute', 'Update route')}
+                : safeT('directionsShowRoute', 'Show route')}
             </button>
           </div>
-        </div>
-        {viaAddMode && (
-          <div className="mt-1 text-[10px] text-gray-500">
-            {safeT('directionsClickToAddStop', 'Click on the map to add a stop to this route.')}
-          </div>
-        )}
-      </form>
+        </form>
+      )}
 
       {/* Map Container (Mapbox, Google-like light style) */}
       <div className="h-full w-full pt-16">
         <Map
           {...viewState}
           onMove={(evt) => setViewState(evt.viewState)}
-          onClick={handleMapClickForVia}
+          onClick={handleMapClick}
           onLoad={(evt) => {
             mapRef.current = evt.target;
             setMapLoaded(true);
@@ -634,9 +562,23 @@ const PropertyMapView = () => {
         >
           <NavigationControl position="bottom-right" showCompass={false} />
 
-          {originCoords && (
-            <Marker longitude={originCoords[0]} latitude={originCoords[1]} anchor="center">
-              <div className="w-3 h-3 rounded-full bg-blue-600 border-2 border-white shadow-md" />
+          {effectiveOriginCoords && (
+            <Marker
+              longitude={effectiveOriginCoords[0]}
+              latitude={effectiveOriginCoords[1]}
+              anchor="bottom"
+              draggable
+              onDragEnd={(e) => {
+                const { lng, lat } = e.lngLat || {};
+                if (lng == null || lat == null) return;
+                const nextOrigin = { lat, lng };
+                setOriginCoords(nextOrigin);
+                if (destinationForDirections) {
+                  runDirections(viaPoints, nextOrigin);
+                }
+              }}
+            >
+              <div className="w-4 h-4 rounded-full bg-blue-600 border-2 border-white shadow-md" />
             </Marker>
           )}
 
@@ -767,12 +709,7 @@ const PropertyMapView = () => {
               {selectedProperty.latitude != null && selectedProperty.longitude != null && (
                 <button
                   type="button"
-                  onClick={() =>
-                    getDirections({
-                      lat: Number(selectedProperty.latitude),
-                      lng: Number(selectedProperty.longitude),
-                    })
-                  }
+                  onClick={() => startDirectionsForProperty(selectedProperty)}
                   disabled={loadingDirections}
                   className="px-4 py-2 border border-amber-700 text-amber-800 rounded-lg bg-amber-50 hover:bg-amber-100 disabled:opacity-60 transition-colors text-sm text-center font-semibold"
                 >
