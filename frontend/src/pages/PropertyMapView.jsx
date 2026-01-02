@@ -230,6 +230,42 @@ const PropertyMapView = () => {
     setOriginCoords({ lat, lng });
     setOriginQuery(suggestion.display_name || originQuery);
     setOriginSuggestions([]);
+    setViewState((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        longitude: lng,
+        latitude: lat,
+      };
+    });
+  };
+
+  const updateOriginFromMap = async (lat, lng) => {
+    if (lat == null || lng == null) return;
+    setOriginCoords({ lat, lng });
+    setViewState((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        longitude: lng,
+        latitude: lat,
+      };
+    });
+
+    try {
+      const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`;
+      const res = await fetch(url, {
+        headers: {
+          'Accept-Language':
+            (typeof document !== 'undefined' ? document.documentElement.lang : 'en') || 'en',
+        },
+      });
+      const data = await res.json().catch(() => null);
+      const addr = data?.display_name;
+      if (addr) {
+        setOriginQuery(addr);
+      }
+    } catch (_) {}
   };
 
   const handleUseMyLocationAsOrigin = () => {
@@ -239,8 +275,9 @@ const PropertyMapView = () => {
       (position) => {
         const lat = position.coords.latitude;
         const lng = position.coords.longitude;
-        setOriginCoords({ lat, lng });
-        setOriginResolving(false);
+        updateOriginFromMap(lat, lng).finally(() => {
+          setOriginResolving(false);
+        });
       },
       () => {
         setOriginResolving(false);
@@ -293,7 +330,7 @@ const PropertyMapView = () => {
     if (!showOriginPrompt) return;
     const { lng, lat } = evt.lngLat || {};
     if (lng == null || lat == null) return;
-    setOriginCoords({ lat, lng });
+    updateOriginFromMap(lat, lng);
   };
 
   function startDirectionsForProperty(property) {
@@ -573,12 +610,27 @@ const PropertyMapView = () => {
                 if (lng == null || lat == null) return;
                 const nextOrigin = { lat, lng };
                 setOriginCoords(nextOrigin);
+                updateOriginFromMap(lat, lng);
                 if (destinationForDirections) {
                   runDirections(viaPoints, nextOrigin);
                 }
               }}
             >
-              <div className="w-4 h-4 rounded-full bg-blue-600 border-2 border-white shadow-md" />
+              <div style={{ transform: 'translateY(-6px)' }}>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="36"
+                  viewBox="0 0 32 48"
+                  fill="none"
+                >
+                  <path
+                    d="M16 2C10 2 5 7 5 13c0 8 11 18 11 18s11-10 11-18C27 7 22 2 16 2z"
+                    fill="#FF5A5F"
+                  />
+                  <circle cx="16" cy="13" r="4" fill="white" />
+                </svg>
+              </div>
             </Marker>
           )}
 
