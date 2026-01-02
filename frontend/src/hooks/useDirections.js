@@ -76,6 +76,11 @@ export function useDirections() {
       () => {
         setLoadingDirections(false);
         setDirectionsErrorKey('map.directions.denied');
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 5 * 60 * 1000,
       }
     );
   }, []);
