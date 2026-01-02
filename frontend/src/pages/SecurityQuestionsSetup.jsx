@@ -50,9 +50,11 @@ const SecurityQuestionsSetup = () => {
 
     try {
       setLoading(true);
+			const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+			const authHeader = token ? { Authorization: `Bearer ${token}` } : {};
       const res = await fetch(`${API_URL}/api/auth/security-questions`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+			headers: { 'Content-Type': 'application/json', ...authHeader },
         credentials: 'include',
         body: JSON.stringify({ securityQuestions })
       });
