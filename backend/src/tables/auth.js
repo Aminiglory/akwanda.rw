@@ -75,18 +75,32 @@ function normalizeAnswer(a) {
 
 function safeSecurityQuestions(u) {
 	const list = Array.isArray(u.securityQuestions) ? u.securityQuestions : [];
-	return list.map((q, idx) => ({ index: idx, questionKey: q.questionKey, question: q.question }));
+	const bankByKey = new Map(SECURITY_QUESTION_BANK.map((q) => [q.key, q.label]));
+	return list.map((q, idx) => {
+		const k = String(q?.questionKey || '').trim();
+		const labelFromKey = k ? bankByKey.get(k) : undefined;
+		return { index: idx, questionKey: k || undefined, question: labelFromKey || q.question };
+	});
 }
 
 function hasValidSecurityQuestionsList(list) {
 	if (!Array.isArray(list) || list.length !== 3) return false;
 	const bank = new Set(SECURITY_QUESTION_BANK.map((q) => q.key));
+	const normalizedLabelToKey = new Map(
+		SECURITY_QUESTION_BANK.map((q) => [String(q.label).trim().toLowerCase(), q.key])
+	);
+	const derivedKeys = [];
 	for (const item of list) {
-		const k = String(item?.questionKey || '').trim();
+		let k = String(item?.questionKey || '').trim();
+		if (!k) {
+			const legacyLabel = String(item?.question || '').trim().toLowerCase();
+			k = normalizedLabelToKey.get(legacyLabel) || '';
+		}
 		if (!k || !bank.has(k)) return false;
 		if (!item?.answerHash) return false;
+		derivedKeys.push(k);
 	}
-	const uniq = new Set(list.map((x) => String(x.questionKey).trim()));
+	const uniq = new Set(derivedKeys.map((x) => String(x).trim()));
 	return uniq.size === 3;
 }
 
