@@ -16,6 +16,16 @@ export const ProtectedRoute = ({ children }) => {
     );
   }
   if (!isAuthenticated) return <Navigate to="/login" replace />;
+	// Enforce security questions setup before accessing the app
+	if (!user?.securityQuestionsSet) {
+		const allowed = [
+			'/security-questions-setup',
+			'/logout-success'
+		];
+		const path = location.pathname || '';
+		const isAllowed = allowed.some(a => path.startsWith(a));
+		if (!isAllowed) return <Navigate to="/security-questions-setup" replace />;
+	}
   // Blocked account global guard: only allow notifications and commission payment routes
   if (user?.isBlocked) {
     const allowed = [
@@ -44,6 +54,15 @@ export const AdminRoute = ({ children }) => {
     );
   }
   if (!isAuthenticated) return <Navigate to="/login" replace />;
+	if (!user?.securityQuestionsSet) {
+		const allowed = [
+			'/security-questions-setup',
+			'/logout-success'
+		];
+		const path = window.location.pathname || '';
+		const isAllowed = allowed.some(a => path.startsWith(a));
+		if (!isAllowed) return <Navigate to="/security-questions-setup" replace />;
+	}
   if (user?.userType !== 'admin') return <Navigate to="/" replace />;
   // Blocked account global guard: only allow notifications and commission payment routes
   if (user?.isBlocked) {
@@ -74,6 +93,15 @@ export const HostRoute = ({ children }) => {
     );
   }
   if (!isAuthenticated) return <Navigate to="/login" replace />;
+	if (!user?.securityQuestionsSet) {
+		const allowed = [
+			'/security-questions-setup',
+			'/logout-success'
+		];
+		const path = location.pathname || '';
+		const isAllowed = allowed.some(a => path.startsWith(a));
+		if (!isAllowed) return <Navigate to="/security-questions-setup" replace />;
+	}
   // Allow both hosts and admins to access host routes. Non-host authenticated
   // users are sent through the BecomeHost flow (traveller -> host upgrade)
   if (user?.userType !== 'host' && user?.userType !== 'admin') {

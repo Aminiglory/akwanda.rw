@@ -9,6 +9,7 @@ const Notification = require('../tables/notification');
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
 const TOKEN_COOKIE = 'akw_token';
 const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN || undefined; // e.g. '.onrender.com' or your apex domain
+const RESET_TOKEN_SECRET = process.env.RESET_TOKEN_SECRET || JWT_SECRET;
 
 function buildCookieOptions() {
   const isProd = process.env.NODE_ENV === 'production';
@@ -32,6 +33,14 @@ function signToken(payload) {
 	return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
 }
 
+function signResetToken(payload) {
+	return jwt.sign(payload, RESET_TOKEN_SECRET, { expiresIn: '10m' });
+}
+
+function verifyResetToken(token) {
+	return jwt.verify(token, RESET_TOKEN_SECRET);
+}
+
 function authMiddleware(req, res, next) {
 	const token = req.cookies[TOKEN_COOKIE] || (req.headers.authorization || '').replace('Bearer ', '');
 	if (!token) return res.status(401).json({ message: 'Unauthorized' });
@@ -44,11 +53,35 @@ function authMiddleware(req, res, next) {
 	}
 }
 
+function normalizeAnswer(a) {
+	return String(a || '').trim().toLowerCase();
+}
+
+function safeSecurityQuestions(u) {
+	const list = Array.isArray(u.securityQuestions) ? u.securityQuestions : [];
+	return list.map((q, idx) => ({ index: idx, question: q.question }));
+}
+
 router.post('/register', async (req, res) => {
 	try {
-		const { firstName, lastName, email, phone, password, userType } = req.body;
+		const { firstName, lastName, email, phone, password, userType, securityQuestions } = req.body;
 		if (!firstName || !lastName || !email || !phone || !password) {
 			return res.status(400).json({ message: 'Missing required fields' });
+		}
+		// Validate security questions if provided
+		let sq = [];
+		if (securityQuestions !== undefined) {
+			if (!Array.isArray(securityQuestions) || securityQuestions.length !== 3) {
+				return res.status(400).json({ message: 'Exactly 3 security questions are required' });
+			}
+			for (const item of securityQuestions) {
+				const question = String(item?.question || '').trim();
+				const answer = normalizeAnswer(item?.answer);
+				if (!question || !answer) {
+					return res.status(400).json({ message: 'Each security question must include a question and an answer' });
+				}
+				sq.push({ question, answerHash: await bcrypt.hash(answer, 10) });
+			}
 		}
 		const existing = await User.findOne({ email: email.toLowerCase() });
 		if (existing) return res.status(409).json({ message: 'Email already registered' });
@@ -59,7 +92,9 @@ router.post('/register', async (req, res) => {
 			email: email.toLowerCase(),
 			phone,
 			passwordHash,
-			userType: userType || 'guest'
+			userType: userType || 'guest',
+			securityQuestions: sq,
+			securityQuestionsSetAt: sq.length ? new Date() : undefined
 		});
 		const token = signToken({ id: user._id, email: user.email, userType: user.userType, name: `${user.firstName} ${user.lastName}` });
 		res.cookie(TOKEN_COOKIE, token, buildCookieOptions());
@@ -69,11 +104,114 @@ router.post('/register', async (req, res) => {
 				name: `${user.firstName} ${user.lastName}`,
 				email: user.email,
 				userType: user.userType,
-				avatar: user.avatar
+				avatar: user.avatar,
+				securityQuestionsSet: Array.isArray(user.securityQuestions) && user.securityQuestions.length === 3
 			},
 			token
 		});
 	} catch (err) {
+		return res.status(500).json({ message: 'Server error' });
+	}
+});
+
+// Public endpoint: get security question prompts for an account (by email)
+router.get('/security-questions', async (req, res) => {
+	try {
+		const email = String(req.query.email || '').toLowerCase().trim();
+		if (!email) return res.status(400).json({ message: 'Email is required' });
+		const user = await User.findOne({ email }).select('securityQuestions');
+		if (!user) return res.status(404).json({ message: 'No account found with that email' });
+		const qs = safeSecurityQuestions(user);
+		if (qs.length !== 3) return res.status(400).json({ message: 'Security questions are not set for this account' });
+		return res.json({ questions: qs });
+	} catch (e) {
+		return res.status(500).json({ message: 'Server error' });
+	}
+});
+
+// Logged-in endpoint: set security questions (required for existing accounts)
+router.post('/security-questions', authMiddleware, async (req, res) => {
+	try {
+		const { securityQuestions } = req.body || {};
+		if (!Array.isArray(securityQuestions) || securityQuestions.length !== 3) {
+			return res.status(400).json({ message: 'Exactly 3 security questions are required' });
+		}
+		const user = await User.findById(req.user.id);
+		if (!user) return res.status(404).json({ message: 'User not found' });
+		const sq = [];
+		for (const item of securityQuestions) {
+			const question = String(item?.question || '').trim();
+			const answer = normalizeAnswer(item?.answer);
+			if (!question || !answer) {
+				return res.status(400).json({ message: 'Each security question must include a question and an answer' });
+			}
+			sq.push({ question, answerHash: await bcrypt.hash(answer, 10) });
+		}
+		user.securityQuestions = sq;
+		user.securityQuestionsSetAt = new Date();
+		await user.save();
+		return res.json({ message: 'Security questions saved', securityQuestionsSet: true });
+	} catch (e) {
+		return res.status(500).json({ message: 'Server error' });
+	}
+});
+
+// Public endpoint: verify security answers + reset password
+router.post('/reset-with-security-questions', async (req, res) => {
+	try {
+		const { email, resetToken, newPassword } = req.body || {};
+		const em = String(email || '').toLowerCase().trim();
+		if (!em || !resetToken || !newPassword) {
+			return res.status(400).json({ message: 'Email, reset token and new password are required' });
+		}
+		let decoded;
+		try {
+			decoded = verifyResetToken(String(resetToken));
+		} catch (_) {
+			return res.status(401).json({ message: 'Reset token is invalid or expired' });
+		}
+		if (String(decoded?.email || '') !== em || decoded?.purpose !== 'password_reset') {
+			return res.status(401).json({ message: 'Reset token is invalid or expired' });
+		}
+		if (String(newPassword).length < 6) {
+			return res.status(400).json({ message: 'New password must be at least 6 characters' });
+		}
+		const user = await User.findOne({ email: em }).select('passwordHash');
+		if (!user) {
+			return res.status(404).json({ message: 'No account found with that email' });
+		}
+		user.passwordHash = await bcrypt.hash(String(newPassword), 10);
+		await user.save();
+		return res.json({ message: 'Password has been reset. You can now log in with your new password.' });
+	} catch (e) {
+		return res.status(500).json({ message: 'Server error' });
+	}
+});
+
+// Public endpoint: verify security answers and return a short-lived reset token
+router.post('/verify-security-answers', async (req, res) => {
+	try {
+		const { email, answers } = req.body || {};
+		const em = String(email || '').toLowerCase().trim();
+		if (!em || !Array.isArray(answers) || answers.length !== 3) {
+			return res.status(400).json({ message: 'Email and 3 answers are required' });
+		}
+		const user = await User.findOne({ email: em }).select('securityQuestions');
+		if (!user) {
+			return res.status(404).json({ message: 'No account found with that email' });
+		}
+		const sq = Array.isArray(user.securityQuestions) ? user.securityQuestions : [];
+		if (sq.length !== 3) {
+			return res.status(400).json({ message: 'Security questions are not set for this account' });
+		}
+		for (let i = 0; i < 3; i++) {
+			const provided = normalizeAnswer(answers[i]);
+			const ok = await bcrypt.compare(provided, sq[i].answerHash);
+			if (!ok) return res.status(401).json({ message: 'Security answers are incorrect' });
+		}
+		const token = signResetToken({ purpose: 'password_reset', email: em });
+		return res.json({ resetToken: token });
+	} catch (e) {
 		return res.status(500).json({ message: 'Server error' });
 	}
 });
@@ -114,7 +252,8 @@ router.post('/login', async (req, res) => {
 				name: `${user.firstName} ${user.lastName}`,
 				email: user.email,
 				userType: user.userType,
-				avatar: user.avatar
+				avatar: user.avatar,
+				securityQuestionsSet: Array.isArray(user.securityQuestions) && user.securityQuestions.length === 3
 			},
 			token
 		});
@@ -205,7 +344,8 @@ router.get('/me', authMiddleware, async (req, res) => {
         lastName: user.lastName,
         phone: user.phone,
         bio: user.bio,
-        isBlocked: !!user.isBlocked
+			isBlocked: !!user.isBlocked,
+			securityQuestionsSet: Array.isArray(user.securityQuestions) && user.securityQuestions.length === 3
       }
     });
   } catch (e) {

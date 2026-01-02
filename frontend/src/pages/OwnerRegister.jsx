@@ -51,6 +51,11 @@ const OwnerRegister = () => {
     lastName: '',
     email: '',
     phone: '',
+    securityQuestions: [
+      { question: '', answer: '' },
+      { question: '', answer: '' },
+      { question: '', answer: '' }
+    ],
     password: '',
     confirmPassword: '',
     userType: 'host',
@@ -109,6 +114,13 @@ const OwnerRegister = () => {
           setError('Please fill in all required fields');
           return false;
         }
+				{
+					const sq = Array.isArray(formData.securityQuestions) ? formData.securityQuestions : [];
+					if (sq.length !== 3 || sq.some(x => !String(x?.question || '').trim() || !String(x?.answer || '').trim())) {
+						setError('Please set all 3 security questions and answers');
+						return false;
+					}
+				}
         if (formData.password !== formData.confirmPassword) {
           setError('Passwords do not match');
           return false;
@@ -512,6 +524,44 @@ const OwnerRegister = () => {
                   />
                 </div>
               </div>
+
+					<div className="space-y-4">
+						<label className="block text-sm font-semibold text-gray-700">
+							Security questions (required)
+						</label>
+						{formData.securityQuestions.map((q, idx) => (
+							<div key={idx} className="grid grid-cols-1 gap-3">
+								<div>
+									<label className="block text-sm font-medium text-gray-700 mb-1">Question {idx + 1}</label>
+									<input
+										type="text"
+										className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
+										placeholder="Type your question"
+										value={q.question}
+										onChange={(e) => {
+											const next = [...formData.securityQuestions];
+											next[idx] = { ...next[idx], question: e.target.value };
+											handleInputChange('securityQuestions', next);
+										}}
+									/>
+								</div>
+								<div>
+									<label className="block text-sm font-medium text-gray-700 mb-1">Answer {idx + 1}</label>
+									<input
+										type="text"
+										className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
+										placeholder="Type your answer"
+										value={q.answer}
+										onChange={(e) => {
+											const next = [...formData.securityQuestions];
+											next[idx] = { ...next[idx], answer: e.target.value };
+											handleInputChange('securityQuestions', next);
+										}}
+									/>
+								</div>
+							</div>
+						))}
+					</div>
 
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">

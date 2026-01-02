@@ -33,12 +33,21 @@ export const AuthProvider = ({ children }) => {
     return `${API_URL}${s.startsWith('/') ? s : '/' + s}`;
   };
 
+	const normalizeUser = (u) => {
+		if (!u) return u;
+		return {
+			...u,
+			avatar: makeAbsolute(u.avatar),
+			securityQuestionsSet: !!u.securityQuestionsSet
+		};
+	};
+
   useEffect(() => {
     // Try restore from storage immediately for fast paint
     const sessionUser = sessionStorage.getItem('user');
     const localUser = localStorage.getItem('user');
     const savedUser = sessionUser || localUser;
-    if (savedUser) setUser(JSON.parse(savedUser));
+		if (savedUser) setUser(normalizeUser(JSON.parse(savedUser)));
 
     // Then verify with backend using whichever token is present
     (async () => {
@@ -48,7 +57,7 @@ export const AuthProvider = ({ children }) => {
         const res = await fetch(`${API_URL}/api/auth/me`, { credentials: 'include', headers });
         const data = await res.json();
         if (res.ok && data.user) {
-          const normalized = { ...data.user, avatar: makeAbsolute(data.user.avatar) };
+          const normalized = normalizeUser(data.user);
           setUser(normalized);
           // Persist back into whichever storage already had a user, defaulting to localStorage
           const targetStorage = sessionUser ? sessionStorage : localStorage;
@@ -79,7 +88,7 @@ export const AuthProvider = ({ children }) => {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Login failed');
-      const normalized = { ...data.user, avatar: makeAbsolute(data.user.avatar) };
+      const normalized = normalizeUser(data.user);
       setUser(normalized);
       // Clear any previous auth data
       sessionStorage.removeItem('user');
@@ -109,8 +118,9 @@ export const AuthProvider = ({ children }) => {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Registration failed');
-      setUser(data.user);
-      localStorage.setItem('user', JSON.stringify(data.user));
+      const normalized = normalizeUser(data.user);
+      setUser(normalized);
+      localStorage.setItem('user', JSON.stringify(normalized));
       if (data.token) localStorage.setItem('token', data.token);
       return { success: true };
     } catch (error) {
@@ -138,7 +148,7 @@ export const AuthProvider = ({ children }) => {
     const res = await fetch(endpoint, { method: 'POST', credentials: 'include', body });
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || 'Failed to update avatar');
-    const updated = { ...(user || {}), avatar: makeAbsolute(data.user?.avatar) };
+    const updated = normalizeUser({ ...(user || {}), avatar: data.user?.avatar });
     setUser(updated);
     localStorage.setItem('user', JSON.stringify(updated));
     return updated;
@@ -153,7 +163,7 @@ export const AuthProvider = ({ children }) => {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || 'Failed to update profile');
-    const normalized = { ...data.user, avatar: makeAbsolute(data.user.avatar) };
+    const normalized = normalizeUser(data.user);
     setUser(normalized);
     localStorage.setItem('user', JSON.stringify(normalized));
     return normalized;
@@ -166,7 +176,7 @@ export const AuthProvider = ({ children }) => {
       const res = await fetch(`${API_URL}/api/auth/me`, { credentials: 'include', headers });
       const data = await res.json();
       if (res.ok && data.user) {
-        const normalized = { ...data.user, avatar: makeAbsolute(data.user.avatar) };
+        const normalized = normalizeUser(data.user);
         setUser(normalized);
         localStorage.setItem('user', JSON.stringify(normalized));
         return normalized;

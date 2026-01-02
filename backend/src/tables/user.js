@@ -7,6 +7,13 @@ const mongoose = require('mongoose');
       email: { type: String, required: true, unique: true, lowercase: true },
       phone: { type: String, required: true },
       passwordHash: { type: String, required: true },
+      securityQuestions: [
+        {
+          question: { type: String, required: true },
+          answerHash: { type: String, required: true }
+        }
+      ],
+      securityQuestionsSetAt: { type: Date },
       userType: { type: String, enum: ['guest', 'host', 'admin', 'worker'], default: 'guest' },
       avatar: { type: String },
       bio: { type: String, maxlength: 1000 },

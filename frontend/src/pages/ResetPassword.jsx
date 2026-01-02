@@ -8,7 +8,11 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 const ResetPassword = () => {
   const { t } = useLocale() || {};
   const navigate = useNavigate();
-  const [form, setForm] = useState({ email: '', phone: '', newPassword: '', confirmPassword: '' });
+  const [form, setForm] = useState({ email: '', newPassword: '', confirmPassword: '' });
+  const [questions, setQuestions] = useState([]);
+  const [answers, setAnswers] = useState(['', '', '']);
+  const [resetToken, setResetToken] = useState('');
+  const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
 
   const update = (field, value) => {
@@ -17,32 +21,64 @@ const ResetPassword = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.email || !form.phone || !form.newPassword || !form.confirmPassword) {
-      toast.error(t ? t('auth.allFieldsRequired') : 'Please fill in all fields');
-      return;
-    }
-    if (form.newPassword !== form.confirmPassword) {
-      toast.error(t ? t('auth.passwordsMustMatch') : 'Passwords must match');
-      return;
-    }
     try {
       setLoading(true);
-      const res = await fetch(`${API_URL}/api/auth/reset-with-phone`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          email: form.email,
-          phone: form.phone,
-          newPassword: form.newPassword,
-        }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(data.message || (t ? t('auth.resetFailed') : 'Could not reset password'));
+      if (step === 1) {
+        if (!form.email) {
+          toast.error(t ? t('auth.allFieldsRequired') : 'Please fill in all fields');
+          return;
+        }
+        const res = await fetch(`${API_URL}/api/auth/security-questions?email=${encodeURIComponent(form.email)}`, {
+          method: 'GET',
+          credentials: 'include'
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.message || 'Could not load security questions');
+        setQuestions(Array.isArray(data.questions) ? data.questions : []);
+        setAnswers(['', '', '']);
+        setStep(2);
+        return;
       }
-      toast.success(data.message || (t ? t('auth.resetSuccess') : 'Password reset successfully'));
-      navigate('/login');
+
+      if (step === 2) {
+        if (!form.email || answers.some(a => !String(a || '').trim())) {
+          toast.error(t ? t('auth.allFieldsRequired') : 'Please fill in all fields');
+          return;
+        }
+        const res = await fetch(`${API_URL}/api/auth/verify-security-answers`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ email: form.email, answers })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.message || 'Security answers are incorrect');
+        setResetToken(String(data.resetToken || ''));
+        setStep(3);
+        return;
+      }
+
+      if (step === 3) {
+        if (!form.email || !resetToken || !form.newPassword || !form.confirmPassword) {
+          toast.error(t ? t('auth.allFieldsRequired') : 'Please fill in all fields');
+          return;
+        }
+        if (form.newPassword !== form.confirmPassword) {
+          toast.error(t ? t('auth.passwordsMustMatch') : 'Passwords must match');
+          return;
+        }
+        const res = await fetch(`${API_URL}/api/auth/reset-with-security-questions`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ email: form.email, resetToken, newPassword: form.newPassword })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.message || (t ? t('auth.resetFailed') : 'Could not reset password'));
+        toast.success(data.message || (t ? t('auth.resetSuccess') : 'Password reset successfully'));
+        navigate('/login');
+        return;
+      }
     } catch (err) {
       toast.error(err.message || (t ? t('auth.resetFailed') : 'Could not reset password'));
     } finally {
@@ -63,7 +99,7 @@ const ResetPassword = () => {
           <p className="mt-2 text-sm text-gray-600">
             {t
               ? t('auth.resetPasswordSubtitle')
-              : 'Type the email and phone on your account, then choose a new password.'}
+              : 'Enter your email, answer your security questions, then choose a new password.'}
           </p>
         </div>
 
@@ -79,36 +115,51 @@ const ResetPassword = () => {
                 required
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t ? t('auth.phone') : 'Phone number'}</label>
-              <input
-                type="tel"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                value={form.phone}
-                onChange={(e) => update('phone', e.target.value)}
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t ? t('auth.newPassword') : 'New password'}</label>
-              <input
-                type="password"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                value={form.newPassword}
-                onChange={(e) => update('newPassword', e.target.value)}
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t ? t('auth.confirmPassword') : 'Confirm password'}</label>
-              <input
-                type="password"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                value={form.confirmPassword}
-                onChange={(e) => update('confirmPassword', e.target.value)}
-                required
-              />
-            </div>
+				{step === 2 && (
+					<div className="space-y-4">
+						{questions.map((q, idx) => (
+							<div key={q.index ?? idx}>
+								<label className="block text-sm font-medium text-gray-700 mb-1">{q.question}</label>
+								<input
+									type="text"
+									className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+									value={answers[idx] || ''}
+									onChange={(e) => {
+										const next = [...answers];
+										next[idx] = e.target.value;
+										setAnswers(next);
+									}}
+									required
+								/>
+							</div>
+						))}
+					</div>
+				)}
+
+				{step === 3 && (
+					<>
+						<div>
+							<label className="block text-sm font-medium text-gray-700 mb-1">{t ? t('auth.newPassword') : 'New password'}</label>
+							<input
+								type="password"
+								className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+								value={form.newPassword}
+								onChange={(e) => update('newPassword', e.target.value)}
+								required
+							/>
+						</div>
+						<div>
+							<label className="block text-sm font-medium text-gray-700 mb-1">{t ? t('auth.confirmPassword') : 'Confirm password'}</label>
+							<input
+								type="password"
+								className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+								value={form.confirmPassword}
+								onChange={(e) => update('confirmPassword', e.target.value)}
+								required
+							/>
+						</div>
+					</>
+				)}
             <button
               type="submit"
               disabled={loading}
@@ -116,7 +167,11 @@ const ResetPassword = () => {
             >
               {loading
                 ? (t ? t('auth.resetting') : 'Resetting...')
-                : (t ? t('auth.resetPassword') : 'Reset password')}
+					: step === 1
+					? 'Continue'
+					: step === 2
+					? 'Verify answers'
+					: (t ? t('auth.resetPassword') : 'Reset password')}
             </button>
           </form>
         </div>

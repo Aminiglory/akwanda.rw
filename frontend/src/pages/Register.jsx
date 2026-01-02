@@ -14,7 +14,12 @@ const Register = () => {
     phone: '',
     password: '',
     confirmPassword: '',
-    userType: 'guest'
+    userType: 'guest',
+    securityQuestions: [
+      { question: '', answer: '' },
+      { question: '', answer: '' },
+      { question: '', answer: '' }
+    ]
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -37,6 +42,12 @@ const Register = () => {
       setError('Passwords do not match');
       return;
     }
+
+		const sq = Array.isArray(formData.securityQuestions) ? formData.securityQuestions : [];
+		if (sq.length !== 3 || sq.some(x => !String(x?.question || '').trim() || !String(x?.answer || '').trim())) {
+			setError('Please set all 3 security questions and answers');
+			return;
+		}
     
     const result = await register(formData);
 
@@ -152,6 +163,47 @@ const Register = () => {
                 </div>
               </div>
             </div>
+
+				{/* Security Questions */}
+				<div className="space-y-4">
+					<label className="block text-sm font-semibold text-gray-700">
+						Security questions (required)
+					</label>
+					{formData.securityQuestions.map((q, idx) => (
+						<div key={idx} className="grid grid-cols-1 gap-3">
+							<div>
+								<label className="block text-sm font-medium text-gray-700 mb-1">Question {idx + 1}</label>
+								<input
+									type="text"
+									className="w-full pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
+									placeholder="Type your question"
+									value={q.question}
+									onChange={(e) => {
+										const next = [...formData.securityQuestions];
+										next[idx] = { ...next[idx], question: e.target.value };
+										handleInputChange('securityQuestions', next);
+									}}
+									required
+								/>
+							</div>
+							<div>
+								<label className="block text-sm font-medium text-gray-700 mb-1">Answer {idx + 1}</label>
+								<input
+									type="text"
+									className="w-full pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
+									placeholder="Type your answer"
+									value={q.answer}
+									onChange={(e) => {
+										const next = [...formData.securityQuestions];
+										next[idx] = { ...next[idx], answer: e.target.value };
+										handleInputChange('securityQuestions', next);
+									}}
+									required
+								/>
+							</div>
+						</div>
+					))}
+				</div>
 
             {/* Email Field */}
             <div>

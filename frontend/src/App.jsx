@@ -11,6 +11,8 @@ import Footer from './components/Footer'
 import GlobalTranslationProvider from './components/GlobalTranslationProvider'
 import { lazyWithRetry } from './utils/lazyImport'
 
+import { useLocation } from 'react-router-dom'
+
 const Navbar = lazyWithRetry(() => import('./components/Navbar'));
 
 const Home = lazyWithRetry(() => import('./pages/Home'));
@@ -92,6 +94,28 @@ const Transactions = lazyWithRetry(() => import('./pages/Transactions'));
 const GroupHomePage = lazyWithRetry(() => import('./pages/GroupHomePage'));
 const VehiclesGroupHomePage = lazyWithRetry(() => import('./pages/VehiclesGroupHomePage'));
 const ResetPassword = lazyWithRetry(() => import('./pages/ResetPassword'));
+const SecurityQuestionsSetup = lazyWithRetry(() => import('./pages/SecurityQuestionsSetup'));
+
+const SecurityQuestionsGate = ({ children }) => {
+	const { isAuthenticated, user, isLoading } = useAuth();
+	const location = useLocation();
+	if (isLoading) return children;
+	if (isAuthenticated && !user?.securityQuestionsSet) {
+		const allowed = [
+			'/security-questions-setup',
+			'/logout-success',
+			'/reset-password',
+			'/login',
+			'/register',
+			'/owner-login',
+			'/owner-register'
+		];
+		const path = location.pathname || '';
+		const isAllowed = allowed.some(a => path.startsWith(a));
+		if (!isAllowed) return <Navigate to="/security-questions-setup" replace />;
+	}
+	return children;
+};
 
 function App() {
   console.debug('[AK] App render start')
@@ -142,6 +166,7 @@ function App() {
         <Router>
           <ErrorBoundary>
             <GlobalTranslationProvider>
+            <SecurityQuestionsGate>
             <div className="min-h-screen bg-gray-50">
             <Toaster position="top-right" />
             {/* Header */}
@@ -184,6 +209,7 @@ function App() {
             <Route path="/register" element={<Register />} />
             <Route path="/owner-register" element={<OwnerRegister />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/security-questions-setup" element={<ProtectedRoute><SecurityQuestionsSetup /></ProtectedRoute>} />
             <Route path="/choose-listing-type" element={<ProtectedRoute><ChooseListingType /></ProtectedRoute>} />
             <Route path="/become-host" element={<ProtectedRoute><BecomeHost /></ProtectedRoute>} />
             <Route path="/group-home" element={<HostRoute><div className="dashboard"><GroupHomePage /></div></HostRoute>} />
@@ -253,6 +279,7 @@ function App() {
             </Routes>
             </Suspense>
               </div>
+            </SecurityQuestionsGate>
             </GlobalTranslationProvider>
             </ErrorBoundary>
           </Router>
