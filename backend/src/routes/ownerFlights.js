@@ -123,6 +123,96 @@ router.post('/bookings', requireAuth, requireHost, async (req, res) => {
   }
 });
 
+// PATCH /api/flights/owner/bookings/:id
+// Update an existing flight booking (owner-side editing)
+router.patch('/bookings/:id', requireAuth, requireHost, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      airline,
+      flightNumber,
+      from,
+      to,
+      departure,
+      arrival,
+      duration,
+      price,
+      status,
+      cabinClass,
+      channel,
+      groupBooking,
+      groupSize,
+    } = req.body || {};
+
+    const booking = await FlightBooking.findOne({ _id: id, host: req.user.id });
+    if (!booking) {
+      return res.status(404).json({ message: 'Flight booking not found' });
+    }
+
+    if (airline != null) booking.airline = airline;
+    if (flightNumber != null) booking.flightNumber = flightNumber;
+    if (from != null) booking.from = from;
+    if (to != null) booking.to = to;
+
+    if (departure != null) {
+      const dep = new Date(departure);
+      if (Number.isNaN(dep.getTime())) {
+        return res.status(400).json({ message: 'Invalid departure date' });
+      }
+      booking.departure = dep;
+    }
+
+    if (arrival != null) {
+      const arr = new Date(arrival);
+      if (Number.isNaN(arr.getTime())) {
+        return res.status(400).json({ message: 'Invalid arrival date' });
+      }
+      booking.arrival = arr;
+    }
+
+    if (duration != null) booking.duration = duration;
+
+    if (price != null) {
+      const p = Number(price);
+      if (Number.isNaN(p) || p < 0) {
+        return res.status(400).json({ message: 'Invalid price' });
+      }
+      booking.price = p;
+    }
+
+    if (status != null) booking.status = String(status).toLowerCase();
+    if (cabinClass != null) booking.cabinClass = cabinClass || undefined;
+    if (channel != null) booking.channel = String(channel).toLowerCase();
+    if (groupBooking != null) booking.groupBooking = !!groupBooking;
+    if (groupSize != null) booking.groupSize = groupSize || undefined;
+
+    if (price != null || channel != null) {
+      const bookingChannel = (booking.channel || 'direct').toLowerCase();
+      const basePrice = Number(booking.price || 0);
+      let commissionRate = Number(booking.commissionRate || 0);
+
+      if (!commissionRate || commissionRate <= 0 || commissionRate > 100) {
+        try {
+          const settings = await CommissionSettings.getSingleton();
+          commissionRate = Number(settings.premiumRate || settings.baseRate || 10);
+        } catch (_) {
+          commissionRate = 10;
+        }
+        booking.commissionRate = commissionRate;
+      }
+
+      const amount = commissionRate > 0 ? Math.round(basePrice * (commissionRate / 100)) : 0;
+      booking.commissionAmount = amount;
+    }
+
+    await booking.save();
+    return res.json({ booking });
+  } catch (e) {
+    console.error('Owner flights update booking error:', e?.message || e);
+    return res.status(500).json({ message: 'Failed to update flight booking' });
+  }
+});
+
 // GET /api/flights/owner/commission-levels
 // Get available commission levels for flights
 router.get('/commission-levels', requireAuth, requireHost, async (req, res) => {

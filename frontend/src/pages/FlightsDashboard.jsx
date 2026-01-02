@@ -903,6 +903,52 @@ function FlightsDashboard() {
                               <button
                                 type="button"
                                 onClick={async () => {
+                                  const currentPrice = b.price != null ? String(b.price) : '';
+                                  const priceInput = window.prompt('Enter new price (RWF):', currentPrice);
+                                  if (priceInput === null) return;
+                                  const trimmed = priceInput.trim();
+                                  const numeric = Number(trimmed);
+                                  if (!trimmed || Number.isNaN(numeric) || numeric < 0) {
+                                    toast.error('Please enter a valid price');
+                                    return;
+                                  }
+                                  try {
+                                    const res = await fetch(`${API_URL}/api/flights/owner/bookings/${b.id}`, {
+                                      method: 'PATCH',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      credentials: 'include',
+                                      body: JSON.stringify({ price: numeric }),
+                                    });
+                                    const data = await res.json().catch(() => ({}));
+                                    if (!res.ok) {
+                                      throw new Error(data.message || 'Failed to update booking');
+                                    }
+                                    toast.success('Flight booking updated');
+                                    // Update local state without full reload
+                                    setBookings((prev) =>
+                                      prev.map((item) =>
+                                        item.id === b.id
+                                          ? {
+                                              ...item,
+                                              price: data.booking?.price ?? numeric,
+                                              commissionAmount: data.booking?.commissionAmount ?? item.commissionAmount,
+                                              commissionRate: data.booking?.commissionRate ?? item.commissionRate,
+                                            }
+                                          : item,
+                                      ),
+                                    );
+                                  } catch (error) {
+                                    toast.error(error.message || 'Failed to update booking');
+                                  }
+                                }}
+                                className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded"
+                                title="Edit price"
+                              >
+                                <FaEdit className="text-sm" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={async () => {
                                   if (!confirm('Are you sure you want to delete this flight booking?')) return;
                                   try {
                                     const res = await fetch(`${API_URL}/api/flights/owner/bookings/${b.id}`, {
@@ -933,6 +979,11 @@ function FlightsDashboard() {
                                         duration: b.duration,
                                         price: b.price,
                                         status: b.status || 'upcoming',
+                                        channel: b.channel,
+                                        commissionLevel: b.commissionLevel,
+                                        commissionRate: b.commissionRate,
+                                        commissionAmount: b.commissionAmount,
+                                        commissionPaid: b.commissionPaid,
                                       }));
                                       setBookings(list);
                                     }
