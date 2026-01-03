@@ -198,7 +198,7 @@ router.post('/security-questions', authMiddleware, async (req, res) => {
 		if (!user) return res.status(404).json({ message: 'User not found' });
 
 		const existingSq = Array.isArray(user.securityQuestions) ? user.securityQuestions : [];
-		if (existingSq.length === 3) {
+		if (hasValidSecurityQuestionsList(existingSq)) {
 			// Do not allow editing without verifying all current answers
 			if (!Array.isArray(currentAnswers) || currentAnswers.length !== 3) {
 				return res.status(403).json({ message: 'Verification required to change security questions' });
