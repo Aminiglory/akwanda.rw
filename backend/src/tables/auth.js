@@ -73,13 +73,32 @@ function normalizeAnswer(a) {
 	return String(a || '').trim().toLowerCase();
 }
 
+function normalizeQuestionText(s) {
+	return String(s || '')
+		.trim()
+		.toLowerCase()
+		.replace(/[\u2018\u2019\u201A\u201B]/g, "'")
+		.replace(/[\u201C\u201D\u201E\u201F]/g, '"')
+		.replace(/[\.,!?;:]+/g, '')
+		.replace(/\s+/g, ' ');
+}
+
 function safeSecurityQuestions(u) {
 	const list = Array.isArray(u.securityQuestions) ? u.securityQuestions : [];
 	const bankByKey = new Map(SECURITY_QUESTION_BANK.map((q) => [q.key, q.label]));
+	const normalizedLabelToKey = new Map(
+		SECURITY_QUESTION_BANK.map((q) => [normalizeQuestionText(q.label), q.key])
+	);
 	return list.map((q, idx) => {
 		const k = String(q?.questionKey || '').trim();
 		const labelFromKey = k ? bankByKey.get(k) : undefined;
-		return { index: idx, questionKey: k || undefined, question: labelFromKey || q.question };
+		if (labelFromKey) return { index: idx, questionKey: k || undefined, question: labelFromKey };
+		const legacyKey = normalizedLabelToKey.get(normalizeQuestionText(q?.question));
+		return {
+			index: idx,
+			questionKey: legacyKey || undefined,
+			question: legacyKey ? bankByKey.get(legacyKey) : q.question
+		};
 	});
 }
 
@@ -87,13 +106,13 @@ function hasValidSecurityQuestionsList(list) {
 	if (!Array.isArray(list) || list.length !== 3) return false;
 	const bank = new Set(SECURITY_QUESTION_BANK.map((q) => q.key));
 	const normalizedLabelToKey = new Map(
-		SECURITY_QUESTION_BANK.map((q) => [String(q.label).trim().toLowerCase(), q.key])
+		SECURITY_QUESTION_BANK.map((q) => [normalizeQuestionText(q.label), q.key])
 	);
 	const derivedKeys = [];
 	for (const item of list) {
 		let k = String(item?.questionKey || '').trim();
 		if (!k) {
-			const legacyLabel = String(item?.question || '').trim().toLowerCase();
+			const legacyLabel = normalizeQuestionText(item?.question);
 			k = normalizedLabelToKey.get(legacyLabel) || '';
 		}
 		if (!k || !bank.has(k)) return false;

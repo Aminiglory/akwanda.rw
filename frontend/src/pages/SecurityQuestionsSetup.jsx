@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
@@ -21,6 +21,20 @@ const SECURITY_QUESTION_BANK = [
 const SecurityQuestionsSetup = () => {
   const { user, refreshUser } = useAuth();
   const navigate = useNavigate();
+
+	useEffect(() => {
+		let alive = true;
+		(async () => {
+			const u = await refreshUser();
+			if (!alive) return;
+			if (u?.securityQuestionsSet) {
+				navigate('/apartments', { replace: true });
+			}
+		})();
+		return () => {
+			alive = false;
+		};
+	}, [refreshUser, navigate]);
 
   const initial = useMemo(
     () => [
