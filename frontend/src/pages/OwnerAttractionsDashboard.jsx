@@ -51,6 +51,54 @@ export default function OwnerAttractionsDashboard() {
   const [activeAttraction, setActiveAttraction] = useState(null);
   const [activeAttractionLoading, setActiveAttractionLoading] = useState(false);
 
+  const clientsContractsStorageKey = useMemo(() => {
+    const uid = user?.id || user?._id || 'anon';
+    const scope = propertyContextId ? `property:${propertyContextId}` : 'property:all';
+    return `akw_attractions_clients_contracts_v1:${uid}:${scope}`;
+  }, [user, propertyContextId]);
+
+  const [manualClients, setManualClients] = useState([]);
+  const [manualContracts, setManualContracts] = useState([]);
+  const [clientSearch, setClientSearch] = useState('');
+  const [contractSearch, setContractSearch] = useState('');
+  const [clientDraft, setClientDraft] = useState({ name: '', email: '', phone: '', notes: '' });
+  const [contractDraft, setContractDraft] = useState({
+    title: '',
+    clientKey: '',
+    attractionId: 'all',
+    startDate: '',
+    endDate: '',
+    value: '',
+    status: 'active',
+    notes: ''
+  });
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(clientsContractsStorageKey);
+      if (!raw) {
+        setManualClients([]);
+        setManualContracts([]);
+        return;
+      }
+      const parsed = JSON.parse(raw);
+      setManualClients(Array.isArray(parsed?.clients) ? parsed.clients : []);
+      setManualContracts(Array.isArray(parsed?.contracts) ? parsed.contracts : []);
+    } catch (_) {
+      setManualClients([]);
+      setManualContracts([]);
+    }
+  }, [clientsContractsStorageKey]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        clientsContractsStorageKey,
+        JSON.stringify({ clients: manualClients, contracts: manualContracts })
+      );
+    } catch (_) {}
+  }, [clientsContractsStorageKey, manualClients, manualContracts]);
+
   const [attractionExpensesLoading, setAttractionExpensesLoading] = useState(false);
   const [attractionExpenses, setAttractionExpenses] = useState([]);
   const [attractionExpensesTotal, setAttractionExpensesTotal] = useState(0);
@@ -100,6 +148,9 @@ export default function OwnerAttractionsDashboard() {
   const expensesSection = currentViewParam === 'expenses' ? (sectionParam || 'all') : 'all';
   const incomeRevenueSection = currentViewParam === 'income-revenue' ? (sectionParam || 'transactions') : 'transactions';
   const clientsContractsSection = currentViewParam === 'clients-contracts' ? (sectionParam || 'clients') : 'clients';
+  const clientsContractsSafeSection = ['clients', 'add-client', 'contracts', 'add-contract', 'reports'].includes(clientsContractsSection)
+    ? clientsContractsSection
+    : 'clients';
   const notificationsSection = currentViewParam === 'notifications' ? (sectionParam || 'maintenance') : 'maintenance';
 
   const financeFilterLabel = (() => {
@@ -383,6 +434,97 @@ export default function OwnerAttractionsDashboard() {
       return id && String(id) === String(selectedAttractionId);
     });
   }, [bookings, selectedAttractionId]);
+
+  const normalizeClientKey = (payload) => {
+    const email = String(payload?.email || '').trim().toLowerCase();
+    if (email) return `email:${email}`;
+    const phone = String(payload?.phone || '').trim();
+    if (phone) return `phone:${phone}`;
+    const name = String(payload?.name || '').trim().toLowerCase();
+    if (name) return `name:${name}`;
+    return `anon:${Date.now()}`;
+  };
+
+  const clientsFromBookings = useMemo(() => {
+    const list = Array.isArray(filteredBookings) ? filteredBookings : [];
+    const map = new Map();
+    list.forEach((b) => {
+      const guest = b?.guest || b?.guestInfo || b?.user || {};
+      const name = `${guest?.firstName || ''} ${guest?.lastName || ''}`.trim() || String(b?.customerName || '').trim();
+      const email = String(guest?.email || b?.customerEmail || '').trim();
+      const phone = String(guest?.phone || b?.contactPhone || '').trim();
+      const key = normalizeClientKey({ name, email, phone });
+      const amount = Number(b?.totalAmount || 0);
+      const visitRaw = b?.visitDate || b?.date || b?.createdAt;
+      const visit = visitRaw ? new Date(visitRaw) : null;
+      const prev = map.get(key) || { key, name, email, phone, bookingsCount: 0, totalSpend: 0, lastVisit: null };
+      prev.bookingsCount += 1;
+      prev.totalSpend += Number.isFinite(amount) ? amount : 0;
+      if (visit && !Number.isNaN(visit.getTime())) {
+        if (!prev.lastVisit || visit > prev.lastVisit) prev.lastVisit = visit;
+      }
+      if (!prev.name && name) prev.name = name;
+      if (!prev.email && email) prev.email = email;
+      if (!prev.phone && phone) prev.phone = phone;
+      map.set(key, prev);
+    });
+    return Array.from(map.values());
+  }, [filteredBookings]);
+
+  const mergedClients = useMemo(() => {
+    const map = new Map();
+    (Array.isArray(clientsFromBookings) ? clientsFromBookings : []).forEach((c) => map.set(c.key, c));
+    (Array.isArray(manualClients) ? manualClients : []).forEach((c) => {
+      const key = c?.key || normalizeClientKey(c);
+      const prev = map.get(key);
+      if (prev) {
+        map.set(key, {
+          ...prev,
+          ...c,
+          key,
+          bookingsCount: prev.bookingsCount,
+          totalSpend: prev.totalSpend,
+          lastVisit: prev.lastVisit
+        });
+      } else {
+        map.set(key, {
+          key,
+          name: c?.name || '',
+          email: c?.email || '',
+          phone: c?.phone || '',
+          notes: c?.notes || '',
+          bookingsCount: 0,
+          totalSpend: 0,
+          lastVisit: null,
+          createdAt: c?.createdAt
+        });
+      }
+    });
+    const q = String(clientSearch || '').trim().toLowerCase();
+    const all = Array.from(map.values());
+    const filtered = q
+      ? all.filter((c) => [c?.name, c?.email, c?.phone].some((v) => String(v || '').toLowerCase().includes(q)))
+      : all;
+    return filtered.sort((a, b) => {
+      const av = a?.lastVisit instanceof Date ? a.lastVisit.getTime() : 0;
+      const bv = b?.lastVisit instanceof Date ? b.lastVisit.getTime() : 0;
+      return bv - av;
+    });
+  }, [clientsFromBookings, manualClients, clientSearch]);
+
+  const manualContractsForView = useMemo(() => {
+    const list = Array.isArray(manualContracts) ? manualContracts : [];
+    const q = String(contractSearch || '').trim().toLowerCase();
+    const byAttraction = (!selectedAttractionId || selectedAttractionId === 'all')
+      ? list
+      : list.filter((c) => String(c?.attractionId || 'all') === 'all' || String(c?.attractionId) === String(selectedAttractionId));
+    const filtered = q
+      ? byAttraction.filter((c) =>
+          [c?.title, c?.clientName, c?.status].some((v) => String(v || '').toLowerCase().includes(q))
+        )
+      : byAttraction;
+    return filtered.sort((a, b) => String(b?.createdAt || '').localeCompare(String(a?.createdAt || '')));
+  }, [manualContracts, contractSearch, selectedAttractionId]);
 
   const filteredBookingsForView = useMemo(() => {
     const list = Array.isArray(filteredBookings) ? filteredBookings : [];
@@ -2022,7 +2164,6 @@ export default function OwnerAttractionsDashboard() {
         <>
           <div className="mb-3 flex flex-wrap gap-2 text-[11px] sm:text-xs">
             {(() => {
-              const s = ['clients', 'add-client', 'contracts', 'add-contract', 'reports'].includes(clientsContractsSection) ? clientsContractsSection : 'clients';
               const setSection = (val) => {
                 try {
                   const next = new URLSearchParams(searchParams.toString());
@@ -2037,7 +2178,7 @@ export default function OwnerAttractionsDashboard() {
                   type="button"
                   onClick={() => setSection(val)}
                   className={`px-2.5 py-1 rounded-full border ${
-                    s === val
+                    clientsContractsSafeSection === val
                       ? 'bg-[#f5e6d5] text-[#4b2a00] border-[#a06b42] font-semibold'
                       : 'bg-white text-[#6b5744] border-[#e0d5c7] hover:bg-[#f9f1e7]'
                   }`}
@@ -2056,14 +2197,518 @@ export default function OwnerAttractionsDashboard() {
               );
             })()}
           </div>
-          <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-3 text-sm text-gray-700">
-            <h2 className="text-lg font-semibold mb-1">
-              {labelOr('nav.clientsContracts', 'Clients & contracts')}
-            </h2>
-            <p className="text-xs text-gray-500">
-              {labelOr('ownerAttractions.clientsContractsDescription', 'Management tools for your attraction clients and contracts will appear here. For now you can use the Bookings tab to review reservations.')}
-            </p>
-          </div>
+          {clientsContractsSafeSection === 'clients' && (
+            <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-4 text-sm text-gray-700">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div>
+                  <h2 className="text-lg font-semibold">{labelOr('nav.allClients', 'All clients')}</h2>
+                  <div className="text-xs text-gray-500">
+                    {labelOr('ownerAttractions.clientsSubtitle', 'Clients are derived from your bookings. You can also add manual clients.')}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    value={clientSearch}
+                    onChange={(e) => setClientSearch(e.target.value)}
+                    placeholder={labelOr('common.search', 'Search...')}
+                    className="w-full sm:w-56 px-3 py-2 rounded-lg border border-gray-200 text-xs"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      try {
+                        const next = new URLSearchParams(searchParams.toString());
+                        next.set('view', 'clients-contracts');
+                        next.set('section', 'add-client');
+                        setSearchParams(next, { replace: true });
+                      } catch (_) {}
+                    }}
+                    className="px-3 py-2 rounded-lg bg-[#a06b42] hover:bg-[#8f5a32] text-white text-xs font-medium"
+                  >
+                    {labelOr('nav.addClient', 'Add client')}
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="rounded-lg border border-gray-200 bg-[#fffaf4] px-3 py-2">
+                  <div className="text-[11px] text-gray-500">{labelOr('ownerAttractions.clients.total', 'Total clients')}</div>
+                  <div className="text-lg font-semibold text-gray-900">{mergedClients.length}</div>
+                </div>
+                <div className="rounded-lg border border-gray-200 bg-[#fffaf4] px-3 py-2">
+                  <div className="text-[11px] text-gray-500">{labelOr('ownerAttractions.clients.fromBookings', 'From bookings')}</div>
+                  <div className="text-lg font-semibold text-gray-900">{clientsFromBookings.length}</div>
+                </div>
+                <div className="rounded-lg border border-gray-200 bg-[#fffaf4] px-3 py-2">
+                  <div className="text-[11px] text-gray-500">{labelOr('ownerAttractions.clients.manual', 'Manual clients')}</div>
+                  <div className="text-lg font-semibold text-gray-900">{Array.isArray(manualClients) ? manualClients.length : 0}</div>
+                </div>
+              </div>
+
+              {mergedClients.length === 0 ? (
+                <div className="mt-4 text-center text-xs text-gray-500">
+                  {labelOr('ownerAttractions.clients.empty', 'No clients yet. Once you receive bookings, clients will appear here.')}
+                </div>
+              ) : (
+                <div className="mt-4 overflow-auto">
+                  <table className="min-w-full text-xs">
+                    <thead>
+                      <tr className="text-left text-gray-500 border-b">
+                        <th className="py-2 pr-3">{labelOr('common.name', 'Name')}</th>
+                        <th className="py-2 pr-3">{labelOr('common.email', 'Email')}</th>
+                        <th className="py-2 pr-3">{labelOr('common.phone', 'Phone')}</th>
+                        <th className="py-2 pr-3">{labelOr('ownerAttractions.clients.bookings', 'Bookings')}</th>
+                        <th className="py-2 pr-3">{labelOr('ownerAttractions.clients.spend', 'Total spend')}</th>
+                        <th className="py-2 pr-3">{labelOr('ownerAttractions.clients.lastVisit', 'Last activity')}</th>
+                        <th className="py-2">{labelOr('common.actions', 'Actions')}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {mergedClients.map((c) => (
+                        <tr key={c.key} className="border-b last:border-b-0">
+                          <td className="py-2 pr-3 font-medium text-gray-900">{c?.name || '-'}</td>
+                          <td className="py-2 pr-3">{c?.email || '-'}</td>
+                          <td className="py-2 pr-3">{c?.phone || '-'}</td>
+                          <td className="py-2 pr-3">{Number(c?.bookingsCount || 0)}</td>
+                          <td className="py-2 pr-3">{formatAmount(Number(c?.totalSpend || 0))}</td>
+                          <td className="py-2 pr-3">
+                            {c?.lastVisit instanceof Date ? c.lastVisit.toISOString().slice(0, 10) : '-'}
+                          </td>
+                          <td className="py-2">
+                            {Array.isArray(manualClients) && manualClients.some((m) => String(m?.key) === String(c.key)) ? (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const ok = window.confirm('Remove this manual client?');
+                                  if (!ok) return;
+                                  setManualClients((prev) => (Array.isArray(prev) ? prev.filter((m) => String(m?.key) !== String(c.key)) : []));
+                                  toast.success('Client removed');
+                                }}
+                                className="px-2 py-1 rounded-md border border-gray-200 hover:bg-gray-50 text-xs"
+                              >
+                                {labelOr('common.remove', 'Remove')}
+                              </button>
+                            ) : (
+                              <span className="text-[11px] text-gray-400">{labelOr('ownerAttractions.clients.auto', 'Auto')}</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+
+          {clientsContractsSafeSection === 'add-client' && (
+            <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-4 text-sm text-gray-700">
+              <div className="flex items-center justify-between gap-2">
+                <h2 className="text-lg font-semibold">{labelOr('nav.addClient', 'Add client')}</h2>
+                <button
+                  type="button"
+                  onClick={() => {
+                    try {
+                      const next = new URLSearchParams(searchParams.toString());
+                      next.set('view', 'clients-contracts');
+                      next.set('section', 'clients');
+                      setSearchParams(next, { replace: true });
+                    } catch (_) {}
+                  }}
+                  className="px-2.5 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 text-xs"
+                >
+                  {labelOr('common.back', 'Back')}
+                </button>
+              </div>
+
+              <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <div className="text-xs text-gray-500 mb-1">{labelOr('common.name', 'Name')}</div>
+                  <input
+                    value={clientDraft.name}
+                    onChange={(e) => setClientDraft((p) => ({ ...p, name: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm"
+                    placeholder={labelOr('ownerAttractions.clients.namePlaceholder', 'Full name')}
+                  />
+                </div>
+                <div>
+                  <div className="text-xs text-gray-500 mb-1">{labelOr('common.phone', 'Phone')}</div>
+                  <input
+                    value={clientDraft.phone}
+                    onChange={(e) => setClientDraft((p) => ({ ...p, phone: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm"
+                    placeholder="e.g. +2507..."
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <div className="text-xs text-gray-500 mb-1">{labelOr('common.email', 'Email')}</div>
+                  <input
+                    value={clientDraft.email}
+                    onChange={(e) => setClientDraft((p) => ({ ...p, email: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm"
+                    placeholder="name@example.com"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <div className="text-xs text-gray-500 mb-1">{labelOr('common.notes', 'Notes')}</div>
+                  <textarea
+                    value={clientDraft.notes}
+                    onChange={(e) => setClientDraft((p) => ({ ...p, notes: e.target.value }))}
+                    rows={3}
+                    className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-4 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const name = String(clientDraft.name || '').trim();
+                    const email = String(clientDraft.email || '').trim();
+                    const phone = String(clientDraft.phone || '').trim();
+                    if (!name) {
+                      toast.error('Name is required');
+                      return;
+                    }
+                    const key = normalizeClientKey({ name, email, phone });
+                    setManualClients((prev) => {
+                      const list = Array.isArray(prev) ? prev : [];
+                      const exists = list.some((c) => String(c?.key) === String(key));
+                      if (exists) return list.map((c) => (String(c?.key) === String(key) ? { ...c, name, email, phone, notes: clientDraft.notes || c?.notes } : c));
+                      return [...list, { key, name, email, phone, notes: clientDraft.notes || '', createdAt: new Date().toISOString() }];
+                    });
+                    toast.success('Client saved');
+                    setClientDraft({ name: '', email: '', phone: '', notes: '' });
+                    try {
+                      const next = new URLSearchParams(searchParams.toString());
+                      next.set('view', 'clients-contracts');
+                      next.set('section', 'clients');
+                      setSearchParams(next, { replace: true });
+                    } catch (_) {}
+                  }}
+                  className="px-4 py-2 rounded-lg bg-[#a06b42] hover:bg-[#8f5a32] text-white text-sm font-medium"
+                >
+                  {labelOr('common.save', 'Save')}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {clientsContractsSafeSection === 'contracts' && (
+            <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-4 text-sm text-gray-700">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div>
+                  <h2 className="text-lg font-semibold">{labelOr('nav.allContracts', 'All contracts')}</h2>
+                  <div className="text-xs text-gray-500">
+                    {labelOr('ownerAttractions.contractsSubtitle', 'Contracts are saved locally for now (per owner).')}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    value={contractSearch}
+                    onChange={(e) => setContractSearch(e.target.value)}
+                    placeholder={labelOr('common.search', 'Search...')}
+                    className="w-full sm:w-56 px-3 py-2 rounded-lg border border-gray-200 text-xs"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      try {
+                        const next = new URLSearchParams(searchParams.toString());
+                        next.set('view', 'clients-contracts');
+                        next.set('section', 'add-contract');
+                        setSearchParams(next, { replace: true });
+                      } catch (_) {}
+                    }}
+                    className="px-3 py-2 rounded-lg bg-[#a06b42] hover:bg-[#8f5a32] text-white text-xs font-medium"
+                  >
+                    {labelOr('nav.addContract', 'Add contract')}
+                  </button>
+                </div>
+              </div>
+
+              {manualContractsForView.length === 0 ? (
+                <div className="mt-4 text-center text-xs text-gray-500">
+                  {labelOr('ownerAttractions.contracts.empty', 'No contracts yet. Add your first contract to start tracking agreements.')}
+                </div>
+              ) : (
+                <div className="mt-4 overflow-auto">
+                  <table className="min-w-full text-xs">
+                    <thead>
+                      <tr className="text-left text-gray-500 border-b">
+                        <th className="py-2 pr-3">{labelOr('common.title', 'Title')}</th>
+                        <th className="py-2 pr-3">{labelOr('nav.allClients', 'Client')}</th>
+                        <th className="py-2 pr-3">{labelOr('nav.attractions', 'Attraction')}</th>
+                        <th className="py-2 pr-3">{labelOr('ownerAttractions.contracts.dates', 'Dates')}</th>
+                        <th className="py-2 pr-3">{labelOr('ownerAttractions.contracts.value', 'Value')}</th>
+                        <th className="py-2 pr-3">{labelOr('common.status', 'Status')}</th>
+                        <th className="py-2">{labelOr('common.actions', 'Actions')}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {manualContractsForView.map((c) => {
+                        const attractionName = (Array.isArray(items) ? items : []).find((a) => String(a?._id) === String(c?.attractionId))?.name;
+                        return (
+                          <tr key={c.id} className="border-b last:border-b-0">
+                            <td className="py-2 pr-3 font-medium text-gray-900">{c?.title || '-'}</td>
+                            <td className="py-2 pr-3">{c?.clientName || '-'}</td>
+                            <td className="py-2 pr-3">{c?.attractionId === 'all' ? labelOr('common.all', 'All') : (attractionName || '-') }</td>
+                            <td className="py-2 pr-3">{[c?.startDate, c?.endDate].filter(Boolean).join(' - ') || '-'}</td>
+                            <td className="py-2 pr-3">{c?.value ? formatAmount(Number(c.value)) : '-'}</td>
+                            <td className="py-2 pr-3">{c?.status || '-'}</td>
+                            <td className="py-2">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const ok = window.confirm('Delete this contract?');
+                                  if (!ok) return;
+                                  setManualContracts((prev) => (Array.isArray(prev) ? prev.filter((x) => String(x?.id) !== String(c.id)) : []));
+                                  toast.success('Contract deleted');
+                                }}
+                                className="px-2 py-1 rounded-md border border-gray-200 hover:bg-gray-50 text-xs"
+                              >
+                                {labelOr('common.delete', 'Delete')}
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+
+          {clientsContractsSafeSection === 'add-contract' && (
+            <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-4 text-sm text-gray-700">
+              <div className="flex items-center justify-between gap-2">
+                <h2 className="text-lg font-semibold">{labelOr('nav.addContract', 'Add contract')}</h2>
+                <button
+                  type="button"
+                  onClick={() => {
+                    try {
+                      const next = new URLSearchParams(searchParams.toString());
+                      next.set('view', 'clients-contracts');
+                      next.set('section', 'contracts');
+                      setSearchParams(next, { replace: true });
+                    } catch (_) {}
+                  }}
+                  className="px-2.5 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 text-xs"
+                >
+                  {labelOr('common.back', 'Back')}
+                </button>
+              </div>
+
+              <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="sm:col-span-2">
+                  <div className="text-xs text-gray-500 mb-1">{labelOr('common.title', 'Title')}</div>
+                  <input
+                    value={contractDraft.title}
+                    onChange={(e) => setContractDraft((p) => ({ ...p, title: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm"
+                    placeholder={labelOr('ownerAttractions.contracts.titlePlaceholder', 'e.g. Group partnership agreement')}
+                  />
+                </div>
+                <div>
+                  <div className="text-xs text-gray-500 mb-1">{labelOr('nav.allClients', 'Client')}</div>
+                  <select
+                    value={contractDraft.clientKey}
+                    onChange={(e) => setContractDraft((p) => ({ ...p, clientKey: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm"
+                  >
+                    <option value="">{labelOr('common.select', 'Select...')}</option>
+                    {mergedClients.map((c) => (
+                      <option key={c.key} value={c.key}>
+                        {(c?.name || c?.email || c?.phone || c.key).slice(0, 60)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <div className="text-xs text-gray-500 mb-1">{labelOr('nav.attractions', 'Attraction')}</div>
+                  <select
+                    value={contractDraft.attractionId}
+                    onChange={(e) => setContractDraft((p) => ({ ...p, attractionId: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm"
+                  >
+                    <option value="all">{labelOr('common.all', 'All')}</option>
+                    {(Array.isArray(items) ? items : []).map((a) => (
+                      <option key={a?._id} value={a?._id}>
+                        {a?.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <div className="text-xs text-gray-500 mb-1">{labelOr('common.startDate', 'Start date')}</div>
+                  <input
+                    type="date"
+                    value={contractDraft.startDate}
+                    onChange={(e) => setContractDraft((p) => ({ ...p, startDate: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm"
+                  />
+                </div>
+                <div>
+                  <div className="text-xs text-gray-500 mb-1">{labelOr('common.endDate', 'End date')}</div>
+                  <input
+                    type="date"
+                    value={contractDraft.endDate}
+                    onChange={(e) => setContractDraft((p) => ({ ...p, endDate: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm"
+                  />
+                </div>
+                <div>
+                  <div className="text-xs text-gray-500 mb-1">{labelOr('ownerAttractions.contracts.value', 'Value')}</div>
+                  <input
+                    value={contractDraft.value}
+                    onChange={(e) => setContractDraft((p) => ({ ...p, value: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm"
+                    placeholder="RWF"
+                  />
+                </div>
+                <div>
+                  <div className="text-xs text-gray-500 mb-1">{labelOr('common.status', 'Status')}</div>
+                  <select
+                    value={contractDraft.status}
+                    onChange={(e) => setContractDraft((p) => ({ ...p, status: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm"
+                  >
+                    <option value="active">active</option>
+                    <option value="pending">pending</option>
+                    <option value="expired">expired</option>
+                    <option value="cancelled">cancelled</option>
+                  </select>
+                </div>
+                <div className="sm:col-span-2">
+                  <div className="text-xs text-gray-500 mb-1">{labelOr('common.notes', 'Notes')}</div>
+                  <textarea
+                    value={contractDraft.notes}
+                    onChange={(e) => setContractDraft((p) => ({ ...p, notes: e.target.value }))}
+                    rows={3}
+                    className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-4 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const title = String(contractDraft.title || '').trim();
+                    if (!title) {
+                      toast.error('Title is required');
+                      return;
+                    }
+                    if (!contractDraft.clientKey) {
+                      toast.error('Client is required');
+                      return;
+                    }
+                    const client = mergedClients.find((c) => String(c.key) === String(contractDraft.clientKey));
+                    const valueNum = contractDraft.value === '' ? '' : Number(contractDraft.value);
+                    if (contractDraft.value !== '' && Number.isNaN(valueNum)) {
+                      toast.error('Value must be a number');
+                      return;
+                    }
+                    const id = `ct_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+                    setManualContracts((prev) => {
+                      const list = Array.isArray(prev) ? prev : [];
+                      return [
+                        ...list,
+                        {
+                          id,
+                          title,
+                          clientKey: contractDraft.clientKey,
+                          clientName: client?.name || client?.email || client?.phone || contractDraft.clientKey,
+                          attractionId: contractDraft.attractionId || 'all',
+                          startDate: contractDraft.startDate || '',
+                          endDate: contractDraft.endDate || '',
+                          value: contractDraft.value === '' ? '' : String(valueNum),
+                          status: contractDraft.status || 'active',
+                          notes: contractDraft.notes || '',
+                          createdAt: new Date().toISOString()
+                        }
+                      ];
+                    });
+                    toast.success('Contract saved');
+                    setContractDraft({ title: '', clientKey: '', attractionId: 'all', startDate: '', endDate: '', value: '', status: 'active', notes: '' });
+                    try {
+                      const next = new URLSearchParams(searchParams.toString());
+                      next.set('view', 'clients-contracts');
+                      next.set('section', 'contracts');
+                      setSearchParams(next, { replace: true });
+                    } catch (_) {}
+                  }}
+                  className="px-4 py-2 rounded-lg bg-[#a06b42] hover:bg-[#8f5a32] text-white text-sm font-medium"
+                >
+                  {labelOr('common.save', 'Save')}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {clientsContractsSafeSection === 'reports' && (
+            <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-4 text-sm text-gray-700">
+              <h2 className="text-lg font-semibold">{labelOr('nav.clientReports', 'Client reports')}</h2>
+              <div className="text-xs text-gray-500">
+                {labelOr('ownerAttractions.reportsSubtitle', 'Quick insights based on your current bookings filter/scope.')}
+              </div>
+
+              <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="rounded-lg border border-gray-200 bg-[#fffaf4] px-3 py-2">
+                  <div className="text-[11px] text-gray-500">{labelOr('ownerAttractions.reports.totalBookings', 'Bookings (scope)')}</div>
+                  <div className="text-lg font-semibold text-gray-900">{Array.isArray(filteredBookings) ? filteredBookings.length : 0}</div>
+                </div>
+                <div className="rounded-lg border border-gray-200 bg-[#fffaf4] px-3 py-2">
+                  <div className="text-[11px] text-gray-500">{labelOr('ownerAttractions.reports.totalRevenue', 'Revenue (scope)')}</div>
+                  <div className="text-lg font-semibold text-gray-900">
+                    {formatAmount(
+                      Array.isArray(filteredBookings)
+                        ? filteredBookings.reduce((sum, b) => sum + Number(b?.totalAmount || 0), 0)
+                        : 0
+                    )}
+                  </div>
+                </div>
+                <div className="rounded-lg border border-gray-200 bg-[#fffaf4] px-3 py-2">
+                  <div className="text-[11px] text-gray-500">{labelOr('ownerAttractions.reports.repeatClients', 'Repeat clients')}</div>
+                  <div className="text-lg font-semibold text-gray-900">
+                    {(Array.isArray(clientsFromBookings) ? clientsFromBookings : []).filter((c) => Number(c?.bookingsCount || 0) >= 2).length}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <div className="text-sm font-semibold text-gray-900">{labelOr('ownerAttractions.reports.topClients', 'Top clients (by spend)')}</div>
+                <div className="mt-2 overflow-auto">
+                  <table className="min-w-full text-xs">
+                    <thead>
+                      <tr className="text-left text-gray-500 border-b">
+                        <th className="py-2 pr-3">{labelOr('common.name', 'Name')}</th>
+                        <th className="py-2 pr-3">{labelOr('ownerAttractions.clients.bookings', 'Bookings')}</th>
+                        <th className="py-2 pr-3">{labelOr('ownerAttractions.clients.spend', 'Total spend')}</th>
+                        <th className="py-2">{labelOr('ownerAttractions.clients.lastVisit', 'Last activity')}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(Array.isArray(clientsFromBookings) ? clientsFromBookings : [])
+                        .slice()
+                        .sort((a, b) => Number(b?.totalSpend || 0) - Number(a?.totalSpend || 0))
+                        .slice(0, 8)
+                        .map((c) => (
+                          <tr key={c.key} className="border-b last:border-b-0">
+                            <td className="py-2 pr-3 font-medium text-gray-900">{c?.name || '-'}</td>
+                            <td className="py-2 pr-3">{Number(c?.bookingsCount || 0)}</td>
+                            <td className="py-2 pr-3">{formatAmount(Number(c?.totalSpend || 0))}</td>
+                            <td className="py-2">{c?.lastVisit instanceof Date ? c.lastVisit.toISOString().slice(0, 10) : '-'}</td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
         </>
       )}
 
