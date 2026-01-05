@@ -2989,7 +2989,7 @@ export default function OwnerAttractionsDashboard() {
         <>
           <div className="mb-3 flex flex-wrap gap-2 text-[11px] sm:text-xs">
             {(() => {
-              const s = ['maintenance', 'policy', 'expiry', 'activity'].includes(notificationsSection) ? notificationsSection : 'maintenance';
+              const s = notificationsSafeSection;
               const setSection = (val) => {
                 try {
                   const next = new URLSearchParams(searchParams.toString());
@@ -3030,6 +3030,202 @@ export default function OwnerAttractionsDashboard() {
               {labelOr('ownerAttractions.notificationsDescription', 'Here you will see attraction-specific alerts, reminders and policy notifications. For now you can use the bell icon at the top of the page for your main notifications feed.')}
             </p>
           </div>
+
+          {notificationsSafeSection === 'maintenance' && (
+            <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-4 text-sm text-gray-700">
+              <h2 className="text-lg font-semibold mb-2">{labelOr('nav.maintenanceReminders', 'Maintenance reminders')}</h2>
+              {(() => {
+                const listA = Array.isArray(items) ? items : [];
+                const listB = Array.isArray(filteredBookings) ? filteredBookings : [];
+                const now = new Date();
+                const upcoming7 = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+                const activeAttractions = listA.filter((a) => a?.isActive).length;
+                const upcomingVisits7d = listB.filter((b) => {
+                  const d = b?.visitDate ? new Date(b.visitDate) : null;
+                  if (!d || Number.isNaN(d.getTime())) return false;
+                  return d >= now && d <= upcoming7;
+                }).length;
+                const unpaidBookings = listB.filter((b) => normalizePaymentStatus(b) === 'unpaid').length;
+                const pendingBookings = listB.filter((b) => normalizePaymentStatus(b) === 'pending').length;
+
+                return (
+                  <>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                      <div className="rounded-lg border border-gray-200 bg-[#fffaf4] px-3 py-2">
+                        <div className="text-[11px] text-gray-500">{labelOr('ownerAttractions.notifications.activeAttractions', 'Active attractions')}</div>
+                        <div className="text-lg font-semibold text-gray-900">{activeAttractions}</div>
+                      </div>
+                      <div className="rounded-lg border border-gray-200 bg-[#fffaf4] px-3 py-2">
+                        <div className="text-[11px] text-gray-500">{labelOr('ownerAttractions.notifications.upcomingVisits7d', 'Upcoming visits (7 days)')}</div>
+                        <div className="text-lg font-semibold text-gray-900">{upcomingVisits7d}</div>
+                      </div>
+                      <div className="rounded-lg border border-gray-200 bg-[#fffaf4] px-3 py-2">
+                        <div className="text-[11px] text-gray-500">{labelOr('ownerAttractions.notifications.unpaidBookings', 'Unpaid bookings')}</div>
+                        <div className="text-lg font-semibold text-gray-900">{unpaidBookings}</div>
+                      </div>
+                      <div className="rounded-lg border border-gray-200 bg-[#fffaf4] px-3 py-2">
+                        <div className="text-[11px] text-gray-500">{labelOr('ownerAttractions.notifications.pendingPayments', 'Pending payments')}</div>
+                        <div className="text-lg font-semibold text-gray-900">{pendingBookings}</div>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 rounded-lg border border-gray-200 bg-white px-3 py-3">
+                      <div className="text-sm font-semibold text-gray-900">{labelOr('ownerAttractions.notifications.quickChecklist', 'Quick checklist')}</div>
+                      <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-gray-700">
+                        <div className="rounded-md border border-gray-200 bg-[#fffaf4] px-2.5 py-2">{labelOr('ownerAttractions.notifications.checkPhotos', 'Verify attraction photos are up to date')}</div>
+                        <div className="rounded-md border border-gray-200 bg-[#fffaf4] px-2.5 py-2">{labelOr('ownerAttractions.notifications.checkPricing', 'Review pricing for weekends/holidays')}</div>
+                        <div className="rounded-md border border-gray-200 bg-[#fffaf4] px-2.5 py-2">{labelOr('ownerAttractions.notifications.checkAvailability', 'Confirm availability calendar')}</div>
+                        <div className="rounded-md border border-gray-200 bg-[#fffaf4] px-2.5 py-2">{labelOr('ownerAttractions.notifications.checkContact', 'Check contact phone/email')}</div>
+                      </div>
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
+          )}
+
+          {notificationsSafeSection === 'policy' && (
+            <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-4 text-sm text-gray-700">
+              <h2 className="text-lg font-semibold mb-2">{labelOr('nav.policyAlerts', 'Policy & safety alerts')}</h2>
+              <div className="text-xs text-gray-500 mb-3">
+                {labelOr('ownerAttractions.notifications.policyHint', 'These reminders help you keep listings compliant and reduce disputes.')}
+              </div>
+              {(() => {
+                const listB = Array.isArray(filteredBookings) ? filteredBookings : [];
+                const unpaid = listB.filter((b) => normalizePaymentStatus(b) === 'unpaid').length;
+                const cancelled = listB.filter((b) => normalizeBookingStatus(b) === 'cancelled').length;
+                return (
+                  <>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div className="rounded-lg border border-gray-200 bg-[#fffaf4] px-3 py-2">
+                        <div className="text-[11px] text-gray-500">{labelOr('ownerAttractions.notifications.disputesRisk', 'Disputes risk')}</div>
+                        <div className="text-sm font-semibold text-gray-900">
+                          {unpaid > 0 ? labelOr('common.attention', 'Attention') : labelOr('common.ok', 'OK')}
+                        </div>
+                      </div>
+                      <div className="rounded-lg border border-gray-200 bg-[#fffaf4] px-3 py-2">
+                        <div className="text-[11px] text-gray-500">{labelOr('ownerAttractions.notifications.unpaidBookings', 'Unpaid bookings')}</div>
+                        <div className="text-lg font-semibold text-gray-900">{unpaid}</div>
+                      </div>
+                      <div className="rounded-lg border border-gray-200 bg-[#fffaf4] px-3 py-2">
+                        <div className="text-[11px] text-gray-500">{labelOr('ownerAttractions.notifications.cancelledBookings', 'Cancelled bookings')}</div>
+                        <div className="text-lg font-semibold text-gray-900">{cancelled}</div>
+                      </div>
+                    </div>
+                    <div className="mt-4 overflow-auto">
+                      <table className="min-w-full text-xs">
+                        <thead>
+                          <tr className="text-left text-gray-500 border-b">
+                            <th className="py-2 pr-3">{labelOr('common.item', 'Item')}</th>
+                            <th className="py-2">{labelOr('common.status', 'Status')}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {[
+                            { label: labelOr('ownerAttractions.notifications.policy1', 'Refund policy is visible and up to date'), status: labelOr('common.review', 'Review') },
+                            { label: labelOr('ownerAttractions.notifications.policy2', 'Safety instructions included in listing'), status: labelOr('common.review', 'Review') },
+                            { label: labelOr('ownerAttractions.notifications.policy3', 'Accurate location & meeting point'), status: labelOr('common.review', 'Review') },
+                            { label: labelOr('ownerAttractions.notifications.policy4', 'Emergency contact number provided'), status: labelOr('common.review', 'Review') }
+                          ].map((row, idx) => (
+                            <tr key={idx} className="border-b last:border-b-0">
+                              <td className="py-2 pr-3 text-gray-900">{row.label}</td>
+                              <td className="py-2 text-gray-700">{row.status}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
+          )}
+
+          {notificationsSafeSection === 'expiry' && (
+            <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-4 text-sm text-gray-700">
+              <h2 className="text-lg font-semibold mb-2">{labelOr('nav.expiryAlerts', 'Expiry alerts')}</h2>
+              <div className="text-xs text-gray-500 mb-3">
+                {labelOr('ownerAttractions.notifications.expiryHint', 'Contracts expiring soon based on your Settings window.')}{' '}
+                <span className="font-medium">({Number(dashboardSettings?.contractExpiryDays || 30)} {labelOr('common.days', 'days')})</span>
+              </div>
+              {Array.isArray(upcomingContractExpiries) && upcomingContractExpiries.length > 0 ? (
+                <div className="overflow-auto">
+                  <table className="min-w-full text-xs">
+                    <thead>
+                      <tr className="text-left text-gray-500 border-b">
+                        <th className="py-2 pr-3">{labelOr('ownerAttractions.contracts.title', 'Title')}</th>
+                        <th className="py-2 pr-3">{labelOr('ownerAttractions.contracts.client', 'Client')}</th>
+                        <th className="py-2 pr-3">{labelOr('ownerAttractions.contracts.attraction', 'Attraction')}</th>
+                        <th className="py-2">{labelOr('ownerAttractions.contracts.endDate', 'End date')}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {upcomingContractExpiries.slice(0, 15).map((c) => (
+                        <tr key={String(c?.id || c?._id || c?.title || Math.random())} className="border-b last:border-b-0">
+                          <td className="py-2 pr-3 font-medium text-gray-900">{c?.title || '-'}</td>
+                          <td className="py-2 pr-3">{c?.clientName || '-'}</td>
+                          <td className="py-2 pr-3">{c?.attractionName || '-'}</td>
+                          <td className="py-2">{c?.endDateObj instanceof Date ? c.endDateObj.toISOString().slice(0, 10) : (c?.endDate || '-')}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="rounded-lg border border-gray-200 bg-[#fffaf4] px-3 py-3 text-xs text-gray-600">
+                  {labelOr('ownerAttractions.notifications.noExpiries', 'No contract expiries in the selected window.')}
+                </div>
+              )}
+            </div>
+          )}
+
+          {notificationsSafeSection === 'activity' && (
+            <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-4 text-sm text-gray-700">
+              <h2 className="text-lg font-semibold mb-2">{labelOr('nav.activityAlerts', 'Guest activity alerts')}</h2>
+              <div className="text-xs text-gray-500 mb-3">
+                {labelOr('ownerAttractions.notifications.activityHint', 'Most recent booking events based on your Settings lookback.')}{' '}
+                <span className="font-medium">({Number(dashboardSettings?.activityLookbackDays || 14)} {labelOr('common.days', 'days')})</span>
+              </div>
+              {Array.isArray(recentActivity) && recentActivity.length > 0 ? (
+                <div className="overflow-auto">
+                  <table className="min-w-full text-xs">
+                    <thead>
+                      <tr className="text-left text-gray-500 border-b">
+                        <th className="py-2 pr-3">{labelOr('ownerAttractions.activity.date', 'Date')}</th>
+                        <th className="py-2 pr-3">{labelOr('ownerAttractions.activity.guest', 'Guest')}</th>
+                        <th className="py-2 pr-3">{labelOr('ownerAttractions.activity.attraction', 'Attraction')}</th>
+                        <th className="py-2 pr-3">{labelOr('common.status', 'Status')}</th>
+                        <th className="py-2">{labelOr('ownerAttractions.activity.amount', 'Amount')}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {recentActivity.map((x, idx) => {
+                        const b = x?.booking;
+                        const guest = b?.guest;
+                        const guestName = [guest?.firstName, guest?.lastName].filter(Boolean).join(' ') || guest?.name || guest?.email || '-';
+                        const attractionName = b?.attraction?.name || b?.attractionName || '-';
+                        const dateStr = x?.date instanceof Date ? x.date.toISOString().slice(0, 10) : '-';
+                        return (
+                          <tr key={String(b?._id || idx)} className="border-b last:border-b-0">
+                            <td className="py-2 pr-3">{dateStr}</td>
+                            <td className="py-2 pr-3 text-gray-900">{guestName}</td>
+                            <td className="py-2 pr-3">{attractionName}</td>
+                            <td className="py-2 pr-3">{labelOr(`common.status.${normalizeBookingStatus(b)}`, normalizeBookingStatus(b))}</td>
+                            <td className="py-2">{formatAmount(Number(b?.totalAmount || 0))}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="rounded-lg border border-gray-200 bg-[#fffaf4] px-3 py-3 text-xs text-gray-600">
+                  {labelOr('ownerAttractions.notifications.noActivity', 'No recent activity in the selected window.')}
+                </div>
+              )}
+            </div>
+          )}
         </>
       )}
 
