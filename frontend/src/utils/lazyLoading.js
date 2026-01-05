@@ -44,9 +44,9 @@ const getDeviceCapabilities = () => {
 // Global lazy loading state
 let lazyLoadingState = {
   observer: null,
-  loadedImages: new Set(),
-  failedImages: new Set(),
-  pendingImages: new Map(),
+    loadedImages: new Set(),
+    failedImages: new Set(),
+    pendingImages: new Map(),
   isInitialized: false
 };
 

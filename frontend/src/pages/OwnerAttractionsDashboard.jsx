@@ -73,6 +73,71 @@ export default function OwnerAttractionsDashboard() {
     notes: ''
   });
 
+  const incomeRevenueStorageKey = useMemo(() => {
+    const uid = user?.id || user?._id || 'anon';
+    const scope = propertyContextId ? `property:${propertyContextId}` : 'property:all';
+    return `akw_attractions_income_revenue_v1:${uid}:${scope}`;
+  }, [user, propertyContextId]);
+
+  const dashboardSettingsStorageKey = useMemo(() => {
+    const uid = user?.id || user?._id || 'anon';
+    const scope = propertyContextId ? `property:${propertyContextId}` : 'property:all';
+    return `akw_attractions_dashboard_settings_v1:${uid}:${scope}`;
+  }, [user, propertyContextId]);
+
+  const [manualIncome, setManualIncome] = useState([]);
+  const [incomeSearch, setIncomeSearch] = useState('');
+  const [incomeDraft, setIncomeDraft] = useState({
+    date: new Date().toISOString().slice(0, 10),
+    attractionId: 'all',
+    description: '',
+    amount: '',
+    method: 'cash',
+    status: 'paid',
+    notes: ''
+  });
+
+  const [dashboardSettings, setDashboardSettings] = useState({
+    defaultViewMode: 'cards',
+    contractExpiryDays: 30,
+    activityLookbackDays: 14
+  });
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(incomeRevenueStorageKey);
+      if (!raw) {
+        setManualIncome([]);
+        return;
+      }
+      const parsed = JSON.parse(raw);
+      setManualIncome(Array.isArray(parsed?.manualIncome) ? parsed.manualIncome : []);
+    } catch (_) {
+      setManualIncome([]);
+    }
+  }, [incomeRevenueStorageKey]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(incomeRevenueStorageKey, JSON.stringify({ manualIncome }));
+    } catch (_) {}
+  }, [incomeRevenueStorageKey, manualIncome]);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(dashboardSettingsStorageKey);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      setDashboardSettings((prev) => ({ ...prev, ...(parsed || {}) }));
+    } catch (_) {}
+  }, [dashboardSettingsStorageKey]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(dashboardSettingsStorageKey, JSON.stringify(dashboardSettings));
+    } catch (_) {}
+  }, [dashboardSettingsStorageKey, dashboardSettings]);
+
   useEffect(() => {
     try {
       const raw = localStorage.getItem(clientsContractsStorageKey);
@@ -147,11 +212,17 @@ export default function OwnerAttractionsDashboard() {
   const bookingsSection = currentViewParam === 'bookings' ? (sectionParam || 'list') : 'list';
   const expensesSection = currentViewParam === 'expenses' ? (sectionParam || 'all') : 'all';
   const incomeRevenueSection = currentViewParam === 'income-revenue' ? (sectionParam || 'transactions') : 'transactions';
+  const incomeRevenueSafeSection = ['transactions', 'add', 'payments', 'invoices', 'reports'].includes(incomeRevenueSection)
+    ? incomeRevenueSection
+    : 'transactions';
   const clientsContractsSection = currentViewParam === 'clients-contracts' ? (sectionParam || 'clients') : 'clients';
   const clientsContractsSafeSection = ['clients', 'add-client', 'contracts', 'add-contract', 'reports'].includes(clientsContractsSection)
     ? clientsContractsSection
     : 'clients';
   const notificationsSection = currentViewParam === 'notifications' ? (sectionParam || 'maintenance') : 'maintenance';
+  const notificationsSafeSection = ['maintenance', 'policy', 'expiry', 'activity'].includes(notificationsSection)
+    ? notificationsSection
+    : 'maintenance';
 
   const financeFilterLabel = (() => {
     switch (financeFilter) {
@@ -525,6 +596,117 @@ export default function OwnerAttractionsDashboard() {
       : byAttraction;
     return filtered.sort((a, b) => String(b?.createdAt || '').localeCompare(String(a?.createdAt || '')));
   }, [manualContracts, contractSearch, selectedAttractionId]);
+
+  const bookingTransactions = useMemo(() => {
+    const list = Array.isArray(filteredBookings) ? filteredBookings : [];
+    const attractionById = new Map((Array.isArray(items) ? items : []).map((a) => [String(a?._id), a]));
+    return list.map((b) => {
+      const guest = b?.guest || b?.guestInfo || b?.user || {};
+      const clientName = `${guest?.firstName || ''} ${guest?.lastName || ''}`.trim() || String(b?.customerName || '').trim() || 'Guest';
+      const attractionId = String(b?.attraction?._id || b?.attraction || '') || 'all';
+      const attractionName = attractionById.get(attractionId)?.name || b?.attraction?.name || 'Attraction';
+      const dateRaw = b?.visitDate || b?.date || b?.createdAt;
+      const date = dateRaw ? new Date(dateRaw) : null;
+      return {
+        id: `bk_${String(b?._id || '')}`,
+        type: 'booking',
+        date,
+        dateText: date && !Number.isNaN(date.getTime()) ? date.toISOString().slice(0, 10) : '',
+        attractionId,
+        attractionName,
+        title: 'Booking payment',
+        clientName,
+        paymentStatus: normalizePaymentStatus(b),
+        amount: Number(b?.totalAmount || 0),
+        raw: b
+      };
+    });
+  }, [filteredBookings, items]);
+
+  const manualIncomeForView = useMemo(() => {
+    const list = Array.isArray(manualIncome) ? manualIncome : [];
+    const attractionById = new Map((Array.isArray(items) ? items : []).map((a) => [String(a?._id), a]));
+    return list.map((x) => {
+      const date = x?.date ? new Date(x.date) : null;
+      const attractionName = x?.attractionId && x.attractionId !== 'all'
+        ? (attractionById.get(String(x.attractionId))?.name || 'Attraction')
+        : labelOr('common.all', 'All');
+      return {
+        id: String(x?.id || ''),
+        type: 'manual-income',
+        date,
+        dateText: String(x?.date || ''),
+        attractionId: x?.attractionId || 'all',
+        attractionName,
+        title: x?.description || 'Manual income',
+        clientName: x?.description || 'Manual income',
+        paymentStatus: String(x?.status || 'paid'),
+        amount: Number(x?.amount || 0),
+        method: x?.method,
+        notes: x?.notes
+      };
+    });
+  }, [manualIncome, items, labelOr]);
+
+  const incomeTransactionsForView = useMemo(() => {
+    const q = String(incomeSearch || '').trim().toLowerCase();
+    const list = [...bookingTransactions, ...manualIncomeForView];
+    const filtered = q
+      ? list.filter((t) =>
+          [t?.attractionName, t?.clientName, t?.title, t?.type, t?.paymentStatus].some((v) =>
+            String(v || '').toLowerCase().includes(q)
+          )
+        )
+      : list;
+    return filtered.sort((a, b) => {
+      const av = a?.date instanceof Date ? a.date.getTime() : 0;
+      const bv = b?.date instanceof Date ? b.date.getTime() : 0;
+      return bv - av;
+    });
+  }, [bookingTransactions, manualIncomeForView, incomeSearch]);
+
+  const revenueKpisScope = useMemo(() => {
+    const list = Array.isArray(filteredBookings) ? filteredBookings : [];
+    const total = list.reduce((sum, b) => sum + Number(b?.totalAmount || 0), 0);
+    const paid = list.filter((b) => normalizePaymentStatus(b) === 'paid').reduce((sum, b) => sum + Number(b?.totalAmount || 0), 0);
+    const pending = list.filter((b) => normalizePaymentStatus(b) === 'pending').reduce((sum, b) => sum + Number(b?.totalAmount || 0), 0);
+    const unpaid = list.filter((b) => normalizePaymentStatus(b) === 'unpaid').reduce((sum, b) => sum + Number(b?.totalAmount || 0), 0);
+    return { total, paid, pending, unpaid, bookingsCount: list.length };
+  }, [filteredBookings]);
+
+  const upcomingContractExpiries = useMemo(() => {
+    const days = Number(dashboardSettings?.contractExpiryDays || 30);
+    const now = new Date();
+    const threshold = new Date(now.getTime() + Math.max(0, days) * 24 * 60 * 60 * 1000);
+    const list = Array.isArray(manualContractsForView) ? manualContractsForView : [];
+    const attractionById = new Map((Array.isArray(items) ? items : []).map((a) => [String(a?._id), a]));
+    return list
+      .map((c) => {
+        const end = c?.endDate ? new Date(c.endDate) : null;
+        const attractionName = c?.attractionId && c.attractionId !== 'all'
+          ? (attractionById.get(String(c.attractionId))?.name || 'Attraction')
+          : labelOr('common.all', 'All');
+        return { ...c, endDateObj: end, attractionName };
+      })
+      .filter((c) => c?.endDateObj && !Number.isNaN(c.endDateObj.getTime()) && c.endDateObj <= threshold)
+      .sort((a, b) => a.endDateObj.getTime() - b.endDateObj.getTime());
+  }, [manualContractsForView, dashboardSettings?.contractExpiryDays, items, labelOr]);
+
+  const recentActivity = useMemo(() => {
+    const days = Number(dashboardSettings?.activityLookbackDays || 14);
+    const now = new Date();
+    const since = new Date(now.getTime() - Math.max(0, days) * 24 * 60 * 60 * 1000);
+    const list = Array.isArray(filteredBookings) ? filteredBookings : [];
+    return list
+      .map((b) => {
+        const dRaw = b?.createdAt || b?.updatedAt || b?.visitDate || b?.date;
+        const d = dRaw ? new Date(dRaw) : null;
+        return { booking: b, date: d };
+      })
+      .filter((x) => x?.date && !Number.isNaN(x.date.getTime()) && x.date >= since)
+      .sort((a, b) => b.date.getTime() - a.date.getTime())
+      .slice(0, 12);
+  }, [filteredBookings, dashboardSettings?.activityLookbackDays]);
 
   const filteredBookingsForView = useMemo(() => {
     const list = Array.isArray(filteredBookings) ? filteredBookings : [];
@@ -2151,12 +2333,103 @@ export default function OwnerAttractionsDashboard() {
       )}
 
       {view === 'settings' && (
-        <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-3 text-sm text-gray-700">
-          <h2 className="text-lg font-semibold mb-1">Settings</h2>
-          <p>
-            Attraction-specific settings will appear here in the future. For now you can manage notification
-            and account settings from the main Settings section of your profile.
-          </p>
+        <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-4 text-sm text-gray-700">
+          <h2 className="text-lg font-semibold mb-2">Settings</h2>
+          <div className="text-xs text-gray-500 mb-4">
+            {labelOr('ownerAttractions.settings.subtitle', 'Customize how your attractions dashboard behaves on this device.')}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="rounded-lg border border-gray-200 p-3">
+              <div className="text-sm font-semibold text-gray-900 mb-2">{labelOr('ownerAttractions.settings.viewMode', 'Default view mode')}</div>
+              <select
+                value={dashboardSettings.defaultViewMode || 'cards'}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setDashboardSettings((p) => ({ ...p, defaultViewMode: v }));
+                  setViewMode(v);
+                  toast.success('Saved');
+                }}
+                className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm"
+              >
+                <option value="cards">Cards</option>
+                <option value="table">Table</option>
+              </select>
+              <div className="mt-2 text-[11px] text-gray-500">
+                {labelOr('ownerAttractions.settings.viewModeHint', 'Used for the Attractions list view.')}
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-gray-200 p-3">
+              <div className="text-sm font-semibold text-gray-900 mb-2">{labelOr('ownerAttractions.settings.contractExpiry', 'Contract expiry window')}</div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min={1}
+                  value={dashboardSettings.contractExpiryDays}
+                  onChange={(e) => setDashboardSettings((p) => ({ ...p, contractExpiryDays: Number(e.target.value || 0) }))}
+                  className="w-28 px-3 py-2 rounded-lg border border-gray-200 text-sm"
+                />
+                <span className="text-xs text-gray-600">days</span>
+                <button
+                  type="button"
+                  onClick={() => toast.success('Saved')}
+                  className="ml-auto px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 text-xs"
+                >
+                  {labelOr('common.save', 'Save')}
+                </button>
+              </div>
+              <div className="mt-2 text-[11px] text-gray-500">
+                {labelOr('ownerAttractions.settings.contractExpiryHint', 'Used in Notifications → Expiry alerts.')}
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-gray-200 p-3">
+              <div className="text-sm font-semibold text-gray-900 mb-2">{labelOr('ownerAttractions.settings.activityLookback', 'Activity lookback')}</div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min={1}
+                  value={dashboardSettings.activityLookbackDays}
+                  onChange={(e) => setDashboardSettings((p) => ({ ...p, activityLookbackDays: Number(e.target.value || 0) }))}
+                  className="w-28 px-3 py-2 rounded-lg border border-gray-200 text-sm"
+                />
+                <span className="text-xs text-gray-600">days</span>
+                <button
+                  type="button"
+                  onClick={() => toast.success('Saved')}
+                  className="ml-auto px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 text-xs"
+                >
+                  {labelOr('common.save', 'Save')}
+                </button>
+              </div>
+              <div className="mt-2 text-[11px] text-gray-500">
+                {labelOr('ownerAttractions.settings.activityLookbackHint', 'Used in Notifications → Guest activity alerts.')}
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-gray-200 p-3">
+              <div className="text-sm font-semibold text-gray-900 mb-2">{labelOr('ownerAttractions.settings.dataTools', 'Data tools')}</div>
+              <button
+                type="button"
+                onClick={() => {
+                  const ok = window.confirm('Clear local dashboard data on this device (manual clients/contracts/income)?');
+                  if (!ok) return;
+                  try {
+                    localStorage.removeItem(clientsContractsStorageKey);
+                    localStorage.removeItem(incomeRevenueStorageKey);
+                    toast.success('Local data cleared');
+                  } catch (_) {}
+                }}
+                className="px-3 py-2 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 text-xs"
+              >
+                {labelOr('ownerAttractions.settings.clearLocal', 'Clear local dashboard data')}
+              </button>
+              <div className="mt-2 text-[11px] text-gray-500">
+                {labelOr('ownerAttractions.settings.clearLocalHint', 'This does not delete bookings from the server.')}
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -3833,7 +4106,6 @@ export default function OwnerAttractionsDashboard() {
         <>
           <div className="mb-3 flex flex-wrap gap-2 text-[11px] sm:text-xs">
             {(() => {
-              const s = ['transactions', 'add', 'payments', 'invoices', 'reports'].includes(incomeRevenueSection) ? incomeRevenueSection : 'transactions';
               const setSection = (val) => {
                 try {
                   const next = new URLSearchParams(searchParams.toString());
@@ -3848,7 +4120,7 @@ export default function OwnerAttractionsDashboard() {
                   type="button"
                   onClick={() => setSection(val)}
                   className={`px-2.5 py-1 rounded-full border ${
-                    s === val
+                    incomeRevenueSafeSection === val
                       ? 'bg-[#f5e6d5] text-[#4b2a00] border-[#a06b42] font-semibold'
                       : 'bg-white text-[#6b5744] border-[#e0d5c7] hover:bg-[#f9f1e7]'
                   }`}
@@ -3868,14 +4140,418 @@ export default function OwnerAttractionsDashboard() {
             })()}
           </div>
 
-          <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-4 text-sm text-gray-700">
-            <h2 className="text-lg font-semibold mb-2">
-              {labelOr('nav.incomeRevenue', 'Income & revenue')}
-            </h2>
-            <p className="text-xs text-gray-500 mb-2">
-              {labelOr('ownerAttractions.incomeRevenueDescription', 'Tools for managing attraction income, payouts and revenue reports will appear here. For now you can use the Finance and Analytics tabs for high-level numbers.')}
-            </p>
-          </div>
+          {incomeRevenueSafeSection === 'transactions' && (
+            <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-4 text-sm text-gray-700">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div>
+                  <h2 className="text-lg font-semibold">{labelOr('nav.allTransactions', 'All transactions')}</h2>
+                  <div className="text-xs text-gray-500">
+                    {labelOr('ownerAttractions.incomeRevenue.transactionsHint', 'Booking payments plus any manual income you add.')}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    value={incomeSearch}
+                    onChange={(e) => setIncomeSearch(e.target.value)}
+                    placeholder={labelOr('common.search', 'Search...')}
+                    className="w-full sm:w-56 px-3 py-2 rounded-lg border border-gray-200 text-xs"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      try {
+                        const next = new URLSearchParams(searchParams.toString());
+                        next.set('view', 'income-revenue');
+                        next.set('section', 'add');
+                        setSearchParams(next, { replace: true });
+                      } catch (_) {}
+                    }}
+                    className="px-3 py-2 rounded-lg bg-[#a06b42] hover:bg-[#8f5a32] text-white text-xs font-medium"
+                  >
+                    {labelOr('nav.addIncome', 'Add income')}
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-3 grid grid-cols-1 sm:grid-cols-4 gap-3">
+                <div className="rounded-lg border border-gray-200 bg-[#fffaf4] px-3 py-2">
+                  <div className="text-[11px] text-gray-500">{labelOr('ownerAttractions.incomeRevenue.kpi.bookings', 'Bookings (scope)')}</div>
+                  <div className="text-lg font-semibold text-gray-900">{Number(revenueKpisScope.bookingsCount || 0)}</div>
+                </div>
+                <div className="rounded-lg border border-gray-200 bg-[#fffaf4] px-3 py-2">
+                  <div className="text-[11px] text-gray-500">{labelOr('ownerAttractions.incomeRevenue.kpi.total', 'Revenue total')}</div>
+                  <div className="text-lg font-semibold text-gray-900">{formatAmount(revenueKpisScope.total || 0)}</div>
+                </div>
+                <div className="rounded-lg border border-gray-200 bg-[#fffaf4] px-3 py-2">
+                  <div className="text-[11px] text-gray-500">{labelOr('ownerAttractions.incomeRevenue.kpi.paid', 'Paid')}</div>
+                  <div className="text-lg font-semibold text-green-700">{formatAmount(revenueKpisScope.paid || 0)}</div>
+                </div>
+                <div className="rounded-lg border border-gray-200 bg-[#fffaf4] px-3 py-2">
+                  <div className="text-[11px] text-gray-500">{labelOr('ownerAttractions.incomeRevenue.kpi.pendingUnpaid', 'Pending/Unpaid')}</div>
+                  <div className="text-lg font-semibold text-gray-900">{formatAmount((revenueKpisScope.pending || 0) + (revenueKpisScope.unpaid || 0))}</div>
+                </div>
+              </div>
+
+              <div className="mt-4 overflow-auto">
+                <table className="min-w-full text-xs">
+                  <thead>
+                    <tr className="text-left text-gray-500 border-b">
+                      <th className="py-2 pr-3">{labelOr('common.date', 'Date')}</th>
+                      <th className="py-2 pr-3">{labelOr('nav.attractions', 'Attraction')}</th>
+                      <th className="py-2 pr-3">{labelOr('common.type', 'Type')}</th>
+                      <th className="py-2 pr-3">{labelOr('common.description', 'Description')}</th>
+                      <th className="py-2 pr-3">{labelOr('common.status', 'Status')}</th>
+                      <th className="py-2 pr-3">{labelOr('ownerAttractions.incomeRevenue.amount', 'Amount')}</th>
+                      <th className="py-2">{labelOr('common.actions', 'Actions')}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {incomeTransactionsForView.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="py-6 text-center text-xs text-gray-500">
+                          {labelOr('ownerAttractions.incomeRevenue.empty', 'No transactions found.')}
+                        </td>
+                      </tr>
+                    ) : (
+                      incomeTransactionsForView.map((t) => (
+                        <tr key={t.id} className="border-b last:border-b-0">
+                          <td className="py-2 pr-3">{t?.dateText || '-'}</td>
+                          <td className="py-2 pr-3">{t?.attractionName || '-'}</td>
+                          <td className="py-2 pr-3">{t?.type === 'manual-income' ? 'manual' : 'booking'}</td>
+                          <td className="py-2 pr-3 font-medium text-gray-900">{t?.title || t?.clientName || '-'}</td>
+                          <td className="py-2 pr-3">{t?.paymentStatus || '-'}</td>
+                          <td className="py-2 pr-3">{formatAmount(Number(t?.amount || 0))}</td>
+                          <td className="py-2">
+                            {t?.type === 'booking' ? (
+                              <button
+                                type="button"
+                                onClick={() => setReceiptBooking(t.raw)}
+                                className="px-2 py-1 rounded-md border border-gray-200 hover:bg-gray-50 text-xs"
+                              >
+                                {labelOr('nav.receipt', 'Receipt')}
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const ok = window.confirm('Delete this manual income entry?');
+                                  if (!ok) return;
+                                  setManualIncome((prev) => (Array.isArray(prev) ? prev.filter((x) => String(x?.id) !== String(t.id)) : []));
+                                  toast.success('Deleted');
+                                }}
+                                className="px-2 py-1 rounded-md border border-gray-200 hover:bg-gray-50 text-xs"
+                              >
+                                {labelOr('common.delete', 'Delete')}
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {incomeRevenueSafeSection === 'add' && (
+            <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-4 text-sm text-gray-700">
+              <div className="flex items-center justify-between gap-2">
+                <h2 className="text-lg font-semibold">{labelOr('nav.addIncome', 'Add income')}</h2>
+                <button
+                  type="button"
+                  onClick={() => {
+                    try {
+                      const next = new URLSearchParams(searchParams.toString());
+                      next.set('view', 'income-revenue');
+                      next.set('section', 'transactions');
+                      setSearchParams(next, { replace: true });
+                    } catch (_) {}
+                  }}
+                  className="px-2.5 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 text-xs"
+                >
+                  {labelOr('common.back', 'Back')}
+                </button>
+              </div>
+
+              <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <div className="text-xs text-gray-500 mb-1">{labelOr('common.date', 'Date')}</div>
+                  <input
+                    type="date"
+                    value={incomeDraft.date}
+                    onChange={(e) => setIncomeDraft((p) => ({ ...p, date: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm"
+                  />
+                </div>
+                <div>
+                  <div className="text-xs text-gray-500 mb-1">{labelOr('nav.attractions', 'Attraction')}</div>
+                  <select
+                    value={incomeDraft.attractionId}
+                    onChange={(e) => setIncomeDraft((p) => ({ ...p, attractionId: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm"
+                  >
+                    <option value="all">{labelOr('common.all', 'All')}</option>
+                    {(Array.isArray(items) ? items : []).map((a) => (
+                      <option key={a?._id} value={a?._id}>{a?.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="sm:col-span-2">
+                  <div className="text-xs text-gray-500 mb-1">{labelOr('common.description', 'Description')}</div>
+                  <input
+                    value={incomeDraft.description}
+                    onChange={(e) => setIncomeDraft((p) => ({ ...p, description: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm"
+                    placeholder={labelOr('ownerAttractions.incomeRevenue.descPlaceholder', 'e.g. Tour guide fee, extra tickets, partnership payout')}
+                  />
+                </div>
+                <div>
+                  <div className="text-xs text-gray-500 mb-1">{labelOr('ownerAttractions.incomeRevenue.amount', 'Amount')}</div>
+                  <input
+                    value={incomeDraft.amount}
+                    onChange={(e) => setIncomeDraft((p) => ({ ...p, amount: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm"
+                    placeholder="RWF"
+                  />
+                </div>
+                <div>
+                  <div className="text-xs text-gray-500 mb-1">{labelOr('common.status', 'Status')}</div>
+                  <select
+                    value={incomeDraft.status}
+                    onChange={(e) => setIncomeDraft((p) => ({ ...p, status: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm"
+                  >
+                    <option value="paid">paid</option>
+                    <option value="pending">pending</option>
+                    <option value="unpaid">unpaid</option>
+                  </select>
+                </div>
+                <div>
+                  <div className="text-xs text-gray-500 mb-1">{labelOr('ownerAttractions.incomeRevenue.method', 'Method')}</div>
+                  <select
+                    value={incomeDraft.method}
+                    onChange={(e) => setIncomeDraft((p) => ({ ...p, method: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm"
+                  >
+                    <option value="cash">cash</option>
+                    <option value="mtn_mobile_money">mobile money</option>
+                    <option value="card">card</option>
+                    <option value="bank_transfer">bank transfer</option>
+                  </select>
+                </div>
+                <div className="sm:col-span-2">
+                  <div className="text-xs text-gray-500 mb-1">{labelOr('common.notes', 'Notes')}</div>
+                  <textarea
+                    value={incomeDraft.notes}
+                    onChange={(e) => setIncomeDraft((p) => ({ ...p, notes: e.target.value }))}
+                    rows={3}
+                    className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const amountNum = Number(incomeDraft.amount);
+                    if (!incomeDraft.date) {
+                      toast.error('Date is required');
+                      return;
+                    }
+                    if (!incomeDraft.description.trim()) {
+                      toast.error('Description is required');
+                      return;
+                    }
+                    if (Number.isNaN(amountNum) || amountNum <= 0) {
+                      toast.error('Amount must be a positive number');
+                      return;
+                    }
+                    const id = `inc_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+                    setManualIncome((prev) => {
+                      const list = Array.isArray(prev) ? prev : [];
+                      return [...list, { ...incomeDraft, id, amount: String(amountNum), createdAt: new Date().toISOString() }];
+                    });
+                    toast.success('Income saved');
+                    setIncomeDraft((p) => ({ ...p, description: '', amount: '', notes: '' }));
+                    try {
+                      const next = new URLSearchParams(searchParams.toString());
+                      next.set('view', 'income-revenue');
+                      next.set('section', 'transactions');
+                      setSearchParams(next, { replace: true });
+                    } catch (_) {}
+                  }}
+                  className="px-4 py-2 rounded-lg bg-[#a06b42] hover:bg-[#8f5a32] text-white text-sm font-medium"
+                >
+                  {labelOr('common.save', 'Save')}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {incomeRevenueSafeSection === 'payments' && (
+            <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-4 text-sm text-gray-700">
+              <h2 className="text-lg font-semibold">{labelOr('nav.clientPayments', 'Client payments')}</h2>
+              <div className="text-xs text-gray-500 mb-3">
+                {labelOr('ownerAttractions.incomeRevenue.paymentsHint', 'Payment status is derived from booking status unless explicitly paid/pending/unpaid in the booking record.')}
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="rounded-lg border border-gray-200 bg-[#fffaf4] px-3 py-2">
+                  <div className="text-[11px] text-gray-500">{labelOr('ownerAttractions.incomeRevenue.payments.paid', 'Paid')}</div>
+                  <div className="text-lg font-semibold text-green-700">{formatAmount(revenueKpisScope.paid || 0)}</div>
+                </div>
+                <div className="rounded-lg border border-gray-200 bg-[#fffaf4] px-3 py-2">
+                  <div className="text-[11px] text-gray-500">{labelOr('ownerAttractions.incomeRevenue.payments.pending', 'Pending')}</div>
+                  <div className="text-lg font-semibold text-yellow-700">{formatAmount(revenueKpisScope.pending || 0)}</div>
+                </div>
+                <div className="rounded-lg border border-gray-200 bg-[#fffaf4] px-3 py-2">
+                  <div className="text-[11px] text-gray-500">{labelOr('ownerAttractions.incomeRevenue.payments.unpaid', 'Unpaid')}</div>
+                  <div className="text-lg font-semibold text-red-700">{formatAmount(revenueKpisScope.unpaid || 0)}</div>
+                </div>
+              </div>
+
+              <div className="mt-4 overflow-auto">
+                <table className="min-w-full text-xs">
+                  <thead>
+                    <tr className="text-left text-gray-500 border-b">
+                      <th className="py-2 pr-3">{labelOr('common.date', 'Date')}</th>
+                      <th className="py-2 pr-3">{labelOr('nav.attractions', 'Attraction')}</th>
+                      <th className="py-2 pr-3">{labelOr('common.client', 'Client')}</th>
+                      <th className="py-2 pr-3">{labelOr('common.status', 'Status')}</th>
+                      <th className="py-2 pr-3">{labelOr('ownerAttractions.incomeRevenue.amount', 'Amount')}</th>
+                      <th className="py-2">{labelOr('common.actions', 'Actions')}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(Array.isArray(bookingTransactions) ? bookingTransactions : []).slice(0, 30).map((t) => (
+                      <tr key={t.id} className="border-b last:border-b-0">
+                        <td className="py-2 pr-3">{t?.dateText || '-'}</td>
+                        <td className="py-2 pr-3">{t?.attractionName || '-'}</td>
+                        <td className="py-2 pr-3">{t?.clientName || '-'}</td>
+                        <td className="py-2 pr-3">{t?.paymentStatus || '-'}</td>
+                        <td className="py-2 pr-3">{formatAmount(Number(t?.amount || 0))}</td>
+                        <td className="py-2">
+                          <button
+                            type="button"
+                            onClick={() => setReceiptBooking(t.raw)}
+                            className="px-2 py-1 rounded-md border border-gray-200 hover:bg-gray-50 text-xs"
+                          >
+                            {labelOr('nav.receipt', 'Receipt')}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {incomeRevenueSafeSection === 'invoices' && (
+            <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-4 text-sm text-gray-700">
+              <h2 className="text-lg font-semibold">{labelOr('nav.invoicesReceipts', 'Invoices & receipts')}</h2>
+              <div className="text-xs text-gray-500 mb-3">
+                {labelOr('ownerAttractions.incomeRevenue.invoicesHint', 'Generate receipts for bookings. Invoices can be added later when a backend module is available.')}
+              </div>
+              <div className="overflow-auto">
+                <table className="min-w-full text-xs">
+                  <thead>
+                    <tr className="text-left text-gray-500 border-b">
+                      <th className="py-2 pr-3">{labelOr('common.date', 'Date')}</th>
+                      <th className="py-2 pr-3">{labelOr('nav.attractions', 'Attraction')}</th>
+                      <th className="py-2 pr-3">{labelOr('common.client', 'Client')}</th>
+                      <th className="py-2 pr-3">{labelOr('ownerAttractions.incomeRevenue.amount', 'Amount')}</th>
+                      <th className="py-2">{labelOr('common.actions', 'Actions')}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(Array.isArray(bookingTransactions) ? bookingTransactions : []).slice(0, 25).map((t) => (
+                      <tr key={t.id} className="border-b last:border-b-0">
+                        <td className="py-2 pr-3">{t?.dateText || '-'}</td>
+                        <td className="py-2 pr-3">{t?.attractionName || '-'}</td>
+                        <td className="py-2 pr-3">{t?.clientName || '-'}</td>
+                        <td className="py-2 pr-3">{formatAmount(Number(t?.amount || 0))}</td>
+                        <td className="py-2">
+                          <button
+                            type="button"
+                            onClick={() => setReceiptBooking(t.raw)}
+                            className="px-2 py-1 rounded-md border border-gray-200 hover:bg-gray-50 text-xs"
+                          >
+                            {labelOr('nav.receipt', 'View receipt')}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {incomeRevenueSafeSection === 'reports' && (
+            <div className="mb-6 rounded-xl bg-white border border-gray-200 px-4 py-4 text-sm text-gray-700">
+              <h2 className="text-lg font-semibold">{labelOr('nav.revenueReports', 'Revenue reports')}</h2>
+              <div className="text-xs text-gray-500 mb-3">
+                {labelOr('ownerAttractions.incomeRevenue.reportsHint', 'Summary based on current scope and booking payments. Manual income is included in the transactions list.')}
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                <div className="rounded-lg border border-gray-200 bg-[#fffaf4] px-3 py-2">
+                  <div className="text-[11px] text-gray-500">{labelOr('ownerAttractions.incomeRevenue.reports.total', 'Total revenue')}</div>
+                  <div className="text-lg font-semibold text-gray-900">{formatAmount(revenueKpisScope.total || 0)}</div>
+                </div>
+                <div className="rounded-lg border border-gray-200 bg-[#fffaf4] px-3 py-2">
+                  <div className="text-[11px] text-gray-500">{labelOr('ownerAttractions.incomeRevenue.reports.paid', 'Paid revenue')}</div>
+                  <div className="text-lg font-semibold text-green-700">{formatAmount(revenueKpisScope.paid || 0)}</div>
+                </div>
+                <div className="rounded-lg border border-gray-200 bg-[#fffaf4] px-3 py-2">
+                  <div className="text-[11px] text-gray-500">{labelOr('ownerAttractions.incomeRevenue.reports.pending', 'Pending revenue')}</div>
+                  <div className="text-lg font-semibold text-yellow-700">{formatAmount(revenueKpisScope.pending || 0)}</div>
+                </div>
+                <div className="rounded-lg border border-gray-200 bg-[#fffaf4] px-3 py-2">
+                  <div className="text-[11px] text-gray-500">{labelOr('ownerAttractions.incomeRevenue.reports.unpaid', 'Unpaid revenue')}</div>
+                  <div className="text-lg font-semibold text-red-700">{formatAmount(revenueKpisScope.unpaid || 0)}</div>
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <div className="text-sm font-semibold text-gray-900 mb-2">{labelOr('ownerAttractions.incomeRevenue.reports.topAttractions', 'Top attractions (by revenue)')}</div>
+                <div className="overflow-auto">
+                  <table className="min-w-full text-xs">
+                    <thead>
+                      <tr className="text-left text-gray-500 border-b">
+                        <th className="py-2 pr-3">{labelOr('nav.attractions', 'Attraction')}</th>
+                        <th className="py-2 pr-3">{labelOr('ownerAttractions.incomeRevenue.reports.bookings', 'Bookings')}</th>
+                        <th className="py-2">{labelOr('ownerAttractions.incomeRevenue.reports.revenue', 'Revenue')}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(() => {
+                        const map = new Map();
+                        (Array.isArray(bookingTransactions) ? bookingTransactions : []).forEach((t) => {
+                          const key = String(t?.attractionId || 'all');
+                          const prev = map.get(key) || { attractionName: t?.attractionName || 'Attraction', bookings: 0, revenue: 0 };
+                          prev.bookings += 1;
+                          prev.revenue += Number(t?.amount || 0);
+                          map.set(key, prev);
+                        });
+                        return Array.from(map.values())
+                          .sort((a, b) => Number(b?.revenue || 0) - Number(a?.revenue || 0))
+                          .slice(0, 10)
+                          .map((row, idx) => (
+                            <tr key={`${row.attractionName}-${idx}`} className="border-b last:border-b-0">
+                              <td className="py-2 pr-3 font-medium text-gray-900">{row.attractionName}</td>
+                              <td className="py-2 pr-3">{row.bookings}</td>
+                              <td className="py-2">{formatAmount(row.revenue)}</td>
+                            </tr>
+                          ));
+                      })()}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
         </>
       )}
 
