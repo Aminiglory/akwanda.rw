@@ -84,6 +84,73 @@
 :root, html, body {
   background-color: #FFF9F3; /* White Chocolate */
   color: #2B1B0E; /* Espresso */
+  width: 100%;
+  overflow-x: hidden;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+}
+
+input,
+select,
+textarea,
+button {
+  max-width: 100%;
+}
+
+table {
+  max-width: 100%;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@media (max-width: 640px) {
+  .whitespace-nowrap {
+    white-space: normal !important;
+  }
+  .flex-nowrap {
+    flex-wrap: wrap !important;
+  }
+}
+
+pre,
+code {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.main-nav-dropdown,
+.property-selector-dropdown,
+.notification-dropdown,
+.profile-dropdown {
+  max-width: calc(100vw - 1rem);
+}
+
+.dashboard {
+  width: 100%;
+  max-width: 1280px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 1rem;
+}
+
+@media (min-width: 640px) {
+  .dashboard {
+    padding: 1.5rem;
+  }
 }
 
 /* Ensure images display properly without color inheritance */
