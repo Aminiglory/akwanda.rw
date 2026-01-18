@@ -1334,7 +1334,7 @@ export default function CarOwnerDashboard() {
                               {vehicleLabel}
                             </div>
                             {pickup && (
-                              <span className="text-[10px] text-gray-500 whitespace-nowrap">
+                              <span className="text-[10px] text-gray-500 whitespace-normal sm:whitespace-nowrap">
                                 {pickup.toLocaleDateString()}
                               </span>
                             )}
@@ -1510,7 +1510,7 @@ export default function CarOwnerDashboard() {
                             {vehicleLabel}
                           </div>
                           {created && (
-                            <span className="text-[10px] text-gray-500 whitespace-nowrap">
+                            <span className="text-[10px] text-gray-500 whitespace-normal sm:whitespace-nowrap">
                               {created.toLocaleDateString()}{' '}
                               {created.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </span>
@@ -3051,7 +3051,7 @@ export default function CarOwnerDashboard() {
                                       <div className="flex items-center justify-between gap-2">
                                         <div className="font-semibold text-[#4b2a00] truncate text-[11px]">{n.title || 'Notification'}</div>
                                         {created && (
-                                          <span className="text-[10px] text-gray-500 whitespace-nowrap">
+                                          <span className="text-[10px] text-gray-500 whitespace-normal sm:whitespace-nowrap">
                                             {created.toLocaleDateString()} {created.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                           </span>
                                         )}
@@ -4169,7 +4169,7 @@ export default function CarOwnerDashboard() {
                                   <div className="flex items-center justify-between gap-2">
                                     <div className="flex items-center gap-2 min-w-0">
                                       {String(selectedCarId) === String(car._id) && (
-                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-[#a06b42]/10 text-[#a06b42] text-[10px] font-semibold uppercase tracking-wide whitespace-nowrap">
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-[#a06b42]/10 text-[#a06b42] text-[10px] font-semibold uppercase tracking-wide whitespace-normal sm:whitespace-nowrap">
                                           Selected
                                         </span>
                                       )}

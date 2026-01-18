@@ -47,6 +47,16 @@ const PropertyMapView = () => {
     maxPrice: 1000000,
   });
 
+  const [showOriginPrompt, setShowOriginPrompt] = useState(false);
+  const [destinationForDirections, setDestinationForDirections] = useState(null);
+
+  const [originQuery, setOriginQuery] = useState('');
+  const [originSuggestions, setOriginSuggestions] = useState([]);
+  const [originCoords, setOriginCoords] = useState(null);
+  const [originResolving, setOriginResolving] = useState(false);
+
+  const [viaPoints, setViaPoints] = useState([]);
+
   const mapRef = useRef(null);
 
   const safeT = (key, fallback) => {
@@ -91,13 +101,10 @@ const PropertyMapView = () => {
       selectedProperty.latitude != null &&
       selectedProperty.longitude != null
     ) {
-      getDirections({
-        lat: Number(selectedProperty.latitude),
-        lng: Number(selectedProperty.longitude),
-      });
+      startDirectionsForProperty(selectedProperty);
       setAutoRequestedDirections(true);
     }
-  }, [autoRequestedDirections, location.state, selectedProperty, getDirections]);
+  }, [autoRequestedDirections, location.state, selectedProperty]);
 
   // Fetch properties from API or use passed properties
   useEffect(() => {
@@ -159,6 +166,41 @@ const PropertyMapView = () => {
     fetchProperties();
   }, [location.state]);
 
+  useEffect(() => {
+    if (!showOriginPrompt) {
+      setOriginSuggestions([]);
+      return;
+    }
+    const q = originQuery.trim();
+    if (q.length < 3) {
+      setOriginSuggestions([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        setOriginResolving(true);
+        const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&q=${encodeURIComponent(q + ' ' + (selectedProperty?.country || 'Rwanda'))}`;
+        const res = await fetch(url, {
+          headers: {
+            'Accept-Language': (typeof document !== 'undefined' ? document.documentElement.lang : 'en') || 'en',
+          },
+        });
+        const data = await res.json().catch(() => []);
+        if (!cancelled) {
+          setOriginSuggestions(Array.isArray(data) ? data.slice(0, 5) : []);
+        }
+      } catch (_) {
+        if (!cancelled) setOriginSuggestions([]);
+      } finally {
+        if (!cancelled) setOriginResolving(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [originQuery, selectedProperty?.country, showOriginPrompt]);
+
   const handleMarkerClick = (property) => {
     navigate(`/apartment/${property.id}`);
   };
@@ -179,6 +221,138 @@ const PropertyMapView = () => {
   const handleBackToListing = () => {
     navigate(-1); // Go back to previous page
   };
+
+  const handleSelectOriginSuggestion = (suggestion) => {
+    if (!suggestion) return;
+    const lat = Number(suggestion.lat);
+    const lng = Number(suggestion.lon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+    setOriginCoords({ lat, lng });
+    setOriginQuery(suggestion.display_name || originQuery);
+    setOriginSuggestions([]);
+    setViewState((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        longitude: lng,
+        latitude: lat,
+      };
+    });
+  };
+
+  const updateOriginFromMap = async (lat, lng) => {
+    if (lat == null || lng == null) return;
+    setOriginCoords({ lat, lng });
+    setViewState((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        longitude: lng,
+        latitude: lat,
+      };
+    });
+
+    try {
+      const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`;
+      const res = await fetch(url, {
+        headers: {
+          'Accept-Language':
+            (typeof document !== 'undefined' ? document.documentElement.lang : 'en') || 'en',
+        },
+      });
+      const data = await res.json().catch(() => null);
+      const addr = data?.display_name;
+      if (addr) {
+        setOriginQuery(addr);
+      }
+    } catch (_) {}
+  };
+
+  const handleUseMyLocationAsOrigin = () => {
+    if (!navigator.geolocation) return;
+    setOriginResolving(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        updateOriginFromMap(lat, lng).finally(() => {
+          setOriginResolving(false);
+        });
+      },
+      () => {
+        setOriginResolving(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 5 * 60 * 1000,
+      }
+    );
+  };
+
+  const runDirections = (customViaPoints, customOrigin) => {
+    const originToUse = customOrigin || originCoords;
+    if (!destinationForDirections || !originToUse) return;
+
+    const viaToUse =
+      Array.isArray(customViaPoints) && customViaPoints.length > 0
+        ? customViaPoints
+        : viaPoints;
+
+    const viaPayload = (viaToUse || [])
+      .filter((p) => p && p.lat != null && p.lng != null)
+      .map((p) => ({ lat: p.lat, lng: p.lng }));
+
+    getDirections({
+      origin: originToUse,
+      destination: destinationForDirections,
+      via: viaPayload,
+    });
+  };
+
+  const handleDirectionsSubmit = (e) => {
+    e?.preventDefault?.();
+    runDirections();
+    setShowOriginPrompt(false);
+  };
+
+  const handleViaDragEnd = (id, lngLat) => {
+    const { lng, lat } = lngLat || {};
+    if (lng == null || lat == null) return;
+    setViaPoints((prev) => {
+      const next = prev.map((p) => (p.id === id ? { ...p, lat, lng } : p));
+      runDirections(next);
+      return next;
+    });
+  };
+
+  const handleMapClick = (evt) => {
+    if (!showOriginPrompt) return;
+    const { lng, lat } = evt.lngLat || {};
+    if (lng == null || lat == null) return;
+    updateOriginFromMap(lat, lng);
+  };
+
+  function startDirectionsForProperty(property) {
+    if (!property || property.latitude == null || property.longitude == null) return;
+
+    const dest = {
+      lat: Number(property.latitude),
+      lng: Number(property.longitude),
+    };
+    setDestinationForDirections(dest);
+
+    const initialOrigin =
+      mapCenter && mapCenter.lat != null && mapCenter.lng != null
+        ? { lat: Number(mapCenter.lat), lng: Number(mapCenter.lng) }
+        : dest;
+
+    setOriginCoords(initialOrigin);
+    setShowOriginPrompt(true);
+    setOriginQuery('');
+    setOriginSuggestions([]);
+    setViaPoints([]);
+  }
 
   // Filter properties based on active filters
   const filteredProperties = properties.filter(property => {
@@ -207,12 +381,16 @@ const PropertyMapView = () => {
     }
   }
 
-  const originCoords =
+  const routeStartCoord =
     directions?.geometry?.coordinates &&
     Array.isArray(directions.geometry.coordinates) &&
     directions.geometry.coordinates.length > 0
       ? directions.geometry.coordinates[0]
       : null;
+
+  const effectiveOriginCoords = originCoords
+    ? [originCoords.lng, originCoords.lat]
+    : routeStartCoord;
 
   useEffect(() => {
     if (!mapLoaded) return;
@@ -248,6 +426,41 @@ const PropertyMapView = () => {
       }
     );
   }, [directions, mapLoaded]);
+
+  useEffect(() => {
+    if (!directions || !directions.geometry || !Array.isArray(directions.geometry.coordinates)) {
+      setViaPoints([]);
+      return;
+    }
+
+    const coords = directions.geometry.coordinates;
+    if (!Array.isArray(coords) || coords.length < 6) {
+      setViaPoints([]);
+      return;
+    }
+
+    const maxHandles = 3;
+    const step = Math.floor(coords.length / (maxHandles + 1));
+    if (step <= 0) {
+      setViaPoints([]);
+      return;
+    }
+
+    const handles = [];
+    for (let i = 1; i <= maxHandles; i += 1) {
+      const idx = i * step;
+      if (idx >= 0 && idx < coords.length) {
+        const [lng, lat] = coords[idx];
+        handles.push({
+          id: `via-auto-${i}`,
+          lat,
+          lng,
+        });
+      }
+    }
+
+    setViaPoints(handles);
+  }, [directions]);
 
   if (loading || !mapCenter || !viewState) {
     return (
@@ -288,11 +501,92 @@ const PropertyMapView = () => {
         <div className="w-8"></div> {/* For balance */}
       </header>
 
+      {showOriginPrompt && (
+        <form
+          onSubmit={handleDirectionsSubmit}
+          className="absolute z-20 top-24 right-4 w-[90%] max-w-md bg-white p-3 rounded-lg shadow-lg space-y-2"
+        >
+          <h3 className="text-sm font-semibold text-gray-800">
+            {safeT('directionsSetOriginTitle', 'Set your current location')}
+          </h3>
+          <p className="text-[11px] text-gray-500">
+            {safeT('directionsSetOriginHelp', 'Type your location, use your current location, or drag the blue pin on the map.')}
+          </p>
+          <div>
+            <label className="block text-[11px] font-medium text-gray-600 mb-1">
+              {safeT('directionsOriginLabel', 'Your location')}
+            </label>
+            <input
+              type="text"
+              value={originQuery}
+              onChange={(e) => {
+                setOriginQuery(e.target.value);
+              }}
+              placeholder={safeT('directionsOriginPlaceholder', 'Enter your location')}
+              className="w-full border border-gray-300 rounded-md px-2 py-1 text-xs"
+            />
+            <div className="flex justify-between items-center mt-1">
+              <button
+                type="button"
+                onClick={handleUseMyLocationAsOrigin}
+                className="text-[11px] text-blue-600 hover:text-blue-800 disabled:text-gray-400"
+                disabled={originResolving}
+              >
+                {originResolving
+                  ? safeT('directionsOriginLocating', 'Locating…')
+                  : safeT('directionsUseMyLocation', 'Use my location')}
+              </button>
+              {originCoords && (
+                <span className="text-[10px] text-gray-500">
+                  {originCoords.lat.toFixed(4)}, {originCoords.lng.toFixed(4)}
+                </span>
+              )}
+            </div>
+            {originSuggestions.length > 0 && (
+              <div className="mt-1 border border-gray-200 rounded-md bg-white max-h-40 overflow-auto text-xs shadow-sm">
+                {originSuggestions.map((s) => (
+                  <button
+                    key={s.place_id}
+                    type="button"
+                    onClick={() => handleSelectOriginSuggestion(s)}
+                    className="w-full text-left px-2 py-1 hover:bg-gray-100"
+                  >
+                    {s.display_name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="flex justify-end gap-2 pt-1">
+            <button
+              type="button"
+              onClick={() => {
+                setShowOriginPrompt(false);
+                setOriginSuggestions([]);
+              }}
+              className="text-[11px] px-3 py-1.5 rounded border border-gray-300 text-gray-600 hover:bg-gray-50"
+            >
+              {safeT('directionsCancel', 'Cancel')}
+            </button>
+            <button
+              type="submit"
+              className="text-[11px] font-semibold px-3 py-1.5 rounded bg-blue-600 text-white hover:bg-blue-700 disabled:bg-blue-300"
+              disabled={loading || !originCoords || !destinationForDirections}
+            >
+              {loadingDirections
+                ? safeT('directionsUpdating', 'Updating route…')
+                : safeT('directionsShowRoute', 'Show route')}
+            </button>
+          </div>
+        </form>
+      )}
+
       {/* Map Container (Mapbox, Google-like light style) */}
       <div className="h-full w-full pt-16">
         <Map
           {...viewState}
           onMove={(evt) => setViewState(evt.viewState)}
+          onClick={handleMapClick}
           onLoad={(evt) => {
             mapRef.current = evt.target;
             setMapLoaded(true);
@@ -305,11 +599,53 @@ const PropertyMapView = () => {
         >
           <NavigationControl position="bottom-right" showCompass={false} />
 
-          {originCoords && (
-            <Marker longitude={originCoords[0]} latitude={originCoords[1]} anchor="center">
-              <div className="w-3 h-3 rounded-full bg-blue-600 border-2 border-white shadow-md" />
+          {effectiveOriginCoords && (
+            <Marker
+              longitude={effectiveOriginCoords[0]}
+              latitude={effectiveOriginCoords[1]}
+              anchor="bottom"
+              draggable
+              onDragEnd={(e) => {
+                const { lng, lat } = e.lngLat || {};
+                if (lng == null || lat == null) return;
+                const nextOrigin = { lat, lng };
+                setOriginCoords(nextOrigin);
+                updateOriginFromMap(lat, lng);
+                if (destinationForDirections) {
+                  runDirections(viaPoints, nextOrigin);
+                }
+              }}
+            >
+              <div>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="36"
+                  viewBox="0 0 32 48"
+                  fill="none"
+                >
+                  <path
+                    d="M16 2C10 2 5 7 5 13c0 8 11 18 11 18s11-10 11-18C27 7 22 2 16 2z"
+                    fill="#FF5A5F"
+                  />
+                  <circle cx="16" cy="13" r="4" fill="white" />
+                </svg>
+              </div>
             </Marker>
           )}
+
+          {viaPoints.map((point, index) => (
+            <Marker
+              key={point.id}
+              longitude={point.lng}
+              latitude={point.lat}
+              anchor="center"
+              draggable
+              onDragEnd={(e) => handleViaDragEnd(point.id, e.lngLat)}
+            >
+              <div className="w-3 h-3 rounded-full bg-white border-2 border-purple-600 shadow-md" title={`Stop ${index + 1}`} />
+            </Marker>
+          ))}
 
           {filteredProperties.map((property) => {
             if (property.latitude == null || property.longitude == null) return null;
@@ -425,12 +761,7 @@ const PropertyMapView = () => {
               {selectedProperty.latitude != null && selectedProperty.longitude != null && (
                 <button
                   type="button"
-                  onClick={() =>
-                    getDirections({
-                      lat: Number(selectedProperty.latitude),
-                      lng: Number(selectedProperty.longitude),
-                    })
-                  }
+                  onClick={() => startDirectionsForProperty(selectedProperty)}
                   disabled={loadingDirections}
                   className="px-4 py-2 border border-amber-700 text-amber-800 rounded-lg bg-amber-50 hover:bg-amber-100 disabled:opacity-60 transition-colors text-sm text-center font-semibold"
                 >

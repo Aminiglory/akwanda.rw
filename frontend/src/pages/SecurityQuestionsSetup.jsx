@@ -1,19 +1,46 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
+const SECURITY_QUESTION_BANK = [
+	{ key: 'first_school_name', label: 'First school name' },
+	{ key: 'favorite_childhood_food', label: 'Favorite childhood food' },
+	{ key: 'birth_city', label: 'City you were born in' },
+	{ key: 'first_pet_name', label: 'Name of your first pet' },
+	{ key: 'mothers_maiden_name', label: "Mother’s maiden name" },
+	{ key: 'best_friend_childhood', label: 'Name of your best childhood friend' },
+	{ key: 'first_job_company', label: 'Name of your first job company' },
+	{ key: 'favorite_teacher', label: 'Name of your favorite teacher' },
+	{ key: 'favorite_sport', label: 'Favorite sport' },
+	{ key: 'favorite_movie_childhood', label: 'Favorite childhood movie' }
+];
+
 const SecurityQuestionsSetup = () => {
   const { user, refreshUser } = useAuth();
   const navigate = useNavigate();
 
+	useEffect(() => {
+		let alive = true;
+		(async () => {
+			const u = await refreshUser();
+			if (!alive) return;
+			if (u?.securityQuestionsSet) {
+				navigate('/apartments', { replace: true });
+			}
+		})();
+		return () => {
+			alive = false;
+		};
+	}, [refreshUser, navigate]);
+
   const initial = useMemo(
     () => [
-      { question: '', answer: '' },
-      { question: '', answer: '' },
-      { question: '', answer: '' }
+      { questionKey: '', answer: '' },
+      { questionKey: '', answer: '' },
+      { questionKey: '', answer: '' }
     ],
     []
   );
@@ -24,16 +51,24 @@ const SecurityQuestionsSetup = () => {
   const submit = async (e) => {
     e.preventDefault();
 
-    if (securityQuestions.length !== 3 || securityQuestions.some(x => !String(x?.question || '').trim() || !String(x?.answer || '').trim())) {
-      toast.error('Please set all 3 security questions and answers');
-      return;
-    }
+		if (securityQuestions.length !== 3 || securityQuestions.some(x => !String(x?.questionKey || '').trim() || !String(x?.answer || '').trim())) {
+			toast.error('Please select 3 security questions and provide answers');
+			return;
+		}
+		const keys = securityQuestions.map(x => String(x.questionKey));
+		const uniq = new Set(keys);
+		if (uniq.size !== 3) {
+			toast.error('Security questions must be different');
+			return;
+		}
 
     try {
       setLoading(true);
+			const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+			const authHeader = token ? { Authorization: `Bearer ${token}` } : {};
       const res = await fetch(`${API_URL}/api/auth/security-questions`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+			headers: { 'Content-Type': 'application/json', ...authHeader },
         credentials: 'include',
         body: JSON.stringify({ securityQuestions })
       });
@@ -73,17 +108,27 @@ const SecurityQuestionsSetup = () => {
               <div key={idx} className="space-y-2">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Question {idx + 1}</label>
-                  <input
-                    type="text"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    value={q.question}
-                    onChange={(e) => {
-                      const next = [...securityQuestions];
-                      next[idx] = { ...next[idx], question: e.target.value };
-                      setSecurityQuestions(next);
-                    }}
-                    required
-                  />
+							<select
+								className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+								value={q.questionKey}
+								onChange={(e) => {
+									const next = [...securityQuestions];
+									next[idx] = { ...next[idx], questionKey: e.target.value };
+									setSecurityQuestions(next);
+								}}
+								required
+							>
+								<option value="">Select a question</option>
+								{SECURITY_QUESTION_BANK.map((opt) => (
+									<option
+										key={opt.key}
+										value={opt.key}
+										disabled={securityQuestions.some((x, j) => j !== idx && x.questionKey === opt.key)}
+									>
+										{opt.label}
+									</option>
+								))}
+							</select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Answer {idx + 1}</label>

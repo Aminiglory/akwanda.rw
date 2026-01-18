@@ -484,7 +484,7 @@ export default function WorkersManagement() {
                       {shown.map((k) => (
                         <label key={k} className={`inline-flex items-center gap-1 px-2 py-1 border rounded ${user?.isBlocked ? 'opacity-50 pointer-events-none' : ''}`}>
                           <input type="checkbox" checked={!!w.privileges?.[k]} onChange={(e) => onUpdatePrivileges(w._id, { [k]: e.target.checked })} disabled={user?.isBlocked} />
-                          <span className="whitespace-nowrap">{k}</span>
+                          <span className="break-words">{k}</span>
                         </label>
                       ))}
                       {extra > 0 && (

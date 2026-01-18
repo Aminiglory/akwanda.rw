@@ -1403,7 +1403,7 @@ const Navbar = () => {
               </div>
 
               {/* Right Side - Booking.com Style */}
-              <div className="flex flex-nowrap items-center gap-1 lg:gap-2">
+              <div className="flex flex-wrap items-center gap-1 lg:gap-2">
               {/* Modern Global search in main navbar (public / non-owner dashboard context) */}
               {(!isAuthenticated || !isInAnyOwnerDashboard()) && !isFirstFlightListing() && (
                 <form

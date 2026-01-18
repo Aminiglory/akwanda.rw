@@ -9,11 +9,14 @@ const mongoose = require('mongoose');
       passwordHash: { type: String, required: true },
       securityQuestions: [
         {
-          question: { type: String, required: true },
+          questionKey: { type: String },
+          question: { type: String },
           answerHash: { type: String, required: true }
         }
       ],
       securityQuestionsSetAt: { type: Date },
+			securityRecoveryFailedAttempts: { type: Number, default: 0 },
+			securityRecoveryLockedUntil: { type: Date },
       userType: { type: String, enum: ['guest', 'host', 'admin', 'worker'], default: 'guest' },
       avatar: { type: String },
       bio: { type: String, maxlength: 1000 },
