@@ -65,7 +65,7 @@ export default function CarOwnerDashboard() {
   });
   // Single URL param `section` is used for several views (analytics, vehicles, bookings)
   const analyticsSection = (searchParams.get('section') || '').toLowerCase();
-  const vehiclesSection = analyticsSection || 'list';
+  const vehiclesSection = analyticsSection === 'insurance' ? 'insurance' : 'list';
   const [bookingView, setBookingView] = useState(() => (analyticsSection === 'calendar' ? 'calendar' : 'list'));
   const bookingsRef = useRef(null);
 
@@ -265,6 +265,7 @@ export default function CarOwnerDashboard() {
     fileUrl: '',
     notes: '',
   });
+  const [uploadingId, setUploadingId] = useState(null);
 
   const financeBookingsTable = Array.isArray(bookings) ? bookings : [];
   const PAGE_SIZE = 10;
@@ -345,6 +346,32 @@ export default function CarOwnerDashboard() {
       bookingsYtd,
     });
   }, [bookings, selectedCarId]);
+
+  async function uploadImages(carId, files) {
+    if (!files?.length) return;
+    try {
+      setUploadingId(carId);
+      const fd = new FormData();
+      Array.from(files).forEach((f) => fd.append('images', f));
+      const res = await fetch(`${API_URL}/api/cars/${carId}/images`, {
+        method: 'POST',
+        credentials: 'include',
+        body: fd,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || 'Failed to upload images');
+      if (data.car) {
+        setCars((list) => list.map((c) => (c._id === carId ? data.car : c)));
+        setSelectedVehicle((prev) => (prev && String(prev._id) === String(carId) ? data.car : prev));
+      }
+      toast.success('Images uploaded');
+    } catch (e) {
+      console.error('[CarOwnerDashboard][uploadImages] error', e);
+      toast.error(e.message || 'Failed to upload images');
+    } finally {
+      setUploadingId(null);
+    }
+  }
 
   useEffect(() => {
     try {
