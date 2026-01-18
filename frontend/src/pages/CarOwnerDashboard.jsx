@@ -98,6 +98,7 @@ export default function CarOwnerDashboard() {
   });
   const [fuelSaving, setFuelSaving] = useState(false);
   const [fuelLogs, setFuelLogs] = useState([]);
+  const [viewMode, setViewMode] = useState('cards');
   const [fuelLoading, setFuelLoading] = useState(false);
   const [cars, setCars] = useState([]);
   const [bookings, setBookings] = useState([]);
