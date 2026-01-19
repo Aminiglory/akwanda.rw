@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { FaFacebook, FaTwitter, FaInstagram, FaLinkedin, FaPhone, FaEnvelope, FaMapMarkerAlt, FaBed, FaBuffer, FaCar, FaMountain, FaPlane } from 'react-icons/fa';
+import { FaFacebook, FaTwitter, FaInstagram, FaLinkedin, FaPhone, FaEnvelope, FaMapMarkerAlt, FaBed, FaBuffer, FaCar, FaMountain, FaPlane, FaEnvelopeOpen } from 'react-icons/fa';
 import { useLocale } from '../contexts/LocaleContext';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -156,7 +156,7 @@ const Footer = () => {
                 <a href={`tel:${adminPhone}`} className="text-gray-300 hover:text-white">{adminPhone}</a>
               </div>
               <div className="flex items-center">
-                <FaEnvelope className="text-blue-400 mr-3" />
+                <FaEnvelopeOpen className="text-blue-400 mr-3" />
                 <a href={`mailto:${adminEmail}`} className="text-gray-300 hover:text-white">{adminEmail}</a>
               </div>
             </div>
