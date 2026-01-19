@@ -49,7 +49,7 @@ const BecomeHost = () => {
             Become a Property Owner
           </h1>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Hello {user?.firstName}! Ready to start earning by listing your property on AKWANDA.rw? Your commission is based on the level you choose, and premium properties receive a special badge and higher visibility to guests.
+            Hello {user?.firstName}! Ready to start earning by listing your property on AkwandaTravels? Your commission is based on the level you choose, and premium properties receive a special badge and higher visibility to guests.
           </p>
         </div>
 

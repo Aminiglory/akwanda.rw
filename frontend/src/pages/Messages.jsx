@@ -51,7 +51,7 @@ export default function Messages({ embedded = false, defaultCategory = 'all' } =
 
   // Derived from query params; must be inside component to access searchParams
   const category = (searchParams.get('category') || defaultCategory || 'all').toLowerCase();
-  const categoryLabel = category === 'platform' ? 'Akwanda.rw messages' : category === 'reservations' ? 'Reservation messages' : category === 'qna' ? 'Guest Q&A' : 'All messages';
+  const categoryLabel = category === 'platform' ? 'AkwandaTravels messages' : category === 'reservations' ? 'Reservation messages' : category === 'qna' ? 'Guest Q&A' : 'All messages';
 
   const filteredThreads = useMemo(() => {
     if (!Array.isArray(threads)) return [];

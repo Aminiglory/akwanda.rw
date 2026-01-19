@@ -107,7 +107,7 @@ const ApartmentDetails = () => {
   </head>
   <body style="background:#f3f4f6;padding:24px">
     <div class="card">
-      <div class="hdr">Akwanda.rw • Apartment Recommendation</div>
+      <div class="hdr">AkwandaTravels • Apartment Recommendation</div>
       ${primaryImg ? `<img class="img" src="${primaryImg}" alt="${apartment.title}" />` : ''}
       <div class="body">
         <h1 style="margin:0 0 6px 0;font-size:22px;color:#111827">${apartment.title}</h1>
@@ -121,7 +121,7 @@ const ApartmentDetails = () => {
         <div style="margin-top:16px">
           <a class="btn" href="${detailsUrl}" target="_blank" rel="noopener">View Apartment</a>
         </div>
-        <p style="color:#6b7280;font-size:12px;margin-top:18px">Shared via Akwanda.rw</p>
+        <p style="color:#6b7280;font-size:12px;margin-top:18px">Shared via AkwandaTravels</p>
       </div>
     </div>
   </body>

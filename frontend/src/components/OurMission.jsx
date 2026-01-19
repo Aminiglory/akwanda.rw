@@ -76,7 +76,7 @@ export default function OurMission() {
         <div className="relative">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#FFF3E4] text-xs font-semibold text-[#8b5e34] shadow-sm mb-3">
             <span className="inline-block w-2 h-2 rounded-full bg-[#a06b42]" />
-            Our mission at AKWANDA.rw
+            Our mission at AkwandaTravels
           </div>
           <h2 className="text-xl md:text-2xl lg:text-3xl font-extrabold text-[#2b1b0e] leading-snug">
             {localize

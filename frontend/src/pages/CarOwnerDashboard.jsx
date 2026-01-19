@@ -4164,6 +4164,38 @@ export default function CarOwnerDashboard() {
                   {/* Cars List & vehicle-level sections */}
                   {view === 'vehicles' && vehiclesSection === 'list' && (
                     <>
+                      {/* Controls: view mode + context */}
+                      <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <div>
+                          <h2 className="text-lg font-semibold text-gray-900">Your vehicles</h2>
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            Manage availability, pricing and images for each vehicle in your fleet.
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="inline-flex rounded-lg overflow-hidden border border-[#e0d5c7] bg-white shadow-sm">
+                            <button
+                              type="button"
+                              onClick={() => setViewMode('cards')}
+                              className={`px-3 py-1.5 text-xs font-medium transition-colors ${viewMode === 'cards'
+                                ? 'bg-[#a06b42] text-white'
+                                : 'text-[#4b2a00] hover:bg-[#f5e6d5]'}`}
+                            >
+                              Cards
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setViewMode('table')}
+                              className={`px-3 py-1.5 text-xs font-medium border-l border-[#e0d5c7] transition-colors ${viewMode === 'table'
+                                ? 'bg-[#a06b42] text-white'
+                                : 'text-[#4b2a00] hover:bg-[#f5e6d5]'}`}
+                            >
+                              Table
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
                       {loading ? (
                         <div className="bg-white rounded-2xl border border-[#e0d5c7] p-6 text-center text-sm text-gray-600 shadow-sm">
                           Loading your vehicles...
@@ -4179,64 +4211,6 @@ export default function CarOwnerDashboard() {
                           >
                             List your first vehicle
                           </button>
-                        </div>
-                      ) : viewMode === 'cards' ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {cars.map(car => (
-                            <button
-                              key={car._id}
-                              type="button"
-                              onClick={() => setSelectedCarId(String(car._id))}
-                              className={`text-left bg-white rounded-lg shadow p-4 w-full border transition ${String(selectedCarId) === String(car._id) ? 'border-[#a06b42] ring-1 ring-[#a06b42]/50' : 'border-transparent hover:border-gray-300'}`}
-                            >
-                              <div className="flex gap-4">
-                                <div className="w-32 h-24 bg-gray-100 rounded overflow-hidden">
-                                  {car.images?.[0] ? <img src={makeAbsolute(car.images[0])} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-400">No image</div>}
-                                </div>
-                                <div className="flex-1">
-                                  <div className="flex items-center justify-between gap-2">
-                                    <div className="flex items-center gap-2 min-w-0">
-                                      {String(selectedCarId) === String(car._id) && (
-                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-[#a06b42]/10 text-[#a06b42] text-[10px] font-semibold uppercase tracking-wide whitespace-normal sm:whitespace-nowrap">
-                                          Selected
-                                        </span>
-                                      )}
-                                      <h3 className="font-semibold truncate">{car.vehicleName} • {car.brand} {car.model}</h3>
-                                    </div>
-                                    <button onClick={() => updateCar(car._id, { isAvailable: !car.isAvailable })} className={`px-2 py-1 rounded text-sm ${car.isAvailable ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-700'}`}>{car.isAvailable ? 'Available' : 'Unavailable'}</button>
-                                  </div>
-                                  <p className="text-sm text-gray-600">{car.location} • {car.vehicleType} • {car.transmission}</p>
-                                  <p className="text-sm font-medium mt-1">{formatCurrencyRWF ? formatCurrencyRWF(car.pricePerDay || 0) : `RWF ${Number(car.pricePerDay || 0).toLocaleString()}`} / day</p>
-                                </div>
-                              </div>
-
-                              <div className="mt-3 flex items-center gap-2 flex-wrap">
-                                <label className="text-sm">Upload Images:</label>
-                                <input type="file" multiple disabled={uploadingId === car._id} onChange={e => uploadImages(car._id, e.target.files)} />
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedVehicle(car);
-                                    setShowUpgradeModal(true);
-                                  }}
-                                  className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-[#a06b42] hover:bg-[#8f5a32] rounded text-sm transition-colors"
-                                  title="Upgrade commission level"
-                                >
-                                  <FaCrown className="w-3 h-3" />
-                                  Upgrade Commission
-                                </button>
-                                <button onClick={() => deleteCar(car._id)} className="ml-auto px-3 py-1 bg-red-600 text-white rounded text-sm">Delete</button>
-                              </div>
-
-                              {car.images?.length > 0 && (
-                                <div className="mt-3 grid grid-cols-4 gap-2">
-                                  {car.images.map((img, i) => (
-                                    <img key={i} src={makeAbsolute(img)} className="w-full h-20 object-cover rounded" />
-                                  ))}
-                                </div>
-                              )}
-                            </button>
-                          ))}
                         </div>
                       ) : (
                         <div className="bg-white rounded-2xl shadow-sm border border-[#e0d5c7] overflow-x-auto">
