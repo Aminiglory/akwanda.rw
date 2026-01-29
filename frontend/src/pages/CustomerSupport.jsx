@@ -168,6 +168,7 @@ const CustomerSupport = () => {
         ticketNumber: data.ticketNumber || data?.ticket?.ticketNumber || '',
         status: data?.ticket?.status || 'open',
         createdAt: data?.ticket?.createdAt || new Date().toISOString(),
+        email,
       });
       setTrackedTicket(null);
       toast.success(`Support ticket submitted${data.ticketNumber ? `: ${data.ticketNumber}` : ''}`);
@@ -208,17 +209,53 @@ const CustomerSupport = () => {
     try {
       setTracking(true);
       setTrackedTicket(null);
-      const response = await fetch(`${API_URL}/api/support/tickets/track`, {
+
+      const safeFetchJson = async (url, options) => {
+        const r = await fetch(url, options);
+        const raw = await r.text();
+        let data = null;
+        try {
+          data = raw ? JSON.parse(raw) : {};
+        } catch (_) {
+          data = null;
+        }
+        return { r, raw, data };
+      };
+
+      // If user is logged in, prefer the authenticated endpoint (often already deployed)
+      if (isAuthenticated) {
+        const { r, raw, data } = await safeFetchJson(`${API_URL}/api/support/tickets/${encodeURIComponent(tn)}`, {
+          method: 'GET',
+          credentials: 'include'
+        });
+        if (r.ok && data?.ticket) {
+          setTrackedTicket(data.ticket);
+          return;
+        }
+        // If it failed with HTML (e.g. routing/proxy issue), stop early with a clearer message
+        if (raw && raw.trim().startsWith('<')) {
+          throw new Error('Tracking service is unavailable. Please try again later.');
+        }
+      }
+
+      // Public tracking for non-authenticated users (or fallback)
+      const { r: r2, raw: raw2, data: data2 } = await safeFetchJson(`${API_URL}/api/support/tickets/track`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({ ticketNumber: tn, email })
       });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data?.message || 'Failed to track ticket');
+
+      if (!r2.ok) {
+        const htmlLike = raw2 && raw2.trim().startsWith('<');
+        const msg = data2?.message || (htmlLike ? 'Tracking service is unavailable. Please try again later.' : `Failed to track ticket (${r2.status})`);
+        throw new Error(msg);
       }
-      setTrackedTicket(data.ticket);
+      if (!data2 || !data2.ticket) {
+        const htmlLike = raw2 && raw2.trim().startsWith('<');
+        throw new Error(htmlLike ? 'Tracking service is unavailable. Please try again later.' : 'Unexpected response from server');
+      }
+      setTrackedTicket(data2.ticket);
     } catch (error) {
       toast.error(error.message || 'Failed to track ticket');
     } finally {
@@ -522,7 +559,7 @@ const CustomerSupport = () => {
                         setTrackForm(prev => ({
                           ...prev,
                           ticketNumber: ticketConfirmation.ticketNumber || prev.ticketNumber,
-                          email: (user?.email || prev.email)
+                          email: (ticketConfirmation.email || user?.email || prev.email)
                         }));
                         setActiveTab('track');
                       }}
