@@ -1,9 +1,36 @@
 import React, { useState, useEffect } from 'react';
-import { FaHeadset, FaTicketAlt, FaPhone, FaEnvelope, FaClock, FaCheckCircle, FaExclamationTriangle, FaInfoCircle } from 'react-icons/fa';
+import { FaHeadset, FaTicketAlt, FaPhone, FaEnvelope, FaClock, FaCheckCircle, FaExclamationTriangle, FaInfoCircle, FaSearch } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+const DEFAULT_FAQS = [
+  {
+    q: 'How do I book a property on AKWANDA.rw?',
+    a: 'Open a property, choose your dates, and follow the booking steps. If you have an account, you can track your booking from your dashboard.'
+  },
+  {
+    q: 'How do I pay for a booking?',
+    a: 'During checkout you will see available payment options. After successful payment, your booking status updates automatically.'
+  },
+  {
+    q: 'I paid but my booking is not confirmed. What should I do?',
+    a: 'Refresh the page and check your bookings. If the status still does not update, submit a support ticket with your booking ID and payment reference.'
+  },
+  {
+    q: 'How can I cancel or request a refund?',
+    a: 'Refund and cancellation rules depend on the property policy. Submit a ticket under “Refund Request” and include your booking ID so support can assist.'
+  },
+  {
+    q: 'How do I track my support ticket?',
+    a: 'After submitting a ticket, you will receive a ticket number. Go to “Track Ticket” and enter the ticket number (and your email) to see the latest updates.'
+  },
+  {
+    q: 'How long does support take to respond?',
+    a: 'We typically respond within 2–24 hours depending on volume and priority. Urgent issues should be marked “Urgent” and include key details.'
+  }
+];
 
 const CustomerSupport = () => {
   const { user, isAuthenticated } = useAuth();
@@ -28,6 +55,8 @@ const CustomerSupport = () => {
   });
   const [submitting, setSubmitting] = useState(false);
   const [faqs, setFaqs] = useState([]);
+  const [faqQuery, setFaqQuery] = useState('');
+  const [openFaqKey, setOpenFaqKey] = useState('');
 
   // Prefill support form from logged-in user profile
   useEffect(() => {
@@ -88,7 +117,7 @@ const CustomerSupport = () => {
         const sections = Array.isArray(content.sections) ? content.sections : [];
         const how = sections.find(s => s?.type === 'howItWorks' || s?.key === 'howItWorks') || content?.howItWorks;
         const items = Array.isArray(how?.faqs) ? how.faqs : [];
-        setFaqs(items);
+        setFaqs(items && items.length > 0 ? items : DEFAULT_FAQS);
       } catch (_) {}
     };
     loadFaqs();
@@ -817,19 +846,95 @@ const CustomerSupport = () => {
             {activeTab === 'faq' && (
               <div className="max-w-4xl mx-auto">
                 <h2 className="text-2xl font-bold text-gray-900 mb-8">Frequently Asked Questions</h2>
-                
-                {faqs && faqs.length > 0 ? (
-                  <div className="space-y-6">
-                    {faqs.map((f, i) => (
-                      <div key={i} className="bg-white rounded-xl shadow-lg p-6">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-3">{f.q || f.question}</h3>
-                        <p className="text-gray-600">{f.a || f.answer}</p>
+
+                <div className="bg-white rounded-xl shadow p-6 border border-gray-100">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Search FAQs</label>
+                      <div className="relative">
+                        <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                        <input
+                          type="text"
+                          value={faqQuery}
+                          onChange={(e) => setFaqQuery(e.target.value)}
+                          className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder=""
+                        />
                       </div>
-                    ))}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFaqQuery('');
+                        setOpenFaqKey('');
+                      }}
+                      className="w-full px-4 py-3 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 text-sm font-semibold"
+                    >
+                      Clear
+                    </button>
                   </div>
-                ) : (
-                  <div className="bg-white rounded-xl shadow p-6 text-gray-600">No FAQs available yet.</div>
-                )}
+
+                  <div className="mt-6">
+                    {(() => {
+                      const list = (faqs && faqs.length > 0 ? faqs : DEFAULT_FAQS);
+                      const q = String(faqQuery || '').trim().toLowerCase();
+                      const filtered = !q
+                        ? list
+                        : list.filter(f => {
+                            const question = String(f?.q || f?.question || '');
+                            const answer = String(f?.a || f?.answer || '');
+                            return `${question} ${answer}`.toLowerCase().includes(q);
+                          });
+
+                      if (!filtered || filtered.length === 0) {
+                        return (
+                          <div className="bg-gray-50 border border-gray-200 rounded-xl p-5">
+                            <div className="text-sm font-semibold text-gray-900">No matches found</div>
+                            <div className="text-sm text-gray-600 mt-1">Try a different search or submit a ticket and our support team will help.</div>
+                            <button
+                              type="button"
+                              onClick={() => setActiveTab('ticket')}
+                              className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold"
+                            >
+                              <FaTicketAlt />
+                              Submit Ticket
+                            </button>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div className="space-y-3">
+                          {filtered.map((f, i) => {
+                            const question = String(f?.q || f?.question || '').trim();
+                            const answer = String(f?.a || f?.answer || '').trim();
+                            const key = question ? `q:${question}` : `i:${i}`;
+                            const open = openFaqKey === key;
+                            return (
+                              <div key={key} className="border border-gray-200 rounded-xl overflow-hidden">
+                                <button
+                                  type="button"
+                                  onClick={() => setOpenFaqKey(open ? '' : key)}
+                                  className="w-full text-left px-4 sm:px-5 py-4 bg-white hover:bg-gray-50 flex items-start justify-between gap-4"
+                                >
+                                  <div className="min-w-0">
+                                    <div className="text-sm sm:text-base font-semibold text-gray-900 break-words">{question || 'Question'}</div>
+                                  </div>
+                                  <div className="shrink-0 text-gray-500 text-sm font-semibold">{open ? '−' : '+'}</div>
+                                </button>
+                                {open && (
+                                  <div className="px-4 sm:px-5 pb-4 text-sm text-gray-700 whitespace-pre-wrap break-words">
+                                    {answer || 'Answer not available.'}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </div>
               </div>
             )}
           </div>
