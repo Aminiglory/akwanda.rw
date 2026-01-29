@@ -10,6 +10,7 @@ const CustomerSupport = () => {
   const [activeTab, setActiveTab] = useState('contact');
   const [ownerReviews, setOwnerReviews] = useState({ reviews: [], avgRating: 0, count: 0 });
   const [loadingReviews, setLoadingReviews] = useState(false);
+  const [ticketConfirmation, setTicketConfirmation] = useState(null);
   const [supportForm, setSupportForm] = useState({
     name: '',
     email: '',
@@ -98,11 +99,33 @@ const CustomerSupport = () => {
     }));
   };
 
+  const normalizePhone = (v) => String(v || '').trim().replace(/[\s()-]/g, '');
+  const isValidEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v || '').trim());
+  const isValidPhone = (v) => {
+    const s = normalizePhone(v);
+    if (!s) return true;
+    return /^\+?[0-9]{9,15}$/.test(s);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!supportForm.name || !supportForm.email || !supportForm.message) {
+
+    const name = String(supportForm.name || '').trim();
+    const email = String(supportForm.email || '').trim();
+    const phone = String(supportForm.phone || '').trim();
+    const subject = String(supportForm.subject || '').trim();
+    const message = String(supportForm.message || '').trim();
+
+    if (!name || !email || !subject || !message) {
       toast.error('Please fill in all required fields');
+      return;
+    }
+    if (!isValidEmail(email)) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
+    if (!isValidPhone(phone)) {
+      toast.error('Please enter a valid phone number');
       return;
     }
 
@@ -116,9 +139,14 @@ const CustomerSupport = () => {
         },
         credentials: 'include',
         body: JSON.stringify({
-          ...supportForm,
-          status: 'open',
-          createdAt: new Date().toISOString()
+          name,
+          email,
+          phone: phone ? normalizePhone(phone) : '',
+          bookingId: supportForm.bookingId,
+          subject,
+          category: supportForm.category,
+          priority: supportForm.priority,
+          message,
         })
       });
 
@@ -128,7 +156,12 @@ const CustomerSupport = () => {
         throw new Error(data.message || 'Failed to submit support ticket');
       }
 
-      toast.success('Support ticket submitted successfully!');
+      setTicketConfirmation({
+        ticketNumber: data.ticketNumber || data?.ticket?.ticketNumber || '',
+        status: data?.ticket?.status || 'open',
+        createdAt: data?.ticket?.createdAt || new Date().toISOString(),
+      });
+      toast.success(`Support ticket submitted${data.ticketNumber ? `: ${data.ticketNumber}` : ''}`);
       setSupportForm({
         name: '',
         email: '',
@@ -345,7 +378,22 @@ const CustomerSupport = () => {
             {activeTab === 'ticket' && (
               <div className="max-w-2xl mx-auto">
                 <h2 className="text-2xl font-bold text-gray-900 mb-6">Submit Support Ticket</h2>
-                
+
+                {ticketConfirmation ? (
+                  <div className="bg-green-50 border border-green-200 rounded-xl p-6">
+                    <div className="text-green-800 font-semibold">Ticket submitted</div>
+                    <div className="text-sm text-green-800 mt-1">Your ticket number is:</div>
+                    <div className="mt-2 text-lg font-bold text-green-900">{ticketConfirmation.ticketNumber || '—'}</div>
+                    <div className="mt-3 text-sm text-green-800">Status: <span className="font-semibold">{ticketConfirmation.status || 'open'}</span></div>
+                    <button
+                      type="button"
+                      className="mt-5 inline-flex items-center justify-center px-4 py-2 rounded-lg bg-green-700 hover:bg-green-800 text-white text-sm font-semibold"
+                      onClick={() => setTicketConfirmation(null)}
+                    >
+                      Submit another ticket
+                    </button>
+                  </div>
+                ) : (
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
@@ -358,7 +406,7 @@ const CustomerSupport = () => {
                         value={supportForm.name}
                         onChange={handleInputChange}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="Your full name"
+                        placeholder=""
                         required
                       />
                     </div>
@@ -373,7 +421,7 @@ const CustomerSupport = () => {
                         value={supportForm.email}
                         onChange={handleInputChange}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="your@email.com"
+                        placeholder=""
                         required
                       />
                     </div>
@@ -390,7 +438,7 @@ const CustomerSupport = () => {
                         value={supportForm.phone}
                         onChange={handleInputChange}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="+250 78X XXX XXX"
+                        placeholder=""
                       />
                     </div>
 
@@ -404,7 +452,7 @@ const CustomerSupport = () => {
                         value={supportForm.bookingId}
                         onChange={handleInputChange}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="AKW123456"
+                        placeholder=""
                       />
                     </div>
                   </div>
@@ -413,13 +461,13 @@ const CustomerSupport = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Subject *
                     </label>
-                    <input
-                      type="text"
+                    <textarea
                       name="subject"
                       value={supportForm.subject}
                       onChange={handleInputChange}
+                      rows={2}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Brief description of your issue"
+                      placeholder=""
                       required
                     />
                   </div>
@@ -468,7 +516,7 @@ const CustomerSupport = () => {
                       onChange={handleInputChange}
                       rows={6}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Please provide detailed information about your issue..."
+                      placeholder=""
                       required
                     />
                   </div>
@@ -491,6 +539,7 @@ const CustomerSupport = () => {
                     )}
                   </button>
                 </form>
+                )}
               </div>
             )}
 

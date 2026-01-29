@@ -1,8 +1,41 @@
 const { Router } = require('express');
 const jwt = require('jsonwebtoken');
+const SupportTicket = require('../tables/supportTicket');
+const Notification = require('../tables/notification');
+const User = require('../tables/user');
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
+
+function normalizeEmail(v) {
+    return String(v || '').trim().toLowerCase();
+}
+
+function isValidEmail(v) {
+    const s = String(v || '').trim();
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+}
+
+function normalizePhone(v) {
+    const s = String(v || '').trim();
+    if (!s) return '';
+    return s.replace(/[\s()-]/g, '');
+}
+
+function isValidPhone(v) {
+    if (!v) return true;
+    const s = normalizePhone(v);
+    return /^\+?[0-9]{9,15}$/.test(s);
+}
+
+async function generateUniqueTicketNumber() {
+    for (let i = 0; i < 5; i += 1) {
+        const ticketNumber = `TKT${Date.now()}${Math.floor(100 + Math.random() * 900)}`;
+        const exists = await SupportTicket.exists({ ticketNumber });
+        if (!exists) return ticketNumber;
+    }
+    return `TKT${Date.now()}${Math.floor(1000 + Math.random() * 9000)}`;
+}
 
 function requireAuth(req, res, next) {
     const token = req.cookies.akw_token || (req.headers.authorization || '').replace('Bearer ', '');
@@ -29,46 +62,92 @@ router.post('/tickets', async (req, res) => {
             message 
         } = req.body;
 
-        // Validate required fields
-        if (!name || !email || !subject || !message) {
+        const cleanName = String(name || '').trim();
+        const cleanEmail = normalizeEmail(email);
+        const cleanSubject = String(subject || '').trim();
+        const cleanMessage = String(message || '').trim();
+        const cleanPhone = normalizePhone(phone);
+
+        if (!cleanName || !cleanEmail || !cleanSubject || !cleanMessage) {
             return res.status(400).json({ message: 'Name, email, subject, and message are required' });
         }
+        if (!isValidEmail(cleanEmail)) {
+            return res.status(400).json({ message: 'Invalid email address' });
+        }
+        if (!isValidPhone(cleanPhone)) {
+            return res.status(400).json({ message: 'Invalid phone number' });
+        }
 
-        // Generate ticket number
-        const ticketNumber = `TKT${Date.now()}${Math.floor(Math.random() * 1000)}`;
+        // If the user is logged in, attach createdBy
+        let createdBy = null;
+        try {
+            const token = req.cookies.akw_token || (req.headers.authorization || '').replace('Bearer ', '');
+            if (token) {
+                const u = jwt.verify(token, JWT_SECRET);
+                createdBy = u?.id || null;
+            }
+        } catch (_) {
+            createdBy = null;
+        }
 
-        // Create ticket object
-        const ticket = {
+        const ticketNumber = await generateUniqueTicketNumber();
+        const ack = `Hi ${cleanName || 'there'}, thanks for contacting AKWANDA.rw support. We've received your ticket (${ticketNumber}). Our team will get back to you as soon as possible. If this is urgent, call +250 788 123 456.`;
+
+        const doc = await SupportTicket.create({
             ticketNumber,
-            name,
-            email,
-            phone: phone || null,
-            bookingId: bookingId || null,
-            subject,
+            createdBy,
+            name: cleanName,
+            email: cleanEmail,
+            phone: cleanPhone || null,
+            bookingId: String(bookingId || '').trim() || null,
+            subject: cleanSubject,
             category: category || 'general',
             priority: priority || 'medium',
-            message,
+            message: cleanMessage,
             status: 'open',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
             responses: [
-                // Auto-acknowledgement to the user
                 {
-                    message: `Hi ${name || 'there'}, thanks for contacting AKWANDA.rw support. We've received your ticket (${ticketNumber}). Our team is currently offline and will get back to you within 2 hours during business hours. If this is urgent, call +250 788 123 456.`,
+                    message: ack,
                     isAdmin: true,
                     auto: true,
-                    createdAt: new Date().toISOString()
                 }
             ]
-        };
+        });
 
-        // In a real implementation, you would save this to a database
-        // For now, we'll just return the ticket details
-        res.json({
+        // Notify admins (in-app) so support can act
+        try {
+            const admins = await User.find({ userType: 'admin' }).select('_id').lean();
+            if (admins && admins.length > 0) {
+                const io = req.app?.get?.('io');
+                const notifDocs = admins.map(a => ({
+                    type: 'support_ticket_created',
+                    title: 'New support ticket',
+                    message: `New ticket ${ticketNumber}: ${cleanSubject}`,
+                    recipientUser: a._id,
+                    audience: 'host'
+                }));
+                await Notification.insertMany(notifDocs);
+                if (io) {
+                    admins.forEach(a => {
+                        io.to(`user:${String(a._id)}`).emit('notification', {
+                            type: 'support_ticket_created',
+                            title: 'New support ticket',
+                            message: `New ticket ${ticketNumber}: ${cleanSubject}`,
+                        });
+                    });
+                }
+            }
+        } catch (_) {}
+
+        res.status(201).json({
             success: true,
             message: 'Support ticket created successfully',
-            ticket,
-            ticketNumber
+            ticketNumber: doc.ticketNumber,
+            ticket: {
+                ticketNumber: doc.ticketNumber,
+                status: doc.status,
+                createdAt: doc.createdAt,
+            }
         });
 
     } catch (error) {
@@ -84,24 +163,32 @@ router.get('/tickets', requireAuth, async (req, res) => {
             return res.status(403).json({ message: 'Admin access required' });
         }
 
-        // In a real implementation, you would fetch from database
-        const tickets = [
-            {
-                ticketNumber: 'TKT123456789',
-                name: 'John Doe',
-                email: 'john@example.com',
-                subject: 'Booking Issue',
-                category: 'booking',
-                priority: 'high',
-                status: 'open',
-                createdAt: new Date().toISOString()
-            }
-        ];
+        const limit = Math.min(parseInt(req.query.limit || '50', 10), 200);
+        const page = Math.max(parseInt(req.query.page || '1', 10), 1);
+        const q = String(req.query.q || '').trim();
+        const filter = {};
+        if (req.query.status) filter.status = String(req.query.status);
+        if (req.query.category) filter.category = String(req.query.category);
+        if (req.query.priority) filter.priority = String(req.query.priority);
+        if (q) {
+            filter.$or = [
+                { ticketNumber: new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') },
+                { email: new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') },
+                { subject: new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') },
+                { message: new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') },
+            ];
+        }
 
-        res.json({
-            success: true,
-            tickets
-        });
+        const [tickets, total] = await Promise.all([
+            SupportTicket.find(filter)
+                .sort({ createdAt: -1 })
+                .skip((page - 1) * limit)
+                .limit(limit)
+                .lean(),
+            SupportTicket.countDocuments(filter)
+        ]);
+
+        res.json({ success: true, tickets, total, page, limit });
 
     } catch (error) {
         console.error('Support tickets fetch error:', error);
@@ -110,30 +197,20 @@ router.get('/tickets', requireAuth, async (req, res) => {
 });
 
 // Get ticket by ID
-router.get('/tickets/:ticketNumber', async (req, res) => {
+router.get('/tickets/:ticketNumber', requireAuth, async (req, res) => {
     try {
         const { ticketNumber } = req.params;
 
-        // In a real implementation, you would fetch from database
-        const ticket = {
-            ticketNumber,
-            name: 'John Doe',
-            email: 'john@example.com',
-            phone: '+250 788 123 456',
-            bookingId: 'AKW123456',
-            subject: 'Booking Issue',
-            category: 'booking',
-            priority: 'high',
-            status: 'open',
-            message: 'I am having trouble with my booking...',
-            createdAt: new Date().toISOString(),
-            responses: []
-        };
+        const ticket = await SupportTicket.findOne({ ticketNumber }).lean();
+        if (!ticket) return res.status(404).json({ message: 'Not found' });
 
-        res.json({
-            success: true,
-            ticket
-        });
+        const isAdmin = req.user.userType === 'admin';
+        const isOwner = ticket.createdBy && String(ticket.createdBy) === String(req.user.id);
+        if (!isAdmin && !isOwner) {
+            return res.status(403).json({ message: 'Forbidden' });
+        }
+
+        res.json({ success: true, ticket });
 
     } catch (error) {
         console.error('Support ticket fetch error:', error);
@@ -155,13 +232,29 @@ router.put('/tickets/:ticketNumber/status', requireAuth, async (req, res) => {
             return res.status(400).json({ message: 'Invalid status' });
         }
 
-        // In a real implementation, you would update in database
+        const update = { $set: { status } };
+        if (response && String(response).trim()) {
+            update.$push = {
+                responses: {
+                    message: String(response).trim(),
+                    isAdmin: true,
+                    responderUser: req.user.id,
+                }
+            };
+        }
+
+        const ticket = await SupportTicket.findOneAndUpdate(
+            { ticketNumber },
+            update,
+            { new: true }
+        );
+        if (!ticket) return res.status(404).json({ message: 'Not found' });
+
         res.json({
             success: true,
             message: 'Ticket status updated successfully',
-            ticketNumber,
-            status,
-            response
+            ticketNumber: ticket.ticketNumber,
+            status: ticket.status,
         });
 
     } catch (error) {
@@ -180,16 +273,32 @@ router.post('/tickets/:ticketNumber/response', requireAuth, async (req, res) => 
             return res.status(400).json({ message: 'Response message is required' });
         }
 
-        // In a real implementation, you would add response to database
+        const ticket = await SupportTicket.findOne({ ticketNumber });
+        if (!ticket) return res.status(404).json({ message: 'Not found' });
+
+        const wantsAdmin = !!isAdmin;
+        const userIsAdmin = req.user.userType === 'admin';
+        const userIsOwner = ticket.createdBy && String(ticket.createdBy) === String(req.user.id);
+
+        if (wantsAdmin && !userIsAdmin) {
+            return res.status(403).json({ message: 'Admin access required' });
+        }
+        if (!userIsAdmin && !userIsOwner) {
+            return res.status(403).json({ message: 'Forbidden' });
+        }
+
+        ticket.responses.push({
+            message: String(message).trim(),
+            isAdmin: wantsAdmin ? true : userIsAdmin,
+            responderUser: req.user.id,
+        });
+        ticket.updatedAt = new Date();
+        await ticket.save();
+
         res.json({
             success: true,
             message: 'Response added successfully',
             ticketNumber,
-            response: {
-                message,
-                isAdmin: isAdmin || false,
-                createdAt: new Date().toISOString()
-            }
         });
 
     } catch (error) {
