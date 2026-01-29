@@ -110,10 +110,10 @@ const Notifications = () => {
     return { r, raw, data };
   };
 
-  const buildAutoStatusMessage = (status) => {
-    const tn = ticketData?.ticketNumber || '';
-    const name = ticketData?.name || 'there';
-    const subj = ticketData?.subject ? ` (${ticketData.subject})` : '';
+  const buildAutoStatusMessage = (ticket, status) => {
+    const tn = ticket?.ticketNumber || '';
+    const name = ticket?.name || 'there';
+    const subj = ticket?.subject ? ` (${ticket.subject})` : '';
     if (status === 'open') {
       return `Hi ${name}, we've reopened your ticket (${tn})${subj}. Our team will review it and respond as soon as possible.`;
     }
@@ -130,7 +130,7 @@ const Notifications = () => {
   };
 
   const syncAutoMessageIfNeeded = (nextStatus) => {
-    const nextAuto = buildAutoStatusMessage(nextStatus);
+    const nextAuto = buildAutoStatusMessage(ticketData, nextStatus);
     const current = String(ticketReply || '');
     if (!current.trim() || current === ticketLastAutoMessage) {
       setTicketReply(nextAuto);
@@ -173,7 +173,7 @@ const Notifications = () => {
       setTicketData(data.ticket);
       setTicketStatus(String(data.ticket.status || 'open'));
       if (ticketMessageMode === 'auto') {
-        const initialAuto = buildAutoStatusMessage(String(data.ticket.status || 'open'));
+        const initialAuto = buildAutoStatusMessage(data.ticket, String(data.ticket.status || 'open'));
         setTicketReply(initialAuto);
         setTicketLastAutoMessage(initialAuto);
       }
@@ -185,28 +185,72 @@ const Notifications = () => {
     }
   };
 
-  const updateTicket = async (mode) => {
+  const refreshTicket = async (ticketNumber) => {
+    const ref = await safeFetchJson(`${API_URL}/api/support/tickets/${encodeURIComponent(ticketNumber)}`, {
+      method: 'GET',
+      credentials: 'include'
+    });
+    if (ref.r.ok && ref.data?.ticket) {
+      setTicketData(ref.data.ticket);
+      setTicketStatus(String(ref.data.ticket.status || ticketStatus));
+    }
+  };
+
+  const sendTicketReply = async () => {
     if (!ticketData?.ticketNumber) return;
+    const msg = String(ticketReply || '').trim();
+    if (!msg) {
+      toast.error('Please type a message to the user');
+      return;
+    }
+
     try {
       setTicketUpdating(true);
-      const payload = {};
-      if (mode === 'status' || mode === 'both') {
-        payload.status = ticketStatus;
-        if (ticketMessageMode === 'auto') {
-          const autoMsg = String(ticketReply || '').trim() || buildAutoStatusMessage(ticketStatus);
-          payload.response = autoMsg;
-        } else {
-          if (!String(ticketReply || '').trim()) {
-            throw new Error('Please type a message to the user or switch to Auto message');
-          }
-          payload.response = String(ticketReply || '').trim();
-        }
+      const { r, raw, data } = await safeFetchJson(`${API_URL}/api/support/tickets/${encodeURIComponent(ticketData.ticketNumber)}/response`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ message: msg, isAdmin: true })
+      });
+
+      if (!r.ok) {
+        const htmlLike = raw && raw.trim().startsWith('<');
+        throw new Error(data?.message || (htmlLike ? 'Support service is unavailable.' : `Failed to send reply (${r.status})`));
       }
-      if (mode === 'reply') {
-        if (!String(ticketReply || '').trim()) {
-          throw new Error('Please type a message to the user');
-        }
-        payload.response = String(ticketReply || '').trim();
+
+      await refreshTicket(ticketData.ticketNumber);
+      setTicketReply('');
+      setTicketLastAutoMessage('');
+      toast.success('Reply sent');
+    } catch (e) {
+      toast.error(e.message || 'Failed to send reply');
+    } finally {
+      setTicketUpdating(false);
+    }
+  };
+
+  const updateTicketStatus = async (withReply) => {
+    if (!ticketData?.ticketNumber) return;
+
+    let msg = '';
+    if (ticketMessageMode === 'auto') {
+      msg = String(ticketReply || '').trim();
+      if (!msg) {
+        msg = buildAutoStatusMessage(ticketData, ticketStatus);
+      }
+    } else {
+      msg = String(ticketReply || '').trim();
+      if (!msg) {
+        toast.error('Please type a message to the user or switch to Auto');
+        return;
+      }
+    }
+
+    try {
+      setTicketUpdating(true);
+      const payload = { status: ticketStatus };
+      if (withReply || ticketMessageMode === 'auto' || ticketMessageMode === 'manual') {
+        payload.response = msg;
       }
 
       const { r, raw, data } = await safeFetchJson(`${API_URL}/api/support/tickets/${encodeURIComponent(ticketData.ticketNumber)}/status`, {
@@ -218,23 +262,15 @@ const Notifications = () => {
 
       if (!r.ok) {
         const htmlLike = raw && raw.trim().startsWith('<');
-        throw new Error(data?.message || (htmlLike ? 'Support service is unavailable.' : `Failed to update ticket (${r.status})`));
+        throw new Error(data?.message || (htmlLike ? 'Support service is unavailable.' : `Failed to update status (${r.status})`));
       }
 
-      // Refresh ticket details
-      const ref = await safeFetchJson(`${API_URL}/api/support/tickets/${encodeURIComponent(ticketData.ticketNumber)}`, {
-        method: 'GET',
-        credentials: 'include'
-      });
-      if (ref.r.ok && ref.data?.ticket) {
-        setTicketData(ref.data.ticket);
-        setTicketStatus(String(ref.data.ticket.status || ticketStatus));
-      }
+      await refreshTicket(ticketData.ticketNumber);
       setTicketReply('');
       setTicketLastAutoMessage('');
-      toast.success('Ticket updated');
+      toast.success('Status updated');
     } catch (e) {
-      toast.error(e.message || 'Failed to update ticket');
+      toast.error(e.message || 'Failed to update status');
     } finally {
       setTicketUpdating(false);
     }
@@ -593,7 +629,7 @@ const Notifications = () => {
                               type="button"
                               onClick={() => {
                                 setTicketMessageMode('auto');
-                                const nextAuto = buildAutoStatusMessage(ticketStatus);
+                                const nextAuto = buildAutoStatusMessage(ticketData, ticketStatus);
                                 setTicketReply(nextAuto);
                                 setTicketLastAutoMessage(nextAuto);
                               }}
@@ -605,9 +641,10 @@ const Notifications = () => {
                             <button
                               type="button"
                               onClick={() => {
+                                const lastAuto = ticketLastAutoMessage;
                                 setTicketMessageMode('manual');
                                 setTicketLastAutoMessage('');
-                                if (ticketReply === ticketLastAutoMessage) setTicketReply('');
+                                if (ticketReply === lastAuto) setTicketReply('');
                               }}
                               disabled={ticketUpdating}
                               className={`px-3 py-1.5 text-xs rounded border ${ticketMessageMode === 'manual' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
@@ -626,21 +663,21 @@ const Notifications = () => {
                         />
                         <div className="mt-3 flex flex-wrap gap-2">
                           <button
-                            onClick={() => updateTicket('reply')}
+                            onClick={sendTicketReply}
                             disabled={ticketUpdating || !String(ticketReply || '').trim()}
                             className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded disabled:opacity-50"
                           >
                             {ticketUpdating ? 'Sending...' : 'Send Reply'}
                           </button>
                           <button
-                            onClick={() => updateTicket('status')}
-                            disabled={ticketUpdating}
+                            onClick={() => updateTicketStatus(false)}
+                            disabled={ticketUpdating || (ticketMessageMode === 'manual' && !String(ticketReply || '').trim())}
                             className="px-4 py-2 text-sm bg-white border border-gray-200 hover:bg-gray-50 rounded disabled:opacity-50"
                           >
                             {ticketUpdating ? 'Updating...' : 'Update Status'}
                           </button>
                           <button
-                            onClick={() => updateTicket('both')}
+                            onClick={() => updateTicketStatus(true)}
                             disabled={ticketUpdating || (ticketMessageMode === 'manual' && !String(ticketReply || '').trim())}
                             className="px-4 py-2 text-sm bg-green-700 hover:bg-green-800 text-white rounded disabled:opacity-50"
                           >
