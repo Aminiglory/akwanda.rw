@@ -156,6 +156,55 @@ router.post('/tickets', async (req, res) => {
     }
 });
 
+router.post('/tickets/track', async (req, res) => {
+    try {
+        const { ticketNumber, email } = req.body || {};
+        const tn = String(ticketNumber || '').trim();
+        const em = normalizeEmail(email);
+        if (!tn) return res.status(400).json({ message: 'Ticket number is required' });
+
+        const ticket = await SupportTicket.findOne({ ticketNumber: tn }).lean();
+        if (!ticket) return res.status(404).json({ message: 'Ticket not found' });
+
+        let requester = null;
+        try {
+            const token = req.cookies.akw_token || (req.headers.authorization || '').replace('Bearer ', '');
+            if (token) requester = jwt.verify(token, JWT_SECRET);
+        } catch (_) {
+            requester = null;
+        }
+
+        const isAdmin = requester?.userType === 'admin';
+        const isOwner = requester?.id && ticket.createdBy && String(ticket.createdBy) === String(requester.id);
+        const emailMatches = em && normalizeEmail(ticket.email) === em;
+
+        if (!isAdmin && !isOwner && !emailMatches) {
+            return res.status(403).json({ message: 'Invalid ticket details' });
+        }
+
+        res.json({
+            success: true,
+            ticket: {
+                ticketNumber: ticket.ticketNumber,
+                status: ticket.status,
+                subject: ticket.subject,
+                category: ticket.category,
+                priority: ticket.priority,
+                createdAt: ticket.createdAt,
+                updatedAt: ticket.updatedAt,
+                responses: (ticket.responses || []).map(r => ({
+                    message: r.message,
+                    isAdmin: !!r.isAdmin,
+                    createdAt: r.createdAt,
+                }))
+            }
+        });
+    } catch (error) {
+        console.error('Support ticket track error:', error);
+        res.status(500).json({ message: 'Failed to track support ticket', error: error.message });
+    }
+});
+
 // Get support tickets (admin only)
 router.get('/tickets', requireAuth, async (req, res) => {
     try {
