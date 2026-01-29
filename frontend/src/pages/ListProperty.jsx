@@ -2282,7 +2282,7 @@ const ListProperty = ({ embedded = false, forceType = '', editId: editIdProp = '
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
           <div>
             <p className="text-xl font-semibold text-gray-900">✈️ 13. Admin / Platform Internal Fields</p>
-            <p className="text-sm text-gray-500">Internal controls for AKWANDA.rw only.</p>
+            <p className="text-sm text-gray-500">Internal controls for AkwandaTravels only.</p>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
             <input
@@ -2394,7 +2394,7 @@ const ListProperty = ({ embedded = false, forceType = '', editId: editIdProp = '
         {!embedded && (
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">List your property</h1>
-            <p className="text-gray-600">Choose what you want to list, then follow the steps to publish it on AKWANDA.rw.</p>
+            <p className="text-gray-600">Choose what you want to list, then follow the steps to publish it on AkwandaTravels.</p>
           </div>
         )}
 

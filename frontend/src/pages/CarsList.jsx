@@ -26,6 +26,14 @@ export default function CarsList() {
   const [openFaq, setOpenFaq] = useState(null);
   const [popularLocations, setPopularLocations] = useState([]);
 
+  const getFuelCategory = (fuelType) => {
+    const v = (fuelType || '').toString().toLowerCase();
+    if (v.includes('electric')) return 'Electric';
+    if (v.includes('hybrid')) return 'Hybrid';
+    // Default all other types (petrol, diesel, etc.) into Fuel category
+    return 'Fuel';
+  };
+
   const faqs = [
     {
       q: 'Which vehicles can I rent on AKWANDA.rw?',
@@ -528,7 +536,7 @@ export default function CarsList() {
                       <td className="px-4 py-3 font-semibold text-primary-700">{formatCurrencyRWF ? formatCurrencyRWF(c.pricePerDay) : `RWF ${Number(c.pricePerDay || 0).toLocaleString()}`}</td>
                       <td className="px-4 py-3 text-gray-700">{Number(c.rating || 0).toFixed(1)} ({c.reviews})</td>
                       <td className="px-4 py-3 text-gray-700">{c.capacity}</td>
-                      <td className="px-4 py-3 text-gray-700">{c.fuelType}</td>
+                      <td className="px-4 py-3 text-gray-700">{getFuelCategory(c.fuelType)}</td>
                       <td className="px-4 py-3">
                         <Link to={`/cars/${c._id}`} className="btn-primary text-white px-3 py-1.5 rounded-lg">{t ? t('vehicles.view') : 'View'}</Link>
                       </td>
@@ -554,7 +562,7 @@ export default function CarsList() {
                         price: Number(c.pricePerDay || 0),
                         bedrooms: c.capacity, // repurpose as capacity
                         bathrooms: null,
-                        area: `${(c.vehicleType || c.type || '').toString()}`,
+                        area: `${getFuelCategory(c.fuelType)}  b7 ${(c.vehicleType || c.type || '').toString()}`,
                         status: 'active',
                         bookings: Number(c.reviews || 0),
                         host: c.ownerName || '',

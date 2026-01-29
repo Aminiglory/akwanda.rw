@@ -237,7 +237,7 @@ const RRAReceiptComponent = ({ bookingId }) => {
       {/* Footer */}
       <div className="border-t pt-6 mt-6">
         <div className="text-center text-sm text-gray-600 mb-4">
-          <p>This is an official tax receipt issued by AKWANDA.rw</p>
+          <p>This is an official tax receipt issued by AkwandaTravels</p>
           <p className="mt-1">For inquiries, contact: tax@akwanda.rw | +250 788 123 456</p>
         </div>
         

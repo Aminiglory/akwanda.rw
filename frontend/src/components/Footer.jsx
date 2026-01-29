@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { FaFacebook, FaTwitter, FaInstagram, FaLinkedin, FaPhone, FaEnvelope, FaMapMarkerAlt, FaBed, FaBuffer, FaCar, FaMountain, FaPlane } from 'react-icons/fa';
+import { FaFacebook, FaTwitter, FaInstagram, FaLinkedin, FaPhone, FaEnvelope, FaMapMarkerAlt, FaBed, FaBuffer, FaCar, FaMountain, FaPlane, FaVoicemail } from 'react-icons/fa';
 import { useLocale } from '../contexts/LocaleContext';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -139,7 +139,7 @@ const Footer = () => {
           {/* Brand Section */}
           <div className="lg:col-span-1">
             <div className="mb-6">
-              <h2 className="text-2xl font-bold text-white mb-4">{t ? t('brand') : 'AKWANDA.rw'}</h2>
+              <h2 className="text-2xl font-bold text-white mb-4">{t ? t('brand') : 'AkwandaTravels'}</h2>
               <p className="text-white-300 leading-relaxed">
                 Rwanda's home grown booking platform that connects guest with amazing hosts across the country.
               </p>
@@ -156,7 +156,7 @@ const Footer = () => {
                 <a href={`tel:${adminPhone}`} className="text-gray-300 hover:text-white">{adminPhone}</a>
               </div>
               <div className="flex items-center">
-                <FaEnvelope className="text-blue-400 mr-3" />
+                <FaVoicemail className="text-blue-400 mr-3" />
                 <a href={`mailto:${adminEmail}`} className="text-gray-300 hover:text-white">{adminEmail}</a>
               </div>
             </div>
@@ -244,7 +244,7 @@ const Footer = () => {
         <div className="max-w-6xl mx-auto px-4 py-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div className="text-gray-300 text-sm">
-              {t ? t('footer.bottomCopyright', year) : `© ${year} AKWANDA.rw. All rights reserved.`}
+              {t ? t('footer.bottomCopyright', year) : `© ${year} AkwandaTravels. All rights reserved.`}
             </div>
             <div className="flex flex-wrap gap-6 text-sm justify-center md:justify-end">
               <a href="/support" className="text-gray-300 hover:text-white transition-colors duration-300">

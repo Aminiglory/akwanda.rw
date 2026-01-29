@@ -467,13 +467,14 @@ const Navbar = () => {
       ]
     },
     {
+      id: 'inbox',
       label: labelOr('nav.inbox', 'Inbox'),
-      icon: FaEnvelope,
       href: '/messages',
+      icon: FaComments,
       badge: unreadMsgCount,
       children: [
         { label: labelOr('nav.reservationMessages', 'Reservation messages'), href: '/messages?category=reservations', icon: FaEnvelope, badge: messageCounts.reservations },
-        { label: labelOr('nav.bookingComMessages', 'Akwanda.rw messages'), href: '/messages?category=platform', icon: FaEnvelope, badge: messageCounts.platform },
+        { label: labelOr('nav.bookingComMessages', 'AkwandaTravels messages'), href: '/messages?category=platform', icon: FaEnvelope, badge: messageCounts.platform },
         { label: labelOr('nav.guestQandA', 'Guest Q&A'), href: '/messages?category=qna', icon: FaQuestionCircle, badge: messageCounts.qna },
       ]
     },
@@ -1249,7 +1250,7 @@ const Navbar = () => {
                       : 'text-[#4b2a00] hover:text-[#6b3f1f]'
                   }`}
                 >
-                  AKWANDA.rw
+                  AkwandaTravels
                 </Link>
 
                 {/* Property selector (desktop) - next to logo in owner dashboard (hidden on group-home) */}

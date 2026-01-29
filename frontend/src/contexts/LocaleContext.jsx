@@ -6,7 +6,7 @@ const DEFAULT_CURRENCY = 'RWF';
 
 const dictionaries = {
   en: {
-    brand: 'AKWANDA.rw',
+    brand: 'AkwandaTravels',
     nav: {
       stays: 'Stays',
       flights: 'Flights',
@@ -92,7 +92,7 @@ const dictionaries = {
       unitDifferentiationTool: 'Unit differentiation tool',
       inbox: 'Inbox',
       reservationMessages: 'Reservation messages',
-      bookingComMessages: 'Akwanda.rw messages',
+      bookingComMessages: 'AkwandaTravels messages',
       guestQandA: 'Guest Q&A',
       guestReviews: 'Guest reviews',
       guestExperience: 'Guest experience',
@@ -152,10 +152,10 @@ const dictionaries = {
       privacy: 'Privacy Policy',
       quickLinks: 'Quick Links',
       apartments: 'Apartments',
-      bottomCopyright: (year) => ` ${year} AKWANDA.rw. All rights reserved.`
+      bottomCopyright: (year) => ` ${year} AkwandaTravels. All rights reserved.`,
     },
     hero: {
-      title: 'Welcome to AKWANDA.rw',
+      title: 'Welcome to AkwandaTravels',
       subtitle: 'Find places to stay, cars, and attractions',
       activeListings: 'Active Listings',
       happyGuests: 'Happy Guests',
@@ -285,7 +285,7 @@ const dictionaries = {
       featuredDestinations: 'Featured destinations',
       explore: 'Explore',
       trustedByPartners: 'Trusted by partners',
-      listCtaTitle: 'List your property with AKWANDA.rw',
+      listCtaTitle: 'List your property with AkwandaTravels',
       listCtaSubtitle: 'Reach guests faster with our owner tools and promotions.',
       getStarted: 'Get started'
     },
@@ -322,14 +322,14 @@ const dictionaries = {
       title: 'What Our Users Say',
       subtitle: 'Real experiences from our community',
       ctaTitle: 'Ready to Join Our Community?',
-      ctaMessage: "Whether you're looking for a place to stay or want to earn from your space, AKWANDA.rw is here for you.",
+      ctaMessage: "Whether you're looking for a place to stay or want to earn from your space, AkwandaTravels is here for you.",
       btnFindApartment: 'Find an Apartment',
       btnListOrSignUp: (isUser) => isUser ? 'List Your Property' : 'Sign Up to Host',
       loading: 'Loading testimonials…'
     },
     auth: {
       loginTitle: 'Welcome back',
-      loginSubtitle: 'Sign in to your AKWANDA.rw account',
+      loginSubtitle: 'Sign in to your AkwandaTravels account',
       email: 'Email address',
       password: 'Password',
       signIn: 'Sign in',
@@ -338,7 +338,7 @@ const dictionaries = {
       notHostYet: 'Not a host yet?',
       createAccount: 'Create an account',
       registerTitle: 'Create your account',
-      registerSubtitle: 'Join AKWANDA.rw and start your apartment journey',
+      registerSubtitle: 'Join AkwandaTravels and start your apartment journey',
       iWantTo: 'I want to',
       findApartments: 'Find Apartments',
       becomeHost: 'Become a Host',

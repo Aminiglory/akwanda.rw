@@ -22,7 +22,7 @@ export default function AdminLanding() {
   const howItWorks = (content.sections || []).find(s => s?.type === 'howItWorks') || {
     type: 'howItWorks',
     enabled: true,
-    title: 'How AKWANDA.rw Works',
+    title: 'How AkwandaTravels Works',
     subtitle: 'Simple steps for both guests and hosts',
     image: '',
     guestSteps: [
@@ -134,13 +134,13 @@ export default function AdminLanding() {
         .map(s => normalizePath(s.image)).filter(p => typeof p === 'string' && p.trim().length > 0);
       const howGuestSection = {
         key: 'howItWorksGuests',
-        title: (how.title || 'How AKWANDA.rw Works') + ' — Guests',
+        title: (how.title || 'How AkwandaTravels Works') + ' — Guests',
         body: (how.subtitle || '') + (how.guestsTagline ? `\n${how.guestsTagline}` : ''),
         images: guestImages
       };
       const howHostSection = {
         key: 'howItWorksHosts',
-        title: (how.title || 'How AKWANDA.rw Works') + ' — Hosts',
+        title: (how.title || 'How AkwandaTravels Works') + ' — Hosts',
         body: (how.subtitle || '') + (how.hostsTagline ? `\n${how.hostsTagline}` : ''),
         images: hostImages
       };

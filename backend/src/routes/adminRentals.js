@@ -1,9 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
-const path = require('path');
-const fs = require('fs').promises;
 const jwt = require('jsonwebtoken');
+const { uploadBuffer } = require('../utils/cloudinary');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
 
@@ -23,28 +22,15 @@ const verifyAdmin = (req, res, next) => {
   }
 };
 
-const storage = multer.diskStorage({
-  destination: async (req, file, cb) => {
-    const uploadDir = path.join(process.cwd(), 'uploads', 'rentals');
-    try {
-      await fs.mkdir(uploadDir, { recursive: true });
-      cb(null, uploadDir);
-    } catch (err) {
-      cb(err);
-    }
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, 'rental-' + uniqueSuffix + path.extname(file.originalname));
-  },
-});
+// Use memory storage and upload buffers to Cloudinary
+const storage = multer.memoryStorage();
 
 const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     const allowedTypes = /jpeg|jpg|png|gif|webp/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const extname = allowedTypes.test((file.originalname || '').toLowerCase());
     const mimetype = allowedTypes.test(file.mimetype);
     if (mimetype && extname) {
       return cb(null, true);
@@ -107,13 +93,30 @@ router.post('/rentals-content/images', verifyAdmin, upload.array('images', 10), 
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ message: 'No images uploaded' });
     }
-    const imagePaths = req.files.map((file) => `/uploads/rentals/${file.filename}`);
-    return res.json({ message: 'Images uploaded successfully', images: imagePaths });
+
+    // Upload each image buffer to Cloudinary and return secure URLs
+    const uploadedUrls = [];
+    for (const file of req.files) {
+      try {
+        const result = await uploadBuffer(file.buffer, file.originalname, 'cms/rentals');
+        const url = (result && (result.secure_url || result.url)) || null;
+        if (url) uploadedUrls.push(url);
+      } catch (err) {
+        console.error('Failed to upload rentals image to Cloudinary:', err);
+      }
+    }
+
+    if (!uploadedUrls.length) {
+      return res.status(500).json({ message: 'Failed to upload images' });
+    }
+
+    return res.json({ message: 'Images uploaded successfully', images: uploadedUrls });
   } catch (e) {
     return res.status(500).json({ message: 'Failed to upload images', error: e.message });
   }
 });
 
+// Logical delete only; frontend removes URL references. Physical Cloudinary deletion can be added later.
 router.delete('/rentals-content/image', verifyAdmin, async (req, res) => {
   try {
     const { imagePath } = req.body || {};
@@ -121,18 +124,7 @@ router.delete('/rentals-content/image', verifyAdmin, async (req, res) => {
       return res.status(400).json({ message: 'Image path is required' });
     }
 
-    const filename = path.basename(imagePath);
-    const fullPath = path.join(process.cwd(), 'uploads', 'rentals', filename);
-
-    try {
-      await fs.unlink(fullPath);
-      return res.json({ message: 'Image deleted successfully' });
-    } catch (err) {
-      if (err.code === 'ENOENT') {
-        return res.json({ message: 'Image already deleted or does not exist' });
-      }
-      throw err;
-    }
+    return res.json({ message: 'Image reference removed successfully' });
   } catch (e) {
     return res.status(500).json({ message: 'Failed to delete image', error: e.message });
   }

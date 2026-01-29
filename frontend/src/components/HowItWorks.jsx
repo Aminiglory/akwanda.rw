@@ -13,7 +13,7 @@ const HowItWorks = () => {
   const [metrics, setMetrics] = useState({ activeListings: 0, happyGuests: 0, satisfactionRate: 0 });
   const [how, setHow] = useState({
     enabled: true,
-    title: 'How AKWANDA.rw Works',
+    title: 'How AkwandaTravels Works',
     subtitle: 'Simple steps for both guests and hosts',
     image: '',
     guestSteps: [],
@@ -104,7 +104,7 @@ const HowItWorks = () => {
         if (found && found.enabled !== false) {
           setHow({
             enabled: true,
-            title: found.title || 'How AKWANDA.rw Works',
+            title: found.title || 'How AkwandaTravels Works',
             subtitle: found.subtitle || 'Simple steps for both guests and hosts',
             image: found.image || '',
             guestSteps: Array.isArray(found.guestSteps) ? found.guestSteps : [],

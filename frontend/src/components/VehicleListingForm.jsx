@@ -640,8 +640,10 @@ const VehicleListingForm = forwardRef(({ onCreated, onSuccess }, ref) => {
                 value={form.fuelType}
                 onChange={e => setForm({ ...form, fuelType: e.target.value })}
               >
+                {/* Must match backend enum in carRentalSchema: ['petrol', 'diesel', 'hybrid', 'electric'] */}
                 <option value="petrol">Petrol</option>
                 <option value="diesel">Diesel</option>
+                <option value="hybrid">Hybrid</option>
                 <option value="electric">Electric</option>
               </select>
             </div>
