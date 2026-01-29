@@ -14,6 +14,8 @@ const CustomerSupport = () => {
   const [trackForm, setTrackForm] = useState({ ticketNumber: '', email: '' });
   const [tracking, setTracking] = useState(false);
   const [trackedTicket, setTrackedTicket] = useState(null);
+  const [quickContactForm, setQuickContactForm] = useState({ name: '', email: '', message: '' });
+  const [quickSubmitting, setQuickSubmitting] = useState(false);
   const [supportForm, setSupportForm] = useState({
     name: '',
     email: '',
@@ -36,6 +38,11 @@ const CustomerSupport = () => {
       name: fullName || prev.name,
       email: user?.email || prev.email,
       phone: user?.phone || prev.phone,
+    }));
+    setQuickContactForm(prev => ({
+      ...prev,
+      name: fullName || prev.name,
+      email: user?.email || prev.email,
     }));
   }, [isAuthenticated, user]);
 
@@ -105,6 +112,11 @@ const CustomerSupport = () => {
   const handleTrackInputChange = (e) => {
     const { name, value } = e.target;
     setTrackForm(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleQuickContactChange = (e) => {
+    const { name, value } = e.target;
+    setQuickContactForm(prev => ({ ...prev, [name]: value }));
   };
 
   const normalizePhone = (v) => String(v || '').trim().replace(/[\s()-]/g, '');
@@ -186,6 +198,64 @@ const CustomerSupport = () => {
       toast.error(error.message || 'Failed to submit support ticket');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleQuickContactSubmit = async (e) => {
+    e.preventDefault();
+    const name = String(quickContactForm.name || '').trim();
+    const email = String(quickContactForm.email || '').trim();
+    const message = String(quickContactForm.message || '').trim();
+
+    if (!name || !email || !message) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+    if (!isValidEmail(email)) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
+
+    const subject = message.split('\n')[0].trim().slice(0, 80) || 'Contact request';
+
+    try {
+      setQuickSubmitting(true);
+      const response = await fetch(`${API_URL}/api/support/tickets`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          name,
+          email,
+          phone: '',
+          bookingId: '',
+          subject,
+          category: 'general',
+          priority: 'medium',
+          message,
+        })
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data?.message || 'Failed to send message');
+      }
+
+      const ticketNumber = data.ticketNumber || data?.ticket?.ticketNumber || '';
+      setTicketConfirmation({
+        ticketNumber,
+        status: data?.ticket?.status || 'open',
+        createdAt: data?.ticket?.createdAt || new Date().toISOString(),
+        email,
+      });
+      setTrackForm({ ticketNumber, email });
+      setTrackedTicket(null);
+      setActiveTab('track');
+      toast.success(ticketNumber ? `Message sent. Ticket: ${ticketNumber}` : 'Message sent');
+      setQuickContactForm({ name: '', email: '', message: '' });
+    } catch (error) {
+      toast.error(error.message || 'Failed to send message');
+    } finally {
+      setQuickSubmitting(false);
     }
   };
 
@@ -356,36 +426,49 @@ const CustomerSupport = () => {
 
                 <div className="bg-gray-50 rounded-xl p-6">
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Contact Form</h3>
-                  <form className="space-y-4">
+                  <form onSubmit={handleQuickContactSubmit} className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Name</label>
                       <input
                         type="text"
+                        name="name"
+                        value={quickContactForm.name}
+                        onChange={handleQuickContactChange}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="Your full name"
+                        required
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
                       <input
                         type="email"
+                        name="email"
+                        value={quickContactForm.email}
+                        onChange={handleQuickContactChange}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="your@email.com"
+                        required
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Message</label>
                       <textarea
+                        name="message"
+                        value={quickContactForm.message}
+                        onChange={handleQuickContactChange}
                         rows={4}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="How can we help you?"
+                        required
                       />
                     </div>
                     <button
                       type="submit"
-                      className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-medium transition-colors"
+                      disabled={quickSubmitting}
+                      className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white py-3 rounded-lg font-medium transition-colors"
                     >
-                      Send Message
+                      {quickSubmitting ? 'Sending...' : 'Send Message'}
                     </button>
                   </form>
                 </div>
