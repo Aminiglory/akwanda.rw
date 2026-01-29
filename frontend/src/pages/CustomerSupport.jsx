@@ -185,8 +185,8 @@ const CustomerSupport = () => {
       setTrackedTicket(null);
       toast.success(`Support ticket submitted${data.ticketNumber ? `: ${data.ticketNumber}` : ''}`);
       setSupportForm({
-        name: '',
-        email: '',
+        name: isAuthenticated ? (user?.name || [user?.firstName, user?.lastName].filter(Boolean).join(' ') || '') : '',
+        email: isAuthenticated ? (user?.email || '') : '',
         phone: '',
         bookingId: '',
         subject: '',
@@ -251,7 +251,11 @@ const CustomerSupport = () => {
       setTrackedTicket(null);
       setActiveTab('track');
       toast.success(ticketNumber ? `Message sent. Ticket: ${ticketNumber}` : 'Message sent');
-      setQuickContactForm({ name: '', email: '', message: '' });
+      setQuickContactForm({
+        name: isAuthenticated ? (user?.name || [user?.firstName, user?.lastName].filter(Boolean).join(' ') || '') : '',
+        email: isAuthenticated ? (user?.email || '') : '',
+        message: ''
+      });
     } catch (error) {
       toast.error(error.message || 'Failed to send message');
     } finally {
@@ -446,6 +450,7 @@ const CustomerSupport = () => {
                         name="email"
                         value={quickContactForm.email}
                         onChange={handleQuickContactChange}
+                        disabled={!!(isAuthenticated && user?.email)}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="your@email.com"
                         required
@@ -684,6 +689,7 @@ const CustomerSupport = () => {
                         name="email"
                         value={supportForm.email}
                         onChange={handleInputChange}
+                        disabled={!!(isAuthenticated && user?.email)}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder=""
                         required

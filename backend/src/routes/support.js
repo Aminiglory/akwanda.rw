@@ -78,16 +78,35 @@ router.post('/tickets', async (req, res) => {
             return res.status(400).json({ message: 'Invalid phone number' });
         }
 
+        // Enforce that the email belongs to an existing Akwanda user
+        const emailUser = await User.findOne({ email: cleanEmail }).select('_id email userType').lean();
+        if (!emailUser) {
+            return res.status(400).json({ message: 'Email not registered. Please use your Akwanda account email.' });
+        }
+
         // If the user is logged in, attach createdBy
         let createdBy = null;
         try {
             const token = req.cookies.akw_token || (req.headers.authorization || '').replace('Bearer ', '');
             if (token) {
                 const u = jwt.verify(token, JWT_SECRET);
-                createdBy = u?.id || null;
+                const authedId = u?.id || null;
+                if (authedId) {
+                    const authedUser = await User.findById(authedId).select('_id email userType').lean();
+                    const isAdmin = String(authedUser?.userType || '') === 'admin';
+                    if (!isAdmin && authedUser?.email && normalizeEmail(authedUser.email) !== cleanEmail) {
+                        return res.status(400).json({ message: 'Please use the email on your logged-in Akwanda account.' });
+                    }
+                    createdBy = emailUser?._id || null;
+                }
             }
         } catch (_) {
             createdBy = null;
+        }
+
+        // If not authenticated, still link the ticket to the user owning the email
+        if (!createdBy) {
+            createdBy = emailUser?._id || null;
         }
 
         const ticketNumber = await generateUniqueTicketNumber();
