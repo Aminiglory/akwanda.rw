@@ -20,6 +20,8 @@ const Notifications = () => {
   const [ticketReply, setTicketReply] = useState('');
   const [ticketStatus, setTicketStatus] = useState('open');
   const [ticketUpdating, setTicketUpdating] = useState(false);
+  const [ticketMessageMode, setTicketMessageMode] = useState('auto');
+  const [ticketLastAutoMessage, setTicketLastAutoMessage] = useState('');
   const [filter, setFilter] = useState(() => {
     const params = new URLSearchParams(location.search || '');
     const f = params.get('filter');
@@ -108,6 +110,34 @@ const Notifications = () => {
     return { r, raw, data };
   };
 
+  const buildAutoStatusMessage = (status) => {
+    const tn = ticketData?.ticketNumber || '';
+    const name = ticketData?.name || 'there';
+    const subj = ticketData?.subject ? ` (${ticketData.subject})` : '';
+    if (status === 'open') {
+      return `Hi ${name}, we've reopened your ticket (${tn})${subj}. Our team will review it and respond as soon as possible.`;
+    }
+    if (status === 'in_progress') {
+      return `Hi ${name}, your ticket (${tn})${subj} is now in progress. We're working on it and will update you shortly.`;
+    }
+    if (status === 'resolved') {
+      return `Hi ${name}, your ticket (${tn})${subj} has been resolved. If the issue persists, reply to this ticket and we'll assist further.`;
+    }
+    if (status === 'closed') {
+      return `Hi ${name}, we're closing your ticket (${tn})${subj}. If you need more help, you can open a new ticket referencing ${tn}.`;
+    }
+    return `Hi ${name}, your ticket (${tn}) status has been updated to ${status}.`;
+  };
+
+  const syncAutoMessageIfNeeded = (nextStatus) => {
+    const nextAuto = buildAutoStatusMessage(nextStatus);
+    const current = String(ticketReply || '');
+    if (!current.trim() || current === ticketLastAutoMessage) {
+      setTicketReply(nextAuto);
+      setTicketLastAutoMessage(nextAuto);
+    }
+  };
+
   const openSupportTicket = async (n) => {
     const tn = extractTicketNumber(n?.message) || extractTicketNumber(n?.title);
     if (!tn) {
@@ -118,6 +148,7 @@ const Notifications = () => {
     setTicketModalOpen(true);
     setTicketError('');
     setTicketReply('');
+    setTicketLastAutoMessage('');
     setTicketData(null);
     setTicketLoading(true);
 
@@ -141,6 +172,11 @@ const Notifications = () => {
 
       setTicketData(data.ticket);
       setTicketStatus(String(data.ticket.status || 'open'));
+      if (ticketMessageMode === 'auto') {
+        const initialAuto = buildAutoStatusMessage(String(data.ticket.status || 'open'));
+        setTicketReply(initialAuto);
+        setTicketLastAutoMessage(initialAuto);
+      }
     } catch (e) {
       setTicketError(e.message || 'Failed to load ticket');
       toast.error(e.message || 'Failed to load ticket');
@@ -154,8 +190,24 @@ const Notifications = () => {
     try {
       setTicketUpdating(true);
       const payload = {};
-      if (mode === 'status' || mode === 'both') payload.status = ticketStatus;
-      if ((mode === 'reply' || mode === 'both') && String(ticketReply || '').trim()) payload.response = String(ticketReply || '').trim();
+      if (mode === 'status' || mode === 'both') {
+        payload.status = ticketStatus;
+        if (ticketMessageMode === 'auto') {
+          const autoMsg = String(ticketReply || '').trim() || buildAutoStatusMessage(ticketStatus);
+          payload.response = autoMsg;
+        } else {
+          if (!String(ticketReply || '').trim()) {
+            throw new Error('Please type a message to the user or switch to Auto message');
+          }
+          payload.response = String(ticketReply || '').trim();
+        }
+      }
+      if (mode === 'reply') {
+        if (!String(ticketReply || '').trim()) {
+          throw new Error('Please type a message to the user');
+        }
+        payload.response = String(ticketReply || '').trim();
+      }
 
       const { r, raw, data } = await safeFetchJson(`${API_URL}/api/support/tickets/${encodeURIComponent(ticketData.ticketNumber)}/status`, {
         method: 'PUT',
@@ -179,6 +231,7 @@ const Notifications = () => {
         setTicketStatus(String(ref.data.ticket.status || ticketStatus));
       }
       setTicketReply('');
+      setTicketLastAutoMessage('');
       toast.success('Ticket updated');
     } catch (e) {
       toast.error(e.message || 'Failed to update ticket');
@@ -446,7 +499,8 @@ const Notifications = () => {
         )}
 
         {ticketModalOpen && (
-          <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[99999] overflow-y-auto">
+            <div className="min-h-full flex items-center justify-center p-4">
             <div
               className="absolute inset-0 bg-black/40"
               onClick={() => {
@@ -454,8 +508,8 @@ const Notifications = () => {
                 setTicketModalOpen(false);
               }}
             />
-            <div className="relative w-full max-w-3xl bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden">
-              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+            <div className="relative w-full max-w-3xl max-h-[90vh] bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden flex flex-col">
+              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
                 <div>
                   <div className="text-sm text-gray-600">Support Ticket</div>
                   <div className="text-lg font-bold text-gray-900">{ticketData?.ticketNumber || '—'}</div>
@@ -471,7 +525,7 @@ const Notifications = () => {
                 </button>
               </div>
 
-              <div className="p-5">
+              <div className="p-5 overflow-y-auto flex-1">
                 {ticketLoading ? (
                   <div className="text-gray-600">Loading ticket...</div>
                 ) : ticketError ? (
@@ -500,7 +554,7 @@ const Notifications = () => {
 
                     <div>
                       <div className="text-sm font-semibold text-gray-900 mb-2">Conversation</div>
-                      <div className="space-y-3 max-h-[42vh] overflow-y-auto pr-1">
+                      <div className="space-y-3 max-h-[32vh] overflow-y-auto pr-1">
                         {(ticketData.responses || []).map((r, idx) => (
                           <div key={idx} className={`p-4 rounded-lg border ${r.isAdmin ? 'bg-white border-blue-200' : 'bg-white border-gray-200'}`}>
                             <div className="text-xs text-gray-500 mb-1">{r.isAdmin ? 'Support' : 'User'} • {r.createdAt ? new Date(r.createdAt).toLocaleString() : ''}</div>
@@ -515,7 +569,13 @@ const Notifications = () => {
                         <label className="block text-sm font-medium text-gray-700 mb-2">Set status</label>
                         <select
                           value={ticketStatus}
-                          onChange={(e) => setTicketStatus(e.target.value)}
+                          onChange={(e) => {
+                            const next = e.target.value;
+                            setTicketStatus(next);
+                            if (ticketMessageMode === 'auto') {
+                              syncAutoMessageIfNeeded(next);
+                            }
+                          }}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           disabled={ticketUpdating}
                         >
@@ -526,6 +586,36 @@ const Notifications = () => {
                         </select>
                       </div>
                       <div className="md:col-span-2">
+                        <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                          <label className="block text-sm font-medium text-gray-700">Message to user</label>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setTicketMessageMode('auto');
+                                const nextAuto = buildAutoStatusMessage(ticketStatus);
+                                setTicketReply(nextAuto);
+                                setTicketLastAutoMessage(nextAuto);
+                              }}
+                              disabled={ticketUpdating}
+                              className={`px-3 py-1.5 text-xs rounded border ${ticketMessageMode === 'auto' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
+                            >
+                              Auto
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setTicketMessageMode('manual');
+                                setTicketLastAutoMessage('');
+                                if (ticketReply === ticketLastAutoMessage) setTicketReply('');
+                              }}
+                              disabled={ticketUpdating}
+                              className={`px-3 py-1.5 text-xs rounded border ${ticketMessageMode === 'manual' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
+                            >
+                              Manual
+                            </button>
+                          </div>
+                        </div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">Reply to user</label>
                         <textarea
                           value={ticketReply}
@@ -551,7 +641,7 @@ const Notifications = () => {
                           </button>
                           <button
                             onClick={() => updateTicket('both')}
-                            disabled={ticketUpdating || !String(ticketReply || '').trim()}
+                            disabled={ticketUpdating || (ticketMessageMode === 'manual' && !String(ticketReply || '').trim())}
                             className="px-4 py-2 text-sm bg-green-700 hover:bg-green-800 text-white rounded disabled:opacity-50"
                           >
                             {ticketUpdating ? 'Updating...' : 'Reply + Update'}
@@ -564,6 +654,19 @@ const Notifications = () => {
                   <div className="text-gray-600">No ticket selected.</div>
                 )}
               </div>
+
+              <div className="px-5 py-4 border-t border-gray-100 flex items-center justify-end gap-2 bg-white shrink-0">
+                <button
+                  onClick={() => {
+                    if (ticketUpdating) return;
+                    setTicketModalOpen(false);
+                  }}
+                  className="px-4 py-2 text-sm bg-white border border-gray-200 hover:bg-gray-50 rounded"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
             </div>
           </div>
         )}
