@@ -11,7 +11,7 @@ const mockTestimonials = [
     name: 'Aline M.',
     role: 'Business guest in Kigali',
     rating: 5,
-    text: 'Booking my stay in Kigali through AKWANDA.rw was effortless. The apartment was exactly as shown, and check-in was seamless.',
+    text: 'Booking my stay in Kigali through AkwandaTravels.com was effortless. The apartment was exactly as shown, and check-in was seamless.',
     avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=300&h=300&fit=crop&crop=faces',
     location: 'Kigali, Rwanda'
   },
@@ -47,7 +47,7 @@ const mockTestimonials = [
     name: 'Claudine N.',
     role: 'Property host in Kigali',
     rating: 5,
-    text: 'Listing my apartment on AKWANDA.rw helped me reach more guests and manage bookings in one place.',
+    text: 'Listing my apartment on AkwandaTravels.com helped me reach more guests and manage bookings in one place.',
     avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=300&h=300&fit=crop&crop=faces',
     location: 'Kigali, Rwanda'
   }
