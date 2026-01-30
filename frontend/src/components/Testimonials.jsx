@@ -196,7 +196,7 @@ export default function Testimonials() {
       <div className="text-center mt-12">
         <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-200">
           <h3 className="text-2xl font-bold mb-4 text-gray-900">Ready to Join Our Community?</h3>
-          <p className="text-gray-700 mb-6 text-base">Whether you're looking for a place to stay or want to earn from your space, AKWANDA.rw is here for you.</p>
+          <p className="text-gray-700 mb-6 text-base">Whether you're looking for a place to stay or want to earn from your space, AkwandaTravels.com is here for you.</p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
               to="/apartments"
