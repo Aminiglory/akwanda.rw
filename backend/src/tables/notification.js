@@ -16,7 +16,8 @@ const notificationSchema = new mongoose.Schema(
         'account_blocked',
         'account_reactivated',
         'fine_added',
-        'new_message'
+        'new_message',
+        'support_ticket_created'
       ], 
       required: true 
     },

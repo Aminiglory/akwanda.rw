@@ -13,6 +13,15 @@ const Notifications = () => {
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState([]);
   const [busy, setBusy] = useState({});
+  const [ticketModalOpen, setTicketModalOpen] = useState(false);
+  const [ticketLoading, setTicketLoading] = useState(false);
+  const [ticketData, setTicketData] = useState(null);
+  const [ticketError, setTicketError] = useState('');
+  const [ticketReply, setTicketReply] = useState('');
+  const [ticketStatus, setTicketStatus] = useState('open');
+  const [ticketUpdating, setTicketUpdating] = useState(false);
+  const [ticketMessageMode, setTicketMessageMode] = useState('auto');
+  const [ticketLastAutoMessage, setTicketLastAutoMessage] = useState('');
   const [filter, setFilter] = useState(() => {
     const params = new URLSearchParams(location.search || '');
     const f = params.get('filter');
@@ -80,6 +89,190 @@ const Notifications = () => {
       toast.error(e.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const extractTicketNumber = (text) => {
+    const s = String(text || '');
+    const m = s.match(/\bTKT\d{6,}\b/i);
+    return m ? m[0] : '';
+  };
+
+  const safeFetchJson = async (url, options) => {
+    const r = await fetch(url, options);
+    const raw = await r.text();
+    let data = null;
+    try {
+      data = raw ? JSON.parse(raw) : {};
+    } catch (_) {
+      data = null;
+    }
+    return { r, raw, data };
+  };
+
+  const buildAutoStatusMessage = (ticket, status) => {
+    const tn = ticket?.ticketNumber || '';
+    const name = ticket?.name || 'there';
+    const subj = ticket?.subject ? ` (${ticket.subject})` : '';
+    if (status === 'open') {
+      return `Hi ${name}, we've reopened your ticket (${tn})${subj}. Our team will review it and respond as soon as possible.`;
+    }
+    if (status === 'in_progress') {
+      return `Hi ${name}, your ticket (${tn})${subj} is now in progress. We're working on it and will update you shortly.`;
+    }
+    if (status === 'resolved') {
+      return `Hi ${name}, your ticket (${tn})${subj} has been resolved. If the issue persists, reply to this ticket and we'll assist further.`;
+    }
+    if (status === 'closed') {
+      return `Hi ${name}, we're closing your ticket (${tn})${subj}. If you need more help, you can open a new ticket referencing ${tn}.`;
+    }
+    return `Hi ${name}, your ticket (${tn}) status has been updated to ${status}.`;
+  };
+
+  const syncAutoMessageIfNeeded = (nextStatus) => {
+    const nextAuto = buildAutoStatusMessage(ticketData, nextStatus);
+    const current = String(ticketReply || '');
+    if (!current.trim() || current === ticketLastAutoMessage) {
+      setTicketReply(nextAuto);
+      setTicketLastAutoMessage(nextAuto);
+    }
+  };
+
+  const openSupportTicket = async (n) => {
+    const tn = extractTicketNumber(n?.message) || extractTicketNumber(n?.title);
+    if (!tn) {
+      toast.error('Could not find ticket number in this notification');
+      return;
+    }
+
+    setTicketModalOpen(true);
+    setTicketError('');
+    setTicketReply('');
+    setTicketLastAutoMessage('');
+    setTicketData(null);
+    setTicketLoading(true);
+
+    try {
+      if (!n?.isRead) {
+        try { await markRead(n.id); } catch (_) {}
+      }
+
+      const { r, raw, data } = await safeFetchJson(`${API_URL}/api/support/tickets/${encodeURIComponent(tn)}`, {
+        method: 'GET',
+        credentials: 'include'
+      });
+
+      if (!r.ok) {
+        const htmlLike = raw && raw.trim().startsWith('<');
+        throw new Error(data?.message || (htmlLike ? 'Support service is unavailable.' : `Failed to load ticket (${r.status})`));
+      }
+      if (!data?.ticket) {
+        throw new Error('Unexpected response from server');
+      }
+
+      setTicketData(data.ticket);
+      setTicketStatus(String(data.ticket.status || 'open'));
+      if (ticketMessageMode === 'auto') {
+        const initialAuto = buildAutoStatusMessage(data.ticket, String(data.ticket.status || 'open'));
+        setTicketReply(initialAuto);
+        setTicketLastAutoMessage(initialAuto);
+      }
+    } catch (e) {
+      setTicketError(e.message || 'Failed to load ticket');
+      toast.error(e.message || 'Failed to load ticket');
+    } finally {
+      setTicketLoading(false);
+    }
+  };
+
+  const refreshTicket = async (ticketNumber) => {
+    const ref = await safeFetchJson(`${API_URL}/api/support/tickets/${encodeURIComponent(ticketNumber)}`, {
+      method: 'GET',
+      credentials: 'include'
+    });
+    if (ref.r.ok && ref.data?.ticket) {
+      setTicketData(ref.data.ticket);
+      setTicketStatus(String(ref.data.ticket.status || ticketStatus));
+    }
+  };
+
+  const sendTicketReply = async () => {
+    if (!ticketData?.ticketNumber) return;
+    const msg = String(ticketReply || '').trim();
+    if (!msg) {
+      toast.error('Please type a message to the user');
+      return;
+    }
+
+    try {
+      setTicketUpdating(true);
+      const { r, raw, data } = await safeFetchJson(`${API_URL}/api/support/tickets/${encodeURIComponent(ticketData.ticketNumber)}/response`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ message: msg, isAdmin: true })
+      });
+
+      if (!r.ok) {
+        const htmlLike = raw && raw.trim().startsWith('<');
+        throw new Error(data?.message || (htmlLike ? 'Support service is unavailable.' : `Failed to send reply (${r.status})`));
+      }
+
+      await refreshTicket(ticketData.ticketNumber);
+      setTicketReply('');
+      setTicketLastAutoMessage('');
+      toast.success('Reply sent');
+    } catch (e) {
+      toast.error(e.message || 'Failed to send reply');
+    } finally {
+      setTicketUpdating(false);
+    }
+  };
+
+  const updateTicketStatus = async (withReply) => {
+    if (!ticketData?.ticketNumber) return;
+
+    let msg = '';
+    if (ticketMessageMode === 'auto') {
+      msg = String(ticketReply || '').trim();
+      if (!msg) {
+        msg = buildAutoStatusMessage(ticketData, ticketStatus);
+      }
+    } else {
+      msg = String(ticketReply || '').trim();
+      if (!msg) {
+        toast.error('Please type a message to the user or switch to Auto');
+        return;
+      }
+    }
+
+    try {
+      setTicketUpdating(true);
+      const payload = { status: ticketStatus };
+      if (withReply || ticketMessageMode === 'auto' || ticketMessageMode === 'manual') {
+        payload.response = msg;
+      }
+
+      const { r, raw, data } = await safeFetchJson(`${API_URL}/api/support/tickets/${encodeURIComponent(ticketData.ticketNumber)}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(payload)
+      });
+
+      if (!r.ok) {
+        const htmlLike = raw && raw.trim().startsWith('<');
+        throw new Error(data?.message || (htmlLike ? 'Support service is unavailable.' : `Failed to update status (${r.status})`));
+      }
+
+      await refreshTicket(ticketData.ticketNumber);
+      setTicketReply('');
+      setTicketLastAutoMessage('');
+      toast.success('Status updated');
+    } catch (e) {
+      toast.error(e.message || 'Failed to update status');
+    } finally {
+      setTicketUpdating(false);
     }
   };
 
@@ -223,11 +416,17 @@ const Notifications = () => {
               const bookingNumberMatch = messageText.match(/Booking number:\s*([A-Z0-9-]+)/i);
               const reviewPinMatch = messageText.match(/Review PIN:\s*(\d+)/i);
               const isReviewNotification = String(n.type || '').toLowerCase().includes('review') || !!reviewPinMatch;
+              const isSupportTicketNotification = String(n.type || '') === 'support_ticket_created' && user?.userType === 'admin';
 
               const handleCardClick = () => {
                 // Commission-style notifications keep their own CTAs; just mark read on click
                 if (String(n.type || '').includes('commission')) {
                   if (!n.isRead) markRead(n.id);
+                  return;
+                }
+
+                if (isSupportTicketNotification) {
+                  openSupportTicket(n);
                   return;
                 }
 
@@ -302,6 +501,17 @@ const Notifications = () => {
                         <div className="text-xs text-gray-400 mt-1">{n.createdAt ? new Date(n.createdAt).toLocaleString() : ''}</div>
                       </div>
                       <div className="flex items-center gap-2">
+                        {isSupportTicketNotification && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openSupportTicket(n);
+                            }}
+                            className="px-3 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded"
+                          >
+                            Open
+                          </button>
+                        )}
                         {n.booking &&
                           (n.type === 'booking_paid' || n.type === 'booking_created') && (
                             <button
@@ -321,6 +531,180 @@ const Notifications = () => {
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {ticketModalOpen && (
+          <div className="fixed inset-0 z-[99999] overflow-y-auto">
+            <div className="min-h-full flex items-center justify-center p-4">
+            <div
+              className="absolute inset-0 bg-black/40"
+              onClick={() => {
+                if (ticketUpdating) return;
+                setTicketModalOpen(false);
+              }}
+            />
+            <div className="relative w-full max-w-3xl max-h-[90vh] bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden flex flex-col">
+              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
+                <div>
+                  <div className="text-sm text-gray-600">Support Ticket</div>
+                  <div className="text-lg font-bold text-gray-900">{ticketData?.ticketNumber || '—'}</div>
+                </div>
+                <button
+                  onClick={() => {
+                    if (ticketUpdating) return;
+                    setTicketModalOpen(false);
+                  }}
+                  className="px-3 py-2 text-sm bg-white border border-gray-200 hover:bg-gray-50 rounded"
+                >
+                  Close
+                </button>
+              </div>
+
+              <div className="p-5 overflow-y-auto flex-1">
+                {ticketLoading ? (
+                  <div className="text-gray-600">Loading ticket...</div>
+                ) : ticketError ? (
+                  <div className="text-red-600">{ticketError}</div>
+                ) : ticketData ? (
+                  <div className="space-y-5">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                        <div className="text-xs text-gray-500">Status</div>
+                        <div className="text-sm font-semibold text-gray-900">{ticketData.status}</div>
+                      </div>
+                      <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                        <div className="text-xs text-gray-500">Priority</div>
+                        <div className="text-sm font-semibold text-gray-900">{ticketData.priority}</div>
+                      </div>
+                      <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                        <div className="text-xs text-gray-500">Category</div>
+                        <div className="text-sm font-semibold text-gray-900">{ticketData.category}</div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="text-xs text-gray-500">Subject</div>
+                      <div className="text-sm font-semibold text-gray-900">{ticketData.subject}</div>
+                    </div>
+
+                    <div>
+                      <div className="text-sm font-semibold text-gray-900 mb-2">Conversation</div>
+                      <div className="space-y-3 max-h-[32vh] overflow-y-auto pr-1">
+                        {(ticketData.responses || []).map((r, idx) => (
+                          <div key={idx} className={`p-4 rounded-lg border ${r.isAdmin ? 'bg-white border-blue-200' : 'bg-white border-gray-200'}`}>
+                            <div className="text-xs text-gray-500 mb-1">{r.isAdmin ? 'Support' : 'User'} • {r.createdAt ? new Date(r.createdAt).toLocaleString() : ''}</div>
+                            <div className="text-gray-800 whitespace-pre-wrap break-words">{r.message}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-start">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Set status</label>
+                        <select
+                          value={ticketStatus}
+                          onChange={(e) => {
+                            const next = e.target.value;
+                            setTicketStatus(next);
+                            if (ticketMessageMode === 'auto') {
+                              syncAutoMessageIfNeeded(next);
+                            }
+                          }}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          disabled={ticketUpdating}
+                        >
+                          <option value="open">open</option>
+                          <option value="in_progress">in_progress</option>
+                          <option value="resolved">resolved</option>
+                          <option value="closed">closed</option>
+                        </select>
+                      </div>
+                      <div className="md:col-span-2">
+                        <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                          <label className="block text-sm font-medium text-gray-700">Message to user</label>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setTicketMessageMode('auto');
+                                const nextAuto = buildAutoStatusMessage(ticketData, ticketStatus);
+                                setTicketReply(nextAuto);
+                                setTicketLastAutoMessage(nextAuto);
+                              }}
+                              disabled={ticketUpdating}
+                              className={`px-3 py-1.5 text-xs rounded border ${ticketMessageMode === 'auto' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
+                            >
+                              Auto
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const lastAuto = ticketLastAutoMessage;
+                                setTicketMessageMode('manual');
+                                setTicketLastAutoMessage('');
+                                if (ticketReply === lastAuto) setTicketReply('');
+                              }}
+                              disabled={ticketUpdating}
+                              className={`px-3 py-1.5 text-xs rounded border ${ticketMessageMode === 'manual' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
+                            >
+                              Manual
+                            </button>
+                          </div>
+                        </div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Reply to user</label>
+                        <textarea
+                          value={ticketReply}
+                          onChange={(e) => setTicketReply(e.target.value)}
+                          rows={3}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          disabled={ticketUpdating}
+                        />
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <button
+                            onClick={sendTicketReply}
+                            disabled={ticketUpdating || !String(ticketReply || '').trim()}
+                            className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded disabled:opacity-50"
+                          >
+                            {ticketUpdating ? 'Sending...' : 'Send Reply'}
+                          </button>
+                          <button
+                            onClick={() => updateTicketStatus(false)}
+                            disabled={ticketUpdating || (ticketMessageMode === 'manual' && !String(ticketReply || '').trim())}
+                            className="px-4 py-2 text-sm bg-white border border-gray-200 hover:bg-gray-50 rounded disabled:opacity-50"
+                          >
+                            {ticketUpdating ? 'Updating...' : 'Update Status'}
+                          </button>
+                          <button
+                            onClick={() => updateTicketStatus(true)}
+                            disabled={ticketUpdating || (ticketMessageMode === 'manual' && !String(ticketReply || '').trim())}
+                            className="px-4 py-2 text-sm bg-green-700 hover:bg-green-800 text-white rounded disabled:opacity-50"
+                          >
+                            {ticketUpdating ? 'Updating...' : 'Reply + Update'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-gray-600">No ticket selected.</div>
+                )}
+              </div>
+
+              <div className="px-5 py-4 border-t border-gray-100 flex items-center justify-end gap-2 bg-white shrink-0">
+                <button
+                  onClick={() => {
+                    if (ticketUpdating) return;
+                    setTicketModalOpen(false);
+                  }}
+                  className="px-4 py-2 text-sm bg-white border border-gray-200 hover:bg-gray-50 rounded"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+            </div>
           </div>
         )}
       </div>
