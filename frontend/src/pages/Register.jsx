@@ -92,7 +92,7 @@ const Register = () => {
             {t ? t('auth.registerTitle') : 'Create your account'}
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            {t ? t('auth.registerSubtitle') : 'Join AkwandaTravels and start your apartment journey'}
+            {t ? t('auth.registerSubtitle') : 'Join AkwandaTravels.com and start your apartment journey'}
           </p>
         </div>
 

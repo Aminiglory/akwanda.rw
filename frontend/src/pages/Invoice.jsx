@@ -77,7 +77,7 @@ const Invoice = () => {
             )}
           </div>
           <div className="text-right">
-            <div className="font-semibold">AkwandaTravels</div>
+            <div className="font-semibold">AkwandaTravels.com</div>
             <div className="text-sm text-gray-600">www.akwanda.rw</div>
           </div>
         </div>

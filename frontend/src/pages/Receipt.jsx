@@ -101,7 +101,7 @@ export default function Receipt() {
         <div className="mb-6">
           <div className="flex items-start justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">AkwandaTravels</h1>
+              <h1 className="text-2xl font-bold text-gray-900">AkwandaTravels.com</h1>
               <p className="text-gray-700">Booking Receipt</p>
             </div>
             <div className="text-right">

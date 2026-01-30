@@ -253,7 +253,7 @@ const OwnerRegister = () => {
       case 2: return 'Help guests find and understand your property';
       case 3: return 'We\'ll use this to create your property owner account';
       case 4: return 'Review and complete your registration';
-      default: return 'List your property on AkwandaTravels and start earning';
+      default: return 'List your property on AkwandaTravels.com and start earning';
     }
   };
 
@@ -713,7 +713,7 @@ const OwnerRegister = () => {
                       <li>• We'll create your property owner account</li>
                       <li>• You'll be redirected to add property details and photos</li>
                       <li>• Our team will review your listing within 24 hours</li>
-                      <li>• Once approved, your property will be live on AkwandaTravels</li>
+                      <li>• Once approved, your property will be live on AkwandaTravels.com</li>
                     </ul>
                   </div>
                 </div>

@@ -34,8 +34,15 @@ const ReceiptComponent = ({ bookingId, userType }) => {
       const totalAmount = Number(pricing.totalAmount ?? 0);
       const commissionAmount = Number(pricing.commissionAmount ?? 0);
       const propertyOwnerAmount = Math.max(0, totalAmount - commissionAmount - taxAmount);
+      // Normalize and ensure we always have the key nested objects
       setReceipt({
         ...r,
+        dates: r.dates || {},
+        property: r.property || {},
+        guest: r.guest || {},
+        room: r.room || null,
+        payment: r.payment || { method: 'cash', status: 'pending', transactionId: '' },
+        services: r.services || {},
         pricing: {
           ...pricing,
           amountBeforeTax,
@@ -80,13 +87,24 @@ const ReceiptComponent = ({ bookingId, userType }) => {
       toast.error('Failed to download receipt');
     }
   };
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
+  const formatDate = (dateString, withTime = false) => {
+    if (!dateString) return '—';
+    const d = new Date(dateString);
+    if (Number.isNaN(d.getTime())) return '—';
+    return d.toLocaleString('en-US', withTime
+      ? {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        }
+      : {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+        }
+    );
   };
 
   const formatCurrency = (amount) => {
@@ -116,36 +134,121 @@ const ReceiptComponent = ({ bookingId, userType }) => {
   const services = receipt.services || {};
   const propertyAddOns = Array.isArray(receipt.property?.addOnServices) ? receipt.property.addOnServices : [];
   const selectedAddOns = propertyAddOns.filter(a => a && a.key && services[a.key]);
+  const dates = receipt.dates || {};
+  const pricing = receipt.pricing || {};
+  const guest = receipt.guest || {};
+  const property = receipt.property || {};
+  const room = receipt.room || null;
 
   // Begin JSX
   return (
     <div id="receipt-content" className="max-w-3xl mx-auto p-6 bg-white rounded-xl border">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-2">
-          <FaFileInvoice className="text-blue-600" />
-          <h2 className="text-xl font-semibold text-gray-900">Receipt</h2>
+        <div>
+          <div className="flex items-center gap-2">
+            <FaFileInvoice className="text-blue-600" />
+            <h2 className="text-xl font-semibold text-gray-900">Booking Receipt</h2>
+          </div>
+          <div className="mt-1 text-xs text-gray-600 space-x-4">
+            <span>Receipt No: <span className="font-semibold">{receipt.confirmationCode || receipt.bookingId}</span></span>
+            {receipt.status && (
+              <span>Status: <span className="font-semibold uppercase">{receipt.status}</span></span>
+            )}
+          </div>
         </div>
-        <div className="text-sm text-gray-500">{formatDate(receipt.createdAt)}</div>
+        <div className="text-right text-sm text-gray-500">
+          <div>Receipt Date</div>
+          <div className="font-medium">{formatDate(receipt.createdAt, true)}</div>
+        </div>
       </div>
 
-      {/* Totals */}
-      <div className="space-y-2 mb-6">
-        <div className="flex justify-between">
-          <span className="text-gray-600">EBM Tax (included) ({receipt.pricing.taxRate || 3}%):</span>
-          <span className="font-semibold text-blue-600">{formatCurrency(receipt.pricing.taxAmount || 0)}</span>
+      {/* Booking & Property Details */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 text-sm">
+        <div className="border rounded-lg p-3">
+          <p className="text-xs text-gray-500 mb-1">Booking</p>
+          <p>Confirmation: <span className="font-semibold">{receipt.confirmationCode || '—'}</span></p>
+          {receipt.bookingNumber && (
+            <p>Booking Number: <span className="font-semibold">{receipt.bookingNumber}</span></p>
+          )}
+          <p>Guests: <span className="font-semibold">{receipt.guests || 1}</span></p>
         </div>
-        <div className="flex justify-between border-t pt-2">
-          <span className="text-gray-900 font-semibold">Total Paid (Tax Included):</span>
-          <span className="font-bold">{formatCurrency(receipt.pricing.totalAmount)}</span>
+        <div className="border rounded-lg p-3">
+          <p className="text-xs text-gray-500 mb-1">Property</p>
+          <p className="font-semibold text-gray-900">{property.title || '—'}</p>
+          {property.address && <p>{property.address}</p>}
+          {property.city && <p className="text-gray-700">{property.city}</p>}
+          {room && room.name && (
+            <p className="mt-1">Room: <span className="font-semibold">{room.name}</span></p>
+          )}
         </div>
-        <div className="flex justify-between border-t pt-2">
-          <span className="text-gray-600">Platform Commission ({((receipt.pricing.commissionAmount / (receipt.pricing.totalAmount || 1)) * 100).toFixed(1)}%):</span>
-          <span className="font-semibold text-red-600">-{formatCurrency(receipt.pricing.commissionAmount)}</span>
+      </div>
+
+      {/* Guest & Stay Details */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 text-sm">
+        <div className="border rounded-lg p-3">
+          <p className="text-xs text-gray-500 mb-1">Guest</p>
+          <p className="font-semibold text-gray-900">{guest.name || '—'}</p>
+          {guest.email && <p>{guest.email}</p>}
+          {guest.phone && <p>{guest.phone}</p>}
         </div>
-        <div className="flex justify-between border-t pt-2">
-          <span className="text-gray-900 font-semibold">Amount to Property Owner:</span>
-          <span className="font-bold text-green-600">{formatCurrency(receipt.pricing.propertyOwnerAmount)}</span>
+        <div className="border rounded-lg p-3">
+          <p className="text-xs text-gray-500 mb-1">Stay</p>
+          <p>Check-in: <span className="font-semibold">{formatDate(dates.checkIn, true)}</span></p>
+          <p>Check-out: <span className="font-semibold">{formatDate(dates.checkOut, true)}</span></p>
+          {typeof dates.nights === 'number' && (
+            <p>Nights: <span className="font-semibold">{dates.nights}</span></p>
+          )}
+        </div>
+      </div>
+
+      {/* Selected add-on services (if any) */}
+      {selectedAddOns.length > 0 && (
+        <div className="mb-6 border-t border-gray-200 pt-4 text-sm">
+          <h3 className="text-base font-semibold text-gray-900 mb-2">Add-on services</h3>
+          <ul className="list-disc pl-5 space-y-1 text-gray-700">
+            {selectedAddOns.map(addOn => (
+              <li key={addOn.key}>
+                <span className="font-medium">{addOn.name}</span>
+                {addOn.scope && (
+                  <span className="ml-1 text-gray-500 text-xs">({addOn.scope.replace(/_/g, ' ')})</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Pricing Summary */}
+      <div className="mb-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">Pricing Summary</h3>
+        <div className="divide-y border rounded-lg border-gray-200 text-sm">
+          <div className="flex justify-between p-3">
+            <span className="text-gray-700">Amount Before Tax</span>
+            <span className="font-medium">{formatCurrency(pricing.amountBeforeTax)}</span>
+          </div>
+          {pricing.discountApplied > 0 && (
+            <div className="flex justify-between p-3">
+              <span className="text-gray-700">Discount Applied</span>
+              <span className="font-medium text-green-700">- {formatCurrency(pricing.discountApplied)}</span>
+            </div>
+          )}
+          <div className="flex justify-between p-3">
+            <span className="text-gray-700">EBM Tax (included) ({pricing.taxRate || 3}%):</span>
+            <span className="font-medium text-blue-600">{formatCurrency(pricing.taxAmount)}</span>
+          </div>
+          <div className="flex justify-between p-3">
+            <span className="text-gray-900 font-semibold">Total Paid (Tax Included)</span>
+            <span className="font-bold">{formatCurrency(pricing.totalAmount)}</span>
+          </div>
+          <div className="flex justify-between p-3">
+            <span className="text-gray-700">Platform Commission {pricing.totalAmount > 0 ? `(${((pricing.commissionAmount / pricing.totalAmount) * 100).toFixed(1)}%)` : ''}</span>
+            <span className="font-medium text-red-600">- {formatCurrency(pricing.commissionAmount)}</span>
+          </div>
+          <div className="flex justify-between p-3 bg-green-50">
+            <span className="text-gray-900 font-semibold">Amount to Property Owner</span>
+            <span className="font-bold text-green-700">{formatCurrency(pricing.propertyOwnerAmount)}</span>
+          </div>
         </div>
       </div>
 
@@ -155,21 +258,31 @@ const ReceiptComponent = ({ bookingId, userType }) => {
           <FaCheckCircle className="text-green-600" />
           Payment Information
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
           <div>
             <p className="font-medium text-gray-600">Payment Method</p>
             <p className="text-gray-900 capitalize">{receipt.payment.method.replace('_', ' ')}</p>
           </div>
           <div>
             <p className="font-medium text-gray-600">Payment Status</p>
-            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-              receipt.payment.status === 'paid' ? 'bg-green-100 text-green-800' :
-              receipt.payment.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-              'bg-red-100 text-red-800'
-            }`}>
+            <span
+              className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                receipt.payment.status === 'paid'
+                  ? 'bg-green-100 text-green-800'
+                  : receipt.payment.status === 'pending'
+                  ? 'bg-yellow-100 text-yellow-800'
+                  : 'bg-red-100 text-red-800'
+              }`}
+            >
               {receipt.payment.status.charAt(0).toUpperCase() + receipt.payment.status.slice(1)}
             </span>
           </div>
+          {receipt.payment.transactionId && (
+            <div>
+              <p className="font-medium text-gray-600">Transaction ID</p>
+              <p className="text-gray-900 break-all">{receipt.payment.transactionId}</p>
+            </div>
+          )}
         </div>
       </div>
 

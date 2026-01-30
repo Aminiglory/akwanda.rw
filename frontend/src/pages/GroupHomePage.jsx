@@ -357,7 +357,7 @@ const GroupHomePage = () => {
                     Property
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status on AkwandaTravels
+                    Status on AkwandaTravels.com
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Arrivals in next 48 hours
@@ -369,7 +369,7 @@ const GroupHomePage = () => {
                     Guest messages
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    AkwandaTravels messages
+                    AkwandaTravels.com messages
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Commission

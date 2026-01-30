@@ -139,7 +139,7 @@ const Footer = () => {
           {/* Brand Section */}
           <div className="lg:col-span-1">
             <div className="mb-6">
-              <h2 className="text-2xl font-bold text-white mb-4">{t ? t('brand') : 'AkwandaTravels'}</h2>
+              <h2 className="text-2xl font-bold text-white mb-4">{t ? t('brand') : 'AkwandaTravels.com'}</h2>
               <p className="text-white-300 leading-relaxed">
                 Rwanda's home grown booking platform that connects guest with amazing hosts across the country.
               </p>
@@ -244,7 +244,7 @@ const Footer = () => {
         <div className="max-w-6xl mx-auto px-4 py-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div className="text-gray-300 text-sm">
-              {t ? t('footer.bottomCopyright', year) : `© ${year} AkwandaTravels. All rights reserved.`}
+              {t ? t('footer.bottomCopyright', year) : `© ${year} AkwandaTravels.com. All rights reserved.`}
             </div>
             <div className="flex flex-wrap gap-6 text-sm justify-center md:justify-end">
               <a href="/support" className="text-gray-300 hover:text-white transition-colors duration-300">

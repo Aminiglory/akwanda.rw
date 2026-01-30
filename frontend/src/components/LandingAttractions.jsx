@@ -67,7 +67,7 @@ export default function LandingAttractions() {
                   {c.title}
                 </span>
                 <span className="text-[11px] sm:text-xs text-white/80 tracking-wide uppercase">
-                  {t ? t('landing.curatedBy') : 'Curated by AkwandaTravels'}
+                  {t ? t('landing.curatedBy') : 'Curated by AkwandaTravels.com'}
                 </span>
               </figcaption>
             </figure>
