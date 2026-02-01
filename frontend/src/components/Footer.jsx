@@ -20,14 +20,6 @@ const Footer = () => {
   const { user } = useAuth() || {};
   const [hasFlights, setHasFlights] = useState(null);
 
-  const tr = (key, fallback) => {
-    if (!t) return fallback;
-    const v = t(key);
-    if (!v) return fallback;
-    if (v === key) return fallback;
-    return v;
-  };
-
   useEffect(() => {
     console.log('[Footer] mount');
     const handler = (e) => {
@@ -64,6 +56,21 @@ const Footer = () => {
   const adminEmail = site?.adminEmail || companyEmail;
   const adminPhone = site?.adminPhone || phone;
   const year = useMemo(() => new Date().getFullYear(), []);
+  const tr = (key, fallback) => {
+    if (!t) return fallback;
+    try {
+      const v = t(key);
+      if (!v) return fallback;
+      if (v === key) return fallback;
+      // If translations accidentally return raw keys like "submitTicket" or "trackTicket", fall back to a readable label
+      const looksLikeKey = typeof v === 'string' && !/\s/.test(v) && /[A-Z]/.test(v);
+      if (looksLikeKey) return fallback;
+      if (String(v).toLowerCase() === 'faq') return fallback;
+      return v;
+    } catch {
+      return fallback;
+    }
+  };
   const socials = {
     facebook: site?.facebook || '',
     twitter: site?.twitter || '',
@@ -85,7 +92,7 @@ const Footer = () => {
         { name: tr('footer.contactUs', 'Contact Us'), href: "/support#contact" },
         { name: tr('footer.submitTicket', 'Submit Ticket'), href: "/support#ticket" },
         { name: tr('footer.trackTicket', 'Track Ticket'), href: "/support#track" },
-        { name: tr('footer.faq', 'FAQ'), href: "/support#faq" }
+        { name: tr('footer.faqs', 'FAQs'), href: "/support#faq" }
       ]
     }
   ];
@@ -103,10 +110,10 @@ const Footer = () => {
   };
 
   const quickLinks = [
-    { icon: FaBuffer, name: t ? t('footer.listProperty') : "List Property", href: "/upload-property" },
+    { icon: FaBuffer, name: tr('footer.listProperty', 'List Property'), href: "/upload-property" },
     ...(user?.userType === 'host' && isInAnyOwnerDashboard()
       ? [
-          { icon: FaBed, name: t ? t('footer.manageStays') : 'Manage Stays', href: '/dashboard' },
+          { icon: FaBed, name: tr('footer.manageStays', 'Manage Stays'), href: '/dashboard' },
           { icon: FaCar, name: 'Vehicles', href: '/vehicles-group-home' },
           { icon: FaMountain, name: 'Attractions', href: '/owner/attractions' },
           { 
@@ -119,54 +126,54 @@ const Footer = () => {
   ];
 
   return (
-    <footer className="text-white bg-gradient-to-b from-gray-950 via-gray-900 to-gray-950 border-t border-white/10">
+    <footer className="bg-[#24140d] text-[#f6efe7] border-t border-[#3b2417]">
       {/* Main Footer Content */}
-      <div className="max-w-7xl mx-auto px-4 py-12 md:py-16">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+      <div className="max-w-6xl mx-auto px-4 py-12 md:py-14">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-10">
           {/* Brand Section */}
-          <div className="lg:col-span-5">
+          <div className="lg:col-span-1">
             <div className="mb-6">
-              <h2 className="text-2xl font-bold text-white mb-3">{tr('brand', 'AkwandaTravels.com')}</h2>
-              <p className="text-gray-300 leading-relaxed">
+              <h2 className="text-2xl font-bold text-[#f6efe7] mb-3">{tr('brand', 'AkwandaTravels.com')}</h2>
+              <p className="text-[#d8c6b8] leading-relaxed text-sm">
                 Rwanda's home grown booking platform that connects guest with amazing hosts across the country.
               </p>
             </div>
 
             {/* Contact Info */}
-            <div className="space-y-3 mb-7">
-              <div className="flex items-center gap-3">
-                <FaMapMarkerAlt className="text-blue-400" />
-                <span className="text-gray-300">Kigali, Rwanda</span>
+            <div className="space-y-3 mb-6">
+              <div className="flex items-center">
+                <FaMapMarkerAlt className="text-[#caa77a] mr-3" />
+                <span className="text-[#d8c6b8]">Kigali, Rwanda</span>
               </div>
-              <div className="flex items-center gap-3">
-                <FaPhone className="text-blue-400" />
-                <a href={`tel:${adminPhone}`} className="text-gray-300 hover:text-white transition-colors">{adminPhone}</a>
+              <div className="flex items-center">
+                <FaPhone className="text-[#caa77a] mr-3" />
+                <a href={`tel:${adminPhone}`} className="text-[#d8c6b8] hover:text-[#f6efe7]">{adminPhone}</a>
               </div>
-              <div className="flex items-center gap-3">
-                <FaVoicemail className="text-blue-400" />
-                <a href={`mailto:${adminEmail}`} className="text-gray-300 hover:text-white transition-colors">{adminEmail}</a>
+              <div className="flex items-center">
+                <FaVoicemail className="text-[#caa77a] mr-3" />
+                <a href={`mailto:${adminEmail}`} className="text-[#d8c6b8] hover:text-[#f6efe7]">{adminEmail}</a>
               </div>
             </div>
 
             {/* Social Media */}
             <div className="flex flex-wrap gap-3">
               {socials.facebook && (
-                <a href={socials.facebook} target="_blank" rel="noreferrer" className="w-10 h-10 bg-white/5 border border-white/10 rounded-full flex items-center justify-center hover:bg-white/10 hover:border-white/20 transition-colors duration-300">
+                <a href={socials.facebook} target="_blank" rel="noreferrer" className="w-10 h-10 bg-[#2f1b12] border border-[#3b2417] rounded-full flex items-center justify-center hover:bg-[#3b2417] transition-colors duration-300">
                   <FaFacebook />
                 </a>
               )}
               {socials.twitter && (
-                <a href={socials.twitter} target="_blank" rel="noreferrer" className="w-10 h-10 bg-white/5 border border-white/10 rounded-full flex items-center justify-center hover:bg-white/10 hover:border-white/20 transition-colors duration-300">
+                <a href={socials.twitter} target="_blank" rel="noreferrer" className="w-10 h-10 bg-[#2f1b12] border border-[#3b2417] rounded-full flex items-center justify-center hover:bg-[#3b2417] transition-colors duration-300">
                   <FaTwitter />
                 </a>
               )}
               {socials.instagram && (
-                <a href={socials.instagram} target="_blank" rel="noreferrer" className="w-10 h-10 bg-white/5 border border-white/10 rounded-full flex items-center justify-center hover:bg-white/10 hover:border-white/20 transition-colors duration-300">
+                <a href={socials.instagram} target="_blank" rel="noreferrer" className="w-10 h-10 bg-[#2f1b12] border border-[#3b2417] rounded-full flex items-center justify-center hover:bg-[#3b2417] transition-colors duration-300">
                   <FaInstagram />
                 </a>
               )}
               {socials.linkedin && (
-                <a href={socials.linkedin} target="_blank" rel="noreferrer" className="w-10 h-10 bg-white/5 border border-white/10 rounded-full flex items-center justify-center hover:bg-white/10 hover:border-white/20 transition-colors duration-300">
+                <a href={socials.linkedin} target="_blank" rel="noreferrer" className="w-10 h-10 bg-[#2f1b12] border border-[#3b2417] rounded-full flex items-center justify-center hover:bg-[#3b2417] transition-colors duration-300">
                   <FaLinkedin />
                 </a>
               )}
@@ -174,19 +181,18 @@ const Footer = () => {
           </div>
 
           {/* Footer Links - wrapped to reduce height on small screens */}
-          <div className="lg:col-span-7">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <div className="lg:col-span-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
               {footerSections.map((section, index) => (
-                <div key={index} className="bg-white/5 border border-white/10 rounded-2xl p-5 sm:p-6">
-                  <h3 className="text-sm font-bold tracking-wide uppercase text-white/90 mb-4">{section.title}</h3>
-                  <ul className="space-y-2">
+                <div key={index}>
+                  <h3 className="text-sm font-semibold tracking-wide text-[#f6efe7] mb-4 uppercase">{section.title}</h3>
+                  <ul className="space-y-2.5">
                     {section.links.map((link, linkIndex) => (
                       <li key={linkIndex}>
                         <a
                           href={link.href}
-                          className="text-gray-300 hover:text-white transition-colors duration-300 inline-flex items-center gap-2 group"
+                          className="inline-flex items-center text-[#d8c6b8] hover:text-[#f6efe7] transition-colors duration-200"
                         >
-                          <span className="w-1.5 h-1.5 rounded-full bg-blue-400/80 group-hover:bg-blue-300 transition-colors" />
                           {link.name}
                         </a>
                       </li>
@@ -199,8 +205,8 @@ const Footer = () => {
         </div>
 
         {/* Quick Links */}
-        <div className="border-t border-white/10 mt-12 pt-8">
-          <h3 className="text-sm font-bold tracking-wide uppercase mb-6 text-center text-white/90">{tr('footer.quickLinks', 'Quick Links')}</h3>
+        <div className="border-t border-[#3b2417] mt-12 pt-8">
+          <h3 className="text-sm font-semibold tracking-wide text-center uppercase text-[#f6efe7] mb-6">{tr('footer.quickLinks', 'Quick Links')}</h3>
           <div className="flex flex-wrap justify-center gap-3 sm:gap-4">
             {quickLinks.map((link, index) => {
               const IconComponent = link.icon;
@@ -210,9 +216,9 @@ const Footer = () => {
                   key={index}
                   href={link.href}
                   {...(openInNewTab ? { target: '_blank', rel: 'noreferrer' } : {})}
-                  className="flex items-center gap-2 bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 px-3 py-2 text-sm md:px-4 md:text-base rounded-xl transition-colors duration-300"
+                  className="flex items-center gap-2 bg-[#2f1b12] border border-[#3b2417] hover:bg-[#3b2417] px-3 py-2 text-sm rounded-lg transition-colors duration-200"
                 >
-                  <IconComponent className="text-blue-400" />
+                  <IconComponent className="text-[#caa77a]" />
                   <span>{link.name}</span>
                 </a>
               );
@@ -222,17 +228,17 @@ const Footer = () => {
       </div>
 
       {/* Bottom Bar without global search */}
-      <div className="border-t border-white/10">
+      <div className="border-t border-[#3b2417]">
         <div className="max-w-6xl mx-auto px-4 py-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div className="text-gray-300 text-sm">
+            <div className="text-[#d8c6b8] text-sm">
               {t ? t('footer.bottomCopyright', year) : `© ${year} AkwandaTravels.com. All rights reserved.`}
             </div>
             <div className="flex flex-wrap gap-6 text-sm justify-center md:justify-end">
-              <a href="/support" className="text-gray-300 hover:text-white transition-colors duration-300">
+              <a href="/support" className="text-[#d8c6b8] hover:text-[#f6efe7] transition-colors duration-200">
                 {tr('footer.privacy', 'Privacy Policy')}
               </a>
-              <a href="/support" className="text-gray-300 hover:text-white transition-colors duration-300">
+              <a href="/support" className="text-[#d8c6b8] hover:text-[#f6efe7] transition-colors duration-200">
                 {tr('footer.terms', 'Terms of Service')}
               </a>
             </div>
@@ -243,7 +249,7 @@ const Footer = () => {
       {/* Back to Top Button */}
       <button
         onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-        className="fixed bottom-6 right-6 w-12 h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 flex items-center justify-center"
+        className="fixed bottom-6 right-6 w-12 h-12 bg-[#2f1b12] border border-[#3b2417] hover:bg-[#3b2417] text-[#f6efe7] rounded-full shadow-lg hover:shadow-xl transition-colors duration-200 flex items-center justify-center"
       >
         ↑
       </button>

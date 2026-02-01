@@ -417,7 +417,7 @@ const CustomerSupport = () => {
                 { id: 'track', label: 'Track Ticket', icon: FaClock },
                 ...(user?.userType === 'host' || user?.userType === 'admin' ? [{ id: 'reviews', label: 'Reviews', icon: FaCheckCircle }] : []),
                 ...(user?.userType === 'admin' ? [{ id: 'admin', label: 'Admin Tools', icon: FaHeadset }] : []),
-                { id: 'faq', label: 'FAQ', icon: FaInfoCircle }
+                { id: 'faq', label: 'FAQs', icon: FaInfoCircle }
               ].map(({ id, label, icon: Icon }) => (
                 <button
                   key={id}
@@ -926,7 +926,11 @@ const CustomerSupport = () => {
                             <div className="text-sm text-gray-600 mt-1">Try a different search or submit a ticket and our support team will help.</div>
                             <button
                               type="button"
-                              onClick={() => setActiveTab('ticket')}
+                              onClick={() => {
+                                setFaqQuery('');
+                                setOpenFaqKey('');
+                                setTabWithHash('ticket');
+                              }}
                               className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold"
                             >
                               <FaTicketAlt />
