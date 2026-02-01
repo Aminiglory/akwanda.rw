@@ -875,7 +875,7 @@ const CustomerSupport = () => {
               </div>
             )}
 
-            {/* FAQ Tab */}
+            {/* FAQs Tab */}
             {activeTab === 'faq' && (
               <div className="max-w-4xl mx-auto">
                 <h2 className="text-2xl font-bold text-gray-900 mb-8">Frequently Asked Questions</h2>
