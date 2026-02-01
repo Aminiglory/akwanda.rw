@@ -73,14 +73,6 @@ const Footer = () => {
   };
   const footerSections = [
     {
-      title: tr('footer.forHosts', 'For Hosts'),
-      links: [
-        { name: tr('footer.listProperty', 'List Your Property'), href: "/upload-property" },
-        { name: tr('footer.hostGuidelines', 'Host Guidelines'), href: "/support" },
-        { name: tr('footer.hostSupport', 'Host Support'), href: "/support" }
-      ]
-    },
-    {
       title: tr('footer.support', 'Support'),
       links: [
         { name: tr('footer.contactUs', 'Contact Us'), href: "/support#contact" },
@@ -123,9 +115,9 @@ const Footer = () => {
     <footer className="bg-gray-900 text-white">
       {/* Main Footer Content */}
       <div className="max-w-6xl mx-auto px-4 py-12 md:py-16">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-8">
           {/* Brand Section */}
-          <div className="lg:col-span-1 min-w-0 pr-6">
+          <div className="min-w-0 lg:max-w-xl">
             <div className="mb-6">
               <h2 className="text-2xl font-bold text-white mb-4 break-words">{t ? t('brand') : 'AkwandaTravels.com'}</h2>
               <p className="text-white-300 leading-relaxed">
@@ -175,26 +167,24 @@ const Footer = () => {
           </div>
 
           {/* Footer Links - wrapped to reduce height on small screens */}
-          <div className="lg:col-span-2 min-w-0">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              {footerSections.map((section, index) => (
-                <div key={index}>
-                  <h3 className="text-lg font-semibold mb-4">{section.title}</h3>
-                  <ul className="space-y-2">
-                    {section.links.map((link, linkIndex) => (
-                      <li key={linkIndex}>
-                        <a
-                          href={link.href}
-                          className="text-gray-300 hover:text-white transition-colors duration-300"
-                        >
-                          {link.name}
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </div>
+          <div className="min-w-0 lg:w-72">
+            {footerSections.map((section, index) => (
+              <div key={index}>
+                <h3 className="text-lg font-semibold mb-4">{section.title}</h3>
+                <ul className="space-y-2">
+                  {section.links.map((link, linkIndex) => (
+                    <li key={linkIndex}>
+                      <a
+                        href={link.href}
+                        className="text-gray-300 hover:text-white transition-colors duration-300"
+                      >
+                        {link.name}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
           </div>
         </div>
 
