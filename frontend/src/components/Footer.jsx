@@ -20,6 +20,14 @@ const Footer = () => {
   const { user } = useAuth() || {};
   const [hasFlights, setHasFlights] = useState(null);
 
+  const tr = (key, fallback) => {
+    if (!t) return fallback;
+    const v = t(key);
+    if (!v) return fallback;
+    if (v === key) return fallback;
+    return v;
+  };
+
   useEffect(() => {
     console.log('[Footer] mount');
     const handler = (e) => {
@@ -64,20 +72,20 @@ const Footer = () => {
   };
   const footerSections = [
     {
-      title: t ? t('footer.forHosts') : "For Hosts",
+      title: tr('footer.forHosts', 'For Hosts'),
       links: [
-        { name: t ? t('footer.listProperty') : "List Your Property", href: "/upload-property" },
-        { name: t ? t('footer.hostGuidelines') : "Host Guidelines", href: "/support" },
-        { name: t ? t('footer.hostSupport') : "Host Support", href: "/support" }
+        { name: tr('footer.listProperty', 'List Your Property'), href: "/upload-property" },
+        { name: tr('footer.hostGuidelines', 'Host Guidelines'), href: "/support" },
+        { name: tr('footer.hostSupport', 'Host Support'), href: "/support" }
       ]
     },
     {
-      title: t ? t('footer.support') : "Support",
+      title: tr('footer.support', 'Support'),
       links: [
-        { name: t ? t('footer.contactUs') : "Contact Us", href: "/support#contact" },
-        { name: t ? t('footer.submitTicket') : "Submit Ticket", href: "/support#ticket" },
-        { name: t ? t('footer.trackTicket') : "Track Ticket", href: "/support#track" },
-        { name: t ? t('footer.faq') : "FAQ", href: "/support#faq" }
+        { name: tr('footer.contactUs', 'Contact Us'), href: "/support#contact" },
+        { name: tr('footer.submitTicket', 'Submit Ticket'), href: "/support#ticket" },
+        { name: tr('footer.trackTicket', 'Track Ticket'), href: "/support#track" },
+        { name: tr('footer.faq', 'FAQ'), href: "/support#faq" }
       ]
     }
   ];
@@ -111,54 +119,54 @@ const Footer = () => {
   ];
 
   return (
-    <footer className="bg-gray-900 text-white">
+    <footer className="text-white bg-gradient-to-b from-gray-950 via-gray-900 to-gray-950 border-t border-white/10">
       {/* Main Footer Content */}
-      <div className="max-w-6xl mx-auto px-4 py-12 md:py-16">
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+      <div className="max-w-7xl mx-auto px-4 py-12 md:py-16">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
           {/* Brand Section */}
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-5">
             <div className="mb-6">
-              <h2 className="text-2xl font-bold text-white mb-4">{t ? t('brand') : 'AkwandaTravels.com'}</h2>
-              <p className="text-white-300 leading-relaxed">
+              <h2 className="text-2xl font-bold text-white mb-3">{tr('brand', 'AkwandaTravels.com')}</h2>
+              <p className="text-gray-300 leading-relaxed">
                 Rwanda's home grown booking platform that connects guest with amazing hosts across the country.
               </p>
             </div>
 
             {/* Contact Info */}
-            <div className="space-y-3 mb-6">
-              <div className="flex items-center">
-                <FaMapMarkerAlt className="text-blue-400 mr-3" />
+            <div className="space-y-3 mb-7">
+              <div className="flex items-center gap-3">
+                <FaMapMarkerAlt className="text-blue-400" />
                 <span className="text-gray-300">Kigali, Rwanda</span>
               </div>
-              <div className="flex items-center">
-                <FaPhone className="text-blue-400 mr-3" />
-                <a href={`tel:${adminPhone}`} className="text-gray-300 hover:text-white">{adminPhone}</a>
+              <div className="flex items-center gap-3">
+                <FaPhone className="text-blue-400" />
+                <a href={`tel:${adminPhone}`} className="text-gray-300 hover:text-white transition-colors">{adminPhone}</a>
               </div>
-              <div className="flex items-center">
-                <FaVoicemail className="text-blue-400 mr-3" />
-                <a href={`mailto:${adminEmail}`} className="text-gray-300 hover:text-white">{adminEmail}</a>
+              <div className="flex items-center gap-3">
+                <FaVoicemail className="text-blue-400" />
+                <a href={`mailto:${adminEmail}`} className="text-gray-300 hover:text-white transition-colors">{adminEmail}</a>
               </div>
             </div>
 
             {/* Social Media */}
             <div className="flex flex-wrap gap-3">
               {socials.facebook && (
-                <a href={socials.facebook} target="_blank" rel="noreferrer" className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center hover:bg-blue-700 transition-colors duration-300">
+                <a href={socials.facebook} target="_blank" rel="noreferrer" className="w-10 h-10 bg-white/5 border border-white/10 rounded-full flex items-center justify-center hover:bg-white/10 hover:border-white/20 transition-colors duration-300">
                   <FaFacebook />
                 </a>
               )}
               {socials.twitter && (
-                <a href={socials.twitter} target="_blank" rel="noreferrer" className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center hover:bg-blue-700 transition-colors duration-300">
+                <a href={socials.twitter} target="_blank" rel="noreferrer" className="w-10 h-10 bg-white/5 border border-white/10 rounded-full flex items-center justify-center hover:bg-white/10 hover:border-white/20 transition-colors duration-300">
                   <FaTwitter />
                 </a>
               )}
               {socials.instagram && (
-                <a href={socials.instagram} target="_blank" rel="noreferrer" className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center hover:bg-blue-700 transition-colors duration-300">
+                <a href={socials.instagram} target="_blank" rel="noreferrer" className="w-10 h-10 bg-white/5 border border-white/10 rounded-full flex items-center justify-center hover:bg-white/10 hover:border-white/20 transition-colors duration-300">
                   <FaInstagram />
                 </a>
               )}
               {socials.linkedin && (
-                <a href={socials.linkedin} target="_blank" rel="noreferrer" className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center hover:bg-blue-700 transition-colors duration-300">
+                <a href={socials.linkedin} target="_blank" rel="noreferrer" className="w-10 h-10 bg-white/5 border border-white/10 rounded-full flex items-center justify-center hover:bg-white/10 hover:border-white/20 transition-colors duration-300">
                   <FaLinkedin />
                 </a>
               )}
@@ -166,18 +174,19 @@ const Footer = () => {
           </div>
 
           {/* Footer Links - wrapped to reduce height on small screens */}
-          <div className="lg:col-span-4">
+          <div className="lg:col-span-7">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               {footerSections.map((section, index) => (
-                <div key={index}>
-                  <h3 className="text-lg font-semibold mb-4">{section.title}</h3>
+                <div key={index} className="bg-white/5 border border-white/10 rounded-2xl p-5 sm:p-6">
+                  <h3 className="text-sm font-bold tracking-wide uppercase text-white/90 mb-4">{section.title}</h3>
                   <ul className="space-y-2">
                     {section.links.map((link, linkIndex) => (
                       <li key={linkIndex}>
                         <a
                           href={link.href}
-                          className="text-gray-300 hover:text-white transition-colors duration-300"
+                          className="text-gray-300 hover:text-white transition-colors duration-300 inline-flex items-center gap-2 group"
                         >
+                          <span className="w-1.5 h-1.5 rounded-full bg-blue-400/80 group-hover:bg-blue-300 transition-colors" />
                           {link.name}
                         </a>
                       </li>
@@ -190,8 +199,8 @@ const Footer = () => {
         </div>
 
         {/* Quick Links */}
-        <div className="border-t border-gray-800 mt-12 pt-8">
-          <h3 className="text-lg font-semibold mb-6 text-center">{t ? t('footer.quickLinks') : 'Quick Links'}</h3>
+        <div className="border-t border-white/10 mt-12 pt-8">
+          <h3 className="text-sm font-bold tracking-wide uppercase mb-6 text-center text-white/90">{tr('footer.quickLinks', 'Quick Links')}</h3>
           <div className="flex flex-wrap justify-center gap-3 sm:gap-4">
             {quickLinks.map((link, index) => {
               const IconComponent = link.icon;
@@ -201,7 +210,7 @@ const Footer = () => {
                   key={index}
                   href={link.href}
                   {...(openInNewTab ? { target: '_blank', rel: 'noreferrer' } : {})}
-                  className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 px-3 py-1.5 text-sm md:px-4 md:py-2 md:text-base rounded-lg transition-all duration-300 hover:scale-105"
+                  className="flex items-center gap-2 bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 px-3 py-2 text-sm md:px-4 md:text-base rounded-xl transition-colors duration-300"
                 >
                   <IconComponent className="text-blue-400" />
                   <span>{link.name}</span>
@@ -213,7 +222,7 @@ const Footer = () => {
       </div>
 
       {/* Bottom Bar without global search */}
-      <div className="border-t border-gray-800">
+      <div className="border-t border-white/10">
         <div className="max-w-6xl mx-auto px-4 py-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div className="text-gray-300 text-sm">
@@ -221,10 +230,10 @@ const Footer = () => {
             </div>
             <div className="flex flex-wrap gap-6 text-sm justify-center md:justify-end">
               <a href="/support" className="text-gray-300 hover:text-white transition-colors duration-300">
-                {t ? t('footer.privacy') : 'Privacy Policy'}
+                {tr('footer.privacy', 'Privacy Policy')}
               </a>
               <a href="/support" className="text-gray-300 hover:text-white transition-colors duration-300">
-                {t ? t('footer.terms') : 'Terms of Service'}
+                {tr('footer.terms', 'Terms of Service')}
               </a>
             </div>
           </div>
