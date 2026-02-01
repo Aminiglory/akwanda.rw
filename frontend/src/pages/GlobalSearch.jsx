@@ -188,7 +188,7 @@ const GlobalSearch = () => {
           <p className="text-gray-600 mb-6 text-sm">
             {isOwnerMode 
               ? 'Search across your properties, vehicles, and attractions.'
-              : 'Search across stays, vehicles, and attractions on AkwandaTravels.'}
+              : 'Search across stays, vehicles, and attractions on AkwandaTravels.com.'}
           </p>
         )}
 

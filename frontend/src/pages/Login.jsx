@@ -73,7 +73,7 @@ const Login = () => {
             {t ? t('auth.loginTitle') : 'Welcome back'}
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            {t ? t('auth.loginSubtitle') : 'Sign in to your AkwandaTravels account'}
+            {t ? t('auth.loginSubtitle') : 'Sign in to your AkwandaTravels.com account'}
           </p>
         </div>
 

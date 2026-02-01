@@ -231,7 +231,7 @@ const Home = () => {
         <section className="bg-[#a06b42] text-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-              <h3 className="text-2xl font-bold">{t ? t('home.listCtaTitle') : 'List your property with AkwandaTravels'}</h3>
+              <h3 className="text-2xl font-bold">{t ? t('home.listCtaTitle') : 'List your property with AkwandaTravels.com'}</h3>
               <p className="opacity-90">{t ? t('home.listCtaSubtitle') : 'Reach guests faster with our own tools and promotions.'}</p>
             </div>
             <a href="/upload" className="inline-flex items-center px-5 py-3 rounded-lg bg-white text-[#4b2a00] font-semibold hover:bg-[#fff3ea] transition-colors w-full sm:w-auto text-center">
