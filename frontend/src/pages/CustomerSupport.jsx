@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FaHeadset, FaTicketAlt, FaPhone, FaEnvelope, FaClock, FaCheckCircle, FaExclamationTriangle, FaInfoCircle, FaSearch } from 'react-icons/fa';
 import toast from 'react-hot-toast';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -34,6 +35,7 @@ const DEFAULT_FAQS = [
 
 const CustomerSupport = () => {
   const { user, isAuthenticated } = useAuth();
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState('contact');
   const [ownerReviews, setOwnerReviews] = useState({ reviews: [], avgRating: 0, count: 0 });
   const [loadingReviews, setLoadingReviews] = useState(false);
@@ -58,6 +60,22 @@ const CustomerSupport = () => {
   const [faqQuery, setFaqQuery] = useState('');
   const [openFaqKey, setOpenFaqKey] = useState('');
 
+  const tabFromHash = (hash) => {
+    const h = String(hash || '').replace('#', '').trim().toLowerCase();
+    if (h === 'contact') return 'contact';
+    if (h === 'ticket') return 'ticket';
+    if (h === 'track') return 'track';
+    if (h === 'faq') return 'faq';
+    return '';
+  };
+
+  const setTabWithHash = (tab) => {
+    setActiveTab(tab);
+    if (['contact', 'ticket', 'track', 'faq'].includes(tab)) {
+      if (window.location.hash !== `#${tab}`) window.location.hash = tab;
+    }
+  };
+
   // Prefill support form from logged-in user profile
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -74,6 +92,15 @@ const CustomerSupport = () => {
       email: user?.email || prev.email,
     }));
   }, [isAuthenticated, user]);
+
+  // Support page tabs can be opened via hash: /support#contact|#ticket|#track|#faq
+  useEffect(() => {
+    if (location?.pathname !== '/support') return;
+    const next = tabFromHash(location.hash);
+    if (next && next !== activeTab) {
+      setActiveTab(next);
+    }
+  }, [location?.pathname, location?.hash]);
 
   const categories = [
     { value: 'general', label: 'General Inquiry', icon: FaInfoCircle },
@@ -278,7 +305,7 @@ const CustomerSupport = () => {
       });
       setTrackForm({ ticketNumber, email });
       setTrackedTicket(null);
-      setActiveTab('track');
+      setTabWithHash('track');
       toast.success(ticketNumber ? `Message sent. Ticket: ${ticketNumber}` : 'Message sent');
       setQuickContactForm({
         name: isAuthenticated ? (user?.name || [user?.firstName, user?.lastName].filter(Boolean).join(' ') || '') : '',
@@ -394,7 +421,13 @@ const CustomerSupport = () => {
               ].map(({ id, label, icon: Icon }) => (
                 <button
                   key={id}
-                  onClick={() => setActiveTab(id)}
+                  onClick={() => {
+                    if (['contact', 'ticket', 'track', 'faq'].includes(id)) {
+                      setTabWithHash(id);
+                    } else {
+                      setActiveTab(id);
+                    }
+                  }}
                   className={`py-4 px-2 sm:px-3 border-b-2 font-medium text-sm transition-colors duration-300 flex items-center gap-2 shrink-0 ${
                     activeTab === id
                       ? 'border-blue-500 text-blue-600'
@@ -678,7 +711,7 @@ const CustomerSupport = () => {
                           ticketNumber: ticketConfirmation.ticketNumber || prev.ticketNumber,
                           email: (ticketConfirmation.email || user?.email || prev.email)
                         }));
-                        setActiveTab('track');
+                        setTabWithHash('track');
                       }}
                     >
                       Track this ticket

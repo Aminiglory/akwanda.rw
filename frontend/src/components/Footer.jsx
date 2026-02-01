@@ -20,12 +20,6 @@ const Footer = () => {
   const { user } = useAuth() || {};
   const [hasFlights, setHasFlights] = useState(null);
 
-  // Check if user is on first flight listing page (no flights yet)
-  const isFirstFlightListing = () => {
-    const searchParams = new URLSearchParams(location.search);
-    return location.pathname === '/upload-property' && searchParams.get('type') === 'flight';
-  };
-
   useEffect(() => {
     console.log('[Footer] mount');
     const handler = (e) => {
@@ -70,14 +64,6 @@ const Footer = () => {
   };
   const footerSections = [
     {
-      title: t ? t('footer.forGuests') : "For Guests",
-      links: [
-        { name: t ? t('footer.searchApartments') : "Search Property", href: "/apartments" },
-        { name: t ? t('footer.howToBook') : "How to Book", href: "/support#faq" },
-        { name: t ? t('footer.guestReviews') : "Guest Reviews", href: "/support#reviews" }
-      ]
-    },
-    {
       title: t ? t('footer.forHosts') : "For Hosts",
       links: [
         { name: t ? t('footer.listProperty') : "List Your Property", href: "/upload-property" },
@@ -86,19 +72,12 @@ const Footer = () => {
       ]
     },
     {
-      title: t ? t('footer.company') : "Company",
-      links: [
-        { name: t ? t('footer.aboutUs') : "About Us", href: "/support" },
-        { name: t ? t('footer.contactUs') : "Contact Us", href: "/support#contact" }
-      ]
-    },
-    {
       title: t ? t('footer.support') : "Support",
       links: [
-        { name: t ? t('footer.helpCenter') : "Help Center", href: "/support" },
-        { name: t ? t('footer.safetyCenter') : "Safety Center", href: "/support" },
         { name: t ? t('footer.contactUs') : "Contact Us", href: "/support#contact" },
-        { name: t ? t('footer.terms') : "Terms of Service", href: "/support" }
+        { name: t ? t('footer.submitTicket') : "Submit Ticket", href: "/support#ticket" },
+        { name: t ? t('footer.trackTicket') : "Track Ticket", href: "/support#track" },
+        { name: t ? t('footer.faq') : "FAQ", href: "/support#faq" }
       ]
     }
   ];
@@ -188,30 +167,24 @@ const Footer = () => {
 
           {/* Footer Links - wrapped to reduce height on small screens */}
           <div className="lg:col-span-4">
-            <div className="grid grid-cols-2 gap-6 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4">
-              {footerSections.map((section, index) => {
-                // Hide "For Guests" section on first flight listing page
-                if (isFirstFlightListing() && section.title === (t ? t('footer.forGuests') : "For Guests")) {
-                  return null;
-                }
-                return (
-                  <div key={index}>
-                    <h3 className="text-lg font-semibold mb-4">{section.title}</h3>
-                    <ul className="space-y-2">
-                      {section.links.map((link, linkIndex) => (
-                        <li key={linkIndex}>
-                          <a
-                            href={link.href}
-                            className="text-gray-300 hover:text-white transition-colors duration-300"
-                          >
-                            {link.name}
-                          </a>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                );
-              })}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              {footerSections.map((section, index) => (
+                <div key={index}>
+                  <h3 className="text-lg font-semibold mb-4">{section.title}</h3>
+                  <ul className="space-y-2">
+                    {section.links.map((link, linkIndex) => (
+                      <li key={linkIndex}>
+                        <a
+                          href={link.href}
+                          className="text-gray-300 hover:text-white transition-colors duration-300"
+                        >
+                          {link.name}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
             </div>
           </div>
         </div>
