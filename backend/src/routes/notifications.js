@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
 const Notification = require('../tables/notification');
+const Booking = require('../tables/booking');
+const Property = require('../tables/property');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
 
@@ -13,6 +15,93 @@ function requireAuth(req, res, next) {
     return next();
   } catch (e) {
     return res.status(401).json({ message: 'Invalid token' });
+  }
+}
+
+async function ensureStayReviewReminders(userId) {
+  try {
+    if (!userId) return;
+
+    const now = new Date();
+    const cutoff = new Date(now);
+    cutoff.setDate(cutoff.getDate() - 30);
+
+    const ended = await Booking.find({
+      guest: userId,
+      checkOut: { $lte: now, $gte: cutoff },
+      status: { $nin: ['cancelled'] },
+    })
+      .select('_id property bookingNumber reviewPin checkOut')
+      .lean();
+
+    if (!ended || ended.length === 0) return;
+
+    const propertyIds = Array.from(new Set(ended.map(b => String(b.property)).filter(Boolean)));
+    const props = propertyIds.length
+      ? await Property.find({ _id: { $in: propertyIds } }).select('_id title').lean()
+      : [];
+    const titleById = new Map((props || []).map(p => [String(p._id), String(p.title || '')]));
+
+    // Load properties that already have a review for this booking by this guest.
+    // We store reviews inside Property.ratings with a booking reference.
+    const reviewedPropertyIds = new Set();
+    if (propertyIds.length) {
+      const reviewedProps = await Property.find({
+        _id: { $in: propertyIds },
+        'ratings.booking': { $in: ended.map(b => b._id) },
+        'ratings.guest': userId,
+      })
+        .select('_id ratings.booking ratings.guest')
+        .lean();
+      for (const p of reviewedProps || []) {
+        reviewedPropertyIds.add(String(p._id));
+      }
+    }
+
+    // Avoid duplicates: if we already have a reminder for (userId + bookingId) then don't create again.
+    const existing = await Notification.find({
+      recipientUser: userId,
+      type: 'review_reminder',
+      booking: { $in: ended.map(b => b._id) },
+    })
+      .select('booking')
+      .lean();
+    const existingBookingIds = new Set((existing || []).map(n => String(n.booking)));
+
+    const toCreate = [];
+    for (const b of ended) {
+      if (!b || !b._id) continue;
+      if (existingBookingIds.has(String(b._id))) continue;
+      if (reviewedPropertyIds.has(String(b.property))) continue;
+
+      const propTitle = titleById.get(String(b.property)) || 'your stay';
+      const bookingNumber = String(b.bookingNumber || '').trim();
+      const pin = String(b.reviewPin || '').trim();
+
+      // Include the same parsing markers the frontend already understands.
+      // (Notifications.jsx extracts Booking number / Review PIN from the message.)
+      const details = [
+        bookingNumber ? `Booking number: ${bookingNumber}.` : '',
+        pin ? `Review PIN: ${pin}.` : '',
+      ].filter(Boolean).join(' ');
+
+      toCreate.push({
+        type: 'review_reminder',
+        title: 'Rate your stay',
+        message: `Your stay at ${propTitle} has ended. Please leave a review. ${details}`.trim(),
+        booking: b._id,
+        property: b.property,
+        recipientUser: userId,
+        audience: 'guest',
+      });
+    }
+
+    if (toCreate.length) {
+      await Notification.insertMany(toCreate, { ordered: false });
+    }
+  } catch (e) {
+    // Non-blocking
+    console.error('ensureStayReviewReminders error:', e);
   }
 }
 
@@ -28,10 +117,12 @@ router.get('/unread-count', requireAuth, async (req, res) => {
       return res.json({ count });
     }
 
+    await ensureStayReviewReminders(req.user.id);
+
     const count = await Notification.countDocuments({
       recipientUser: req.user.id,
       isRead: false,
-      type: { $in: ['booking_confirmed', 'booking_created', 'review_reply'] },
+      type: { $in: ['booking_confirmed', 'booking_created', 'review_reply', 'review_reminder'] },
       $or: [
         { audience: { $exists: false } },
         { audience: { $in: ['guest','both'] } }
@@ -74,9 +165,11 @@ router.get('/list', requireAuth, async (req, res) => {
       return res.json({ notifications: list });
     }
 
+    await ensureStayReviewReminders(req.user.id);
+
     const list = await Notification.find({
       recipientUser: req.user.id,
-      type: { $in: ['booking_confirmed', 'booking_created', 'review_reply'] },
+      type: { $in: ['booking_confirmed', 'booking_created', 'review_reply', 'review_reminder'] },
       $or: [
         { audience: { $exists: false } },
         { audience: { $in: ['guest','both'] } }

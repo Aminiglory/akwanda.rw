@@ -13,6 +13,8 @@ const notificationSchema = new mongoose.Schema(
         'commission_due',
         'commission_paid',
         'review_received',
+        'review_reply',
+        'review_reminder',
         'account_blocked',
         'account_reactivated',
         'fine_added',
