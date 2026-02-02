@@ -75,7 +75,10 @@ const bookingSchema = new mongoose.Schema(
         label: { type: String },
         amount: { type: Number, default: 0 }
       }
-    ]
+    ],
+    cancelledBy: { type: String, enum: ['guest', 'host', 'admin'], default: undefined },
+    cancellationReason: { type: String, default: '' },
+    cancelledAt: { type: Date }
   },
   { timestamps: true }
 );

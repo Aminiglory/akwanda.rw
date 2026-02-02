@@ -1100,7 +1100,7 @@ router.post('/:id/mark-paid', requireAuth, async (req, res) => {
 });
 
 // Cancel booking (guest/owner/admin)
-router.delete('/:id', requireAuth, async (req, res) => {
+async function cancelBookingHandler(req, res) {
   try {
     const b = await Booking.findById(req.params.id).populate('property').populate('guest');
     if (!b) return res.status(404).json({ message: 'Booking not found' });
@@ -1114,14 +1114,24 @@ router.delete('/:id', requireAuth, async (req, res) => {
     const now = new Date();
     if (b.checkIn && now >= new Date(b.checkIn) && !isAdmin) return res.status(400).json({ message: 'Cannot cancel after check-in' });
 
+    // Option B fields
+    if (isAdmin) b.cancelledBy = 'admin';
+    else if (isOwner) b.cancelledBy = 'host';
+    else if (isGuest) b.cancelledBy = 'guest';
+
+    const reason = typeof req.body?.reason === 'string' ? req.body.reason.trim() : '';
+    if (reason) b.cancellationReason = reason;
+    b.cancelledAt = now;
+
     b.status = 'cancelled';
     await b.save();
 
     try {
+      const suffix = b.cancellationReason ? ` Reason: ${b.cancellationReason}` : '';
       await Notification.create({
         type: 'booking_cancelled',
         title: 'Booking cancelled',
-        message: `Booking ${b.confirmationCode || b._id} was cancelled.`,
+        message: `Booking ${b.confirmationCode || b._id} was cancelled.${suffix}`,
         booking: b._id,
         property: b.property?._id || b.property,
         recipientUser: null,
@@ -1130,8 +1140,8 @@ router.delete('/:id', requireAuth, async (req, res) => {
       if (b.property?.host) {
         await Notification.create({
           type: 'booking_cancelled',
-          title: 'Your booking was cancelled',
-          message: `A booking at your property was cancelled.`,
+          title: 'A booking was cancelled',
+          message: `A booking at your property was cancelled.${suffix}`,
           booking: b._id,
           property: b.property?._id || b.property,
           recipientUser: b.property.host,
@@ -1141,7 +1151,7 @@ router.delete('/:id', requireAuth, async (req, res) => {
       await Notification.create({
         type: 'booking_cancelled',
         title: 'Your booking was cancelled',
-        message: `Your booking was cancelled.`,
+        message: `Your booking was cancelled.${suffix}`,
         booking: b._id,
         property: b.property?._id || b.property,
         recipientUser: b.guest,
@@ -1154,7 +1164,12 @@ router.delete('/:id', requireAuth, async (req, res) => {
     console.error('Cancel booking error:', error);
     return res.status(500).json({ message: 'Failed to cancel booking', error: error.message });
   }
-});
+}
+
+// Back-compat: BookingConfirmation.jsx calls POST /:id/cancel
+router.post('/:id/cancel', requireAuth, cancelBookingHandler);
+
+router.delete('/:id', requireAuth, cancelBookingHandler);
 
 // List all bookings (admin or scoped owner/guest by propertyId)
 router.get('/', requireAuth, async (req, res) => {
@@ -1246,6 +1261,19 @@ router.patch('/:id/status', requireAuth, async (req, res) => {
     const isAdmin = req.user.userType === 'admin';
     if (!isOwner && !isAdmin) return res.status(403).json({ message: 'Unauthorized' });
 
+    if ((booking.status === 'cancelled' || booking.status === 'ended') && status === 'cancelled') {
+      return res.status(400).json({ message: 'Booking is already cancelled' });
+    }
+
+    if (status === 'cancelled') {
+      const now = new Date();
+      if (isAdmin) booking.cancelledBy = 'admin';
+      else booking.cancelledBy = 'host';
+      const reason = typeof req.body?.reason === 'string' ? req.body.reason.trim() : '';
+      if (reason) booking.cancellationReason = reason;
+      booking.cancelledAt = now;
+    }
+
     booking.status = status;
     await booking.save();
 
@@ -1260,15 +1288,28 @@ router.patch('/:id/status', requireAuth, async (req, res) => {
       );
     } catch (_) { /* invoice upsert non-blocking */ }
 
-    await Notification.create({
-      type: 'booking_status_updated',
-      title: 'Booking Status Updated',
-      message: `Your booking ${booking.confirmationCode} has been ${status}`,
-      booking: booking._id,
-      property: booking.property,
-      recipientUser: booking.guest,
-      audience: 'guest'
-    });
+    if (status === 'cancelled') {
+      const suffix = booking.cancellationReason ? ` Reason: ${booking.cancellationReason}` : '';
+      await Notification.create({
+        type: 'booking_cancelled',
+        title: 'Your booking was declined',
+        message: `The host declined your booking.${suffix}`,
+        booking: booking._id,
+        property: booking.property,
+        recipientUser: booking.guest,
+        audience: 'guest'
+      });
+    } else {
+      await Notification.create({
+        type: 'booking_status_updated',
+        title: 'Booking Status Updated',
+        message: `Your booking ${booking.confirmationCode} has been ${status}`,
+        booking: booking._id,
+        property: booking.property,
+        recipientUser: booking.guest,
+        audience: 'guest'
+      });
+    }
 
     res.json({ success: true, message: `Booking ${status} successfully`, booking });
   } catch (error) {

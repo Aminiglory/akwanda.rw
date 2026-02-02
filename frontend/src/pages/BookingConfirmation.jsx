@@ -140,6 +140,9 @@ const BookingConfirmation = () => {
         confirmationCode: b.confirmationCode,
         bookingNumber: b.bookingNumber,
         reviewPin: b.reviewPin,
+        cancelledBy: b.cancelledBy,
+        cancellationReason: b.cancellationReason,
+        cancelledAt: b.cancelledAt,
         specialRequests: b.specialRequests || '',
         host: {
           name: '',
@@ -272,7 +275,30 @@ const BookingConfirmation = () => {
         </button>
 
         <div className="text-center">
-          {booking.status === 'confirmed' ? (
+          {booking.status === 'cancelled' ? (
+            <>
+              <FaTimes className="text-6xl text-red-500 mx-auto mb-4" />
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">Booking Declined</h1>
+              <p className="text-gray-600">
+                This booking was cancelled.
+                {booking.cancellationReason ? ` Reason: ${booking.cancellationReason}` : ''}
+              </p>
+              <div className="mt-3 flex items-center justify-center gap-2 flex-wrap">
+                <span className="text-xs px-2 py-1 rounded bg-red-100 text-red-700 capitalize">{booking.status}</span>
+                <span className="text-xs px-2 py-1 rounded bg-blue-100 text-blue-700 capitalize">{booking.paymentStatus}</span>
+              </div>
+            </>
+          ) : booking.status === 'ended' ? (
+            <>
+              <FaCheck className="text-6xl text-green-500 mx-auto mb-4" />
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">Stay Completed</h1>
+              <p className="text-gray-600">Your stay has ended. You can rate your stay if eligible.</p>
+              <div className="mt-3 flex items-center justify-center gap-2 flex-wrap">
+                <span className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-700 capitalize">{booking.status}</span>
+                <span className="text-xs px-2 py-1 rounded bg-blue-100 text-blue-700 capitalize">{booking.paymentStatus}</span>
+              </div>
+            </>
+          ) : booking.status === 'confirmed' ? (
             <>
               <FaCheckCircle className="text-6xl text-green-500 mx-auto mb-4" />
               <h1 className="text-3xl font-bold text-gray-900 mb-2">Booking Confirmed!</h1>
@@ -291,8 +317,12 @@ const BookingConfirmation = () => {
           ) : (
             <>
               <FaClock className="text-6xl text-yellow-500 mx-auto mb-4" />
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Awaiting Confirmation</h1>
-              <p className="text-gray-600">Your booking is paid and pending owner confirmation. You'll be notified once the owner confirms.</p>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">Pending Host Confirmation</h1>
+              <p className="text-gray-600">
+                {booking.status === 'awaiting'
+                  ? "Your booking is paid and awaiting owner confirmation. You'll be notified once the owner confirms."
+                  : "Your booking request is pending owner confirmation. You'll be notified once the owner confirms."}
+              </p>
               <div className="mt-3 flex items-center justify-center gap-2 flex-wrap">
                 <span className="text-xs px-2 py-1 rounded bg-yellow-100 text-yellow-700 capitalize">{booking.status}</span>
                 <span className="text-xs px-2 py-1 rounded bg-blue-100 text-blue-700 capitalize">{booking.paymentStatus}</span>
@@ -308,12 +338,42 @@ const BookingConfirmation = () => {
                 const hostId = property?.host?._id || property?.host;
                 const isOwner = hostId && user && String(hostId) === String(user._id);
                 return isOwner ? (
-                  <button
-                    onClick={confirmAsOwner}
-                    className="mt-4 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
-                  >
-                    Confirm this booking
-                  </button>
+                  <div className="mt-4 flex items-center justify-center gap-2 flex-wrap">
+                    <button
+                      onClick={confirmAsOwner}
+                      className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+                    >
+                      Confirm this booking
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (!booking?._id) return;
+                        if (!window.confirm('Decline this booking?')) return;
+                        const reason = window.prompt('Optional: tell the guest why you declined (leave blank for none):', '') || '';
+                        try {
+                          const res = await fetch(`${API_URL}/api/bookings/${booking._id}/status`, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'include',
+                            body: JSON.stringify({ status: 'cancelled', reason: String(reason || '') })
+                          });
+                          const data = await res.json();
+                          if (!res.ok) throw new Error(data?.message || 'Failed to decline booking');
+                          toast.success('Booking declined');
+                          setBooking(prev => ({
+                            ...prev,
+                            status: 'cancelled',
+                            cancellationReason: String(reason || '')
+                          }));
+                        } catch (e) {
+                          toast.error(e.message);
+                        }
+                      }}
+                      className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg"
+                    >
+                      Decline
+                    </button>
+                  </div>
                 ) : null;
               })()}
             </>

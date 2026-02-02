@@ -531,7 +531,8 @@ const Notifications = () => {
                           </button>
                         )}
                         {n.booking &&
-                          (n.type === 'booking_paid' || n.type === 'booking_created') && (
+                          (n.type === 'booking_paid' || n.type === 'booking_created') &&
+                          (user?.userType === 'host' || user?.userType === 'admin') && (
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();

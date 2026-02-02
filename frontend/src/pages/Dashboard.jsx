@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 
-import { FaBed, FaMapMarkerAlt, FaCheckCircle, FaCalendarAlt, FaStar, FaHeart, FaEdit, FaTrash, FaPlus, FaFilter, FaSearch, FaBath, FaRulerCombined } from 'react-icons/fa';
+import { FaBed, FaMapMarkerAlt, FaCheckCircle, FaCalendarAlt, FaStar, FaHeart, FaEdit, FaTrash, FaPlus, FaFilter, FaSearch, FaBath, FaRulerCombined, FaTimes } from 'react-icons/fa';
 import PropertyCard from '../components/PropertyCard';
 
 import { useAuth } from '../contexts/AuthContext';
@@ -446,32 +446,57 @@ const Dashboard = () => {
                       .map((booking) => (
                         <div key={booking.id} className="neu-card-sm p-6 transition-all">
                           {/* Host can confirm booking if status is pending */}
-                          {user.userType === 'host' && booking.status === 'pending' && (
+                          {user.userType === 'host' && (booking.status === 'pending' || booking.status === 'awaiting') && (
                             <div className="mb-4 flex items-center justify-between bg-blue-100 border border-blue-400 rounded-lg px-4 py-3">
                               <span className="flex items-center text-blue-700 font-bold text-lg">
                                 <FaCheckCircle className="mr-2 text-blue-600 text-2xl" />
                                 Confirm Booking
                               </span>
-                              <button
-                                className="px-5 py-2 bg-blue-600 text-white rounded-xl font-bold text-base shadow hover:bg-blue-700 transition-colors"
-                                onClick={async () => {
-                                  if (!window.confirm('Confirm this booking for the guest?')) return;
-                                  try {
-                                    const res = await fetch(`${API_URL}/api/bookings/${booking.id}/confirm`, {
-                                      method: 'POST',
-                                      credentials: 'include'
-                                    });
-                                    const data = await res.json();
-                                    if (!res.ok) throw new Error(data.message || 'Failed to confirm booking');
-                                    toast.success('Booking confirmed! Guest has been notified.');
-                                    setBookings(bookings.map(b => b.id === booking.id ? { ...b, status: 'confirmed' } : b));
-                                  } catch (e) {
-                                    toast.error('Failed to confirm booking: ' + e.message);
-                                  }
-                                }}
-                              >
-                                <FaCheckCircle className="mr-2 text-white text-xl" /> Confirm Booking
-                              </button>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  className="px-5 py-2 bg-blue-600 text-white rounded-xl font-bold text-base shadow hover:bg-blue-700 transition-colors"
+                                  onClick={async () => {
+                                    if (!window.confirm('Confirm this booking for the guest?')) return;
+                                    try {
+                                      const res = await fetch(`${API_URL}/api/bookings/${booking.id}/confirm`, {
+                                        method: 'POST',
+                                        credentials: 'include'
+                                      });
+                                      const data = await res.json();
+                                      if (!res.ok) throw new Error(data.message || 'Failed to confirm booking');
+                                      toast.success('Booking confirmed! Guest has been notified.');
+                                      setBookings(bookings.map(b => b.id === booking.id ? { ...b, status: 'confirmed' } : b));
+                                    } catch (e) {
+                                      toast.error('Failed to confirm booking: ' + e.message);
+                                    }
+                                  }}
+                                >
+                                  <FaCheckCircle className="mr-2 text-white text-xl" /> Confirm Booking
+                                </button>
+                                <button
+                                  className="px-5 py-2 bg-red-600 text-white rounded-xl font-bold text-base shadow hover:bg-red-700 transition-colors"
+                                  onClick={async () => {
+                                    if (!window.confirm('Decline this booking?')) return;
+                                    const reason = window.prompt('Optional: tell the guest why you declined (leave blank for none):', '') || '';
+                                    try {
+                                      const res = await fetch(`${API_URL}/api/bookings/${booking.id}/status`, {
+                                        method: 'PATCH',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        credentials: 'include',
+                                        body: JSON.stringify({ status: 'cancelled', reason: String(reason || '') })
+                                      });
+                                      const data = await res.json();
+                                      if (!res.ok) throw new Error(data.message || 'Failed to decline booking');
+                                      toast.success('Booking declined');
+                                      setBookings(bookings.map(b => b.id === booking.id ? { ...b, status: 'cancelled' } : b));
+                                    } catch (e) {
+                                      toast.error('Failed to decline booking: ' + e.message);
+                                    }
+                                  }}
+                                >
+                                  <FaTimes className="mr-2 text-white text-xl" /> Decline
+                                </button>
+                              </div>
                             </div>
                           )}
                           {/* Guest sees green badge if booking is confirmed */}
