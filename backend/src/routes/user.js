@@ -348,17 +348,45 @@ router.put('/change-password', requireAuth, async (req, res) => {
 });
 
 // Notification settings endpoint
+router.get('/notification-settings', requireAuth, async (req, res) => {
+	try {
+		const user = await User.findById(req.user.id).select('notificationSettings');
+		if (!user) return res.status(404).json({ message: 'User not found' });
+		return res.json({ notificationSettings: user.notificationSettings || {} });
+	} catch (error) {
+		return res.status(500).json({ message: 'Failed to load notification settings' });
+	}
+});
+
 router.put('/notification-settings', requireAuth, async (req, res) => {
 	try {
 		const user = await User.findById(req.user.id);
 		if (!user) return res.status(404).json({ message: 'User not found' });
 
-		user.notificationSettings = { ...user.notificationSettings, ...req.body };
+		const allowed = [
+			'emailNotifications',
+			'smsNotifications',
+			'bookingAlerts',
+			'marketingEmails',
+			'reviewNotifications',
+			'paymentAlerts'
+		];
+		const incoming = req.body || {};
+		const next = { ...(user.notificationSettings || {}) };
+		for (const k of allowed) {
+			if (typeof incoming[k] === 'boolean') {
+				next[k] = incoming[k];
+			}
+		}
+		user.notificationSettings = next;
 		await user.save();
 
-		res.json({ message: 'Notification settings updated successfully' });
+		return res.json({
+			message: 'Notification settings updated successfully',
+			notificationSettings: user.notificationSettings
+		});
 	} catch (error) {
-		res.status(500).json({ message: 'Failed to update notification settings' });
+		return res.status(500).json({ message: 'Failed to update notification settings' });
 	}
 });
 

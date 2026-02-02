@@ -26,6 +26,15 @@ const mongoose = require('mongoose');
       wishlistCars: [{ type: mongoose.Schema.Types.ObjectId, ref: 'CarRental' }],
       // Wishlist of attractions
       wishlistAttractions: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Attraction' }],
+		// Notification preferences (settings page)
+		notificationSettings: {
+			emailNotifications: { type: Boolean, default: true },
+			smsNotifications: { type: Boolean, default: false },
+			bookingAlerts: { type: Boolean, default: true },
+			marketingEmails: { type: Boolean, default: false },
+			reviewNotifications: { type: Boolean, default: true },
+			paymentAlerts: { type: Boolean, default: true },
+		},
       // Admin control fields
       isBlocked: { type: Boolean, default: false },
       blockReason: { type: String, maxlength: 500 },

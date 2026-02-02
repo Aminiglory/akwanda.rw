@@ -183,6 +183,7 @@ router.post('/register', async (req, res) => {
 				email: user.email,
 				userType: user.userType,
 				avatar: user.avatar,
+				notificationSettings: user.notificationSettings,
 				securityQuestionsSet: hasValidSecurityQuestionsList(user.securityQuestions)
 			},
 			token
@@ -356,6 +357,7 @@ router.post('/login', async (req, res) => {
 				email: user.email,
 				userType: user.userType,
 				avatar: user.avatar,
+				notificationSettings: user.notificationSettings,
 				securityQuestionsSet: hasValidSecurityQuestionsList(user.securityQuestions)
 			},
 			token
@@ -447,6 +449,7 @@ router.get('/me', authMiddleware, async (req, res) => {
         lastName: user.lastName,
         phone: user.phone,
         bio: user.bio,
+			notificationSettings: user.notificationSettings,
 			isBlocked: !!user.isBlocked,
 			securityQuestionsSet: hasValidSecurityQuestionsList(user.securityQuestions)
       }

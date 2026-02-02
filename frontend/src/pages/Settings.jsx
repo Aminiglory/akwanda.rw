@@ -7,7 +7,7 @@ import { useLocale } from '../contexts/LocaleContext';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const Settings = () => {
-  const { user, updateProfile: ctxUpdateProfile, updateAvatar: ctxUpdateAvatar, logout } = useAuth();
+  const { user, updateProfile: ctxUpdateProfile, updateAvatar: ctxUpdateAvatar, logout, refreshUser } = useAuth();
   const { t } = useLocale() || {};
   const safeT = (key, fallback) => {
     if (!t) return fallback;
@@ -28,6 +28,7 @@ const Settings = () => {
   const [confirmDeleteText, setConfirmDeleteText] = useState('');
   const userId = user?.id || user?._id;
   const [didHydrateProfile, setDidHydrateProfile] = useState(false);
+  const [didHydrateNotifications, setDidHydrateNotifications] = useState(false);
   const [profileData, setProfileData] = useState({
     firstName: user?.firstName || '',
     lastName: user?.lastName || '',
@@ -52,6 +53,7 @@ const Settings = () => {
 
   useEffect(() => {
     setDidHydrateProfile(false);
+    setDidHydrateNotifications(false);
   }, [userId]);
 
   useEffect(() => {
@@ -67,6 +69,15 @@ const Settings = () => {
     }));
     setDidHydrateProfile(true);
   }, [userId, didHydrateProfile, user?.firstName, user?.lastName, user?.email, user?.phone, user?.bio, user?.avatar]);
+
+  useEffect(() => {
+    if (!userId || didHydrateNotifications) return;
+    const s = user?.notificationSettings;
+    if (s && typeof s === 'object') {
+      setNotifications(prev => ({ ...prev, ...s }));
+    }
+    setDidHydrateNotifications(true);
+  }, [userId, didHydrateNotifications, user?.notificationSettings]);
 
   // Admin site settings (footer contact + social)
   const [siteSettings, setSiteSettings] = useState(() => {
@@ -224,6 +235,11 @@ const Settings = () => {
       });
       
       if (res.ok) {
+        const data = await res.json().catch(() => ({}));
+        if (data && data.notificationSettings) {
+          setNotifications(prev => ({ ...prev, ...data.notificationSettings }));
+        }
+        await refreshUser();
         toast.success('Notification settings updated');
       } else {
         toast.error('Failed to update notification settings');
