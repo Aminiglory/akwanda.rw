@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocale } from '../contexts/LocaleContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { FaUser, FaChartLine, FaCalendarAlt, FaDollarSign, FaDownload, FaEdit, FaTrash, FaEye, FaCog, FaHome, FaStar, FaMapMarkerAlt, FaCamera, FaFileAlt, FaPrint, FaEnvelope, FaPhone, FaBed, FaUsers, FaWifi, FaCar, FaSwimmingPool, FaUtensils, FaShieldAlt, FaClock, FaComments } from 'react-icons/fa';
+import { FaUser, FaChartLine, FaCalendarAlt, FaDollarSign, FaDownload, FaEdit, FaTrash, FaEye, FaCog, FaHome, FaStar, FaMapMarkerAlt, FaCamera, FaFileAlt, FaPrint, FaEnvelope, FaPhone, FaBed, FaUsers, FaWifi, FaCar, FaSwimmingPool, FaUtensils, FaShieldAlt, FaClock, FaUserCircle } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { safeApiGet, apiGet, apiPost, apiPut, apiDelete, apiDownload } from '../utils/apiUtils';
 
@@ -75,7 +75,6 @@ const UserProfile = () => {
   });
   const [avatarPreviewUrl, setAvatarPreviewUrl] = useState(null);
   const [avatarFile, setAvatarFile] = useState(null);
-  const [threadsUnread, setThreadsUnread] = useState(0);
 
   useEffect(() => {
     fetchProperties();
@@ -101,21 +100,6 @@ const UserProfile = () => {
       } catch (_) {
         setProfileData((prev) => ({ ...prev, avatar: makeAbsolute(user?.avatar) || prev.avatar }));
       }
-    })();
-  }, []);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch(`${API_URL}/api/messages/threads`, { credentials: 'include' });
-        const data = await res.json();
-        if (res.ok && Array.isArray(data.threads)) {
-          const total = data.threads.reduce((sum, t) => sum + Number(t.unreadCount || 0), 0);
-          setThreadsUnread(total);
-        } else {
-          setThreadsUnread(0);
-        }
-      } catch (_) { setThreadsUnread(0); }
     })();
   }, []);
 
@@ -280,32 +264,28 @@ const UserProfile = () => {
   // Treat /profile as the guest-style profile for all users (including hosts).
   // Owner dashboard profile layout remains available if this component is ever
   // mounted on a different, owner-specific route.
-  if (!isHost || isGuestProfileRoute) {
+  	if (!isHost || isGuestProfileRoute) {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="bg-[#a06b42] text-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div className="relative">
-                  <img src={avatarPreviewUrl || profileData.avatar || '/default-avatar.png'} alt="Profile" className="w-12 h-12 md:w-16 md:h-16 rounded-full object-cover ring-4 ring-white/20" />
-                </div>
+                {avatarPreviewUrl || profileData.avatar ? (
+                  <img
+                    src={avatarPreviewUrl || profileData.avatar}
+                    alt="Profile"
+                    className="w-12 h-12 md:w-16 md:h-16 rounded-full object-cover ring-4 ring-white/20"
+                  />
+                ) : (
+                  <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-white flex items-center justify-center ring-4 ring-white/20">
+                    <FaUserCircle className="text-xl md:text-2xl text-gray-500" />
+                  </div>
+                )}
                 <div>
                   <div className="text-xl md:text-2xl font-bold">Hi, {profileData.firstName || 'Traveler'}</div>
                   <div className="text-sm opacity-90">Welcome back</div>
                 </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <button onClick={() => navigate('/messages')} className="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white text-sm flex items-center gap-2">
-                  <FaComments /> Messages {threadsUnread > 0 ? <span className="ml-1 bg-white text-[#a06b42] px-2 py-0.5 rounded-full text-xs font-semibold">{threadsUnread}</span> : null}
-                </button>
-                <label className="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white text-sm cursor-pointer flex items-center gap-2">
-                  <FaCamera />
-                  <input type="file" accept="image/*" onChange={(e)=>{ const f=e.target.files?.[0]; if(f){ if(avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl); setAvatarPreviewUrl(URL.createObjectURL(f)); setAvatarFile(f);} }} className="hidden" />
-                </label>
-                {avatarFile && (
-                  <button onClick={uploadAvatar} className="px-3 py-2 rounded-lg bg-white text-[#a06b42] text-sm font-medium">Save</button>
-                )}
               </div>
             </div>
           </div>
@@ -416,16 +396,22 @@ const UserProfile = () => {
           }}
         ></div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-            <div className="flex items-center gap-6">
-              <div className="relative group">
-                <div className="absolute inset-0 bg-white/20 rounded-full blur-xl group-hover:blur-2xl transition-all duration-300"></div>
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+              <div className="flex items-center gap-6">
+                <div className="relative group">
+                  <div className="absolute inset-0 bg-white/20 rounded-full blur-xl group-hover:blur-2xl transition-all duration-300"></div>
               <div className="relative">
-                <img
-                  src={avatarPreviewUrl || profileData.avatar || '/default-avatar.png'}
-                  alt="Profile"
+                {avatarPreviewUrl || profileData.avatar ? (
+                  <img
+                    src={avatarPreviewUrl || profileData.avatar}
+                    alt="Profile"
                     className="w-20 h-20 md:w-28 md:h-28 rounded-full object-cover border-4 border-white/30 shadow-2xl ring-4 ring-white/20 transition-transform duration-300 group-hover:scale-105"
-                />
+                  />
+                ) : (
+                  <div className="w-20 h-20 md:w-28 md:h-28 rounded-full bg-white flex items-center justify-center border-4 border-white/30 shadow-2xl ring-4 ring-white/20">
+                    <FaUserCircle className="text-3xl md:text-4xl text-gray-500" />
+                  </div>
+                )}
                   <label className="absolute bottom-0 right-0 bg-white text-[#a06b42] p-2.5 rounded-full hover:bg-gray-100 cursor-pointer shadow-lg transform hover:scale-110 transition-all duration-300">
                     <FaCamera className="text-sm" />
                   <input
