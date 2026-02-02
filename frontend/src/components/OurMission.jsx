@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useLocale } from '../contexts/LocaleContext';
+import { Link } from 'react-router-dom';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -89,18 +90,18 @@ export default function OurMission() {
             </p>
           )}
           <div className="mt-6 flex flex-wrap gap-3">
-            <a
-              href="/about"
+            <Link
+              to="/support#faqs"
               className="px-5 py-2.5 rounded-xl bg-[#a06b42] text-white font-semibold shadow-md shadow-[#a06b42]/40 hover:bg-[#8f5d36] hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300"
             >
               {t ? t('cta.learnMore') : 'Learn more'}
-            </a>
-            <a
-              href="/contact"
+            </Link>
+            <Link
+              to="/support#contact"
               className="px-5 py-2.5 rounded-xl border border-[#e0c7a8] bg-white/80 text-[#4b2a00] font-semibold hover:bg-[#fff7ee] hover:border-[#d0ab7f] transition-all duration-300 shadow-sm"
             >
               {t ? t('cta.contactUs') : 'Contact us'}
-            </a>
+            </Link>
           </div>
         </div>
       </div>

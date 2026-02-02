@@ -242,6 +242,8 @@ function App() {
             <Route path="/mtn-payment" element={<ProtectedRoute><MTNMobileMoneyPayment /></ProtectedRoute>} />
             <Route path="/payment/mtn-mobile-money" element={<MTNMobileMoneyPayment />} />
             <Route path="/billing/rra-ebm" element={<RRAEBMIntegration />} />
+            <Route path="/about" element={<Navigate to="/support#faqs" replace />} />
+            <Route path="/contact" element={<Navigate to="/support#contact" replace />} />
             <Route path="/support" element={<CustomerSupport />} />
             <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
             <Route path="/my-bookings" element={<ProtectedRoute><MyBookings /></ProtectedRoute>} />

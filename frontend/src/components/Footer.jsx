@@ -55,6 +55,15 @@ const Footer = () => {
   const phone = site?.phone || '0781714167';
   const adminEmail = site?.adminEmail || companyEmail;
   const adminPhone = site?.adminPhone || phone;
+  const telHref = useMemo(() => {
+    const raw = String(adminPhone || '').trim();
+    const normalized = raw.replace(/[\s()-]/g, '');
+    return `tel:${normalized}`;
+  }, [adminPhone]);
+  const mailHref = useMemo(() => {
+    const raw = String(adminEmail || '').trim().toLowerCase();
+    return `mailto:${raw}`;
+  }, [adminEmail]);
   const year = useMemo(() => new Date().getFullYear(), []);
   const tr = (key, fallback) => {
     if (!t) return fallback;
@@ -133,11 +142,11 @@ const Footer = () => {
               </div>
               <div className="flex items-center">
                 <FaPhone className="text-blue-400 mr-3" />
-                <a href={`tel:${adminPhone}`} className="text-gray-300 hover:text-white">{adminPhone}</a>
+                <a href={telHref} className="text-gray-300 hover:text-white">{adminPhone}</a>
               </div>
               <div className="flex items-center">
                 <FaVoicemail className="text-blue-400 mr-3" />
-                <a href={`mailto:${adminEmail}`} className="text-gray-300 hover:text-white">{adminEmail}</a>
+                <a href={mailHref} className="text-gray-300 hover:text-white">{adminEmail}</a>
               </div>
             </div>
 

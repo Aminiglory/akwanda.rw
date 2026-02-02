@@ -941,29 +941,24 @@ const CustomerSupport = () => {
                       }
 
                       return (
-                        <div className="space-y-3">
+                        <div className="rounded-xl bg-white/90 backdrop-blur shadow">
                           {filtered.map((f, i) => {
                             const question = String(f?.q || f?.question || '').trim();
                             const answer = String(f?.a || f?.answer || '').trim();
                             const key = question ? `q:${question}` : `i:${i}`;
                             const open = openFaqKey === key;
                             return (
-                              <div key={key} className="border border-gray-200 rounded-xl overflow-hidden">
+                              <div key={key} className={i === 0 ? '' : 'border-t border-gray-100'}>
                                 <button
                                   type="button"
+                                  className="w-full text-left px-5 py-4 flex items-center justify-between hover:bg-gray-50"
                                   onClick={() => setOpenFaqKey(open ? '' : key)}
-                                  className="w-full text-left px-4 sm:px-5 py-4 bg-white hover:bg-gray-50 flex items-start justify-between gap-4"
+                                  aria-expanded={open}
                                 >
-                                  <div className="min-w-0">
-                                    <div className="text-sm sm:text-base font-semibold text-gray-900 break-words">{question || 'Question'}</div>
-                                  </div>
-                                  <div className="shrink-0 text-gray-500 text-sm font-semibold">{open ? '−' : '+'}</div>
+                                  <span className="font-semibold text-gray-800 break-words">{question || 'Question'}</span>
+                                  <span className="text-blue-600 text-xl">{open ? '-' : '+'}</span>
                                 </button>
-                                {open && (
-                                  <div className="px-4 sm:px-5 pb-4 text-sm text-gray-700 whitespace-pre-wrap break-words">
-                                    {answer || 'Answer not available.'}
-                                  </div>
-                                )}
+                                <div className={`px-5 pb-4 text-gray-600 whitespace-pre-wrap break-words ${open ? 'block' : 'hidden'}`}>{answer || 'Answer not available.'}</div>
                               </div>
                             );
                           })}
