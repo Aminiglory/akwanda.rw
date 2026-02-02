@@ -351,8 +351,14 @@ router.post('/', requireAuth, async (req, res) => {
 
     const start = normalizeYMDToLocal(checkIn);
     const end = normalizeYMDToLocal(checkOut);
-    if (isNaN(start.getTime()) || isNaN(end.getTime()) || end <= start) {
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
       return res.status(400).json({ message: 'Invalid check-in/check-out dates' });
+    }
+    if (end.getTime() === start.getTime()) {
+      return res.status(400).json({ message: 'Check-out date must be after check-in date (minimum 1 night)' });
+    }
+    if (end < start) {
+      return res.status(400).json({ message: 'Check-out date must be after check-in date' });
     }
 
     let roomDoc = null;

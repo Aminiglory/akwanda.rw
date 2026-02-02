@@ -75,6 +75,24 @@ const BookingProcess = () => {
     return Array.from(map.values());
   };
 
+  const validateStayDates = (checkIn, checkOut) => {
+    const start = new Date(checkIn);
+    const end = new Date(checkOut);
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      toast.error('Invalid check-in/check-out dates');
+      return false;
+    }
+    if (end.getTime() === start.getTime()) {
+      toast.error('Check-out date must be after check-in date (minimum 1 night)');
+      return false;
+    }
+    if (end < start) {
+      toast.error('Check-out date must be after check-in date');
+      return false;
+    }
+    return true;
+  };
+
   useEffect(() => {
     if (!initialRoomId || !availableRooms || availableRooms.length === 0 || selectedRoom) return;
 
@@ -198,6 +216,10 @@ const BookingProcess = () => {
 
     if (!bookingData.checkIn || !bookingData.checkOut) {
       toast.error('Please select check-in and check-out dates');
+      return;
+    }
+
+    if (!validateStayDates(bookingData.checkIn, bookingData.checkOut)) {
       return;
     }
 
@@ -350,6 +372,12 @@ const BookingProcess = () => {
   };
 
   const checkAvailability = async () => {
+
+    if (bookingData.checkIn && bookingData.checkOut) {
+      if (!validateStayDates(bookingData.checkIn, bookingData.checkOut)) {
+        return;
+      }
+    }
 
     try {
       setLoadingRooms(true);
@@ -540,6 +568,10 @@ const BookingProcess = () => {
 
     if (!bookingData.checkIn || !bookingData.checkOut) {
       toast.error('Please select check-in and check-out dates');
+      return;
+    }
+
+    if (!validateStayDates(bookingData.checkIn, bookingData.checkOut)) {
       return;
     }
 

@@ -324,6 +324,7 @@ const ApartmentDetails = () => {
     (async () => {
       try {
         setReviewsLoading(true);
+
         setReviewsError('');
         const res = await fetch(`${API_URL}/api/reviews/property/${id}`);
         const data = await res.json().catch(() => ({}));
@@ -345,11 +346,31 @@ const ApartmentDetails = () => {
     return () => { cancelled = true; };
   }, [API_URL, id]);
 
+  const validateStayDates = (checkIn, checkOut) => {
+    const start = new Date(checkIn);
+    const end = new Date(checkOut);
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      toast.error('Invalid check-in/check-out dates');
+      return false;
+    }
+    if (end.getTime() === start.getTime()) {
+      toast.error('Check-out date must be after check-in date (minimum 1 night)');
+      return false;
+    }
+    if (end < start) {
+      toast.error('Check-out date must be after check-in date');
+      return false;
+    }
+    return true;
+  };
+
   const handleDatesAvailability = async () => {
     if (!searchCheckIn || !searchCheckOut || !searchGuests || Number(searchGuests) < 1) {
       toast.error('Please select check-in, check-out, and number of guests to see available rooms.');
       return;
     }
+
+    if (!validateStayDates(searchCheckIn, searchCheckOut)) return;
 
     try {
       setAvailabilityLoading(true);
@@ -404,6 +425,8 @@ const ApartmentDetails = () => {
       toast.error('Please select check-in, check-out, and number of guests before reserving a room.');
       return;
     }
+
+    if (!validateStayDates(searchCheckIn, searchCheckOut)) return;
 
     const roomId = room && (room._id || room.id || room.roomNumber);
     if (!roomId) {

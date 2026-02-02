@@ -1576,8 +1576,14 @@ router.post('/:id/availability', async (req, res) => {
             const Booking = require('../tables/booking');
             const start = new Date(checkIn);
             const end = new Date(checkOut);
-            if (isNaN(start.getTime()) || isNaN(end.getTime()) || end <= start) {
+            if (isNaN(start.getTime()) || isNaN(end.getTime())) {
                 return res.status(400).json({ message: 'Invalid check-in/check-out dates' });
+            }
+            if (end.getTime() === start.getTime()) {
+                return res.status(400).json({ message: 'Check-out date must be after check-in date (minimum 1 night)' });
+            }
+            if (end < start) {
+                return res.status(400).json({ message: 'Check-out date must be after check-in date' });
             }
 
             // Fetch bookings for this property overlapping the requested window (exclude cancelled/ended)
