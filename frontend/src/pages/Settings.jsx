@@ -1,18 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { FaUser, FaBell, FaLock, FaEye, FaEyeSlash, FaCamera, FaTrash, FaCheck } from 'react-icons/fa';
+import { FaUser, FaBell, FaLock, FaEye, FaEyeSlash, FaCamera, FaTrash, FaCheck, FaUserCircle } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { useLocale } from '../contexts/LocaleContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const Settings = () => {
-  const { user, updateUser } = useAuth();
+  const { user, updateProfile: ctxUpdateProfile, updateAvatar: ctxUpdateAvatar, logout } = useAuth();
   const { t } = useLocale() || {};
   const safeT = (key, fallback) => {
     if (!t) return fallback;
     const value = t(key);
-    if (!value || value === key || String(value).includes('.')) {
+    const raw = String(value || '').trim();
+    const last = String(key || '').split('.').pop();
+    const looksLikeKey = !raw || raw === key || raw === last || raw.includes('.');
+    const looksCamel = /[a-z][A-Z]/.test(raw) && !/\s/.test(raw);
+    if (looksLikeKey || looksCamel) {
       return fallback;
     }
     return value;
@@ -20,6 +24,10 @@ const Settings = () => {
   const [activeTab, setActiveTab] = useState('profile');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [confirmDeleteText, setConfirmDeleteText] = useState('');
+  const userId = user?.id || user?._id;
+  const [didHydrateProfile, setDidHydrateProfile] = useState(false);
   const [profileData, setProfileData] = useState({
     firstName: user?.firstName || '',
     lastName: user?.lastName || '',
@@ -41,6 +49,24 @@ const Settings = () => {
     reviewNotifications: true,
     paymentAlerts: true
   });
+
+  useEffect(() => {
+    setDidHydrateProfile(false);
+  }, [userId]);
+
+  useEffect(() => {
+    if (!userId || didHydrateProfile) return;
+    setProfileData((prev) => ({
+      ...prev,
+      firstName: user?.firstName || '',
+      lastName: user?.lastName || '',
+      email: user?.email || '',
+      phone: user?.phone || '',
+      bio: user?.bio || '',
+      avatar: user?.avatar || ''
+    }));
+    setDidHydrateProfile(true);
+  }, [userId, didHydrateProfile, user?.firstName, user?.lastName, user?.email, user?.phone, user?.bio, user?.avatar]);
 
   // Admin site settings (footer contact + social)
   const [siteSettings, setSiteSettings] = useState(() => {
@@ -86,21 +112,14 @@ const Settings = () => {
   const updateProfile = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`${API_URL}/api/user/profile`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(profileData)
+      const updated = await ctxUpdateProfile({
+        firstName: profileData.firstName,
+        lastName: profileData.lastName,
+        email: profileData.email,
+        phone: profileData.phone,
+        bio: profileData.bio,
       });
-      
-      if (res.ok) {
-        const updatedUser = await res.json();
-        updateUser(updatedUser.user);
-        toast.success('Profile updated successfully');
-      } else {
-        const error = await res.json();
-        toast.error(error.message || 'Failed to update profile');
-      }
+      if (updated) toast.success('Profile updated successfully');
     } catch (error) {
       toast.error('Failed to update profile');
     } finally {
@@ -146,29 +165,51 @@ const Settings = () => {
   };
 
   const uploadAvatar = async (file) => {
-    const formData = new FormData();
-    formData.append('avatar', file);
-
     try {
       setLoading(true);
-      const res = await fetch(`${API_URL}/api/user/upload-avatar`, {
-        method: 'POST',
-        credentials: 'include',
-        body: formData
-      });
-      
-      if (res.ok) {
-        const data = await res.json();
-        setProfileData(prev => ({ ...prev, avatar: data.avatarUrl }));
-        updateUser({ ...user, avatar: data.avatarUrl });
-        toast.success('Avatar updated successfully');
-      } else {
-        toast.error('Failed to upload avatar');
-      }
+      await ctxUpdateAvatar(file, false);
+      toast.success('Avatar updated successfully');
     } catch (error) {
       toast.error('Failed to upload avatar');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const deleteAccount = async () => {
+    try {
+      const typed = String(confirmDeleteText || '').trim();
+      const pwd = String(deletePassword || '').trim();
+      if (typed !== 'DELETE') {
+        toast.error('Type DELETE to confirm');
+        return;
+      }
+      if (!pwd) {
+        toast.error('Password is required');
+        return;
+      }
+
+      setLoading(true);
+      const res = await fetch(`${API_URL}/api/user/me`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ password: pwd })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data.message || 'Failed to delete account');
+        return;
+      }
+      toast.success('Account deleted');
+      await logout();
+      window.location.href = '/';
+    } catch (e) {
+      toast.error('Failed to delete account');
+    } finally {
+      setLoading(false);
+      setDeletePassword('');
+      setConfirmDeleteText('');
     }
   };
 
@@ -245,11 +286,17 @@ const Settings = () => {
                 {/* Avatar Section */}
                 <div className="flex items-center space-x-6">
                   <div className="relative">
-                    <img
-                      src={profileData.avatar || '/default-avatar.png'}
-                      alt="Profile"
-                      className="w-20 h-20 rounded-full object-cover border-4 border-white shadow-lg"
-                    />
+                    {profileData.avatar ? (
+                      <img
+                        src={profileData.avatar}
+                        alt="Profile"
+                        className="w-20 h-20 rounded-full object-cover border-4 border-white shadow-lg"
+                      />
+                    ) : (
+                      <div className="w-20 h-20 rounded-full bg-white border-4 border-white shadow-lg flex items-center justify-center">
+                        <FaUserCircle className="text-3xl text-gray-500" />
+                      </div>
+                    )}
                     <label className="absolute bottom-0 right-0 bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700 cursor-pointer">
                       <FaCamera className="text-xs" />
                       <input
@@ -261,7 +308,7 @@ const Settings = () => {
                     </label>
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900">{safeT('settings.profilePhoto', 'Profile Photo')}</h3>
+                    <h3 className="text-lg font-semibold text-gray-900">{safeT('settings.profilePhoto', 'Profile photo')}</h3>
                     <p className="text-sm text-gray-600">{safeT('settings.uploadNewPhoto', 'Upload a new profile photo')}</p>
                   </div>
                 </div>
@@ -269,7 +316,7 @@ const Settings = () => {
                 {/* Profile Form */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">{safeT('settings.firstName', 'First Name')}</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{safeT('settings.firstName', 'First name')}</label>
                     <input
                       type="text"
                       value={profileData.firstName}
@@ -278,7 +325,7 @@ const Settings = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">{safeT('settings.lastName', 'Last Name')}</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{safeT('settings.lastName', 'Last name')}</label>
                     <input
                       type="text"
                       value={profileData.lastName}
@@ -287,7 +334,7 @@ const Settings = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">{safeT('auth.email', 'Email')}</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{safeT('auth.email', 'Email address')}</label>
                     <input
                       type="email"
                       value={profileData.email}
@@ -296,7 +343,7 @@ const Settings = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">{safeT('settings.phone', 'Phone')}</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{safeT('settings.phone', 'Phone number')}</label>
                     <input
                       type="tel"
                       value={profileData.phone}
@@ -376,6 +423,42 @@ const Settings = () => {
                     </button>
                   </div>
                 </div>
+
+                <div className="border-t pt-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">{safeT('settings.deleteAccount', 'Delete account')}</h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    {safeT('settings.deleteAccountWarning', 'This action is permanent. Type DELETE and enter your password to confirm.')}
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">{safeT('settings.confirmText', 'Confirmation')}</label>
+                      <input
+                        type="text"
+                        value={confirmDeleteText}
+                        onChange={(e) => setConfirmDeleteText(e.target.value)}
+                        placeholder="Type DELETE"
+                        className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">{safeT('settings.password', 'Password')}</label>
+                      <input
+                        type="password"
+                        value={deletePassword}
+                        onChange={(e) => setDeletePassword(e.target.value)}
+                        className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                      />
+                    </div>
+                  </div>
+                  <button
+                    onClick={deleteAccount}
+                    disabled={loading}
+                    className="mt-4 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 flex items-center space-x-2"
+                  >
+                    <FaTrash className="text-sm" />
+                    <span>{loading ? safeT('settings.deleting', 'Deleting...') : safeT('settings.deleteAccount', 'Delete account')}</span>
+                  </button>
+                </div>
               </div>
             )}
 
@@ -388,7 +471,12 @@ const Settings = () => {
                       <div key={key} className="flex items-center justify-between">
                         <div>
                           <div className="font-medium text-gray-900">
-                            {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+                            {key
+                              .replace(/([A-Z])/g, ' $1')
+                              .replace(/^./, (str) => str.toUpperCase())
+                              .replace(/Notifications\b/g, ' notifications')
+                              .replace(/Sms\b/g, 'SMS')
+                            }
                           </div>
                           <div className="text-sm text-gray-500">
                             {key === 'emailNotifications' && 'Receive notifications via email'}

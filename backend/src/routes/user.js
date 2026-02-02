@@ -1,5 +1,6 @@
 const { Router } = require('express');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
@@ -629,6 +630,32 @@ router.post('/wishlist/merge', requireAuth, async (req, res) => {
   } catch (e) {
     return res.status(500).json({ message: 'Failed to merge wishlist' });
   }
+});
+
+// Delete current user's account
+// DELETE /api/user/me
+// Body: { password }
+router.delete('/me', requireAuth, async (req, res) => {
+	try {
+		const { password } = req.body || {};
+		const pwd = String(password || '').trim();
+		if (!pwd) return res.status(400).json({ message: 'Password is required' });
+
+		const user = await User.findById(req.user.id).select('passwordHash userType');
+		if (!user) return res.status(404).json({ message: 'User not found' });
+		if (String(user.userType || '') === 'admin') {
+			return res.status(403).json({ message: 'Admin accounts cannot be deleted from settings' });
+		}
+
+		const ok = await bcrypt.compare(pwd, String(user.passwordHash || ''));
+		if (!ok) return res.status(401).json({ message: 'Password is incorrect' });
+
+		await User.deleteOne({ _id: user._id });
+		return res.json({ message: 'Account deleted successfully' });
+	} catch (e) {
+		console.error('Delete account error:', e);
+		return res.status(500).json({ message: 'Failed to delete account' });
+	}
 });
 
 module.exports = router;
