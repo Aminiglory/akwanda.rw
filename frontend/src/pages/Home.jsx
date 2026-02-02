@@ -7,6 +7,7 @@ import OurMission from '../components/OurMission';
 import HowItWorks from '../components/HowItWorks';
 import Testimonials from '../components/Testimonials';
 import { useLocale } from '../contexts/LocaleContext';
+import { Link } from 'react-router-dom';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -234,9 +235,9 @@ const Home = () => {
               <h3 className="text-2xl font-bold">{t ? t('home.listCtaTitle') : 'List your property with AkwandaTravels.com'}</h3>
               <p className="opacity-90">{t ? t('home.listCtaSubtitle') : 'Reach guests faster with our own tools and promotions.'}</p>
             </div>
-            <a href="/upload" className="inline-flex items-center px-5 py-3 rounded-lg bg-white text-[#4b2a00] font-semibold hover:bg-[#fff3ea] transition-colors w-full sm:w-auto text-center">
+            <Link to="/owner-register" className="inline-flex items-center px-5 py-3 rounded-lg bg-white text-[#4b2a00] font-semibold hover:bg-[#fff3ea] transition-colors w-full sm:w-auto text-center">
               {t ? t('home.getStarted') : 'Get started'}
-            </a>
+            </Link>
           </div>
         </section>
       </div>
