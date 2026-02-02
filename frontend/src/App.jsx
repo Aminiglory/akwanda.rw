@@ -27,7 +27,6 @@ const AirportTaxis = lazyWithRetry(() => import('./pages/AirportTaxis'));
 const ApartmentDetails = lazyWithRetry(() => import('./pages/ApartmentDetails'));
 const Login = lazyWithRetry(() => import('./pages/Login'));
 const Register = lazyWithRetry(() => import('./pages/Register'));
-const OwnerRegister = lazyWithRetry(() => import('./pages/OwnerRegister'));
 const ChooseListingType = lazyWithRetry(() => import('./pages/ChooseListingType'));
 const BecomeHost = lazyWithRetry(() => import('./pages/BecomeHost'));
 const OwnerLogin = lazyWithRetry(() => import('./pages/OwnerLogin'));
@@ -208,7 +207,7 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/owner-login" element={<OwnerLogin />} />
             <Route path="/register" element={<Register />} />
-            <Route path="/owner-register" element={<OwnerRegister />} />
+            <Route path="/owner-register" element={<Navigate to="/register?intent=host" replace />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/security-questions-setup" element={<ProtectedRoute><SecurityQuestionsSetup /></ProtectedRoute>} />
             <Route path="/choose-listing-type" element={<ProtectedRoute><ChooseListingType /></ProtectedRoute>} />

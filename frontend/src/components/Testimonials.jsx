@@ -205,7 +205,11 @@ export default function Testimonials() {
               Find Properties
             </Link>
             <Link
-              to={user ? "/upload-property" : "/register"}
+              to={
+                user
+                  ? ((user?.userType === 'host' || user?.userType === 'admin') ? "/upload-property" : "/become-host")
+                  : "/register?intent=host"
+              }
               className="bg-white text-gray-900 px-8 py-3 rounded-xl font-semibold hover:bg-gray-100 shadow-md hover:shadow-lg transition-all duration-300 text-center border border-gray-200"
             >
               {user ? "List Your Property" : "Sign Up to Host"}

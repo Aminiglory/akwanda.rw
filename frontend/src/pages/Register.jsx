@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { FaEnvelope, FaLock, FaEye, FaEyeSlash, FaUser, FaPhone, FaMapMarkerAlt } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
@@ -20,6 +20,16 @@ const SECURITY_QUESTION_BANK = [
 
 const Register = () => {
   const { t } = useLocale() || {};
+  const location = useLocation();
+  const search = location?.search || '';
+  const hostIntent = (() => {
+    try {
+      const p = new URLSearchParams(search);
+      return String(p.get('intent') || '').toLowerCase() === 'host';
+    } catch (_) {
+      return false;
+    }
+  })();
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -27,7 +37,7 @@ const Register = () => {
     phone: '',
     password: '',
     confirmPassword: '',
-    userType: 'guest',
+    userType: hostIntent ? 'host' : 'guest',
     securityQuestions: [
       { questionKey: '', answer: '' },
       { questionKey: '', answer: '' },
@@ -72,7 +82,11 @@ const Register = () => {
 
     if (result.success) {
       toast.success('Account created');
-      navigate('/choose-listing-type');
+      if (formData.userType === 'host') {
+        navigate('/upload-property');
+      } else {
+        navigate('/choose-listing-type');
+      }
     } else {
       const message = result.error || 'Registration failed. Please try again.';
       setError(message);
@@ -100,46 +114,48 @@ const Register = () => {
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <form className="space-y-6" onSubmit={handleSubmit}>
             {/* User Type Selection */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-3">
-                {t ? t('auth.iWantTo') : 'I want to'}
-              </label>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => handleInputChange('userType', 'guest')}
-                  className={`p-3 rounded-xl border-2 transition-all duration-300 ${
-                    formData.userType === 'guest'
-                      ? 'border-blue-500 bg-blue-50 text-blue-700'
-                      : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
-                  }`}
-                >
-                  <div className="text-center">
-                    <div className="text-2xl mb-1">🏠</div>
-                    <div className="font-medium">{t ? t('auth.findProperties') : 'Find Properties'}</div>
-                  </div>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleInputChange('userType', 'host')}
-                  className={`p-3 rounded-xl border-2 transition-all duration-300 ${
-                    formData.userType === 'host'
-                      ? 'border-blue-500 bg-blue-50 text-blue-700'
-                      : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
-                  }`}
-                >
-                  <div className="text-center">
-                    <div className="text-2xl mb-1">🏨</div>
-                    <div className="font-medium">{t ? t('auth.becomeHost') : 'Become a Host'}</div>
-                  </div>
-                </button>
+            {!hostIntent && (
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-3">
+                  {t ? t('auth.iWantTo') : 'I want to'}
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => handleInputChange('userType', 'guest')}
+                    className={`p-3 rounded-xl border-2 transition-all duration-300 ${
+                      formData.userType === 'guest'
+                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                        : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="text-center">
+                      <div className="text-2xl mb-1">🏠</div>
+                      <div className="font-medium">{t ? t('auth.findProperties') : 'Find Properties'}</div>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleInputChange('userType', 'host')}
+                    className={`p-3 rounded-xl border-2 transition-all duration-300 ${
+                      formData.userType === 'host'
+                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                        : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="text-center">
+                      <div className="text-2xl mb-1">🏨</div>
+                      <div className="font-medium">{t ? t('auth.becomeHost') : 'Become a Host'}</div>
+                    </div>
+                  </button>
+                </div>
+                {formData.userType === 'host' && (
+                  <p className="mt-2 text-xs text-gray-500">
+                    Hosts pay a commission per booking based on their commission level. Premium properties receive a visible badge and higher visibility for guests.
+                  </p>
+                )}
               </div>
-              {formData.userType === 'host' && (
-                <p className="mt-2 text-xs text-gray-500">
-                  Hosts pay a commission per booking based on their commission level. Premium properties receive a visible badge and higher visibility for guests.
-                </p>
-              )}
-            </div>
+            )}
 
             {/* Name Fields */}
             <div className="grid grid-cols-2 gap-4">

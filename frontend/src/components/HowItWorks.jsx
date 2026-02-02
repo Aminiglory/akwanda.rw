@@ -376,7 +376,7 @@ const HowItWorks = () => {
         {/* CTA for hosts */}
         <div className="rounded-2xl p-8 chocolate-gradient backdrop-blur shadow-md text-center">
           <Link 
-            to={user ? "/upload-property" : "/register"} 
+            to={user ? "/upload-property" : "/register?intent=host"} 
             className="modern-btn inline-block"
           >
             {t ? t('how.ctaBecomeHost') : 'Become a Host'}

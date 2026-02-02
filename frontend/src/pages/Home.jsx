@@ -235,7 +235,7 @@ const Home = () => {
               <h3 className="text-2xl font-bold">{t ? t('home.listCtaTitle') : 'List your property with AkwandaTravels.com'}</h3>
               <p className="opacity-90">{t ? t('home.listCtaSubtitle') : 'Reach guests faster with our own tools and promotions.'}</p>
             </div>
-            <Link to="/owner-register" className="inline-flex items-center px-5 py-3 rounded-lg bg-white text-[#4b2a00] font-semibold hover:bg-[#fff3ea] transition-colors w-full sm:w-auto text-center">
+            <Link to="/register?intent=host" className="inline-flex items-center px-5 py-3 rounded-lg bg-white text-[#4b2a00] font-semibold hover:bg-[#fff3ea] transition-colors w-full sm:w-auto text-center">
               {t ? t('home.getStarted') : 'Get started'}
             </Link>
           </div>
