@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const Notification = require('../tables/notification');
 const Booking = require('../tables/booking');
 const Property = require('../tables/property');
+const { ensurePlatformRatingReminder } = require('../utils/platformRatingReminders');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
 
@@ -118,11 +119,12 @@ router.get('/unread-count', requireAuth, async (req, res) => {
     }
 
     await ensureStayReviewReminders(req.user.id);
+    await ensurePlatformRatingReminder(req.user.id, req.user.userType);
 
     const count = await Notification.countDocuments({
       recipientUser: req.user.id,
       isRead: false,
-      type: { $in: ['booking_confirmed', 'booking_created', 'review_reply', 'review_reminder'] },
+      type: { $in: ['booking_confirmed', 'booking_created', 'review_reply', 'review_reminder', 'platform_rating_reminder'] },
       $or: [
         { audience: { $exists: false } },
         { audience: { $in: ['guest','both'] } }
@@ -166,10 +168,11 @@ router.get('/list', requireAuth, async (req, res) => {
     }
 
     await ensureStayReviewReminders(req.user.id);
+    await ensurePlatformRatingReminder(req.user.id, req.user.userType);
 
     const list = await Notification.find({
       recipientUser: req.user.id,
-      type: { $in: ['booking_confirmed', 'booking_created', 'review_reply', 'review_reminder'] },
+      type: { $in: ['booking_confirmed', 'booking_created', 'review_reply', 'review_reminder', 'platform_rating_reminder'] },
       $or: [
         { audience: { $exists: false } },
         { audience: { $in: ['guest','both'] } }

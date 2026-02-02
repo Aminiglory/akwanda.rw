@@ -445,6 +445,9 @@ router.get('/notifications', requireAuth, async (req, res) => {
     const Notification = require('../tables/notification');
     const Property = require('../tables/property');
     const CarRental = require('../tables/carRental');
+    const { ensurePlatformRatingReminder } = require('../utils/platformRatingReminders');
+
+    await ensurePlatformRatingReminder(req.user.id, req.user.userType);
     
     // Fetch recent notifications for this user - ONLY host/owner notifications
     // Explicitly exclude guest-only notifications
@@ -488,6 +491,9 @@ router.get('/notifications', requireAuth, async (req, res) => {
 router.get('/notifications/unread-count', requireAuth, async (req, res) => {
     try {
         const Notification = require('../tables/notification');
+        const { ensurePlatformRatingReminder } = require('../utils/platformRatingReminders');
+
+        await ensurePlatformRatingReminder(req.user.id, req.user.userType);
 
         const count = await Notification.countDocuments({
             recipientUser: req.user.id,

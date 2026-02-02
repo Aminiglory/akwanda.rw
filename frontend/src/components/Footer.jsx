@@ -228,10 +228,10 @@ const Footer = () => {
               {t ? t('footer.bottomCopyright', year) : `© ${year} AkwandaTravels.com. All rights reserved.`}
             </div>
             <div className="flex flex-wrap gap-6 text-sm justify-center md:justify-end">
-              <a href="/support" className="text-gray-300 hover:text-white transition-colors duration-300">
+              <a href="/privacy-policy" className="text-gray-300 hover:text-white transition-colors duration-300">
                 {t ? t('footer.privacy') : 'Privacy Policy'}
               </a>
-              <a href="/support" className="text-gray-300 hover:text-white transition-colors duration-300">
+              <a href="/terms-of-service" className="text-gray-300 hover:text-white transition-colors duration-300">
                 {t ? t('footer.terms') : 'Terms of Service'}
               </a>
             </div>

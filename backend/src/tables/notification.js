@@ -15,6 +15,7 @@ const notificationSchema = new mongoose.Schema(
         'review_received',
         'review_reply',
         'review_reminder',
+        'platform_rating_reminder',
         'account_blocked',
         'account_reactivated',
         'fine_added',

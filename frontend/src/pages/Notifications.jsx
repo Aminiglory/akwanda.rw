@@ -435,6 +435,7 @@ const Notifications = () => {
               const reviewPinMatch = messageText.match(/Review PIN:\s*(\d+)/i);
               const isReviewNotification = String(n.type || '').toLowerCase().includes('review') || !!reviewPinMatch;
               const isSupportTicketNotification = String(n.type || '') === 'support_ticket_created' && user?.userType === 'admin';
+              const isPlatformRatingReminder = String(n.type || '') === 'platform_rating_reminder';
 
               const handleCardClick = () => {
                 // Commission-style notifications keep their own CTAs; just mark read on click
@@ -450,6 +451,12 @@ const Notifications = () => {
 
                 if (isReviewNotification) {
                   openReview(n);
+                  return;
+                }
+
+                if (isPlatformRatingReminder) {
+                  markRead(n.id);
+                  navigate('/rate-akwanda');
                   return;
                 }
 

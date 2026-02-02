@@ -70,7 +70,7 @@ const Dashboard = () => {
     totalBookings: 0,
     activeListings: 0,
     happyGuests: 0,
-    satisfactionRate: 100,
+    satisfactionRate: 0,
     savedApartments: 0
   });
 
@@ -87,7 +87,7 @@ const Dashboard = () => {
           ...prev,
           totalBookings: data.totalBookings || 0,
           happyGuests: data.happyGuests || 0,
-          satisfactionRate: data.satisfactionRate || 100,
+          satisfactionRate: data.satisfactionRate ?? 0,
           savedApartments: 8
         }));
       });

@@ -88,6 +88,9 @@ const GlobalSearch = lazyWithRetry(() => import('./pages/GlobalSearch'));
 const LogoutSuccess = lazyWithRetry(() => import('./pages/LogoutSuccess'));
 const BookingSuccess = lazyWithRetry(() => import('./pages/BookingSuccess'));
 const RateStay = lazyWithRetry(() => import('./pages/RateStay'));
+const RateAkwanda = lazyWithRetry(() => import('./pages/RateAkwanda'));
+const PrivacyPolicy = lazyWithRetry(() => import('./pages/PrivacyPolicy'));
+const TermsOfService = lazyWithRetry(() => import('./pages/TermsOfService'));
 const PaymentSuccess = lazyWithRetry(() => import('./pages/PaymentSuccess'));
 const Transactions = lazyWithRetry(() => import('./pages/Transactions'));
 const GroupHomePage = lazyWithRetry(() => import('./pages/GroupHomePage'));
@@ -199,6 +202,9 @@ function App() {
             <Route path="/logout-success" element={<LogoutSuccess />} />
             <Route path="/booking-success" element={<BookingSuccess />} />
             <Route path="/rate-stay" element={<ProtectedRoute><RateStay /></ProtectedRoute>} />
+            <Route path="/rate-akwanda" element={<ProtectedRoute><RateAkwanda /></ProtectedRoute>} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="/terms-of-service" element={<TermsOfService />} />
             <Route path="/payment-success" element={<PaymentSuccess />} />
             <Route path="/billing/pay-commission" element={<ProtectedRoute><PayCommission /></ProtectedRoute>} />
             <Route path="/edit-property/:id" element={<ProtectedRoute><EditProperty /></ProtectedRoute>} />

@@ -54,6 +54,7 @@ const workersRouter = require('./src/routes/workers');
 const reviewsRouter = require('./src/routes/reviews');
 const addOnsRouter = require('./src/routes/addOns');
 const translateRouter = require('./src/routes/translate');
+const platformRatingsRouter = require('./src/routes/platformRatings');
 let dealsRouter, seedDealsRouter;
 try {
   dealsRouter = require('./src/routes/deals');
@@ -197,15 +198,25 @@ app.get('/api/metrics/landing', async (req, res) => {
     try {
         const Booking = require('./src/tables/booking');
         const Property = require('./src/tables/property');
+        const PlatformRating = require('./src/tables/platformRating');
         // Active Listings: properties with isActive true
         const activeListings = await Property.countDocuments({ isActive: true });
         // Happy Guests: unique users who have made at least one booking
         const allGuestIds = await Booking.distinct('guest');
         const happyGuests = allGuestIds.length;
-        // Satisfaction Rate: percent of confirmed bookings out of all bookings
-        const totalBookings = await Booking.countDocuments();
-        const confirmedBookings = await Booking.countDocuments({ status: 'confirmed' });
-        const satisfactionRate = totalBookings > 0 ? Math.round((confirmedBookings / totalBookings) * 1000) / 10 : 0; // one decimal
+        // Satisfaction Rate: derived from platform ratings (1-5 stars => 0-100%)
+        // If there are no platform ratings yet, return 0.
+        let satisfactionRate = 0;
+        try {
+          const agg = await PlatformRating.aggregate([
+            { $group: { _id: null, avgRating: { $avg: '$rating' }, count: { $sum: 1 } } }
+          ]);
+          const avgRating = Number(agg?.[0]?.avgRating || 0);
+          const count = Number(agg?.[0]?.count || 0);
+          if (count > 0 && avgRating > 0) {
+            satisfactionRate = Math.round((avgRating / 5) * 1000) / 10; // one decimal percent
+          }
+        } catch (_) {}
         res.json({ metrics: { activeListings, happyGuests, satisfactionRate } });
     } catch (e) {
         res.json({ metrics: { activeListings: 0, happyGuests: 0, satisfactionRate: 0 } });
@@ -242,7 +253,8 @@ app.use('/api/messages', messagesRouter);
 app.use('/api/content', contentRouter);
 app.use('/api/cars', carsRouter);
 app.use('/api/attractions', attractionsRouter);
-app.use('/api/car-bookings', carBookingsRouter);
+app.use('/api/car-bookings', carBooRouter);
+app.use('/api/platform-ratings', platformRatingskingsRouter);
 app.use('/api/attraction-bookings', attractionBookingsRouter);
 app.use('/api/flights/owner', ownerFlightsRouter);
 app.use('/api/notifications', notificationsRouter);
