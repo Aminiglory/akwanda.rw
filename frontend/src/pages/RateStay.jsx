@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { apiPost } from '../utils/apiUtils';
+import { FaStar } from 'react-icons/fa';
 
 const RateStay = () => {
   const [params] = useSearchParams();
@@ -15,7 +16,6 @@ const RateStay = () => {
   const [bookingNumber, setBookingNumber] = useState(initialBookingNumber);
   const [reviewPin, setReviewPin] = useState(initialPin);
   const [submitting, setSubmitting] = useState(false);
-  const [overallScore10, setOverallScore10] = useState(0);
   const [fields, setFields] = useState({
     staff: 0,
     cleanliness: 0,
@@ -28,10 +28,60 @@ const RateStay = () => {
   const [comment, setComment] = useState('');
   const [highlightsText, setHighlightsText] = useState('');
 
-  const clamp10 = (v) => {
+  const clampStars = (v) => {
     const n = Number(v);
     if (Number.isNaN(n)) return 0;
-    return Math.max(0, Math.min(10, n));
+    return Math.max(0, Math.min(5, n));
+  };
+
+  const aspects = useMemo(() => ([
+    { key: 'staff', label: 'Staff' },
+    { key: 'cleanliness', label: 'Cleanliness' },
+    { key: 'locationScore', label: 'Location' },
+    { key: 'facilities', label: 'Facilities' },
+    { key: 'comfort', label: 'Comfort' },
+    { key: 'valueForMoney', label: 'Value for money' },
+  ]), []);
+
+  const overallStars = useMemo(() => {
+    const values = aspects
+      .map(a => clampStars(fields[a.key]))
+      .filter(v => typeof v === 'number' && v > 0);
+    if (values.length === 0) return 0;
+    const avg = values.reduce((s, v) => s + v, 0) / values.length;
+    return Math.round(avg * 10) / 10;
+  }, [aspects, fields]);
+
+  const overallScore10 = useMemo(() => {
+    if (!overallStars) return 0;
+    return Math.round((overallStars * 2) * 10) / 10;
+  }, [overallStars]);
+
+  const StarPicker = ({ value, onChange, size = 18, disabled = false }) => {
+    const v = clampStars(value);
+    return (
+      <div className="flex items-center gap-1">
+        {Array.from({ length: 5 }).map((_, idx) => {
+          const n = idx + 1;
+          const active = n <= v;
+          return (
+            <button
+              key={n}
+              type="button"
+              onClick={() => {
+                if (disabled) return;
+                onChange(n);
+              }}
+              disabled={disabled}
+              className={`p-0.5 ${disabled ? 'cursor-default' : ''}`}
+              aria-label={`${n} star${n === 1 ? '' : 's'}`}
+            >
+              <FaStar size={size} className={active ? 'text-yellow-500' : 'text-gray-300'} />
+            </button>
+          );
+        })}
+      </div>
+    );
   };
 
   const handleSubmit = async (e) => {
@@ -44,12 +94,14 @@ const RateStay = () => {
       toast.error('Please enter your booking number');
       return;
     }
-    if (overallScore10 <= 0 || overallScore10 > 10) {
-      toast.error('Please choose an overall score from 1 to 10');
-      return;
-    }
     if (!reviewPin) {
       toast.error('Please enter your review PIN');
+      return;
+    }
+
+    const missingAspect = aspects.find(a => clampStars(fields[a.key]) <= 0);
+    if (missingAspect) {
+      toast.error(`Please rate ${missingAspect.label}`);
       return;
     }
 
@@ -60,18 +112,19 @@ const RateStay = () => {
 
     try {
       setSubmitting(true);
+      const to10 = (stars) => Math.round((clampStars(stars) * 2) * 10) / 10;
       await apiPost('/api/reviews', {
         bookingId,
         propertyId,
         bookingNumber,
         reviewPin,
-        overallScore10: clamp10(overallScore10),
-        staff: clamp10(fields.staff),
-        cleanliness: clamp10(fields.cleanliness),
-        locationScore: clamp10(fields.locationScore),
-        facilities: clamp10(fields.facilities),
-        comfort: clamp10(fields.comfort),
-        valueForMoney: clamp10(fields.valueForMoney),
+        overallScore10,
+        staff: to10(fields.staff),
+        cleanliness: to10(fields.cleanliness),
+        locationScore: to10(fields.locationScore),
+        facilities: to10(fields.facilities),
+        comfort: to10(fields.comfort),
+        valueForMoney: to10(fields.valueForMoney),
         title,
         comment,
         highlights,
@@ -100,15 +153,6 @@ const RateStay = () => {
     }
   };
 
-  const aspectConfig = [
-    { key: 'staff', label: 'Staff' },
-    { key: 'cleanliness', label: 'Cleanliness' },
-    { key: 'locationScore', label: 'Location' },
-    { key: 'facilities', label: 'Facilities' },
-    { key: 'comfort', label: 'Comfort' },
-    { key: 'valueForMoney', label: 'Value for money' },
-  ];
-
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-3xl mx-auto px-4 py-8">
@@ -119,7 +163,7 @@ const RateStay = () => {
 
         <form onSubmit={handleSubmit} className="modern-card-elevated p-6 space-y-6">
           <p className="text-sm text-gray-600">
-            Please enter your booking details and rate each aspect of your stay from 0 to 10.
+            Please enter your booking details and rate each aspect of your stay from 1 to 5 stars.
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -145,38 +189,32 @@ const RateStay = () => {
             </div>
           </div>
 
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-800">Overall score</span>
-              <span className="text-sm font-semibold text-blue-700">{overallScore10 || 0} / 10</span>
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className="text-sm font-medium text-gray-800">Overall rating</div>
+                <div className="text-xs text-gray-600">Calculated from the categories below</div>
+              </div>
+              <div className="flex items-center gap-3">
+                <StarPicker value={Math.round(overallStars)} onChange={() => {}} size={20} disabled />
+                <div className="text-sm font-semibold text-blue-700">{overallStars || 0} / 5</div>
+              </div>
             </div>
-            <input
-              type="range"
-              min="0"
-              max="10"
-              step="1"
-              value={overallScore10}
-              onChange={(e) => setOverallScore10(Number(e.target.value))}
-              className="w-full accent-blue-600"
-            />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs text-gray-700">
-            {aspectConfig.map((row) => (
-              <div key={row.key} className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <span>{row.label}</span>
-                  <span className="font-semibold">{fields[row.key] || 0} / 10</span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-gray-800">
+            {aspects.map((row) => (
+              <div key={row.key} className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="font-medium">{row.label}</span>
+                  <div className="flex items-center gap-2">
+                    <StarPicker
+                      value={fields[row.key] || 0}
+                      onChange={(next) => setFields(f => ({ ...f, [row.key]: next }))}
+                    />
+                    <span className="text-xs text-gray-600 w-10 text-right">{fields[row.key] || 0}/5</span>
+                  </div>
                 </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="10"
-                  step="1"
-                  value={fields[row.key] || 0}
-                  onChange={(e) => setFields(f => ({ ...f, [row.key]: Number(e.target.value) }))}
-                  className="w-full accent-blue-600"
-                />
               </div>
             ))}
           </div>
