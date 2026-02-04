@@ -325,28 +325,26 @@ const Notifications = () => {
     const isHost = user?.userType === 'host' || user?.userType === 'admin';
     // Mark as read but do not change any global mode; just navigate to the proper reviews page
     markRead(n.id);
+
+    const messageText = String(n?.message || '');
+    const bookingNumberMatch = messageText.match(/Booking number:\s*([A-Z0-9-]+)/i);
+    const reviewPinMatch = messageText.match(/Review PIN:\s*(\d+)/i);
+    const bookingId = n?.booking?._id || n?.booking;
+    const propertyId = n?.property?._id || n?.property;
+
+    if (bookingId && propertyId) {
+      const qs = new URLSearchParams();
+      qs.set('bookingId', String(bookingId));
+      qs.set('propertyId', String(propertyId));
+      if (bookingNumberMatch && bookingNumberMatch[1]) qs.set('bn', bookingNumberMatch[1]);
+      if (reviewPinMatch && reviewPinMatch[1]) qs.set('pin', reviewPinMatch[1]);
+      navigate(`/rate-stay?${qs.toString()}`);
+      return;
+    }
+
     if (isHost) {
-      // Open owner reviews focused on items that typically need attention
       navigate('/owner/reviews?filter=unreplied');
     } else {
-      const messageText = String(n?.message || '');
-      const bookingNumberMatch = messageText.match(/Booking number:\s*([A-Z0-9-]+)/i);
-      const reviewPinMatch = messageText.match(/Review PIN:\s*(\d+)/i);
-      const bookingId = n?.booking?._id || n?.booking;
-      const propertyId = n?.property?._id || n?.property;
-
-      // For review reminders (and other review-related notifications that include PIN),
-      // send the guest directly to the RateStay form and prefill details.
-      if (bookingId && propertyId) {
-        const qs = new URLSearchParams();
-        qs.set('bookingId', String(bookingId));
-        qs.set('propertyId', String(propertyId));
-        if (bookingNumberMatch && bookingNumberMatch[1]) qs.set('bn', bookingNumberMatch[1]);
-        if (reviewPinMatch && reviewPinMatch[1]) qs.set('pin', reviewPinMatch[1]);
-        navigate(`/rate-stay?${qs.toString()}`);
-        return;
-      }
-
       navigate('/account/reviews');
     }
   };
